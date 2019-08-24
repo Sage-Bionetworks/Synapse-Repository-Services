@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -162,7 +160,7 @@ public interface ColumnModelManager {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getColumnIdForTable(IdAndVersion idAndVersion);
+	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the column models bound to this object.
@@ -170,5 +168,14 @@ public interface ColumnModelManager {
 	 * @return
 	 */
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion);
+
+	/**
+	 * Create a new column model.  Column models are immutable and cannot be deleted once they are used.
+	 * @param model
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ColumnModel createColumnModel(ColumnModel columnModel);
 }
 

@@ -90,9 +90,13 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public List<ColumnModel> getViewSchema(String tableId) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		return tableManagerSupport.getColumnModelsForTable(idAndVersion);
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnModelsForObject(idAndVersion);
+	}
+	
+	@Override
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion) {
+		return columModelManager.getColumnIdsForTable(idAndVersion);
 	}
 
 	@WriteTransaction
@@ -123,7 +127,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	@Override
 	public List<String> getTableSchema(String tableId){
-		return columModelManager.getColumnIdForTable(IdAndVersion.parse(tableId));
+		return columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
 	}
 
 	/**

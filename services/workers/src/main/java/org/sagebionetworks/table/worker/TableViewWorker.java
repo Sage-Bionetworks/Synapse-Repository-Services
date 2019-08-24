@@ -131,7 +131,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			// Need the MD5 for the original schema.
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
-			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(idAndVersion.getId().toString());
+			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(idAndVersion);
 			
 			// Get the containers for this view.
 			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);

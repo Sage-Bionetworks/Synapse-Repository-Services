@@ -202,7 +202,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+	public List<ColumnModel> getColumnModels(List<String> ids) throws DatastoreException, NotFoundException {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		if(ids.isEmpty()){
 			return new LinkedList<ColumnModel>();

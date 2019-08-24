@@ -293,9 +293,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		assertEquals(rawSchema, result);
 	}
 	
@@ -306,9 +306,9 @@ public class TableViewManagerImplTest {
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(rawSchema);
+		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchema(viewId);
+		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -374,7 +374,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testGetTableSchema(){
-		when(columnModelManager.getColumnIdForTable(idAndVersion)).thenReturn(schema);
+		when(columnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
 		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
 	}

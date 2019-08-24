@@ -149,8 +149,8 @@ public class TableViewWorkerTest {
 			row.setRowId(i);
 			rows.add(row);
 		}
-		when(tableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(schema);
-		when(tableViewManager.getViewSchema(tableId)).thenReturn(expandedSchema);
+		when(tableManagerSupport.getTableSchema(idAndVersion)).thenReturn(schema);
+		when(tableViewManager.getViewSchema(idAndVersion)).thenReturn(expandedSchema);
 		long viewIdLong = KeyFactory.stringToKey(tableId);
 		viewCRC = 888L;		
 		when(indexManager.populateViewFromEntityReplication(viewIdLong, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema)).thenReturn(viewCRC);
@@ -236,7 +236,7 @@ public class TableViewWorkerTest {
 		verify(indexManager).deleteTableIndex(idAndVersion);
 		boolean isTableView = true;
 		verify(indexManager).setIndexSchema(idAndVersion, isTableView,expandedSchema);
-		verify(tableViewManager).getViewSchema(tableId);
+		verify(tableViewManager).getViewSchema(idAndVersion);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 		Long viewIdLong = KeyFactory.stringToKey(tableId);
 		verify(indexManager, times(1)).populateViewFromEntityReplication(viewIdLong, innerCallback, ViewTypeMask.File.getMask(), viewScope,expandedSchema);

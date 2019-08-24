@@ -64,7 +64,7 @@ public interface ColumnModelDAO extends ColumnNameProvider {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModels(List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns currently bound to an object in the order they were bound.

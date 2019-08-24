@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.SqlTransformResponse;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -226,12 +228,6 @@ public class TableServicesImpl implements TableServices {
 		}
 		return row.getValues().get(0);
 	}
-
-
-	@Override
-	public Long getMaxRowsPerPage(List<ColumnModel> models) {
-		return tableQueryManager.getMaxRowsPerPage(models);
-	}
 	
 	@Override
 	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask) {
@@ -272,4 +268,13 @@ public class TableServicesImpl implements TableServices {
 		return tableEntityManager.createTableSnapshot(userInfo, tableId, request);
 	}
 	
+	@Override
+	public TableBundle getTableBundle(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		List<ColumnModel> tableSchema = columnModelManager.getColumnModelsForObject(idAndVersion);
+		TableBundle bundle = new TableBundle();
+		bundle.setColumnModels(tableSchema);
+		bundle.setMaxRowsPerPage(tableQueryManager.getMaxRowsPerPage(tableSchema));
+		return bundle;
+	}	
 }

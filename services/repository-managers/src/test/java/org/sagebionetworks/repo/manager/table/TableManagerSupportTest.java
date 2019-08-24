@@ -51,7 +51,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -91,7 +90,7 @@ public class TableManagerSupportTest {
 	@Mock
 	TransactionalMessenger mockTransactionalMessenger;
 	@Mock
-	ColumnModelDAO mockColumnModelDao;
+	ColumnModelManager mockColumnModelManager;
 	@Mock
 	NodeDAO mockNodeDao;
 	@Mock
@@ -152,10 +151,10 @@ public class TableManagerSupportTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setId("444");
 		List<ColumnModel> columns = Lists.newArrayList(cm);
-		when(mockColumnModelDao.getColumnModelsForObject(idAndVersion)).thenReturn(
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(
 				columns);
 		List<String> columnIds = TableModelUtils.getIds(columns);
-		when(mockColumnModelDao.getColumnModelIdsForObject(idAndVersion)).thenReturn(columnIds);
+		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(cm.getId()));
 
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
@@ -176,7 +175,7 @@ public class TableManagerSupportTest {
 					throws Throwable {
 				return (ColumnModel) invocation.getArguments()[0];
 			}
-		}).when(mockColumnModelDao).createColumnModel(any(ColumnModel.class));
+		}).when(mockColumnModelManager).createColumnModel(any(ColumnModel.class));
 	}
 	
 	
@@ -795,7 +794,7 @@ public class TableManagerSupportTest {
 	public void testGetColumModelCached(){
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
-		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
+		when(mockColumnModelManager.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
 		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
 		result = manager.getColumnModel(EntityField.id);
@@ -803,7 +802,7 @@ public class TableManagerSupportTest {
 		result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
 		// The first call should cache the column so create should only be called once.
-		verify(mockColumnModelDao, times(1)).createColumnModel(any(ColumnModel.class));
+		verify(mockColumnModelManager, times(1)).createColumnModel(any(ColumnModel.class));
 	}
 	
 	

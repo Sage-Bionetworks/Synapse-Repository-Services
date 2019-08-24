@@ -123,7 +123,7 @@ public class DBOColumnModelImplTest {
 		// ask for the rows out of order.
 		ids.add(three.getId());
 		ids.add(one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids);
+		List<ColumnModel> list = columnModelDao.getColumnModels(ids);
 		assertNotNull(list);
 		assertEquals(2, list.size());
 		assertTrue(list.contains(one));
@@ -132,7 +132,7 @@ public class DBOColumnModelImplTest {
 	
 	@Test
 	public void testGetListEmpty() throws DatastoreException, NotFoundException{
-		List<ColumnModel> list = columnModelDao.getColumnModel(new LinkedList<String>());
+		List<ColumnModel> list = columnModelDao.getColumnModels(new LinkedList<String>());
 		assertNotNull(list);
 		assertTrue(list.isEmpty());
 	}
