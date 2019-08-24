@@ -29,7 +29,7 @@
 			}
 		},
 		"is_verified": {
-			"type": boolean,
+			"type": "boolean",
 			"description": "true only after the client verifies its control of the domain(s) of the registered redirect URL(s)."
 		}
 	}
