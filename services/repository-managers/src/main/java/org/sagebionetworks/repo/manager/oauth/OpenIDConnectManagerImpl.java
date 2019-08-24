@@ -67,7 +67,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
 	
-	private StackEncrypter stackEncrypter = EncryptionUtilsSingleton.singleton();
+	private StackEncrypter STACK_ENCRYPTER = EncryptionUtilsSingleton.singleton();
 	
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -90,15 +90,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		// TODO validation, esp. sector identifier!!!
 		oauthClient.setCreatedBy(userInfo.getId().toString());
-		oauthClient.setValidated(false);
+		oauthClient.setVerified(false);
 		// find or create SectorIdentifier
 		if (!oauthClientDao.doesSectorIdentifierExistForURI(oauthClient.getSector_identifier())) {
 			SectorIdentifier sectorIdentifier = new SectorIdentifier();
 			sectorIdentifier.setCreatedBy(userInfo.getId());
 			sectorIdentifier.setCreatedOn(System.currentTimeMillis());
 			String sectorIdentifierSecret = EncryptionUtils.newSecretKey();
-			String encryptedSISecret = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(sectorIdentifierSecret);
-			sectorIdentifier.setSecret(encryptedSISecret);
+			sectorIdentifier.setSecret(sectorIdentifierSecret);
 			sectorIdentifier.setSectorIdentifierUri(oauthClient.getSector_identifier());
 			oauthClientDao.createSectorIdentifier(sectorIdentifier);
 		}
@@ -123,13 +122,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@WriteTransaction
 	@Override
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
-		// TODO validation, esp. sector identifier!!!
-		oauthClient.setValidated(null); // null means not to change the current state in the back end, another process will set this flag
-		OAuthClient updated = oauthClientDao.updateOAuthClient(oauthClient);
-		if (!updated.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
+		OAuthClient currentClient = oauthClientDao.getOAuthClient(oauthClient.getClientId()); // TODO lock for update
+		if (!currentClient.getCreatedBy().equals(userInfo.getId().toString()) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException("You can only update your own OAuth client(s).");
 		}
-		return updated;
+		// TODO validation, esp. sector identifier!!!
+		oauthClient.setVerified(currentClient.getVerified()); // user cannot change verified flag
+		return oauthClientDao.updateOAuthClient(oauthClient);
 	}
 
 	@WriteTransaction
@@ -230,7 +229,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setClient_uri(client.getClient_uri());
 		result.setPolicy_uri(client.getPolicy_uri());
 		result.setTos_uri(client.getTos_uri());
-		result.setIs_verified(client.getValidated());
+		result.setIs_verified(client.getVerified());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
@@ -300,7 +299,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
+		String encryptedAuthorizationRequest = STACK_ENCRYPTER.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
 				
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
@@ -309,14 +308,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String ppid(String userId, String clientId) {
-		String encryptedSISecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		String sectorIdentifierSecret = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(encryptedSISecret);
+		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
 	
 	public  String getUserIdFromPPID(String ppid, String clientId) {
-		String encryptedSISecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		String sectorIdentifierSecret = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(encryptedSISecret);
+		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
 	
@@ -405,7 +402,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		String serializedAuthorizationRequest;
 		try {
-			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
+			serializedAuthorizationRequest = STACK_ENCRYPTER.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code: "+code, e);
 		}

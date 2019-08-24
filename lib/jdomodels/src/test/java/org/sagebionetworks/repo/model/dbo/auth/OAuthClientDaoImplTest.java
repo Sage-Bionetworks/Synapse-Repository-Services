@@ -98,7 +98,7 @@ public class OAuthClientDaoImplTest {
 		result.setSector_identifier_uri(SECTOR_IDENTIFIER_URI);
 		result.setTos_uri(TOS_URI);
 		result.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
-		result.setValidated(false);
+		result.setVerified(false);
 		return result;
 	}
 	
@@ -167,7 +167,7 @@ public class OAuthClientDaoImplTest {
 		assertNull(deser.getEtag());
 		assertNull(deser.getModifiedOn());
 		assertNull(deser.getSector_identifier());
-		assertNull(deser.getValidated());
+		assertNull(deser.getVerified());
 		// these should have been serialized
 		assertEquals(dto.getClient_uri(), deser.getClient_uri());
 		assertEquals(dto.getPolicy_uri(), deser.getPolicy_uri());
@@ -219,7 +219,7 @@ public class OAuthClientDaoImplTest {
 		assertEquals(SECTOR_IDENTIFIER_URI, retrieved.getSector_identifier_uri());
 		assertEquals(TOS_URI, retrieved.getTos_uri());
 		assertEquals(OIDCSigningAlgorithm.RS256, retrieved.getUserinfo_signed_response_alg());
-		assertFalse(retrieved.getValidated());
+		assertFalse(retrieved.getVerified());
 	}
 	
 	@Test
@@ -242,13 +242,13 @@ public class OAuthClientDaoImplTest {
 	public void testVerifyOAuthClient() {
 		String clientId = createSectorIdentifierAndClient();
 		OAuthClient client = oauthClientDao.getOAuthClient(clientId);
-		assertFalse(client.getValidated());
+		assertFalse(client.getVerified());
 		
 		// method under test
 		oauthClientDao.setOAuthClientVerified(clientId);
 		
 		OAuthClient updatedClient = oauthClientDao.getOAuthClient(clientId);
-		assertTrue(updatedClient.getValidated());
+		assertTrue(updatedClient.getVerified());
 		assertNotEquals(client.getEtag(), updatedClient.getEtag());
 		
 		try {
@@ -406,7 +406,7 @@ public class OAuthClientDaoImplTest {
 		String newSIURI = "https://new/uri";
 		clientToUpdate.setSector_identifier_uri(newSIURI);
 		clientToUpdate.setUserinfo_signed_response_alg(null);
-		clientToUpdate.setValidated(true);
+		clientToUpdate.setVerified(true);
 		
 		SectorIdentifier sectorIdentifier = newSectorIdentifier(SECOND_SECTOR_IDENTIFIER);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
@@ -427,7 +427,7 @@ public class OAuthClientDaoImplTest {
 		assertEquals(newSIURI, updated.getSector_identifier_uri());
 		assertEquals(newTOS, updated.getTos_uri());
 		assertNull(updated.getUserinfo_signed_response_alg());
-		assertFalse(updated.getValidated()); // we tried to set it to true, but cannot
+		assertFalse(updated.getVerified()); // we tried to set it to true, but cannot
 	}
 	
 	@Test
@@ -447,7 +447,7 @@ public class OAuthClientDaoImplTest {
 		
 		// the information should not be changed
 		assertTrue(oauthClientDao.checkOAuthClientSecretHash(id, secretHash));
-		assertTrue(oauthClientDao.getOAuthClient(id).getValidated());
+		assertTrue(oauthClientDao.getOAuthClient(id).getVerified());
 	}
 	
 	@Test
@@ -456,14 +456,14 @@ public class OAuthClientDaoImplTest {
 		oauthClientDao.setOAuthClientVerified(id);
 		
 		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
-		assertTrue(clientToUpdate.getValidated());
+		assertTrue(clientToUpdate.getVerified());
 		
-		clientToUpdate.setValidated(false);
+		clientToUpdate.setVerified(false);
 		// method under test
 		OAuthClient updated = oauthClientDao.updateOAuthClient(clientToUpdate);
 
 		// though we can't set false-> true in an update, we CAN set true->false
-		assertFalse(updated.getValidated());
+		assertFalse(updated.getVerified());
 	}
 
 }

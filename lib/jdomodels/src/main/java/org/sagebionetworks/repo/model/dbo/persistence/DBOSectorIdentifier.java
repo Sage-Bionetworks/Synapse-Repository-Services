@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_ENCRYPTED_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_SECTOR_IDENTIFIER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.sagebionetworks.EncryptionUtilsSingleton;
+import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -27,17 +29,19 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
 		new FieldColumn("id", COL_OAUTH_SECTOR_IDENTIFIER_ID, true).withIsBackupId(true), 
 		new FieldColumn("uri", COL_OAUTH_SECTOR_IDENTIFIER_URI), 
-		new FieldColumn("secret", COL_OAUTH_SECTOR_IDENTIFIER_SECRET),
+		new FieldColumn("encryptedSecret", COL_OAUTH_SECTOR_IDENTIFIER_ENCRYPTED_SECRET),
 		new FieldColumn("createdBy", COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY),
 		new FieldColumn("createdOn", COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON),
 	};
 	
 	private Long id;
 	private String uri;
-	private String secret;
+	private String encryptedSecret;
 	private Long createdBy;
 	private Long createdOn;
 	
+	private static StackEncrypter STACK_ENCRYPTER = EncryptionUtilsSingleton.singleton();
+
 	@Override
 	public TableMapping<DBOSectorIdentifier> getTableMapping() {
 		return new TableMapping<DBOSectorIdentifier>() {
@@ -48,7 +52,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 				DBOSectorIdentifier dbo = new DBOSectorIdentifier();
 				dbo.setId(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_ID));
 				dbo.setUri(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_URI));
-				dbo.setSecret(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_SECRET));
+				dbo.setEncryptedSecret(rs.getString(COL_OAUTH_SECTOR_IDENTIFIER_ENCRYPTED_SECRET));
 				dbo.setCreatedOn(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON));
 				dbo.setCreatedBy(rs.getLong(COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY));
 				return dbo;
@@ -83,9 +87,21 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	}
 
 
+	static final MigratableTableTranslation<DBOSectorIdentifier, DBOSectorIdentifier> TRANSLATOR = 
+			new BasicMigratableTableTranslation<DBOSectorIdentifier>() {
+		@Override
+		public DBOSectorIdentifier createDatabaseObjectFromBackup(DBOSectorIdentifier backup) {
+			String encryptedSecret = backup.getEncryptedSecret();
+			String decryptedSecret = STACK_ENCRYPTER.decryptStackEncryptedAndBase64EncodedString(encryptedSecret);
+			String reEncryptedSecret = STACK_ENCRYPTER.encryptAndBase64EncodeStringWithStackKey(decryptedSecret);
+			backup.setEncryptedSecret(reEncryptedSecret);
+			return backup;
+		}
+	};
+	
 	@Override
 	public MigratableTableTranslation<DBOSectorIdentifier, DBOSectorIdentifier> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOSectorIdentifier>();
+		return TRANSLATOR;
 	}
 
 
@@ -101,7 +117,6 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	}
 
 
-	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
@@ -147,13 +162,13 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 	}
 
 
-	public String getSecret() {
-		return secret;
+	public String getEncryptedSecret() {
+		return encryptedSecret;
 	}
 
 
-	public void setSecret(String secret) {
-		this.secret = secret;
+	public void setEncryptedSecret(String encryptedSecret) {
+		this.encryptedSecret = encryptedSecret;
 	}
 
 
@@ -164,7 +179,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((secret == null) ? 0 : secret.hashCode());
+		result = prime * result + ((encryptedSecret == null) ? 0 : encryptedSecret.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
@@ -194,10 +209,10 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (secret == null) {
-			if (other.secret != null)
+		if (encryptedSecret == null) {
+			if (other.encryptedSecret != null)
 				return false;
-		} else if (!secret.equals(other.secret))
+		} else if (!encryptedSecret.equals(other.encryptedSecret))
 			return false;
 		if (uri == null) {
 			if (other.uri != null)
@@ -210,7 +225,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 
 	@Override
 	public String toString() {
-		return "DBOSectorIdentifier [id=" + id + ", uri=" + uri + ", secret=" + secret + ", createdBy=" + createdBy
+		return "DBOSectorIdentifier [id=" + id + ", uri=" + uri + ", secret=" + encryptedSecret + ", createdBy=" + createdBy
 				+ ", createdOn=" + createdOn + "]";
 	}
 

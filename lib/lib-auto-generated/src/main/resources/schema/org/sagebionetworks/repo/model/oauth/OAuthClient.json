@@ -16,7 +16,7 @@
 				"type": "string"
 			}
 		},
-		"validated": {
+		"verified": {
 			"type": "boolean",
 			"description": "initially false, becomes true once the client creator demonstrates ownership of the redirect URI host"
 		},
