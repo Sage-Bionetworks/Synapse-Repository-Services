@@ -89,13 +89,12 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setIssuer(issuer);
 		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
 		result.setToken_endpoint(issuer+UrlHelpers.OAUTH_2_TOKEN);
-		// result.setRevocation_endpoint(); // TODO
 		result.setUserinfo_endpoint(issuer+UrlHelpers.OAUTH_2_USER_INFO);
 		result.setJwks_uri(issuer+UrlHelpers.OAUTH_2_JWKS);
 		result.setRegistration_endpoint(issuer+UrlHelpers.OAUTH_2_CLIENT);
 		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
 		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
-		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code)); // TODO support refresh_token grant type
+		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code));
 		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
 		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
 		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));

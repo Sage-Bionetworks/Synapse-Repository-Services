@@ -243,8 +243,6 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
 	}
 		
-	// TODO add a token validation filter that validates the access token
-	// TODO I think the content type has to be application/jwt
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
 	 * signing algorithm in its userinfo_signed_response_alg field.  
