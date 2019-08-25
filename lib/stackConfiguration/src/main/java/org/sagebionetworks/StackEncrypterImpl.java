@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
-import static org.sagebionetworks.ConfigurationPropertiesImpl.*;
+import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_KEY_CANNOT_BE_NULL;
+import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_WITH_KEY_S_DOES_NOT_EXIST;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -13,6 +14,8 @@ import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.EncryptResult;
+import com.amazonaws.services.kms.model.ReEncryptRequest;
+import com.amazonaws.services.kms.model.ReEncryptResult;
 import com.google.inject.Inject;
 
 public class StackEncrypterImpl implements StackEncrypter {
@@ -81,6 +84,21 @@ public class StackEncrypterImpl implements StackEncrypter {
 			// KMS can decrypt the value without providing the encryption key.
 			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
 			return byteBufferToString(decryptResult.getPlaintext());
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Override
+	public String reEncryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
+		try {
+			if(!encryptionEnabled()) {
+				return encryptedValueBase64;
+			}
+			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
+			// KMS can decrypt the value without providing the encryption key.
+			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(new ReEncryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
+			return new String(Base64.getEncoder().encode(reEncryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

@@ -92,8 +92,7 @@ public class DBOSectorIdentifier implements MigratableDatabaseObject<DBOSectorId
 		@Override
 		public DBOSectorIdentifier createDatabaseObjectFromBackup(DBOSectorIdentifier backup) {
 			String encryptedSecret = backup.getEncryptedSecret();
-			String decryptedSecret = STACK_ENCRYPTER.decryptStackEncryptedAndBase64EncodedString(encryptedSecret);
-			String reEncryptedSecret = STACK_ENCRYPTER.encryptAndBase64EncodeStringWithStackKey(decryptedSecret);
+			String reEncryptedSecret = STACK_ENCRYPTER.reEncryptStackEncryptedAndBase64EncodedString(encryptedSecret);
 			backup.setEncryptedSecret(reEncryptedSecret);
 			return backup;
 		}

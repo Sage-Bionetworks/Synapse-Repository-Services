@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -144,6 +144,12 @@ public class ConfigurationPropertiesImplTest {
 		String key = "empty";
 		// calls under test
 		configuration.getProperty(key);
+	}
+	
+	@Test
+	public void testHasProperty() {
+		assertFalse(configuration.hasProperty("does not exist"));
+		assertTrue(configuration.hasProperty("one"));
 	}
 
 	/**

@@ -25,12 +25,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
+import com.amazonaws.services.kms.model.EncryptRequest;
+import com.amazonaws.services.kms.model.EncryptResult;
+import com.amazonaws.services.kms.model.ReEncryptRequest;
+import com.amazonaws.services.kms.model.ReEncryptResult;
 
 
 @RunWith(MockitoJUnitRunner.class)
 public class StackEncrypterImplTest {
 
-	private StackEncrypterImpl stackEncrypterImpl;
+	private StackEncrypter stackEncrypter;
 
 	@Mock
 	private ConfigurationProperties mockConfigurationProperties;
@@ -42,11 +46,19 @@ public class StackEncrypterImplTest {
 	private Logger mockLog;
 
 	@Captor
+	private ArgumentCaptor<EncryptRequest> encryptRequestCaptor;
+
+	@Captor
 	private ArgumentCaptor<DecryptRequest> decryptRequestCaptor;
+
+	@Captor
+	private ArgumentCaptor<ReEncryptRequest> reEncryptRequestCaptor;
 
 	private String keyToBeDecrypted;
 	private String encryptedValue;
+	private String reEncryptedValue;
 	private String base64EncodedCipher;
+	private String base64EncodedReEncryptedCipher;
 	private String decryptedValue;
 
 	
@@ -55,26 +67,83 @@ public class StackEncrypterImplTest {
 	public void setUp() {
 		when(mockLoggerProvider.getLogger(anyString())).thenReturn(mockLog);
 
-		stackEncrypterImpl = new StackEncrypterImpl(mockConfigurationProperties, mockAWSKMS, mockLoggerProvider);
+		stackEncrypter = new StackEncrypterImpl(mockConfigurationProperties, mockAWSKMS, mockLoggerProvider);
 
 		keyToBeDecrypted = "keyToBeDecrypted";
+		
 		encryptedValue = "This is encrypted";
 		base64EncodedCipher = base64Encode(encryptedValue);
+		
+		decryptedValue = "This is the value after decryption";
+		
+		reEncryptedValue = "This is re-encrypted";
+		base64EncodedReEncryptedCipher = base64Encode(reEncryptedValue);
 		
 		when(mockConfigurationProperties.hasProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(true);
 		when(mockConfigurationProperties.getProperty(keyToBeDecrypted)).thenReturn(base64EncodedCipher);
 		
+		EncryptResult encryptResult = new EncryptResult();
+		encryptResult.setCiphertextBlob(ByteBuffer.wrap(encryptedValue.getBytes()));
+		when(mockAWSKMS.encrypt(any(EncryptRequest.class))).thenReturn(encryptResult);
+		
 		DecryptResult decryptResult = new DecryptResult();
-		decryptResult.setPlaintext(ByteBuffer.wrap(encryptedValue.getBytes()));
+		decryptResult.setPlaintext(ByteBuffer.wrap(decryptedValue.getBytes()));
 		when(mockAWSKMS.decrypt(any(DecryptRequest.class))).thenReturn(decryptResult);
+		
+		ReEncryptResult reEncryptResult = new ReEncryptResult();
+		reEncryptResult.setCiphertextBlob(ByteBuffer.wrap(reEncryptedValue.getBytes()));
+		when(mockAWSKMS.reEncrypt(any(ReEncryptRequest.class))).thenReturn(reEncryptResult);
+	}
+
+	@Test
+	public void testEncryptionRoundTrip() throws Exception {
+		{
+			// method under test
+			assertEquals(base64EncodedCipher, stackEncrypter.encryptAndBase64EncodeStringWithStackKey(encryptedValue));
+			verify(mockAWSKMS).encrypt(encryptRequestCaptor.capture());
+			EncryptRequest encryptRequest = encryptRequestCaptor.getValue();
+			assertNotNull(encryptRequest);
+		}
+
+		{
+			// method under test
+			assertEquals(decryptedValue, stackEncrypter.decryptStackEncryptedAndBase64EncodedString(base64EncodedCipher));
+			verify(mockAWSKMS).decrypt(decryptRequestCaptor.capture());
+			DecryptRequest decryptRequest = decryptRequestCaptor.getValue();
+			assertNotNull(decryptRequest);
+		}
+
+		{
+			// method under test
+			assertEquals(base64EncodedReEncryptedCipher, stackEncrypter.reEncryptStackEncryptedAndBase64EncodedString(base64EncodedCipher));
+			verify(mockAWSKMS).reEncrypt(reEncryptRequestCaptor.capture());
+			ReEncryptRequest reEncryptRequest = reEncryptRequestCaptor.getValue();
+			assertNotNull(reEncryptRequest);
+		}
+	}
+	
+	@Test
+	public void testEncryptionRoundTripNoAlias() throws Exception {
+		when(mockConfigurationProperties.hasProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(false);
+		
+		String encryptionInput = "some random string";
+		String base64EncodedInput = base64Encode(encryptionInput);
+		// method under test
+		assertEquals(base64EncodedInput, stackEncrypter.encryptAndBase64EncodeStringWithStackKey(encryptionInput));
+		
+		// method under test
+		assertEquals(encryptionInput, stackEncrypter.decryptStackEncryptedAndBase64EncodedString(base64EncodedInput));
+		
+		// method under test
+		assertEquals(base64EncodedInput, stackEncrypter.reEncryptStackEncryptedAndBase64EncodedString(base64EncodedInput));
 	}
 	
 	
 	@Test
 	public void testGetDecryptedProperty() throws UnsupportedEncodingException {
 		// call under test
-		String results = stackEncrypterImpl.getDecryptedProperty(keyToBeDecrypted);
-		assertEquals(encryptedValue, results);
+		String results = stackEncrypter.getDecryptedProperty(keyToBeDecrypted);
+		assertEquals(decryptedValue, results);
 		verify(mockAWSKMS).decrypt(decryptRequestCaptor.capture());
 		DecryptRequest request = decryptRequestCaptor.getValue();
 		assertNotNull(request);
@@ -90,7 +159,7 @@ public class StackEncrypterImplTest {
 		when(mockConfigurationProperties.getProperty(keyToBeDecrypted)).thenReturn(encryptedValue);
 		
 		// call under test
-		String results = stackEncrypterImpl.getDecryptedProperty(keyToBeDecrypted);
+		String results = stackEncrypter.getDecryptedProperty(keyToBeDecrypted);
 		// the value should not be modified in any way.
 		assertEquals(encryptedValue, results);
 		// the value should not be decrypted
@@ -104,7 +173,7 @@ public class StackEncrypterImplTest {
 		try {
 			String key = null;
 			// call under test
-			stackEncrypterImpl.getDecryptedProperty(key);
+			stackEncrypter.getDecryptedProperty(key);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertEquals("Property key cannot be null", e.getMessage());
@@ -116,7 +185,7 @@ public class StackEncrypterImplTest {
 		try {
 			String key = "unknown";
 			// call under test
-			stackEncrypterImpl.getDecryptedProperty(key);
+			stackEncrypter.getDecryptedProperty(key);
 			fail();
 		} catch (IllegalArgumentException e) {
 			assertEquals("Property with key: 'unknown' does not exist.", e.getMessage());
@@ -139,11 +208,5 @@ public class StackEncrypterImplTest {
 		}
 
 	}
-	
-	@Test
-	public void testBase64Decode() throws Exception {
-		when(mockConfigurationProperties.hasProperty(StackEncrypterImpl.PROPERTY_KEY_STACK_CMK_ALIAS)).thenReturn(false);
-		String base64encoded = "eyJjbGllbnRJZCI6IjEwMDAwMSIsInNjb3BlIjoib3BlbmlkIiwiY2xhaW1zIjoie1wiaWRfdG9rZW5cIjp7XCJ0ZWFtXCI6e1widmFsdWVzXCI6W1wiMTAxXCJdfSxcImdpdmVuX25hbWVcIjp7XCJlc3NlbnRpYWxcIjp0cnVlfSxcImZhbWlseV9uYW1lXCI6e1wiZXNzZW50aWFsXCI6dHJ1ZX0sXCJlbWFpbFwiOntcImVzc2VudGlhbFwiOnRydWV9LFwiY29tcGFueVwiOntcImVzc2VudGlhbFwiOmZhbHNlfX0sXCJ1c2VyaW5mb1wiOnt0ZWFtXCI6e1widmFsdWVzXCJbXCIxMDFcIl19LFwiZ2l2ZW5fbmFtZVwiOntcImVzc2VudGlhbFwiOnRydWV9LFwiZmFtaWx5X25hbWVcIjp7XCJlc3NlbnRpYWxcIjp0cnVlfSxcImVtYWlsXCI6e1wiZXNzZW50aWFsXCI6dHJ1ZX0sXCJjb21wYW55XCI6e1wiZXNzZW50aWFsXCI6ZmFsc2V9fX0iLCJyZXNwb25zZVR5cGUiOiJjb2RlIiwicmVkaXJlY3RVcmkiOiJodHRwczovL2RhdGEuYnJhaW5jb21tb25zLm9yZy91c2VyL2xvZ2luL3N5bmFwc2UvbG9naW4iLCJub25jZSI6ImFiY2RlZmciLCJ1c2VySWQiOiIxIiwiYXV0aG9yaXplZEF0IjoiMjAxOS0wOC0yMlQyMTozNTozOC43NDNaIn0=";
-		System.out.println(stackEncrypterImpl.decryptStackEncryptedAndBase64EncodedString(base64encoded));
-	}
+
 }

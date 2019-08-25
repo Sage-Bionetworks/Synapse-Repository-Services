@@ -199,13 +199,8 @@ public class OAuthClientDaoImplTest {
 		String id = createSectorIdentifierAndClient();
 		assertNotNull(id);
 	}
-
-	@Test
-	public void testGetOAuthClient() {
-		String clientId = createSectorIdentifierAndClient();
-		
-		// method under test
-		OAuthClient retrieved = oauthClientDao.getOAuthClient(clientId);
+	
+	private static void checkOauthClientFields(OAuthClient retrieved, String clientId) {
 		assertEquals(CLIENT_NAME, retrieved.getClient_name());
 		assertEquals(CLIENT_URI, retrieved.getClient_uri());
 		assertEquals(clientId, retrieved.getClientId());
@@ -220,6 +215,27 @@ public class OAuthClientDaoImplTest {
 		assertEquals(TOS_URI, retrieved.getTos_uri());
 		assertEquals(OIDCSigningAlgorithm.RS256, retrieved.getUserinfo_signed_response_alg());
 		assertFalse(retrieved.getVerified());
+		
+	}
+
+	@Test
+	public void testGetOAuthClient() {
+		String clientId = createSectorIdentifierAndClient();
+		
+		// method under test
+		OAuthClient retrieved = oauthClientDao.getOAuthClient(clientId);
+		
+		checkOauthClientFields(retrieved, clientId);
+	}
+	
+	@Test
+	public void testSelectOAuthClientForUpdate() {
+		String clientId = createSectorIdentifierAndClient();
+		
+		// method under test
+		OAuthClient retrieved = oauthClientDao.selectOAuthClientForUpdate(clientId);
+		
+		checkOauthClientFields(retrieved, clientId);
 	}
 	
 	@Test
