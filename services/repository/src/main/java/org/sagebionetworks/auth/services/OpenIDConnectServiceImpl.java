@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -47,7 +48,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private OpenIDConnectManager oidcManager;
 
 	@Override
-	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
+	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return oidcManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}
@@ -71,7 +72,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) {
+	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return oidcManager.updateOpenIDConnectClient(userInfo, oauthClient);
 	}

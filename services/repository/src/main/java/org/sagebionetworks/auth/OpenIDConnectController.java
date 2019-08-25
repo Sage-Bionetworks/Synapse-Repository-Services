@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -78,6 +79,7 @@ public class OpenIDConnectController {
 	 * @param oauthClient
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.POST)
@@ -85,7 +87,7 @@ public class OpenIDConnectController {
 	OAuthClient createOpenIDConnectClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OAuthClient oauthClient
-			) throws NotFoundException {
+			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
 				createOpenIDConnectClient(userId, oauthClient);
 	}
@@ -160,6 +162,7 @@ public class OpenIDConnectController {
 	 * @param oauthClient
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.PUT)
@@ -167,7 +170,7 @@ public class OpenIDConnectController {
 	OAuthClient updateOpenIDConnectClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OAuthClient oauthClient
-			) throws NotFoundException {
+			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
 				updateOpenIDConnectClient(userId, oauthClient);
 	}

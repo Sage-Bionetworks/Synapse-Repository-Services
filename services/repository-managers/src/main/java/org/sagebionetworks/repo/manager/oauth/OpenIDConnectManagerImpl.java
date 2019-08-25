@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,7 +22,9 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -48,15 +51,20 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.atlassian.httpclient.api.factory.Scheme;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 
@@ -70,23 +78,23 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
-	
+
 	private StackEncrypter STACK_ENCRYPTER = EncryptionUtilsSingleton.singleton();
-	
+
 	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
-	
+
 	@Autowired
 	private AuthenticationDAO authDao;
-	
+
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
+
 	@Autowired
 	private TeamDAO teamDAO;
-	
+
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
 		ValidateArgument.required(oauthClient.getClient_name(), "OAuth client name");
 		ValidateArgument.required(oauthClient.getRedirect_uris(), "OAuth client redirect URI list.");
@@ -98,9 +106,46 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			ValidateArgument.validUrl(oauthClient.getSector_identifier_uri(), "Sector Identifier URI");
 		}
 	}
-	
+
+	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
+	private static SimpleHttpClient client;
+
+	static {
+		// Configure HTTP client for use
+		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
+		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
+		client = new SimpleHttpClientImpl(httpClientConfig);
+	}
+
+	private static List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(uri.toString());
+		SimpleHttpResponse response = null;
+		try {
+			response = client.get(request);
+		} catch (IOException e) {
+			throw new ServiceUnavailableException("Failed to read the content of "+uri+
+					".  Please check the URL and the file at the address, then try again.", e);
+		}
+		if (response.getStatusCode() != HttpStatus.SC_OK) {
+			throw new ServiceUnavailableException("Received "+response.getStatusCode()+" status while trying to read the content of "+uri+
+					".  Please check the URL and the file at the address, then try again.");
+		}
+		List<String> result = new ArrayList<String>();
+		JSONArray array;
+		try {
+			array = (JSONArray)MINIDEV_JSON_PARSER.parse(response.getContent());
+			for (int i=0; i<array.length(); i++) {
+				result.add(array.getString(i));
+			}
+		} catch (net.minidev.json.parser.ParseException | JSONException e) {
+			throw new IllegalArgumentException("The content of "+uri+" is not a valid JSON array of strings.", e);
+		}
+		return result;
+	}
+
 	// implements https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public static String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) {
+	public static String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) throws ServiceUnavailableException {
 		if (StringUtils.isEmpty(sectorIdentifierUriString)) {
 			// the sector ID is the host common to all uris in the list
 			String result=null;
@@ -128,14 +173,18 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			} catch (URISyntaxException e) {
 				ValidateArgument.failRequirement(sectorIdentifierUriString+" is not a valid URI.");
 			}
-			ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), sectorIdentifierUriString+" must use the https scheme.");
-			// TODO read file, parse json, and make sure it contains all of redirectUris values
-			// https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation
+			ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
+					sectorIdentifierUriString+" must use the https scheme.");
+			// read file, parse json, and make sure it contains all of redirectUris values
+			List<String> siList = readSectorIdentifierFile(uri);
+			ValidateArgument.requirement(siList.containsAll(redirectUris), 
+					"Not all of the submitted redirect URIs are found in the list hosted at "+uri);
+			// As per https://openid.net/specs/openid-connect-registration-1_0.html#SectorIdentifierValidation,
 			// the sector ID is the host of the sectorIdentifierUri
 			return uri.getHost();
 		}
 	}
-	
+
 	private void ensureSectorIdentifierExists(String sectorIdentiferURI, Long createdBy) {
 		if (oauthClientDao.doesSectorIdentifierExistForURI(sectorIdentiferURI)) {
 			return;
@@ -148,31 +197,31 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		sectorIdentifier.setSectorIdentifierUri(sectorIdentiferURI);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
 	}
-	
+
 	public static boolean canCreate(UserInfo userInfo) {
 		return AuthorizationUtils.isUserAnonymous(userInfo);
 	}
-	
+
 	public static boolean canAdministrate(UserInfo userInfo, String createdBy) {
 		return createdBy.equals(userInfo.getId().toString()) || userInfo.isAdmin();
 	}
-	
+
 	@WriteTransaction
 	@Override
-	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) {
+	public OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) throws ServiceUnavailableException {
 		if (!canCreate(userInfo)) {
 			throw new UnauthorizedException("Anonymous user may not create an OAuth Client");
 		}
 		validateOAuthClientForCreateOrUpdate(oauthClient);
-		
+
 		oauthClient.setCreatedBy(userInfo.getId().toString());
 		oauthClient.setVerified(false);
-			
+
 		String resolvedSectorIdentifier = resolveSectorIdentifier(oauthClient.getSector_identifier_uri(), oauthClient.getRedirect_uris());
 		oauthClient.setSector_identifier(resolvedSectorIdentifier);
 		// find or create SectorIdentifier
 		ensureSectorIdentifierExists(resolvedSectorIdentifier, userInfo.getId());
-		
+
 		return oauthClientDao.createOAuthClient(oauthClient);
 	}
 
@@ -192,7 +241,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) {
+	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClientId());
 		if (!canAdministrate(userInfo, currentClient.getCreatedBy())) {
 			throw new UnauthorizedException("You can only update your own OAuth client(s).");
@@ -206,7 +255,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			ensureSectorIdentifierExists(resolvedSectorIdentifier, userInfo.getId());
 			toUpdate.setVerified(false);
 		}
-		
+
 		return oauthClientDao.updateOAuthClient(toUpdate);
 	}
 
@@ -219,9 +268,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		oauthClientDao.deleteOAuthClient(id);
 	}
-	
+
 	private static final Random RANDOM = new SecureRandom();
-	
+
 	public static String generateOAuthClientSecret() {
 		byte[] randomBytes = new byte[32];
 		RANDOM.nextBytes(randomBytes);
@@ -265,7 +314,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return result;
 	}
-	
+
 	private static Map<OIDCClaimName,String> CLAIM_DESCRIPTION;
 	static {
 		CLAIM_DESCRIPTION = new HashMap<OIDCClaimName,String>();
@@ -277,7 +326,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		CLAIM_DESCRIPTION.put(OIDCClaimName.company, "Your company, if you share it with Synapse");
 		CLAIM_DESCRIPTION.put(OIDCClaimName.auth_time, "The time when you last logged in to Synapse.");
 	}
-	
+
 	public static void validateAuthenticationRequest(OIDCAuthorizationRequest authorizationRequest, OAuthClient client) {
 		ValidateArgument.validUrl(authorizationRequest.getRedirectUri(), "Redirect URI");
 		if (!client.getRedirect_uris().contains(authorizationRequest.getRedirectUri())) {
@@ -287,7 +336,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (authorizationRequest.getResponseType()!=OAuthResponseType.code) 
 			throw new IllegalArgumentException("Unsupported response type "+authorizationRequest.getResponseType());
 	}
-	
+
 	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
 		JSONObject claimsObject;
 		try {
@@ -302,7 +351,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
 			OIDCAuthorizationRequest authorizationRequest) {
-		
+
 		ValidateArgument.required(authorizationRequest, "Authorization Request");
 		ValidateArgument.requiredNotEmpty(authorizationRequest.getClientId(), "Client ID");
 		OAuthClient client;
@@ -336,7 +385,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				scopeDescriptions.add(scopeDescription);
 			}
 		}
-		
+
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid) && !StringUtil.isNullOrEmpty(authorizationRequest.getClaims())) {
@@ -358,7 +407,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setScope(new ArrayList<String>(scopeDescriptions));
 		return result;
 	}
-	
+
 	@Override
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
@@ -375,11 +424,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		validateAuthenticationRequest(authorizationRequest, client);
-		 
+
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt((new Date(System.currentTimeMillis())));
 		authorizationRequest.setAuthenticatedAt(authDao.getSessionValidatedOn(userInfo.getId()));
-		
+
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		try {
 			authorizationRequest.writeToJSONObject(adapter);
@@ -388,23 +437,23 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
 		String encryptedAuthorizationRequest = STACK_ENCRYPTER.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
-				
+
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
 		return result;
 	}
-	
+
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String ppid(String userId, String clientId) {
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
-	
+
 	public  String getUserIdFromPPID(String ppid, String clientId) {
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
-	
+
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
@@ -414,9 +463,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (!scopes.contains(OAuthScope.openid)) return result;
-		
+
 		UserProfile privateUserProfile = userProfileManager.getUserProfile(userId);
-		
+
 		for (OIDCClaimName claimName : oidcClaims.keySet()) {
 			OIDCClaimsRequestDetails claimsDetails = oidcClaims.get(claimName);
 			String claimValue = null;
@@ -459,7 +508,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return result;
 	}
-	
+
 	/*
 	 * return the subset of team Ids in which the given user is a member
 	 */
@@ -480,7 +529,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return result;
 	}
-	
+
 	public static String asSerializedJSON(Collection<?> c) {
 		JSONArray array = new JSONArray();
 		for (Object s : c) {
@@ -504,32 +553,32 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalArgumentException("Incorrectly formatted authorization code: "+code, e);
 		}
-		
+
 		// enforce expiration of authorization code
 		long now = System.currentTimeMillis();
 		if (System.currentTimeMillis() > authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS) {
 			throw new IllegalArgumentException("Authorization code has expired.");
 		}
-		
+
 		// ensure redirect URI matches
 		if (!authorizationRequest.getRedirectUri().equals(redirectUri)) {
 			throw new IllegalArgumentException("URI mismatch: "+authorizationRequest.getRedirectUri()+" vs. "+redirectUri);
 		}
-		
+
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
-				
+
 		Long authTimeSeconds = null;
 		if (authorizationRequest.getAuthenticatedAt()!=null) {
 			authTimeSeconds = authorizationRequest.getAuthenticatedAt().getTime()/1000L;
 		}
-		
+
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
 		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
-		
+
 		OIDCTokenResponse result = new OIDCTokenResponse();
-		
+
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid)) {
@@ -537,10 +586,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
 			String idToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
-				authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
+					authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
-		
+
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = OIDCTokenUtil.createOIDCaccessToken(oauthEndpoint, ppid, 
 				oauthClientId, now, authTimeSeconds, accessTokenId, scopes, 
@@ -560,16 +609,16 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			}
 			String oauthClientId = accessTokenClaimsSet.getAudience().get(0); 
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
-			
+
 			String ppid = accessTokenClaimsSet.getSubject();
 			Long authTimeSeconds = accessTokenClaimsSet.getLongClaim(OIDCClaimName.auth_time.name());
-			
+
 			// userId is used to retrieve the user info
 			String userId = getUserIdFromPPID(ppid, oauthClientId);
-			
+
 			List<OAuthScope> scopes = OIDCTokenUtil.getScopeFromClaims(accessTokenClaimsSet);
 			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
-			
+
 			Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
 			// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
@@ -581,7 +630,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			// and then sends a request with Accept: application/json or vice versa (registers with no 
 			// algorithm and then sends a request with Accept: application/jwt).
 			boolean returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
-			
+
 			if (returnJson) {
 				// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
 				userInfo.put(OIDCClaimName.sub, ppid);
@@ -590,7 +639,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				long now = System.currentTimeMillis();
 				String jwtIdToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
 						authTimeSeconds, UUID.randomUUID().toString(), userInfo);
-				
+
 				return jwtIdToken;
 			}
 		} catch (java.text.ParseException e) {

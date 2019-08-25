@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 public interface OpenIDConnectService {
 	
@@ -18,8 +19,9 @@ public interface OpenIDConnectService {
 	 * @param userId
 	 * @param oauthClient
 	 * @return
+	 * @throws ServiceUnavailableException 
 	 */
-	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient);
+	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException;
 	
 	/**
 	 * 
@@ -51,8 +53,9 @@ public interface OpenIDConnectService {
 	 * @param userId
 	 * @param oauthClient
 	 * @return
+	 * @throws ServiceUnavailableException 
 	 */
-	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient);
+	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException;
 	
 	/**
 	 * 

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.nimbusds.jwt.JWT;
 
@@ -23,7 +24,7 @@ public interface OpenIDConnectManager {
 	 * @param oauthClient
 	 * @return the Id and secret of the newly created client
 	 */
-	OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
+	OAuthClient createOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) throws ServiceUnavailableException;
 
 	/**
 	 * 
@@ -50,7 +51,7 @@ public interface OpenIDConnectManager {
 	 * @param oauthClient
 	 * @return
 	 */
-	OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient);
+	OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) throws ServiceUnavailableException;
 
 	/**
 	 * Delete an Open ID Connect client.
