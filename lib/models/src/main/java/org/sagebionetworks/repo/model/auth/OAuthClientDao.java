@@ -22,6 +22,13 @@ public interface OAuthClientDao {
 	
 	/**
 	 * 
+	 * @param clientId
+	 * @return
+	 */
+	public OAuthClient selectOAuthClientForUpdate(String clientId);
+	
+	/**
+	 * 
 	 * @param nextPageToken
 	 * @param createdBy
 	 * @return a paginated list of OAuth clients created by the given user

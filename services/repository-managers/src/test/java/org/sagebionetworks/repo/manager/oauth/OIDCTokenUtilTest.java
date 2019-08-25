@@ -123,7 +123,8 @@ public class OIDCTokenUtilTest {
 	    // since the last End-User authentication.
 	    assertEquals(AUTH_TIME, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
 	}
-		private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
+		
+	private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
 		OIDCClaimsRequestDetails result = new OIDCClaimsRequestDetails();
 		result.setValues(l);
 		return result;
@@ -135,7 +136,7 @@ public class OIDCTokenUtilTest {
 		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
 		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
 		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
-		expectedClaims.put(OIDCClaimName.family_name, ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.family_name, null);
 		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
 		
 		String accessToken = OIDCTokenUtil.createOIDCaccessToken(

@@ -181,6 +181,14 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		return clientDboToDto(dbo);
 	}
 	
+	@Override
+	public OAuthClient selectOAuthClientForUpdate(String clientId) {
+		ValidateArgument.required(clientId, "Client ID");
+		SqlParameterSource param = new SinglePrimaryKeySqlParameterSource(clientId);
+		DBOOAuthClient dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOOAuthClient.class, param);
+		return clientDboToDto(dbo);
+	}
+	
 	/**
 	 * 
 	 * @param clientId

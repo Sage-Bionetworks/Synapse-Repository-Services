@@ -90,6 +90,18 @@ public class OpenIDConnectController {
 				createOpenIDConnectClient(userId, oauthClient);
 	}
 	
+	/**
+	 * Get a secret credential to use when requesting an access token.  
+	 * <br>
+	 * See https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+	 * <br>
+	 * Synapse supports 'client_secret_basic'.
+	 * <br>
+	 * <em>NOTE:  This request will invalidate any previously issued secrets.</em>
+	 * @param userId
+	 * @param clientId
+	 * @return
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
 	public @ResponseBody 
@@ -143,6 +155,7 @@ public class OpenIDConnectController {
 	
 	/**
 	 * Update the metadata for an existing OAuth 2.0 client
+	 * 
 	 * @param userId
 	 * @param oauthClient
 	 * @return
@@ -176,6 +189,11 @@ public class OpenIDConnectController {
 				deleteOpenIDConnectClient(userId, id);
 	}
 	
+	/**
+	 * 
+	 * @param authorizationRequest
+	 * @return
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_AUTH_REQUEST_DESCRIPTION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -212,7 +230,8 @@ public class OpenIDConnectController {
 	 * 
 	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	 *  
-	 *  Request must include client ID and Secret in an Authentication header
+	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method: 
+	 *  https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
 	 *  
 	 * @param verifiedClientId id of the OAuth Client, verified via Basic Authentication
 	 * @param grant_type  authorization_code or refresh_token

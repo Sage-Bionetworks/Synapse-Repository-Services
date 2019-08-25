@@ -215,16 +215,19 @@ public class OIDCTokenUtil {
 		JSONObject userInfoClaims = new JSONObject();
 		for (OIDCClaimName claimName : oidcClaims.keySet()) {
 			OIDCClaimsRequestDetails claimDetails = oidcClaims.get(claimName);
-			try {
-				JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-				claimDetails.writeToJSONObject(adapter);
-				// JSONObjectAdapter is a JSON Object but we need an instance of net.minidev.json.JSONObject
-				// so we serialize and immediately parse
-				JSONObject claimsDetailsJson = (JSONObject)MINIDEV_JSON_PARSER.parse(adapter.toJSONString());
-				userInfoClaims.put(claimName.name(), claimsDetailsJson);	
-			} catch (net.minidev.json.parser.ParseException | JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
+			JSONObject claimsDetailsJson = null;
+			if (claimDetails!=null) {
+				try {
+					JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+					claimDetails.writeToJSONObject(adapter);
+					// JSONObjectAdapter is a JSON Object but we need an instance of net.minidev.json.JSONObject
+					// so we serialize and immediately parse
+					claimsDetailsJson = (JSONObject)MINIDEV_JSON_PARSER.parse(adapter.toJSONString());
+				} catch (net.minidev.json.parser.ParseException | JSONObjectAdapterException e) {
+					throw new RuntimeException(e);
+				}				
 			}
+			userInfoClaims.put(claimName.name(), claimsDetailsJson);	
 		}
 		scopeAndClaims.put(USER_INFO_CLAIMS, userInfoClaims);
 		

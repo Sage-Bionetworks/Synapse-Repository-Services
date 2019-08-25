@@ -12,6 +12,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import net.minidev.json.JSONObject;
 
 public class ClaimsJsonUtil {
+	// TODO check for properly handling of null key value
 	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getClaimsMapFromJSONObject(JSONObject claimsJson, boolean ignoreUnknownClaims) {
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		if (claimsJson==null) return result;
@@ -26,12 +27,16 @@ public class ClaimsJsonUtil {
 					throw e;
 				}
 			}
-			OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
-			try {
-				JSONObjectAdapter adapter = new JSONObjectAdapterImpl(claimsJson.getAsString(claimName));
-				details.initializeFromJSONObject(adapter);
-			} catch (JSONObjectAdapterException e) {
-				throw new IllegalArgumentException(e);
+			String detailsString = claimsJson.getAsString(claimName);
+			OIDCClaimsRequestDetails details = null;
+			if (detailsString!=null) {
+				details = new OIDCClaimsRequestDetails();
+				try {
+					JSONObjectAdapter adapter = new JSONObjectAdapterImpl(detailsString);
+					details.initializeFromJSONObject(adapter);
+				} catch (JSONObjectAdapterException e) {
+					throw new IllegalArgumentException(e);
+				}
 			}
 			result.put(claim, details);
 		}
