@@ -139,7 +139,7 @@ public interface EvaluationService {
 	 * @throws JSONObjectAdapterException
 	 */
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
-			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
+			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**

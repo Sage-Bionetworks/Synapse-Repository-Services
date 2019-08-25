@@ -140,7 +140,7 @@ public class TableViewTransactionManagerTest {
 		
 		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges, orderedColumnIds)).thenReturn(schema);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(schema);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(schema);
 		
 		// setup 
 		doAnswer(new Answer<TableUpdateResponse>(){
@@ -250,7 +250,7 @@ public class TableViewTransactionManagerTest {
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableManagerSupport).getColumnModelsForTable(idAndVersion);
+		verify(mockTableManagerSupport).getTableSchema(idAndVersion);
 	}
 
 	@Test
@@ -259,7 +259,7 @@ public class TableViewTransactionManagerTest {
 		// call under test
 		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
 		assertNotNull(result);
-		verify(mockTableManagerSupport).getColumnModelsForTable(idAndVersion	);
+		verify(mockTableManagerSupport).getTableSchema(idAndVersion	);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

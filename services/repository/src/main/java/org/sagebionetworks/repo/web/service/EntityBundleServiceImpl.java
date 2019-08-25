@@ -4,8 +4,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -32,10 +30,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,19 +61,20 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	}
 	
 	@Override
-	public EntityBundle getEntityBundle(Long userId, String entityId, int mask, HttpServletRequest request)
+	public EntityBundle getEntityBundle(Long userId, String entityId, int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask, request);
+		return getEntityBundle(userId, entityId, null, mask);
 	}
 
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId,
-			Long versionNumber, int mask, HttpServletRequest request)
+			Long versionNumber, int mask)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
 		EntityBundle eb = new EntityBundle();
 		Entity entity = null;
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(entityId, versionNumber);
 		if ((mask & (EntityBundle.ENTITY | EntityBundle.FILE_NAME)) > 0) {
 			if(versionNumber == null) {
 				entity = serviceProvider.getEntityService().getEntity(userId, entityId);
@@ -155,12 +153,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setFileHandles(fileHandles);
 			}
 		}
-		if((mask & EntityBundle.TABLE_DATA) > 0 ){
-			PaginatedColumnModels paginated = serviceProvider.getTableServices().getColumnModelsForTableEntity(userId, entityId);
-			TableBundle tableBundle = new TableBundle();
-			tableBundle.setColumnModels(paginated.getResults());
-			tableBundle.setMaxRowsPerPage(serviceProvider.getTableServices().getMaxRowsPerPage(paginated.getResults()));
-			eb.setTableBundle(tableBundle);
+		if ((mask & EntityBundle.TABLE_DATA) > 0) {
+			// This mask only has meaning for implementations of tables.
+			eb.setTableBundle(serviceProvider.getTableServices().getTableBundle(idAndVersion));
 		}
 		if((mask & EntityBundle.ROOT_WIKI_ID) > 0 ){
 			 try {
@@ -222,7 +217,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@WriteTransaction
 	@Override
-	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
@@ -250,13 +245,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
 		
-		return getEntityBundle(userId, entity.getId(), partsMask, request);
+		return getEntityBundle(userId, entity.getId(), partsMask);
 	}
 	
 	@WriteTransaction
 	@Override
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
-			EntityBundleCreate ebc, String activityId, HttpServletRequest request)
+			EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,
 			ACLInheritanceException, ParseException {
@@ -296,7 +291,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}
 		
-		return getEntityBundle(userId, entityId, partsMask, request);
+		return getEntityBundle(userId, entityId, partsMask);
 	}
 	
 }

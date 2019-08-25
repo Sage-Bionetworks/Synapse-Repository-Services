@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -40,7 +41,15 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @return
 	 */
-	public List<ColumnModel> getViewSchema(String tableId);
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
+	
+	/**
+	 * Get the column IDs for the given id and version pair.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion);
 
 
 	/**
@@ -71,6 +80,5 @@ public interface TableViewManager {
 	 */
 	public void updateEntityInView(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row);
-
 
 }

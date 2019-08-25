@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
@@ -39,16 +39,16 @@ public class FileMetadataUtils {
 		dbo.setIsPreview(false);
 
 		if (fileHandle instanceof ExternalFileHandle) {
-			dbo.setMetadataType(MetadataType.EXTERNAL);
+			dbo.setMetadataType(FileHandleMetadataType.EXTERNAL);
 			updateDBOFromDTO(dbo, (ExternalFileHandle) fileHandle);
 		} else if (fileHandle instanceof S3FileHandle) {
-			dbo.setMetadataType(MetadataType.S3);
+			dbo.setMetadataType(FileHandleMetadataType.S3);
 		} else if (fileHandle instanceof GoogleCloudFileHandle) {
-			dbo.setMetadataType(MetadataType.GOOGLE_CLOUD);
+			dbo.setMetadataType(FileHandleMetadataType.GOOGLE_CLOUD);
 		} else if (fileHandle instanceof ProxyFileHandle) {
-			dbo.setMetadataType(MetadataType.PROXY);
+			dbo.setMetadataType(FileHandleMetadataType.PROXY);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
-			dbo.setMetadataType(MetadataType.EXTERNAL_OBJ_STORE);
+			dbo.setMetadataType(FileHandleMetadataType.EXTERNAL_OBJ_STORE);
 		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
@@ -142,7 +142,7 @@ public class FileMetadataUtils {
 			fileHandle = new ExternalObjectStoreFileHandle();
 			break;
 		default:
-			throw new IllegalArgumentException("Must be EXTERNAL, S3, GOOGLE_CLOUD, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be EXTERNAL, S3, GOOGLE_CLOUD, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
@@ -293,9 +293,9 @@ public class FileMetadataUtils {
 		}
 		if(in.getMetadataType() != null) {
 			if (in.getMetadataType().equals("PREVIEW")) {
-				out.setMetadataType(MetadataType.S3);
+				out.setMetadataType(FileHandleMetadataType.S3);
 			} else {
-				out.setMetadataType(MetadataType.valueOf(in.getMetadataType()));
+				out.setMetadataType(FileHandleMetadataType.valueOf(in.getMetadataType()));
 			}
 		}
 		if(in.getName() != null){

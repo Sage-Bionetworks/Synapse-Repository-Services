@@ -121,7 +121,7 @@ public class TableUploadManagerTest {
 
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(tableSchema);
 		rowsRead = new LinkedList<SparseRowDto>();
 		doAnswer(new Answer<TableUpdateResponse>(){
 			@Override
@@ -223,7 +223,7 @@ public class TableUploadManagerTest {
 		
 		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
 		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
-		when(mockTableManagerSupport.getColumnModelsForTable(idAndVersion)).thenReturn(tableSchema);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(tableSchema);
 		
 		// call under test;
 		TableUpdateResponse results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);

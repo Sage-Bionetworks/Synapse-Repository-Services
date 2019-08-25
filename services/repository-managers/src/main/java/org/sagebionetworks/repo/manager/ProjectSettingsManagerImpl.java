@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -55,13 +58,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	public static final int MAX_LOCATIONS_PER_PROJECT = 10;
 
-	private static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
-
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDao;
 
 	@Autowired
 	private StorageLocationDAO storageLocationDAO;
+
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -84,10 +88,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
-		if (projectSetting != null && !authorizationManager
-				.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
-				.isAuthorized()) {
-			throw new UnauthorizedException("Cannot read information from this project");
+		if (projectSetting == null) {
+			throw new NotFoundException("Project setting with ID: " + id +  " not found.");
+		}
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
+			throw new UnauthorizedException("User " + userInfo.getId() + " does not have READ access on the project this setting applies to.");
 		}
 		return projectSetting;
 	}
@@ -96,16 +101,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId,
 			ProjectSettingsType type) throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized()) {
-			throw new UnauthorizedException("Cannot read information from this project");
+			throw new UnauthorizedException("User " + userInfo.getId() + " does not have READ access on the project " + projectId + ".");
 		}
 		return projectSettingsDao.get(projectId, type);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId,
-			ProjectSettingsType type, Class<T> expectedType)
-			throws DatastoreException, UnauthorizedException, NotFoundException {
+	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
+			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
+		// Access to this method is not exposed externally, so we can use admin credentials to find the project setting
 		List<EntityHeader> nodePath = nodeManager.getNodePathAsAdmin(nodeId);
 		// the root of the node path should be the project
 		if (nodePath.isEmpty()) {
@@ -117,16 +121,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		// get the first available project setting of the correct type
 		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
-			throw new IllegalArgumentException(
-					"Settings type for '" + type + "' is not of type " + expectedType.getName());
+			throw new DatastoreException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return (T) projectSetting;
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> locations)
+	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, List<Long> storageLocationIds)
 			throws DatastoreException, NotFoundException {
-		return storageLocationDAO.getUploadDestinationLocations(locations);
+		return storageLocationDAO.getUploadDestinationLocations(storageLocationIds);
 	}
 
 	@Override
@@ -178,17 +181,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public <T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo,
 			T storageLocationSetting) throws DatastoreException, NotFoundException, IOException {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
-			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-
 			// A valid bucket name must also be a valid domain name
 			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()),
 					"Invalid Bucket Name");
 
 			validateS3BucketAccess(externalS3StorageLocationSetting);
-			validateS3BucketOwnership(externalS3StorageLocationSetting, userProfile);
+			validateS3BucketOwnership(externalS3StorageLocationSetting, getBucketOwnerAliases(userInfo.getId().toString()));
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
-			UserProfile userProfile = userProfileManager.getUserProfile(userInfo.getId().toString());
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
 			// A valid bucket name must also be a valid domain name
 			ValidateArgument.requirement(
@@ -196,7 +196,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 					"Invalid Bucket Name");
 
 			externalGoogleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
-			validateGoogleCloudBucketOwnership(externalGoogleCloudStorageLocationSetting, userProfile);
+			validateGoogleCloudBucketOwnership(externalGoogleCloudStorageLocationSetting, getBucketOwnerAliases(userInfo.getId().toString()));
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
@@ -230,7 +230,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 					throw new IllegalArgumentException("proxyUrl protocol must be be HTTPS");
 				}
 			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException("porxyUrl is malformed: " + e.getMessage());
+				throw new IllegalArgumentException("proxyUrl is malformed: " + e.getMessage());
 			}
 		}
 
@@ -290,12 +290,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 					// only the owner or an admin can add this setting to a project
 					if (!currentUser.isAdmin() && !currentUser.getId().equals(storageLocationSetting.getCreatedBy())) {
-						UserProfile owner = userProfileManager
-								.getUserProfile(storageLocationSetting.getCreatedBy().toString());
-						throw new UnauthorizedException("Only the owner of the external s3 upload destination (user "
-								+ owner.getUserName()
-								+ ") can add this upload destination to a project. Either ask that user to perform this operation or follow the steps to create a new external s3 upload destination (see "
-								+ EXTERNAL_STORAGE_HELP);
+						String ownerUsername = principalAliasDAO.getUserName(storageLocationSetting.getCreatedBy());
+						throw new UnauthorizedException(
+								"Only the owner of the external S3 upload destination (user "
+										+ ownerUsername
+										+ ") can add this upload destination to a project. Either ask that user to perform this operation or follow the steps to create a new external s3 upload destination (see "
+										+ EXTERNAL_STORAGE_HELP);
 					}
 				}
 			} catch (NotFoundException e) {
@@ -309,8 +309,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		s3client.getRegionForBucket(externalS3StorageLocationSetting.getBucket());
 	}
 
-	private void validateS3BucketOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting,
-			UserProfile userProfile) throws IOException, NotFoundException {
+	private void validateS3BucketOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting, List<String> ownerAliases)
+			throws IOException, NotFoundException {
 		// check the ownership of the S3 bucket against the user
 		String bucket = externalS3StorageLocationSetting.getBucket();
 		String key = (externalS3StorageLocationSetting.getBaseKey() == null ? ""
@@ -322,30 +322,30 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		} catch (AmazonServiceException e) {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException(
-						"Did not find S3 bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
+						"Did not find S3 bucket " + bucket + ". " + getExplanation(ownerAliases, bucket, key));
 			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())
 					|| AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
 				if (key.equals(OWNER_MARKER)) {
 					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket
-							+ ". " + getExplanation(userProfile, bucket, key));
+							+ ". " + getExplanation(ownerAliases, bucket, key));
 				} else {
 					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket
 							+ ". If the S3 object is in a folder, please make sure you specify a trailing '/' in the base key. "
-							+ getExplanation(userProfile, bucket, key));
+							+ getExplanation(ownerAliases, bucket, key));
 				}
 			} else {
 				throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucket
-						+ ": " + e.getMessage() + ". " + getExplanation(userProfile, bucket, key));
+						+ ": " + e.getMessage() + ". " + getExplanation(ownerAliases, bucket, key));
 			}
 		}
 
-		BufferedReader reader = new BufferedReader(new InputStreamReader(s3object.getObjectContent()));
-		inspectUsername(reader, userProfile, bucket, key);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(s3object.getObjectContent(), StandardCharsets.UTF_8));
+		inspectUsername(reader, ownerAliases, bucket, key);
 	}
 
 	private void validateGoogleCloudBucketOwnership(
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting,
-			UserProfile userProfile) throws IOException, NotFoundException {
+			List<String> ownerAliases) throws IOException, NotFoundException {
 		String bucket = externalGoogleCloudStorageLocationSetting.getBucket();
 		String key = (externalGoogleCloudStorageLocationSetting.getBaseKey() == null ? ""
 				: externalGoogleCloudStorageLocationSetting.getBaseKey()) + OWNER_MARKER;
@@ -353,7 +353,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		try {
 			if (!googleCloudStorageClient.bucketExists(bucket)) {
 				throw new IllegalArgumentException(
-						"Did not find Google Cloud bucket " + bucket + ". " + getExplanation(userProfile, bucket, key));
+						"Did not find Google Cloud bucket " + bucket + ". " + getExplanation(ownerAliases, bucket, key));
 			}
 		} catch (StorageException e) {
 			if (e.getMessage().contains("does not have storage.buckets.get access to")) {
@@ -368,45 +368,40 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new IllegalArgumentException("Did not find Google Cloud object at key " + key + " from bucket "
 					+ bucket
 					+ ". If the object is in a folder, please make sure you specify a trailing '/' in the base key. "
-					+ getExplanation(userProfile, bucket, key));
+					+ getExplanation(ownerAliases, bucket, key));
 		}
 
-		inspectUsername(googleCloudStorageClient.getObjectContent(bucket, key), userProfile, bucket, key);
+		BufferedReader content = new BufferedReader(new InputStreamReader(googleCloudStorageClient.getObjectContent(bucket, key), StandardCharsets.UTF_8));
+		inspectUsername(content, ownerAliases, bucket, key);
 	}
 
-	private void inspectUsername(BufferedReader reader, UserProfile userProfile, String bucket, String key)
+	void inspectUsername(BufferedReader reader, List<String> expectedAliases, String bucket, String key)
 			throws IOException {
-		String userName;
+		String actualUsername;
 		try {
-			userName = reader.readLine();
+			actualUsername = reader.readLine();
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Could not read username from key " + key + " from bucket " + bucket
-					+ ". " + getExplanation(userProfile, bucket, key));
+					+ ". " + getExplanation(expectedAliases, bucket, key));
 		} finally {
 			reader.close();
 		}
 
-		if (StringUtils.isBlank(userName)) {
+		if (StringUtils.isBlank(actualUsername)) {
 			throw new IllegalArgumentException("No username found under key " + key + " from bucket " + bucket + ". "
-					+ getExplanation(userProfile, bucket, key));
+					+ getExplanation(expectedAliases, bucket, key));
 		}
 
-		if (!checkForCorrectName(userProfile, userName)) {
-			throw new IllegalArgumentException("The username " + userName + " found under key " + key + " from bucket "
-					+ bucket + " is not what was expected. " + getExplanation(userProfile, bucket, key));
+		if (!checkForCorrectName(expectedAliases, actualUsername)) {
+			throw new IllegalArgumentException("The username " + actualUsername + " found under key " + key + " from bucket "
+					+ bucket + " is not what was expected. " + getExplanation(expectedAliases, bucket, key));
 		}
 	}
 
-	private boolean checkForCorrectName(UserProfile userProfile, String userName) {
-		if (userName.equals(userProfile.getUserName())) {
-			return true;
-		}
-		if (userName.equalsIgnoreCase(userProfile.getEmail())) {
-			return true;
-		}
-		if (userProfile.getEmails() != null) {
-			for (String email : userProfile.getEmails()) {
-				if (userName.equalsIgnoreCase(email)) {
+	private boolean checkForCorrectName(List<String> allowedNames, String actualUsername) {
+		if (allowedNames != null) {
+			for (String name : allowedNames) {
+				if (name.equalsIgnoreCase(actualUsername)) {
 					return true;
 				}
 			}
@@ -414,10 +409,25 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		return false;
 	}
 
-	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains the user name '%s'. Also see "
+	/**
+	 * Collects the possible aliases that can be used to verify ownership of an S3 bucket.
+	 * Currently, this is a user's username and their email addresses.
+	 * @param userId
+	 * @return
+	 */
+	private List<String> getBucketOwnerAliases(String userId) {
+		UserProfile userProfile = userProfileManager.getUserProfile(userId);
+		List<String> ownerAliases = new ArrayList<>();
+		ownerAliases.add(userProfile.getUserName());
+		ownerAliases.addAll(userProfile.getEmails());
+		return ownerAliases;
+	}
+
+	private static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
+	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains the text '%s'. Also see "
 			+ EXTERNAL_STORAGE_HELP;
 
-	private static String getExplanation(UserProfile userProfile, String bucket, String key) {
-		return String.format(SECURITY_EXPLANATION, userProfile.getUserName(), bucket, key, userProfile.getUserName());
+	private static String getExplanation(List<String> aliases, String bucket, String key) {
+		return String.format(SECURITY_EXPLANATION, aliases.get(0), bucket, key, aliases.get(0));
 	}
 }

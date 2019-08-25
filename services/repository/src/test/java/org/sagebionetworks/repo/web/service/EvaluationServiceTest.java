@@ -100,8 +100,8 @@ public class EvaluationServiceTest {
 				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint))).thenReturn(result);
 
 		when(mockServiceProvider.getEntityBundleService()).thenReturn(mockEntityBundleService);
-		evaluationService.createSubmission(userId, submission, "123", "987", null,
-				challengeEndpoint, notificationUnsubscribeEndpoint);
+		evaluationService.createSubmission(userId, submission, "123", "987", challengeEndpoint,
+				notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), 
 				isNull());
