@@ -419,14 +419,17 @@ public class UserProfileServiceTest {
 	@Test
 	public void testUserBundleNotVerified() throws Exception {
 		Long bundleOwner = 101L;
+		mockVerificationSubmission(bundleOwner, VerificationStateEnum.APPROVED);
+		
 		UserBundle result = userProfileService.
-				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), 0/*get nothing*/);
+				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), /*VERIFICATION_MASK*/0x04);
 		assertNull(result.getIsACTMember());
 		assertNull(result.getIsCertified());
 		assertNull(result.getIsVerified());
 		assertNull(result.getORCID());
 		assertEquals(bundleOwner.toString(), result.getUserId());
 		assertNull(result.getUserProfile());
+		// since 0x10 is omitted, isVerified is null and therefore this field is set to null
 		assertNull(result.getVerificationSubmission());
 	}
 	

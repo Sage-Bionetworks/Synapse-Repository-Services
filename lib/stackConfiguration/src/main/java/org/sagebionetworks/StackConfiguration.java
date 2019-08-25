@@ -660,6 +660,11 @@ public interface StackConfiguration {
 
 	public String getDockerAuthorizationCertificate();
 
+	/**
+	 * Credentials for signing OIDC JSON Web Tokens
+	 */
+	public List<String> getOIDCSignatureRSAPrivateKeys();
+	
 	public List<String> getDockerRegistryHosts();
 
 	public List<String> getDockerReservedRegistryHosts();
@@ -783,5 +788,13 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getDecodedGoogleCloudServiceAccountCredentials();
+	
+	/**
+	 * Get the authorization endpoint that Synapse OAuth 2.0 clients will redirect 
+ 	 * the browser to, to prompt the user to authorize that client.
+ 	 * 
+	 * @return
+	 */
+	public String getOAuthAuthorizationEndpoint();
 
 }

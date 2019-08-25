@@ -24,9 +24,12 @@ public class StackConfigurationImplUnitTest {
 	@Mock
 	ConfigurationProperties mockProperties;
 	
+	@Mock
+	StackEncrypter stackEncrypter;
+	
 	@Before
 	public void before() {
-		this.config = new StackConfigurationImpl(mockProperties);
+		this.config = new StackConfigurationImpl(mockProperties, stackEncrypter);
 	}
 
 	@Test
