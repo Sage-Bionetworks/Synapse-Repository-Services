@@ -349,6 +349,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		
+		// Send the file uploads events (after commit)
+		sendFileUploadEvents(user.getId(), delta);
+		
 		tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), range.getEtag(), range.getVersionNumber(), columns, delta.writeToDto(), transactionId);
 		
 		// Prepare the results
@@ -365,14 +368,16 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			refs.add(ref);
 		}
 		results.setRows(refs);
-		sendFileUploadEvents(user.getId(), delta);
+		
 		return results;
 	}
 	
 	private void sendFileUploadEvents(Long userId, SparseChangeSet delta) {
 		String tableId = delta.getTableId();
 		
-		List<StatisticsFileEvent> downloadEvents = delta.getFileHandleIdsInSparseChangeSet().stream().map(fileHandleId -> 
+		Set<Long> fileHandleIds = delta.getFileHandleIdsInSparseChangeSet();
+
+		List<StatisticsFileEvent> downloadEvents = getFileHandleIdsNotAssociatedWithTable(tableId, fileHandleIds).stream().map(fileHandleId -> 
 			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
 		).collect(Collectors.toList());
 		
@@ -380,6 +385,16 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			statisticsCollector.collectEvents(downloadEvents);
 		}
 		
+	}
+	
+	Set<Long> getFileHandleIdsNotAssociatedWithTable(String tableId, Set<Long> fileHandleIds) {
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		
+		Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, idAndVersion);
+		
+		return fileHandleIds.stream().filter( id -> !filesAssociatedWithTable.contains(id)).collect(Collectors.toSet());
 	}
 	
 	/**

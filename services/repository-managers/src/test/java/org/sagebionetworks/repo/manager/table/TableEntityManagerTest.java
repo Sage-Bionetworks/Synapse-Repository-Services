@@ -109,6 +109,7 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -896,6 +897,17 @@ public class TableEntityManagerTest {
 		// call under test.
 		Set<String> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		Set<String> expected = Sets.newHashSet("1","2");
+		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsNotAssociatedWithTable(){
+		Set<Long> input = ImmutableSet.of(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), any(IdAndVersion.class))).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsNotAssociatedWithTable(tableId, input);
+		Set<Long> expected = ImmutableSet.of(0L, 3L);
 		assertEquals(expected, out);
 	}
 	
