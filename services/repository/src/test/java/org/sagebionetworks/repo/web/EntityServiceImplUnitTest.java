@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,8 +23,6 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -59,8 +56,6 @@ public class EntityServiceImplUnitTest {
 	TypeSpecificUpdateProvider<Project> mockProjectUpdateProvider;
 	@Mock
 	TypeSpecificCreateProvider<Project> mockProjectCreateProvider;
-	@Mock
-	StatisticsEventsCollector mockStatisticsCollector;
 
 	List<EntityProvider<? extends Entity>> projectProviders;
 
@@ -120,7 +115,6 @@ public class EntityServiceImplUnitTest {
 		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
 		verify(mockProjectUpdateProvider, never()).entityUpdated(any(UserInfo.class), any(Project.class), anyBoolean());
-		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 
 	@Test
@@ -131,7 +125,6 @@ public class EntityServiceImplUnitTest {
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 
 	@Test
@@ -142,7 +135,6 @@ public class EntityServiceImplUnitTest {
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 
 	/**
@@ -161,7 +153,6 @@ public class EntityServiceImplUnitTest {
 		entityService.updateEntity(userInfo.getId(), project, newVersionParameter, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
-		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 	
 	@Test
@@ -171,10 +162,7 @@ public class EntityServiceImplUnitTest {
 		fileEntity.setId("123");
 		fileEntity.setDataFileHandleId("456");
 		
-		entityService.createEntity(userInfo.getId(), fileEntity, null);
-		
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
-		
+		entityService.createEntity(userInfo.getId(), fileEntity, null);		
 	}
 	
 	@Test
@@ -187,8 +175,6 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.updateEntity(userInfo, fileEntity, false, null)).thenReturn(true);
 		
 		entityService.updateEntity(userInfo.getId(), fileEntity, false, null);
-		
-		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 		
 	}
 
