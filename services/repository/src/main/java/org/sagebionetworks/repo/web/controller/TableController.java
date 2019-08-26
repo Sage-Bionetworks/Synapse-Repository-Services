@@ -1320,7 +1320,7 @@ public class TableController {
 	 * version will be started with an 'in-progress' label.
 	 * <p>
 	 * NOTE: This service is for
-	 * <a href= "${org.sagebionetworks.repo.model.table.TableEnity}"
+	 * <a href= "${org.sagebionetworks.repo.model.table.TableEntity}"
 	 * >TableEntities</a> only. Snapshots of
 	 * <a href= "${org.sagebionetworks.repo.model.table.EntityView}"
 	 * >EntityViews</a> require asynchronous processing and can be created via:
