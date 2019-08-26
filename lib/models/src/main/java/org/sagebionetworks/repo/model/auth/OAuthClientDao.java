@@ -59,15 +59,17 @@ public interface OAuthClientDao {
 	/**
 	 * 
 	 * @param clientId
+	 * @param newEtag
 	 */
-	public void setOAuthClientVerified(String clientId);
+	public void setOAuthClientVerified(String clientId, String newEtag);
 	
 	/**
 	 * Store the salted hash of the client secret.
 	 * @param clientId
+	 * @param newEtag
 	 * @param secretHash
 	 */
-	public void setOAuthClientSecretHash(String clientId, String secretHash);
+	public void setOAuthClientSecretHash(String clientId, String secretHash, String newEtag);
 	
 	/**
 	 * 
