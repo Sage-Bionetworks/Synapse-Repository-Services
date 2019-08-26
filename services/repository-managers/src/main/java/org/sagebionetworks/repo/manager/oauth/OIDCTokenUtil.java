@@ -14,7 +14,7 @@ import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.JWTUtil;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
@@ -67,8 +67,8 @@ public class OIDCTokenUtil {
 		PrivateKey signingPrivateKey = null;
 		String signingKeyId = null;
 		for (String s: stackConfig.getOIDCSignatureRSAPrivateKeys()) {
-			KeyPair keyPair = JWTUtil.getRSAKeyPairFromPEM(s);
-			String kid = JWTUtil.computeKeyId(keyPair.getPublic());
+			KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(s);
+			String kid = KeyPairUtil.computeKeyId(keyPair.getPublic());
 			// grab the first one to use when signing
 			if (signingPrivateKey==null) {
 				signingPrivateKey=keyPair.getPrivate();
@@ -77,23 +77,20 @@ public class OIDCTokenUtil {
 			if (keyPair.getPublic() instanceof ECPublicKey) {
 				Curve curve = Curve.forECParameterSpec(((ECPublicKey)keyPair.getPublic()).getParams());
 				JWK jwk = new ECKey.Builder(curve, (ECPublicKey)keyPair.getPublic())
-						.privateKey((ECPrivateKey)keyPair.getPrivate())
 						.algorithm(JWSAlgorithm.ES256)
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();
 				JSON_WEB_KEY_SET.add(jwk);
-			
 			} else if (keyPair.getPublic() instanceof RSAPublicKey) {
 				JWK jwk = new RSAKey.Builder((RSAPublicKey)keyPair.getPublic())
-						.privateKey((RSAPrivateKey)keyPair.getPrivate())
 						.algorithm(JWSAlgorithm.RS256)
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();
 				JSON_WEB_KEY_SET.add(jwk);
 			} else {
-				throw new RuntimeException(keyPair.getPublic()+" not supported.");
+				throw new RuntimeException(keyPair.getPublic().getClass()+" not supported.");
 			}
 		}
 		OIDC_SIGNATURE_PRIVATE_KEY = signingPrivateKey;
@@ -245,6 +242,4 @@ public class OIDCTokenUtil {
 
 		return createSignedJWT(claims);
 	}
-	
-
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -25,6 +26,9 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.impl.DefaultClaims;
 
 public class OIDCTokenUtilTest {
 
@@ -54,18 +58,38 @@ public class OIDCTokenUtilTest {
 		NON_ESSENTIAL.setEssential(false);
 	}
 	
+	@Test
+	public void testGetJSONWebKeySet() throws Exception {
+		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
+		List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
+		assertFalse(jwks.isEmpty());
+	}
+	
+	@Test
+	public void testCreateSignedJWT() throws Exception {
+		Claims claims = new DefaultClaims();
+		String jwtString = OIDCTokenUtil.createSignedJWT(claims);
+		// TODO
+	}
+	
+	private String OIDC_TOKEN = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+			SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
+	
+	@Test
+	public void testValidateSignedJWT() throws Exception {
+		assertTrue(OIDCTokenUtil.validateSignedJWT(OIDC_TOKEN));
+	}
+
 	
 	@Test
 	public void testOIDCTokenGeneration() throws Exception {
-		
-		
-
-		String oidcToken = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		JWT jwt = JWTParser.parse(oidcToken);
+		JWT jwt = JWTParser.parse(OIDC_TOKEN);
 		
 		assertTrue(jwt instanceof SignedJWT);
 
 	    SignedJWT signedJWT = (SignedJWT)jwt;
+	    
+	    // TODO check the claims, any biz logic in createOIDCIdToken()
 		
 		// Validate, per https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
 	    
@@ -158,19 +182,4 @@ public class OIDCTokenUtilTest {
 		assertEquals(expectedClaims, actualClaims);
 	}
 	
-	@Test
-	public void testValidateSignedJWT() throws Exception {
-		String accessToken = 
-		OIDCTokenUtil.createOIDCaccessToken("https://synapse.org",
-				"theuser", 
-				"101",
-				System.currentTimeMillis(), 
-				System.currentTimeMillis(),
-				UUID.randomUUID().toString(),
-				Collections.singletonList(OAuthScope.openid),
-				new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>());
-		
-		assertTrue(OIDCTokenUtil.validateSignedJWT(accessToken));
-	}
-
 }

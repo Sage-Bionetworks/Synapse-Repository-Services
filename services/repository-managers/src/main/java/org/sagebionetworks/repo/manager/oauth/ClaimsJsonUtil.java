@@ -12,7 +12,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import net.minidev.json.JSONObject;
 
 public class ClaimsJsonUtil {
-	// TODO check for properly handling of null key value
 	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getClaimsMapFromJSONObject(JSONObject claimsJson, boolean ignoreUnknownClaims) {
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		if (claimsJson==null) return result;

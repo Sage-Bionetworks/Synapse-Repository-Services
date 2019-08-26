@@ -120,14 +120,14 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 				rsaKey.setKid(jwk.getKeyID());
 				// these are specific to the RSA algorithm
 				RSAKey jwkRsa = (RSAKey)jwk;
-				rsaKey.setD(jwkRsa.getPrivateExponent().toString());
-				rsaKey.setDp(jwkRsa.getFirstFactorCRTExponent().toString());
-				rsaKey.setDq(jwkRsa.getSecondFactorCRTExponent().toString());
-				rsaKey.setE(jwkRsa.getPublicExponent().toString());
-				rsaKey.setN(jwkRsa.getModulus().toString());
-				rsaKey.setP(jwkRsa.getFirstPrimeFactor().toString());
-				rsaKey.setQ(jwkRsa.getSecondPrimeFactor().toString());
-				rsaKey.setQi(jwkRsa.getFirstCRTCoefficient().toString());
+				if (jwkRsa.getPrivateExponent()!=null) rsaKey.setD(jwkRsa.getPrivateExponent().toString());
+				if (jwkRsa.getFirstFactorCRTExponent()!=null) rsaKey.setDp(jwkRsa.getFirstFactorCRTExponent().toString());
+				if (jwkRsa.getSecondFactorCRTExponent()!=null) rsaKey.setDq(jwkRsa.getSecondFactorCRTExponent().toString());
+				if (jwkRsa.getPublicExponent()!=null) rsaKey.setE(jwkRsa.getPublicExponent().toString());
+				if (jwkRsa.getModulus()!=null) rsaKey.setN(jwkRsa.getModulus().toString());
+				if (jwkRsa.getFirstPrimeFactor()!=null) rsaKey.setP(jwkRsa.getFirstPrimeFactor().toString());
+				if (jwkRsa.getSecondPrimeFactor()!=null) rsaKey.setQ(jwkRsa.getSecondPrimeFactor().toString());
+				if (jwkRsa.getFirstCRTCoefficient()!=null) rsaKey.setQi(jwkRsa.getFirstCRTCoefficient().toString());
 			} else {
 				// in the future we can add mappings for algorithms other than RSA
 				throw new RuntimeException("Unsupported: "+jwk.getAlgorithm());

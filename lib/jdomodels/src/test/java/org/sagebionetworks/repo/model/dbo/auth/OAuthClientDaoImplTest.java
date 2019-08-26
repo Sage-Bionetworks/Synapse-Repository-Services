@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -87,6 +88,7 @@ public class OAuthClientDaoImplTest {
 	private static OAuthClient newDTO(Long userId, String clientName) {
 		OAuthClient result = new OAuthClient();
 		result.setClient_name(clientName);
+		result.setEtag(UUID.randomUUID().toString());
 		result.setCreatedBy(userId.toString());
 		result.setSector_identifier(SECTOR_IDENTIFIER);
 		result.setClient_uri(CLIENT_URI);
@@ -261,15 +263,16 @@ public class OAuthClientDaoImplTest {
 		assertFalse(client.getVerified());
 		
 		// method under test
-		oauthClientDao.setOAuthClientVerified(clientId);
+		String newEtag = UUID.randomUUID().toString();
+		oauthClientDao.setOAuthClientVerified(clientId, newEtag);
 		
 		OAuthClient updatedClient = oauthClientDao.getOAuthClient(clientId);
 		assertTrue(updatedClient.getVerified());
-		assertNotEquals(client.getEtag(), updatedClient.getEtag());
+		assertEquals(newEtag, updatedClient.getEtag());
 		
 		try {
 			// method under test
-			oauthClientDao.setOAuthClientVerified("0");
+			oauthClientDao.setOAuthClientVerified("0", UUID.randomUUID().toString());
 		} catch (NotFoundException e) {
 			// as expected
 		}
@@ -293,10 +296,11 @@ public class OAuthClientDaoImplTest {
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 
 		// method under test
-		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash);
+		String newEtag = UUID.randomUUID().toString();
+		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, newEtag);
 		
 		// etag should have changed
-		assertNotEquals(originalEtag, oauthClientDao.getOAuthClient(clientId).getEtag());
+		assertEquals(newEtag, oauthClientDao.getOAuthClient(clientId).getEtag());
 		
 		// method under test
 		byte[] salt = oauthClientDao.getSecretSalt(clientId);
@@ -423,6 +427,8 @@ public class OAuthClientDaoImplTest {
 		clientToUpdate.setSector_identifier_uri(newSIURI);
 		clientToUpdate.setUserinfo_signed_response_alg(null);
 		clientToUpdate.setVerified(true);
+		String newEtag = UUID.randomUUID().toString();
+		clientToUpdate.setEtag(newEtag);
 		
 		SectorIdentifier sectorIdentifier = newSectorIdentifier(SECOND_SECTOR_IDENTIFIER);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
@@ -434,7 +440,7 @@ public class OAuthClientDaoImplTest {
 		assertEquals(id, updated.getClientId());
 		assertEquals(clientToUpdate.getCreatedBy(), updated.getCreatedBy());
 		assertEquals(clientToUpdate.getCreatedOn(), updated.getCreatedOn());
-		assertNotNull(updated.getEtag());
+		assertEquals(newEtag, updated.getEtag());
 		assertNotEquals(clientToUpdate.getEtag(), updated.getEtag());
 		assertNotNull(updated.getModifiedOn());
 		assertEquals(newPolicyUri, updated.getPolicy_uri());
@@ -452,9 +458,9 @@ public class OAuthClientDaoImplTest {
 		// we should be able to set the secret hash and set the client as verified
 		// without that information being compromised by other metadata updates
 		String secretHash = "hash";
-		oauthClientDao.setOAuthClientSecretHash(id, secretHash);
+		oauthClientDao.setOAuthClientSecretHash(id, secretHash, UUID.randomUUID().toString());
 		
-		oauthClientDao.setOAuthClientVerified(id);
+		oauthClientDao.setOAuthClientVerified(id, UUID.randomUUID().toString());
 		
 		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
 		
@@ -469,7 +475,7 @@ public class OAuthClientDaoImplTest {
 	@Test
 	public void testInvalidateClient() throws Exception {
 		String id = createSectorIdentifierAndClient();
-		oauthClientDao.setOAuthClientVerified(id);
+		oauthClientDao.setOAuthClientVerified(id, UUID.randomUUID().toString());
 		
 		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
 		assertTrue(clientToUpdate.getVerified());

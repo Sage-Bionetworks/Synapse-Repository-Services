@@ -36,9 +36,9 @@ public class DockerTokenUtil {
 		Security.removeProvider("EC");
 		Security.addProvider(new BouncyCastleProvider());
 		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
-		DOCKER_AUTHORIZATION_PRIVATE_KEY = JWTUtil.getPrivateKeyFromPEM(stackConfig.getDockerAuthorizationPrivateKey(), KEY_GENERATION_ALGORITHM);
-		X509Certificate certificate = JWTUtil.getX509CertificateFromPEM(stackConfig.getDockerAuthorizationCertificate());
-		DOCKER_AUTHORIZATION_PUBLIC_KEY_ID = JWTUtil.computeKeyId(certificate.getPublicKey());
+		DOCKER_AUTHORIZATION_PRIVATE_KEY = KeyPairUtil.getPrivateKeyFromPEM(stackConfig.getDockerAuthorizationPrivateKey(), KEY_GENERATION_ALGORITHM);
+		X509Certificate certificate = KeyPairUtil.getX509CertificateFromPEM(stackConfig.getDockerAuthorizationCertificate());
+		DOCKER_AUTHORIZATION_PUBLIC_KEY_ID = KeyPairUtil.computeKeyId(certificate.getPublicKey());
 	}
 
 	// This implements the specification: https://docs.docker.com/registry/spec/auth/jwt/

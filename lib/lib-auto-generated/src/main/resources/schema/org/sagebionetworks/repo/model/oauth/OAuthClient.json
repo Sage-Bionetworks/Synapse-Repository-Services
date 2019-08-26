@@ -3,34 +3,76 @@
  	"properties": {
 		"clientId": {
 			"type": "string",
-			"description": "The unique ID for the OAuth client, created by Synapse"
+			"description": "The unique ID for the OAuth client, created by Synapse",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"client_name":{
 			"type": "string",
-			"description":"Name of the Client to be presented to the End-User."
+			"description":"Name of the Client to be presented to the End-User.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"redirect_uris": {
 			"type": "array",
 			"description": "Array of Redirection URI values used by the Client. One of these registered Redirection URI values MUST exactly match the redirect_uri parameter value used in each Authorization Request. If the 'sector_identifier_uri' is provided then the URIs in this list must be in the list of URIs in the JSON document referenced by the sector_identifier_uri.",
 			"items":{
 				"type": "string"
-			}
+			},
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"verified": {
 			"type": "boolean",
-			"description": "initially false, becomes true once the client creator demonstrates ownership of the redirect URI host"
+			"description": "initially false, becomes true once the client creator demonstrates ownership of the redirect URI host",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"client_uri": {
 			"type": "string",
-			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page."
+			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"policy_uri": {
 			"type": "string",
-			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page."
+			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"tos_uri": {
 			"type": "string",
-			"description":"URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The value of this field MUST point to a valid web page."
+			"description":"URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The value of this field MUST point to a valid web page.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"sector_identifier_uri": {
 			"type": "string",

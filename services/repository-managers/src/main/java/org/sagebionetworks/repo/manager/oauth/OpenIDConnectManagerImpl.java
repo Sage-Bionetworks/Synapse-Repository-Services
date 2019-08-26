@@ -25,10 +25,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.sagebionetworks.EncryptionUtilsSingleton;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -78,8 +78,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
-
-	private StackEncrypter STACK_ENCRYPTER = EncryptionUtilsSingleton.singleton();
+	
+	@Autowired
+	StackEncrypter stackEncrypter;
 
 	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 
@@ -215,6 +216,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		validateOAuthClientForCreateOrUpdate(oauthClient);
 
 		oauthClient.setCreatedBy(userInfo.getId().toString());
+		oauthClient.setEtag(UUID.randomUUID().toString());
 		oauthClient.setVerified(false);
 
 		String resolvedSectorIdentifier = resolveSectorIdentifier(oauthClient.getSector_identifier_uri(), oauthClient.getRedirect_uris());
@@ -246,8 +248,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (!canAdministrate(userInfo, currentClient.getCreatedBy())) {
 			throw new UnauthorizedException("You can only update your own OAuth client(s).");
 		}
-
 		validateOAuthClientForCreateOrUpdate(toUpdate);
+		
+		ValidateArgument.requiredNotEmpty(toUpdate.getEtag(), "etag");
+		if (!currentClient.getEtag().equals(toUpdate.getEtag())) {
+			throw new ConflictingUpdateException(
+					"OAuth Client was updated since you last fetched it.  Retrieve it again and reapply the update.");
+		}
+		toUpdate.setEtag(UUID.randomUUID().toString());
 
 		String resolvedSectorIdentifier = resolveSectorIdentifier(toUpdate.getSector_identifier_uri(), toUpdate.getRedirect_uris());
 		if (!resolvedSectorIdentifier.equals(currentClient.getSector_identifier())) {
@@ -286,7 +294,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}		
 		String secret = generateOAuthClientSecret();
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
-		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash);
+		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
 		result.setClientId(clientId);
 		result.setClientSecret(secret);
@@ -362,11 +370,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		validateAuthenticationRequest(authorizationRequest, client);
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
-		result.setClient_name(client.getClient_name());
-		result.setClient_uri(client.getClient_uri());
-		result.setPolicy_uri(client.getPolicy_uri());
-		result.setTos_uri(client.getTos_uri());
-		result.setIs_verified(client.getVerified());
+		result.setClientId(client.getClientId());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
@@ -436,7 +440,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new RuntimeException(e);
 		}
 		String serializedAuthorizationRequest = adapter.toJSONString();
-		String encryptedAuthorizationRequest = STACK_ENCRYPTER.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
+		String encryptedAuthorizationRequest = stackEncrypter.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
@@ -542,7 +546,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		String serializedAuthorizationRequest;
 		try {
-			serializedAuthorizationRequest = STACK_ENCRYPTER.decryptStackEncryptedAndBase64EncodedString(code);
+			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid authorization code: "+code, e);
 		}

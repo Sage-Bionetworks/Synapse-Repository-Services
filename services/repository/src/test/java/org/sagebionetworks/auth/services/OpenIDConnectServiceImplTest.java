@@ -13,6 +13,7 @@ class OpenIDConnectServiceImplTest {
 	void testGetOIDCJsonWebKeySet() throws Exception {
 		JsonWebKeySet jwks = oidcServiceImpl.getOIDCJsonWebKeySet();
 		assertFalse(jwks.getKeys().isEmpty());
+		// TODO check that JWKS can validate a signed token
 	}
 
 }

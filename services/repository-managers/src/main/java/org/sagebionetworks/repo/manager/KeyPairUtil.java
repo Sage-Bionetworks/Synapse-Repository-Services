@@ -16,7 +16,7 @@ import java.security.spec.RSAPublicKeySpec;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
 
-public class JWTUtil {
+public class KeyPairUtil {
 	public static X509Certificate getX509CertificateFromPEM(String pem) {
 		try {
 			byte[] content = Base64.decodeBase64(pem);
@@ -45,12 +45,12 @@ public class JWTUtil {
 	 * The translation of the private key into a public key is specific to RSA
 	 * so this will not work for non-RSA keys.
 	 * 
-	 * @param pem
+	 * @param pemEncodedPrivateKey
 	 * @return
 	 */
-	public static KeyPair getRSAKeyPairFromPEM(String pem) {
+	public static KeyPair getRSAKeyPairFromPrivateKey(String pemEncodedPrivateKey) {
 		try {
-			byte[] content = Base64.decodeBase64(pem);
+			byte[] content = Base64.decodeBase64(pemEncodedPrivateKey);
 			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(content);
 			KeyFactory factory = KeyFactory.getInstance("RSA");
 			PrivateKey privateKey = factory.generatePrivate(keySpec);
