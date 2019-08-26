@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -26,8 +26,6 @@ import com.google.common.collect.ImmutableSet;
  */
 @Service
 public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogRecordProvider<StatisticsFileEvent> {
-	
-	private static final Logger LOG = LogManager.getLogger(StatisticsFileEventLogRecordProvider.class);
 
 	private static final Set<FileHandleAssociateType> ACCEPTED = ImmutableSet.of(
 		FileHandleAssociateType.FileEntity,
@@ -40,10 +38,12 @@ public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogR
 	);
 	
 	private ProjectResolver projectResolver;
+	private Logger log;
 	
 	@Autowired
-	public StatisticsFileEventLogRecordProvider(ProjectResolver projectResolver) {
+	public StatisticsFileEventLogRecordProvider(ProjectResolver projectResolver, LoggerProvider logProvider) {
 		this.projectResolver = projectResolver;
+		this.log = logProvider.getLogger(StatisticsFileEventLogRecordProvider.class.getName());
 	}
 
 	@Override
@@ -73,7 +73,7 @@ public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogR
 		try {
 			projectId = projectResolver.resolveProject(event.getAssociationType(), event.getAssociationId());
 		} catch (NotFoundException | IllegalStateException e) {
-			LOG.warn(e.getMessage(),  e);
+			log.warn(e.getMessage(), e);
 			return Optional.empty();
 		}
 		
