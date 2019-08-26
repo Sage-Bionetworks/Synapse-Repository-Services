@@ -13,26 +13,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class StatisticsLogRecordProviderFactoryUnitTest {
 
 	@Mock
 	private StatisticsEvent mockUnregisteredEvent;
 
 	@Mock
-	private StatisticsEventLogRecordProvider<StatisticsEventMock> mockProvider;
+	private StatisticsEventLogRecordProvider<StatisticsEventStub> mockProvider;
 
 	private StatisticsLogRecordProviderFactory logProviderFactory;
 
 	@BeforeEach
 	public void before() {
 		
-		when(mockProvider.getEventClass()).thenReturn(StatisticsEventMock.class);
+		when(mockProvider.getEventClass()).thenReturn(StatisticsEventStub.class);
 		
 		List<StatisticsEventLogRecordProvider<? extends StatisticsEvent>> providers = Collections.singletonList(mockProvider);
 		
@@ -41,9 +38,9 @@ public class StatisticsLogRecordProviderFactoryUnitTest {
 
 	@Test
 	public void testGetRegisteredProvider() {
-		StatisticsEventLogRecordProvider<StatisticsEventMock> provider = logProviderFactory.getLogRecordProvider(StatisticsEventMock.class);
+		StatisticsEventLogRecordProvider<StatisticsEventStub> provider = logProviderFactory.getLogRecordProvider(StatisticsEventStub.class);
 		assertNotNull(provider);
-		assertEquals(StatisticsEventMock.class, provider.getEventClass());
+		assertEquals(StatisticsEventStub.class, provider.getEventClass());
 	}
 	
 	@Test
@@ -51,6 +48,22 @@ public class StatisticsLogRecordProviderFactoryUnitTest {
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> {
 			logProviderFactory.getLogRecordProvider(mockUnregisteredEvent.getClass());
 		});
+	}
+	
+	private class StatisticsEventStub implements StatisticsEvent {
+
+		@Override
+		public Long getTimestamp() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Long getUserId() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
 	}
 
 }
