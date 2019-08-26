@@ -18,8 +18,8 @@ import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -372,9 +372,9 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	private void sendFileUploadEvents(Long userId, SparseChangeSet delta) {
 		String tableId = delta.getTableId();
 		
-		List<StatisticsFileEvent> downloadEvents = delta.getFileHandleIdsInSparseChangeSet().stream().map(fileHandleId -> {
-			return new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity);
-		}).collect(Collectors.toList());
+		List<StatisticsFileEvent> downloadEvents = delta.getFileHandleIdsInSparseChangeSet().stream().map(fileHandleId -> 
+			StatisticsFileEventUtils.buildFileUploadEvent(userId, fileHandleId.toString(), tableId, FileHandleAssociateType.TableEntity)
+		).collect(Collectors.toList());
 		
 		if (!downloadEvents.isEmpty()) {
 			statisticsCollector.collectEvents(downloadEvents);

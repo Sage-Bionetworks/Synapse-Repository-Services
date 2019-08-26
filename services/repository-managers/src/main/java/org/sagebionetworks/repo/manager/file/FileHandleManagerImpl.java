@@ -43,8 +43,8 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -379,7 +379,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		
 		String url = getURLForFileHandle(fileHandle);
 		
-		StatisticsFileEvent downloadEvent = buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
+		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
 		
 		statisticsCollector.collectEvent(downloadEvent);
 		
@@ -436,10 +436,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	private String getUrlForGoogleCloudFileHandle(GoogleCloudFileHandle handle) {
 		return googleCloudStorageClient.createSignedUrl(handle.getBucketName(), handle.getKey(), (int) PRESIGNED_URL_EXPIRE_TIME_MS, com.google.cloud.storage.HttpMethod.GET).toExternalForm();
-	}
-	
-	private StatisticsFileEvent buildFileDownloadEvent(Long userId, FileHandleAssociation association) {
-		return new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, association.getFileHandleId(), association.getAssociateObjectId(), association.getAssociateObjectType());
 	}
 
 	@Override
@@ -1220,7 +1216,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 							
-							StatisticsFileEvent downloadEvent = buildFileDownloadEvent(userInfo.getId(), association);
+							StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), association);
 							downloadEvents.add(downloadEvent);
 							
 							ObjectRecord record = createObjectRecord(userId, association, now);

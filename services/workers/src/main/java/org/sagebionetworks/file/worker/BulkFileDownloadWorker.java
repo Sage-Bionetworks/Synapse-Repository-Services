@@ -17,8 +17,8 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -269,7 +269,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		List<StatisticsFileEvent> downloadEvents = results.stream()
 			// Only collects stats for successful summaries
 			.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
-			.map(summary -> new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType()))
+			.map(summary -> StatisticsFileEventUtils.buildFileDownloadEvent(userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType()))
 			.collect(Collectors.toList());
 
 		if (!downloadEvents.isEmpty()) {
