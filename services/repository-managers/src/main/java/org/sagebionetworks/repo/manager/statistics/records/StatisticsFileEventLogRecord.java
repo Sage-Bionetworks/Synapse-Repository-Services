@@ -1,22 +1,10 @@
 package org.sagebionetworks.repo.manager.statistics.records;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 public class StatisticsFileEventLogRecord implements StatisticsEventLogRecord {
-
-	private static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	private static final Logger LOG = LogManager.getLogger(StatisticsFileEventLogRecord.class);
 
 	private Long userId;
 	private Long timestamp;
@@ -26,19 +14,6 @@ public class StatisticsFileEventLogRecord implements StatisticsEventLogRecord {
 	private String associateId;
 	private String stack;
 	private String instance;
-
-	@JsonIgnore
-	@Override
-	public byte[] toBytes() {
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		try {
-			OBJECT_MAPPER.writeValue(byteArrayOutputStream, this);
-			byteArrayOutputStream.write(NEW_LINE_BYTES);
-		} catch (IOException e) {
-			LOG.error("unexpected error when coverting to JSON ", e);
-		}
-		return byteArrayOutputStream.toByteArray();
-	}
 
 	@Override
 	public String getStack() {

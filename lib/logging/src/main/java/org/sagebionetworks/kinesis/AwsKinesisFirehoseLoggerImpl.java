@@ -1,6 +1,5 @@
 package org.sagebionetworks.kinesis;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.AmazonKinesisFirehoseException;
@@ -16,6 +16,7 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
+@Component
 public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 
 	private static final Logger LOG = LogManager.getLogger(AwsKinesisFirehoseLoggerImpl.class);
@@ -25,12 +26,14 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 
 	private AmazonKinesisFirehose kinesisFirehoseClient;
 
+	private AwsKinesisLogRecordSerializer kinesisRecordSerializer;
+
 	private StackConfiguration stackConfiguration;
 
 	@Autowired
-	public AwsKinesisFirehoseLoggerImpl(AmazonKinesisFirehose kinesisFirehoseClient,
-			StackConfiguration stackConfiguration) {
+	public AwsKinesisFirehoseLoggerImpl(AmazonKinesisFirehose kinesisFirehoseClient, AwsKinesisLogRecordSerializer kinesisRecordSerializer, StackConfiguration stackConfiguration) {
 		this.kinesisFirehoseClient = kinesisFirehoseClient;
+		this.kinesisRecordSerializer = kinesisRecordSerializer;
 		this.stackConfiguration = stackConfiguration;
 	}
 
@@ -66,6 +69,7 @@ public class AwsKinesisFirehoseLoggerImpl implements AwsKinesisFirehoseLogger {
 
 	private Record updateWithStackInfoAndConvertToRecord(AwsKinesisLogRecord logRecord) {
 		logRecord.withStack(stackConfiguration.getStack()).withInstance(stackConfiguration.getStackInstance());
-		return new Record().withData(ByteBuffer.wrap(logRecord.toBytes()));
+		return new Record().withData(kinesisRecordSerializer.toBytes(logRecord));
 	}
+
 }

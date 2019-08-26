@@ -47,6 +47,9 @@ class AwsKinesisFirehoseLoggerImplTest {
 	
 	@Mock
 	PutRecordBatchResult mockRecordResult;
+	
+	@Mock
+	AwsKinesisLogRecordSerializer mockRecordSerializer;
 
 
 	String kinesisStreamSuffix = "myKinesisStream";
@@ -68,11 +71,11 @@ class AwsKinesisFirehoseLoggerImplTest {
 	public void testLogBatch(){
 		List<AwsKinesisLogRecord> mockRecordList = Lists.newArrayList(mockRecord1, mockRecord2);
 
-
-		byte[] mockRecord1Bytes = new byte[1];
-		byte[] mockRecord2Bytes = new byte[2];
-		when(mockRecord1.toBytes()).thenReturn(mockRecord1Bytes);
-		when(mockRecord2.toBytes()).thenReturn(mockRecord2Bytes);
+		ByteBuffer mockRecord1Bytes = ByteBuffer.wrap(new byte[1]);
+		ByteBuffer mockRecord2Bytes = ByteBuffer.wrap(new byte[2]);
+		
+		when(mockRecordSerializer.toBytes(mockRecord1)).thenReturn(mockRecord1Bytes);
+		when(mockRecordSerializer.toBytes(mockRecord2)).thenReturn(mockRecord2Bytes);
 
 
 		//method under test
@@ -87,8 +90,8 @@ class AwsKinesisFirehoseLoggerImplTest {
 				new PutRecordBatchRequest()
 						.withDeliveryStreamName("devtestmyKinesisStream")
 						.withRecords(Arrays.asList(
-								new Record().withData(ByteBuffer.wrap(mockRecord1Bytes)),
-								new Record().withData(ByteBuffer.wrap(mockRecord2Bytes))))
+								new Record().withData(mockRecord1Bytes),
+								new Record().withData(mockRecord2Bytes)))
 		);
 
 		verifyNoMoreInteractions(mockKinesisFirehoseClient);
@@ -98,8 +101,9 @@ class AwsKinesisFirehoseLoggerImplTest {
 	public void testPartitioning(){
 		List<AwsKinesisLogRecord> repeatList = Collections.nCopies(502, mockRecord1);
 
-		byte[] mockRecord1Bytes = new byte[1];
-		when(mockRecord1.toBytes()).thenReturn(mockRecord1Bytes);
+		ByteBuffer mockRecord1Bytes = ByteBuffer.wrap(new byte[1]);
+		
+		when(mockRecordSerializer.toBytes(mockRecord1)).thenReturn(mockRecord1Bytes);
 
 		//method under test
 		kinesisFirehoseLogger.logBatch(kinesisStreamSuffix, repeatList);
@@ -110,14 +114,14 @@ class AwsKinesisFirehoseLoggerImplTest {
 				new PutRecordBatchRequest()
 						.withDeliveryStreamName("devtestmyKinesisStream")
 						.withRecords(Collections.nCopies(500,
-								new Record().withData(ByteBuffer.wrap(mockRecord1Bytes))))
+								new Record().withData(mockRecord1Bytes)))
 		);
 
 		verify(mockKinesisFirehoseClient).putRecordBatch(
 				new PutRecordBatchRequest()
 						.withDeliveryStreamName("devtestmyKinesisStream")
 						.withRecords(Collections.nCopies(2,
-								new Record().withData(ByteBuffer.wrap(mockRecord1Bytes))))
+								new Record().withData(mockRecord1Bytes)))
 		);
 
 		verifyNoMoreInteractions(mockKinesisFirehoseClient);

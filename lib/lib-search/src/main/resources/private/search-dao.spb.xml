@@ -14,14 +14,6 @@
 	<bean id="cloudSearchLogger"
 		  class="org.sagebionetworks.search.CloudSearchLoggerImpl"/>
 
-	<!-- Create the AWS kinesis firehose using the current credentials. -->
-	<bean id="awsKinesisFirehoseClient"
-		  class="org.sagebionetworks.aws.AwsClientFactory"
-		  factory-method="createAmazonKinesisFirehoseClient"/>
-
-	<bean id="kinesisFirehoseLogger"
-		  class="org.sagebionetworks.kinesis.AwsKinesisFirehoseLoggerImpl"/>
-
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="awsSearchClient"
 		class="org.sagebionetworks.aws.AwsClientFactory"
