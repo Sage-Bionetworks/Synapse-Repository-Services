@@ -3,10 +3,14 @@ package org.sagebionetworks.repo.model.annotation.v2;
 import java.util.Date;
 import java.util.function.Function;
 
+import org.sagebionetworks.util.doubles.DoubleUtils;
+
 enum AnnotationV1AndV2TypeMapping {
 
 	STRING(String.class, AnnotationsV2ValueType.STRING, Function.identity(), Function.identity()),
-	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE, Object::toString, AnnotationV1AndV2TypeMapping::convertStringToDouble),
+
+	//DoubleUtils.fromString handles other representations of Infinity and Nan, unlike Java's built in Double.valueOf
+	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE, Object::toString, DoubleUtils::fromString),
 	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::valueOf),
 	DATE(Date.class, AnnotationsV2ValueType.TIMESTAMP_MS,
 			(Date date) -> Long.toString(date.getTime()),
@@ -24,16 +28,6 @@ enum AnnotationV1AndV2TypeMapping {
 		this.toAnnotationV2Function = toAnnotationV2Function;
 		this.toAnnotationV1Function = toAnnotationV1Function;
 	}
-
-	//todo: handle +inf -inf and nan
-	//TODO: delete use double parser instead
-	static Double convertStringToDouble(String string) {
-		if ("nan".equals(string.toLowerCase())) {
-			string = "NaN";
-		}
-		return Double.valueOf(string);
-	}
-
 
 	public <T> Function<String, T> convertToAnnotationV1Function(){
 		return (Function<String, T>) toAnnotationV1Function;

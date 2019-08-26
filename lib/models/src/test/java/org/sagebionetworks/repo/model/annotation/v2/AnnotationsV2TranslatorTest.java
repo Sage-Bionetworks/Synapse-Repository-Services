@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.model.annotation.v2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
@@ -84,7 +87,6 @@ class AnnotationsV2TranslatorTest {
 
 	@Test
 	public void testToAnnotationsV1_doubleNaN(){
-		//replace stringKey1 's value with an empty list
 		String nanKey = "nanKey";
 		annotationsV2 = new AnnotationsV2();
 		AnnotationsV2Utils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsV2ValueType.DOUBLE);
@@ -99,20 +101,38 @@ class AnnotationsV2TranslatorTest {
 		assertEquals(annotationsV1, translated);
 	}
 
-	//TODO: finish modifying
 	@Test
-	public void testToAnnotationsV1_doubleInf(){
-		//replace stringKey1 's value with an empty list
-		String infKey = "nanKey";
+	public void testToAnnotationsV1_doublePositiveInf(){
+		String posInfKey = "posInf";
 		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annotationsV2, infKey, Arrays.asList("inf","INF", "iNf", "-Inf"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2Utils.putAnnotations(annotationsV2, posInfKey, Arrays.asList("infinity","inf", "iNfiNity", "iNF", "+infinity", "+inf", "+iNfiNity", "+iNF"), AnnotationsV2ValueType.DOUBLE);
 
 		//method under test
 		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should not have stringkey1 value;
 		annotationsV1 = new Annotations();
-		annotationsV1.addAnnotation(infKey, Arrays.asList(Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+		Double[] posInfinities = new Double[8];
+		Arrays.fill(posInfinities, Double.POSITIVE_INFINITY);
+		annotationsV1.addAnnotation(posInfKey, Arrays.asList(posInfinities));
+
+		assertEquals(annotationsV1, translated);
+	}
+
+	@Test
+	public void testToAnnotationsV1_doubleNegativeInf(){
+		String negInfKey = "negInf";
+		annotationsV2 = new AnnotationsV2();
+		AnnotationsV2Utils.putAnnotations(annotationsV2, negInfKey, Arrays.asList("-infinity", "-inf", "-iNfiNity", "-iNF"), AnnotationsV2ValueType.DOUBLE);
+
+		//method under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+
+		//expected value should not have stringkey1 value;
+		annotationsV1 = new Annotations();
+		Double[] negInfinities = new Double[4];
+		Arrays.fill(negInfinities, Double.NEGATIVE_INFINITY);
+		annotationsV1.addAnnotation(negInfKey, Arrays.asList(negInfinities));
 
 		assertEquals(annotationsV1, translated);
 	}
