@@ -79,7 +79,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Mock
 	private AwsKinesisFirehoseLogger firehoseLogger;
 
-	private StatisticsEventsCollector statsEventsCollector;
+	private StatisticsEventsCollectorImpl statsEventsCollector;
 	
 	private Long creatorUserId;
 
@@ -140,6 +140,8 @@ public class StatisticsEventsCollectorAutowireTest {
 
 		// Call under test
 		statsEventsCollector.collectEvent(event);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 
 		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(Collections.singletonList(expectedRecord)));
 
@@ -157,6 +159,8 @@ public class StatisticsEventsCollectorAutowireTest {
 
 		// Call under test
 		statsEventsCollector.collectEvent(event);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 
 		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_UPLOAD), eq(Collections.singletonList(expectedRecord)));
 
@@ -188,6 +192,8 @@ public class StatisticsEventsCollectorAutowireTest {
 		
 		// Call under test
 		statsEventsCollector.collectEvents(events);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 		
 		// Verifies that the logger is invoked only once
 		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords));
@@ -222,6 +228,8 @@ public class StatisticsEventsCollectorAutowireTest {
 		
 		// Call under test
 		statsEventsCollector.collectEvents(events);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 		
 		// Verifies that the logger is invoked once per stream type
 		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords1));
@@ -238,6 +246,8 @@ public class StatisticsEventsCollectorAutowireTest {
 
 		// Call under test
 		statsEventsCollector.collectEvent(event);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 
 		verify(firehoseLogger, never()).logBatch(any(), any());
 	}
@@ -253,6 +263,8 @@ public class StatisticsEventsCollectorAutowireTest {
 
 		// Call under test
 		collectorClient.collectEventWithoutTransaction(event);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 
 		verify(transactionSynchronization, times(1)).isActualTransactionActive();
 		verify(transactionSynchronization, never()).registerSynchronization(any());
@@ -271,6 +283,8 @@ public class StatisticsEventsCollectorAutowireTest {
 
 		// Call under test
 		collectorClient.collectEventWithTransaction(event);
+		// Simulates the background timer call
+		statsEventsCollector.timerFired();
 
 		verify(transactionSynchronization, times(1)).isActualTransactionActive();
 		verify(transactionSynchronization, times(1)).registerSynchronization(any());
