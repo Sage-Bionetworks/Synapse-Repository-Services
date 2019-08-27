@@ -26,6 +26,7 @@ import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -200,7 +201,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public static boolean canCreate(UserInfo userInfo) {
-		return AuthorizationUtils.isUserAnonymous(userInfo);
+		return !AuthorizationUtils.isUserAnonymous(userInfo);
 	}
 
 	public static boolean canAdministrate(UserInfo userInfo, String createdBy) {
@@ -226,12 +227,16 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		return oauthClientDao.createOAuthClient(oauthClient);
 	}
+	
+	public static void clearPrivateFields(OAuthClient client) {
+		
+	}
 
 	@Override
 	public OAuthClient getOpenIDConnectClient(UserInfo userInfo, String id) {
 		OAuthClient result = oauthClientDao.getOAuthClient(id);
 		if (!canAdministrate(userInfo, result.getCreatedBy())) {
-			throw new UnauthorizedException("You can only retrieve your own OAuth client(s).");
+			PrivateFieldUtils.clearPrivateFields(result);
 		}
 		return result;
 	}
