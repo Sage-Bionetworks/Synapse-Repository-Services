@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.service.EntityServiceImpl;
@@ -152,6 +153,29 @@ public class EntityServiceImplUnitTest {
 		entityService.updateEntity(userInfo.getId(), project, newVersionParameter, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
+	}
+	
+	@Test
+	public void testFireCreateWithCollectStatistics() {
+		FileEntity fileEntity = new FileEntity();
+		
+		fileEntity.setId("123");
+		fileEntity.setDataFileHandleId("456");
+		
+		entityService.createEntity(userInfo.getId(), fileEntity, null);		
+	}
+	
+	@Test
+	public void testFireUpdateWithCollectStatistics() {
+		FileEntity fileEntity = new FileEntity();
+		
+		fileEntity.setId("123");
+		fileEntity.setDataFileHandleId("456");
+		
+		when(mockEntityManager.updateEntity(userInfo, fileEntity, false, null)).thenReturn(true);
+		
+		entityService.updateEntity(userInfo.getId(), fileEntity, false, null);
+		
 	}
 
 }

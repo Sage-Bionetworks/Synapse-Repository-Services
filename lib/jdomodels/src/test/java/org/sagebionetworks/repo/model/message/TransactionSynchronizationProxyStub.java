@@ -16,8 +16,13 @@ import com.google.common.collect.Maps;
 public class TransactionSynchronizationProxyStub implements TransactionSynchronizationProxy {
 	
 	Map<String, Map<?, ?>> map = Maps.newHashMap();
-	 List<TransactionSynchronization> list = new ArrayList<TransactionSynchronization>();
+	List<TransactionSynchronization> list = new ArrayList<TransactionSynchronization>();
 
+	@Override
+	public boolean isActualTransactionActive() {
+		return true;
+	}
+	 
 	@Override
 	public boolean isSynchronizationActive() {
 		return true;
