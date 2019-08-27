@@ -387,13 +387,22 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		
 	}
 	
+	/**
+	 * From the given set of file handle ids computes the subset of ids that are NOT associated with the given table
+	 * 
+	 * @param tableId The id of the table
+	 * @param fileHandleIds A set of file handle ids
+	 * @return The subset of file handle ids from the given input set that are not associated with the given table
+	 */
 	Set<Long> getFileHandleIdsNotAssociatedWithTable(String tableId, Set<Long> fileHandleIds) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		
+		// First get the set of file handles among the input that are actually associated with the table
 		Set<Long> filesAssociatedWithTable = indexDao.getFileHandleIdsAssociatedWithTable(fileHandleIds, idAndVersion);
 		
+		// Now compute the set difference
 		return fileHandleIds.stream().filter( id -> !filesAssociatedWithTable.contains(id)).collect(Collectors.toSet());
 	}
 	
