@@ -930,7 +930,7 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"CREATED_BY";
 	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"CREATED_ON";
 	public static final String COL_OAUTH_CLIENT_MODIFIED_ON = 							"MODIFIED_ON";
-	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"URI";
+	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"IS_VERIFIED";
 
 	// This seems to be the name of the id column for all tables.
