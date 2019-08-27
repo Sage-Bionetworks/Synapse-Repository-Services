@@ -103,12 +103,14 @@ public class FileEntityMetadataProviderTest  {
 	
 	@Test
 	public void testEntityCreated() {
+		fileEntity.setDataFileHandleId("1");
 		provider.entityCreated(userInfo, fileEntity);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 	}
 	
 	@Test
 	public void testEntityUpdatedWithNewVersion() {
+		fileEntity.setDataFileHandleId("1");
 		provider.entityUpdated(userInfo, fileEntity, true);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 	}
