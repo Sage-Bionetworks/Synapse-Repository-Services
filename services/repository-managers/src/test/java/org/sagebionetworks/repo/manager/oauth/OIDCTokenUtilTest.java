@@ -13,11 +13,15 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.json.JSONArray;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -32,6 +36,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.impl.DefaultClaims;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class OIDCTokenUtilTest {
 
 	private static final String SUBJECT_ID = "101";
@@ -60,8 +66,16 @@ public class OIDCTokenUtilTest {
 		NON_ESSENTIAL.setEssential(false);
 	}
 	
+	private String OIDC_TOKEN = null;
+	
 	@Autowired
 	OIDCTokenHelper oidcTokenHelper;
+	
+	@Before
+	public void setUp() throws Exception {
+		oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
+	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
@@ -87,9 +101,6 @@ public class OIDCTokenUtilTest {
 	    assertEquals("claimValue", claimsSet.getClaim("claimName"));
 	    assertTrue(oidcTokenHelper.validateSignedJWT(jwtString));
 	}
-	
-	private String OIDC_TOKEN = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
-			SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 	
 	@Test
 	public void testValidateSignedJWT() throws Exception {

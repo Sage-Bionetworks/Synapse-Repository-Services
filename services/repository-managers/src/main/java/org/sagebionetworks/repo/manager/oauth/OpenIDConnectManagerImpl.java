@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
@@ -252,6 +253,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@WriteTransaction
 	@Override
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
+		ValidateArgument.requiredNotEmpty(toUpdate.getClientId(), "Client ID");
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClientId());
 		if (!canAdministrate(userInfo, currentClient.getCreatedBy())) {
 			throw new UnauthorizedException("You can only update your own OAuth client(s).");
@@ -263,16 +265,37 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new ConflictingUpdateException(
 					"OAuth Client was updated since you last fetched it.  Retrieve it again and reapply the update.");
 		}
-		toUpdate.setEtag(UUID.randomUUID().toString());
-
+		
 		String resolvedSectorIdentifier = resolveSectorIdentifier(toUpdate.getSector_identifier_uri(), toUpdate.getRedirect_uris());
 		if (!resolvedSectorIdentifier.equals(currentClient.getSector_identifier())) {
-			toUpdate.setSector_identifier(resolvedSectorIdentifier);
 			ensureSectorIdentifierExists(resolvedSectorIdentifier, userInfo.getId());
-			toUpdate.setVerified(false);
 		}
+		
+		OAuthClient toStore = new OAuthClient();
 
-		return oauthClientDao.updateOAuthClient(toUpdate);
+		// now fill in 'toStore' with info from updatedClient
+		// we *never* change: clientID, createdBy, createdOn
+		// (1) immutable:
+		toStore.setClientId(currentClient.getClientId());
+		toStore.setCreatedBy(currentClient.getCreatedBy());
+		toStore.setCreatedOn(currentClient.getCreatedOn());
+		// (2) settable by client
+		toStore.setClient_name(toUpdate.getClient_name());
+		toStore.setClient_uri(toUpdate.getClient_uri());
+		toStore.setPolicy_uri(toUpdate.getPolicy_uri());
+		toStore.setTos_uri(toUpdate.getTos_uri());
+		toStore.setUserinfo_signed_response_alg(toUpdate.getUserinfo_signed_response_alg());
+		toStore.setRedirect_uris(toUpdate.getRedirect_uris());
+		toStore.setSector_identifier_uri(toUpdate.getSector_identifier_uri());
+		// set by system
+		toStore.setModifiedOn(new Date());
+		toStore.setEtag(UUID.randomUUID().toString());
+		toStore.setVerified(currentClient.getVerified());
+		toStore.setSector_identifier(resolvedSectorIdentifier);
+		if (!resolvedSectorIdentifier.equals(currentClient.getSector_identifier())) {
+			toStore.setVerified(false);
+		}
+		return oauthClientDao.updateOAuthClient(toStore);
 	}
 
 	@WriteTransaction
