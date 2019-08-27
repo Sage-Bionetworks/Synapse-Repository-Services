@@ -99,7 +99,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 			}
 			// KMS can decrypt the value without providing the encryption key.
 			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().
-					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted))).withKeyId(stackKeyId);
+					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
 			return byteBufferToString(decryptResult.getPlaintext());
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
@@ -114,7 +114,8 @@ public class StackEncrypterImpl implements StackEncrypter {
 			}
 			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
 			// KMS can decrypt the value without providing the encryption key.
-			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(new ReEncryptRequest().withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
+			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(new ReEncryptRequest().
+					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted))).withKeyId(stackKeyId);
 			return new String(Base64.getEncoder().encode(reEncryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
