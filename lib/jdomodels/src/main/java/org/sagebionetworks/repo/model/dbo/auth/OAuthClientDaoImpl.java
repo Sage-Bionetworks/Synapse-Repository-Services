@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CL
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_IS_VERIFIED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECRET_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
@@ -61,7 +62,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	private static final String SECTOR_IDENTIFIER_SELECT_FOR_CLIENT_SQL = "SELECT s."+COL_OAUTH_SECTOR_IDENTIFIER_SECRET+
 			" FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER+" s INNER JOIN "+TABLE_OAUTH_CLIENT+" c ON "+
-			"c."+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = s."+COL_OAUTH_SECTOR_IDENTIFIER_URI+
+			"c."+COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI+" = s."+COL_OAUTH_SECTOR_IDENTIFIER_URI+
 			" WHERE c."+COL_OAUTH_CLIENT_ID+" = ?";
 
 	private static final String SECTOR_IDENTIFIER_SQL_DELETE = "DELETE FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER
@@ -235,7 +236,8 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		ValidateArgument.required(updatedClient.getEtag(), "etag");
 
 		DBOOAuthClient dbo = clientDtoToDbo(updatedClient);
-		//dbo.setSecretHash(origDbo.getSecretHash());
+		String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, updatedClient.getClientId());
+		dbo.setSecretHash(secretHash);
 		basicDao.update(dbo);
 		return updatedClient;
 	}

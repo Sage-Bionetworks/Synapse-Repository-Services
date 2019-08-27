@@ -448,7 +448,7 @@ public class OAuthClientDaoImplTest {
 		assertEquals(newSIURI, updated.getSector_identifier_uri());
 		assertEquals(newTOS, updated.getTos_uri());
 		assertNull(updated.getUserinfo_signed_response_alg());
-		assertFalse(updated.getVerified()); // we tried to set it to true, but cannot
+		assertTrue(updated.getVerified());
 	}
 	
 	@Test
