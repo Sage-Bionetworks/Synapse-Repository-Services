@@ -10,6 +10,10 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
+	<!-- This the StackEncrypter singleton -->
+	<bean id="stackEncrypter" class="org.sagebionetworks.StackEncrypterSingleton"
+	factory-method="singleton" scope="singleton" />
+
 	<!-- This the StackConfiguration singleton -->
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfigurationSingleton"
 	factory-method="singleton" scope="singleton" />

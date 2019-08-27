@@ -441,7 +441,6 @@ public class OAuthClientDaoImplTest {
 		assertEquals(clientToUpdate.getCreatedBy(), updated.getCreatedBy());
 		assertEquals(clientToUpdate.getCreatedOn(), updated.getCreatedOn());
 		assertEquals(newEtag, updated.getEtag());
-		assertNotEquals(clientToUpdate.getEtag(), updated.getEtag());
 		assertNotNull(updated.getModifiedOn());
 		assertEquals(newPolicyUri, updated.getPolicy_uri());
 		assertEquals(newRedir, updated.getRedirect_uris());
