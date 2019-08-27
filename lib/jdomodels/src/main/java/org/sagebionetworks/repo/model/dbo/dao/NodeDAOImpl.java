@@ -64,7 +64,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -1719,7 +1718,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(userAnnoJson != null){
 					try {
 						AnnotationsV2 annos = EntityFactory.createEntityFromJSONString(userAnnoJson, AnnotationsV2.class);
-						dto.setAnnotations(AnnotationUtils.translate(entityId, annos, maxAnnotationSize));
+						dto.setAnnotations(AnnotationsV2Utils.translate(entityId, annos, maxAnnotationSize));
 					} catch (JSONObjectAdapterException e) {
 						throw new DatastoreException(e);
 					}

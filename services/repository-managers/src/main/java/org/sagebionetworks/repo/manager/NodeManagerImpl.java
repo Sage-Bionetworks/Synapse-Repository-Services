@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
   
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -33,15 +32,14 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -451,7 +449,7 @@ public class NodeManagerImpl implements NodeManager {
 		// This is no longer called from a create PLFM-325
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		// Validate that the annotations
-		AnnotationUtils.validateAnnotations(updated);
+		AnnotationsV2Utils.validateAnnotations(updated);
 		// Lock the node and check the etag.
 		lockAndCheckEtag(nodeId, updated.getEtag());
 		// update etag, modifedOn, and modifiedBy

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo.annotaitonvalidator;
+package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
 import org.sagebionetworks.util.doubles.DoubleUtils;
 

@@ -39,10 +39,10 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -414,7 +414,7 @@ public class TableViewManagerImplTest {
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
 		//TODO: replace translator code
-		AnnotationUtils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
+		AnnotationsV2Utils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
 		assertTrue(updated);
 		assertEquals("aString",annos.getSingleValue(anno1.getName()));
 		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
@@ -438,7 +438,7 @@ public class TableViewManagerImplTest {
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
 		//TODO: replace translator code
-		AnnotationUtils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
+		AnnotationsV2Utils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
 		assertTrue(updated);
 		/*
 		 * Copy the annotations by writing to XML.

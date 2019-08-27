@@ -1,6 +1,7 @@
-package org.sagebionetworks.repo.model.jdo.annotaitonvalidator;
+package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
