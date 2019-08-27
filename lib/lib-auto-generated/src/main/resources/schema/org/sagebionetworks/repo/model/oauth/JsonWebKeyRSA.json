@@ -6,37 +6,13 @@
 		}
 	],
  	"properties": {
-		"p":{
- 			"type":"string",
- 			"description":""
- 		},
- 		"q":{
- 			"type":"string",
- 			"description":""
- 		},
- 		"d":{
- 			"type":"string",
- 			"description":""
- 		},
  		"e":{
  			"type":"string",
- 			"description":""
- 		},
- 		"qi":{
- 			"type":"string",
- 			"description":""
- 		},
- 		"dp":{
- 			"type":"string",
- 			"description":""
- 		},
- 		"dq":{
- 			"type":"string",
- 			"description":""
+ 			"description":"Exponent of RSA Public Key"
  		},
  		"n":{
  			"type":"string",
- 			"description":""
+ 			"description":"Modulus of RSA Public Key"
  		}
  	}
 }

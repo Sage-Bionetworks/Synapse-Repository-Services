@@ -3,17 +3,16 @@ package org.sagebionetworks.repo.manager.oauth;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-
-import com.nimbusds.jose.jwk.JWK;
 
 import io.jsonwebtoken.Claims;
 
 public interface OIDCTokenHelper {
 
-	List<JWK> getJSONWebKeySet();
+	JsonWebKeySet getJSONWebKeySet();
 
 	String createSignedJWT(Claims claims);
 

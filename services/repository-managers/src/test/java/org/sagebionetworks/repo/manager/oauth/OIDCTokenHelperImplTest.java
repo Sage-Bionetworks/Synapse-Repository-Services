@@ -16,6 +16,8 @@ import org.json.JSONArray;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
@@ -23,22 +25,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyOperation;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.impl.DefaultClaims;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class OIDCTokenUtilTest {
+public class OIDCTokenHelperImplTest {
 
 	private static final String SUBJECT_ID = "101";
 	private static final String CLIENT_ID = "client-01234";
@@ -66,28 +70,29 @@ public class OIDCTokenUtilTest {
 		NON_ESSENTIAL.setEssential(false);
 	}
 	
-	private String OIDC_TOKEN = null;
+	private String oidcToken = null;
 	
 	@Autowired
 	OIDCTokenHelper oidcTokenHelper;
 	
 	@Before
 	public void setUp() throws Exception {
-		oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+		oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
 		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
-		List<JWK> jwks = oidcTokenHelper.getJSONWebKeySet();
-		assertFalse(jwks.isEmpty());
+		JsonWebKeySet jwks = oidcTokenHelper.getJSONWebKeySet();
+		assertFalse(jwks.getKeys().isEmpty());
 	}
 	
 	@Test
 	public void testCreateSignedJWT() throws Exception {
 		Claims claims = new DefaultClaims();
 		claims.put("claimName", "claimValue");
+		claims.setExpiration(new Date(System.currentTimeMillis()+100000L));
 		
 		// method under test
 		String jwtString = oidcTokenHelper.createSignedJWT(claims);
@@ -96,7 +101,7 @@ public class OIDCTokenUtilTest {
 		assertTrue(jwt instanceof SignedJWT);
 
 	    SignedJWT signedJWT = (SignedJWT)jwt;
-	    assertEquals(Header.JWT_TYPE, signedJWT.getHeader().getType());
+	    assertEquals(JOSEObjectType.JWT, signedJWT.getHeader().getType());
 	    JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
 	    assertEquals("claimValue", claimsSet.getClaim("claimName"));
 	    assertTrue(oidcTokenHelper.validateSignedJWT(jwtString));
@@ -104,13 +109,13 @@ public class OIDCTokenUtilTest {
 	
 	@Test
 	public void testValidateSignedJWT() throws Exception {
-		assertTrue(oidcTokenHelper.validateSignedJWT(OIDC_TOKEN));
+		assertTrue(oidcTokenHelper.validateSignedJWT(oidcToken));
 	}
 
 	
 	@Test
 	public void testOIDCTokenGeneration() throws Exception {
-		JWT jwt = JWTParser.parse(OIDC_TOKEN);
+		JWT jwt = JWTParser.parse(oidcToken);
 		
 		assertTrue(jwt instanceof SignedJWT);
 
@@ -139,12 +144,15 @@ public class OIDCTokenUtilTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    List<JWK> jwks = oidcTokenHelper.getJSONWebKeySet();
-	    JWSVerifier verifier = new RSASSAVerifier((RSAKey)jwks.get(0));
+	    JsonWebKeyRSA jwk = (JsonWebKeyRSA)oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
+	    RSAKey rsaKey = new RSAKey(new Base64URL(jwk.getN()), new Base64URL(jwk.getE()),
+			      KeyUse.SIGNATURE, Collections.singleton(KeyOperation.VERIFY), null, 
+			      jwk.getKid(), null, null, null, null, null);
+	    JWSVerifier verifier = new RSASSAVerifier(rsaKey);
 	    assertTrue(signedJWT.verify(verifier));
 	    
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyID(), jwks.get(0).getKeyID());
+	    assertEquals(signedJWT.getHeader().getKeyID(), rsaKey.getKeyID());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
 	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm().getName());
