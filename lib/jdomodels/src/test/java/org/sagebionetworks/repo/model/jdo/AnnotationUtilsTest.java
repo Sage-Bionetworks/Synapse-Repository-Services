@@ -15,23 +15,18 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -114,9 +109,9 @@ public class AnnotationUtilsTest {
 
 	@Test
 	public void testValidateAnnotations(){
-		AnnotationsV2Utils.putAnnotations(annotationsV2, "one", "1", AnnotationsV2ValueType.TIMESTAMP_MS);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, "two", "1.2", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, "three", "1", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "one", "1", AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "two", "1.2", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "three", "1", AnnotationsV2ValueType.LONG);
 		AnnotationUtils.validateAnnotations(annotationsV2);
 	}
 
@@ -258,10 +253,10 @@ public class AnnotationUtilsTest {
 		long entityId = 123;
 		int maxAnnotationChars = 6;
 		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annos, "aString", "someString", AnnotationsV2ValueType.STRING);
-		AnnotationsV2Utils.putAnnotations(annos, "aLong", "123", AnnotationsV2ValueType.LONG);
-		AnnotationsV2Utils.putAnnotations(annos, "aDouble", "1.22", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2Utils.putAnnotations(annos, "aDate", "444", AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aString", "someString", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aLong", "123", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aDouble", "1.22", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aDate", "444", AnnotationsV2ValueType.TIMESTAMP_MS);
 
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
@@ -284,7 +279,7 @@ public class AnnotationUtilsTest {
 		long entityId = 123;
 		int maxAnnotationChars = 6;
 		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsV2ValueType.STRING);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -295,7 +290,7 @@ public class AnnotationUtilsTest {
 		long entityId = 123;
 		int maxAnnotationChars = 6;
 		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsV2ValueType.STRING);
 		List<AnnotationDTO> results = AnnotationUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());

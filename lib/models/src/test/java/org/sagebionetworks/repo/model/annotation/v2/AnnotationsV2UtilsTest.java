@@ -17,7 +17,7 @@ class AnnotationsV2UtilsTest {
 		List<String> values = Arrays.asList("1.2", "2.3");
 
 		//method under test
-		AnnotationsV2Value created = AnnotationsV2Utils.createNewValue(type, values);
+		AnnotationsV2Value created = AnnotationsV2TestUtils.createNewValue(type, values);
 
 		assertEquals(type, created.getType());
 		assertEquals(values, created.getValue());
@@ -45,7 +45,7 @@ class AnnotationsV2UtilsTest {
 	@Test
 	void toJSONStringForStorage_AnnotationsMapWithEntries() throws JSONObjectAdapterException {
 		AnnotationsV2 annotationsV2 = new AnnotationsV2();
-		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2Utils.createNewValue(AnnotationsV2ValueType.STRING, "value1")));
+		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2TestUtils.createNewValue(AnnotationsV2ValueType.STRING, "value1")));
 		assertEquals("{\"annotations\":[{\"key\":\"key\",\"value\":{\"type\":\"STRING\",\"value\":[\"value1\"]}}]}", AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 	}
 }

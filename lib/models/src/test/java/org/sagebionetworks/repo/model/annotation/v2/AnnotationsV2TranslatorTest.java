@@ -2,16 +2,12 @@ package org.sagebionetworks.repo.model.annotation.v2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.commons.util.CollectionUtils;
 import org.sagebionetworks.repo.model.Annotations;
 
 class AnnotationsV2TranslatorTest {
@@ -49,17 +45,17 @@ class AnnotationsV2TranslatorTest {
 
 		annotationsV2 = new AnnotationsV2();
 
-		AnnotationsV2Utils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("val1", "val2"), AnnotationsV2ValueType.STRING);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, stringKey2, Arrays.asList("val3", "val4"), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("val1", "val2"), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey2, Arrays.asList("val3", "val4"), AnnotationsV2ValueType.STRING);
 
-		AnnotationsV2Utils.putAnnotations(annotationsV2, doubleKey1, Arrays.asList("1.2", "2.3"), AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, doubleKey2, Arrays.asList("3.4", "4.5"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey1, Arrays.asList("1.2", "2.3"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey2, Arrays.asList("3.4", "4.5"), AnnotationsV2ValueType.DOUBLE);
 
-		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.TIMESTAMP_MS);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.TIMESTAMP_MS);
 
-		AnnotationsV2Utils.putAnnotations(annotationsV2, longKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.LONG);
-		AnnotationsV2Utils.putAnnotations(annotationsV2, longKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.LONG);
 	}
 
 	@Test
@@ -90,7 +86,7 @@ class AnnotationsV2TranslatorTest {
 	public void testToAnnotationsV1_doubleNaN(){
 		String nanKey = "nanKey";
 		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsV2ValueType.DOUBLE);
 
 		//method under test
 		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
@@ -106,7 +102,7 @@ class AnnotationsV2TranslatorTest {
 	public void testToAnnotationsV1_doublePositiveInf(){
 		String posInfKey = "posInf";
 		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annotationsV2, posInfKey, Arrays.asList("infinity","inf", "iNfiNity", "iNF", "+infinity", "+inf", "+iNfiNity", "+iNF"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, posInfKey, Arrays.asList("infinity","inf", "iNfiNity", "iNF", "+infinity", "+inf", "+iNfiNity", "+iNF"), AnnotationsV2ValueType.DOUBLE);
 
 		//method under test
 		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
@@ -124,7 +120,7 @@ class AnnotationsV2TranslatorTest {
 	public void testToAnnotationsV1_doubleNegativeInf(){
 		String negInfKey = "negInf";
 		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annotationsV2, negInfKey, Arrays.asList("-infinity", "-inf", "-iNfiNity", "-iNF"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, negInfKey, Arrays.asList("-infinity", "-inf", "-iNfiNity", "-iNF"), AnnotationsV2ValueType.DOUBLE);
 
 		//method under test
 		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
@@ -154,7 +150,7 @@ class AnnotationsV2TranslatorTest {
 		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		//annotationsV2 should have an empty list mapping
-		AnnotationsV2Utils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
 		assertEquals(annotationsV2, translated);
 	}
 

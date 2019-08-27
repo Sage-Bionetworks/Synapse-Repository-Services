@@ -32,13 +32,12 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -279,7 +278,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(annos.getEtag());
 		String eTagBeforeUpdate = annos.getEtag();
 		// Add some values
-		AnnotationsV2Utils.putAnnotations(annos, "longKey", "1", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "1", AnnotationsV2ValueType.LONG);
 		// sleep to ensure modifiedOn changes.
 		Thread.sleep(10);
 		// Now update the node
@@ -315,12 +314,12 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete.add(id);
 		// First get the annotations for this node
 		AnnotationsV2 annos = nodeManager.getUserAnnotations(userInfo, id);
-		AnnotationsV2Utils.putAnnotations(annos, "stringKey", "should take", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsV2ValueType.STRING);
 		String startingEtag = annos.getEtag();
 		nodeManager.updateUserAnnotations(userInfo, id, annos);
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
-		AnnotationsV2Utils.putAnnotations(annos, "stringKey", "should not take", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should not take", AnnotationsV2ValueType.STRING);
 		nodeManager.updateUserAnnotations(userInfo, id, annos);
 	}
 

@@ -46,7 +46,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -453,8 +453,8 @@ public class NodeManagerImplUnitTest {
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
 		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2Utils.putAnnotations(annos, "stringKey", "a", AnnotationsV2ValueType.STRING);
-		AnnotationsV2Utils.putAnnotations(annos, "longKey", "12312", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "a", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "12312", AnnotationsV2ValueType.LONG);
 		when(mockNodeDao.getUserAnnotations(id)).thenReturn(userAnnotations);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
