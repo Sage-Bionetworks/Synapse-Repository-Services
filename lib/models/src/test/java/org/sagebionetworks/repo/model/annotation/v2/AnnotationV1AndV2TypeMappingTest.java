@@ -6,11 +6,13 @@ import java.util.Date;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 
 class AnnotationV1AndV2TypeMappingTest {
 
+	@Test
 	public void testForClass(){
 		assertEquals(AnnotationV1AndV2TypeMapping.STRING, AnnotationV1AndV2TypeMapping.forClass(String.class));
 		assertEquals(AnnotationV1AndV2TypeMapping.LONG,AnnotationV1AndV2TypeMapping.forClass(Long.class));
@@ -22,6 +24,7 @@ class AnnotationV1AndV2TypeMappingTest {
 		});
 	}
 
+	@Test
 	public void testForValueType(){
 		assertEquals(AnnotationV1AndV2TypeMapping.STRING, AnnotationV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.STRING));
 		assertEquals(AnnotationV1AndV2TypeMapping.LONG,AnnotationV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.LONG));

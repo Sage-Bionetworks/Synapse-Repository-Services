@@ -26,8 +26,10 @@ public class AnnotationsV2Translator {
 					.map(typeMapping.convertToAnnotationV1Function())
 					.collect(Collectors.toList());
 
-			//TODO: this does not add mapping for empty lists. do we want empty list support?
-			annotationsV1.addAnnotation(annotationKey, convertedValues);
+			// use appropriate getter function (Annotations::getStringAnnotations, Annotations::getLongAnnotations, etc.)
+			// have to use raw Map because AnnotationV1AndV2TypeMapping can't be a generic class
+			Map annotationV1TypeSpecificMap = typeMapping.annotationV1MapGetter().apply(annotationsV1);
+			annotationV1TypeSpecificMap.put(annotationKey, convertedValues);
 		}
 
 		return annotationsV1;
@@ -58,11 +60,6 @@ public class AnnotationsV2Translator {
 		AnnotationV1AndV2TypeMapping annotationV1AndV2TypeMapping = AnnotationV1AndV2TypeMapping.forClass(clazz);
 
 		for(Map.Entry<String, List<T>> entry: originalMap.entrySet()){
-			//skip this map entry if there are no values
-			if(entry.getValue().isEmpty()) {
-				continue;
-			}
-
 			//convert value list from v1 typed format to v2 string format.
 			List<String> convertedValues = entry.getValue().stream()
 					.map(annotationV1AndV2TypeMapping.convertToAnnotationV2Function())

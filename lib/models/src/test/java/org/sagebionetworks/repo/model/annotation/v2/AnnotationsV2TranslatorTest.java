@@ -11,6 +11,7 @@ import java.util.List;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.commons.util.CollectionUtils;
 import org.sagebionetworks.repo.model.Annotations;
 
 class AnnotationsV2TranslatorTest {
@@ -70,7 +71,7 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
-	public void testToAnnotationsV1_skipEmptyListValues(){
+	public void testToAnnotationsV1_EmptyListValues(){
 		//replace stringKey1 's value with an empty list
 		AnnotationsV2Value emptyValue = new AnnotationsV2Value();
 		emptyValue.setType(AnnotationsV2ValueType.STRING);
@@ -80,8 +81,8 @@ class AnnotationsV2TranslatorTest {
 		//method under test
 		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
-		//expected value should not have stringkey1 value;
-		annotationsV1.getStringAnnotations().remove(stringKey1);
+		//expected value should have an empty list
+		annotationsV1.getStringAnnotations().put(stringKey1, Collections.emptyList());
 		assertEquals(annotationsV1, translated);
 	}
 
@@ -146,14 +147,14 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
-	public void testToAnnotationsV2_skipEmptyListValues(){
+	public void testToAnnotationsV2_emptyListValues(){
 		//set list for stringkey1 to empty
 		annotationsV1.getStringAnnotations().put(stringKey1, Collections.emptyList());
 		//method under test
 		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
-		//should stringkey1 not have been translated to annotations key1
-		annotationsV2.getAnnotations().remove(stringKey1);
+		//annotationsV2 should have an empty list mapping
+		AnnotationsV2Utils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
 		assertEquals(annotationsV2, translated);
 	}
 

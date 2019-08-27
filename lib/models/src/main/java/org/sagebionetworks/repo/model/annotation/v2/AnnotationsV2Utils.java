@@ -107,7 +107,4 @@ public class AnnotationsV2Utils {
 		return EntityFactory.createJSONStringForEntity(annotationsV2ShallowCopy);
 	}
 
-
-	public static <T> void putAnnotations(Annotations annos, String listWithNullValue, List<T> singletonList, AnnotationsV2ValueType string) {
-	}
 }
