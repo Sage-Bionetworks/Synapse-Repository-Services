@@ -1,0 +1,16 @@
+{
+    "description": "Metadata for a list page OAuth 2.0 clients",
+ 	"properties": {
+		"results":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthClient"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}
+

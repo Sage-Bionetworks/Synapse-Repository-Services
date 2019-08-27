@@ -1,0 +1,66 @@
+{
+    "description": "OAuth 2.0 Client metadata, https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata",
+ 	"properties": {
+		"clientId": {
+			"type": "string",
+			"description": "The unique ID for the OAuth client, created by Synapse"
+		},
+		"client_name":{
+			"type": "string",
+			"description":"Name of the Client to be presented to the End-User."
+		},
+		"redirect_uris": {
+			"type": "array",
+			"description": "Array of Redirection URI values used by the Client. One of these registered Redirection URI values MUST exactly match the redirect_uri parameter value used in each Authorization Request. If the 'sector_identifier_uri' is provided then the URIs in this list must be in the list of URIs in the JSON document referenced by the sector_identifier_uri.",
+			"items":{
+				"type": "string"
+			}
+		},
+		"verified": {
+			"type": "boolean",
+			"description": "initially false, becomes true once the client creator demonstrates ownership of the redirect URI host"
+		},
+		"client_uri": {
+			"type": "string",
+			"description":"URL of the home page of the Client. The value of this field MUST point to a valid Web page."
+		},
+		"policy_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The value of this field MUST point to a valid web page."
+		},
+		"tos_uri": {
+			"type": "string",
+			"description":"URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The value of this field MUST point to a valid web page."
+		},
+		"sector_identifier_uri": {
+			"type": "string",
+			"description": "URL using the https scheme to be used in calculating Pseudonymous Identifiers by Synapse. The URL must reference a file with a single JSON array of redirect_uri values. Synapse will utilize the sector_identifier_uri value provided in the Subject Identifier calculation for pairwise identifiers."
+		},
+		"sector_identifier": {
+			"type": "string",
+			"description": "The sector identified, computed by the server from the redirect_uris and sector_identifier_uri fields as described here: https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg"
+		},
+		"userinfo_signed_response_alg": {
+			"$ref": "org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm",
+			"description": "JWS alg algorithm REQUIRED for signing UserInfo Responses. If this is specified, the response will be JWT serialized, and signed using JWS. The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 encoded JSON object using the application/json content-type."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this client was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this client was last modified."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this client."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a client is updated it is used to detect when a client's current representation of an entity is out-of-date."
+		}
+	}
+}
