@@ -18,7 +18,6 @@ public class AnnotationsV2Utils {
 	 * @return first value in the AnnotationV2 for the given key if it exists. null otherwise
 	 */
 	public static String getSingleValue(AnnotationsV2 annotationsV2, String key){
-		//TODO: test
 		ValidateArgument.required(annotationsV2, "annotationsV2");
 		ValidateArgument.required(key, "key");
 		Map<String, AnnotationsV2Value> map = annotationsV2.getAnnotations();
@@ -30,7 +29,6 @@ public class AnnotationsV2Utils {
 	}
 
 	public static String getSingleValue(AnnotationsV2Value value){
-		//TODO: test
 		if(value == null){
 			return null;
 		}
