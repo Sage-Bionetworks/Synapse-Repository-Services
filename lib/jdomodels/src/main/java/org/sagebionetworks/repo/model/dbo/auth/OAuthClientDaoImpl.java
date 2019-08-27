@@ -243,7 +243,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		// we *never* change: clientID, createdBy, createdOn
 		toStore.setClient_name(updatedClient.getClient_name());
 		toStore.setClient_uri(updatedClient.getClient_uri());
-		toStore.setEtag(UUID.randomUUID().toString());
+		toStore.setEtag(updatedClient.getEtag());
 		toStore.setModifiedOn(new Date());
 		toStore.setPolicy_uri(updatedClient.getPolicy_uri());
 		toStore.setRedirect_uris(updatedClient.getRedirect_uris()); // the caller must have validated this info
