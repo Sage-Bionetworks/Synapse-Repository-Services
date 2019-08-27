@@ -535,4 +535,8 @@
 	<bean id="storageReportManager"
 		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
 		  scope="singleton"/>
+		  
+	<bean id="oidcTokenHelper" class="org.sagebionetworks.repo.manager.oauth.OIDCTokenHelperImpl" scope="singleton" />
+	
+		  
 </beans>

@@ -14,11 +14,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class OAuthAccessTokenFilter implements Filter {
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain) throws IOException, ServletException {
@@ -33,7 +37,7 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		boolean verified=false;
 		if (bearerToken!=null) {
-			verified = OIDCTokenUtil.validateSignedJWT(bearerToken);
+			verified = oidcTokenHelper.validateSignedJWT(bearerToken);
 		}
 		
 		if (verified) {

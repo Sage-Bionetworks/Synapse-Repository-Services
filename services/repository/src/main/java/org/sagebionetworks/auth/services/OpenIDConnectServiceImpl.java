@@ -6,10 +6,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -46,6 +45,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	
 	@Autowired
 	private OpenIDConnectManager oidcManager;
+
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
@@ -106,7 +108,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public JsonWebKeySet getOIDCJsonWebKeySet() {
-		List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
+		List<JWK> jwks = oidcTokenHelper.getJSONWebKeySet();
 		JsonWebKeySet result = new JsonWebKeySet();
 		List<JsonWebKey> keys = new ArrayList<JsonWebKey>();
 		result.setKeys(keys);

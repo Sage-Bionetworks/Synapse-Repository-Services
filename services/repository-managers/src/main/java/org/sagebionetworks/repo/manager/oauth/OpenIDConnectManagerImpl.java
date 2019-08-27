@@ -96,6 +96,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private TeamDAO teamDAO;
+	
+	@Autowired
+	OIDCTokenHelper oidcTokenHelper;
 
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
 		ValidateArgument.required(oauthClient.getClient_name(), "OAuth client name");
@@ -513,7 +516,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				continue;
 
 			}
-			result.put(claimName, claimValue);
+			// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+			// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
+			// representing the Claims; it SHOULD NOT be present with a null or empty string value."
+			if (StringUtils.isNotEmpty(claimValue)) {
+				result.put(claimName, claimValue);
+			}
 		}
 		return result;
 	}
@@ -594,13 +602,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
-			String idToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
+			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = OIDCTokenUtil.createOIDCaccessToken(oauthEndpoint, ppid, 
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
 				oauthClientId, now, authTimeSeconds, accessTokenId, scopes, 
 				getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
@@ -625,8 +633,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			// userId is used to retrieve the user info
 			String userId = getUserIdFromPPID(ppid, oauthClientId);
 
-			List<OAuthScope> scopes = OIDCTokenUtil.getScopeFromClaims(accessTokenClaimsSet);
-			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
+			List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaimsSet);
+			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
 
 			Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
@@ -646,7 +654,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				return userInfo;
 			} else {
 				long now = System.currentTimeMillis();
-				String jwtIdToken = OIDCTokenUtil.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
+				String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
 						authTimeSeconds, UUID.randomUUID().toString(), userInfo);
 
 				return jwtIdToken;

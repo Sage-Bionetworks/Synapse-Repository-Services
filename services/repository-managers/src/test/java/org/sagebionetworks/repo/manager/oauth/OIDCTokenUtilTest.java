@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -28,6 +29,7 @@ import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.impl.DefaultClaims;
 
 public class OIDCTokenUtilTest {
@@ -58,26 +60,40 @@ public class OIDCTokenUtilTest {
 		NON_ESSENTIAL.setEssential(false);
 	}
 	
+	@Autowired
+	OIDCTokenHelper oidcTokenHelper;
+
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
 		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
-		List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
+		List<JWK> jwks = oidcTokenHelper.getJSONWebKeySet();
 		assertFalse(jwks.isEmpty());
 	}
 	
 	@Test
 	public void testCreateSignedJWT() throws Exception {
 		Claims claims = new DefaultClaims();
-		String jwtString = OIDCTokenUtil.createSignedJWT(claims);
-		// TODO
+		claims.put("claimName", "claimValue");
+		
+		// method under test
+		String jwtString = oidcTokenHelper.createSignedJWT(claims);
+		
+		JWT jwt = JWTParser.parse(jwtString);
+		assertTrue(jwt instanceof SignedJWT);
+
+	    SignedJWT signedJWT = (SignedJWT)jwt;
+	    assertEquals(Header.JWT_TYPE, signedJWT.getHeader().getType());
+	    JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
+	    assertEquals("claimValue", claimsSet.getClaim("claimName"));
+	    assertTrue(oidcTokenHelper.validateSignedJWT(jwtString));
 	}
 	
-	private String OIDC_TOKEN = OIDCTokenUtil.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+	private String OIDC_TOKEN = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 			SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 	
 	@Test
 	public void testValidateSignedJWT() throws Exception {
-		assertTrue(OIDCTokenUtil.validateSignedJWT(OIDC_TOKEN));
+		assertTrue(oidcTokenHelper.validateSignedJWT(OIDC_TOKEN));
 	}
 
 	
@@ -112,7 +128,7 @@ public class OIDCTokenUtilTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    List<JWK> jwks = OIDCTokenUtil.getJSONWebKeySet();
+	    List<JWK> jwks = oidcTokenHelper.getJSONWebKeySet();
 	    JWSVerifier verifier = new RSASSAVerifier((RSAKey)jwks.get(0));
 	    assertTrue(signedJWT.verify(verifier));
 	    
@@ -163,7 +179,7 @@ public class OIDCTokenUtilTest {
 		expectedClaims.put(OIDCClaimName.family_name, null);
 		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
 		
-		String accessToken = OIDCTokenUtil.createOIDCaccessToken(
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(
 				"https://repo-prod.prod.sagebase.org/auth/v1",
 				SUBJECT_ID, 
 				CLIENT_ID,
@@ -175,8 +191,8 @@ public class OIDCTokenUtilTest {
 		
 		JWT jwt = JWTParser.parse(accessToken);
 
-		List<OAuthScope> actualScopes = OIDCTokenUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
-		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = OIDCTokenUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
+		List<OAuthScope> actualScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
 		
 		assertEquals(grantedScopes, actualScopes);
 		assertEquals(expectedClaims, actualClaims);

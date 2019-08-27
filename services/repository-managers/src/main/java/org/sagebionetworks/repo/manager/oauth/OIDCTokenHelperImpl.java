@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
-import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -13,14 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -31,7 +27,6 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -39,34 +34,26 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-import net.minidev.json.parser.JSONParser;
 
-public class OIDCTokenUtil {
-	private static final String ACCESS = "access";
-	private static final String SCOPE = "scope";
-	private static final String USER_INFO_CLAIMS = "oidc_claims";
+public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	private static final String NONCE = "nonce";
-	
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
+	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
-
-	private static final String OIDC_SIGNATURE_KEY_ID;
-	private static final PrivateKey OIDC_SIGNATURE_PRIVATE_KEY;
 	
-	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
+	private String oidcSignatureKeyId;
+	private PrivateKey oidcSignaturePrivateKey;
+	private List<JWK> jsonWebKeySet;
+
+	@Autowired
+	private StackConfiguration stackConfiguration;
 	
-	private static List<JWK> JSON_WEB_KEY_SET;
-
-	static {
-		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
-
-		JSON_WEB_KEY_SET = new ArrayList<JWK>();
+	@Override
+	public void afterPropertiesSet() {
+		jsonWebKeySet = new ArrayList<JWK>();
 		PrivateKey signingPrivateKey = null;
 		String signingKeyId = null;
-		for (String s: stackConfig.getOIDCSignatureRSAPrivateKeys()) {
+		for (String s: stackConfiguration.getOIDCSignatureRSAPrivateKeys()) {
 			KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(s);
 			String kid = KeyPairUtil.computeKeyId(keyPair.getPublic());
 			// grab the first one to use when signing
@@ -81,39 +68,42 @@ public class OIDCTokenUtil {
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();
-				JSON_WEB_KEY_SET.add(jwk);
+				jsonWebKeySet.add(jwk);
 			} else if (keyPair.getPublic() instanceof RSAPublicKey) {
 				JWK jwk = new RSAKey.Builder((RSAPublicKey)keyPair.getPublic())
 						.algorithm(JWSAlgorithm.RS256)
 						.keyUse(KeyUse.SIGNATURE)
 						.keyID(kid)
 						.build();
-				JSON_WEB_KEY_SET.add(jwk);
+				jsonWebKeySet.add(jwk);
 			} else {
 				throw new RuntimeException(keyPair.getPublic().getClass()+" not supported.");
 			}
 		}
-		OIDC_SIGNATURE_PRIVATE_KEY = signingPrivateKey;
-		OIDC_SIGNATURE_KEY_ID = signingKeyId;
+		oidcSignaturePrivateKey = signingPrivateKey;
+		oidcSignatureKeyId = signingKeyId;
 	}
 
-	public static List<JWK> getJSONWebKeySet() {
-		return JSON_WEB_KEY_SET;
+	@Override
+	public List<JWK> getJSONWebKeySet() {
+		return jsonWebKeySet;
 	}
 
-	public static String createSignedJWT(Claims claims) {
+	@Override
+	public String createSignedJWT(Claims claims) {
 		return Jwts.builder().setClaims(claims).
 		setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-		setHeaderParam("kid", OIDC_SIGNATURE_KEY_ID).
-		signWith(SignatureAlgorithm.RS256, OIDC_SIGNATURE_PRIVATE_KEY).compact();
+		setHeaderParam("kid", oidcSignatureKeyId).
+		signWith(SignatureAlgorithm.RS256, oidcSignaturePrivateKey).compact();
 	}
 	
-	public static boolean validateSignedJWT(String token) {
+	@Override
+	public boolean validateSignedJWT(String token) {
 		boolean verified = false;
 		try {
 			SignedJWT signedJWT = (SignedJWT)JWTParser.parse(token);
 			JWK matchingJwk = null;
-			for (JWK jwk : JSON_WEB_KEY_SET) {
+			for (JWK jwk : jsonWebKeySet) {
 				if (jwk.getKeyID().equals(signedJWT.getHeader().getKeyID())) {
 					matchingJwk = jwk;
 				}
@@ -132,7 +122,8 @@ public class OIDCTokenUtil {
 		return verified;
 	}
 	
-	public static String createOIDCIdToken(
+	@Override
+	public String createOIDCIdToken(
 			String issuer,
 			String subject, 
 			String oauthClientId,
@@ -163,33 +154,8 @@ public class OIDCTokenUtil {
 		return createSignedJWT(claims);
 	}
 	
-	public static List<OAuthScope> getScopeFromClaims(JWTClaimsSet claimSet) {
-		JSONObject scopeAndClaims;
-		try {
-			scopeAndClaims = claimSet.getJSONObjectClaim(ACCESS);
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
-		JSONArray scopeArray = (JSONArray)scopeAndClaims.get(SCOPE);
-		List<OAuthScope> result = new ArrayList<OAuthScope>();
-		for (String scope : scopeArray.toArray(new String[] {})) {
-			result.add(OAuthScope.valueOf(scope));
-		}
-		return result;
-	}
-	
-	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getOIDCClaimsFromClaimSet(JWTClaimsSet claimSet) {
-		JSONObject scopeAndClaims;
-		try {
-			scopeAndClaims = claimSet.getJSONObjectClaim(ACCESS);
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
-		JSONObject userInfoClaims = (JSONObject)scopeAndClaims.get(USER_INFO_CLAIMS);
-		return ClaimsJsonUtil.getClaimsMapFromJSONObject(userInfoClaims, false);
-	}
-	
-	public static String createOIDCaccessToken(
+	@Override
+	public String createOIDCaccessToken(
 			String issuer,
 			String subject, 
 			String oauthClientId,
@@ -201,34 +167,7 @@ public class OIDCTokenUtil {
 		
 		Claims claims = Jwts.claims();
 		
-		JSONObject scopeAndClaims = new JSONObject();
-		JSONArray scopeArray = new JSONArray();
-		for (OAuthScope scope : scopes) {
-			scopeArray.add(scope.name());
-		}
-		scopeAndClaims.put(SCOPE, scopeArray);
-		
-		
-		JSONObject userInfoClaims = new JSONObject();
-		for (OIDCClaimName claimName : oidcClaims.keySet()) {
-			OIDCClaimsRequestDetails claimDetails = oidcClaims.get(claimName);
-			JSONObject claimsDetailsJson = null;
-			if (claimDetails!=null) {
-				try {
-					JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-					claimDetails.writeToJSONObject(adapter);
-					// JSONObjectAdapter is a JSON Object but we need an instance of net.minidev.json.JSONObject
-					// so we serialize and immediately parse
-					claimsDetailsJson = (JSONObject)MINIDEV_JSON_PARSER.parse(adapter.toJSONString());
-				} catch (net.minidev.json.parser.ParseException | JSONObjectAdapterException e) {
-					throw new RuntimeException(e);
-				}				
-			}
-			userInfoClaims.put(claimName.name(), claimsDetailsJson);	
-		}
-		scopeAndClaims.put(USER_INFO_CLAIMS, userInfoClaims);
-		
-		claims.put(ACCESS, scopeAndClaims);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		
 		claims.setIssuer(issuer)
 			.setAudience(oauthClientId)
