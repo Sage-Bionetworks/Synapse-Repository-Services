@@ -21,11 +21,11 @@ public class AnnotationsV2Utils {
 	 * @param type
 	 * @return previous value if it was replaced. else null
 	 */
+	//TODO: test
 	public static AnnotationsV2Value putAnnotations(AnnotationsV2 annotationsV2, String key, List<String> values, AnnotationsV2ValueType type){
 		ValidateArgument.required(annotationsV2, "annotationsV2");
 		ValidateArgument.requiredNotEmpty(key, "key");
-		//TODO: do we want to allow empty lists?
-//		ValidateArgument.requiredNotEmpty(values, "value");
+		ValidateArgument.required(values, "value");
 		ValidateArgument.required(type, "type");
 
 		//ensure annotations map not null
@@ -50,11 +50,12 @@ public class AnnotationsV2Utils {
 		return putAnnotations(annotationsV2, key, Collections.singletonList(value), type);
 	}
 
-		public static AnnotationsV2Value createNewValue(AnnotationsV2ValueType type, String... value) {
+	public static AnnotationsV2Value createNewValue(AnnotationsV2ValueType type, String... value) {
 		return createNewValue(type, Arrays.asList(value));
 	}
 
 	public static AnnotationsV2Value createNewValue(AnnotationsV2ValueType type, List<String> value) {
+		//TODO: test
 		AnnotationsV2Value v2Value = new AnnotationsV2Value();
 		v2Value.setType(type);
 		v2Value.setValue(value);
@@ -78,6 +79,7 @@ public class AnnotationsV2Utils {
 	}
 
 	public static String getSingleValue(AnnotationsV2Value value){
+		//TODO: test
 		if(value == null){
 			return null;
 		}

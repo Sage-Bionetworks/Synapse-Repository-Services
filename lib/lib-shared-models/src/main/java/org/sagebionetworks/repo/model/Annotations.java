@@ -278,7 +278,6 @@ public class Annotations implements JSONEntity, Serializable {
 		}else if(value instanceof byte[]){
 			replaceAnnotation(key, ((byte[])value));
 		}else if(value instanceof Collection ){
-			//TODO: how to deal with empty collections?
 			Collection col = (Collection) value;
 			Iterator it = col.iterator();
 			// Add each

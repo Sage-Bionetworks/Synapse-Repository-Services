@@ -21,7 +21,6 @@ public class JDORevisionUtils {
 			copy.setEntityPropertyAnnotations(Arrays.copyOf(toCopy.getEntityPropertyAnnotations(), toCopy.getEntityPropertyAnnotations().length));
 		}
 
-		//TODO: test
 		copy.setUserAnnotationsJSON(toCopy.getUserAnnotationsJSON());
 		// Make a copy of the references byte array
 		if(toCopy.getReference() != null){
