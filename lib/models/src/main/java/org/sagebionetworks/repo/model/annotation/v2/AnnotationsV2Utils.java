@@ -91,6 +91,9 @@ public class AnnotationsV2Utils {
 
 	private static void addAnnotations(Long entityId, int maxAnnotationChars,
 									   LinkedHashMap<String, AnnotationDTO> map, AnnotationsV2 additional) {
+		if (additional.getAnnotations() == null){
+			return;
+		}
 		for(Map.Entry<String, AnnotationsV2Value> entry: additional.getAnnotations().entrySet()){
 			String key = entry.getKey();
 			AnnotationsV2Value annotationsV2Value = entry.getValue();
@@ -158,14 +161,19 @@ public class AnnotationsV2Utils {
 	 */
 	public static void validateAnnotations(AnnotationsV2 annotation)	throws InvalidModelException {
 		ValidateArgument.required(annotation, "annotation");
-		ValidateArgument.requiredNotEmpty(annotation.getEtag(), "etag");
-		ValidateArgument.required(annotation.getAnnotations(), "annotations");
 
-		if(annotation.getAnnotations().size() > MAX_ANNOTATION_KEYS){
+		Map<String, AnnotationsV2Value> annotationsMap = annotation.getAnnotations();
+
+		//no map being set is still valid for emptying the annotation.
+		if(annotationsMap == null){
+			return;
+		}
+
+		if(annotationsMap.size() > MAX_ANNOTATION_KEYS){
 			throw new IllegalArgumentException("Exceeded maximum number of annotation keys: " + MAX_ANNOTATION_KEYS);
 		}
 
-		for (Map.Entry<String, AnnotationsV2Value> entry: annotation.getAnnotations().entrySet()) {
+		for (Map.Entry<String, AnnotationsV2Value> entry: annotationsMap.entrySet()) {
 			String key = entry.getKey();
 			checkKeyName(key);
 			checkValue(key, entry.getValue());

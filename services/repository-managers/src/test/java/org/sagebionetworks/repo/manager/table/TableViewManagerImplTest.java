@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -148,7 +149,6 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(any());
 		
-		annotations = new Annotations();
 		//TODO: replace translator code
 		annotationsV2= new AnnotationsV2();
 		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
@@ -507,7 +507,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateUserAnnotations(userInfo, "syn111", annotationsV2);
+		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(AnnotationsV2.class));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

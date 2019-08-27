@@ -752,6 +752,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Pull out the rest of the data.
 		annos.setEtag(rs.getString(COL_NODE_ETAG));
 		annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+		if(annos.getAnnotations() == null){
+			annos.setAnnotations(new HashMap<>());
+		}
 		return annos;
 	};
 

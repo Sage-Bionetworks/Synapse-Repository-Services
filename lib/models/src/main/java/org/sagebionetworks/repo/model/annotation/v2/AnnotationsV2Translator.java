@@ -16,8 +16,11 @@ public class AnnotationsV2Translator {
 		annotationsV1.setId(annotationsV2.getId());
 		annotationsV1.setEtag(annotationsV2.getEtag());
 
+		if(annotationsV2.getAnnotations() == null) {
+			return annotationsV1;
+		}
 
-		for(Map.Entry<String, AnnotationsV2Value> valueEntry : annotationsV2.getAnnotations().entrySet()){
+		for (Map.Entry<String, AnnotationsV2Value> valueEntry : annotationsV2.getAnnotations().entrySet()) {
 			String annotationKey = valueEntry.getKey();
 			AnnotationsV2Value annotationsV2Value = valueEntry.getValue();
 			AnnotationV1AndV2TypeMapping typeMapping = AnnotationV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
@@ -31,7 +34,6 @@ public class AnnotationsV2Translator {
 			Map annotationV1TypeSpecificMap = typeMapping.annotationV1MapGetter().apply(annotationsV1);
 			annotationV1TypeSpecificMap.put(annotationKey, convertedValues);
 		}
-
 		return annotationsV1;
 	}
 

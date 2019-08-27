@@ -67,6 +67,17 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
+	public void testToAnnotationsV1_nullMap(){
+		annotationsV2.setAnnotations(null);
+
+		//method under test
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+
+		annotationsV1 = new Annotations();
+		assertEquals(annotationsV1, translated);
+	}
+
+	@Test
 	public void testToAnnotationsV1_EmptyListValues(){
 		//replace stringKey1 's value with an empty list
 		AnnotationsV2Value emptyValue = new AnnotationsV2Value();

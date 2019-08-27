@@ -178,26 +178,10 @@ class AnnotationsV2UtilsTest {
 	}
 
 	@Test
-	public void testUpdateValidateAnnotations_nullEtag(){
-		annotationsV2.setEtag(null);
-		assertThrows(IllegalArgumentException.class, () -> {
-			AnnotationsV2Utils.validateAnnotations(annotationsV2);
-		});
-	}
-
-	@Test
-	public void testUpdateValidateAnnotations_emptyEtag(){
-		annotationsV2.setEtag("");
-		assertThrows(IllegalArgumentException.class, () -> {
-			AnnotationsV2Utils.validateAnnotations(annotationsV2);
-		});
-	}
-
-	@Test
 	public void testUpdateValidateAnnotations_nullMap(){
 		annotationsV2 = new AnnotationsV2();
 		annotationsV2.setEtag("etag");
-		assertThrows(IllegalArgumentException.class, () -> {
+		assertDoesNotThrow(() -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
 		});
 	}

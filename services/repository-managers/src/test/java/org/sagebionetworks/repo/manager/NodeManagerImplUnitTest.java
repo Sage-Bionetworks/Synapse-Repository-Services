@@ -455,7 +455,7 @@ public class NodeManagerImplUnitTest {
 		AnnotationsV2 annos = new AnnotationsV2();
 		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "a", AnnotationsV2ValueType.STRING);
 		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "12312", AnnotationsV2ValueType.LONG);
-		when(mockNodeDao.getUserAnnotations(id)).thenReturn(userAnnotations);
+		when(mockNodeDao.getUserAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		AnnotationsV2 copy = nodeManager.getUserAnnotations(userInfo, id);
@@ -968,7 +968,14 @@ public class NodeManagerImplUnitTest {
 		verify(mockNodeDao, never()).getChildCount(anyString());
 	}
 
-	
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testUpdateAnnotations_nullEtag(){
+		AnnotationsV2 updated = new AnnotationsV2();
+		updated.setAnnotations(null);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
+	}
+
 	@Test
 	public void testUpdateAnnotations() {
 		AnnotationsV2 updated = new AnnotationsV2();

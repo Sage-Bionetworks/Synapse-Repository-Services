@@ -443,8 +443,10 @@ public class NodeManagerImpl implements NodeManager {
 	@WriteTransaction
 	@Override
 	public AnnotationsV2 updateUserAnnotations(UserInfo userInfo, String nodeId, AnnotationsV2 updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
-		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
+		ValidateArgument.required(updated, "annotations");
+		ValidateArgument.requiredNotEmpty(nodeId, "nodeId");
+		ValidateArgument.requiredNotEmpty(updated.getEtag(), "etag");
+
 		UserInfo.validateUserInfo(userInfo);
 		// This is no longer called from a create PLFM-325
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
