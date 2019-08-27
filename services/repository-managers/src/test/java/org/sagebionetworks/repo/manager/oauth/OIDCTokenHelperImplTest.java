@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.json.JSONArray;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
@@ -25,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.KeyOperation;
@@ -37,13 +35,11 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.impl.DefaultClaims;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class OIDCTokenHelperImplTest {
 
+	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String SUBJECT_ID = "101";
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
@@ -69,17 +65,9 @@ public class OIDCTokenHelperImplTest {
 		NON_ESSENTIAL = new OIDCClaimsRequestDetails();
 		NON_ESSENTIAL.setEssential(false);
 	}
-	
-	private String oidcToken = null;
-	
+		
 	@Autowired
 	OIDCTokenHelper oidcTokenHelper;
-	
-	@Before
-	public void setUp() throws Exception {
-		oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
-				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
@@ -89,39 +77,61 @@ public class OIDCTokenHelperImplTest {
 	}
 	
 	@Test
-	public void testCreateSignedJWT() throws Exception {
-		Claims claims = new DefaultClaims();
-		claims.put("claimName", "claimValue");
-		claims.setExpiration(new Date(System.currentTimeMillis()+100000L));
-		
-		// method under test
-		String jwtString = oidcTokenHelper.createSignedJWT(claims);
-		
-		JWT jwt = JWTParser.parse(jwtString);
-		assertTrue(jwt instanceof SignedJWT);
-
-	    SignedJWT signedJWT = (SignedJWT)jwt;
-	    assertEquals(JOSEObjectType.JWT, signedJWT.getHeader().getType());
-	    JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
-	    assertEquals("claimValue", claimsSet.getClaim("claimName"));
-	    assertTrue(oidcTokenHelper.validateSignedJWT(jwtString));
-	}
-	
-	@Test
-	public void testValidateSignedJWT() throws Exception {
-		assertTrue(oidcTokenHelper.validateSignedJWT(oidcToken));
-	}
-
-	
-	@Test
-	public void testOIDCTokenGeneration() throws Exception {
+	public void testGenerateOIDCIdentityToken() throws Exception {
+		String oidcToken = oidcTokenHelper.createOIDCIdToken(ISSUER, 
+				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		JWT jwt = JWTParser.parse(oidcToken);
+		assertEquals(SUBJECT_ID, jwt.getJWTClaimsSet().getSubject());
+	    // TODO check the claims, any biz logic in createOIDCIdToken()
+	}
+
+	
+	private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
+		OIDCClaimsRequestDetails result = new OIDCClaimsRequestDetails();
+		result.setValues(l);
+		return result;
+	}
+	
+
+	@Test
+	public void testGeneateOIDCAccessToken() throws Exception {
+		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
+		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
+		expectedClaims.put(OIDCClaimName.family_name, null);
+		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
 		
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(
+				ISSUER,
+				SUBJECT_ID, 
+				CLIENT_ID,
+				NOW, 
+				AUTH_TIME,
+				TOKEN_ID,
+				grantedScopes,
+				expectedClaims);
+		
+		JWT jwt = JWTParser.parse(accessToken);
+		assertEquals(SUBJECT_ID, jwt.getJWTClaimsSet().getSubject());
+	    // TODO check the claims, any biz logic in createOIDCaccessToken()
+	}
+
+	
+	@Test
+	public void testOIDCTokenValidation() throws Exception {
+		String oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
+				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
+		assertTrue(oidcTokenHelper.validateSignedJWT(oidcToken));
+		
+		
+		// put the following in validateSignedJWT()
+		
+		JWT jwt = JWTParser.parse(oidcToken);
 		assertTrue(jwt instanceof SignedJWT);
 
 	    SignedJWT signedJWT = (SignedJWT)jwt;
 	    
-	    // TODO check the claims, any biz logic in createOIDCIdToken()
 		
 		// Validate, per https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
 	    
@@ -183,38 +193,4 @@ public class OIDCTokenHelperImplTest {
 	    assertEquals(AUTH_TIME, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
 	}
 		
-	private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
-		OIDCClaimsRequestDetails result = new OIDCClaimsRequestDetails();
-		result.setValues(l);
-		return result;
-	}
-	
-	@Test
-	public void testGetScopeAndClaims() throws Exception {		
-		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
-		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
-		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
-		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
-		expectedClaims.put(OIDCClaimName.family_name, null);
-		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
-		
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(
-				"https://repo-prod.prod.sagebase.org/auth/v1",
-				SUBJECT_ID, 
-				CLIENT_ID,
-				NOW, 
-				AUTH_TIME,
-				TOKEN_ID,
-				grantedScopes,
-				expectedClaims);
-		
-		JWT jwt = JWTParser.parse(accessToken);
-
-		List<OAuthScope> actualScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
-		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
-		
-		assertEquals(grantedScopes, actualScopes);
-		assertEquals(expectedClaims, actualClaims);
-	}
-	
 }

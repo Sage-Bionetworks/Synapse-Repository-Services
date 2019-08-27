@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +25,10 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyOperation;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -46,112 +45,55 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	
 	private String oidcSignatureKeyId;
 	private PrivateKey oidcSignaturePrivateKey;
-	private List<JWK> jsonWebKeySet;
+	private JsonWebKeySet jsonWebKeySet;
 
 	@Autowired
 	private StackConfiguration stackConfiguration;
 	
 	@Override
 	public void afterPropertiesSet() {
-		jsonWebKeySet = new ArrayList<JWK>();
-		PrivateKey signingPrivateKey = null;
-		String signingKeyId = null;
+		jsonWebKeySet = new JsonWebKeySet();
+		List<JsonWebKey> publicKeys = new ArrayList<JsonWebKey>();
+		jsonWebKeySet.setKeys(publicKeys);
 		for (String s: stackConfiguration.getOIDCSignatureRSAPrivateKeys()) {
 			KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(s);
 			String kid = KeyPairUtil.computeKeyId(keyPair.getPublic());
 			// grab the first one to use when signing
-			if (signingPrivateKey==null) {
-				signingPrivateKey=keyPair.getPrivate();
-				signingKeyId = kid;
+			if (oidcSignaturePrivateKey==null) {
+				oidcSignaturePrivateKey=keyPair.getPrivate();
+				oidcSignatureKeyId = kid;
 			}
-			if (keyPair.getPublic() instanceof ECPublicKey) {
-				Curve curve = Curve.forECParameterSpec(((ECPublicKey)keyPair.getPublic()).getParams());
-				JWK jwk = new ECKey.Builder(curve, (ECPublicKey)keyPair.getPublic())
-						.algorithm(JWSAlgorithm.ES256)
-						.keyUse(KeyUse.SIGNATURE)
-						.keyID(kid)
-						.build();
-				jsonWebKeySet.add(jwk);
-			} else if (keyPair.getPublic() instanceof RSAPublicKey) {
-				JWK jwk = new RSAKey.Builder((RSAPublicKey)keyPair.getPublic())
-						.algorithm(JWSAlgorithm.RS256)
-						.keyUse(KeyUse.SIGNATURE)
-						.keyID(kid)
-						.build();
-				jsonWebKeySet.add(jwk);
-			} else {
-				throw new RuntimeException(keyPair.getPublic().getClass()+" not supported.");
-			}
+			RSAPublicKey publicKey = (RSAPublicKey)keyPair.getPublic();
+
+			RSAKey jwkRsa = new RSAKey.Builder(publicKey)
+					.algorithm(JWSAlgorithm.RS256)
+					.keyUse(KeyUse.SIGNATURE)
+					.keyID(kid)
+					.build();
+			
+			JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
+			// these would be set for all algorithms
+			rsaKey.setKty(jwkRsa.getKeyType().getValue());
+			rsaKey.setUse(jwkRsa.getKeyUse().toString());
+			rsaKey.setKid(jwkRsa.getKeyID());
+			// these are specific to the RSA algorithm
+			if (jwkRsa.getPublicExponent()!=null) rsaKey.setE(jwkRsa.getPublicExponent().toString());
+			if (jwkRsa.getModulus()!=null) rsaKey.setN(jwkRsa.getModulus().toString());
+			publicKeys.add(rsaKey);
 		}
-		oidcSignaturePrivateKey = signingPrivateKey;
-		oidcSignatureKeyId = signingKeyId;
 	}
 
 	@Override
 	public JsonWebKeySet getJSONWebKeySet() {
-		JsonWebKeySet result = new JsonWebKeySet();
-		List<JsonWebKey> keys = new ArrayList<JsonWebKey>();
-		result.setKeys(keys);
-		for (JWK jwk : jsonWebKeySet) {
-			if (JWSAlgorithm.RS256.equals(jwk.getAlgorithm())) {
-				JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
-				keys.add(rsaKey);
-				// these would be set for all algorithms
-				rsaKey.setKty(jwk.getKeyType().getValue());
-				rsaKey.setUse(jwk.getKeyUse().toString());
-				rsaKey.setKid(jwk.getKeyID());
-				// these are specific to the RSA algorithm
-				RSAKey jwkRsa = (RSAKey)jwk;
-//				if (jwkRsa.getPrivateExponent()!=null) rsaKey.setD(jwkRsa.getPrivateExponent().toString());
-//				if (jwkRsa.getFirstFactorCRTExponent()!=null) rsaKey.setDp(jwkRsa.getFirstFactorCRTExponent().toString());
-//				if (jwkRsa.getSecondFactorCRTExponent()!=null) rsaKey.setDq(jwkRsa.getSecondFactorCRTExponent().toString());
-				if (jwkRsa.getPublicExponent()!=null) rsaKey.setE(jwkRsa.getPublicExponent().toString());
-				if (jwkRsa.getModulus()!=null) rsaKey.setN(jwkRsa.getModulus().toString());
-//				if (jwkRsa.getFirstPrimeFactor()!=null) rsaKey.setP(jwkRsa.getFirstPrimeFactor().toString());
-//				if (jwkRsa.getSecondPrimeFactor()!=null) rsaKey.setQ(jwkRsa.getSecondPrimeFactor().toString());
-//				if (jwkRsa.getFirstCRTCoefficient()!=null) rsaKey.setQi(jwkRsa.getFirstCRTCoefficient().toString());
-			} else {
-				// in the future we can add mappings for algorithms other than RSA
-				// MUST TAKE CARE to publish just the public side of the key
-				throw new RuntimeException("Unsupported: "+jwk.getAlgorithm());
-			}
-		}
-		return result;
+		return jsonWebKeySet;
 	}
 
-	@Override
-	public String createSignedJWT(Claims claims) {
+	private String createSignedJWT(Claims claims) {
 		return Jwts.builder().setClaims(claims).
 		setHeaderParam(Header.TYPE, Header.JWT_TYPE).
 		setHeaderParam("kid", oidcSignatureKeyId).
 		signWith(SignatureAlgorithm.RS256, oidcSignaturePrivateKey).compact();
 	}
-	
-	@Override
-	public boolean validateSignedJWT(String token) {
-		boolean verified = false;
-		try {
-			SignedJWT signedJWT = (SignedJWT)JWTParser.parse(token);
-			JWK matchingJwk = null;
-			for (JWK jwk : jsonWebKeySet) {
-				if (jwk.getKeyID().equals(signedJWT.getHeader().getKeyID())) {
-					matchingJwk = jwk;
-				}
-			}
-			if (matchingJwk!=null && matchingJwk instanceof RSAKey) {
-				JWSVerifier verifier = new RSASSAVerifier((RSAKey)matchingJwk);
-				verified = signedJWT.verify(verifier);
-			}
-			
-			if (System.currentTimeMillis()>signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
-				verified=false;
-			}
-		} catch (ParseException | JOSEException e) {
-			throw new RuntimeException(e);
-		}
-		return verified;
-	}
-	
 	@Override
 	public String createOIDCIdToken(
 			String issuer,
@@ -211,4 +153,33 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		return createSignedJWT(claims);
 	}
+	
+	@Override
+	public boolean validateSignedJWT(String token) {
+		boolean verified = false;
+		try {
+			SignedJWT signedJWT = (SignedJWT)JWTParser.parse(token);
+			JsonWebKeyRSA matchingJwk = null;
+			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
+				if (jwk.getKid().equals(signedJWT.getHeader().getKeyID())) {
+					matchingJwk = (JsonWebKeyRSA)jwk;
+				}
+			}
+			if (matchingJwk!=null) {
+			    RSAKey rsaKey = new RSAKey(new Base64URL(matchingJwk.getN()), new Base64URL(matchingJwk.getE()),
+					      KeyUse.SIGNATURE, Collections.singleton(KeyOperation.VERIFY), null, 
+					      matchingJwk.getKid(), null, null, null, null, null);
+				JWSVerifier verifier = new RSASSAVerifier(rsaKey);
+				verified = signedJWT.verify(verifier);
+			}
+			
+			if (System.currentTimeMillis()>signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
+				verified=false;
+			}
+		} catch (ParseException | JOSEException e) {
+			throw new RuntimeException(e);
+		}
+		return verified;
+	}
+	
 }

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Collections;
@@ -41,5 +41,18 @@ public class ClaimsJsonUtilTest {
 		claimsJson.put("unrecognized-key", null);
 		ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson, false);
 	}
+	
+//	@Test
+//	public void testGetScopeAndClaims() throws Exception {		
+//		
+//		JWT jwt = JWTParser.parse(accessToken);
+//
+//		List<OAuthScope> actualScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getJWTClaimsSet());
+//		Map<OIDCClaimName,OIDCClaimsRequestDetails> actualClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(jwt.getJWTClaimsSet());
+//		
+//		assertEquals(grantedScopes, actualScopes);
+//		assertEquals(expectedClaims, actualClaims);
+//	}
+	
 
 }
