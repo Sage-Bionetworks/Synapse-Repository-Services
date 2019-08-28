@@ -5,26 +5,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 
 class StringValueValidatorTest {
 
 	StringValueValidator valueValidator = new StringValueValidator();
+	String key = "myKey";
+	AnnotationsV2ValueType type = AnnotationsV2ValueType.STRING;
 
 	@Test
-	void isValidValue_valid() {
+	void testValidate_valid() {
 		//anything except values exceeding the limit should return true
-		assertTrue(valueValidator.isValidValue(""));
-		assertTrue(valueValidator.isValidValue("asdf"));
-		assertTrue(valueValidator.isValidValue("123"));
-		assertTrue(valueValidator.isValidValue("123.456"));
-		assertTrue(valueValidator.isValidValue(Strings.repeat("a", StringValueValidator.MAX_STRING_SIZE)));
+		valueValidator.validate(key, "", type);
+		valueValidator.validate(key, "asdf", type);
+		valueValidator.validate(key, "123", type);
+		valueValidator.validate(key, "123.456", type);
+		valueValidator.validate(key, Strings.repeat("a", StringValueValidator.MAX_STRING_SIZE), type);
 
 	}
 
 	@Test
-	void isValidValue_exceedLength() {
+	void testValidate_exceedLength() {
 		assertThrows(IllegalArgumentException.class, ()->{
-			valueValidator.isValidValue(Strings.repeat("a", StringValueValidator.MAX_STRING_SIZE + 1));
+			valueValidator.validate(key, Strings.repeat("a", StringValueValidator.MAX_STRING_SIZE + 1), type);
 		});
 	}
 

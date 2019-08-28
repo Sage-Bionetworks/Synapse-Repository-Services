@@ -148,9 +148,7 @@ public class AnnotationsV2Utils {
 
 		AnnotationsV2ValueValidator valueValidator = AnnotationsV2TypeToValidator.validatorFor(type);
 		for(String value: valueList){
-			if(!valueValidator.isValidValue(value)){
-				throw new IllegalArgumentException("Value associated with key=" + key + " is not valid for type=" + type.name() + ": " + value);
-			}
+			valueValidator.validate(key, value, type);
 		}
 	}
 

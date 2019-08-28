@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 
 class DoubleValueValidator implements AnnotationsV2ValueValidator {
 	@Override
-	public boolean isValidValue(String value) {
+	public void validate(String key, String value, AnnotationsV2ValueType annotationType) {
 		try {
 			DoubleUtils.fromString(value);
-			return true;
 		} catch (NumberFormatException e){
-			return false;
+			throw new IllegalArgumentException("Value associated with key=" + key + " is not valid for type=" + annotationType.name() + ": " + value);
 		}
 	}
 }
