@@ -154,28 +154,5 @@ public class EntityServiceImplUnitTest {
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
 	}
-	
-	@Test
-	public void testFireCreateWithCollectStatistics() {
-		FileEntity fileEntity = new FileEntity();
-		
-		fileEntity.setId("123");
-		fileEntity.setDataFileHandleId("456");
-		
-		entityService.createEntity(userInfo.getId(), fileEntity, null);		
-	}
-	
-	@Test
-	public void testFireUpdateWithCollectStatistics() {
-		FileEntity fileEntity = new FileEntity();
-		
-		fileEntity.setId("123");
-		fileEntity.setDataFileHandleId("456");
-		
-		when(mockEntityManager.updateEntity(userInfo, fileEntity, false, null)).thenReturn(true);
-		
-		entityService.updateEntity(userInfo.getId(), fileEntity, false, null);
-		
-	}
 
 }
