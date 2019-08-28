@@ -747,7 +747,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}else{
 			// If there is no annotations then create a new one.
 			annos = new AnnotationsV2();
-			annos.setAnnotations(new HashMap<>());
 		}
 		// Pull out the rest of the data.
 		annos.setEtag(rs.getString(COL_NODE_ETAG));

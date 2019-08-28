@@ -23,7 +23,7 @@ public class AnnotationsV2Translator {
 		for (Map.Entry<String, AnnotationsV2Value> valueEntry : annotationsV2.getAnnotations().entrySet()) {
 			String annotationKey = valueEntry.getKey();
 			AnnotationsV2Value annotationsV2Value = valueEntry.getValue();
-			AnnotationV1AndV2TypeMapping typeMapping = AnnotationV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
+			AnnotationsV1AndV2TypeMapping typeMapping = AnnotationsV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
 
 			List<Object> convertedValues = annotationsV2Value.getValue().stream()
 					.map(typeMapping.convertToAnnotationV1Function())
@@ -59,18 +59,18 @@ public class AnnotationsV2Translator {
 
 		Map<String, AnnotationsV2Value> newMap = new HashMap<>(originalMap.size());
 
-		AnnotationV1AndV2TypeMapping annotationV1AndV2TypeMapping = AnnotationV1AndV2TypeMapping.forClass(clazz);
+		AnnotationsV1AndV2TypeMapping annotationsV1AndV2TypeMapping = AnnotationsV1AndV2TypeMapping.forClass(clazz);
 
 		for(Map.Entry<String, List<T>> entry: originalMap.entrySet()){
 			//convert value list from v1 typed format to v2 string format.
 			List<String> convertedValues = entry.getValue().stream()
-					.map(annotationV1AndV2TypeMapping.convertToAnnotationV2Function())
+					.map(annotationsV1AndV2TypeMapping.convertToAnnotationV2Function())
 					.collect(Collectors.toList());
 
 			//select correct value implementation class based on size of value list
 			AnnotationsV2Value annotationsV2Value = new AnnotationsV2Value();
 			annotationsV2Value.setValue(convertedValues);
-			annotationsV2Value.setType(annotationV1AndV2TypeMapping.getValueType());
+			annotationsV2Value.setType(annotationsV1AndV2TypeMapping.getValueType());
 
 			newMap.put(entry.getKey(), annotationsV2Value);
 		}

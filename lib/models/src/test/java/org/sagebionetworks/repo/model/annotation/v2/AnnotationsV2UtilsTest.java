@@ -122,7 +122,11 @@ class AnnotationsV2UtilsTest {
 	@Test
 	public void toJSONStringForStorage_AnnotationsMapWithEntries() throws JSONObjectAdapterException {
 		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		annotationsV2.setId("shouldNotBeInJSON");
+		annotationsV2.setEtag("shouldAlsoNotBeInJSON");
 		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2TestUtils.createNewValue(AnnotationsV2ValueType.STRING, "value1")));
+
+		//id and etag should not be found in the final json
 		assertEquals("{\"annotations\":[{\"key\":\"key\",\"value\":{\"type\":\"STRING\",\"value\":[\"value1\"]}}]}", AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 	}
 
