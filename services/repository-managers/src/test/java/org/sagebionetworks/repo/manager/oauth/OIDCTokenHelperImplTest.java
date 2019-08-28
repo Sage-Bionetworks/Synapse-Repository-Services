@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,23 +16,26 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.json.JSONArray;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
+//@RunWith(SpringJUnit4ClassRunner.class)
+//@ContextConfiguration(locations = { "classpath:test-context.xml" })
+@RunWith(MockitoJUnitRunner.class)
 public class OIDCTokenHelperImplTest {
 
 	private static final String ISSUER = "https://repo-prod.prod.sagebase.org/auth/v1";
@@ -59,9 +64,50 @@ public class OIDCTokenHelperImplTest {
 		NON_ESSENTIAL = new OIDCClaimsRequestDetails();
 		NON_ESSENTIAL.setEssential(false);
 	}
+	
+	@Mock
+	private StackConfiguration stackConfiguration;
 		
-	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
+	@InjectMocks
+	OIDCTokenHelperImpl oidcTokenHelper;
+	
+	@Before
+	public void setUp() {
+		/*
+		 * Since we mock stack configuration we have to reintroduce a (valid, though NOT production)
+		 * RSA key that can be used to sign tokens.
+		 */
+		String devPrivateKey = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDinbEq1zwFsfSA" + 
+				"FCajV9qrk2Qok9EiF/jlp/bRknCMEgj8j5oYiDxmnFXvnrSHJVk1NUOo4ON8m3WR" + 
+				"MCLpN7t0ygIKvx30L7xdVlnvoldv/lYx87KqGEVadEnl/lGEaGRxpdXkiwgJem9l" + 
+				"Ht7V8TquJiIcqQviwCc1ZKjtKtSbZtcpA0MxT/YNATf7GBWWD5KH39qL6/hHrCIa" + 
+				"BYCqbNQt594/UZEgxRfB6sKyb2744Jshiq41Y25TJc4gNUq69EBMkaQrC9V67as6" + 
+				"TJG2GJhfmAPsXgr7Lbyk5/kTsC8YXAasAzZnpA+ljLNv6pIdpyizx9XNrz13DFrY" + 
+				"RK8lbHkrAgMBAAECggEANIuT9PcLN9bXdos1mlJYpcf7RV1g9KLSV43msRlfd1sH" + 
+				"Mmiptl6AgtplIraN7Xg/gxLiqVnb5Zy2Wf/rWGBP2visGInQDDq1Vn8bQ3FFDPbQ" + 
+				"TazQFJikHCEysV2S0TzTbXaibee+6VO2WKAb00en75Fv/21DEES10q+Qa82ulomG" + 
+				"THIy7RitkdhkKPv16Lz7EQFcrdbZieldppijm15EK+wAKl8TAShIyZaAC8QY61F1" + 
+				"hqqLApigI1GL7knP4jnii6sF7ykEpHb5huf3RI18DGwtUZOWLqimHgvmfn3p5NLT" + 
+				"d/Xo56SOazhTBlvkNlUQccIQDzA8M2pjLcxxnMLcoQKBgQD0eRY63R3ZJh72OLCm" + 
+				"C1iRS8NnQmdC+iR3zw7J5jvOkHSDctI1Zf6X+D4iyPLr1+tjnLy5YgTDP9PUJi9h" + 
+				"3FRbnGkPD7I5q+19cvV5bQvxn36+kKZunfgLQYYe1Zk/6BbItOli5fzyQK3QTSp8" + 
+				"eIKdQ02VQiFNV4UESbrb00UWNQKBgQDtTQ/hun6eYCVW9n3TmTi5+WRBb1R4X3kd" + 
+				"/tifYhzy2Eab2pgQ3BN9INENlBsPb8J1+86rWwY2KVO9vHhctK47ytEn1kv//KCo" + 
+				"ugo870dEZuAqX9ACNtG/Ba52IkCSjcpTJRo3R3lTLASV7vLZs4q5AyKNWCJD49kr" + 
+				"KC9nNpW93wKBgQDRkYtQ4oPXxin8gBROAqPlycC0H+RNMglY+xJ+WPMj3AlFNYSl" + 
+				"ac2ZkKATSZeUPP/34ECX2kKi7XA1CJbNmQZnkektlBMABTYMuCNd9/CpLESGL5G8" + 
+				"eYZMf9rtS8WXVulRHGSE9wqi0HcvfTbShKvTDALR1GKf3kqUpm+cSbuLkQKBgCfS" + 
+				"hNXGrDT7wYhkeR0nW2OqPG7WtgA1VWf5OnUUy/Lc5IyHFHnP1N1swmha8GeYw7N0" + 
+				"/Gu5LMOuD8WJeVFlaM/T62GaDsr4pCVsgwdSyEzsTrYNuiSE+pHp7Csa+GcfsFJf" + 
+				"qZSZQ/z3KBXZMZvjC2ac5hF+NtHZzLn3Vm0ltd9VAoGBAJcs9PBjJ9XqAHo6x88g" + 
+				"7KxK1mfXRrVoxMLZD2njx4xWTK6OWOAECdWBIPbsstT57BVUeSa5wAVy/SkgfZ3E" + 
+				"MjjcxwFQoYuOR/cgYAFyXY/jMXb6kKSdc02437hTXjTotvkgAJfO7gxVy8s3ipI7" + 
+				"pzvMOgD+6P3bCeoBuyKg2xhY";
+		when(stackConfiguration.getOIDCSignatureRSAPrivateKeys()).thenReturn(Collections.singletonList(devPrivateKey));
+		
+		// takes the place of Spring set up
+		oidcTokenHelper.afterPropertiesSet();
+	}
 
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
@@ -75,9 +121,15 @@ public class OIDCTokenHelperImplTest {
 		String oidcToken = oidcTokenHelper.createOIDCIdToken(ISSUER, 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		JWT jwt = JWTParser.parse(oidcToken);
-		assertEquals(SUBJECT_ID, jwt.getJWTClaimsSet().getSubject());
-	    // TODO check the claims, any biz logic in createOIDCIdToken()
+		JWTClaimsSet claims = jwt.getJWTClaimsSet();
 		
+		assertEquals(TEAM_IDS.toString(), claims.getStringClaim(OIDCClaimName.team.name()));
+		assertEquals("User", claims.getStringClaim(OIDCClaimName.given_name.name()));
+		assertEquals("user@synapse.org", claims.getStringClaim(OIDCClaimName.email.name()));
+		assertEquals("University of Example", claims.getStringClaim(OIDCClaimName.company.name()));
+		assertEquals(TOKEN_ID, claims.getJWTID());
+		
+		// This checks the other fields set in the method under test
 		clientValidation(oidcToken, NONCE);
 	}
 
@@ -170,10 +222,14 @@ public class OIDCTokenHelperImplTest {
 				expectedClaims);
 		
 		JWT jwt = JWTParser.parse(accessToken);
-		assertEquals(SUBJECT_ID, jwt.getJWTClaimsSet().getSubject());
-	    // TODO check the claims, any biz logic in createOIDCaccessToken()
+		JWTClaimsSet claims = jwt.getJWTClaimsSet();
+		// here we just check that the 'access' claim has been added
+		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
+		// that the content is correct
+		assertNotNull(claims.getClaim("access"));
 		
-		clientValidation(accessToken, null);
+		// This checks the other fields set in the method under test
+		clientValidation(accessToken, null/* no nonce */);
 	}
 
 	

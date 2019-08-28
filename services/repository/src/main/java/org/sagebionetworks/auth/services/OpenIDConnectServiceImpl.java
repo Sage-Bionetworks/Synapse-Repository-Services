@@ -42,16 +42,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	
-
-	public OpenIDConnectServiceImpl(UserManager userManager, OpenIDConnectManager oidcManager,
-			OIDCTokenHelper oidcTokenHelper) {
-		super();
-		this.userManager = userManager;
-		this.oidcManager = oidcManager;
-		this.oidcTokenHelper = oidcTokenHelper;
-	}
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
