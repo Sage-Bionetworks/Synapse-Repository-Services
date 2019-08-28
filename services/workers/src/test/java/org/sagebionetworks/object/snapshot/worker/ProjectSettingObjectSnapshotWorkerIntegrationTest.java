@@ -1,8 +1,8 @@
 package org.sagebionetworks.object.snapshot.worker;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -87,7 +87,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it
