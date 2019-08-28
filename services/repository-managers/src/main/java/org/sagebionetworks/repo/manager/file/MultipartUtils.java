@@ -47,12 +47,22 @@ public class MultipartUtils {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
 			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getBaseKey())) {
-				base = externalS3StorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+				// PLFM-5769
+				if (externalS3StorageLocationSetting.getBaseKey().endsWith(FILE_TOKEN_TEMPLATE_SEPARATOR)) {
+					base = externalS3StorageLocationSetting.getBaseKey();
+				} else {
+					base = externalS3StorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+				}
 			}
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
 			if (!StringUtils.isEmpty(externalGoogleCloudStorageLocationSetting.getBaseKey())) {
-				base = externalGoogleCloudStorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+				// PLFM-5769
+				if (externalGoogleCloudStorageLocationSetting.getBaseKey().endsWith(FILE_TOKEN_TEMPLATE_SEPARATOR)) {
+					base = externalGoogleCloudStorageLocationSetting.getBaseKey();
+				} else {
+					base = externalGoogleCloudStorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+				}
 			}
 		}
 		return String.format(FILE_TOKEN_TEMPLATE, base, userId, UUID.randomUUID().toString(), fileName);

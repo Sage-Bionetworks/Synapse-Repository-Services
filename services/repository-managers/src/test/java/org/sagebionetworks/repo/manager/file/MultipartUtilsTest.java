@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -77,7 +78,40 @@ public class MultipartUtilsTest {
 		assertTrue(key.startsWith("keyBase/"+userId));
 		assertTrue(key.endsWith(fileName));
 	}
-	
+
+	@Test
+	public void testCreateNewKeyStorageLocationExternalWithTrailingSlash(){
+		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();
+		location.setBaseKey("keyBase/");
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith("keyBase/"+userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
+	@Test
+	public void testCreateNewKeyStorageLocationExternalGoogle(){
+		ExternalGoogleCloudStorageLocationSetting location = new ExternalGoogleCloudStorageLocationSetting();
+		location.setBaseKey("keyBase");
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith("keyBase/"+userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
+	@Test
+	public void testCreateNewKeyStorageLocationExternalGoogleWithTrailingSlash(){
+		ExternalGoogleCloudStorageLocationSetting location = new ExternalGoogleCloudStorageLocationSetting();
+		location.setBaseKey("keyBase/");
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith("keyBase/"+userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
 	@Test
 	public void testCreateNewKeyStorageLocationExternalBaseEmpty(){
 		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();
