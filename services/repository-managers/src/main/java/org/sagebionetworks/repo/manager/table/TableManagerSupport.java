@@ -302,17 +302,6 @@ public interface TableManagerSupport {
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 
 	/**
-	 * Get the current ColumnModel list for a table.
-	 * 
-	 * @param tableId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public List<ColumnModel> getColumnModelsForTable(IdAndVersion tableId)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Touch the table and update the etag, modifiedOn, and modifiedBy.
 	 * This will also lock the table.
 	 * 
@@ -424,5 +413,12 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	Optional<Long> getLastTableChangeNumber(IdAndVersion idAndVersion);
+
+	/**
+	 * Get the schema for the given id and version combination.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
 
 }

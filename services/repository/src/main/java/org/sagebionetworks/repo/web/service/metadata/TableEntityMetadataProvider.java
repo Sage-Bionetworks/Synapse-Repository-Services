@@ -47,8 +47,7 @@ public class TableEntityMetadataProvider implements TypeSpecificDeleteProvider<T
 	public void addTypeSpecificMetadata(TableEntity entity,
 										UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		List<String> tableSchema = tableEntityManager.getTableSchema(IdAndVersion.newBuilder()
-				.setId(KeyFactory.stringToKey(entity.getId())).setVersion(entity.getVersionNumber()).build());
+		List<String> tableSchema = tableEntityManager.getTableSchema(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()));
 		entity.setColumnIds(tableSchema);
 	}
 

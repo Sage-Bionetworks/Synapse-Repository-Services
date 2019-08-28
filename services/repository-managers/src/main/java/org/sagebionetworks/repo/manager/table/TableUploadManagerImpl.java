@@ -51,7 +51,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			}
 			IdAndVersion idAndVersion = IdAndVersion.parse(request.getTableId());
 			// Get the schema for the table
-			List<ColumnModel> tableSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+			List<ColumnModel> tableSchema = tableManagerSupport.getTableSchema(idAndVersion);
 			// download the CSV to a temp file (see PLFM-4975).
 			tempFile = fileProvider.createTempFile("TableUploadManagerImpl", ".csv");
 			s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);

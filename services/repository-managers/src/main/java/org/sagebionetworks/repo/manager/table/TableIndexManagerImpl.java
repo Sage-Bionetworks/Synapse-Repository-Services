@@ -131,12 +131,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnModel> newSchema){
+	public List<ColumnChangeDetails> setIndexSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(tableId, isTableView, changes);
+		return changes;
 	}
 
 	@Override
@@ -434,16 +435,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			}
 		}
 
-		if(!idAndVersion.getVersion().isPresent()) {
-			/*
-			 * When building a table to the current version, we unconditionally apply the
-			 * current table schema to the index as a workaround for PLFM-5639. This is a
-			 * fix for tables with schema changes that were not captured in the table's
-			 * history.
-			 */
-			List<ColumnModel> boundSchema = tableManagerSupport.getColumnModelsForTable(idAndVersion);
-			boolean isTableView = false;
-			setIndexSchema(idAndVersion, isTableView, boundSchema);
+		/*
+		 * When building a table to the current version, we unconditionally apply the
+		 * current table schema to the index as a workaround for PLFM-5639. This is a
+		 * fix for tables with schema changes that were not captured in the table's
+		 * history.
+		 */
+		List<ColumnModel> boundSchema = tableManagerSupport.getTableSchema(idAndVersion);
+		boolean isTableView = false;
+		List<ColumnChangeDetails> changes = setIndexSchema(idAndVersion, isTableView, boundSchema);
+		if(changes != null && !changes.isEmpty()) {
+			log.warn("PLFM-5639: table: "+idAndVersion.toString()+" required the following scheam changes: "+changes);
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		optimizeTableIndices(idAndVersion);

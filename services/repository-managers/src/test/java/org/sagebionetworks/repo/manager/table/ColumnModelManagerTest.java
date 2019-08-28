@@ -5,9 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
@@ -18,12 +19,15 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,7 +43,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -48,6 +51,7 @@ import com.google.common.collect.Lists;
  * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class ColumnModelManagerTest {
 	
 
@@ -58,6 +62,9 @@ public class ColumnModelManagerTest {
 	ColumnModelDAO mockColumnModelDAO;
 	@Mock
 	AuthorizationManager mockauthorizationManager;
+	@Mock
+	NodeDAO mockNodeDao;
+	@InjectMocks
 	ColumnModelManagerImpl columnModelManager;
 	UserInfo user;
 	
@@ -75,11 +82,7 @@ public class ColumnModelManagerTest {
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
-		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
-		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
 		
 		tableId = "syn567";
 		idAndVersion = IdAndVersion.parse(tableId);
@@ -113,7 +116,7 @@ public class ColumnModelManagerTest {
 				TableModelTestUtils.createColumn(333L),
 				TableModelTestUtils.createColumn(555L)
 				);
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(newSchema);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(newSchema);
 		
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
@@ -497,7 +500,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -513,7 +516,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -532,7 +535,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
@@ -546,7 +549,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
@@ -561,7 +564,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
@@ -576,7 +579,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		List<ColumnModel> l = columnModelManager.validateSchemaSize(scheamIds);
 		assertNotNull(l);
 	}
@@ -594,7 +597,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testUnderDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(underLimitSchemaIds)).thenReturn(underLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(underLimitSchemaIds)).thenReturn(underLimitSchema);
 		//call under test
 		columnModelManager.bindColumnsToDefaultVersionOfObject(underLimitSchemaIds, objectId);
 	}
@@ -605,7 +608,7 @@ public class ColumnModelManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testOverDataPerColumnLimit(){
 		String objectId = "syn123";
-		when(mockColumnModelDAO.getColumnModel(overLimitSchemaIds)).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(overLimitSchemaIds)).thenReturn(overLimitSchema);
 		//call under test
 		columnModelManager.bindColumnsToDefaultVersionOfObject(overLimitSchemaIds, objectId);
 	}
@@ -625,7 +628,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(scheamIds)).thenReturn(schema);
+		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		try {
 			//call under test
 			columnModelManager.bindColumnsToDefaultVersionOfObject(scheamIds, objectId);
@@ -640,7 +643,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
 		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
 		
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(columns);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(columns);
 		
 		List<ColumnChangeDetails> expected = Lists.newArrayList(
 				new ColumnChangeDetails(null, columns.get(0)),
@@ -673,7 +676,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = Lists.newArrayList(change);
 		
 		// return both columns
-		when(mockColumnModelDAO.getColumnModel(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
+		when(mockColumnModelDAO.getColumnModels(colIds)).thenReturn(Lists.newArrayList(oldCol, newCol));
 		
 		// Call under test
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
@@ -725,7 +728,7 @@ public class ColumnModelManagerTest {
 			changes.add(change);
 			newSchemaIds.add(cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class))).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(overLimitSchema);
 		try {
 			// call under test.
 			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newSchemaIds);
@@ -1026,6 +1029,88 @@ public class ColumnModelManagerTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("Column name must be: 256 characters or less.", e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testGetColumnModelsForObjectWithoutVersion() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
+		// call under test
+		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		assertEquals(currentSchema, results);
+		verify(mockColumnModelDAO).getColumnModelsForObject(idAndVersion);
+		verify(mockNodeDao, never()).getCurrentRevisionNumber(any(String.class));
+	}
+	
+	@Test
+	public void testGetColumnModelsForObjectWithVersionNotCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version does not match the passed version
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(46L);
+		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
+		// call under test
+		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		assertEquals(currentSchema, results);
+		verify(mockColumnModelDAO).getColumnModelsForObject(idAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
+	}
+	
+	/**
+	 * When getting the schema for the current version the version number passed to the dao is null.
+	 */
+	@Test
+	public void testGetColumnModelsForObjectWithVersionCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version matches the passed version.
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(45L);
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelsForObject(expectedIdAndVersion)).thenReturn(currentSchema);
+		// call under test
+		List<ColumnModel> results = columnModelManager.getColumnModelsForObject(idAndVersion);
+		assertEquals(currentSchema, results);
+		verify(mockColumnModelDAO).getColumnModelsForObject(expectedIdAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
+	}
+	
+	@Test
+	public void testGetColumnIdsForTableWithoutVersion() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelIdsForObject(idAndVersion)).thenReturn(expectedNewSchemaIds);
+		// call under test
+		List<String> results = columnModelManager.getColumnIdsForTable(idAndVersion);
+		assertEquals(expectedNewSchemaIds, results);
+		verify(mockColumnModelDAO).getColumnModelIdsForObject(idAndVersion);
+		verify(mockNodeDao, never()).getCurrentRevisionNumber(any(String.class));
+	}
+	
+	@Test
+	public void testGetGetColumnIdsForTableWithVersionNotCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version does not match the passed version
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(46L);
+		when(mockColumnModelDAO.getColumnModelIdsForObject(idAndVersion)).thenReturn(expectedNewSchemaIds);
+		// call under test
+		List<String> results = columnModelManager.getColumnIdsForTable(idAndVersion);
+		assertEquals(expectedNewSchemaIds, results);
+		verify(mockColumnModelDAO).getColumnModelIdsForObject(idAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
+	}
+	
+	/**
+	 * When getting the schema for the current version the version number passed to the dao is null.
+	 */
+	@Test
+	public void testGetGetColumnIdsForTableWithVersionCurrent() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.45");
+		// the current version matches the passed version.
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(45L);
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn123");
+		when(mockColumnModelDAO.getColumnModelIdsForObject(expectedIdAndVersion)).thenReturn(expectedNewSchemaIds);
+		// call under test
+		List<String> results = columnModelManager.getColumnIdsForTable(idAndVersion);
+		assertEquals(expectedNewSchemaIds, results);
+		verify(mockColumnModelDAO).getColumnModelIdsForObject(expectedIdAndVersion);
+		verify(mockNodeDao).getCurrentRevisionNumber("123");
 	}
 	
 	/**

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -88,10 +86,9 @@ public class EntityBundleController {
 	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
-			@RequestParam int mask, HttpServletRequest request
-			)
+			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask);
 	}	
 
 	/**
@@ -116,10 +113,9 @@ public class EntityBundleController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
-			@RequestParam int mask, HttpServletRequest request
-			)
+			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask);
 	}	
 	
 	/**
@@ -148,12 +144,10 @@ public class EntityBundleController {
 	EntityBundle createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
-			@RequestBody EntityBundleCreate ebc,
-			HttpServletRequest request
-			)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy, request);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
 	}
 	
 	/**
@@ -183,12 +177,10 @@ public class EntityBundleController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
-			@RequestBody EntityBundleCreate ebc,
-			HttpServletRequest request
-			)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
 	}
 
 }

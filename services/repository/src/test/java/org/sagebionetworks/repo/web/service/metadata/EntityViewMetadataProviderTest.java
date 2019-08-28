@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -76,9 +78,11 @@ public class EntityViewMetadataProviderTest {
 	public void testAddTypeSpecificMetadata(){
 		EntityView testEntity = new EntityView();
 		testEntity.setId(entityId);
-		when(mockFileViewManager.getTableSchema(entityId)).thenReturn(columnIds);
+		testEntity.setVersionNumber(11L);
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(testEntity.getId(), testEntity.getVersionNumber());
+		when(mockFileViewManager.getViewSchemaIds(idAndVersion)).thenReturn(columnIds);
 		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
-		verify(mockFileViewManager).getTableSchema(entityId);
+		verify(mockFileViewManager).getViewSchemaIds(idAndVersion);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
 	

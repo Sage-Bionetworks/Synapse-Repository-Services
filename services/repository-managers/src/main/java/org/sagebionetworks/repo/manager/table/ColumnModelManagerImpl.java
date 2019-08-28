@@ -13,11 +13,13 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -47,6 +49,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	
+	@Autowired
+	NodeDAO nodeDao;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -175,7 +180,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(ids, "ColumnModel IDs");
-		List<ColumnModel> fromDb =  columnModelDao.getColumnModel(ids);
+		List<ColumnModel> fromDb =  columnModelDao.getColumnModels(ids);
 		Map<String, ColumnModel> resultMap = TableModelUtils.createIdToColumnModelMap(fromDb);
 		// column IDs must be unique.
 		Set<String> visitedIds = new HashSet<>(fromDb.size());
@@ -408,7 +413,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds);
+		List<ColumnModel> models = columnModelDao.getColumnModels(columnIds);
 		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
@@ -426,14 +431,48 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return details;
 	}
 
+	/**
+	 * The schema for the current version for any table/view only exists in the
+	 * database with a null version number. Therefore, calls to get the schema of
+	 * the current version are transformed to a representation with a null
+	 * version.
+	 * 
+	 * @param inputIdAndVersion
+	 * @return
+	 */
+	IdAndVersion removeVersionAsNeeded(IdAndVersion inputIdAndVersion) {
+		IdAndVersionBuilder resultBuilder = IdAndVersion.newBuilder();
+		resultBuilder.setId(inputIdAndVersion.getId());
+		if (inputIdAndVersion.getVersion().isPresent()) {
+			/*
+			 * The current version of any table is always 'in progress' and does not have a
+			 * schema bound to it. This means the schema for the current version always
+			 * matches the latest schema for the table. Therefore, when a caller explicitly
+			 * requests the schema of the current version, the latest schema is returned.
+			 */
+			long currentVersion = nodeDao.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
+			long inputVersion = inputIdAndVersion.getVersion().get();
+			if (inputVersion != currentVersion) {
+				// Only use the input version number when it is not the current version.
+				resultBuilder.setVersion(inputVersion);
+			}
+		}
+		return resultBuilder.build();
+	}
+	
 	@Override
-	public List<String> getColumnIdForTable(IdAndVersion idAndVersion) {
-		return columnModelDao.getColumnModelIdsForObject(idAndVersion);
+	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelIdsForObject(removeVersionAsNeeded(idAndVersion));
 	}
 
 	@Override
 	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
-		return columnModelDao.getColumnModelsForObject(idAndVersion);
+		return columnModelDao.getColumnModelsForObject(removeVersionAsNeeded(idAndVersion));
+	}
+
+	@Override
+	public ColumnModel createColumnModel(ColumnModel columnModel) {
+		return columnModelDao.createColumnModel(columnModel);
 	}
 	
 }

@@ -102,8 +102,8 @@ public class ColumnChangeDetails {
 
 	@Override
 	public String toString() {
-		return "ColumnChange [oldColumn=" + oldColumn + ", newColumn="
-				+ newColumn + "]";
+		return "ColumnChange [oldColumn=" + (oldColumn == null? null : oldColumn.getId()) + ", newColumn="
+				+ (newColumn == null? null: newColumn.getId())+ "]";
 	}
 
 }

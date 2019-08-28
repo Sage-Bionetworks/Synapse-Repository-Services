@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -33,10 +34,10 @@ public class EntityViewMetadataProvider implements TypeSpecificCreateProvider<En
 	}
 
 	@Override
-	public void addTypeSpecificMetadata(EntityView entity,
-										UserInfo user, EventType eventType)
+	public void addTypeSpecificMetadata(EntityView entity, UserInfo user, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		List<String> tableSchema = fileViewManager.getTableSchema(entity.getId());
+		List<String> tableSchema = fileViewManager
+				.getViewSchemaIds(KeyFactory.idAndVersion(entity.getId(), entity.getVersionNumber()));
 		entity.setColumnIds(tableSchema);
 	}
 	

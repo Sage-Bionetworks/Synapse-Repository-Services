@@ -775,7 +775,7 @@ public class TableIndexManagerImplTest {
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 		// Building without a version should attempt to set the current schema on the index.
-		verify(mockManagerSupport).getColumnModelsForTable(any(IdAndVersion.class));
+		verify(mockManagerSupport).getTableSchema(any(IdAndVersion.class));
 	}
 	
 	@Test
@@ -799,8 +799,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
-		// Building to a version should not attempt to set the current schema on the index.
-		verify(mockManagerSupport, never()).getColumnModelsForTable(any(IdAndVersion.class));
+		verify(mockManagerSupport).getTableSchema(any(IdAndVersion.class));
 	}
 	
 	@Test

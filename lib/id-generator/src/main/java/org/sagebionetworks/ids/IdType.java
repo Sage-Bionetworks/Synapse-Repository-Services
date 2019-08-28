@@ -48,6 +48,8 @@ public enum IdType {
 	DOWNLOAD_ORDER_ID(null),
 	DATA_TYPE_ID(null),
 	TABLE_TRANSACTION_ID(null),
+	OAUTH_SECTOR_IDENTIFIER_ID(null),
+	OAUTH_CLIENT_ID(100000L)
 	;
 	
 	Long startingId;

@@ -202,7 +202,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(user, idAndVersion);
 		
-		List<ColumnModel> columns = tableManagerSupport.getColumnModelsForTable(idAndVersion);
+		List<ColumnModel> columns = columModelManager.getColumnModelsForTable(user, tableId);
 		SparseChangeSet changeSet = new SparseChangeSet(tableId, columns, rowsToDelete.getEtag());
 		for(Long rowId: rowsToDelete.getRowIds()){
 			SparseRow row = changeSet.addEmptyRow();
@@ -609,7 +609,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	void setTableSchemaWithExclusiveLock(final ProgressCallback callback, final UserInfo userInfo, final List<String> newSchema,
 			final String tableId) {
 		// Lookup the current schema for this table
-		List<String> oldSchema = columModelManager.getColumnIdForTable(IdAndVersion.parse(tableId));
+		List<String> oldSchema = columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
 		// Calculate the schema change (if there is one).
 		List<ColumnChange> schemaChange = TableModelUtils.createChangesFromOldSchemaToNew(oldSchema, newSchema);
 		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
@@ -795,7 +795,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(changes.getEntityId());
 		// First determine if this will be an actual change to the schema.
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		List<String> currentSchemaIds = columModelManager.getColumnIdForTable(idAndVersion);
+		List<String> currentSchemaIds = columModelManager.getColumnIdsForTable(idAndVersion);
 		List<ColumnModel> newSchema = null;
 		if (!currentSchemaIds.equals(newSchemaIds)) {
 			// This will 
@@ -842,25 +842,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@Override
 	public List<String> getTableSchema(final IdAndVersion inputIdAndVersion) {
-		IdAndVersionBuilder lookupBuilder = IdAndVersion.newBuilder();
-		lookupBuilder.setId(inputIdAndVersion.getId());
-		if(inputIdAndVersion.getVersion().isPresent()) {
-			/*
-			 * The current version of any table is always 'in progress' and does not have a
-			 * schema bound to it. This means the schema for the current version always
-			 * matches the latest schema for the table. Therefore, when a caller explicitly
-			 * requests the schema of the current version, the latest schema is returned.
-			 */
-			long currentVersion = nodeManager.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
-			long inputVersion = inputIdAndVersion.getVersion().get();
-			if(inputVersion != currentVersion) {
-				// Only use the input version number when it is not the current version.
-				lookupBuilder.setVersion(inputVersion);
-			}
-			
-		}
-		// lookup the schema for the appropriate version.
-		return columModelManager.getColumnIdForTable(lookupBuilder.build());
+		return columModelManager.getColumnIdsForTable(inputIdAndVersion);
 	}
 
 	

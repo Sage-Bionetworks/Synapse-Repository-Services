@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -122,5 +123,16 @@ public class KeyFactory {
 			return two == null ? 0 : -1;
 		}
 		return two == null ? 1 : KeyFactory.stringToKey(one).compareTo(KeyFactory.stringToKey(two));
+	}
+
+	/**
+	 * Create an IdAndVersion for the given entity id and optional version.
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	public static IdAndVersion idAndVersion(String entityId, Long versionNumber) {
+		ValidateArgument.required(entityId, "entityId");
+		return IdAndVersion.newBuilder().setId(stringToKey(entityId)).setVersion(versionNumber).build();
 	}
 }

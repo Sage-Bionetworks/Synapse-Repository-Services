@@ -22,10 +22,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
@@ -110,10 +110,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return doiObjectType.name();
+		return objectType.name();
 	}
 	public void setObjectType(ObjectType objectType) {
-		this.doiObjectType = objectType;
+		this.objectType = objectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -150,15 +150,90 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
 				+ doiStatus + ", objectId=" + objectId + ", objectType="
-				+ doiObjectType + ", objectVersion=" + objectVersion
+				+ objectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn +"]";
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((doiStatus == null) ? 0 : doiStatus.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
+		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
+		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
+		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBODoi other = (DBODoi) obj;
+		if (createdBy == null) {
+			if (other.createdBy != null)
+				return false;
+		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (doiStatus != other.doiStatus)
+			return false;
+		if (eTag == null) {
+			if (other.eTag != null)
+				return false;
+		} else if (!eTag.equals(other.eTag))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (objectId == null) {
+			if (other.objectId != null)
+				return false;
+		} else if (!objectId.equals(other.objectId))
+			return false;
+		if (objectType != other.objectType)
+			return false;
+		if (objectVersion == null) {
+			if (other.objectVersion != null)
+				return false;
+		} else if (!objectVersion.equals(other.objectVersion))
+			return false;
+		if (updatedBy == null) {
+			if (other.updatedBy != null)
+				return false;
+		} else if (!updatedBy.equals(other.updatedBy))
+			return false;
+		if (updatedOn == null) {
+			if (other.updatedOn != null)
+				return false;
+		} else if (!updatedOn.equals(other.updatedOn))
+			return false;
+		return true;
 	}
 
 	private Long id;
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
+	private ObjectType objectType;
+	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
 	private ObjectType doiObjectType;
 	private Long objectVersion;
 	private Long createdBy;
@@ -166,14 +241,42 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private Long updatedBy;
 	private Timestamp updatedOn;
 
+	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
+	public ObjectType getDoiObjectType() {
+		return doiObjectType;
+	}
+
+	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
+	public void setDoiObjectType(ObjectType doiObjectType) {
+		this.doiObjectType = doiObjectType;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.DOI;
 	}
 
+	@TemporaryCode(author="jhill",comment="To be removed after prod 274")
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return new MigratableTableTranslation<DBODoi, DBODoi>(){
+
+			@Override
+			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
+				// copy the value from the old type to the new type.
+				if(backup.doiObjectType != null) {
+					backup.setObjectType(backup.getDoiObjectType());
+					backup.setDoiObjectType(null);
+				}
+				return backup;
+			}
+
+			@Override
+			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
+				return dbo;
+			}
+			
+		};
 	}
 
 	@Override
