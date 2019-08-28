@@ -1,10 +1,8 @@
 package org.sagebionetworks.auth.services;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -12,8 +10,6 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.oauth.JsonWebKey;
-import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -33,13 +29,11 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
+	
 	@Autowired
 	private UserManager userManager;
 	
@@ -48,6 +42,16 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	
+
+	public OpenIDConnectServiceImpl(UserManager userManager, OpenIDConnectManager oidcManager,
+			OIDCTokenHelper oidcTokenHelper) {
+		super();
+		this.userManager = userManager;
+		this.oidcManager = oidcManager;
+		this.oidcTokenHelper = oidcTokenHelper;
+	}
 
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {

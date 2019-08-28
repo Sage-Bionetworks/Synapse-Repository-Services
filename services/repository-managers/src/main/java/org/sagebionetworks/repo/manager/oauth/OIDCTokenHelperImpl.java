@@ -155,7 +155,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	}
 	
 	@Override
-	public boolean validateSignedJWT(String token) {
+	public boolean validateJWTSignature(String token) {
 		boolean verified = false;
 		try {
 			SignedJWT signedJWT = (SignedJWT)JWTParser.parse(token);

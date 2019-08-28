@@ -1,19 +1,35 @@
 package org.sagebionetworks.auth.services;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.*;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 
-class OpenIDConnectServiceImplTest {
+@RunWith(MockitoJUnitRunner.class)
+public class OpenIDConnectServiceImplTest {
 	
-	private  OpenIDConnectServiceImpl oidcServiceImpl = new OpenIDConnectServiceImpl();
+	@InjectMocks
+	private OpenIDConnectServiceImpl oidcServiceImpl;
+	
+	
+	@Mock 
+	private OIDCTokenHelper oidcTokenHelper;
 
 	@Test
-	void testGetOIDCJsonWebKeySet() throws Exception {
-		JsonWebKeySet jwks = oidcServiceImpl.getOIDCJsonWebKeySet();
-		assertFalse(jwks.getKeys().isEmpty());
-		// TODO check that JWKS can validate a signed token
+	public void testGetOIDCJsonWebKeySet() throws Exception {
+		JsonWebKeySet jwks = new JsonWebKeySet();
+		
+		// method under test
+		oidcServiceImpl.getOIDCJsonWebKeySet();
+		
+		verify(oidcTokenHelper).getJSONWebKeySet();
 	}
 
 }

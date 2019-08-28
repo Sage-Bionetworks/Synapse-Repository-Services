@@ -37,7 +37,7 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		boolean verified=false;
 		if (bearerToken!=null) {
-			verified = oidcTokenHelper.validateSignedJWT(bearerToken);
+			verified = oidcTokenHelper.validateJWTSignature(bearerToken);
 		}
 		
 		if (verified) {

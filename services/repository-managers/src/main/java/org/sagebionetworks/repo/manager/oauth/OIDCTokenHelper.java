@@ -18,6 +18,6 @@ public interface OIDCTokenHelper {
 
 	JsonWebKeySet getJSONWebKeySet();
 
-	boolean validateSignedJWT(String token);
+	boolean validateJWTSignature(String token);
 
 }
