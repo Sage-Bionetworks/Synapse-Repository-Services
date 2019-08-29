@@ -1,5 +1,7 @@
 package org.sagebionetworks.util;
 
+import java.util.Collection;
+
 import org.apache.commons.validator.routines.UrlValidator;
 
 public class ValidateArgument {
@@ -15,6 +17,12 @@ public class ValidateArgument {
 	public static void requiredNotEmpty(String fieldValue, String fieldName){
 		if(fieldValue == null || "".equals(fieldValue) ){
 			throw new IllegalArgumentException(fieldName + " is required and must not be the empty string.");
+		}
+	}
+
+	public static void requiredNotEmpty(Collection fieldValue, String fieldName){
+		if(fieldValue == null || fieldValue.isEmpty()){
+			throw new IllegalArgumentException(fieldName + " is required and must not be empty.");
 		}
 	}
 

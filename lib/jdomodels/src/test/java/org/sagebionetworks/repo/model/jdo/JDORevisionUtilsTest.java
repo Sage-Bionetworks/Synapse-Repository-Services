@@ -34,8 +34,6 @@ public class JDORevisionUtilsTest {
 		byte[] blob = new byte[size];
 		rand.nextBytes(blob);
 
-		byte[] userAnnotations = new byte[size];
-		rand.nextBytes(userAnnotations);
 		byte[] entityPropertyAnnotations = new byte[size];
 		rand.nextBytes(entityPropertyAnnotations);
 
@@ -44,8 +42,7 @@ public class JDORevisionUtilsTest {
 		DBORevision original = new DBORevision();
 		original.setOwner(owner.getId());
 		original.setRevisionNumber(2L);
-		original.setAnnotations(blob);
-		original.setUserAnnotationsV1(userAnnotations);
+		original.setUserAnnotationsJSON("{}");
 		original.setEntityPropertyAnnotations(entityPropertyAnnotations);
 		original.setLabel("0.3.9");
 		original.setModifiedBy(Long.parseLong(createdById));
@@ -63,10 +60,7 @@ public class JDORevisionUtilsTest {
 		assertNull(copy.getComment());
 		// We do make a copy of the annotations blob
 		// but it should be a copy and not the original
-		assertNotSame(original.getAnnotations(), copy.getAnnotations());
-		assertArrayEquals(original.getAnnotations(), copy.getAnnotations());
-		assertNotSame(original.getUserAnnotationsV1(), copy.getUserAnnotationsV1());
-		assertArrayEquals(original.getUserAnnotationsV1(), copy.getUserAnnotationsV1());
+		assertEquals(original.getUserAnnotationsJSON(), copy.getUserAnnotationsJSON());
 		assertNotSame(original.getEntityPropertyAnnotations(), copy.getEntityPropertyAnnotations());
 		assertArrayEquals(original.getEntityPropertyAnnotations(), copy.getEntityPropertyAnnotations());
 		// the file handle should be copied.
