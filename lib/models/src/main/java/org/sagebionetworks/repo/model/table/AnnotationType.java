@@ -46,7 +46,6 @@ public enum AnnotationType{
 		return columnType;
 	}
 
-	//TODO: test
 	public static AnnotationType forAnnotationV2Type(AnnotationsV2ValueType v2ValueType){
 		for(AnnotationType annotationType: values()){
 			if (annotationType.annotationsV2ValueType == v2ValueType){
