@@ -59,6 +59,7 @@
 	<import resource="classpath:storage-report-worker-sqs-spb.xml" />
     <import resource="classpath:add-files-to-download-list-spb.xml" />
     <import resource="classpath:semaphore-garbage-collection-spb.xml" />
+    <import resource="classpath:statistics-spb.xml" />
 
 	<util:list id="workersList">
 		<!-- workers -->
@@ -100,6 +101,8 @@
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="statisticsQueueTrigger" />
+		<ref bean="statisticsMonthlyStatusWatcherTrigger" />
+		<ref bean="statisticsMonthlyProjectTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
