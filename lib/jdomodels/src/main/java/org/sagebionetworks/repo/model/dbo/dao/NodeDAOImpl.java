@@ -882,6 +882,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				VersionInfo info = new VersionInfo();
 				info.setId(entityId);
 				info.setModifiedByPrincipalId(rs.getString(COL_REVISION_MODIFIED_BY));
+				info.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
 				info.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
 				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));

@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -1093,5 +1094,55 @@ public class NodeManagerImplUnitTest {
 		verify(mockAuthManager, never()).canAccessActivity(any(UserInfo.class), anyString());
 		verify(mockNodeDao).lockNode(nodeId);
 		verify(mockNodeDao).snapshotVersion(mockUserInfo.getId(), nodeId, new SnapshotRequest());
+	}
+	
+	@Test
+	public void testgetVersionsOfEntityFile() {
+		long offset = 0;
+		long limit = 10;
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		VersionInfo info = new VersionInfo();
+		info.setId("456");
+		List<VersionInfo> expected = Lists.newArrayList(info);
+		when(mockNodeDao.getVersionsOfEntity(any(String.class), any(Long.class), any(Long.class))).thenReturn(expected);
+		// call under test
+		List<VersionInfo> results = nodeManager.getVersionsOfEntity(mockUserInfo, nodeId, offset, limit);
+		assertEquals(expected, results);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset, limit);
+	}
+	
+	@Test
+	public void testgetVersionsOfEntityTable() {
+		long offset = 0;
+		long limit = 10;
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.table);
+		VersionInfo info = new VersionInfo();
+		info.setId("456");
+		List<VersionInfo> expected = Lists.newArrayList(info);
+		when(mockNodeDao.getVersionsOfEntity(any(String.class), any(Long.class), any(Long.class))).thenReturn(expected);
+		// call under test
+		List<VersionInfo> results = nodeManager.getVersionsOfEntity(mockUserInfo, nodeId, offset, limit);
+		assertEquals(expected, results);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		// offset + one for tables/views
+		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset+1, limit);
+	}
+	
+	@Test
+	public void testgetVersionsOfEntityEntityView() {
+		long offset = 0;
+		long limit = 10;
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.entityview);
+		VersionInfo info = new VersionInfo();
+		info.setId("456");
+		List<VersionInfo> expected = Lists.newArrayList(info);
+		when(mockNodeDao.getVersionsOfEntity(any(String.class), any(Long.class), any(Long.class))).thenReturn(expected);
+		// call under test
+		List<VersionInfo> results = nodeManager.getVersionsOfEntity(mockUserInfo, nodeId, offset, limit);
+		assertEquals(expected, results);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		// offset + one for tables/views
+		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset+1, limit);
 	}
 }

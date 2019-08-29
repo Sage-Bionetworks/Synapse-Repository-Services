@@ -381,11 +381,7 @@ public class EntityManagerImpl implements EntityManager {
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		// pass through
-		List<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
-		for (VersionInfo version : versionsOfEntity) {
-			version.setModifiedBy(version.getModifiedByPrincipalId());
-		}
-		return versionsOfEntity;
+		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
 	}
 
 	@Override
