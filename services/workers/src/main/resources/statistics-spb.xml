@@ -13,8 +13,8 @@
 
 	<!-- This worker watches for the monthly statistics status and broadcast the work to be done to the dedicated workers -->
 	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.worker.StatisticsMonthlyStatusWatcherWorker" scope="singleton" />
-	<!-- This worker process a month worth of statistics for projects -->
-	<bean id="statisticsMonthlyProjectWorker" class="org.sagebionetworks.statistics.worker.project.StatisticsMonthlyProjectWorker" scope="singleton" />
+	<!-- This worker process a month worth of statistics for a particular object type -->
+	<bean id="statisticsMonthlyWorker" class="org.sagebionetworks.statistics.worker.StatisticsMonthlyWorker" scope="singleton" />
 
 	<!-- Trigger for the monthly statistics status worker -->
 	<bean id="statisticsMonthlyStatusWatcherTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
@@ -55,11 +55,11 @@
 						<constructor-arg index="1" ref="awsSQSClient" />
 						<constructor-arg index="2">
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
-								<property name="runner" ref="statisticsMonthlyProjectWorker" />
-								<property name="semaphoreLockKey" value="statisticsMonthlyProjectWorker" />
+								<property name="runner" ref="statisticsMonthlyWorker" />
+								<property name="semaphoreLockKey" value="statisticsMonthlyWorker" />
 								<property name="semaphoreMaxLockCount" value="5" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
-								<property name="queueName" value="#{stackConfiguration.getQueueName('STATISTICS_MONTHLY_PROJECT')}"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('STATISTICS_MONTHLY')}"/>
 
 							</bean>
 						</constructor-arg>
