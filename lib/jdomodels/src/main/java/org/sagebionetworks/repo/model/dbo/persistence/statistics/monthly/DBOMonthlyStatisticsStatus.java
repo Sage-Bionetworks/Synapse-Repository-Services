@@ -1,10 +1,13 @@
-package org.sagebionetworks.repo.model.dbo.persistence.statistics;
+package org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_LAST_FAILED_AT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_LAST_SUCCEEDED_AT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_MONTH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STATISTICS_MONTHLY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY;
+import static org.sagebionetworks.repo.model.statistics.StatisticsMonthlyUtils.FIRST_DAY_OF_THE_MONTH;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,7 +29,10 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("objectType", COL_STATISTICS_MONTHLY_OBJECT_TYPE, true),
 			new FieldColumn("month", COL_STATISTICS_MONTHLY_MONTH, true),
-			new FieldColumn("status", COL_STATISTICS_MONTHLY_STATUS) };
+			new FieldColumn("status", COL_STATISTICS_MONTHLY_STATUS),
+			new FieldColumn("lastSucceededAt", COL_STATISTICS_LAST_SUCCEEDED_AT),
+			new FieldColumn("lastFailedAt", COL_STATISTICS_LAST_FAILED_AT)
+	};
 
 	private static final TableMapping<DBOMonthlyStatisticsStatus> TABLE_MAPPING = new TableMapping<DBOMonthlyStatisticsStatus>() {
 
@@ -36,6 +42,10 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 			dbo.setObjectType(rs.getString(COL_STATISTICS_MONTHLY_OBJECT_TYPE));
 			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_MONTH, LocalDate.class));
 			dbo.setStatus(rs.getString(COL_STATISTICS_MONTHLY_STATUS));
+			Long lastSucceededAt = rs.getLong(COL_STATISTICS_LAST_SUCCEEDED_AT);
+			dbo.setLastSucceededAt(rs.wasNull() ? null : lastSucceededAt);
+			Long lastFailedAt = rs.getLong(COL_STATISTICS_LAST_FAILED_AT);
+			dbo.setLastFailedAt(rs.wasNull() ? null : lastFailedAt);
 			return dbo;
 		}
 
@@ -63,6 +73,8 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 	private String objectType;
 	private LocalDate month;
 	private String status;
+	private Long lastSucceededAt;
+	private Long lastFailedAt;
 
 	public String getObjectType() {
 		return objectType;
@@ -77,7 +89,8 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 	}
 
 	public void setMonth(LocalDate month) {
-		this.month = month;
+		// Make sure it's always set to the first day of the month
+		this.month = month.withDayOfMonth(FIRST_DAY_OF_THE_MONTH);
 	}
 
 	public String getStatus() {
@@ -88,6 +101,22 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 		this.status = status;
 	}
 
+	public Long getLastSucceededAt() {
+		return lastSucceededAt;
+	}
+
+	public void setLastSucceededAt(Long lastSucceededAt) {
+		this.lastSucceededAt = lastSucceededAt;
+	}
+
+	public Long getLastFailedAt() {
+		return lastFailedAt;
+	}
+
+	public void setLastFailedAt(Long lastFailedAt) {
+		this.lastFailedAt = lastFailedAt;
+	}
+
 	@Override
 	public TableMapping<DBOMonthlyStatisticsStatus> getTableMapping() {
 		return TABLE_MAPPING;
@@ -95,28 +124,27 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(objectType, status, month);
+		return Objects.hash(lastFailedAt, lastSucceededAt, month, objectType, status);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		DBOMonthlyStatisticsStatus other = (DBOMonthlyStatisticsStatus) obj;
-		return Objects.equals(objectType, other.objectType) && Objects.equals(status, other.status)
-				&& Objects.equals(month, other.month);
+		return Objects.equals(lastFailedAt, other.lastFailedAt) && Objects.equals(lastSucceededAt, other.lastSucceededAt)
+				&& Objects.equals(month, other.month) && Objects.equals(objectType, other.objectType)
+				&& Objects.equals(status, other.status);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMonthlyStatisticsStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + "]";
+		return "DBOMonthlyStatisticsStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + ", lastSucceededAt="
+				+ lastSucceededAt + ", lastFailedAt=" + lastFailedAt + "]";
 	}
 
 }

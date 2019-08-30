@@ -14,7 +14,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- Turn on Spring's auto scan for components, services etc -->
-	<context:component-scan base-package="org.sagebionetworks.model.dbo.dao"/>
+	<context:component-scan base-package="org.sagebionetworks.repo.model.dbo.dao"/>
 
 	<bean id="clock" class="org.sagebionetworks.util.DefaultClock" />
 

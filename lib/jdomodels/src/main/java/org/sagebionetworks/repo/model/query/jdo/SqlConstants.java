@@ -939,6 +939,8 @@ public class SqlConstants {
 	public static final String COL_STATISTICS_MONTHLY_OBJECT_TYPE =			"OBJECT_TYPE";
 	public static final String COL_STATISTICS_MONTHLY_MONTH =			 	"MONTH";
 	public static final String COL_STATISTICS_MONTHLY_STATUS =				"STATUS";
+	public static final String COL_STATISTICS_LAST_SUCCEEDED_AT =			"LAST_SUCCEEDED_AT";
+	public static final String COL_STATISTICS_LAST_FAILED_AT =				"LAST_FAILED_AT";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
