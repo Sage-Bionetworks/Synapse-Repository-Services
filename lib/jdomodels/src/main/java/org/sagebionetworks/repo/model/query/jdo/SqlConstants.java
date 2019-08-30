@@ -934,11 +934,12 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"OAUTH_CLIENT_IS_VERIFIED";
 
 	// Status table for monthly statistics
-	public static final String TABLE_STATISTICS_MONTHLY = 					"STATISTICS_MONTHLY_STATUS";
+	public static final String TABLE_STATISTICS_MONTHLY =					"STATISTICS_MONTHLY_STATUS";
 	public static final String DDL_STATISTICS_MONTHLY =						"schema/statistics/StatisticsMonthlyStatus-ddl.sql";
 	public static final String COL_STATISTICS_MONTHLY_OBJECT_TYPE =			"OBJECT_TYPE";
-	public static final String COL_STATISTICS_MONTHLY_MONTH =			 	"MONTH";
+	public static final String COL_STATISTICS_MONTHLY_MONTH =				"MONTH";
 	public static final String COL_STATISTICS_MONTHLY_STATUS =				"STATUS";
+	public static final String COL_STATISTICS_LAST_STARTED_AT =				"LAST_STARTED_AT";
 	public static final String COL_STATISTICS_LAST_SUCCEEDED_AT =			"LAST_SUCCEEDED_AT";
 	public static final String COL_STATISTICS_LAST_FAILED_AT =				"LAST_FAILED_AT";
 

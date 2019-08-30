@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.statistics;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_MONTH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY;
 
 import java.sql.ResultSet;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.statistics.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -32,13 +34,15 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 	private static final String PARAM_OBJECT_TYPE = "objectType";
 	private static final String PARAM_MONTH = "month";
+	private static final String PARAM_STATUS = "status";
 	private static final String PARAM_FROM = "from";
 	private static final String PARAM_TO = "to";
 
 	private static final String SQL_DELETE_ALL = "DELETE FROM " + TABLE_STATISTICS_MONTHLY;
 	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " + TABLE_STATISTICS_MONTHLY + " WHERE "
-			+ COL_STATISTICS_MONTHLY_OBJECT_TYPE + " = :" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_MONTH + " BETWEEN :"
-			+ PARAM_FROM + " AND :" + PARAM_TO;
+			+ COL_STATISTICS_MONTHLY_OBJECT_TYPE + " = :" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS + " =:"
+			+ PARAM_STATUS + " AND " + COL_STATISTICS_MONTHLY_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO + " ORDER BY "
+			+ COL_STATISTICS_MONTHLY_MONTH;
 
 	private static final RowMapper<DBOMonthlyStatisticsStatus> DBO_MAPPER = new DBOMonthlyStatisticsStatus().getTableMapping();
 
@@ -62,19 +66,19 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	@Override
 	@WriteTransaction
 	public StatisticsMonthlyStatus setAvailable(StatisticsObjectType objectType, YearMonth month) {
-		return createOrUpdate(objectType, month, StatisticsStatus.AVAILABLE, System.currentTimeMillis(), null);
+		return createOrUpdate(objectType, month, StatisticsStatus.AVAILABLE, null, System.currentTimeMillis(), null);
 	}
 
 	@Override
 	@WriteTransaction
 	public StatisticsMonthlyStatus setProcessingFailed(StatisticsObjectType objectType, YearMonth month) {
-		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING_FAILED, null, System.currentTimeMillis());
+		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING_FAILED, null, null, System.currentTimeMillis());
 	}
 
 	@Override
 	@WriteTransaction
 	public StatisticsMonthlyStatus setProcessing(StatisticsObjectType objectType, YearMonth month) {
-		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING, null, null);
+		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING, System.currentTimeMillis(), null, null);
 	}
 
 	@Override
@@ -103,6 +107,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		MapSqlParameterSource params = new MapSqlParameterSource();
 
 		params.addValue(PARAM_OBJECT_TYPE, objectType.toString());
+		params.addValue(PARAM_STATUS, StatisticsStatus.AVAILABLE.toString());
 		params.addValue(PARAM_FROM, StatisticsMonthlyUtils.toDate(from));
 		params.addValue(PARAM_TO, StatisticsMonthlyUtils.toDate(to));
 
@@ -116,18 +121,35 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	}
 
 	private StatisticsMonthlyStatus createOrUpdate(StatisticsObjectType objectType, YearMonth month, StatisticsStatus status,
-			Long lastSucceededAt, Long lastFailedAt) {
+			Long lastStartedAt, Long lastSucceededAt, Long lastFailedAt) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
 		ValidateArgument.required(status, "status");
+		
+		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
+		
+		DBOMonthlyStatisticsStatus dbo;
 
-		DBOMonthlyStatisticsStatus dbo = new DBOMonthlyStatisticsStatus();
+		try {
+			 dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
+		} catch (NotFoundException e) {
+			dbo = new DBOMonthlyStatisticsStatus();
+		}
 
 		dbo.setObjectType(objectType.toString());
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));
 		dbo.setStatus(status.toString());
-		dbo.setLastSucceededAt(lastSucceededAt);
-		dbo.setLastFailedAt(lastFailedAt);
+		
+		// Updates the timestamps only if updated
+		if (lastStartedAt != null) {
+			dbo.setLastStartedAt(lastStartedAt);
+		}
+		if (lastSucceededAt != null) {
+			dbo.setLastSucceededAt(lastSucceededAt);
+		}
+		if (lastFailedAt != null) {
+			dbo.setLastFailedAt(lastFailedAt);
+		}
 
 		return map(basicDao.createOrUpdate(dbo));
 	}
@@ -147,6 +169,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		dto.setObjectType(StatisticsObjectType.valueOf(dbo.getObjectType()));
 		dto.setStatus(StatisticsStatus.valueOf(dbo.getStatus()));
 		dto.setMonth(YearMonth.from(dbo.getMonth()));
+		dto.setLastStartedAt(dbo.getLastStartedAt());
 		dto.setLastSucceededAt(dbo.getLastSucceededAt());
 		dto.setLastFailedAt(dbo.getLastFailedAt());
 
