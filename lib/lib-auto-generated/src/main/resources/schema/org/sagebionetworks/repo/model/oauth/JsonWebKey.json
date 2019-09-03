@@ -1,0 +1,18 @@
+{
+    "description": "Public key used to verify JSON Web Token signatures",
+ 	"type": "interface",
+ 	"properties": {
+  		"kid":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+  		"kty":{
+ 			"type":"string",
+ 			"description":""
+ 		},
+  		"use":{
+ 			"type":"string",
+ 			"description":""
+ 		}
+ 	}
+}
