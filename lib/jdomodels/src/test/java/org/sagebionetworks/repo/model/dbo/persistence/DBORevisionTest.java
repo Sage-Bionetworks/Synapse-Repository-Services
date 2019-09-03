@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,16 +19,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -82,13 +86,14 @@ public class DBORevisionTest {
 		DBORevision rev = new DBORevision();
 		rev.setOwner(node.getId());
 		rev.setRevisionNumber(new Long(1));
-		rev.setAnnotations(null);
 		rev.setReference(null);
 		rev.setComment(null);
 		rev.setLabel(""+rev.getRevisionNumber());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		rev.setModifiedBy(createdById);
 		rev.setModifiedOn(System.currentTimeMillis());
+		rev.setUserAnnotationsJSON("{}");
+		rev.setEntityPropertyAnnotations("some data".getBytes(StandardCharsets.UTF_8));
 		// Now create it
 		rev = dboBasicDao.createNew(rev);
 		// Make sure we can get it
@@ -98,7 +103,6 @@ public class DBORevisionTest {
 		DBORevision clone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
 		assertEquals(rev, clone);
 		// Update with some values
-		clone.setAnnotations("Fake annotations".getBytes("UTF-8"));
 		Reference ref = new Reference();
 		byte[] blob = NodeUtils.compressReference(ref);
 		clone.setReference(blob);
@@ -111,30 +115,27 @@ public class DBORevisionTest {
 	}
 
 	@Test
-	public void testNamedAnnotationRemovalTranslator() throws IOException {
+	public void testUserAnnotationTranslator() throws IOException, JSONObjectAdapterException {
 		//create a new DBORevision just to get the translator. Since getTranslator is not static, this ensures that
 		// the translator is modifying passed in params instead of the fields of the DBORevision object that created it
 		MigratableTableTranslation<DBORevision,DBORevision> translator = new DBORevision().getTranslator();
 
 		DBORevision revision = new DBORevision();
 
-		NamedAnnotations namedAnnotations = new NamedAnnotations();
-		namedAnnotations.getPrimaryAnnotations().addAnnotation("primaryKey", "primaryValue");
-		namedAnnotations.getAdditionalAnnotations().addAnnotation("additionalKey", "additionalValue");
+		Annotations userAnnotations = new Annotations();
+		userAnnotations.addAnnotation("additionalKey", "additionalValue");
 
-		revision.setAnnotations(AnnotationUtils.compressAnnotations(namedAnnotations));
+		revision.setUserAnnotationsV1(AnnotationUtils.compressAnnotationsV1(userAnnotations));
 
 		DBORevision modified = translator.createDatabaseObjectFromBackup(revision);
 
 		//should be same reference as translator only modified fields
 		assertSame(revision, modified);
-		assertNull(modified.getAnnotations());
+		assertNull(modified.getUserAnnotationsV1());
 
-		assertNotNull(modified.getEntityPropertyAnnotations());
-		assertNotNull(modified.getUserAnnotationsV1());
-		byte[] expectedEntityPropertyAnnotationBytes = AnnotationUtils.compressAnnotationsV1(namedAnnotations.getPrimaryAnnotations());
-		byte[] expectedUserAnnotationV1Bytes = AnnotationUtils.compressAnnotationsV1(namedAnnotations.getAdditionalAnnotations());
-		assertArrayEquals(expectedEntityPropertyAnnotationBytes, modified.getEntityPropertyAnnotations());
-		assertArrayEquals(expectedUserAnnotationV1Bytes, modified.getUserAnnotationsV1());
+		assertNull(modified.getUserAnnotationsV1());
+		assertNotNull(modified.getUserAnnotationsJSON());
+		AnnotationsV2 expectedUserAnnotationV2 = AnnotationsV2Translator.toAnnotationsV2(userAnnotations);
+		assertEquals(expectedUserAnnotationV2, EntityFactory.createEntityFromJSONString(modified.getUserAnnotationsJSON(), AnnotationsV2.class));
 	}
 }

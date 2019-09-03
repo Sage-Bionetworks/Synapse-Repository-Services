@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.search.Document;
@@ -99,8 +101,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
-		Annotations annos = nodeDao.getUserAnnotationsForVersion(node.getId(),
-				revId);
+		//TODO: replace useage of translation with actual V2 code
+
+		Annotations annos = AnnotationsV2Translator.toAnnotationsV1(nodeDao.getUserAnnotationsForVersion(node.getId(),
+				revId));
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());
 

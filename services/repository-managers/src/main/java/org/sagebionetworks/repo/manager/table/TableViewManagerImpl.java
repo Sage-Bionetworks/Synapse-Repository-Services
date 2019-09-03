@@ -8,6 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -168,12 +169,13 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		// Get the current annotations for this entity.
-		Annotations userAnnotations = nodeManager.getUserAnnotations(user, entityId);
+		//TODO: replace translation code
+		Annotations userAnnotations = AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotations(user, entityId));
 		userAnnotations.setEtag(etag);
 		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
 		if(updated){
 			// save the changes.
-			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
+			nodeManager.updateUserAnnotations(user, entityId, AnnotationsV2Translator.toAnnotationsV2(userAnnotations));
 		}
 	}
 	

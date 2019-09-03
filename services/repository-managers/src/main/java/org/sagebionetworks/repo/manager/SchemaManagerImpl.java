@@ -70,7 +70,9 @@ public class SchemaManagerImpl implements SchemaManager {
 		resourceId = resourceId.replaceAll("\\.", "/");
 		String fileName = "schema/" + resourceId + ".json";
 		InputStream stream = ServerSideOnlyFactory.class.getClassLoader().getResourceAsStream(fileName);
-		if (stream == null) throw new NotFoundException("JSON Schema cannot be found for: "+ fileName);
+		if (stream == null) {
+			throw new NotFoundException("JSON Schema cannot be found for: "+ fileName);
+		}
 		String json;
 		try {
 			json = readStringFromStream(stream);

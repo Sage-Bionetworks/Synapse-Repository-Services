@@ -45,6 +45,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -91,7 +94,8 @@ public class NodeManagerImplUnitTest {
 	Set<EntityType> entityTypesWithCountLimits;
 	String startEtag;
 	String newEtag;
-	Annotations annos;
+	Annotations entityPropertyAnnotations;
+	AnnotationsV2 userAnnotations;
 	
 	@Before
 	public void before() throws Exception {
@@ -127,9 +131,11 @@ public class NodeManagerImplUnitTest {
 		
 
 		
-		annos = new Annotations();
-		annos.setEtag("etag");
-		annos.addAnnotation("key", "value");
+		entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations.addAnnotation("key", "value");
+
+		userAnnotations = new AnnotationsV2();
+		userAnnotations.setEtag("etag");
 		
 		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new Annotations());
 		
@@ -446,13 +452,13 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		Annotations annos = new Annotations();
-		annos.addAnnotation("stringKey", "a");
-		annos.addAnnotation("longKey", Long.MAX_VALUE);
+		AnnotationsV2 annos = new AnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "a", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "12312", AnnotationsV2ValueType.LONG);
 		when(mockNodeDao.getUserAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
+		AnnotationsV2 copy = nodeManager.getUserAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 
@@ -721,7 +727,7 @@ public class NodeManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNodeNoEtag() throws Exception {
 		when(mockNode.getETag()).thenReturn(null);
-		nodeManager.update(mockUserInfo, mockNode, annos, false);
+		nodeManager.update(mockUserInfo, mockNode, entityPropertyAnnotations, false);
 	}
 
 	@Test
@@ -961,23 +967,18 @@ public class NodeManagerImplUnitTest {
 		// no check should occur for a create in root
 		verify(mockNodeDao, never()).getChildCount(anyString());
 	}
-	
-	@Test
-	public void testUpdateValidateAnnotations(){
-		nodeManager.validateAnnotations(annos);
+
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testUpdateAnnotations_nullEtag(){
+		AnnotationsV2 updated = new AnnotationsV2();
+		updated.setAnnotations(null);
+		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateValidateAnnotationsDuplicateName(){
-		// two annotations with the same name but different type.
-		annos.addAnnotation("one", "value");
-		annos.addAnnotation("one", 1.2);
-		nodeManager.validateAnnotations(annos);
-	}
-	
+
 	@Test
 	public void testUpdateAnnotations() {
-		Annotations updated = new Annotations();
+		AnnotationsV2 updated = new AnnotationsV2();
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
@@ -988,7 +989,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testUpdateAnnotationsConflict() {
-		Annotations updated = new Annotations();
+		AnnotationsV2 updated = new AnnotationsV2();
 		updated.setEtag("wrongEtag");
 		updated.setId(nodeId);
 		try {

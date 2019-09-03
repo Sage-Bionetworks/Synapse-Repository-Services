@@ -112,5 +112,7 @@
 
 	<!-- Logging -->
 	<bean id="stackConfiguration.logBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
+	<bean id="loggerProvider" class="org.sagebionetworks.LoggerProviderImpl" />
 	
 </beans>
