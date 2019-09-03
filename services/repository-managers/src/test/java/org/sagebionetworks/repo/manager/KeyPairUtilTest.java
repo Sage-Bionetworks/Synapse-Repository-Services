@@ -28,6 +28,7 @@ public class KeyPairUtilTest {
 	@Test
 	public void testGetRSAKeyPairFromPEM() throws Exception {
 		String pemEncodedPrivateKey=STACK_CONFIG.getOIDCSignatureRSAPrivateKeys().get(0);
+		// just make sure we can extract a private/public key pair
 		KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(pemEncodedPrivateKey);
 		assertNotNull(keyPair.getPrivate());
 		assertNotNull(keyPair.getPublic());

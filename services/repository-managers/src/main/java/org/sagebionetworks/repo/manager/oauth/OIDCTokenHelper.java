@@ -8,6 +8,10 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+
 public interface OIDCTokenHelper {
 
 	String createOIDCIdToken(String issuer, String subject, String oauthClientId, long now, String nonce,
@@ -18,6 +22,11 @@ public interface OIDCTokenHelper {
 
 	JsonWebKeySet getJSONWebKeySet();
 
-	boolean validateJWTSignature(String token);
+	/**
+	 * Validate the given JWT.  If valid, return the content as a Jwt object otherwise return null
+	 * @param token
+	 * @return
+	 */
+	Jwt<JwsHeader,Claims> validateJWTSignature(String token);
 
 }

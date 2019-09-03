@@ -7,9 +7,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 
-import com.nimbusds.jwt.JWT;
 
-public interface JWTTypeSerializer extends HttpMessageConverter<Object> {
+public interface JWTTypeSerializer extends HttpMessageConverter<String> {
 
 	/**
 	 * Read the entity from the input stream and create a JSONEntity
@@ -20,7 +19,7 @@ public interface JWTTypeSerializer extends HttpMessageConverter<Object> {
 	 * @param type
 	 * @return
 	 */
-	public JWT deserialize(final InputStream body,	final HttpHeaders headers, MediaType type);
+	public String deserialize(final InputStream body, final HttpHeaders headers, MediaType type);
 	
 	/**
 	 * Write the passed JSONEntity to the OutputStream
@@ -30,6 +29,6 @@ public interface JWTTypeSerializer extends HttpMessageConverter<Object> {
 	 * @param toSerializer
 	 * @param type
 	 */
-	public void serializer(final OutputStream body, final HttpHeaders headers, JWT toSerializer, MediaType type);
+	public void serializer(final OutputStream body, final HttpHeaders headers, String toSerializer, MediaType type);
 
 }

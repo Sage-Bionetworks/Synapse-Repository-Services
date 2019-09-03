@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.security.PublicKey;
 import java.text.ParseException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,18 +24,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.oauth.JsonWebKey;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTParser;
-import com.nimbusds.jwt.SignedJWT;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jwts;
 
-//@RunWith(SpringJUnit4ClassRunner.class)
-//@ContextConfiguration(locations = { "classpath:test-context.xml" })
+
 @RunWith(MockitoJUnitRunner.class)
 public class OIDCTokenHelperImplTest {
 
@@ -42,7 +44,7 @@ public class OIDCTokenHelperImplTest {
 	private static final String SUBJECT_ID = "101";
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
-	private static final long AUTH_TIME = (new Date()).getTime()/1000L;
+	private static final Long AUTH_TIME = (new Date()).getTime()/1000L;
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
 	private static final JSONArray TEAM_IDS = new JSONArray();
@@ -116,18 +118,24 @@ public class OIDCTokenHelperImplTest {
 		assertFalse(jwks.getKeys().isEmpty());
 	}
 	
+	// get the public side of the current signing key
+	private PublicKey getPublicSigningKey() {
+		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
+		return OIDCTokenHelperImpl.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
+	}
+	
 	@Test
 	public void testGenerateOIDCIdentityToken() throws Exception {
 		String oidcToken = oidcTokenHelper.createOIDCIdToken(ISSUER, 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		JWT jwt = JWTParser.parse(oidcToken);
-		JWTClaimsSet claims = jwt.getJWTClaimsSet();
+		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(oidcToken);
+		Claims claims = jwt.getBody();
 		
-		assertEquals(TEAM_IDS.toString(), claims.getStringClaim(OIDCClaimName.team.name()));
-		assertEquals("User", claims.getStringClaim(OIDCClaimName.given_name.name()));
-		assertEquals("user@synapse.org", claims.getStringClaim(OIDCClaimName.email.name()));
-		assertEquals("University of Example", claims.getStringClaim(OIDCClaimName.company.name()));
-		assertEquals(TOKEN_ID, claims.getJWTID());
+		assertEquals(TEAM_IDS.toString(), claims.get(OIDCClaimName.team.name(), String.class));
+		assertEquals("User", claims.get(OIDCClaimName.given_name.name(), String.class));
+		assertEquals("user@synapse.org", claims.get(OIDCClaimName.email.name(), String.class));
+		assertEquals("University of Example", claims.get(OIDCClaimName.company.name(), String.class));
+		assertEquals(TOKEN_ID, claims.getId());
 		
 		// This checks the other fields set in the method under test
 		clientValidation(oidcToken, NONCE);
@@ -136,45 +144,42 @@ public class OIDCTokenHelperImplTest {
     // let's check that our JWTs fulfill the OIDC spec by checking that they meet the requirements for client validation:	
 	// https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
 	private void clientValidation(String jwtString, String nonce) throws ParseException {
-		JWT jwt = JWTParser.parse(jwtString);
-		assertTrue(jwt instanceof SignedJWT);
-
-	    SignedJWT signedJWT = (SignedJWT)jwt;
+		// If the ID Token is received via direct communication between the Client and the Token Endpoint (which it is in this flow), 
+	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
+	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
+	    // Parameter. The Client MUST use the keys provided by the Issuer.
+	    Jwt<JwsHeader,Claims> signedJWT = oidcTokenHelper.validateJWTSignature(jwtString);
+		assertNotNull(signedJWT);
+	    
 	    
 		// The Issuer Identifier for the OpenID Provider (which is typically obtained during Discovery) MUST exactly match the value of the iss (issuer) Claim.
-	    JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
+	    Claims claimsSet = signedJWT.getBody();
 	    assertEquals(ISSUER, claimsSet.getIssuer());
 
 	    // The Client MUST validate that the aud (audience) Claim contains its client_id value registered at the Issuer identified by 
 	    // the iss (issuer) Claim as an audience. The aud (audience) Claim MAY contain an array with more than one element. The ID 
 	    // Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional 
 	    // audiences not trusted by the Client.
-	    assertEquals(Collections.singletonList(CLIENT_ID), claimsSet.getAudience());
+	    assertEquals(CLIENT_ID, claimsSet.getAudience());
 		// If the ID Token contains multiple audiences, the Client SHOULD verify that an azp Claim is present.
 	    // 	(Note the above verifies that there are NOT multiple audiences.)
 
 		// If an azp (authorized party) Claim is present, the Client SHOULD verify that its client_id is the Claim Value.
-	    assertNull(claimsSet.getClaim("azp")); // i.e. verify no azp Claim
+	    assertNull(claimsSet.get("azp")); // i.e. verify no azp Claim
 
-		// If the ID Token is received via direct communication between the Client and the Token Endpoint (which it is in this flow), 
-	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
-	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
-	    // Parameter. The Client MUST use the keys provided by the Issuer.
-		assertTrue(oidcTokenHelper.validateJWTSignature(jwtString));
-	    
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyID(), oidcTokenHelper.getJSONWebKeySet().getKeys().get(0).getKid());
+	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenHelper.getJSONWebKeySet().getKeys().get(0).getKid());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
-	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm().getName());
+	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm());
 	    
 		// The current time MUST be before the time represented by the exp Claim.
-	    Date exp = claimsSet.getExpirationTime();
+	    Date exp = claimsSet.getExpiration();
 	    assertTrue(exp.getTime()>System.currentTimeMillis());
 
 		// The iat Claim can be used to reject tokens that were issued too far away from the current time, limiting the amount of time
 	    // that nonces need to be stored to prevent attacks. The acceptable range is Client specific.
-	    Date iat = claimsSet.getIssueTime();
+	    Date iat = claimsSet.getIssuedAt();
 	    // just check that iat was within the last minute
 	    assertTrue(iat.getTime()<=System.currentTimeMillis());
 	    assertTrue(iat.getTime()>System.currentTimeMillis()-60000L);
@@ -182,16 +187,16 @@ public class OIDCTokenHelperImplTest {
 		// If a nonce value was sent in the Authentication Request, a nonce Claim MUST be present and its value checked to verify 
 	    // that it is the same value as the one that was sent in the Authentication Request. The Client SHOULD check the 
 	    // nonce value for replay attacks. The precise method for detecting replay attacks is Client specific.
-	    assertEquals(nonce, claimsSet.getClaim("nonce"));
+	    assertEquals(nonce, claimsSet.get("nonce", String.class));
 	    
 		// If the acr Claim was requested, the Client SHOULD check that the asserted Claim Value is appropriate. 
 	    // The meaning and processing of acr Claim Values is out of scope for this specification.
-	    assertNull(claimsSet.getClaim("acr"));
+	    assertNull(claimsSet.get("acr"));
 	    
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(AUTH_TIME, claimsSet.getLongClaim(OIDCClaimName.auth_time.name()).longValue());
+	    assertEquals(new Integer(AUTH_TIME.intValue()), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
 	}
 		
 	
@@ -203,7 +208,7 @@ public class OIDCTokenHelperImplTest {
 	
 
 	@Test
-	public void testGeneateOIDCAccessToken() throws Exception {
+	public void testGenerateOIDCAccessToken() throws Exception {
 		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
 		Map<OIDCClaimName,OIDCClaimsRequestDetails> expectedClaims = new HashMap<OIDCClaimName,OIDCClaimsRequestDetails>();
 		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
@@ -221,15 +226,17 @@ public class OIDCTokenHelperImplTest {
 				grantedScopes,
 				expectedClaims);
 		
-		JWT jwt = JWTParser.parse(accessToken);
-		JWTClaimsSet claims = jwt.getJWTClaimsSet();
+		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
+		Claims claims = jwt.getBody();
 		// here we just check that the 'access' claim has been added
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
-		assertNotNull(claims.getClaim("access"));
+		assertNotNull(claims.get("access"));
 		
 		// This checks the other fields set in the method under test
 		clientValidation(accessToken, null/* no nonce */);
+		
+		System.out.println(claims);
 	}
 
 	
@@ -237,7 +244,7 @@ public class OIDCTokenHelperImplTest {
 	public void testOIDCSignatureValidation() throws Exception {
 		String oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		assertTrue(oidcTokenHelper.validateJWTSignature(oidcToken));
+		assertNotNull(oidcTokenHelper.validateJWTSignature(oidcToken));
 	}
 		
 

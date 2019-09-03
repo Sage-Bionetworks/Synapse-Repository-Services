@@ -10,7 +10,9 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
-import com.nimbusds.jwt.JWT;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 /**
  *
@@ -103,6 +105,6 @@ public interface OpenIDConnectManager {
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */
-	Object getUserInfo(JWT accessToken, String oauthEndpoint);
+	Object getUserInfo(Jwt<JwsHeader,Claims> accessToken, String oauthEndpoint);
 
 }

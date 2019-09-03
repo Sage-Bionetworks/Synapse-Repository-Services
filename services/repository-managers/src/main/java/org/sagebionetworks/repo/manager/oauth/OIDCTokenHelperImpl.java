@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import java.math.BigInteger;
+import java.security.Key;
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.text.ParseException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -21,27 +25,20 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.KeyOperation;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jwt.JWTParser;
-import com.nimbusds.jwt.SignedJWT;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SignatureException;
 
 public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	private static final String NONCE = "nonce";
 	// the time window during which the client will consider the returned claims to be valid
 	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+	private static final String KEY_USE_SIGNATURE = "SIGNATURE";
 	
 	private String oidcSignatureKeyId;
 	private PrivateKey oidcSignaturePrivateKey;
@@ -63,22 +60,15 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 				oidcSignaturePrivateKey=keyPair.getPrivate();
 				oidcSignatureKeyId = kid;
 			}
-			RSAPublicKey publicKey = (RSAPublicKey)keyPair.getPublic();
-
-			RSAKey jwkRsa = new RSAKey.Builder(publicKey)
-					.algorithm(JWSAlgorithm.RS256)
-					.keyUse(KeyUse.SIGNATURE)
-					.keyID(kid)
-					.build();
-			
+			RSAPublicKey rsaPublicKey = (RSAPublicKey)keyPair.getPublic();
 			JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
 			// these would be set for all algorithms
-			rsaKey.setKty(jwkRsa.getKeyType().getValue());
-			rsaKey.setUse(jwkRsa.getKeyUse().toString());
-			rsaKey.setKid(jwkRsa.getKeyID());
+			rsaKey.setKty(SignatureAlgorithm.RS256.name());
+			rsaKey.setUse(KEY_USE_SIGNATURE);
+			rsaKey.setKid(kid);
 			// these are specific to the RSA algorithm
-			if (jwkRsa.getPublicExponent()!=null) rsaKey.setE(jwkRsa.getPublicExponent().toString());
-			if (jwkRsa.getModulus()!=null) rsaKey.setN(jwkRsa.getModulus().toString());
+			rsaKey.setE(rsaPublicKey.getPublicExponent().toString());
+			rsaKey.setN(rsaPublicKey.getModulus().toString());
 			publicKeys.add(rsaKey);
 		}
 	}
@@ -154,32 +144,52 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		return createSignedJWT(claims);
 	}
 	
-	@Override
-	public boolean validateJWTSignature(String token) {
-		boolean verified = false;
+	public static RSAPublicKey getRSAPublicKeyForJsonWebKeyRSA(JsonWebKeyRSA jwkRsa) {
+		BigInteger modulus = new BigInteger(jwkRsa.getN());
+		BigInteger publicExponent = new BigInteger(jwkRsa.getE());
+		RSAPublicKeySpec keySpec = new RSAPublicKeySpec(modulus, publicExponent);
 		try {
-			SignedJWT signedJWT = (SignedJWT)JWTParser.parse(token);
-			JsonWebKeyRSA matchingJwk = null;
+			KeyFactory kf = KeyFactory.getInstance("RSA");
+			return (RSAPublicKey)kf.generatePublic(keySpec);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		} 
+	}
+	
+	@Override
+	public Jwt<JwsHeader,Claims> validateJWTSignature(String token) {
+		// This is a little awkward:  We first have to parse the token to
+		// find the key Id, then, once we map the key Id to the signing key,
+		// we parse again, setting the matching public key for verification
+		String[] pieces = token.split("\\.");
+		if (pieces.length!=3) throw new IllegalArgumentException("Expected three pieces but found "+pieces.length);
+		String unsignedToken = pieces[0]+"."+pieces[1]+".";
+		JsonWebKey matchingKey=null;
+		{
+			Jwt<Header,Claims> unsignedJwt = Jwts.parser().parseClaimsJwt(unsignedToken);
 			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
-				if (jwk.getKid().equals(signedJWT.getHeader().getKeyID())) {
-					matchingJwk = (JsonWebKeyRSA)jwk;
+				if (jwk.getKid().equals(unsignedJwt.getHeader().get("kid"))) {
+					matchingKey = jwk;
 				}
 			}
-			if (matchingJwk!=null) {
-			    RSAKey rsaKey = new RSAKey(new Base64URL(matchingJwk.getN()), new Base64URL(matchingJwk.getE()),
-					      KeyUse.SIGNATURE, Collections.singleton(KeyOperation.VERIFY), null, 
-					      matchingJwk.getKid(), null, null, null, null, null);
-				JWSVerifier verifier = new RSASSAVerifier(rsaKey);
-				verified = signedJWT.verify(verifier);
+			if (matchingKey==null) {
+				return null;
 			}
-			
-			if (System.currentTimeMillis()>signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
-				verified=false;
-			}
-		} catch (ParseException | JOSEException e) {
-			throw new RuntimeException(e);
 		}
-		return verified;
+		Jwt<JwsHeader,Claims> result = null;
+		try {
+			Key rsaPublicKey = getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)matchingKey);
+			result = Jwts.parser().setSigningKey(rsaPublicKey).parse(token);
+		} catch (SignatureException e) {
+			return null;
+		}
+		
+		Claims claims = result.getBody();
+		if (System.currentTimeMillis()>claims.getExpiration().getTime()) {
+			return null;
+		}
+
+		return result;
 	}
 	
 }

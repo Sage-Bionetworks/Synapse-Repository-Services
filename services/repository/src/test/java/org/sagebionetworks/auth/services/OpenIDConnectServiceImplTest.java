@@ -12,13 +12,9 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.SignedJWT;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenIDConnectServiceImplTest {

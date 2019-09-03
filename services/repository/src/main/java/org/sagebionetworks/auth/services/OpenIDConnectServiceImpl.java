@@ -1,6 +1,5 @@
 package org.sagebionetworks.auth.services;
 
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -29,8 +28,11 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTParser;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	
@@ -128,20 +130,17 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		}
 	}
 	
-	private static JWT getAccessJWTFromAccessTokenParam(String param) {
-		try {
-			return JWTParser.parse(param);
-		} catch (ParseException e) {
-			throw new UnauthenticatedException("Could not interpret access token.", e);
+	private Jwt<JwsHeader,Claims> getAccessJWTFromAccessTokenParam(String param) {
+		Jwt<JwsHeader,Claims> token = oidcTokenHelper.validateJWTSignature(param);
+		if (token==null) {
+			throw new UnauthenticatedException("Could not interpret access token.");
 		}
+		return token;
 	}
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
-		JWT accessToken = getAccessJWTFromAccessTokenParam(accessTokenParam);
+		Jwt<JwsHeader,Claims> accessToken = getAccessJWTFromAccessTokenParam(accessTokenParam);
 		return oidcManager.getUserInfo(accessToken, oauthEndpoint);
 	}
-	
-	
-
 }

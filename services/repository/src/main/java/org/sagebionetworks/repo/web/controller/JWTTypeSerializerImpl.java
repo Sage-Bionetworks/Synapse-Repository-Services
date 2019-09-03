@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,11 +13,8 @@ import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
-import org.springframework.util.MimeType;
 
-import com.nimbusds.jose.util.IOUtils;
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTParser;
+import io.jsonwebtoken.Jwt;
 
 public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	
@@ -26,21 +22,15 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	private static final String JWT_SUBTYPE = "jwt";
 	private static final MediaType APPLICATION_JWT_MEDIA_TYPE = new MediaType(APPLICATION_TYPE, JWT_SUBTYPE);
 	private static final Charset UTF_8_CHARSET = Charset.forName("UTF-8");
-		
 
-	private static boolean canReadOrWrite(Class<?> clazz, MimeType mediaType) { 
-		return clazz.equals(JWT.class) &&
-				(mediaType==null || APPLICATION_JWT_MEDIA_TYPE.isCompatibleWith(mediaType));	
-	}
-	
 	@Override
 	public boolean canRead(Class<?> clazz, MediaType mediaType) { 
-		return canReadOrWrite(clazz, mediaType);	
+		return false;	
 	}
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return canReadOrWrite(clazz, mediaType);	
+		return APPLICATION_JWT_MEDIA_TYPE.isCompatibleWith(mediaType);	
 	}
 
 	@Override
@@ -49,23 +39,15 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	}
 
 	@Override
-	public Object read(Class<? extends Object> clazz, HttpInputMessage inputMessage)
+	public String read(Class<? extends String> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
-		if (!JWT.class.equals(clazz)) throw new IllegalArgumentException("Cannot read "+JWT.class);
-		Charset charset = inputMessage.getHeaders().getContentType().getCharset();
-		if (charset==null) charset = UTF_8_CHARSET; 
-		try {
-		return JWTParser.parse(IOUtils.readInputStreamToString(inputMessage.getBody(), charset));
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
+		throw new IllegalArgumentException("Cannot read "+APPLICATION_JWT_MEDIA_TYPE);
 	}
 
 	@Override
-	public void write(Object t, MediaType contentType, HttpOutputMessage outputMessage)
+	public void write(String t, MediaType contentType, HttpOutputMessage outputMessage)
 			throws IOException, HttpMessageNotWritableException {
-		if (!canReadOrWrite(t.getClass(), contentType)) throw new IllegalArgumentException("Cannot write "+contentType);
-		JWT jwt = (JWT)t;
+		if (!canWrite(t.getClass(), contentType)) throw new IllegalArgumentException("Cannot write "+contentType);
 		Charset charsetForSerializingBody = contentType.getCharset()==null ? UTF_8_CHARSET : contentType.getCharset();
 		MediaType contentTypeForResponseHeader = new MediaType(
 				APPLICATION_JWT_MEDIA_TYPE.getType(),
@@ -74,15 +56,15 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 		HttpHeaders headers = outputMessage.getHeaders();
 		headers.setContentType(contentTypeForResponseHeader);
 
-		long length = JSONEntityHttpMessageConverter.writeToStream(jwt.serialize(), outputMessage.getBody(), charsetForSerializingBody);
+		long length = JSONEntityHttpMessageConverter.writeToStream(t, outputMessage.getBody(), charsetForSerializingBody);
 		if (headers.getContentLength() == -1) {
 			headers.setContentLength(length);
 		}
 	}
 
 	@Override
-	public JWT deserialize(InputStream body, HttpHeaders headers, MediaType type) {
-		if (!canRead(JWT.class, type)) throw new IllegalArgumentException("Cannot read "+type);
+	public String deserialize(InputStream body, HttpHeaders headers, MediaType type) {
+		if (!canRead(Jwt.class, type)) throw new IllegalArgumentException("Cannot read "+type);
 		HttpInputMessage message = new HttpInputMessage() {
 			@Override
 			public HttpHeaders getHeaders() {
@@ -95,14 +77,14 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 			}
 		};
 		try {
-			return (JWT)read(JWT.class, message);
+			return read(String.class, message);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	public void serializer(OutputStream body, HttpHeaders headers, JWT toSerializer, MediaType type) {
+	public void serializer(OutputStream body, HttpHeaders headers, String toSerializer, MediaType type) {
 		HttpOutputMessage message = new HttpOutputMessage() {
 			@Override
 			public HttpHeaders getHeaders() {

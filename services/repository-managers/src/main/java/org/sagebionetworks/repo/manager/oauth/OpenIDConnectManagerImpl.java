@@ -21,11 +21,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -67,12 +67,10 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import io.netty.util.internal.StringUtil;
-import net.minidev.json.JSONObject;
-import net.minidev.json.parser.JSONParser;
 
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
@@ -83,8 +81,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Autowired
 	StackEncrypter stackEncrypter;
-
-	private static final JSONParser MINIDEV_JSON_PARSER = new JSONParser(JSONParser.MODE_JSON_SIMPLE);
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -140,11 +136,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		List<String> result = new ArrayList<String>();
 		JSONArray array;
 		try {
-			array = (JSONArray)MINIDEV_JSON_PARSER.parse(response.getContent());
+			array =  new JSONArray(response.getContent());
 			for (int i=0; i<array.length(); i++) {
 				result.add(array.getString(i));
 			}
-		} catch (net.minidev.json.parser.ParseException | JSONException e) {
+		} catch (JSONException e) {
 			throw new IllegalArgumentException("The content of "+uri+" is not a valid JSON array of strings.", e);
 		}
 		return result;
@@ -379,9 +375,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
 		JSONObject claimsObject;
 		try {
-			claimsObject = (JSONObject)MINIDEV_JSON_PARSER.parse(claims);
-		} catch (net.minidev.json.parser.ParseException e) {
+			claimsObject = new JSONObject(claims);
+		} catch (JSONException e) {
 			throw new IllegalArgumentException(e);
+		}
+		if (!claimsObject.has(claimsField)) {
+			return Collections.EMPTY_MAP;
 		}
 		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
 		return ClaimsJsonUtil.getClaimsMapFromJSONObject(idTokenClaims, /*ignoreUnknownClaims*/true);
@@ -637,53 +636,49 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		result.setAccess_token(accessToken);
 		return result;
 	}
-
+	
 	@Override
-	public Object getUserInfo(JWT accessToken, String oauthEndpoint) {
-		try {
-			JWTClaimsSet accessTokenClaimsSet = accessToken.getJWTClaimsSet();
-			// We set exactly one Audience when creating the token
-			if (accessTokenClaimsSet.getAudience()==null || accessTokenClaimsSet.getAudience().size()!=1) {
-				throw new IllegalArgumentException("Expected exactly one Audience value in the OAuth Access Token but found "+
-						accessTokenClaimsSet.getAudience());
-			}
-			String oauthClientId = accessTokenClaimsSet.getAudience().get(0); 
-			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
+	public Object getUserInfo(Jwt<JwsHeader,Claims> accessToken, String oauthEndpoint) {
 
-			String ppid = accessTokenClaimsSet.getSubject();
-			Long authTimeSeconds = accessTokenClaimsSet.getLongClaim(OIDCClaimName.auth_time.name());
+		Claims accessTokenClaimsSet = accessToken.getBody();
+		// We set exactly one Audience when creating the token
+		String oauthClientId = accessTokenClaimsSet.getAudience();
+		if (oauthClientId==null) {
+			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
+		}
+		OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 
-			// userId is used to retrieve the user info
-			String userId = getUserIdFromPPID(ppid, oauthClientId);
+		String ppid = accessTokenClaimsSet.getSubject();
+		Long authTimeSeconds = accessTokenClaimsSet.get(OIDCClaimName.auth_time.name(), Long.class);
 
-			List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaimsSet);
-			Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
+		// userId is used to retrieve the user info
+		String userId = getUserIdFromPPID(ppid, oauthClientId);
 
-			Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
+		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaimsSet);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
 
-			// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-			// "If this is specified, the response will be JWT serialized, and signed using JWS. 
-			// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
-			// encoded JSON object using the application/json content-type."
-			// 
-			// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
-			// and then sends a request with Accept: application/json or vice versa (registers with no 
-			// algorithm and then sends a request with Accept: application/jwt).
-			boolean returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
+		Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
-			if (returnJson) {
-				// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-				userInfo.put(OIDCClaimName.sub, ppid);
-				return userInfo;
-			} else {
-				long now = System.currentTimeMillis();
-				String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
-						authTimeSeconds, UUID.randomUUID().toString(), userInfo);
+		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+		// "If this is specified, the response will be JWT serialized, and signed using JWS. 
+		// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
+		// encoded JSON object using the application/json content-type."
+		// 
+		// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
+		// and then sends a request with Accept: application/json or vice versa (registers with no 
+		// algorithm and then sends a request with Accept: application/jwt).
+		boolean returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
 
-				return jwtIdToken;
-			}
-		} catch (java.text.ParseException e) {
-			throw new RuntimeException(e);
+		if (returnJson) {
+			// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+			userInfo.put(OIDCClaimName.sub, ppid);
+			return userInfo;
+		} else {
+			long now = System.currentTimeMillis();
+			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
+					authTimeSeconds, UUID.randomUUID().toString(), userInfo);
+
+			return jwtIdToken;
 		}
 	}
 }
