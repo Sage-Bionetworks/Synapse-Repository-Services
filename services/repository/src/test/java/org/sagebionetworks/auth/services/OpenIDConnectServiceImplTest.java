@@ -1,7 +1,10 @@
 package org.sagebionetworks.auth.services;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -15,6 +18,7 @@ import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.impl.DefaultJws;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenIDConnectServiceImplTest {
@@ -29,6 +33,11 @@ public class OpenIDConnectServiceImplTest {
 	private OpenIDConnectManager oidcManager;
 
 	private static final String OAUTH_ENDPOINT = "https://oauthServerEndpoint";
+	
+	@Before
+	public void setUp() {
+		when(oidcTokenHelper.validateJWTSignature(any(String.class))).thenReturn(new DefaultJws<Claims>(null, null, null));
+	}
 	
 	@Test
 	public void testGetOIDCConfiguration() throws Exception {
