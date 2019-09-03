@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -47,7 +48,7 @@ public class IT055WikiPageTest {
 	private List<String> handlesToDelete;
 	private File imageFile;
 	private String imageFileMD5;
-	private S3FileHandle fileHandle;
+	private CloudProviderFileHandleInterface fileHandle;
 	private Project project;
 	
 	@BeforeClass
@@ -200,14 +201,14 @@ public class IT055WikiPageTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private void waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private void waitForPreviewToBeCreated(CloudProviderFileHandleInterface fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
 			System.out.println("Waiting for a preview file to be created");
 			Thread.sleep(1000);
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
-			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
+			fileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		handlesToDelete.add(fileHandle.getPreviewId());
 	}

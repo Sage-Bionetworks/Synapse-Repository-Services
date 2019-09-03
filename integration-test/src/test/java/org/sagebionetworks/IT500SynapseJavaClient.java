@@ -35,7 +35,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseDeprecatedServiceException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -71,7 +70,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -776,7 +775,7 @@ public class IT500SynapseJavaClient {
 
 		// Get the profile to update.
 		UserProfile profile = synapseOne.getMyProfile();
-		S3FileHandle fileHandle = synapseOne.multipartUpload(originalFile, null, true, false);
+		FileHandle fileHandle = synapseOne.multipartUpload(originalFile, null, true, false);
 		profile.setProfilePicureFileHandleId(fileHandle.getId());
 		synapseOne.updateMyProfile(profile);
 		profile = synapseOne.getMyProfile();

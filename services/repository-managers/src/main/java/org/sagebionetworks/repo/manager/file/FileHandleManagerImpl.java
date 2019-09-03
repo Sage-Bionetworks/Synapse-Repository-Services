@@ -443,6 +443,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			 Currently, we cannot override content-type in Google Cloud... In short:
 			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
 			  - Google does not allow a null content type (defaults to application/octet-stream)
+
+			  We still attempt to override content type because it does not seem to interfere with the call, and
+			  perhaps one day Google may decide to allow us to override content type with this parameter.
 			 */
 			String contentType = handle.getContentType();
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
