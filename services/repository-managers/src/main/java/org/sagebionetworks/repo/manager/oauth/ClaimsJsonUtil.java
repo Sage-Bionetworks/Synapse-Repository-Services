@@ -41,11 +41,6 @@ public class ClaimsJsonUtil {
 	public static List<OAuthScope> getScopeFromClaims(Claims claims) {
 		Map<String,Object> scopeAndClaims = (Map<String,Object>)claims.get(ACCESS, Map.class);
 		return (List<OAuthScope>)scopeAndClaims.get(SCOPE);
-//		List<OAuthScope> result = new ArrayList<OAuthScope>();
-//		for (Object scope : scopeArray) {
-//			result.add(OAuthScope.valueOf((String)scope));
-//		}
-//		return result;
 	}
 	
 	/* 
@@ -54,29 +49,23 @@ public class ClaimsJsonUtil {
 	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getOIDCClaimsFromClaimSet(Claims claims) {
 		Map<String,Object> scopeAndClaims = (Map<String,Object>)claims.get(ACCESS, Map.class);
 		return (Map<OIDCClaimName, OIDCClaimsRequestDetails>)scopeAndClaims.get(USER_INFO_CLAIMS);
-//		return getClaimsMapFromJSONObject(userInfoClaims, false);
 	}
 	
 	/**
 	 * Extract the claims and their details from a claims JSON, e.g. from a claims parameters in an OIDC authorization request.
 	 * 
 	 * @param claimsJson the claims, e.g. from an OIDC authorization request
-	 * @param ignoreUnknownClaims if true, simply ignore unrecognized claim names, otherwise throw an exception
 	 * @return
 	 */
-	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getClaimsMapFromJSONObject(JSONObject claimsJson, boolean ignoreUnknownClaims) {
+	public static Map<OIDCClaimName, OIDCClaimsRequestDetails> getClaimsMapFromJSONObject(JSONObject claimsJson) {
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		if (claimsJson==null) return result;
 		for (String claimName : claimsJson.keySet()) {
 			OIDCClaimName claim;
 			try {
 				claim = OIDCClaimName.valueOf(claimName);
-			} catch (IllegalArgumentException e) {	
-				if (ignoreUnknownClaims) {
-					continue;
-				} else {
-					throw e;
-				}
+			} catch (IllegalArgumentException e) {
+				continue; // ignore unknown claims
 			}
 			String detailsString = claimsJson.getString(claimName);
 			OIDCClaimsRequestDetails details = null;

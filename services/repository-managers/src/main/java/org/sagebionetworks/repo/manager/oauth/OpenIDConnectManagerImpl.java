@@ -383,7 +383,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			return Collections.EMPTY_MAP;
 		}
 		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
-		return ClaimsJsonUtil.getClaimsMapFromJSONObject(idTokenClaims, /*ignoreUnknownClaims*/true);
+		return ClaimsJsonUtil.getClaimsMapFromJSONObject(idTokenClaims);
 	}
 
 	@Override

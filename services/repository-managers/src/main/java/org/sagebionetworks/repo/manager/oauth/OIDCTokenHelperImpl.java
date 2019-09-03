@@ -80,9 +80,9 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 	private String createSignedJWT(Claims claims) {
 		return Jwts.builder().setClaims(claims).
-		setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-		setHeaderParam("kid", oidcSignatureKeyId).
-		signWith(SignatureAlgorithm.RS256, oidcSignaturePrivateKey).compact();
+			setHeaderParam(Header.TYPE, Header.JWT_TYPE).
+			setHeaderParam(JwsHeader.KEY_ID, oidcSignatureKeyId).
+			signWith(SignatureAlgorithm.RS256, oidcSignaturePrivateKey).compact();
 	}
 	@Override
 	public String createOIDCIdToken(

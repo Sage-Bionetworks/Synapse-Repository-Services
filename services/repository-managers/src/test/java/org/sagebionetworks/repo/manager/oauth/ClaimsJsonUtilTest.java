@@ -28,7 +28,10 @@ public class ClaimsJsonUtilTest {
 		claimsJson.put(OIDCClaimName.given_name.name(), "null");
 		claimsJson.put(OIDCClaimName.family_name.name(), "{\"essential\":true,\"value\":\"foo\"}");
 		claimsJson.put("unrecognized-key", "some value");
-		Map<OIDCClaimName, OIDCClaimsRequestDetails> actual = ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson, true);
+		
+		// method under test
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> actual = ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson);
+		
 		OIDCClaimsRequestDetails expected = new OIDCClaimsRequestDetails();
 		expected.setValues(Collections.singletonList("101"));
 		assertEquals(expected, actual.get(OIDCClaimName.team));
@@ -40,13 +43,6 @@ public class ClaimsJsonUtilTest {
 		expected.setEssential(true);
 		expected.setValue("foo");
 		assertEquals(expected, actual.get(OIDCClaimName.family_name));
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetClaimsMapFromJSONObjectStrict() {
-		JSONObject claimsJson = new JSONObject();
-		claimsJson.put("unrecognized-key", "some value");
-		ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson, false);
 	}
 	
 	@Test

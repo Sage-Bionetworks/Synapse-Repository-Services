@@ -199,14 +199,6 @@ public class OIDCTokenHelperImplTest {
 	    assertEquals(new Integer(AUTH_TIME.intValue()), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
 	}
 		
-	
-	private static OIDCClaimsRequestDetails createListClaimsDetails(List<String> l) {
-		OIDCClaimsRequestDetails result = new OIDCClaimsRequestDetails();
-		result.setValues(l);
-		return result;
-	}
-	
-
 	@Test
 	public void testGenerateOIDCAccessToken() throws Exception {
 		List<OAuthScope> grantedScopes = Collections.singletonList(OAuthScope.openid);
@@ -214,7 +206,9 @@ public class OIDCTokenHelperImplTest {
 		expectedClaims.put(OIDCClaimName.email, ESSENTIAL);
 		expectedClaims.put(OIDCClaimName.given_name, NON_ESSENTIAL);
 		expectedClaims.put(OIDCClaimName.family_name, null);
-		expectedClaims.put(OIDCClaimName.team, createListClaimsDetails(Collections.singletonList("101")));
+		OIDCClaimsRequestDetails details = new OIDCClaimsRequestDetails();
+		details.setValues(Collections.singletonList("101"));
+		expectedClaims.put(OIDCClaimName.team, details);
 		
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(
 				ISSUER,
