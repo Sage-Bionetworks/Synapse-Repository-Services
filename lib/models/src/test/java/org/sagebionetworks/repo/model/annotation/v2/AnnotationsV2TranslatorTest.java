@@ -67,6 +67,11 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
+	public void testToAnnotationsV1_null(){
+		assertEquals(null, AnnotationsV2Translator.toAnnotationsV1(null));
+	}
+
+	@Test
 	public void testToAnnotationsV1_nullMap(){
 		annotationsV2.setAnnotations(null);
 
@@ -151,6 +156,14 @@ class AnnotationsV2TranslatorTest {
 		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		assertEquals(annotationsV2, translated);
+	}
+
+	@Test
+	public void testToAnnotationsV2_null(){
+		//method under test
+		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(null);
+
+		assertEquals(null, translated);
 	}
 
 	@Test

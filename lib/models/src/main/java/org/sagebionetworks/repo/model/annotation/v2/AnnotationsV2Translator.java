@@ -12,6 +12,10 @@ import org.sagebionetworks.repo.model.Annotations;
 public class AnnotationsV2Translator {
 
 	public static Annotations toAnnotationsV1(AnnotationsV2 annotationsV2){
+		if(annotationsV2 == null){
+			return null;
+		}
+
 		Annotations annotationsV1 = new Annotations();
 		annotationsV1.setId(annotationsV2.getId());
 		annotationsV1.setEtag(annotationsV2.getEtag());
@@ -38,6 +42,10 @@ public class AnnotationsV2Translator {
 	}
 
 	public static AnnotationsV2 toAnnotationsV2(Annotations annotations){
+		if(annotations == null){
+			return null;
+		}
+
 		Map<String, AnnotationsV2Value> v2AnnotationEntries = new HashMap<>();
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getStringAnnotations(), String.class));
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getDoubleAnnotations(), Double.class));
