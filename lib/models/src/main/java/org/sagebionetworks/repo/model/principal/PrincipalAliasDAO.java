@@ -64,10 +64,10 @@ public interface PrincipalAliasDAO {
 	/**
 	 * Get all aliases for a principal and type.
 	 * @param principalId
-	 * @param type When provide, will return only aliases of the given type.  When null, all aliases for a principal will be returned.
+	 * @param types When provided, will return only aliases of the given types.  When null, all aliases for a principal will be returned.
 	 * @return
 	 */
-	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type);
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType... types);
 	
 	/**
 	 * Get all aliases for a principal, type and display value.

@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "description": "The JWT signing algorithms supported by Synapse",
+  "enum": [
+    {
+      "name": "RS256",
+      "description": "RSA signature with SHA256"
+    }
+  ]
+}

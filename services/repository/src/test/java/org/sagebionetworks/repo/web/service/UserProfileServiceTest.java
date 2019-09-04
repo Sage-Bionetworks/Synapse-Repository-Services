@@ -415,6 +415,24 @@ public class UserProfileServiceTest {
 		assertNull(result.getVerificationSubmission());
 	}
 	
+	// leaving off the 'isVerified' component (0x10) caused a NPE
+	@Test
+	public void testUserBundleNotVerified() throws Exception {
+		Long bundleOwner = 101L;
+		mockVerificationSubmission(bundleOwner, VerificationStateEnum.APPROVED);
+		
+		UserBundle result = userProfileService.
+				getUserBundleByOwnerId(EXTRA_USER_ID, bundleOwner.toString(), /*VERIFICATION_MASK*/0x04);
+		assertNull(result.getIsACTMember());
+		assertNull(result.getIsCertified());
+		assertNull(result.getIsVerified());
+		assertNull(result.getORCID());
+		assertEquals(bundleOwner.toString(), result.getUserId());
+		assertNull(result.getUserProfile());
+		// since 0x10 is omitted, isVerified is null and therefore this field is set to null
+		assertNull(result.getVerificationSubmission());
+	}
+	
 	@Test
 	public void testUserBundlePublic() throws Exception {
 		Long bundleOwner = 101L;

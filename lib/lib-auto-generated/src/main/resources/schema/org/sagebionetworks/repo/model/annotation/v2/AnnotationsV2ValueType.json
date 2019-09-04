@@ -1,0 +1,22 @@
+{
+	"description": "describes the type of a AnnotationV2's value",
+	"type": "string",
+	"enum":[
+		{
+			"name": "STRING",
+			"description": "Value is a String"
+		},
+		{
+			"name": "DOUBLE",
+			"description": "Value is a Double"
+		},
+		{
+			"name": "LONG",
+			"description": "Value is a Long"
+		},
+		{
+			"name": "TIMESTAMP_MS",
+			"description": "Value is a Unix Timestamp in milliseconds"
+		}
+	]
+}

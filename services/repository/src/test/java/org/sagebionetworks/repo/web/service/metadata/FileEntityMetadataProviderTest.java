@@ -1,37 +1,43 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.Folder;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.manager.EntityManager;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.springframework.test.util.ReflectionTestUtils;
 
-public class FileEntityMetadataProviderTest  {
+@ExtendWith(MockitoExtension.class)
+public class FileEntityMetadataProviderTest {
+
 	@Mock
-	EntityManager mockEntityManager;
-	
+	StatisticsEventsCollector mockStatisticsCollector;
+
+	@InjectMocks
 	FileEntityMetadataProvider provider;
+
 	FileEntity fileEntity;
 	UserInfo userInfo;
 	List<EntityHeader> path;
-	
-	@Before
-	public void before(){
-		MockitoAnnotations.initMocks(this);
 
-		provider = new FileEntityMetadataProvider();
-		ReflectionTestUtils.setField(provider, "manager", mockEntityManager);
+	@BeforeEach
+	public void before() {
 
 		fileEntity = new FileEntity();
 		fileEntity.setId("syn789");
@@ -45,7 +51,7 @@ public class FileEntityMetadataProviderTest  {
 		grandparentHeader.setType(Folder.class.getName());
 		path = new ArrayList<EntityHeader>();
 		path.add(grandparentHeader);
-		
+
 		// This is our direct parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId("456");
@@ -54,50 +60,78 @@ public class FileEntityMetadataProviderTest  {
 		path.add(parentHeader);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateWithoutDataFileHandleId(){
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
+	@Test
+	public void testValidateCreateWithoutDataFileHandleId() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateWithFileNameOverride(){
+	@Test
+	public void testValidateCreateWithFileNameOverride() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			fileEntity.setDataFileHandleId("1");
+			fileEntity.setFileNameOverride("fileNameOverride");
+			provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
+		});
+	}
+
+	@Test
+	public void testValidateCreate() {
 		fileEntity.setDataFileHandleId("1");
-		fileEntity.setFileNameOverride("fileNameOverride");
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
 	}
 
 	@Test
-	public void testCreate(){
-		fileEntity.setDataFileHandleId("1");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
+	public void testValidateUpdateWithoutDataFileHandleId() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateWithoutDataFileHandleId(){
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+	@Test
+	public void testValidateUpdateWithNullOriginalFileNameOverride() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			fileEntity.setDataFileHandleId("1");
+			fileEntity.setFileNameOverride("fileNameOverride");
+			provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateWithNullOriginalFileNameOverride(){
-		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(new FileEntity());
-		fileEntity.setDataFileHandleId("1");
-		fileEntity.setFileNameOverride("fileNameOverride");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+	@Test
+	public void testValidateUpdateWithNewFileNameOverride() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			fileEntity.setDataFileHandleId("1");
+			fileEntity.setFileNameOverride("fileNameOverride");
+			provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateWithNewFileNameOverride(){
-		FileEntity original = new FileEntity();
-		original.setFileNameOverride("originalFileNameOverride");
-		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(original);
+	@Test
+	public void testValidateUpdateWithoutFileNameOverride() {
 		fileEntity.setDataFileHandleId("1");
-		fileEntity.setFileNameOverride("fileNameOverride");
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
 	}
 
 	@Test
-	public void testUpdateWithoutFileNameOverride(){
+	public void testEntityCreated() {
 		fileEntity.setDataFileHandleId("1");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		provider.entityCreated(userInfo, fileEntity);
+		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+	}
+
+	@Test
+	public void testEntityUpdatedWithNewVersion() {
+		fileEntity.setDataFileHandleId("1");
+		boolean wasNewVersionCreated = true;
+		provider.entityUpdated(userInfo, fileEntity, wasNewVersionCreated);
+		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
+	}
+
+	@Test
+	public void testEntityUpdatedWithoutNewVersion() {
+		boolean wasNewVersionCreated = false;
+		provider.entityUpdated(userInfo, fileEntity, wasNewVersionCreated);
+		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 }

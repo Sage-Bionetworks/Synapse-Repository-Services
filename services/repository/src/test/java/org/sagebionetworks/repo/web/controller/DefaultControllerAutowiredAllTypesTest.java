@@ -419,14 +419,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			assertNotNull(annos);
 			assertNotNull(annos.getEtag());
 			annos.addAnnotation("someStringKey", "one");
-			annos.addAnnotation("someBlobKey", "I am a very long string".getBytes("UTF-8"));
 			// Do the update
 			Annotations updatedAnnos = servletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, userId);
 			assertNotNull(updatedAnnos);
 			assertNotNull(updatedAnnos.getEtag());
 			assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
 			assertEquals("one", updatedAnnos.getSingleValue("someStringKey"));
-			assertNotNull(updatedAnnos.getBlobAnnotations().get("someBlobKey"));
 		}
 
 	}

@@ -1,25 +1,12 @@
 package org.sagebionetworks.search;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 	public static final String KINESIS_DATA_STREAM_NAME_SUFFIX = "cloudsearchDocumentGeneration";
-	private static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
-	//for converting AwsKinesisLogRecord to json
-	private static ObjectMapper jacksonObjectMapper = new ObjectMapper();
-	private static Logger logger = LogManager.getLogger(CloudSearchDocumentLogRecord.class);
-
+	
 	private Long changeNumber;
 	private String objectId;
 	private ObjectType objectType;
@@ -33,21 +20,6 @@ public class CloudSearchDocumentLogRecord implements AwsKinesisLogRecord {
 
 	private String stack;
 	private String instance;
-
-	@JsonIgnore
-	@Override
-	public byte[] toBytes(){
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		try {
-			jacksonObjectMapper.writeValue(byteArrayOutputStream, this);
-			byteArrayOutputStream.write(NEW_LINE_BYTES);
-		} catch (IOException e) {
-			//should never happen
-			logger.error("unexpected error when coverting to JSON ", e);
-		}
-		return byteArrayOutputStream.toByteArray();
-	}
-
 
 	//////////////////////////////
 	// Getters and Setters below

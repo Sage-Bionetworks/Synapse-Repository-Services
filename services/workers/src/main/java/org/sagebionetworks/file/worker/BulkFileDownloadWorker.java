@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
@@ -15,6 +16,9 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -64,6 +68,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	UserManager userManger;
 	@Autowired
 	FileHandleSupport fileHandleSupport; 
+	@Autowired
+	StatisticsEventsCollector statisticsCollector;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)
@@ -134,6 +140,8 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 								}));
 				resultFileHandleId = resultHandle.getId();
 			}
+			
+			collectDownloadStatistics(user.getId(), results);
 
 			// All of the parts are ready.
 			BulkFileDownloadResponse response = new BulkFileDownloadResponse();
@@ -254,6 +262,20 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		} finally {
 			downloadTemp.delete();
 		}
+	}
+	
+	private void collectDownloadStatistics(Long userId, List<FileDownloadSummary> results) {
+		
+		List<StatisticsFileEvent> downloadEvents = results.stream()
+			// Only collects stats for successful summaries
+			.filter(summary -> FileDownloadStatus.SUCCESS.equals(summary.getStatus()))
+			.map(summary -> StatisticsFileEventUtils.buildFileDownloadEvent(userId, summary.getFileHandleId(), summary.getAssociateObjectId(), summary.getAssociateObjectType()))
+			.collect(Collectors.toList());
+
+		if (!downloadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(downloadEvents);
+		}
+		
 	}
 
 	/**

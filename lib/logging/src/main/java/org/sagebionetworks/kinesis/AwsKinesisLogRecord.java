@@ -2,13 +2,6 @@ package org.sagebionetworks.kinesis;
 
 public interface AwsKinesisLogRecord {
 
-
-	/**
-	 * Bytes for this record
-	 * @return
-	 */
-	public byte[] toBytes();
-
 	/**
 	 * @return The stack to which this record belongs
 	 */

@@ -42,6 +42,9 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -196,6 +199,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private StatisticsEventsCollector statisticsCollector;
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
@@ -370,7 +376,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
 		authStatus.checkAuthorizationOrElseThrow();
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
-		return getURLForFileHandle(fileHandle);
+		
+		String url = getURLForFileHandle(fileHandle);
+		
+		StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), fileHandleAssociation);
+		
+		statisticsCollector.collectEvent(downloadEvent);
+		
+		return url;
 	}
 
 	/**
@@ -430,6 +443,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			 Currently, we cannot override content-type in Google Cloud... In short:
 			  - Google provides this parameter to override the content type, which will only work if the content type is null on Google Cloud
 			  - Google does not allow a null content type (defaults to application/octet-stream)
+
+			  We still attempt to override content type because it does not seem to interfere with the call, and
+			  perhaps one day Google may decide to allow us to override content type with this parameter.
 			 */
 			String contentType = handle.getContentType();
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
@@ -1173,6 +1189,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		Set<String> fileHandleIdsToFetch = new HashSet<String>();
 		Map<String, FileHandleAssociation> idToFileHandleAssociation = new HashMap<String, FileHandleAssociation>(request.getRequestedFiles().size());
 		List<ObjectRecord> downloadRecords = new LinkedList<ObjectRecord>();
+		List<StatisticsFileEvent> downloadEvents = new LinkedList<>();
+		
 		for(FileHandleAssociationAuthorizationStatus fhas: authResults){
 			FileResult result = new FileResult();
 			idToFileHandleAssociation.put(fhas.getAssociation().getFileHandleId(), fhas.getAssociation());
@@ -1217,8 +1235,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 						}
 						if(request.getIncludePreSignedURLs()) {
 							String url = getURLForFileHandle(handle);
+							
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
+							
+							StatisticsFileEvent downloadEvent = StatisticsFileEventUtils.buildFileDownloadEvent(userInfo.getId(), association);
+							downloadEvents.add(downloadEvent);
+							
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
 						}
@@ -1240,6 +1263,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!downloadRecords.isEmpty()){
 			// Push the records to queue
 			objectRecordQueue.pushObjectRecordBatch(new ObjectRecordBatch(downloadRecords, FILE_DOWNLOAD_RECORD_TYPE));
+		}
+		if (!downloadEvents.isEmpty()) {
+			statisticsCollector.collectEvents(downloadEvents);
 		}
 		BatchFileResult batch = new BatchFileResult();
 		batch.setRequestedFiles(requestedFiles);

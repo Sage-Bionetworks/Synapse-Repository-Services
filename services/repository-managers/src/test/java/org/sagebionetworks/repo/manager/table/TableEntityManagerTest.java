@@ -46,6 +46,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
+import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -107,6 +109,7 @@ import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -143,6 +146,8 @@ public class TableEntityManagerTest {
 	TableTransactionDao mockTableTransactionDao;
 	@Mock
 	NodeManager mockNodeManager;
+	@Mock
+	StatisticsEventsCollector mockStatisticsCollector;
 	@InjectMocks
 	TableEntityManagerImpl manager;
 	
@@ -396,6 +401,7 @@ public class TableEntityManagerTest {
 		verify(mockTruthDao).listRowSetsKeysForTableGreaterThanVersion(tableId, 0L);
 		// save the row set
 		verify(mockTruthDao).appendRowSetToTable(""+user.getId(), tableId, range.getEtag(), range.getVersionNumber(), models, sparseChangeSet.writeToDto(), transactionId);
+		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 	}
 	
 	@Test
@@ -701,6 +707,7 @@ public class TableEntityManagerTest {
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockStatisticsCollector, times(1)).collectEvents(any(List.class));
 	}
 
 	@Test
@@ -890,6 +897,17 @@ public class TableEntityManagerTest {
 		// call under test.
 		Set<String> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
 		Set<String> expected = Sets.newHashSet("1","2");
+		assertEquals(expected, out);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsNotAssociatedWithTable(){
+		Set<Long> input = ImmutableSet.of(0L, 1L, 2L, 3L);
+		Set<Long> results = Sets.newHashSet(1L,2L);
+		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(any(Set.class), any(IdAndVersion.class))).thenReturn(results);
+		// call under test.
+		Set<Long> out = manager.getFileHandleIdsNotAssociatedWithTable(tableId, input);
+		Set<Long> expected = ImmutableSet.of(0L, 3L);
 		assertEquals(expected, out);
 	}
 	

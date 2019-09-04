@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -243,7 +245,8 @@ public class EntityManagerImpl implements EntityManager {
 		if (entityId == null)
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
-		return nodeManager.getUserAnnotations(userInfo, entityId);
+		//TODO: replace translation code
+		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotations(userInfo, entityId));
 	}
 
 	@Override
@@ -251,7 +254,8 @@ public class EntityManagerImpl implements EntityManager {
 			Long versionNumber) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		// Get all of the annotations.
-		return nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber);
+		//TODO: replace translation code
+		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber));
 	}
 
 	@WriteTransaction
@@ -267,7 +271,9 @@ public class EntityManagerImpl implements EntityManager {
 		Annotations updatedClone = new Annotations();
 		cloneAnnotations(updated, updatedClone);
 		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
-		nodeManager.updateUserAnnotations(userInfo, entityId, updatedClone);
+		//TODO: replace translation code
+
+		nodeManager.updateUserAnnotations(userInfo, entityId, AnnotationsV2Translator.toAnnotationsV2(updatedClone));
 	}
 	
 	public static void cloneAnnotations(Annotations src, Annotations dst) {

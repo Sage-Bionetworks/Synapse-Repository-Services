@@ -323,7 +323,6 @@ public class NodeUtilsTest {
 		DBORevision dbo = NodeUtils.transalteNodeToDBORevision(dto);
 		assertNotNull(dbo);
 		assertEquals(null, dbo.getActivityId());
-		assertEquals(null, dbo.getAnnotations());
 		assertNotNull(dbo.getColumnModelIds());
 		assertNotNull(dbo.getScopeIds());
 		assertEquals(new Long(8888),dbo.getFileHandleId());

@@ -34,9 +34,8 @@ public class SqlConstants {
 	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";
 	public static final String COL_REVISION_LABEL			= "LABEL";
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
-	public static final String COL_REVISION_ANNOS_BLOB		= "ANNOTATIONS";
 	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
-	public static final String COL_REVISION_USER_ANNOTATIONS_V1_BLOB = "USER_ANNOTATIONS_V1";
+	public static final String COL_REVISION_USER_ANNOS_JSON	= "USER_ANNOTATIONS";
 	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
@@ -910,6 +909,28 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG = 						"ETAG";
+	
+	// OAuth related tables, columns etc,
+	public static final String DDL_OAUTH_SECTOR_IDENTIFIER = 							"schema/OAuthSectorIdentifier-ddl.sql";
+	public static final String TABLE_OAUTH_SECTOR_IDENTIFIER = 							"OAUTH_SECTOR_IDENTIFIER";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_ID =							"OAUTH_SECTOR_IDENTIFIER_ID";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_URI = 						"OAUTH_SECTOR_IDENTIFIER_URI";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_SECRET = 					"OAUTH_SECTOR_IDENTIFIER_SECRET";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_CREATED_BY = 				"OAUTH_SECTOR_IDENTIFIER_CREATED_BY";
+	public static final String COL_OAUTH_SECTOR_IDENTIFIER_CREATED_ON = 				"OAUTH_SECTOR_IDENTIFIER_CREATED_ON";
+	
+	public static final String DDL_OAUTH_CLIENT = 										"schema/OAuthClient-ddl.sql";
+	public static final String TABLE_OAUTH_CLIENT = 									"OAUTH_CLIENT";
+	public static final String COL_OAUTH_CLIENT_ID = 									"OAUTH_CLIENT_ID";
+	public static final String COL_OAUTH_CLIENT_NAME = 									"OAUTH_CLIENT_NAME";
+	public static final String COL_OAUTH_CLIENT_SECRET_HASH = 							"OAUTH_CLIENT_SECRET_HASH";
+	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"OAUTH_CLIENT_PROPERTIES";
+	public static final String COL_OAUTH_CLIENT_ETAG = 									"OAUTH_CLIENT_ETAG";
+	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"OAUTH_CLIENT_CREATED_BY";
+	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"OAUTH_CLIENT_CREATED_ON";
+	public static final String COL_OAUTH_CLIENT_MODIFIED_ON = 							"OAUTH_CLIENT_MODIFIED_ON";
+	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
+	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"OAUTH_CLIENT_IS_VERIFIED";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
