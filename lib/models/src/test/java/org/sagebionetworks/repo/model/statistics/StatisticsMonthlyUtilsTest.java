@@ -8,6 +8,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
+import org.sagebionetworks.repo.model.statistics.monthly.notification.StatisticsMonthlyProcessNotification;
 
 public class StatisticsMonthlyUtilsTest {
 
@@ -44,6 +46,31 @@ public class StatisticsMonthlyUtilsTest {
 	public void testGeneratePastMonthsMoreThanYear() {
 		int numberOfMonths = 15;
 		testForXMonths(numberOfMonths);
+	}
+	
+	@Test
+	public void testBuildNotificationBody() {
+		YearMonth month = YearMonth.of(2019, 8);
+		
+		StatisticsMonthlyProcessNotification notification = new StatisticsMonthlyProcessNotification(StatisticsObjectType.PROJECT, month);
+		
+		String json = StatisticsMonthlyUtils.buildNotificationBody(notification.getObjectType(), notification.getMonth());
+		
+		assertEquals("{\"objectType\":\"PROJECT\",\"month\":[2019,8]}", json);
+	}
+	
+	@Test
+	public void testFromNotificationBody() {
+		YearMonth month = YearMonth.of(2019, 8);
+		
+		StatisticsMonthlyProcessNotification notification = new StatisticsMonthlyProcessNotification(StatisticsObjectType.PROJECT, month);
+		
+		String notificationBody = "{\"objectType\":\"PROJECT\",\"month\":[2019,8]}";
+		
+		StatisticsMonthlyProcessNotification result = StatisticsMonthlyUtils.fromNotificationBody(notificationBody);
+		
+		assertEquals(notification, result);
+		
 	}
 	
 	private void testForXMonths(int numberOfMonths) {
