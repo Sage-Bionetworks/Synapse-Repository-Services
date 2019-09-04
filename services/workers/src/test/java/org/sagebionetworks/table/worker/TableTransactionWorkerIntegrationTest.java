@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -260,6 +261,44 @@ public class TableTransactionWorkerIntegrationTest {
 	}
 	
 	/**
+	 * Test for PLFM-5771.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testTableVersionCurrentVersion() throws Exception {
+		// create a table with more than one version
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(Lists.newArrayList(intColumn.getId()));
+		String tableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, tableId, TableEntity.class);
+		toDelete.add(tableId);
+		// add add a column to the table.
+		TableUpdateTransactionRequest addColumnRequest = createAddColumnRequest(intColumn, tableId);
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, addColumnRequest, TableUpdateTransactionResponse.class);
+		
+		// Add some data to the table and create a new version
+		PartialRow rowOne = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "1");
+		PartialRow rowTwo = TableModelTestUtils.createPartialRow(null, intColumn.getId(), "2");
+		PartialRowSet rowSet = createRowSet(tableId, rowOne, rowTwo);
+		TableUpdateTransactionRequest transaction = createAddDataRequest(tableId, rowSet);
+		// do not create a snapshot.
+		transaction.setCreateSnapshot(false);
+		// start the transaction
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNull(response.getSnapshotVersionNumber());
+		long firstVersion = 1L;
+		
+		// query first version
+		String sql = "select * from " + tableId + "." + firstVersion;
+		QueryBundleRequest queryRequest = createQueryRequest(sql, tableId);
+		String error = startAndWaitForFailedJob(adminUserInfo, queryRequest);
+		assertTrue(error.contains("does not exist"));
+	}
+	
+	/**
 	 * Helper to create a query request.
 	 * @param sql
 	 * @param tableId
@@ -367,6 +406,32 @@ public class TableTransactionWorkerIntegrationTest {
 				break;
 			case COMPLETE:
 				return (T)status.getResponseBody();
+			}
+		}
+	}
+	
+	/**
+	 * Wait for the given job to fail.
+	 * @param user
+	 * @param body
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public String  startAndWaitForFailedJob(UserInfo user, AsynchronousRequestBody body) throws InterruptedException{
+		long startTime = System.currentTimeMillis();
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
+		while(true){
+			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
+			switch(status.getJobState()){
+			case FAILED:
+				return status.getErrorMessage();
+			case PROCESSING:
+				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				System.out.println("Waiting for job to fail");
+				Thread.sleep(1000);
+				break;
+			case COMPLETE:
+				assertTrue("Expected the Job to fail but it completed.", false);
 			}
 		}
 	}

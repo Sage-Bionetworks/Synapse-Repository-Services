@@ -202,8 +202,6 @@ public interface TableIndexManager {
 	 * @param targetChangeNumber
 	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
 	 */
-	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator,
-			long targetChangeNumber) throws RecoverableMessageException;
-	
+	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;	
 
 }

@@ -22,8 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class TableIndexWorker implements ChangeMessageDrivenRunner {
 
 	@Autowired
-	TableManagerSupport tableManagerSupport;
-	@Autowired
 	TableEntityManager tableEntityManager;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
@@ -50,12 +48,8 @@ public class TableIndexWorker implements ChangeMessageDrivenRunner {
 				indexManager.deleteTableIndex(idAndVersion);
 				return;
 			} else {
-				// Build the table's index.
-				Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
-				if(targetChangeNumber.isPresent()) {
-					Iterator<TableChangeMetaData> iterator = tableEntityManager.newTableChangeIterator(tableId);
-					indexManager.buildIndexToChangeNumber(progressCallback, idAndVersion, iterator, targetChangeNumber.get());
-				}
+				Iterator<TableChangeMetaData> iterator = tableEntityManager.newTableChangeIterator(tableId);
+				indexManager.buildIndexToChangeNumber(progressCallback, idAndVersion, iterator);
 			}
 		}
 	}
