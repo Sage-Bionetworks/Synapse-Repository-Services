@@ -40,8 +40,7 @@
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
 	
-	<bean id="httpClient" class="org.sagebionetworks.repo.manager.HttpClientFactory"
-		factory-method="createHttpClient" scope="singleton" />
+	<bean id="httpClient" class="org.sagebionetworks.repo.manager.HttpClientImpl" />
 	
 	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl" />
 	
