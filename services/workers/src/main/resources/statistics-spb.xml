@@ -12,9 +12,9 @@
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<!-- This worker watches for the monthly statistics status and broadcast the work to be done to the dedicated workers -->
-	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.worker.StatisticsMonthlyStatusWatcherWorker" scope="singleton" />
+	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyStatusWatcherWorker" scope="singleton" />
 	<!-- This worker process a month worth of statistics for a particular object type -->
-	<bean id="statisticsMonthlyWorker" class="org.sagebionetworks.statistics.worker.StatisticsMonthlyWorker" scope="singleton" />
+	<bean id="statisticsMonthlyWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyWorker" scope="singleton" />
 
 	<!-- Trigger for the monthly statistics status worker -->
 	<bean id="statisticsMonthlyStatusWatcherTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
@@ -41,8 +41,9 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="1013" />
-		<property name="repeatInterval" value="10123" />
+		<!-- Long start delay to let the (potential) glue crawler discover partitions -->
+		<property name="startDelay" value="1800000" />
+		<property name="repeatInterval" value="1800000" />
 	</bean>
 	
 	<!-- Trigger for the monthly statistics status worker -->
