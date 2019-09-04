@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,14 +17,6 @@ import org.junit.Test;
 public class DockerTokenUtilTest {
 	
 	@Test
-	public void testKeyId() throws Exception {
-		X509Certificate certificate = DockerTokenUtil.readCertificate();
-		String keyId = DockerTokenUtil.computeKeyId(certificate.getPublicKey());
-		String expectedKeyId = "FWOZ:6JNY:OUZ5:BHLA:YWJI:PKL4:G6QR:XCMK:3BU4:EIXW:L3Q7:VMIR";
-		assertEquals(expectedKeyId, keyId);
-	}
-
-	@Test
 	public void testTokenGeneration() throws Exception {
 		String userName = "userName";
 		String type = "repository";
@@ -34,10 +25,6 @@ public class DockerTokenUtilTest {
 		String repository2 = "syn12345/myotherrepo";
 		Set<String> pushAndPullActions = new HashSet<String>(Arrays.asList(new String[] {push.name(), pull.name()}));
 		Set<String> pullActionOnly = new HashSet<String>(Arrays.asList(new String[] {pull.name()}));
-		
-		
-		
-
 		long now = 1465768785754L;
 		long interval = 120;
 		String uuid = "8b263df7-dd04-4afe-8366-64f882e0942d";
@@ -47,7 +34,7 @@ public class DockerTokenUtilTest {
 		permissions.add(new DockerScopePermission(type, repository2, pullActionOnly));
 
 		
-		String token = DockerTokenUtil.createToken(userName, registry, permissions, now, uuid);
+		String token = DockerTokenUtil.createDockerAuthorizationToken(userName, registry, permissions, now, uuid);
 
 		// the 'expected' token was verified to work with the Docker registry
 		// note: the token is dependent on the credentials in stack.properties
@@ -55,7 +42,7 @@ public class DockerTokenUtilTest {
 		String[] pieces = token.split("\\.");
 		assertEquals(3, pieces.length);
 		
-		String expectedHeaderString = "{\"typ\":\"JWT\",\"kid\":\""+DockerTokenUtil.PUBLIC_KEY_ID+"\",\"alg\":\"ES256\"}";
+		String expectedHeaderString = "{\"typ\":\"JWT\",\"kid\":\""+DockerTokenUtil.DOCKER_AUTHORIZATION_PUBLIC_KEY_ID+"\",\"alg\":\"ES256\"}";
 		String expectedHeadersBase64 = Base64.encodeBase64URLSafeString( expectedHeaderString.getBytes());
 		assertEquals(expectedHeadersBase64, pieces[0]);
 		
