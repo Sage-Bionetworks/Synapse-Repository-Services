@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.Annotations;
@@ -30,6 +31,7 @@ public class AnnotationsV2Translator {
 			AnnotationsV1AndV2TypeMapping typeMapping = AnnotationsV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
 
 			List<Object> convertedValues = annotationsV2Value.getValue().stream()
+					.filter(Objects::nonNull)
 					.map(typeMapping.convertToAnnotationV1Function())
 					.collect(Collectors.toList());
 
@@ -71,7 +73,13 @@ public class AnnotationsV2Translator {
 
 		for(Map.Entry<String, List<T>> entry: originalMap.entrySet()){
 			//convert value list from v1 typed format to v2 string format.
-			List<String> convertedValues = entry.getValue().stream()
+			List<T> originalList = entry.getValue();
+			if(originalList == null){
+				originalList = Collections.emptyList();
+			}
+
+			List<String> convertedValues = originalList.stream()
+					.filter(Objects::nonNull)
 					.map(annotationsV1AndV2TypeMapping.convertToAnnotationV2Function())
 					.collect(Collectors.toList());
 
