@@ -14,14 +14,18 @@ public interface StatisticsMonthlyProcessor {
 	/**
 	 * @return The maximum number of past months to process
 	 */
-	int maxMonthsToProcess();
-	
+	int getMaxMonthsToProcess();
+
+	/**
+	 * @return The amount in ms for the processing to timeout that allows to restart another processing
+	 */
+	long getProcessingTimeout();
+
 	/**
 	 * Process the monthly statistics for the given month
 	 * 
-	 * @param month The month to process
-	 * @return True if the processing was started, false if not needed
+	 * @param  month The month to process
 	 */
-	boolean processMonth(YearMonth month);
+	void processMonth(YearMonth month);
 
 }

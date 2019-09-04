@@ -14,10 +14,10 @@ import java.util.Optional;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus;
-import org.sagebionetworks.repo.model.statistics.StatisticsMonthlyStatus;
-import org.sagebionetworks.repo.model.statistics.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -82,6 +82,38 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	}
 
 	@Override
+	@WriteTransaction
+	public boolean startProcessing(StatisticsObjectType objectType, YearMonth month, long processingTimeout) {
+
+		Optional<StatisticsMonthlyStatus> status = getStatus(objectType, month);
+
+		boolean startProcessing = false;
+
+		if (status.isPresent()) {
+			StatisticsMonthlyStatus statisticsStatus = status.get();
+
+			if (StatisticsStatus.PROCESSING_FAILED.equals(statisticsStatus.getStatus())) {
+				startProcessing = true;
+			} else if (StatisticsStatus.PROCESSING.equals(statisticsStatus.getStatus())) {
+				Long lastStartedAt = statisticsStatus.getLastStartedAt();
+				if (lastStartedAt == null || System.currentTimeMillis() - lastStartedAt >= processingTimeout) {
+					startProcessing = true;
+				}
+			}
+
+		} else {
+			startProcessing = true;
+		}
+
+		if (startProcessing) {
+			setProcessing(objectType, month);
+		}
+
+		return startProcessing;
+
+	}
+
+	@Override
 	public Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
@@ -125,13 +157,13 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
 		ValidateArgument.required(status, "status");
-		
+
 		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
-		
+
 		DBOMonthlyStatisticsStatus dbo;
 
 		try {
-			 dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
+			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
 		} catch (NotFoundException e) {
 			dbo = new DBOMonthlyStatisticsStatus();
 		}
@@ -139,7 +171,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		dbo.setObjectType(objectType.toString());
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));
 		dbo.setStatus(status.toString());
-		
+
 		// Updates the timestamps only if updated
 		if (lastStartedAt != null) {
 			dbo.setLastStartedAt(lastStartedAt);

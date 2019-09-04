@@ -8,7 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STATISTICS_MONTHLY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY;
-import static org.sagebionetworks.repo.model.statistics.StatisticsMonthlyUtils.FIRST_DAY_OF_THE_MONTH;
+import static org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils.FIRST_DAY_OF_THE_MONTH;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

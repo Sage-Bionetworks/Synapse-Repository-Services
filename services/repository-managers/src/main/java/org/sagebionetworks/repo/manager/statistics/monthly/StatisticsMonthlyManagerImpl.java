@@ -5,16 +5,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
-import org.sagebionetworks.repo.model.statistics.StatisticsMonthlyStatus;
-import org.sagebionetworks.repo.model.statistics.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
+
+	private static final Logger LOG = LogManager.getLogger(StatisticsMonthlyManagerImpl.class);
 
 	private StatisticsMonthlyStatusDAO statusDao;
 	private StatisticsMonthlyProcessorProvider processorProvider;
@@ -29,7 +33,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	public List<YearMonth> getUnprocessedMonths(StatisticsObjectType objectType) {
 		ValidateArgument.required(objectType, "objectType");
 
-		int monthsNumber = getProcessor(objectType).maxMonthsToProcess();
+		int monthsNumber = getProcessor(objectType).getMaxMonthsToProcess();
 
 		List<YearMonth> consideredMonths = StatisticsMonthlyUtils.generatePastMonths(monthsNumber);
 
@@ -51,7 +55,32 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	public boolean processMonth(StatisticsObjectType objectType, YearMonth month) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
-		return getProcessor(objectType).processMonth(month);
+
+		LOG.debug("Processing request for object type: {} (Month: {})", objectType, month);
+
+		StatisticsMonthlyProcessor processor = getProcessor(objectType);
+
+		boolean started = statusDao.startProcessing(objectType, month, processor.getProcessingTimeout());
+
+		if (started) {
+			try {
+				LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
+
+				processor.processMonth(month);
+
+				LOG.info("Processing finished for object type: {} (Month: {})", objectType, month);
+
+				statusDao.setAvailable(objectType, month);
+			} catch (Exception e) {
+				LOG.error("Processing failed for object type: {} (Month: {}): ", objectType, month);
+				LOG.error(e.getMessage(), e);
+				statusDao.setProcessingFailed(objectType, month);
+			}
+		} else {
+			LOG.debug("Skipping processing for object type: {} (Month: {}), processing not needed", objectType, month);
+		}
+
+		return started;
 	}
 
 	private StatisticsMonthlyProcessor getProcessor(StatisticsObjectType objectType) {

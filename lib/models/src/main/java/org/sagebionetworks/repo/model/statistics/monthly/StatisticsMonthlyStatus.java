@@ -1,7 +1,10 @@
-package org.sagebionetworks.repo.model.statistics;
+package org.sagebionetworks.repo.model.statistics.monthly;
 
 import java.time.YearMonth;
 import java.util.Objects;
+
+import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 
 public class StatisticsMonthlyStatus {
 
