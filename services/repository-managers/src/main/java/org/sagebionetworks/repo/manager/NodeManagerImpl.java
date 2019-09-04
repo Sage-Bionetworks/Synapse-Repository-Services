@@ -570,6 +570,15 @@ public class NodeManagerImpl implements NodeManager {
 			String entityId, long offset, long limit) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
 		validateReadAccess(userInfo, entityId);
+		EntityType type = nodeDao.getNodeTypeById(entityId);
+		if(EntityType.table.equals(type) || EntityType.entityview.equals(type)) {
+			/*
+			 * Snapshots do not exist for the current version of tables/views. Therefore the
+			 * current version is excluded from the results by incrementing the offset by
+			 * one.
+			 */
+			offset += 1L;
+		}
 		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
 
