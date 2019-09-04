@@ -148,6 +148,9 @@ public class AnnotationsV2Utils {
 
 		AnnotationsV2ValueValidator valueValidator = AnnotationsV2TypeToValidator.validatorFor(type);
 		for(String value: valueList){
+			if(value == null){
+				throw new IllegalArgumentException("null is not allowed. To indicate no values, use an empty list.");
+			}
 			valueValidator.validate(key, value, type);
 		}
 	}
