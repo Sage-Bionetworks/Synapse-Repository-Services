@@ -174,7 +174,10 @@
 		factory-method="createAmazonS3Client" scope="singleton" />
 		
 	<bean id="amazonAthenaClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAthenaClient" scope="singleton" />
+		factory-method="createAmazonAthenaClient" scope="singleton" />
+		
+	<bean id="amazonGlueClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonGlueClient" scope="singleton" />
 
 	<bean id="transferManager" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createTransferManager" scope="singleton" />
