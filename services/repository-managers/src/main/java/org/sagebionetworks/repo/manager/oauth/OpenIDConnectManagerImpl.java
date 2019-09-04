@@ -95,6 +95,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private TeamDAO teamDAO;
 	
 	@Autowired
+	private SimpleHttpClient httpClient;
+
+	
+	@Autowired
 	OIDCTokenHelper oidcTokenHelper;
 
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
@@ -109,22 +113,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 	}
 
-	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
-	private static SimpleHttpClient client;
-
-	static {
-		// Configure HTTP client for use
-		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
-		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
-		client = new SimpleHttpClientImpl(httpClientConfig);
-	}
-
-	private static List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
+	private List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri.toString());
 		SimpleHttpResponse response = null;
 		try {
-			response = client.get(request);
+			response = httpClient.get(request);
 		} catch (IOException e) {
 			throw new ServiceUnavailableException("Failed to read the content of "+uri+
 					".  Please check the URL and the file at the address, then try again.", e);
@@ -147,7 +141,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	// implements https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public static String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) throws ServiceUnavailableException {
+	public String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) throws ServiceUnavailableException {
 		if (StringUtils.isEmpty(sectorIdentifierUriString)) {
 			// the sector ID is the host common to all uris in the list
 			String result=null;

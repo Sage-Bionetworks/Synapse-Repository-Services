@@ -40,6 +40,8 @@
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
 	
+	<bean id="httpClient" class="org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl" />
+	
 	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl" />
 	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
