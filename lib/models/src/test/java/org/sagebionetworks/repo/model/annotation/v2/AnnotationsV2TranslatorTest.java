@@ -197,6 +197,18 @@ class AnnotationsV2TranslatorTest {
 	}
 
 	@Test
+	public void testToAnnotationsV2_nullListValues(){
+		//set list for stringkey1 to empty
+		annotationsV1.getStringAnnotations().put(stringKey1, null);
+		//method under test
+		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+
+		//annotationsV2 should have an empty list mapping
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		assertEquals(annotationsV2, translated);
+	}
+
+	@Test
 	public void testToAnnotationsV2_ListWithNullValues(){
 		//set list for stringkey1 to empty
 		annotationsV1.getStringAnnotations().put(stringKey1, Arrays.asList(null, null, null, "value", null, "val2"));
