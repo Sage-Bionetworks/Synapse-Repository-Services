@@ -1,26 +1,46 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.net.util.Base64;
+import org.sagebionetworks.repo.model.oauth.JsonWebKey;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+
+import io.jsonwebtoken.SignatureAlgorithm;
 
 public class KeyPairUtil {
+	
+	public static final String X509 = "X.509";
+	
+	public static final String RSA = "RSA";
+	
+	public static final String SHA_256 = "SHA-256";
+	
+	private static final String KEY_USE_SIGNATURE = "SIGNATURE";
+
 	public static X509Certificate getX509CertificateFromPEM(String pem) {
 		try {
 			byte[] content = Base64.decodeBase64(pem);
-			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+			CertificateFactory certFactory = CertificateFactory.getInstance(X509);
 			X509Certificate certificate = (X509Certificate)certFactory.generateCertificate(new ByteArrayInputStream(content));
 			if (certificate.getPublicKey()==null) throw new RuntimeException();
 			return certificate;
@@ -52,7 +72,7 @@ public class KeyPairUtil {
 		try {
 			byte[] content = Base64.decodeBase64(pemEncodedPrivateKey);
 			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(content);
-			KeyFactory factory = KeyFactory.getInstance("RSA");
+			KeyFactory factory = KeyFactory.getInstance(RSA);
 			PrivateKey privateKey = factory.generatePrivate(keySpec);
 
 			RSAPrivateCrtKey privk = (RSAPrivateCrtKey)privateKey;
@@ -71,7 +91,7 @@ public class KeyPairUtil {
 		try {
 			if (publicKey==null) throw new RuntimeException();
 			// http://stackoverflow.com/questions/3103652/hash-string-via-sha-256-in-java
-			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			MessageDigest md = MessageDigest.getInstance(SHA_256);
 			md.update(publicKey.getEncoded());
 			byte[] digest = md.digest();
 			// use bytes 0->digest.length-2
@@ -91,5 +111,39 @@ public class KeyPairUtil {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeys(List<String> pemEncodedKeyPairs) {
+		JsonWebKeySet jsonWebKeySet = new JsonWebKeySet();
+		List<JsonWebKey> publicKeys = new ArrayList<JsonWebKey>();
+		jsonWebKeySet.setKeys(publicKeys);
+		if (pemEncodedKeyPairs==null) return jsonWebKeySet;
+		for (String s : pemEncodedKeyPairs) {
+			KeyPair keyPair = getRSAKeyPairFromPrivateKey(s);
+			String kid = computeKeyId(keyPair.getPublic());
+			RSAPublicKey rsaPublicKey = (RSAPublicKey)keyPair.getPublic();
+			JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
+			// these would be set for all algorithms
+			rsaKey.setKty(SignatureAlgorithm.RS256.name());
+			rsaKey.setUse(KEY_USE_SIGNATURE);
+			rsaKey.setKid(kid);
+			// these are specific to the RSA algorithm
+			rsaKey.setE(rsaPublicKey.getPublicExponent().toString());
+			rsaKey.setN(rsaPublicKey.getModulus().toString());
+			publicKeys.add(rsaKey);
+		}
+		return jsonWebKeySet;
+	}
+	
+	public static RSAPublicKey getRSAPublicKeyForJsonWebKeyRSA(JsonWebKeyRSA jwkRsa) {
+		BigInteger modulus = new BigInteger(jwkRsa.getN());
+		BigInteger publicExponent = new BigInteger(jwkRsa.getE());
+		RSAPublicKeySpec keySpec = new RSAPublicKeySpec(modulus, publicExponent);
+		try {
+			KeyFactory kf = KeyFactory.getInstance(RSA);
+			return (RSAPublicKey)kf.generatePublic(keySpec);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		} 
 	}
 }
