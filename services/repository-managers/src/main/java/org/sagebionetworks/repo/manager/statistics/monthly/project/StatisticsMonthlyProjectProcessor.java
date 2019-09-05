@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class StatisticsMonthlyProjectProcessor implements StatisticsMonthlyProcessor {
-	// 30 Minutes is the timeout of athena
-	private static final long TIMEOUT = 30 * 60 * 1000;
 	
 	@Override
 	public StatisticsObjectType getSupportedType() {
@@ -17,14 +15,13 @@ public class StatisticsMonthlyProjectProcessor implements StatisticsMonthlyProce
 	}
 
 	@Override
-	public long getProcessingTimeout() {
-		return TIMEOUT;
-	}
-
-	@Override
 	public void processMonth(YearMonth month) {
-		// TODO Auto-generated method stub
-		
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		throw new IllegalStateException("Some error UAU");
 	}
 
 }

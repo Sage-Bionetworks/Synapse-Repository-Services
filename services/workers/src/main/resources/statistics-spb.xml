@@ -41,8 +41,8 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<!-- Long start delay to let the (potential) glue crawler discover partitions -->
-		<property name="startDelay" value="1800000" />
+		<!-- Long start delay to let the (potential) partition discovery finish before starting processing -->
+		<property name="startDelay" value="600000" />
 		<property name="repeatInterval" value="1800000" />
 	</bean>
 	

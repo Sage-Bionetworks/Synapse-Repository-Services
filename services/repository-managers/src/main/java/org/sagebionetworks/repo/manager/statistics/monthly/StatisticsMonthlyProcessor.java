@@ -12,11 +12,6 @@ public interface StatisticsMonthlyProcessor {
 	StatisticsObjectType getSupportedType();
 
 	/**
-	 * @return The amount in ms for the processing to timeout that allows to restart another processing
-	 */
-	long getProcessingTimeout();
-
-	/**
 	 * Process the monthly statistics for the given month
 	 * 
 	 * @param  month The month to process

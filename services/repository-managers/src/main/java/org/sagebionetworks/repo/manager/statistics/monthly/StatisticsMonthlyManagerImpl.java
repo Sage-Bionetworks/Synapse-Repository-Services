@@ -85,7 +85,6 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 		LOG.debug("Processing request for object type: {} (Month: {})", objectType, month);
 
-		StatisticsMonthlyProcessor processor = getProcessor(objectType);
 		ProgressListener progressListener = getProgressListener(objectType, month);
 
 		// Register a progress listener so that we keep the lastUpdatedOn timestamp up to date while processing so that this
@@ -95,12 +94,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		boolean processingSuceeded = true;
 
 		try {
-			LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
-
-			processor.processMonth(month);
-
-			LOG.info("Processing finished for object type: {} (Month: {})", objectType, month);
-
+			runProcessing(objectType, month);
 			setAvailable(objectType, month);
 		} catch (Exception ex) {
 			setProcessingFailed(objectType, month, ex);
@@ -110,6 +104,22 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		}
 
 		return processingSuceeded;
+	}
+
+	private void runProcessing(StatisticsObjectType objectType, YearMonth month) {
+		LOG.info("Processing object type: {} (Month: {})...", objectType, month);
+		
+		List<StatisticsMonthlyProcessor> processors = getProcessors(objectType);
+
+		LOG.info("Found {} processors for object type {}", processors.size(), objectType);
+
+		for (StatisticsMonthlyProcessor processor : processors) {
+			LOG.info("Executing processor {} on month {}...", processor.getClass().getSimpleName(), month);
+			processor.processMonth(month);
+			LOG.info("Executing processor {} on month {}...DONE", processor.getClass().getSimpleName(), month);
+		}
+		
+		LOG.info("Processing object type: {} (Month: {})...DONE", objectType, month);
 	}
 
 	private ProgressListener getProgressListener(StatisticsObjectType objectType, YearMonth month) {
@@ -154,8 +164,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		statusDao.setProcessingFailed(objectType, month, errorMessage, errorDetails);
 	}
 
-	private StatisticsMonthlyProcessor getProcessor(StatisticsObjectType objectType) {
-		return processorProvider.getMonthlyProcessor(objectType);
+	private List<StatisticsMonthlyProcessor> getProcessors(StatisticsObjectType objectType) {
+		return processorProvider.getProcessors(objectType);
 	}
 
 }

@@ -64,7 +64,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		when(mockProcessorProvider.getMonthlyProcessor(any(StatisticsObjectType.class))).thenReturn(mockProcessor);
+		when(mockProcessorProvider.getProcessors(any(StatisticsObjectType.class))).thenReturn(Collections.singletonList(mockProcessor));
 		when(mockConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS_TO_PROCESS);
 
 		manager = new StatisticsMonthlyManagerImpl(mockDao, mockProcessorProvider, mockConfig);
