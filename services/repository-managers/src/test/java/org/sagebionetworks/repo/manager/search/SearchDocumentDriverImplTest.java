@@ -91,18 +91,6 @@ public class SearchDocumentDriverImplTest {
 
 	}
 
-	@Test
-	public void getFirsAnnotationValues__skipByteArray(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
-		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(new byte[]{});
-
-		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(mockAnnotations);
-
-		verify(mockAnnotations, times(1)).keySet();
-		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
-		assertTrue(annoValuesMap.isEmpty());
-	}
-
 
 	@Test
 	public void getFirsAnnotationValues__multipleValues(){
