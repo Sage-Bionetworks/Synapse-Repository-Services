@@ -35,6 +35,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
@@ -306,7 +307,7 @@ public class MultipartUploadTest {
 		MultipartUpload upload = new MultipartUpload(mockClient, input,
 				fileSizeBytes, fileName, contentType, storageLocationId,
 				generatePreview, forceRestart, mockFileProvider);
-		S3FileHandle result = upload.uploadFile();
+		CloudProviderFileHandleInterface result = upload.uploadFile();
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(
@@ -333,7 +334,7 @@ public class MultipartUploadTest {
 				fileSizeBytes, fileName, contentType, storageLocationId,
 				generatePreview, forceRestart, mockFileProvider);
 		// since it is complete it should just return the file handle.
-		S3FileHandle result = upload.uploadFile();
+		CloudProviderFileHandleInterface result = upload.uploadFile();
 		assertEquals(fileHandle, result);
 
 		verify(mockClient, times(1)).startMultipartUpload(

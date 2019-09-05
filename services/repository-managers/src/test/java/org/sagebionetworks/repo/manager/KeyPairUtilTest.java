@@ -80,6 +80,4 @@ public class KeyPairUtilTest {
 		assertEquals(key.getN(), rsaPublicKey.getModulus().toString());
 		assertEquals(key.getE(), rsaPublicKey.getPublicExponent().toString());
 	}
-	
-	
 }

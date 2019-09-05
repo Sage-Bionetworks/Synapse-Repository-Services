@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -115,15 +116,15 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	}
 
 	@Override
-	public ProjectSetting get(String projectId, ProjectSettingsType type) throws DatastoreException {
+	public Optional<ProjectSetting> get(String projectId, ProjectSettingsType type) throws DatastoreException {
 		try {
 			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, ROW_MAPPER,
 					KeyFactory.stringToKey(projectId), type.name());
 			ProjectSetting dto = convertDboToDto(projectSetting);
-			return dto;
+			return Optional.of(dto);
 		} catch (EmptyResultDataAccessException e) {
 			// not having a setting is normal
-			return null;
+			return Optional.empty();
 		}
 	}
 

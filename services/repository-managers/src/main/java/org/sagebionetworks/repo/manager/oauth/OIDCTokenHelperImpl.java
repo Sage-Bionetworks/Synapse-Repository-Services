@@ -162,5 +162,4 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	public void validateJWT(String token) {
 		parseJWT(token);
 	}
-	
 }

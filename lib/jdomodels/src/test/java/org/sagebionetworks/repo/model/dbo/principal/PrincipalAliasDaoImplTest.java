@@ -262,7 +262,15 @@ public class PrincipalAliasDaoImplTest {
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		assertEquals(userName, list.get(0));
-		
+
+		// username and email
+		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.USER_EMAIL);
+		assertNotNull(list);
+		assertEquals(3, list.size());
+		assertTrue(list.contains(userName));
+		assertTrue(list.contains(emailOne));
+		assertTrue(list.contains(emailTwo));
+
 		// Test listing all by type
 		list = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL);
 		assertTrue(startingCount < list.size());

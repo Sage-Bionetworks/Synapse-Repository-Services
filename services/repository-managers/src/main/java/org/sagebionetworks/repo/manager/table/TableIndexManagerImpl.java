@@ -373,7 +373,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
-			final Iterator<TableChangeMetaData> iterator, final long targetChangeNumber) throws RecoverableMessageException {
+			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		// Only proceed if work is needed.
 		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
 			log.info("Index already up-to-date for table: " + idAndVersion);
@@ -386,11 +386,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
 		// Attempt to run with
 		try {
+			// Lookup the target change number for the given ID and version.
+			Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
+			if(!targetChangeNumber.isPresent()) {
+				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
+			}
 
 			// Run with the exclusive lock on the table if we can get it.
 			String lastEtag = tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, 120,
 					(ProgressCallback callback) -> {
-						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, targetChangeNumber,
+						return buildIndexToChangeNumberWithExclusiveLock(idAndVersion, iterator, targetChangeNumber.get(),
 								tableResetToken);
 					});
 			log.info("Completed index update for: " + idAndVersion);

@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,12 +61,15 @@ import com.google.common.collect.Lists;
  *
  */
 public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
-	
+
+	private static final String PARAM_PRINCIPAL_ALIAS = "principalAliasParam";
+	private static final String PARAM_PRINCIPAL_ALIAS_TYPES = "aliasTypesParam";
+
 	private static final String SQL_LOCK_PRINCIPAL = "SELECT "+COL_USER_GROUP_ID+" FROM "+TABLE_USER_GROUP+" WHERE "+COL_USER_GROUP_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_ALL_ALIASES_FOR_PRINCIPAL = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ?";
 	private static final String SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND  "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_LIST_ALIASES_BY_ID = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
-	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
+	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = :" + PARAM_PRINCIPAL_ALIAS + " AND "+COL_PRINCIPAL_ALIAS_TYPE+" IN (:" + PARAM_PRINCIPAL_ALIAS_TYPES + ") ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	
 	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+ COL_PRINCIPAL_ALIAS_DISPLAY +" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
@@ -77,7 +81,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SET_BIND_VAR = "principalIdSet";
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-	
+
 	private static final String SQL_SELECT_USER_GROUP_HEADERS =
 			"SELECT "
 			+ "A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
@@ -242,10 +246,18 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 
 	@Override
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId,
-			AliasType type) {
+			AliasType... types) {
+
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
-		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
-		List<DBOPrincipalAlias> results = this.jdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, principalAliasMapper, principalId, type.name());
+		if(types == null || types[0] == null) throw new IllegalArgumentException("AliasType cannot be null");
+		Map<String,Object> parameters = new HashMap<String,Object>();
+		parameters.put(PARAM_PRINCIPAL_ALIAS, principalId);
+		List<String> typesList = new ArrayList<>();
+		for (AliasType t : types) {
+			typesList.add(t.name());
+		}
+		parameters.put(PARAM_PRINCIPAL_ALIAS_TYPES, typesList);
+		List<DBOPrincipalAlias> results = this.namedTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, parameters, principalAliasMapper);
 		return AliasUtils.createDTOFromDBO(results);
 	}
 	

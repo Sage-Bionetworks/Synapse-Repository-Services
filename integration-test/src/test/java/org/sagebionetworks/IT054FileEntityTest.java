@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.DownloadList;
 import org.sagebionetworks.repo.model.file.DownloadOrder;
 import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
@@ -62,7 +63,7 @@ public class IT054FileEntityTest {
 	private static final String FILE_NAME = "LittleImage.png";
 
 	private File imageFile;
-	private S3FileHandle fileHandle;
+	private CloudProviderFileHandleInterface fileHandle;
 	private Project project;
 	private Folder folder;
 	private FileEntity file;
@@ -139,7 +140,7 @@ public class IT054FileEntityTest {
 	@Test
 	public void testFileEntityRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		// Before we start the test wait for the preview to be created
-		S3FileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
+		CloudProviderFileHandleInterface previewFileHandle = waitForPreviewToBeCreated(fileHandle);
 		// Get the file handles
 		FileHandleResults fhr = synapse.getEntityFileHandlesForCurrentVersion(file.getId());
 		assertNotNull(fhr);
@@ -373,7 +374,7 @@ public class IT054FileEntityTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private S3FileHandle waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private CloudProviderFileHandleInterface waitForPreviewToBeCreated(CloudProviderFileHandleInterface fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
@@ -383,7 +384,7 @@ public class IT054FileEntityTest {
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		// Fetch the preview file handle
-		S3FileHandle previewFileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
+		CloudProviderFileHandleInterface previewFileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getPreviewId());
 		fileHandlesToDelete.add(previewFileHandle.getId());
 		return previewFileHandle;
 	}

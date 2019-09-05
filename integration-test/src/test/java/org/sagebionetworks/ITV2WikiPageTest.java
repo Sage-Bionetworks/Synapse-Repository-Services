@@ -111,9 +111,9 @@ public class ITV2WikiPageTest {
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
-		fileHandleTwo = synapse.multipartUpload(imageFileTwo, null, true, false);
-		markdownHandle = synapse.multipartUpload(markdownFile, null, false, false);
+		fileHandle = (S3FileHandle) synapse.multipartUpload(imageFile, null, true, false);
+		fileHandleTwo = (S3FileHandle) synapse.multipartUpload(imageFileTwo, null, true, false);
+		markdownHandle = (S3FileHandle) synapse.multipartUpload(markdownFile, null, false, false);
 		
 		// create the access requirement
 		accessRequirement = new TermsOfUseAccessRequirement();

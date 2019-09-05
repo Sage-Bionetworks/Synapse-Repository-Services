@@ -22,9 +22,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -40,8 +40,8 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	private static String MARKDOWN_NAME = "SmallTextFiles/markdown.txt";
 	private Project project;
 	private File imageFile;
-	private S3FileHandle fileHandle;
-	private S3FileHandle markdownHandle;
+	private FileHandle fileHandle;
+	private FileHandle markdownHandle;
 	private File markdownFile;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 
