@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +26,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
@@ -49,6 +50,9 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	@Mock
 	private StatisticsMonthlyProcessor mockProcessor;
+
+	@Mock
+	private ProgressCallback mockCallback;
 
 	@Mock
 	private StackConfiguration mockConfig;
@@ -143,11 +147,13 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		YearMonth month = YearMonth.of(2019, 8);
 
 		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month);
+		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
 
 		assertTrue(result);
-		verify(mockProcessor, times(1)).processMonth(month);
-		verify(mockDao, times(1)).setAvailable(OBJECT_TYPE, month);
+		verify(mockCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockProcessor).processMonth(month);
+		verify(mockDao).setAvailable(OBJECT_TYPE, month);
+		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
 	}
 
 	@Test
@@ -158,12 +164,15 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		doThrow(IllegalStateException.class).when(mockProcessor).processMonth(any());
 
 		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month);
+		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
 
 		assertFalse(result);
-		verify(mockProcessor, times(1)).processMonth(any());
+
+		verify(mockCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockProcessor).processMonth(any());
 		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
-		verify(mockDao, times(1)).setProcessingFailed(eq(OBJECT_TYPE), eq(month), nullable(String.class), any(String.class));
+		verify(mockDao).setProcessingFailed(eq(OBJECT_TYPE), eq(month), nullable(String.class), any(String.class));
+		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
 	}
 
 	@Test
@@ -178,12 +187,14 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		doThrow(ex).when(mockProcessor).processMonth(any());
 
 		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month);
+		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
 
 		assertFalse(result);
-		verify(mockProcessor, times(1)).processMonth(any());
+		verify(mockCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockProcessor).processMonth(any());
 		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
-		verify(mockDao, times(1)).setProcessingFailed(eq(OBJECT_TYPE), eq(month), eq(errorMessage), any(String.class));
+		verify(mockDao).setProcessingFailed(eq(OBJECT_TYPE), eq(month), eq(errorMessage), any(String.class));
+		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
 	}
 
 	@Test
@@ -268,7 +279,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		verify(mockStatus).getLastStartedOn();
 		verify(mockDao, never()).setProcessing(any(), any());
 	}
-	
+
 	@Test
 	public void testStartProcessingMonthWhenProcessingTimeout() {
 		YearMonth month = YearMonth.of(2019, 8);

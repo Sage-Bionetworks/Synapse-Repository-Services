@@ -39,7 +39,7 @@ public class StatisticsMonthlyWorker implements MessageDrivenRunner {
 
 		LOG.info("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
 
-		if (manager.processMonth(notification.getObjectType(), notification.getMonth())) {
+		if (manager.processMonth(notification.getObjectType(), notification.getMonth(), progressCallback)) {
 			LOG.info("Proccessing months {} for object type {}...DONE", notification.getMonth(), notification.getObjectType());
 		} else {
 			LOG.info("Proccessing months {} for object type {}...FAILED", notification.getMonth(), notification.getObjectType());

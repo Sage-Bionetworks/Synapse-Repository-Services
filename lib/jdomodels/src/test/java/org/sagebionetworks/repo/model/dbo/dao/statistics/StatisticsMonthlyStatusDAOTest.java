@@ -396,5 +396,47 @@ public class StatisticsMonthlyStatusDAOTest {
 		}
 
 	}
+	
+	@Test
+	public void testTouchOnAbsent() {
+		int year = 2019;
+		int month = 8;
+
+		YearMonth yearMonth = YearMonth.of(year, month);
+		
+		// Call under test
+		boolean result = dao.touch(OBJECT_TYPE, yearMonth);
+		
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testTouchOnExisting() {
+		int year = 2019;
+		int month = 8;
+
+		YearMonth yearMonth = YearMonth.of(year, month);
+		
+		StatisticsMonthlyStatus status = dao.setProcessing(OBJECT_TYPE, yearMonth);
+		
+		// Sleep for some time to make sure the timestamp is different
+		try {
+			Thread.sleep(50);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		// Call under test
+		boolean result = dao.touch(OBJECT_TYPE, yearMonth);
+		
+		assertTrue(result);
+		
+		StatisticsMonthlyStatus statusUpdated = dao.getStatus(OBJECT_TYPE, yearMonth).get();
+		
+		assertNotEquals(status, statusUpdated);
+		// Everything else should stay the same
+		statusUpdated.setLastUpdatedOn(status.getLastUpdatedOn());
+		assertEquals(status, statusUpdated);
+	}
 
 }

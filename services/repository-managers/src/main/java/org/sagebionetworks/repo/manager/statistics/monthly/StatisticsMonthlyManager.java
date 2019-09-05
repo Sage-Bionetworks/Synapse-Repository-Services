@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.statistics.monthly;
 import java.time.YearMonth;
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 
@@ -31,15 +32,18 @@ public interface StatisticsMonthlyManager {
 	boolean startProcessingMonth(StatisticsObjectType objectType, YearMonth month, long processingTimeout);
 
 	/**
-	 * Process the statistics for the given object type and month, if any error occurs during the processing sets the status
+	 * Process the statistics for the given object type and month. If any error occurs during the processing sets the status
 	 * to {@link StatisticsStatus#PROCESSING_FAILED}, otherwise set it to {@link StatisticsStatus#AVAILABLE} at the end of
 	 * the processing. This method is invoked by a worker upon receiving a notification to start processing a particular
-	 * month for a given object type.
+	 * month for a given object type. A listener will be registered on the given {@link ProgressCallback} to update the
+	 * lastUpdatedOn timestamp of the status.
 	 * 
-	 * @param  objectType The statistics object type
-	 * @param  month      The month to be processed
-	 * @return            True if the processing finished successfully, false otherwise
+	 * @param  objectType       The statistics object type
+	 * @param  month            The month to be processed
+	 * @param  progressCallback The callback that the thread will register on to update the lastUpdatedOn timestamp for the
+	 *                          status
+	 * @return                  True if the processing finished successfully, false otherwise
 	 */
-	boolean processMonth(StatisticsObjectType objectType, YearMonth month);
+	boolean processMonth(StatisticsObjectType objectType, YearMonth month, ProgressCallback progressCallback);
 
 }

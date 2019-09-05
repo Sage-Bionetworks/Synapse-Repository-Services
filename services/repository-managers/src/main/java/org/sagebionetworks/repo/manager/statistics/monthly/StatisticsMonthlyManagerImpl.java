@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
@@ -77,13 +79,20 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	}
 
 	@Override
-	public boolean processMonth(StatisticsObjectType objectType, YearMonth month) {
+	public boolean processMonth(StatisticsObjectType objectType, YearMonth month, ProgressCallback progressCallback) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
 
 		LOG.debug("Processing request for object type: {} (Month: {})", objectType, month);
 
 		StatisticsMonthlyProcessor processor = getProcessor(objectType);
+		ProgressListener progressListener = getProgressListener(objectType, month);
+
+		// Register a progress listener so that we keep the lastUpdatedOn timestamp up to date while processing so that this
+		// particular month is not re-processed when the process is taking a long time
+		progressCallback.addProgressListener(progressListener);
+
+		boolean processingSuceeded = true;
 
 		try {
 			LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
@@ -93,11 +102,29 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 			LOG.info("Processing finished for object type: {} (Month: {})", objectType, month);
 
 			setAvailable(objectType, month);
-			return true;
 		} catch (Exception ex) {
 			setProcessingFailed(objectType, month, ex);
-			return false;
+			processingSuceeded = false;
+		} finally {
+			progressCallback.removeProgressListener(progressListener);
 		}
+
+		return processingSuceeded;
+	}
+
+	private ProgressListener getProgressListener(StatisticsObjectType objectType, YearMonth month) {
+
+		ProgressListener progressListener = new ProgressListener() {
+
+			@Override
+			public void progressMade() {
+				if (!statusDao.touch(objectType, month)) {
+					LOG.warn("Could not update the lastUpdatedOn timestamp for object type {} and month {}", objectType, month);
+				}
+			}
+		};
+
+		return progressListener;
 	}
 
 	/**

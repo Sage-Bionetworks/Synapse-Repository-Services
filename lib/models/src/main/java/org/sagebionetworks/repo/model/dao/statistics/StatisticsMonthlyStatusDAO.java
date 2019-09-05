@@ -43,6 +43,15 @@ public interface StatisticsMonthlyStatusDAO {
 	StatisticsMonthlyStatus setProcessing(StatisticsObjectType objectType, YearMonth month);
 
 	/**
+	 * Updates the lastUpdatedOn timestamp for the given object type and month if such a record exists
+	 * 
+	 * @param  objectType
+	 * @param  month
+	 * @return            True if a record was updated, false otherwise
+	 */
+	boolean touch(StatisticsObjectType objectType, YearMonth month);
+
+	/**
 	 * Retrieve the monthly statistics status for the given month.
 	 * 
 	 * @param  objectType The type of object
@@ -51,7 +60,7 @@ public interface StatisticsMonthlyStatusDAO {
 	 *                    otherwise
 	 */
 	Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month);
-	
+
 	/**
 	 * Retrieve the monthly statistics status for the given month, locking on the object type and month row.
 	 * 
@@ -61,7 +70,7 @@ public interface StatisticsMonthlyStatusDAO {
 	 *                    otherwise
 	 */
 	Optional<StatisticsMonthlyStatus> getStatusForUpdate(StatisticsObjectType objectType, YearMonth month);
-	
+
 	/**
 	 * Return the list of statuses that are set to available for the given object in the given range [from, to].
 	 * 
