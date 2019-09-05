@@ -19,11 +19,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
@@ -34,8 +34,8 @@ import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class StatisticsMonthlyManagerImplUnitTest {
 
+	private static final int MAX_MONTHS_TO_PROCESS = 12;
 	private static final StatisticsObjectType OBJECT_TYPE = StatisticsObjectType.PROJECT;
-	private static final int MAX_MONTHS_TO_PROCESS = 2;
 	private static final long PROCESSING_TIMEOUT = 10000L;
 
 	@Mock
@@ -47,14 +47,18 @@ public class StatisticsMonthlyManagerImplUnitTest {
 	@Mock
 	private StatisticsMonthlyProcessor mockProcessor;
 
-	@InjectMocks
+	@Mock
+	private StackConfiguration mockConfig;
+	
 	private StatisticsMonthlyManagerImpl manager;
 
 	@BeforeEach
 	public void before() {
-		when(mockProcessor.getMaxMonthsToProcess()).thenReturn(MAX_MONTHS_TO_PROCESS);
 		when(mockProcessor.getProcessingTimeout()).thenReturn(PROCESSING_TIMEOUT);
 		when(mockProcessorProvider.getMonthlyProcessor(any(StatisticsObjectType.class))).thenReturn(mockProcessor);
+		when(mockConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS_TO_PROCESS);
+		
+		manager = new StatisticsMonthlyManagerImpl(mockDao, mockProcessorProvider, mockConfig);
 	}
 
 	@Test
@@ -124,8 +128,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		// Call under test
 		List<YearMonth> result = manager.getUnprocessedMonths(OBJECT_TYPE);
 
-		assertEquals(1, result.size());
-		assertEquals(pastMonths.get(1), result.get(0));
+		assertEquals(pastMonths.size() - availableMonths.size(), result.size());
 		verify(mockDao).getAvailableStatusInRange(OBJECT_TYPE, from, to);
 	}
 

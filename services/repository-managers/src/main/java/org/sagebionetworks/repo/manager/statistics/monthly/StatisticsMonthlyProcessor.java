@@ -12,11 +12,6 @@ public interface StatisticsMonthlyProcessor {
 	StatisticsObjectType getSupportedType();
 
 	/**
-	 * @return The maximum number of past months to process
-	 */
-	int getMaxMonthsToProcess();
-
-	/**
 	 * @return The amount in ms for the processing to timeout that allows to restart another processing
 	 */
 	long getProcessingTimeout();

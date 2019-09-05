@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
@@ -22,20 +23,20 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 	private StatisticsMonthlyStatusDAO statusDao;
 	private StatisticsMonthlyProcessorProvider processorProvider;
+	private int maxMonths;
 
 	@Autowired
-	public StatisticsMonthlyManagerImpl(StatisticsMonthlyStatusDAO statusDao, StatisticsMonthlyProcessorProvider processorProvider) {
+	public StatisticsMonthlyManagerImpl(StatisticsMonthlyStatusDAO statusDao, StatisticsMonthlyProcessorProvider processorProvider, StackConfiguration stackConfig) {
 		this.statusDao = statusDao;
 		this.processorProvider = processorProvider;
+		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
 	}
 
 	@Override
 	public List<YearMonth> getUnprocessedMonths(StatisticsObjectType objectType) {
 		ValidateArgument.required(objectType, "objectType");
 
-		int monthsNumber = getProcessor(objectType).getMaxMonthsToProcess();
-
-		List<YearMonth> consideredMonths = StatisticsMonthlyUtils.generatePastMonths(monthsNumber);
+		List<YearMonth> consideredMonths = StatisticsMonthlyUtils.generatePastMonths(maxMonths);
 
 		YearMonth minMonth = consideredMonths.get(0);
 		YearMonth maxMonth = consideredMonths.get(consideredMonths.size() - 1);

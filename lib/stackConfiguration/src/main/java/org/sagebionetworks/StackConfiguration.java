@@ -796,5 +796,10 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getOAuthAuthorizationEndpoint();
+	
+	/**
+	 * @return The maximum number of months to process for monthly statistics
+	 */
+	public int getMaximumMonthsForMonthlyStatistics();
 
 }
