@@ -77,8 +77,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
 	
+	private static final Random RANDOM = new SecureRandom();
+
+	
 	@Autowired
-	StackEncrypter stackEncrypter;
+	private StackEncrypter stackEncrypter;
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -104,14 +107,14 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(oauthClient.getRedirect_uris(), "OAuth client redirect URI list.");
 		ValidateArgument.requirement(!oauthClient.getRedirect_uris().isEmpty(), "OAuth client must register at least one redirect URI.");
 		for (String uri: oauthClient.getRedirect_uris()) {
-			ValidateArgument.validUrl(uri, "Redirect URI");
+			ValidateArgument.validUrl(uri, "Valid redirect URI");
 		}
 		if (StringUtils.isNotEmpty(oauthClient.getSector_identifier_uri())) {
 			ValidateArgument.validUrl(oauthClient.getSector_identifier_uri(), "Sector Identifier URI");
 		}
 	}
 
-	private List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
+	public List<String> readSectorIdentifierFile(URI uri) throws ServiceUnavailableException {
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri.toString());
 		SimpleHttpResponse response = null;
@@ -141,6 +144,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// implements https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) throws ServiceUnavailableException {
 		if (StringUtils.isEmpty(sectorIdentifierUriString)) {
+			ValidateArgument.required(redirectUris, "Redirect URI list");
 			// the sector ID is the host common to all uris in the list
 			String result=null;
 			for (String uriString: redirectUris) {
@@ -220,10 +224,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return oauthClientDao.createOAuthClient(oauthClient);
 	}
 	
-	public static void clearPrivateFields(OAuthClient client) {
-		
-	}
-
 	@Override
 	public OAuthClient getOpenIDConnectClient(UserInfo userInfo, String id) {
 		OAuthClient result = oauthClientDao.getOAuthClient(id);
@@ -295,8 +295,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		oauthClientDao.deleteOAuthClient(id);
 	}
-
-	private static final Random RANDOM = new SecureRandom();
 
 	public static String generateOAuthClientSecret() {
 		byte[] randomBytes = new byte[32];
@@ -475,7 +473,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
 
-	public  String getUserIdFromPPID(String ppid, String clientId) {
+	public String getUserIdFromPPID(String ppid, String clientId) {
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
