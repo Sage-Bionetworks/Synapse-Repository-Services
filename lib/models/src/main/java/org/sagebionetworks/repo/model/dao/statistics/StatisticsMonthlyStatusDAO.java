@@ -51,7 +51,17 @@ public interface StatisticsMonthlyStatusDAO {
 	 *                    otherwise
 	 */
 	Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month);
-
+	
+	/**
+	 * Retrieve the monthly statistics status for the given month, locking on the object type and month row.
+	 * 
+	 * @param  objectType The type of object
+	 * @param  month      The considered month
+	 * @return            An optional containing the statistics status for the given type and month if present, empty
+	 *                    otherwise
+	 */
+	Optional<StatisticsMonthlyStatus> getStatusForUpdate(StatisticsObjectType objectType, YearMonth month);
+	
 	/**
 	 * Return the list of statuses that are set to available for the given object in the given range [from, to].
 	 * 

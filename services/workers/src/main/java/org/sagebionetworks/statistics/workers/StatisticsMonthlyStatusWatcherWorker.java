@@ -2,7 +2,6 @@ package org.sagebionetworks.statistics.workers;
 
 import java.time.YearMonth;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +23,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
 
 	private static final Logger LOG = LogManager.getLogger(StatisticsMonthlyStatusWatcherWorker.class);
+	static final long PROCESSING_TIMEOUT = 10 * 60 * 1000; // 10 minutes of idle time before the processing is restarted
 	static final String NOTIFICATION_QUEUE = "STATISTICS_MONTHLY";
 
 	private StatisticsMonthlyManager statisticsManager;
@@ -31,7 +31,8 @@ public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
 	private String queueUrl;
 
 	@Autowired
-	public StatisticsMonthlyStatusWatcherWorker(StatisticsMonthlyManager statisticsManager, AmazonSQS awsSQSClient, StackConfiguration configuration) {
+	public StatisticsMonthlyStatusWatcherWorker(StatisticsMonthlyManager statisticsManager, AmazonSQS awsSQSClient,
+			StackConfiguration configuration) {
 		this.statisticsManager = statisticsManager;
 		this.awsSQSClient = awsSQSClient;
 		this.queueUrl = awsSQSClient.getQueueUrl(configuration.getQueueName(NOTIFICATION_QUEUE)).getQueueUrl();
@@ -45,26 +46,27 @@ public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
 			List<YearMonth> unprocessedMonths = statisticsManager.getUnprocessedMonths(objectType);
 			if (!unprocessedMonths.isEmpty()) {
 				LOG.info("Found {} unprocessed months for object type {}", unprocessedMonths.size(), objectType);
-				sendProcessNotification(objectType, unprocessedMonths);
+				submitProcessing(objectType, unprocessedMonths);
 			}
 		}
 
 		LOG.debug("Checking monthly statistics status...DONE");
 	}
 
-	private void sendProcessNotification(StatisticsObjectType objectType, List<YearMonth> months) {
-		if (months.isEmpty()) {
-			return;
-		}
+	private void submitProcessing(StatisticsObjectType objectType, List<YearMonth> months) {
+		months.forEach(month -> {
+			if (statisticsManager.startProcessingMonth(objectType, month, PROCESSING_TIMEOUT)) {
+				LOG.info("Sending processing notification for object type {} and month {}", objectType, month);
+				sendNotification(objectType, month);
+			} else {
+				LOG.info("Skipping processing notification for object type {} and month {}", objectType, month);
+			}
+		});
 
-		List<String> notifications = months.stream()
-				.map(month -> StatisticsMonthlyUtils.buildNotificationBody(objectType, month))
-				.collect(Collectors.toList());
+	}
 
-		notifications.forEach(notification -> 
-			awsSQSClient.sendMessage(queueUrl, notification)
-		);
-
+	private void sendNotification(StatisticsObjectType objectType, YearMonth month) {
+		awsSQSClient.sendMessage(queueUrl, StatisticsMonthlyUtils.buildNotificationBody(objectType, month));
 	}
 
 }

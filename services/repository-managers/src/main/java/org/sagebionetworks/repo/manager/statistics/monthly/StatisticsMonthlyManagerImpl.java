@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.statistics.monthly;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -10,8 +11,10 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +57,26 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	}
 
 	@Override
+	@WriteTransaction
+	public boolean startProcessingMonth(StatisticsObjectType objectType, YearMonth month, long processingTimeout) {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(objectType, "objectType");
+
+		long now = System.currentTimeMillis();
+
+		Optional<StatisticsMonthlyStatus> status = statusDao.getStatusForUpdate(objectType, month);
+
+		boolean started = false;
+
+		if (!status.isPresent() || shouldStartProcessing(status.get(), now, processingTimeout)) {
+			statusDao.setProcessing(objectType, month);
+			started = true;
+		}
+
+		return started;
+	}
+
+	@Override
 	public boolean processMonth(StatisticsObjectType objectType, YearMonth month) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
@@ -61,7 +84,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		LOG.debug("Processing request for object type: {} (Month: {})", objectType, month);
 
 		StatisticsMonthlyProcessor processor = getProcessor(objectType);
-		
+
 		try {
 			LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
 
@@ -75,6 +98,21 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 			setProcessingFailed(objectType, month, ex);
 			return false;
 		}
+	}
+
+	/**
+	 * @return True if the given status is in {@link StatisticsStatus#PROCESSING_FAILED} or
+	 *         {@link StatisticsStatus#PROCESSING} and exceeded the timeout
+	 */
+	private boolean shouldStartProcessing(StatisticsMonthlyStatus status, long now, long processingTimeout) {
+		StatisticsStatus actualStatus = status.getStatus();
+		if (StatisticsStatus.PROCESSING_FAILED.equals(actualStatus)) {
+			return true;
+		}
+		if (StatisticsStatus.PROCESSING.equals(actualStatus) && now - status.getLastStartedOn() >= processingTimeout) {
+			return true;
+		}
+		return false;
 	}
 
 	private void setAvailable(StatisticsObjectType objectType, YearMonth month) {

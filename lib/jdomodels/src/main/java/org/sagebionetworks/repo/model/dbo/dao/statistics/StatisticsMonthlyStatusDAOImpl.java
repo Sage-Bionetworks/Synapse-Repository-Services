@@ -47,7 +47,6 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	private static final RowMapper<DBOMonthlyStatisticsStatus> DBO_MAPPER = new DBOMonthlyStatisticsStatus().getTableMapping();
 
 	private static final RowMapper<StatisticsMonthlyStatus> ROW_MAPPER = new RowMapper<StatisticsMonthlyStatus>() {
-
 		@Override
 		public StatisticsMonthlyStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
 			return map(DBO_MAPPER.mapRow(rs, rowNum));
@@ -84,18 +83,12 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 	@Override
 	public Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month) {
-		ValidateArgument.required(objectType, "objectType");
-		ValidateArgument.required(month, "month");
+		return getStatus(objectType, month, false);
+	}
 
-		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
-
-		DBOMonthlyStatisticsStatus dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOMonthlyStatisticsStatus.class, params);
-
-		if (dbo == null) {
-			return Optional.empty();
-		}
-
-		return Optional.of(map(dbo));
+	@Override
+	public Optional<StatisticsMonthlyStatus> getStatusForUpdate(StatisticsObjectType objectType, YearMonth month) {
+		return getStatus(objectType, month, true);
 	}
 
 	@Override
@@ -119,6 +112,27 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	@WriteTransaction
 	public void clear() {
 		jdbcTemplate.update(SQL_DELETE_ALL, EmptySqlParameterSource.INSTANCE);
+	}
+
+	private Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month, boolean forUpdate) {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(month, "month");
+
+		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
+
+		DBOMonthlyStatisticsStatus dbo;
+
+		try {
+			if (forUpdate) {
+				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
+			} else {
+				dbo = basicDao.getObjectByPrimaryKey(DBOMonthlyStatisticsStatus.class, params);
+			}
+		} catch (NotFoundException e) {
+			return Optional.empty();
+		}
+
+		return Optional.of(map(dbo));
 	}
 
 	private StatisticsMonthlyStatus createOrUpdate(StatisticsObjectType objectType, YearMonth month, StatisticsStatus status,
