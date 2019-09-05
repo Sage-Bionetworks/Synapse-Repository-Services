@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
@@ -44,6 +45,7 @@ public class EntityReplicationWorkerTest {
 	@Mock
 	WorkerLogger mockWorkerLog;
 	
+	@InjectMocks
 	EntityReplicationWorker worker;
 	
 	List<ChangeMessage> changes;
