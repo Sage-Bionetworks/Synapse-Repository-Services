@@ -10,7 +10,6 @@ import java.util.Base64;
 import org.apache.logging.log4j.Logger;
 
 import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.model.AliasListEntry;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.kms.model.EncryptRequest;
@@ -28,27 +27,12 @@ public class StackEncrypterImpl implements StackEncrypter {
 	public static final String PROPERTY_KEY_STACK_CMK_ALIAS = "org.sagebionetworks.stack.cmk.alias";
 	public static final String WILL_NOT_DECRYPT_MESSAGE = "Property: '%s' does not exist so the value of '%s' will not be decrypted.";
 	public static final String DECRYPTING_PROPERTY = "Decrypting property '%s'...";
-	
-	private String stackKeyId;
 
 	@Inject
 	public StackEncrypterImpl(ConfigurationProperties configuration, AWSKMS awsKeyManagerClient, LoggerProvider logProvider) {
 		this.awsKeyManagerClient=awsKeyManagerClient;
 		this.configuration=configuration;
 		this.log = logProvider.getLogger(StackEncrypterImpl.class.getName());
-		
-		if (encryptionEnabled()) {
-			String stackKeyAliasName = configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS);
-			stackKeyId=null;
-			for (AliasListEntry aliasListEntry : awsKeyManagerClient.listAliases().getAliases()) {
-				if (stackKeyAliasName.equals(aliasListEntry.getAliasName())) {
-					stackKeyId=aliasListEntry.getTargetKeyId();
-				}
-			}
-			if (stackKeyId==null) {
-				throw new RuntimeException("No encryption key ID found for alias "+stackKeyAliasName);
-			}
-		}
 	}
 
 	private boolean encryptionEnabled() {
@@ -63,7 +47,8 @@ public class StackEncrypterImpl implements StackEncrypter {
 			}
 			byte[] plainTextBytes = plainText.getBytes( UTF_8 );
 			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(
-					new EncryptRequest().withPlaintext(ByteBuffer.wrap(plainTextBytes))).withKeyId(stackKeyId);
+					new EncryptRequest().withPlaintext(ByteBuffer.wrap(plainTextBytes))).
+					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
 			return new String(Base64.getEncoder().encode(encryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
@@ -115,7 +100,8 @@ public class StackEncrypterImpl implements StackEncrypter {
 			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
 			// KMS can decrypt the value without providing the encryption key.
 			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(new ReEncryptRequest().
-					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted))).withKeyId(stackKeyId);
+					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted))).
+					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
 			return new String(Base64.getEncoder().encode(reEncryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
