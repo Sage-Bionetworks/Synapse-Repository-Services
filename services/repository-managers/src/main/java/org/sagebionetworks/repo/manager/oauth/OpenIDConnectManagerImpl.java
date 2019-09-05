@@ -107,7 +107,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(oauthClient.getRedirect_uris(), "OAuth client redirect URI list.");
 		ValidateArgument.requirement(!oauthClient.getRedirect_uris().isEmpty(), "OAuth client must register at least one redirect URI.");
 		for (String uri: oauthClient.getRedirect_uris()) {
-			ValidateArgument.validUrl(uri, "Valid redirect URI");
+			ValidateArgument.validUrl(uri, "Redirect URI");
 		}
 		if (StringUtils.isNotEmpty(oauthClient.getSector_identifier_uri())) {
 			ValidateArgument.validUrl(oauthClient.getSector_identifier_uri(), "Sector Identifier URI");

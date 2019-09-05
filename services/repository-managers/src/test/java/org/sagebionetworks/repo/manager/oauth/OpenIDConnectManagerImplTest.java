@@ -1,25 +1,27 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,9 +32,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -50,66 +56,69 @@ import com.google.common.collect.ImmutableList;
 @RunWith(MockitoJUnitRunner.class)
 public class OpenIDConnectManagerImplTest {
 	private static final String REDIRECT_URI = "https://foo.bar.com/user/login/synapse/login";
-	
-	@Mock
-	private StackEncrypter stackEncrypter;
-
-	@Mock
-	private OAuthClientDao oauthClientDao;
-
-	@Mock
-	private AuthenticationDAO authDao;
-
-	@Mock
-	private UserProfileManager userProfileManager;
-
-	@Mock
-	private TeamDAO teamDAO;
-	
-	@Mock
-	private SimpleHttpClient httpClient;
-
-	@Mock
-	private SimpleHttpResponse response;
-
-	@Captor
-	private ArgumentCaptor<SimpleHttpRequest> simpleHttpRequest;
-	
-	@InjectMocks
-	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
-	
-	@Before
-	public void setUp() throws Exception {
-		when(response.getStatusCode()).thenReturn(200);
-		when(response.getContent()).thenReturn("[\"firstRedirUri\",\"secondRedirUri\"]");
-
-		when(httpClient.get((SimpleHttpRequest)any())).thenReturn(response);
-	}
-
-	
 	private static final String USER_ID = "101";
+	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
 	private static final String CLIENT_NAME = "some client";
 	private static final String CLIENT_URI = "https://client.uri.com/index.html";
 	private static final String POLICY_URI = "https://client.uri.com/policy.html";
 	private static final String TOS_URI = "https://client.uri.com/termsOfService.html";
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
 	private static final String SECTOR_IDENTIFIER_URI_STRING = "https://client.uri.com/path/to/json/file";
+	private static final List<String> REDIR_URI_LIST = ImmutableList.of("https://host1.com/redir1", "https://host2.com/redir2");
+
 	
-	private static final URI SECTOR_IDENTIFIER_URI;
-	static {
-		try {
-			SECTOR_IDENTIFIER_URI = new URI(SECTOR_IDENTIFIER_URI_STRING);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
+	@Mock
+	private StackEncrypter mockStackEncrypter;
+
+	@Mock
+	private OAuthClientDao mockOauthClientDao;
+
+	@Mock
+	private AuthenticationDAO mockAuthDao;
+
+	@Mock
+	private UserProfileManager mockUserProfileManager;
+
+	@Mock
+	private TeamDAO mockTeamDAO;
+	
+	@Mock
+	private SimpleHttpClient mockHttpClient;
+
+	@Mock
+	private SimpleHttpResponse mockHttpResponse;
+
+	@Captor
+	private ArgumentCaptor<SimpleHttpRequest> simpleHttpRequestCaptor;
+	
+	@Captor
+	private ArgumentCaptor<SectorIdentifier> sectorIdentifierCaptor;
+	
+	@InjectMocks
+	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
+	
+	private UserInfo userInfo;
+	private  URI sector_identifier_uri;
+	
+	@Before
+	public void setUp() throws Exception {
+		userInfo = new UserInfo(false);
+		userInfo.setId(USER_ID_LONG);
+
+		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_STRING);
+
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
+
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+
+		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
 	}
-
-
+	
 	private static OAuthClient createOAuthClient(String userId) {
 		OAuthClient result = new OAuthClient();
 		result.setClient_name(CLIENT_NAME);
-		result.setEtag(UUID.randomUUID().toString());
-		result.setCreatedBy(userId);
 		result.setClient_uri(CLIENT_URI);
 		result.setCreatedOn(new Date(System.currentTimeMillis()));
 		result.setModifiedOn(new Date(System.currentTimeMillis()));
@@ -117,10 +126,8 @@ public class OpenIDConnectManagerImplTest {
 		result.setRedirect_uris(REDIRCT_URIS);
 		result.setTos_uri(TOS_URI);
 		result.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
-		result.setVerified(false);
 		return result;
 	}
-	
 	
 	@Test
 	public void testValidateOAuthClientForCreateOrUpdate() {
@@ -194,59 +201,59 @@ public class OpenIDConnectManagerImplTest {
 	@Test
 	public void testReadSectorIdentifierFileHappyCase() throws Exception {
 		// method under test
-		List<String> result = openIDConnectManagerImpl.readSectorIdentifierFile(SECTOR_IDENTIFIER_URI);
+		List<String> result = openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		
-		verify(httpClient).get(simpleHttpRequest.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequest.getValue().getUri());
+		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
+		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
 		
-		assertEquals(ImmutableList.of("firstRedirUri", "secondRedirUri"), result);
+		assertEquals(REDIR_URI_LIST, result);
 	}
 
 	@Test
 	public void testReadSectorIdentifierFileHttpRequestFails() throws Exception {
-		when(response.getStatusCode()).thenReturn(400);
+		when(mockHttpResponse.getStatusCode()).thenReturn(400);
 
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(SECTOR_IDENTIFIER_URI);
+			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (ServiceUnavailableException e) {
 			// as expected
 		}
 		
-		verify(httpClient).get(simpleHttpRequest.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequest.getValue().getUri());
+		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
+		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
 		
 		// try throwing IOException
-		when(httpClient.get((SimpleHttpRequest)any())).thenThrow(new IOException());
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenThrow(new IOException());
 		
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(SECTOR_IDENTIFIER_URI);
+			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (ServiceUnavailableException e) {
 			// as expected
 		}
 		
-		verify(httpClient, times(2)).get(simpleHttpRequest.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequest.getValue().getUri());
+		verify(mockHttpClient, times(2)).get(simpleHttpRequestCaptor.capture());
+		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
 		
 	}
 
 	@Test
 	public void testReadSectorIdentifierBadFileContent() throws Exception {
-		when(response.getContent()).thenReturn("{\"foo\":\"bar\"}");
+		when(mockHttpResponse.getContent()).thenReturn("{\"foo\":\"bar\"}");
 		
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(SECTOR_IDENTIFIER_URI);
+			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		
-		verify(httpClient).get(simpleHttpRequest.capture());
-		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequest.getValue().getUri());
+		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
+		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
 	}
 	
 	@Test
@@ -299,7 +306,160 @@ public class OpenIDConnectManagerImplTest {
 			// as expected
 		}
 	}
+	
+	@Test
+	public void testResolveSectorIdentifier_WithSIURI_HappyCase() throws Exception {
+		// method under test
+		String sectorIdentifier = openIDConnectManagerImpl.resolveSectorIdentifier(
+				SECTOR_IDENTIFIER_URI_STRING, REDIR_URI_LIST);
+		
+		// the redir's are a subset of those in the file; the Sector Identifer is the host part of the URL pointing to the file
+		assertEquals("client.uri.com", sectorIdentifier);
+		
+		
+		// the registered URIs must be a *subset* of those listed in the files.  So this is OK too:
+		// method under test
+		sectorIdentifier = openIDConnectManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+				Collections.singletonList("https://host1.com/redir1"));
+		assertEquals("client.uri.com", sectorIdentifier);
+	}
 
+	@Test
+	public void testResolveSectorIdentifier_WithSIURI_InvalidFileURI() throws Exception {
+		try {
+			// method under test
+			openIDConnectManagerImpl.resolveSectorIdentifier("*&#%#$$@", REDIR_URI_LIST);
+			fail("exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+
+		// scheme must be https not http
+		try {
+			// method under test
+			openIDConnectManagerImpl.resolveSectorIdentifier("http://insecure.com/file", REDIR_URI_LIST);
+			fail("exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testResolveSectorIdentifier_WithSIURI_RedirMismatch() throws Exception {
+		// trying to use a redirect uri that's not in the file
+		try {
+			// method under test
+			openIDConnectManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+					Collections.singletonList("https://SomeOtherHost/redir1"));
+			fail("exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+
+	@Test
+	public void testCanCreate() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(USER_ID_LONG);
+		// method under test
+		assertTrue(OpenIDConnectManagerImpl.canCreate(userInfo));
+		
+		UserInfo anonymousUserInfo = new UserInfo(false);
+		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// method under test
+		assertFalse(OpenIDConnectManagerImpl.canCreate(anonymousUserInfo));
+	}
+
+	@Test
+	public void testCanAdministrate() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(USER_ID_LONG);
+		// method under test
+		assertTrue(OpenIDConnectManagerImpl.canAdministrate(userInfo, USER_ID));
+		// method under test
+		assertFalse(OpenIDConnectManagerImpl.canAdministrate(userInfo, "9999"));
+		
+		UserInfo adminUserInfo = new UserInfo(true);
+		adminUserInfo.setId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		// method under test
+		assertTrue(OpenIDConnectManagerImpl.canAdministrate(adminUserInfo, USER_ID));
+	}
+	
+	@Test
+	public void testCreateOpenIDConnectClient() throws Exception {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		
+		// later we test these fields are filled in.  So let's ensure they are not pre-filled.
+		assertNull(oauthClient.getCreatedBy());
+		assertNull(oauthClient.getEtag());
+		assertNull(oauthClient.getVerified());
+		assertNull(oauthClient.getSector_identifier());
+		assertNull(oauthClient.getSector_identifier_uri());
+		
+		// method under test
+		OAuthClient result = openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		
+		assertEquals(USER_ID, result.getCreatedBy());
+		assertNotNull(result.getEtag());
+		assertFalse(result.getVerified());
+		assertEquals("client.com", result.getSector_identifier());
+		
+		// make sure sector identifier was created
+		verify(mockOauthClientDao).createSectorIdentifier(sectorIdentifierCaptor.capture());
+		
+		SectorIdentifier si = sectorIdentifierCaptor.getValue();
+		assertEquals(USER_ID_LONG, si.getCreatedBy());
+		assertNotNull(si.getCreatedOn());
+		assertNotNull(si.getSecret());
+		assertEquals("client.com", si.getSectorIdentifierUri());
+	}
+	
+	@Test
+	public void testCreateOpenIDConnectClient_WithSectorIdentifierURI() throws Exception {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		oauthClient.setRedirect_uris(Collections.singletonList("https://host1.com/redir1"));
+		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+		
+		// method under test
+		OAuthClient result = openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		
+		assertEquals("client.uri.com", result.getSector_identifier());
+		
+		// make sure sector identifier was created
+		verify(mockOauthClientDao).createSectorIdentifier(sectorIdentifierCaptor.capture());
+		SectorIdentifier si = sectorIdentifierCaptor.getValue();
+		assertEquals("client.uri.com", si.getSectorIdentifierUri());
+	}
+	
+
+	@Test
+	public void testCreateOpenIDConnectClient_SIAlreadyExists() throws Exception {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		
+		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(true);
+
+		// method under test
+		openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		
+		// make sure sector identifier was created
+		verify(mockOauthClientDao, never()).createSectorIdentifier((SectorIdentifier)any());
+	}
+	
+	@Test
+	public void testCreateOpenIDConnectClient_Unauthorized() throws Exception {
+		UserInfo anonymousUserInfo = new UserInfo(false);
+		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+
+		try {
+			// method under test
+			openIDConnectManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
+			fail("Exception expected.");
+		} catch (UnauthorizedException e) {
+			//as expected
+		}
+	}
+	
 	@Test
 	public void testValidateAuthenticationRequest() {
 		OAuthClient client = new OAuthClient();
