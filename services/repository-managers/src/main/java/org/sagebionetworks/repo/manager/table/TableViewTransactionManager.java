@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -76,9 +77,14 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 			TableUpdateResponse result = applyChange(progressCallback, userInfo, change);
 			results.add(result);
 		}
+		if(Boolean.TRUE.equals(request.getCreateSnapshot())) {
+			long snapshotVersionNumber = tableViewManger.createSnapshot(userInfo, tableId, request.getSnapshotOptions());
+			response.setSnapshotVersionNumber(snapshotVersionNumber);
+		}
 		return response;
 	}
-	
+
+
 	/**
 	 * Apply each change within a transaction.
 	 * 

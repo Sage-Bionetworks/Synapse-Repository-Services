@@ -1645,12 +1645,30 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		when(mockTableManagerSupport.getTableType(KeyFactory.idAndVersion(tableId))).thenReturn(ObjectType.TABLE);
 		// call under test
 		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
 		assertNotNull(response);
 		assertEquals(snapshotVersion, response.getSnapshotVersionNumber());
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 		verify(mockNodeManager).createSnapshotAndVersion(user, tableId, snapshotRequest);
+	}
+	
+	@Test
+	public void testCreateTableSnapshotView() {
+		Long snapshotVersion = 441L;
+		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
+		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
+		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
+		when(mockTableManagerSupport.getTableType(KeyFactory.idAndVersion(tableId))).thenReturn(ObjectType.ENTITY_VIEW);
+		// call under test
+		try {
+			manager.createTableSnapshot(user, tableId, snapshotRequest);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains("EntityView"));
+		}
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

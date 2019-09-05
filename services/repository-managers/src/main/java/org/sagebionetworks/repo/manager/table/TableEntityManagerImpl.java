@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -992,20 +991,26 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransaction
 	@Override
-	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableIdString, SnapshotRequest request) {
+	public SnapshotResponse createTableSnapshot(UserInfo userInfo, String tableId, SnapshotRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(tableIdString, "TableId");
+		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(request, "request");
-		Long tableId = KeyFactory.stringToKey(tableIdString);
-		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId).build();
+		
+		IdAndVersion idAndVersion = KeyFactory.idAndVersion(tableId);
+		
+		ObjectType type = tableManagerSupport.getTableType(idAndVersion);
+		if(ObjectType.ENTITY_VIEW.equals(type)) {
+			throw new IllegalArgumentException("EntityView snapshots can only be created via an asynchronous table transaction job.");
+		}
+		
 		// Validate the user has permission to edit the table
 		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
 		// Table must have at least one transaction, such as setting the table's schema.
-		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableIdString);
+		Optional<Long> lastTransactionNumber = tableRowTruthDao.getLastTransactionId(tableId);
 		if(!lastTransactionNumber.isPresent()) {
 			throw new IllegalArgumentException("This table: "+tableId+" does not have a schema so a snapshot cannot be created.");
 		}
-		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableIdString, request, lastTransactionNumber.get());
+		long snapshotVersion = createSnapshotAndBindToTransaction(userInfo, tableId, request, lastTransactionNumber.get());
 		SnapshotResponse response = new SnapshotResponse();
 		response.setSnapshotVersionNumber(snapshotVersion);
 		return response;

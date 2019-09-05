@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -225,5 +226,11 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		return updated;
+	}
+
+	@Override
+	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }
