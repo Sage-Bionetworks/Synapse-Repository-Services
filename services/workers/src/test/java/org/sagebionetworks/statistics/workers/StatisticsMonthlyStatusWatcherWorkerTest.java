@@ -31,7 +31,7 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 
 	@Mock
 	private StackConfiguration mockConfig;
-	
+
 	@Mock
 	private StatisticsMonthlyManager mockStatisticsManager;
 
@@ -56,25 +56,29 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 		worker.run(null);
 
 		for (StatisticsObjectType type : StatisticsObjectType.values()) {
-			verify(mockStatisticsManager, times(1)).getUnprocessedMonths(type);
+			verify(mockStatisticsManager).getUnprocessedMonths(type);
 		}
 
+		verify(mockStatisticsManager, never()).startProcessingMonth(any(), any(), any(Long.class));
 		verify(mockSqsClient, never()).sendMessage(any(), any());
 	}
 
 	@Test
 	public void testRunWithWithProcessing() throws Exception {
 		YearMonth month = YearMonth.of(2019, 8);
-		
+
 		List<YearMonth> unprocessedMonths = Collections.singletonList(month);
 
+		when(mockStatisticsManager.startProcessingMonth(any(StatisticsObjectType.class), any(YearMonth.class), any(Long.class)))
+				.thenReturn(true);
 		when(mockStatisticsManager.getUnprocessedMonths(any(StatisticsObjectType.class))).thenReturn(unprocessedMonths);
 
 		// Call under test
 		worker.run(null);
 
 		for (StatisticsObjectType type : StatisticsObjectType.values()) {
-			verify(mockStatisticsManager, times(1)).getUnprocessedMonths(type);
+			verify(mockStatisticsManager).getUnprocessedMonths(type);
+			verify(mockStatisticsManager).startProcessingMonth(eq(type), eq(month), any(Long.class));
 		}
 
 		verify(mockSqsClient, times(StatisticsObjectType.values().length)).sendMessage(eq(QUEUE_URL), any());
