@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.statistics.monthly;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -36,7 +38,6 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	private static final int MAX_MONTHS_TO_PROCESS = 12;
 	private static final StatisticsObjectType OBJECT_TYPE = StatisticsObjectType.PROJECT;
-	private static final long PROCESSING_TIMEOUT = 10000L;
 
 	@Mock
 	private StatisticsMonthlyStatusDAO mockDao;
@@ -54,7 +55,6 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		when(mockProcessor.getProcessingTimeout()).thenReturn(PROCESSING_TIMEOUT);
 		when(mockProcessorProvider.getMonthlyProcessor(any(StatisticsObjectType.class))).thenReturn(mockProcessor);
 		when(mockConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS_TO_PROCESS);
 		
@@ -133,61 +133,52 @@ public class StatisticsMonthlyManagerImplUnitTest {
 	}
 
 	@Test
-	public void testProcessMonthNoGo() {
-
-		boolean processingStarted = false;
-
-		YearMonth month = YearMonth.of(2019, 8);
-
-		when(mockDao.startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT)).thenReturn(processingStarted);
-
-		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month);
-
-		assertFalse(result);
-		verify(mockDao, times(1)).startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT);
-		verify(mockProcessor, never()).processMonth(any());
-		verify(mockDao, never()).setAvailable(any(), any());
-		verify(mockDao, never()).setProcessingFailed(any(), any());
-
-	}
-
-	@Test
 	public void testProcessMonthSuccess() {
 
-		boolean processingStarted = true;
-
 		YearMonth month = YearMonth.of(2019, 8);
-
-		when(mockDao.startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT)).thenReturn(processingStarted);
 
 		// Call under test
 		boolean result = manager.processMonth(OBJECT_TYPE, month);
 
 		assertTrue(result);
-		verify(mockDao, times(1)).startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT);
 		verify(mockProcessor, times(1)).processMonth(month);
 		verify(mockDao, times(1)).setAvailable(OBJECT_TYPE, month);
 	}
 
 	@Test
-	public void testProcessMonthFailed() {
-
-		boolean processingStarted = true;
+	public void testProcessMonthFailedWithNoErrorMessage() {
 
 		YearMonth month = YearMonth.of(2019, 8);
 
-		when(mockDao.startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT)).thenReturn(processingStarted);
 		doThrow(IllegalStateException.class).when(mockProcessor).processMonth(any());
 
 		// Call under test
 		boolean result = manager.processMonth(OBJECT_TYPE, month);
 
-		assertTrue(result);
-		verify(mockDao, times(1)).startProcessing(OBJECT_TYPE, month, PROCESSING_TIMEOUT);
+		assertFalse(result);
 		verify(mockProcessor, times(1)).processMonth(any());
-		verify(mockDao, times(1)).setProcessingFailed(OBJECT_TYPE, month);
 		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
+		verify(mockDao, times(1)).setProcessingFailed(eq(OBJECT_TYPE), eq(month), nullable(String.class), any(String.class));
+	}
+	
+	@Test
+	public void testProcessMonthFailedWithErrorMessage() {
+
+		YearMonth month = YearMonth.of(2019, 8);
+		
+		Exception ex = new IllegalStateException("Some error");
+		
+		String errorMessage = ex.getMessage();
+		
+		doThrow(ex).when(mockProcessor).processMonth(any());
+
+		// Call under test
+		boolean result = manager.processMonth(OBJECT_TYPE, month);
+
+		assertFalse(result);
+		verify(mockProcessor, times(1)).processMonth(any());
+		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
+		verify(mockDao, times(1)).setProcessingFailed(eq(OBJECT_TYPE), eq(month), eq(errorMessage), any(String.class));
 	}
 
 }

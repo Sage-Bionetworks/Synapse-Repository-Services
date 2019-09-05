@@ -32,16 +32,17 @@ public class StatisticsMonthlyWorker implements MessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
 		String messageBody = message.getBody();
-		
+
 		LOG.debug("Process notification received: " + messageBody);
-		
+
 		StatisticsMonthlyProcessNotification notification = StatisticsMonthlyUtils.fromNotificationBody(messageBody);
 
 		LOG.info("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
-		if (manager.processMonth(notification.getObjectType(), notification.getMonth())) {			
+
+		if (manager.processMonth(notification.getObjectType(), notification.getMonth())) {
 			LOG.info("Proccessing months {} for object type {}...DONE", notification.getMonth(), notification.getObjectType());
 		} else {
-			LOG.info("Proccessing months {} for object type {}...DONE (Processing skipped)", notification.getMonth(), notification.getObjectType());
+			LOG.info("Proccessing months {} for object type {}...FAILED", notification.getMonth(), notification.getObjectType());
 		}
 	}
 

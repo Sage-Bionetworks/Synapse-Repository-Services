@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.model.statistics.monthly;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.monthly.notification.StatisticsMonthlyProcessNotification;
 import org.sagebionetworks.util.ValidateArgument;
@@ -64,6 +68,27 @@ public class StatisticsMonthlyUtils {
 			return OBJECT_MAPPER.readValue(json, StatisticsMonthlyProcessNotification.class);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+	}
+	
+	public static String createErrorDetails(Exception ex) {
+		StringWriter writer = new StringWriter();
+		ex.printStackTrace(new PrintWriter(writer));
+		return writer.toString();
+	}
+
+	public static String encodeErrorMessage(String errorMessage, int maxChars) {
+		return StringUtils.abbreviate(errorMessage, maxChars);
+	}
+	
+	public static byte[] encodeErrorDetails(String errorDetails) {
+		if (errorDetails == null) {
+			return null;
+		}
+		try {
+			return errorDetails.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

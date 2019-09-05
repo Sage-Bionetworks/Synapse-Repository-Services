@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus
 public interface StatisticsMonthlyStatusDAO {
 
 	/**
-	 * Sets the status for the given object type and month to {@link StatisticsStatus#AVAILABLE}, sets the lastSucceededAt
+	 * Sets the status for the given object type and month to {@link StatisticsStatus#AVAILABLE}, updates the lastUpdatedOn
 	 * timestamp. Creates a new record if it does not exist.
 	 * 
 	 * @param  objectType
@@ -21,17 +21,19 @@ public interface StatisticsMonthlyStatusDAO {
 	StatisticsMonthlyStatus setAvailable(StatisticsObjectType objectType, YearMonth month);
 
 	/**
-	 * Sets the status for the given object type and month to {@link StatisticsStatus#PROCESSING_FAILED}, sets the
-	 * lastFailedAt timestamp. Creates a new record if it does not exist.
+	 * Sets the status for the given object type and month to {@link StatisticsStatus#PROCESSING_FAILED}, updates the
+	 * lastUpdatedOn timestamp. Creates a new record if it does not exist.
 	 * 
 	 * @param  objectType
 	 * @param  month
+	 * @param  errorMessage
+	 * @param  errorDetails
 	 * @return
 	 */
-	StatisticsMonthlyStatus setProcessingFailed(StatisticsObjectType objectType, YearMonth month);
+	StatisticsMonthlyStatus setProcessingFailed(StatisticsObjectType objectType, YearMonth month, String errorMessage, String errorDetails);
 
 	/**
-	 * Sets the status for the given object type and month to {@link StatisticsStatus#PROCESSING}, sets the lastStartedAt
+	 * Sets the status for the given object type and month to {@link StatisticsStatus#PROCESSING}, updates the lastUpdatedOn
 	 * timestamp. Creates a new record if it does not exist.
 	 * 
 	 * @param  objectType
@@ -39,20 +41,6 @@ public interface StatisticsMonthlyStatusDAO {
 	 * @return
 	 */
 	StatisticsMonthlyStatus setProcessing(StatisticsObjectType objectType, YearMonth month);
-
-	/**
-	 * Sets the status for the given object type and month to {@link StatisticsStatus#PROCESSING} iff no record exists for
-	 * the given tuple or if the status is currently in failed status or if in PROCESSING status but timed out.
-	 * 
-	 * @param  objectType
-	 * @param  month
-	 * @param  processingTimeout The amount of time since the last time a processing was started, if the the current status
-	 *                           is already in PROCESSING but an amount of time equal or greater than processingTimeout time
-	 *                           has passed then refresh the status to PROCESSING
-	 * @return                   True if the status was set to processing, false if a record already exists and its status
-	 *                           is in PROCESSING or AVAILABLE
-	 */
-	boolean startProcessing(StatisticsObjectType objectType, YearMonth month, long processingTimeout);
 
 	/**
 	 * Retrieve the monthly statistics status for the given month.

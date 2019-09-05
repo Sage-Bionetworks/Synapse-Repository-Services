@@ -26,7 +26,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	private int maxMonths;
 
 	@Autowired
-	public StatisticsMonthlyManagerImpl(StatisticsMonthlyStatusDAO statusDao, StatisticsMonthlyProcessorProvider processorProvider, StackConfiguration stackConfig) {
+	public StatisticsMonthlyManagerImpl(StatisticsMonthlyStatusDAO statusDao, StatisticsMonthlyProcessorProvider processorProvider,
+			StackConfiguration stackConfig) {
 		this.statusDao = statusDao;
 		this.processorProvider = processorProvider;
 		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
@@ -60,28 +61,32 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		LOG.debug("Processing request for object type: {} (Month: {})", objectType, month);
 
 		StatisticsMonthlyProcessor processor = getProcessor(objectType);
+		
+		try {
+			LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
 
-		boolean started = statusDao.startProcessing(objectType, month, processor.getProcessingTimeout());
+			processor.processMonth(month);
 
-		if (started) {
-			try {
-				LOG.info("Processing started for object type: {} (Month: {})", objectType, month);
+			LOG.info("Processing finished for object type: {} (Month: {})", objectType, month);
 
-				processor.processMonth(month);
-
-				LOG.info("Processing finished for object type: {} (Month: {})", objectType, month);
-
-				statusDao.setAvailable(objectType, month);
-			} catch (Exception e) {
-				LOG.error("Processing failed for object type: {} (Month: {}): ", objectType, month);
-				LOG.error(e.getMessage(), e);
-				statusDao.setProcessingFailed(objectType, month);
-			}
-		} else {
-			LOG.debug("Skipping processing for object type: {} (Month: {}), processing not needed", objectType, month);
+			setAvailable(objectType, month);
+			return true;
+		} catch (Exception ex) {
+			setProcessingFailed(objectType, month, ex);
+			return false;
 		}
+	}
 
-		return started;
+	private void setAvailable(StatisticsObjectType objectType, YearMonth month) {
+		statusDao.setAvailable(objectType, month);
+	}
+
+	private void setProcessingFailed(StatisticsObjectType objectType, YearMonth month, Exception ex) {
+		LOG.error("Processing failed for object type: {} (Month: {}): ", objectType, month);
+		LOG.error(ex.getMessage(), ex);
+		String errorMessage = ex.getMessage();
+		String errorDetails = StatisticsMonthlyUtils.createErrorDetails(ex);
+		statusDao.setProcessingFailed(objectType, month, errorMessage, errorDetails);
 	}
 
 	private StatisticsMonthlyProcessor getProcessor(StatisticsObjectType objectType) {

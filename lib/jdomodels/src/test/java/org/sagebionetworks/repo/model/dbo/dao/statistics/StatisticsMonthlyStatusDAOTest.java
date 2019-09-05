@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.statistics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,7 +30,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class StatisticsMonthlyStatusDAOTest {
 
 	private static final StatisticsObjectType OBJECT_TYPE = StatisticsObjectType.PROJECT;
-	private static final long PROCESSING_TIMEOUT = 10000L;
 
 	@Autowired
 	private StatisticsMonthlyStatusDAO dao;
@@ -91,7 +91,8 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetFailedWithEmptyType() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = YearMonth.of(2019, 8);
-			dao.setProcessingFailed(null, yearMonth);
+			// Call under test
+			dao.setProcessingFailed(null, yearMonth, "Some error", "Some error details");
 		});
 	}
 
@@ -99,7 +100,8 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetFailedWithEmptyMonth() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = null;
-			dao.setProcessingFailed(OBJECT_TYPE, yearMonth);
+			// Call under test
+			dao.setProcessingFailed(OBJECT_TYPE, yearMonth, "Some error", "Some error details");
 		});
 	}
 
@@ -107,6 +109,7 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetAvailableWithEmptyType() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = YearMonth.of(2019, 8);
+			// Call under test
 			dao.setAvailable(null, yearMonth);
 		});
 	}
@@ -115,6 +118,7 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetAvailableWithEmptyMonth() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = null;
+			// Call under test
 			dao.setAvailable(OBJECT_TYPE, yearMonth);
 		});
 	}
@@ -123,6 +127,7 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetProcessingWithEmptyType() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = YearMonth.of(2019, 8);
+			// Call under test
 			dao.setProcessing(null, yearMonth);
 		});
 	}
@@ -131,6 +136,7 @@ public class StatisticsMonthlyStatusDAOTest {
 	public void testSetProcessingWithEmptyMonth() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			YearMonth yearMonth = null;
+			// Call under test
 			dao.setProcessing(OBJECT_TYPE, yearMonth);
 		});
 	}
@@ -147,9 +153,8 @@ public class StatisticsMonthlyStatusDAOTest {
 
 		assertEquals(yearMonth, status.getMonth());
 		assertEquals(StatisticsStatus.AVAILABLE, status.getStatus());
-		assertNotNull(status.getLastSucceededAt());
-		assertNull(status.getLastStartedAt());
-		assertNull(status.getLastFailedAt());
+		assertNotNull(status.getLastUpdatedOn());
+		assertNull(status.getLastStartedOn());
 	}
 
 	@Test
@@ -160,13 +165,12 @@ public class StatisticsMonthlyStatusDAOTest {
 		YearMonth yearMonth = YearMonth.of(year, month);
 
 		// Call under test
-		StatisticsMonthlyStatus status = dao.setProcessingFailed(OBJECT_TYPE, yearMonth);
+		StatisticsMonthlyStatus status = dao.setProcessingFailed(OBJECT_TYPE, yearMonth, "Some error", "Some error details");
 
 		assertEquals(yearMonth, status.getMonth());
 		assertEquals(StatisticsStatus.PROCESSING_FAILED, status.getStatus());
-		assertNull(status.getLastStartedAt());
-		assertNull(status.getLastSucceededAt());
-		assertNotNull(status.getLastFailedAt());
+		assertNotNull(status.getLastUpdatedOn());
+		assertNull(status.getLastStartedOn());
 	}
 
 	@Test
@@ -181,9 +185,8 @@ public class StatisticsMonthlyStatusDAOTest {
 
 		assertEquals(yearMonth, status.getMonth());
 		assertEquals(StatisticsStatus.PROCESSING, status.getStatus());
-		assertNotNull(status.getLastStartedAt());
-		assertNull(status.getLastSucceededAt());
-		assertNull(status.getLastFailedAt());
+		assertNotNull(status.getLastStartedOn());
+		assertNotNull(status.getLastUpdatedOn());
 	}
 
 	@Test
@@ -196,130 +199,39 @@ public class StatisticsMonthlyStatusDAOTest {
 		// Set if first as available, this sets the started at timestamp
 		StatisticsMonthlyStatus status = dao.setProcessing(OBJECT_TYPE, yearMonth);
 
-		assertNotNull(status.getLastStartedAt());
-		assertNull(status.getLastSucceededAt());
-		assertNull(status.getLastFailedAt());
+		assertNotNull(status.getLastStartedOn());
+		assertNotNull(status.getLastUpdatedOn());
 
 		// Call under test
 		StatisticsMonthlyStatus statusUpdated = dao.setAvailable(OBJECT_TYPE, yearMonth);
 
 		assertEquals(StatisticsStatus.AVAILABLE, statusUpdated.getStatus());
-		assertNotNull(statusUpdated.getLastStartedAt());
-		assertEquals(status.getLastStartedAt(), statusUpdated.getLastStartedAt());
-		assertNotNull(statusUpdated.getLastSucceededAt());
-		assertNull(statusUpdated.getLastFailedAt());
-
-	}
-
-	@Test
-	public void testStartProcessingWhenNotPresent() {
-		int year = 2019;
-		int month = 8;
-
-		YearMonth yearMonth = YearMonth.of(year, month);
-
-		// Call under test
-		boolean result = dao.startProcessing(OBJECT_TYPE, yearMonth, PROCESSING_TIMEOUT);
-
-		assertTrue(result);
-
-		Optional<StatisticsMonthlyStatus> status = dao.getStatus(OBJECT_TYPE, yearMonth);
-
-		assertTrue(status.isPresent());
-		assertEquals(StatisticsStatus.PROCESSING, status.get().getStatus());
-	}
-
-	@Test
-	public void testStartProcessingWhenFailed() {
-		int year = 2019;
-		int month = 8;
-
-		YearMonth yearMonth = YearMonth.of(year, month);
-
-		// Set it first as failed
-		dao.setProcessingFailed(OBJECT_TYPE, yearMonth);
-
-		// Call under test
-		boolean result = dao.startProcessing(OBJECT_TYPE, yearMonth, PROCESSING_TIMEOUT);
-
-		assertTrue(result);
-
-		Optional<StatisticsMonthlyStatus> status = dao.getStatus(OBJECT_TYPE, yearMonth);
-
-		assertTrue(status.isPresent());
-		assertEquals(StatisticsStatus.PROCESSING, status.get().getStatus());
+		assertNotNull(statusUpdated.getLastStartedOn());
+		assertEquals(status.getLastStartedOn(), statusUpdated.getLastStartedOn());
+		assertNotNull(statusUpdated.getLastUpdatedOn());
+		assertNotEquals(status.getLastUpdatedOn(), statusUpdated.getLastUpdatedOn());
 	}
 	
 	@Test
-	public void testStartProcessingWhenTimedOut() {
+	public void testSetFailedWithNoErrorDetails() {
 		int year = 2019;
 		int month = 8;
 
 		YearMonth yearMonth = YearMonth.of(year, month);
 
-		// Set it first as processing
-		dao.setProcessing(OBJECT_TYPE, yearMonth);
+		// Set if first as available, this sets the started at timestamp
+		StatisticsMonthlyStatus status = dao.setProcessing(OBJECT_TYPE, yearMonth);
+
+		assertNotNull(status.getLastStartedOn());
+		assertNotNull(status.getLastUpdatedOn());
+
+		// Call under test
+		StatisticsMonthlyStatus statusUpdated = dao.setProcessingFailed(OBJECT_TYPE, yearMonth, "Some error", null);
 		
-		// Let the timeout pass
-		long timeout = 50;
-		
-		try {
-			Thread.sleep(timeout);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-		// Call under test
-		boolean result = dao.startProcessing(OBJECT_TYPE, yearMonth, timeout);
-
-		assertTrue(result);
-
-		Optional<StatisticsMonthlyStatus> status = dao.getStatus(OBJECT_TYPE, yearMonth);
-
-		assertTrue(status.isPresent());
-		assertEquals(StatisticsStatus.PROCESSING, status.get().getStatus());
-	}
-
-	@Test
-	public void testStartProcessingFalseWhenAvailable() {
-		int year = 2019;
-		int month = 8;
-
-		YearMonth yearMonth = YearMonth.of(year, month);
-
-		// Set it first as available
-		dao.setAvailable(OBJECT_TYPE, yearMonth);
-
-		// Call under test
-		boolean result = dao.startProcessing(OBJECT_TYPE, yearMonth, PROCESSING_TIMEOUT);
-
-		assertFalse(result);
-
-		Optional<StatisticsMonthlyStatus> status = dao.getStatus(OBJECT_TYPE, yearMonth);
-
-		assertTrue(status.isPresent());
-		assertEquals(StatisticsStatus.AVAILABLE, status.get().getStatus());
-	}
-
-	@Test
-	public void testStartProcessingFalseWhenProcessing() {
-		int year = 2019;
-		int month = 8;
-
-		YearMonth yearMonth = YearMonth.of(year, month);
-
-		// Set it first as available
-		dao.setProcessing(OBJECT_TYPE, yearMonth);
-
-		// Call under test
-		boolean result = dao.startProcessing(OBJECT_TYPE, yearMonth, PROCESSING_TIMEOUT);
-
-		assertFalse(result);
-
-		Optional<StatisticsMonthlyStatus> status = dao.getStatus(OBJECT_TYPE, yearMonth);
-
-		assertTrue(status.isPresent());
-		assertEquals(StatisticsStatus.PROCESSING, status.get().getStatus());
+		assertNotNull(statusUpdated.getLastStartedOn());
+		assertEquals(status.getLastStartedOn(), statusUpdated.getLastStartedOn());
+		assertNotNull(statusUpdated.getLastUpdatedOn());
+		assertNotEquals(status.getLastUpdatedOn(), statusUpdated.getLastUpdatedOn());
 	}
 
 	@Test

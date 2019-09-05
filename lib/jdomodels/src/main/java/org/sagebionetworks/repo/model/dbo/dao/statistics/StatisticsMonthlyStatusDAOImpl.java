@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.statistics;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_MONTH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_MONTH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY_STATUS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,11 +38,11 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	private static final String PARAM_FROM = "from";
 	private static final String PARAM_TO = "to";
 
-	private static final String SQL_DELETE_ALL = "DELETE FROM " + TABLE_STATISTICS_MONTHLY;
-	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " + TABLE_STATISTICS_MONTHLY + " WHERE "
-			+ COL_STATISTICS_MONTHLY_OBJECT_TYPE + " = :" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS + " =:"
-			+ PARAM_STATUS + " AND " + COL_STATISTICS_MONTHLY_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO + " ORDER BY "
-			+ COL_STATISTICS_MONTHLY_MONTH;
+	private static final String SQL_DELETE_ALL = "DELETE FROM " + TABLE_STATISTICS_MONTHLY_STATUS;
+	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " + TABLE_STATISTICS_MONTHLY_STATUS + " WHERE "
+			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + " = :" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS_STATUS
+			+ " =:" + PARAM_STATUS + " AND " + COL_STATISTICS_MONTHLY_STATUS_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO
+			+ " ORDER BY " + COL_STATISTICS_MONTHLY_STATUS_MONTH;
 
 	private static final RowMapper<DBOMonthlyStatisticsStatus> DBO_MAPPER = new DBOMonthlyStatisticsStatus().getTableMapping();
 
@@ -66,51 +66,20 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	@Override
 	@WriteTransaction
 	public StatisticsMonthlyStatus setAvailable(StatisticsObjectType objectType, YearMonth month) {
-		return createOrUpdate(objectType, month, StatisticsStatus.AVAILABLE, null, System.currentTimeMillis(), null);
+		return createOrUpdate(objectType, month, StatisticsStatus.AVAILABLE, null, null, null);
 	}
 
 	@Override
 	@WriteTransaction
-	public StatisticsMonthlyStatus setProcessingFailed(StatisticsObjectType objectType, YearMonth month) {
-		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING_FAILED, null, null, System.currentTimeMillis());
+	public StatisticsMonthlyStatus setProcessingFailed(StatisticsObjectType objectType, YearMonth month, String errorMessage,
+			String errorDetails) {
+		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING_FAILED, null, errorMessage, errorDetails);
 	}
 
 	@Override
 	@WriteTransaction
 	public StatisticsMonthlyStatus setProcessing(StatisticsObjectType objectType, YearMonth month) {
 		return createOrUpdate(objectType, month, StatisticsStatus.PROCESSING, System.currentTimeMillis(), null, null);
-	}
-
-	@Override
-	@WriteTransaction
-	public boolean startProcessing(StatisticsObjectType objectType, YearMonth month, long processingTimeout) {
-
-		Optional<StatisticsMonthlyStatus> status = getStatus(objectType, month);
-
-		boolean startProcessing = false;
-
-		if (status.isPresent()) {
-			StatisticsMonthlyStatus statisticsStatus = status.get();
-
-			if (StatisticsStatus.PROCESSING_FAILED.equals(statisticsStatus.getStatus())) {
-				startProcessing = true;
-			} else if (StatisticsStatus.PROCESSING.equals(statisticsStatus.getStatus())) {
-				Long lastStartedAt = statisticsStatus.getLastStartedAt();
-				if (lastStartedAt == null || System.currentTimeMillis() - lastStartedAt >= processingTimeout) {
-					startProcessing = true;
-				}
-			}
-
-		} else {
-			startProcessing = true;
-		}
-
-		if (startProcessing) {
-			setProcessing(objectType, month);
-		}
-
-		return startProcessing;
-
 	}
 
 	@Override
@@ -153,7 +122,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	}
 
 	private StatisticsMonthlyStatus createOrUpdate(StatisticsObjectType objectType, YearMonth month, StatisticsStatus status,
-			Long lastStartedAt, Long lastSucceededAt, Long lastFailedAt) {
+			Long lastStartedOn, String errorMessage, String errorDetails) {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
 		ValidateArgument.required(status, "status");
@@ -171,16 +140,13 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		dbo.setObjectType(objectType.toString());
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));
 		dbo.setStatus(status.toString());
+		dbo.setLastUpdatedOn(System.currentTimeMillis());
+		dbo.setErrorMessage(StatisticsMonthlyUtils.encodeErrorMessage(errorMessage, DBOMonthlyStatisticsStatus.MAX_ERROR_MESSAGE_CHARS));
+		dbo.setErrorDetails(StatisticsMonthlyUtils.encodeErrorDetails(errorDetails));
 
-		// Updates the timestamps only if updated
-		if (lastStartedAt != null) {
-			dbo.setLastStartedAt(lastStartedAt);
-		}
-		if (lastSucceededAt != null) {
-			dbo.setLastSucceededAt(lastSucceededAt);
-		}
-		if (lastFailedAt != null) {
-			dbo.setLastFailedAt(lastFailedAt);
+		// Avoid overriding the previous timestamp
+		if (lastStartedOn != null) {
+			dbo.setLastStartedOn(lastStartedOn);
 		}
 
 		return map(basicDao.createOrUpdate(dbo));
@@ -201,9 +167,8 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		dto.setObjectType(StatisticsObjectType.valueOf(dbo.getObjectType()));
 		dto.setStatus(StatisticsStatus.valueOf(dbo.getStatus()));
 		dto.setMonth(YearMonth.from(dbo.getMonth()));
-		dto.setLastStartedAt(dbo.getLastStartedAt());
-		dto.setLastSucceededAt(dbo.getLastSucceededAt());
-		dto.setLastFailedAt(dbo.getLastFailedAt());
+		dto.setLastStartedOn(dbo.getLastStartedOn());
+		dto.setLastUpdatedOn(dbo.getLastUpdatedOn());
 
 		return dto;
 

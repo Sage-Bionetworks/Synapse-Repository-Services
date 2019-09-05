@@ -1,18 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_LAST_FAILED_AT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_LAST_STARTED_AT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_LAST_SUCCEEDED_AT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_MONTH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STATISTICS_MONTHLY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_LAST_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_MONTH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STATISTICS_MONTHLY_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils.FIRST_DAY_OF_THE_MONTH;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -26,40 +30,48 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  *
  */
 public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStatisticsStatus> {
+	
+	public static int MAX_ERROR_MESSAGE_CHARS = 1000;
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("objectType", COL_STATISTICS_MONTHLY_OBJECT_TYPE, true),
-			new FieldColumn("month", COL_STATISTICS_MONTHLY_MONTH, true),
-			new FieldColumn("status", COL_STATISTICS_MONTHLY_STATUS),
-			new FieldColumn("lastStartedAt", COL_STATISTICS_LAST_STARTED_AT),
-			new FieldColumn("lastSucceededAt", COL_STATISTICS_LAST_SUCCEEDED_AT),
-			new FieldColumn("lastFailedAt", COL_STATISTICS_LAST_FAILED_AT) };
+			new FieldColumn("objectType", COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE, true),
+			new FieldColumn("month", COL_STATISTICS_MONTHLY_STATUS_MONTH, true),
+			new FieldColumn("status", COL_STATISTICS_MONTHLY_STATUS_STATUS),
+			new FieldColumn("lastStartedOn", COL_STATISTICS_MONTHLY_STATUS_LAST_STARTED_ON),
+			new FieldColumn("lastUpdatedOn", COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON),
+			new FieldColumn("errorMessage", COL_TABLE_STATUS_ERROR_MESSAGE),
+			new FieldColumn("errorDetails", COL_TABLE_STATUS_ERROR_DETAILS) };
 
 	private static final TableMapping<DBOMonthlyStatisticsStatus> TABLE_MAPPING = new TableMapping<DBOMonthlyStatisticsStatus>() {
 
 		@Override
 		public DBOMonthlyStatisticsStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOMonthlyStatisticsStatus dbo = new DBOMonthlyStatisticsStatus();
-			dbo.setObjectType(rs.getString(COL_STATISTICS_MONTHLY_OBJECT_TYPE));
-			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_MONTH, LocalDate.class));
-			dbo.setStatus(rs.getString(COL_STATISTICS_MONTHLY_STATUS));
-			Long lastStartedAt = rs.getLong(COL_STATISTICS_LAST_STARTED_AT);
-			dbo.setLastStartedAt(rs.wasNull() ? null : lastStartedAt);
-			Long lastSucceededAt = rs.getLong(COL_STATISTICS_LAST_SUCCEEDED_AT);
-			dbo.setLastSucceededAt(rs.wasNull() ? null : lastSucceededAt);
-			Long lastFailedAt = rs.getLong(COL_STATISTICS_LAST_FAILED_AT);
-			dbo.setLastFailedAt(rs.wasNull() ? null : lastFailedAt);
+
+			dbo.setObjectType(rs.getString(COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE));
+			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_STATUS_MONTH, LocalDate.class));
+			dbo.setStatus(rs.getString(COL_STATISTICS_MONTHLY_STATUS_STATUS));
+
+			Long lastStartedOn = rs.getLong(COL_STATISTICS_MONTHLY_STATUS_LAST_STARTED_ON);
+			dbo.setLastStartedOn(rs.wasNull() ? null : lastStartedOn);
+
+			Long lastUpdatedOn = rs.getLong(COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON);
+			dbo.setLastUpdatedOn(rs.wasNull() ? null : lastUpdatedOn);
+
+			dbo.setErrorMessage(rs.getString(COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE));
+			dbo.setErrorDetails(rs.getBytes(COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS));
+
 			return dbo;
 		}
 
 		@Override
 		public String getTableName() {
-			return TABLE_STATISTICS_MONTHLY;
+			return TABLE_STATISTICS_MONTHLY_STATUS;
 		}
 
 		@Override
 		public String getDDLFileName() {
-			return DDL_STATISTICS_MONTHLY;
+			return DDL_STATISTICS_MONTHLY_STATUS;
 		}
 
 		@Override
@@ -76,9 +88,10 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 	private String objectType;
 	private LocalDate month;
 	private String status;
-	private Long lastStartedAt;
-	private Long lastSucceededAt;
-	private Long lastFailedAt;
+	private Long lastStartedOn;
+	private Long lastUpdatedOn;
+	private String errorMessage;
+	private byte[] errorDetails;
 
 	public String getObjectType() {
 		return objectType;
@@ -105,28 +118,36 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 		this.status = status;
 	}
 
-	public Long getLastStartedAt() {
-		return lastStartedAt;
+	public Long getLastStartedOn() {
+		return lastStartedOn;
 	}
 
-	public void setLastStartedAt(Long lastStartedAt) {
-		this.lastStartedAt = lastStartedAt;
+	public void setLastStartedOn(Long lastStartedOn) {
+		this.lastStartedOn = lastStartedOn;
 	}
 
-	public Long getLastSucceededAt() {
-		return lastSucceededAt;
+	public Long getLastUpdatedOn() {
+		return lastUpdatedOn;
 	}
 
-	public void setLastSucceededAt(Long lastSucceededAt) {
-		this.lastSucceededAt = lastSucceededAt;
+	public void setLastUpdatedOn(Long lastUpdatedOn) {
+		this.lastUpdatedOn = lastUpdatedOn;
 	}
 
-	public Long getLastFailedAt() {
-		return lastFailedAt;
+	public String getErrorMessage() {
+		return errorMessage;
 	}
 
-	public void setLastFailedAt(Long lastFailedAt) {
-		this.lastFailedAt = lastFailedAt;
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
+
+	public byte[] getErrorDetails() {
+		return errorDetails;
+	}
+
+	public void setErrorDetails(byte[] errorDetails) {
+		this.errorDetails = errorDetails;
 	}
 
 	@Override
@@ -136,30 +157,33 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(lastFailedAt, lastStartedAt, lastSucceededAt, month, objectType, status);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(errorDetails);
+		result = prime * result + Objects.hash(errorMessage, lastStartedOn, lastUpdatedOn, month, objectType, status);
+		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		DBOMonthlyStatisticsStatus other = (DBOMonthlyStatisticsStatus) obj;
-		return Objects.equals(lastFailedAt, other.lastFailedAt) && Objects.equals(lastStartedAt, other.lastStartedAt)
-				&& Objects.equals(lastSucceededAt, other.lastSucceededAt) && Objects.equals(month, other.month)
-				&& Objects.equals(objectType, other.objectType) && Objects.equals(status, other.status);
+		return Arrays.equals(errorDetails, other.errorDetails) && Objects.equals(errorMessage, other.errorMessage)
+				&& Objects.equals(lastStartedOn, other.lastStartedOn) && Objects.equals(lastUpdatedOn, other.lastUpdatedOn)
+				&& Objects.equals(month, other.month) && Objects.equals(objectType, other.objectType)
+				&& Objects.equals(status, other.status);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMonthlyStatisticsStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + ", lastStartedAt="
-				+ lastStartedAt + ", lastSucceededAt=" + lastSucceededAt + ", lastFailedAt=" + lastFailedAt + "]";
+		return "DBOMonthlyStatisticsStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + ", lastStartedOn="
+				+ lastStartedOn + ", lastUpdatedOn=" + lastUpdatedOn + ", errorMessage=" + errorMessage + ", errorDetails="
+				+ Arrays.toString(errorDetails) + "]";
 	}
 
 }

@@ -20,12 +20,13 @@ public interface StatisticsMonthlyManager {
 	List<YearMonth> getUnprocessedMonths(StatisticsObjectType objectType);
 
 	/**
-	 * Process the statistics for the given object type and month iff the status is not present, if the status is not
-	 * {@link StatisticsStatus#AVAILABLE} or {@link StatisticsStatus#PROCESSING} unless the processing timed out.
+	 * Process the statistics for the given object type and month, if any error occurs during the processing sets the status
+	 * to {@link StatisticsStatus#PROCESSING_FAILED}, otherwise set it to {@link StatisticsStatus#AVAILABLE} at the end of
+	 * the processing
 	 * 
-	 * @param  objectType The statistics object type
-	 * @param  month      The month to be processed
-	 * @return            True if the month was processed, false if the processing wasn't needed
+	 * @param objectType The statistics object type
+	 * @param month      The month to be processed
+	 * @return True if the processing finished successfully, false otherwise
 	 */
 	boolean processMonth(StatisticsObjectType objectType, YearMonth month);
 

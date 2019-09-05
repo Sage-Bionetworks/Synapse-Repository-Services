@@ -11,9 +11,8 @@ public class StatisticsMonthlyStatus {
 	private StatisticsObjectType objectType;
 	private YearMonth month;
 	private StatisticsStatus status;
-	private Long lastStartedAt;
-	private Long lastSucceededAt;
-	private Long lastFailedAt;
+	private Long lastStartedOn;
+	private Long lastUpdatedOn;
 
 	public StatisticsObjectType getObjectType() {
 		return objectType;
@@ -39,56 +38,44 @@ public class StatisticsMonthlyStatus {
 		this.status = status;
 	}
 
-	public Long getLastStartedAt() {
-		return lastStartedAt;
+	public Long getLastStartedOn() {
+		return lastStartedOn;
 	}
 
-	public void setLastStartedAt(Long lastStartedAt) {
-		this.lastStartedAt = lastStartedAt;
+	public void setLastStartedOn(Long lastStartedOn) {
+		this.lastStartedOn = lastStartedOn;
 	}
 
-	public Long getLastSucceededAt() {
-		return lastSucceededAt;
+	public Long getLastUpdatedOn() {
+		return lastUpdatedOn;
 	}
 
-	public void setLastSucceededAt(Long lastSucceededAt) {
-		this.lastSucceededAt = lastSucceededAt;
-	}
-
-	public Long getLastFailedAt() {
-		return lastFailedAt;
-	}
-
-	public void setLastFailedAt(Long lastFailedAt) {
-		this.lastFailedAt = lastFailedAt;
+	public void setLastUpdatedOn(Long lastUpdatedOn) {
+		this.lastUpdatedOn = lastUpdatedOn;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(lastFailedAt, lastStartedAt, lastSucceededAt, month, objectType, status);
+		return Objects.hash(lastStartedOn, lastUpdatedOn, month, objectType, status);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		StatisticsMonthlyStatus other = (StatisticsMonthlyStatus) obj;
-		return Objects.equals(lastFailedAt, other.lastFailedAt) && Objects.equals(lastStartedAt, other.lastStartedAt)
-				&& Objects.equals(lastSucceededAt, other.lastSucceededAt) && Objects.equals(month, other.month)
-				&& objectType == other.objectType && status == other.status;
+		return Objects.equals(lastStartedOn, other.lastStartedOn) && Objects.equals(lastUpdatedOn, other.lastUpdatedOn)
+				&& Objects.equals(month, other.month) && objectType == other.objectType && status == other.status;
 	}
 
 	@Override
 	public String toString() {
-		return "StatisticsMonthlyStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + ", lastStartedAt="
-				+ lastStartedAt + ", lastSucceededAt=" + lastSucceededAt + ", lastFailedAt=" + lastFailedAt + "]";
+		return "StatisticsMonthlyStatus [objectType=" + objectType + ", month=" + month + ", status=" + status + ", lastStartedOn="
+				+ lastStartedOn + ", lastUpdatedOn=" + lastUpdatedOn + "]";
 	}
 
 }
