@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -121,7 +122,7 @@ public class OIDCTokenHelperImplTest {
 	// get the public side of the current signing key
 	private PublicKey getPublicSigningKey() {
 		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
-		return OIDCTokenHelperImpl.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
+		return KeyPairUtil.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
 	}
 	
 	@Test
@@ -148,7 +149,7 @@ public class OIDCTokenHelperImplTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    Jwt<JwsHeader,Claims> signedJWT = oidcTokenHelper.validateJWTSignature(jwtString);
+	    Jwt<JwsHeader,Claims> signedJWT = oidcTokenHelper.parseJWT(jwtString);
 		assertNotNull(signedJWT);
 	    
 	    
@@ -229,8 +230,6 @@ public class OIDCTokenHelperImplTest {
 		
 		// This checks the other fields set in the method under test
 		clientValidation(accessToken, null/* no nonce */);
-		
-		System.out.println(claims);
 	}
 
 	
@@ -238,7 +237,7 @@ public class OIDCTokenHelperImplTest {
 	public void testOIDCSignatureValidation() throws Exception {
 		String oidcToken = oidcTokenHelper.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		assertNotNull(oidcTokenHelper.validateJWTSignature(oidcToken));
+		oidcTokenHelper.validateJWT(oidcToken);
 	}
 		
 

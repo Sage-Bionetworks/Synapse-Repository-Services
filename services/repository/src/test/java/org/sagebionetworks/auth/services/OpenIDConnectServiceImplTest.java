@@ -36,7 +36,7 @@ public class OpenIDConnectServiceImplTest {
 	
 	@Before
 	public void setUp() {
-		when(oidcTokenHelper.validateJWTSignature(any(String.class))).thenReturn(new DefaultJws<Claims>(null, null, null));
+		when(oidcTokenHelper.parseJWT(any(String.class))).thenReturn(new DefaultJws<Claims>(null, null, null));
 	}
 	
 	@Test

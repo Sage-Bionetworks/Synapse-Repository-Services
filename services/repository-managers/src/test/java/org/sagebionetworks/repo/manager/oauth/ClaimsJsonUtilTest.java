@@ -26,23 +26,27 @@ public class ClaimsJsonUtilTest {
 		JSONObject claimsJson = new JSONObject();
 		claimsJson.put(OIDCClaimName.team.name(), "{\"values\":[\"101\"]}");
 		claimsJson.put(OIDCClaimName.given_name.name(), "null");
+		claimsJson.put(OIDCClaimName.company.name(), "NULL");
 		claimsJson.put(OIDCClaimName.family_name.name(), "{\"essential\":true,\"value\":\"foo\"}");
 		claimsJson.put("unrecognized-key", "some value");
 		
 		// method under test
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> actual = ClaimsJsonUtil.getClaimsMapFromJSONObject(claimsJson);
 		
-		OIDCClaimsRequestDetails expected = new OIDCClaimsRequestDetails();
-		expected.setValues(Collections.singletonList("101"));
-		assertEquals(expected, actual.get(OIDCClaimName.team));
+		OIDCClaimsRequestDetails teamDetails = new OIDCClaimsRequestDetails();
+		teamDetails.setValues(Collections.singletonList("101"));
+		assertEquals(teamDetails, actual.get(OIDCClaimName.team));
 		
 		assertNull(actual.get(OIDCClaimName.given_name));
 		assertTrue(actual.containsKey(OIDCClaimName.given_name)); // given_name IS in the map, but with a null value
 		
-		expected = new OIDCClaimsRequestDetails();
-		expected.setEssential(true);
-		expected.setValue("foo");
-		assertEquals(expected, actual.get(OIDCClaimName.family_name));
+		assertNull(actual.get(OIDCClaimName.company));
+		assertTrue(actual.containsKey(OIDCClaimName.company)); // company IS in the map, but with a null value
+		
+		OIDCClaimsRequestDetails familyNameDetails = new OIDCClaimsRequestDetails();
+		familyNameDetails.setEssential(true);
+		familyNameDetails.setValue("foo");
+		assertEquals(familyNameDetails, actual.get(OIDCClaimName.family_name));
 	}
 	
 	@Test

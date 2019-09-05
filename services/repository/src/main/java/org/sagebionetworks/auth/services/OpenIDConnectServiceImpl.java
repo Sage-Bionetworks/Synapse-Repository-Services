@@ -129,18 +129,16 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);
 		}
 	}
-	
-	private Jwt<JwsHeader,Claims> getAccessJWTFromAccessTokenParam(String param) {
-		Jwt<JwsHeader,Claims> token = oidcTokenHelper.validateJWTSignature(param);
-		if (token==null) {
-			throw new UnauthenticatedException("Could not interpret access token.");
-		}
-		return token;
-	}
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
-		Jwt<JwsHeader,Claims> accessToken = getAccessJWTFromAccessTokenParam(accessTokenParam);
+		Jwt<JwsHeader,Claims> accessToken = null;
+		try {
+			accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
+		} catch (IllegalArgumentException e) {
+			throw new UnauthenticatedException("Could not interpret access token.", e);
+		}
+
 		return oidcManager.getUserInfo(accessToken, oauthEndpoint);
 	}
 }

@@ -46,13 +46,25 @@ public interface OIDCTokenHelper {
 	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, Long authTimeSeconds,
 			String tokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
+	/**
+	 * Return the *public* side of the signature keys in the stack configuration, in the JSON Web Key Set (JWKS) format
+	 * @return a JSON object holding the JWKS
+	 */
 	JsonWebKeySet getJSONWebKeySet();
 
 	/**
-	 * Validate the given JWT.  If valid, return the content as a Jwt object otherwise return null
+	 * Validate the given JWT.
 	 * @param a serialized JSON Web Token
-	 * @return the parsed and validated JWT or null if not valid
+	 * @throws IllegalArgumentException if the token is not valid
 	 */
-	Jwt<JwsHeader,Claims> validateJWTSignature(String token);
+	void validateJWT(String token);
+
+	/**
+	 * Parse the given JWT
+	 * @param a serialized JSON Web Token
+	 * @return the parsed and validated JWT
+	 * @throws IllegalArgumentException if the token is not valid
+	 */
+	Jwt<JwsHeader,Claims> parseJWT(String token);
 
 }

@@ -13,6 +13,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -36,8 +37,15 @@ public class OAuthAccessTokenFilter implements Filter {
 		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN);
 
 		boolean verified=false;
+		IllegalArgumentException validationException = null;
 		if (bearerToken!=null) {
-			verified = oidcTokenHelper.validateJWTSignature(bearerToken)!=null;
+			try {
+				oidcTokenHelper.validateJWT(bearerToken);
+				verified=true;
+			} catch (IllegalArgumentException e) {
+				verified=false;
+				validationException = e;
+			}
 		}
 		
 		if (verified) {
@@ -48,7 +56,11 @@ public class OAuthAccessTokenFilter implements Filter {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
 			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			httpResponse.setContentType("application/json");
-			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid access token\"}");
+			String reason = "Missing or invalid access token";
+			if (validationException!=null && StringUtils.isNotEmpty(validationException.getMessage())) {
+				reason = validationException.getMessage();
+			}
+			httpResponse.getOutputStream().println("{\"reason\":\""+reason+"\"}");
 		}
 	}
 
