@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Before;
@@ -850,10 +851,34 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
+		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+				any(Exception.class));
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberNoSnapshot() throws Exception {
+		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
+		String resetToken = "resetToken";
+		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
+		String lastEtag = "lastEtag";
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenReturn(lastEtag);
+
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// No change number for this case.
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
+		// call under test
+		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(), anyString());
+		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
+		// should fail
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(tableId), eq(resetToken),
 				any(Exception.class));
 	}
 	
@@ -870,8 +895,9 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		verify(mockManagerSupport, never()).startTableProcessing(any(IdAndVersion.class));
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
@@ -895,9 +921,10 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		try {
 			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 			fail();
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
@@ -923,9 +950,10 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		try {
 			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 			fail();
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
@@ -950,9 +978,10 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		try {
 			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 			fail();
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
@@ -977,9 +1006,10 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		try {
 			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 			fail();
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
@@ -1000,8 +1030,9 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator, targetChangeNumber);
+		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		// should fail the table.
 		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, resetToken, exception);
 	}
