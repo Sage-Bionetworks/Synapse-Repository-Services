@@ -60,8 +60,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.ValidateArgument;

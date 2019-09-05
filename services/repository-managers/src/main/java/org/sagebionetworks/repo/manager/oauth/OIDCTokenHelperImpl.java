@@ -29,7 +29,7 @@ import io.jsonwebtoken.SignatureException;
 public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	private static final String NONCE = "nonce";
 	// the time window during which the client will consider the returned claims to be valid
-	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
+	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
 	private static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // a day
 	
 	private String oidcSignatureKeyId;
