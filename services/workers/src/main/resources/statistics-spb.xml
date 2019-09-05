@@ -16,8 +16,8 @@
 	<!-- This worker process a month worth of statistics for a particular object type -->
 	<bean id="statisticsMonthlyWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyWorker" scope="singleton" />
 
-	<!-- Trigger for the monthly statistics status worker -->
-	<bean id="statisticsMonthlyStatusWatcherTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+	<!-- Trigger for the monthly statistics status watcher worker -->
+	<bean id="statisticsMonthlyStatusWatcherWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
@@ -46,8 +46,8 @@
 		<property name="repeatInterval" value="1800000" />
 	</bean>
 	
-	<!-- Trigger for the monthly statistics status worker -->
-	<bean id="statisticsMonthlyProjectTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+	<!-- Trigger for the worker that will consume the messages to process a month of statistics -->
+	<bean id="statisticsMonthlyWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject">
@@ -58,8 +58,8 @@
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner" ref="statisticsMonthlyWorker" />
 								<property name="semaphoreLockKey" value="statisticsMonthlyWorker" />
-								<property name="semaphoreMaxLockCount" value="5" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
+								<property name="semaphoreMaxLockCount" value="2" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('STATISTICS_MONTHLY')}"/>
 
 							</bean>

@@ -101,8 +101,8 @@
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="statisticsQueueTrigger" />
-		<ref bean="statisticsMonthlyStatusWatcherTrigger" />
-		<ref bean="statisticsMonthlyProjectTrigger" />
+		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" />
+		<ref bean="statisticsMonthlyWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
