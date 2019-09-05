@@ -99,7 +99,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		assertNotNull(replicatedChild);
 		assertEquals(KeyFactory.stringToKey(project.getId()), replicatedChild.getBenefactorId());
 		// Delete the replicated data
-		indexDao.deleteEntityData(mockProgressCallback , Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
+		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
 		// Add an ACL to the folder to trigger a hierarchy change
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folder.getId(), adminUser, new Date());
 		entityPermissionsManager.overrideInheritance(acl, adminUser);

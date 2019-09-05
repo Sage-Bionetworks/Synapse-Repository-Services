@@ -522,6 +522,10 @@
 	<bean id="replicationMessageManagerAsynch"
 		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynchImpl"
 		scope="singleton" />
+		
+	<bean id="replicationManager"
+		class="org.sagebionetworks.repo.manager.entity.ReplicationManagerImpl"
+		scope="singleton" />
 
 	<bean id="bulkDownloadManager"
 		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"

@@ -794,7 +794,7 @@ public class TableViewIntegrationTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
-		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(firtFileIdLong));
+		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
 		
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
@@ -827,7 +827,7 @@ public class TableViewIntegrationTest {
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
-		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(projectIdLong));
+		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
 		
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
