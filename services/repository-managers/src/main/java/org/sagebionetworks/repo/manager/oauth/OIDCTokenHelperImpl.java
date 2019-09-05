@@ -136,6 +136,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
 				if (jwk.getKid().equals(keyId)) {
 					matchingKey = jwk;
+					break;
 				}
 			}
 			if (matchingKey==null) {
