@@ -26,6 +26,7 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -53,7 +54,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 					Annotations annotationsV1 = AnnotationUtils.decompressedAnnotationsV1(backup.getUserAnnotationsV1());
 					AnnotationsV2 annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
-					backup.setUserAnnotationsJSON(EntityFactory.createJSONStringForEntity(annotationsV2));
+					backup.setUserAnnotationsJSON(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 					backup.setUserAnnotationsV1(null);
 				} catch (IOException | JSONObjectAdapterException e) {
 					throw new RuntimeException(e);
