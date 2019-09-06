@@ -42,8 +42,6 @@
 	
 	<bean id="httpClient" class="org.sagebionetworks.repo.manager.HttpClientImpl" />
 	
-	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl" />
-	
 	<bean id="oauthClientManager" class="org.sagebionetworks.repo.manager.oauth.OAuthClientManagerImpl" />
 	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
