@@ -60,27 +60,27 @@
     },
     {
       "name": "orcid",
-      "description": ""
+      "description": "The ORCID linked to the user account"
     },
     {
       "name": "is_certified",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#certified-users"
+      "description": "Whether the user is certified.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#certified-users"
     },
     {
       "name": "is_validated",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "Whether the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_given_name",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated first name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_family_name",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated last name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_location",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated location, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_email",

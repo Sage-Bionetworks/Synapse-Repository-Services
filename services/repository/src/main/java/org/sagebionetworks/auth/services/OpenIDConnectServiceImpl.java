@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -40,6 +41,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private UserManager userManager;
 	
 	@Autowired
+	private OAuthClientManager oauthClientManager;
+
+	@Autowired
 	private OpenIDConnectManager oidcManager;
 
 	@Autowired
@@ -48,37 +52,37 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	@Override
 	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.createOpenIDConnectClient(userInfo, oauthClient);
+		return oauthClientManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}
 
 	@Override
 	public OAuthClientIdAndSecret createOAuthClientSecret(Long userId, String clientId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.createClientSecret(userInfo, clientId);
+		return oauthClientManager.createClientSecret(userInfo, clientId);
 	}
 	
 	@Override
 	public OAuthClient getOpenIDConnectClient(Long userId, String id) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.getOpenIDConnectClient(userInfo, id);
+		return oauthClientManager.getOpenIDConnectClient(userInfo, id);
 	}
 
 	@Override
 	public OAuthClientList listOpenIDConnectClients(Long userId, String nextPageToken) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.listOpenIDConnectClients(userInfo, nextPageToken);
+		return oauthClientManager.listOpenIDConnectClients(userInfo, nextPageToken);
 	}
 
 	@Override
 	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.updateOpenIDConnectClient(userInfo, oauthClient);
+		return oauthClientManager.updateOpenIDConnectClient(userInfo, oauthClient);
 	}
 
 	@Override
 	public void deleteOpenIDConnectClient(Long userId, String id) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		oidcManager.deleteOpenIDConnectClient(userInfo, id);
+		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);
 	}
 
 	@Override

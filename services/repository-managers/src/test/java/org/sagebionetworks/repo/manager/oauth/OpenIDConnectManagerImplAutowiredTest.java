@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,8 +19,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
@@ -53,6 +48,9 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	private UserManager userManager;
 
 	@Autowired
+	OAuthClientManager oauthClientManager;
+	
+	@Autowired
 	OpenIDConnectManager openIDConnectManager;
 	
 	@Autowired
@@ -60,11 +58,10 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
-	private List<String> oauthClientsToDelete;
+	private OAuthClient oauthClient;
 	
 	@Before
 	public void setUp() throws Exception {
-		oauthClientsToDelete = new LinkedList<String>();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		DBOCredential cred = new DBOCredential();
 		cred.setSecretKey("");
@@ -75,27 +72,8 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
-	}
-	
-	@After
-	public void tearDown() throws Exception {
-		for(String id: oauthClientsToDelete) {
-			try {
-				openIDConnectManager.deleteOpenIDConnectClient(adminUserInfo, id);
-			} catch (NotFoundException e) {
-				// stale ID, no deletion necessary
-			}
-		}
-		try {
-			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
-		} catch (DataAccessException e) {
-			// stale ID, no deletion necessary
-		}
-	}
-
-	// the business logic is tested in detail in the unit tests.  This just does a basic round-trip.
-	@Test
-	public void testRoundTrip() throws Exception {
+		
+		
 		OAuthClient toCreate = new OAuthClient();
 		toCreate.setClient_name(CLIENT_NAME);
 		toCreate.setClient_uri(CLIENT_URI);
@@ -107,41 +85,33 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		toCreate.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 		
 		// method under test
-		OAuthClient created = openIDConnectManager.createOpenIDConnectClient(userInfo, toCreate);
-		String id = created.getClientId();
-		assertNotNull(id);
-		oauthClientsToDelete.add(id);
-		
-		// method under test
-		assertEquals(created, openIDConnectManager.getOpenIDConnectClient(userInfo, id));
-		
-		// method under test
-		OAuthClientList list = openIDConnectManager.listOpenIDConnectClients(userInfo, null);
-		assertEquals(1, list.getResults().size());
-		assertEquals(created, list.getResults().get(0));
-		
-		created.setPolicy_uri("http://someOtherPolicyUri.com");
-		created.setClient_name("some other name");
-		
-		// method under test
-		OAuthClient updated = openIDConnectManager.updateOpenIDConnectClient(userInfo, created);
-		created.setEtag(updated.getEtag());
-		created.setModifiedOn(updated.getModifiedOn());
-		assertEquals(created, updated);
-		
-		// method under test
-		OAuthClientIdAndSecret idAndSecret = openIDConnectManager.createClientSecret(userInfo, id);
-		
-		assertEquals(id, idAndSecret.getClientId());
-		assertNotNull(idAndSecret.getClientSecret());
-		
+		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
+		assertNotNull(oauthClient.getClientId());
+
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		try {
+			oauthClientManager.deleteOpenIDConnectClient(adminUserInfo, oauthClient.getClientId());
+		} catch (NotFoundException e) {
+			// stale ID, no deletion necessary
+		}
+		try {
+			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		} catch (DataAccessException e) {
+		}
+	}
+
+	// the business logic is tested in detail in the unit tests.  This just does a basic authorization round-trip.
+	@Test
+	public void testAuthorizationRoundTrip() throws Exception {		
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(id);
-		authorizationRequest.setRedirectUri(created.getRedirect_uris().get(0));
+		authorizationRequest.setClientId(oauthClient.getClientId());
+		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
 		authorizationRequest.setScope(OAuthScope.openid.name());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
-		
-		
+				
 		// method under test
 		OIDCAuthorizationRequestDescription description = 
 				openIDConnectManager.getAuthenticationRequestDescription(authorizationRequest);
@@ -159,7 +129,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// method under test
 		OIDCTokenResponse tokenResponse = 
 				openIDConnectManager.getAccessToken(authResponse.getAccess_code(), 
-				id, created.getRedirect_uris().get(0), oauthEndpoint);
+						oauthClient.getClientId(), oauthClient.getRedirect_uris().get(0), oauthEndpoint);
 		
 		
 		assertNotNull(tokenResponse.getAccess_token());
@@ -168,20 +138,10 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(tokenResponse.getAccess_token());
 		
+		// method under test
 		String oidcUserInfo = (String)openIDConnectManager.getUserInfo(accessToken, oauthEndpoint);
 		
 		oidcTokenHelper.validateJWT(oidcUserInfo);
-		
-		// method under test
-		openIDConnectManager.deleteOpenIDConnectClient(userInfo, id);
-		oauthClientsToDelete.remove(id);
-		
-		try {
-			openIDConnectManager.getOpenIDConnectClient(userInfo, id);
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
 		
 	}
 

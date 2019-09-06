@@ -58,7 +58,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
-public class OpenIDConnectManagerImplTest {
+public class OAuthClientManagerImplUnitTest {
 	private static final String USER_ID = "101";
 	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
 	private static final String CLIENT_NAME = "some client";
@@ -70,22 +70,9 @@ public class OpenIDConnectManagerImplTest {
 	private static final List<String> REDIR_URI_LIST = ImmutableList.of("https://host1.com/redir1", "https://host2.com/redir2");
 	private static final String OAUTH_CLIENT_ID = "123";
 
-	
-	@Mock
-	private StackEncrypter mockStackEncrypter;
-
 	@Mock
 	private OAuthClientDao mockOauthClientDao;
 
-	@Mock
-	private AuthenticationDAO mockAuthDao;
-
-	@Mock
-	private UserProfileManager mockUserProfileManager;
-
-	@Mock
-	private TeamDAO mockTeamDAO;
-	
 	@Mock
 	private SimpleHttpClient mockHttpClient;
 
@@ -99,10 +86,10 @@ public class OpenIDConnectManagerImplTest {
 	private ArgumentCaptor<SectorIdentifier> sectorIdentifierCaptor;
 	
 	@InjectMocks
-	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
+	private OAuthClientManagerImpl oauthClientManagerImpl;
 	
 	private UserInfo userInfo;
-	UserInfo anonymousUserInfo;
+	private UserInfo anonymousUserInfo;
 	private  URI sector_identifier_uri;
 	
 	@Before
@@ -144,11 +131,11 @@ public class OpenIDConnectManagerImplTest {
 		// happy case
 		{
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
-			OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+			OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 			
 			// sector identifier uri is not required but can be set
 			oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
-			OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+			OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 		}
 
 		// missing name
@@ -156,7 +143,7 @@ public class OpenIDConnectManagerImplTest {
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setClient_name(null);
 			try {
-				OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 				fail("exception expected");
 			} catch (IllegalArgumentException e) {
 				// as expected
@@ -168,14 +155,14 @@ public class OpenIDConnectManagerImplTest {
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setRedirect_uris(null);
 			try {
-				OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 				fail("exception expected");
 			} catch (IllegalArgumentException e) {
 				// as expected
 			}
 			oauthClient.setRedirect_uris(Collections.EMPTY_LIST);
 			try {
-				OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 				fail("exception expected");
 			} catch (IllegalArgumentException e) {
 				// as expected
@@ -187,7 +174,7 @@ public class OpenIDConnectManagerImplTest {
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setRedirect_uris(ImmutableList.of("https://client.com/redir", "not-a-valid-uri"));
 			try {
-				OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 				fail("exception expected");
 			} catch (IllegalArgumentException e) {
 				// as expected
@@ -199,7 +186,7 @@ public class OpenIDConnectManagerImplTest {
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setSector_identifier_uri("not-a-valid-uri");
 			try {
-				OpenIDConnectManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
+				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
 				fail("exception expected");
 			} catch (IllegalArgumentException e) {
 				// as expected
@@ -211,7 +198,7 @@ public class OpenIDConnectManagerImplTest {
 	@Test
 	public void testReadSectorIdentifierFileHappyCase() throws Exception {
 		// method under test
-		List<String> result = openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
+		List<String> result = oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
 		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
@@ -225,7 +212,7 @@ public class OpenIDConnectManagerImplTest {
 
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
+			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (ServiceUnavailableException e) {
 			// as expected
@@ -239,7 +226,7 @@ public class OpenIDConnectManagerImplTest {
 		
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
+			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (ServiceUnavailableException e) {
 			// as expected
@@ -256,7 +243,7 @@ public class OpenIDConnectManagerImplTest {
 		
 		try {
 			// method under test
-			openIDConnectManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
+			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 			fail("Exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -269,7 +256,7 @@ public class OpenIDConnectManagerImplTest {
 	@Test
 	public void testResolveSectorIdentifier_NoSIURI_HappyCase() throws Exception {
 		// method under test
-		String sectorIdentifier = openIDConnectManagerImpl.resolveSectorIdentifier(null, 
+		String sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(null, 
 				ImmutableList.of("https://host/redir1", "https://host/redir2"));
 		
 		assertEquals("host", sectorIdentifier);
@@ -279,7 +266,7 @@ public class OpenIDConnectManagerImplTest {
 	public void testResolveSectorIdentifier_NoSIURI_InvalidURI() throws Exception {
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier(null, 
+			oauthClientManagerImpl.resolveSectorIdentifier(null, 
 					ImmutableList.of("https://host/redir1", "https://host/%$#@*"));
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
@@ -291,7 +278,7 @@ public class OpenIDConnectManagerImplTest {
 	public void testResolveSectorIdentifier_NoSIURI_DifferentHosts() throws Exception {
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier(null, 
+			oauthClientManagerImpl.resolveSectorIdentifier(null, 
 					ImmutableList.of("https://host/redir1", "https://host2/redir1"));
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
@@ -303,14 +290,14 @@ public class OpenIDConnectManagerImplTest {
 	public void testResolveSectorIdentifier_NoSIURI_NoRedirURIs() throws Exception {
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier(null, null);
+			oauthClientManagerImpl.resolveSectorIdentifier(null, null);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier(null, Collections.EMPTY_LIST);
+			oauthClientManagerImpl.resolveSectorIdentifier(null, Collections.EMPTY_LIST);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -320,7 +307,7 @@ public class OpenIDConnectManagerImplTest {
 	@Test
 	public void testResolveSectorIdentifier_WithSIURI_HappyCase() throws Exception {
 		// method under test
-		String sectorIdentifier = openIDConnectManagerImpl.resolveSectorIdentifier(
+		String sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(
 				SECTOR_IDENTIFIER_URI_STRING, REDIR_URI_LIST);
 		
 		// the redir's are a subset of those in the file; the Sector Identifer is the host part of the URL pointing to the file
@@ -329,7 +316,7 @@ public class OpenIDConnectManagerImplTest {
 		
 		// the registered URIs must be a *subset* of those listed in the files.  So this is OK too:
 		// method under test
-		sectorIdentifier = openIDConnectManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+		sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
 				Collections.singletonList("https://host1.com/redir1"));
 		assertEquals("client.uri.com", sectorIdentifier);
 	}
@@ -338,7 +325,7 @@ public class OpenIDConnectManagerImplTest {
 	public void testResolveSectorIdentifier_WithSIURI_InvalidFileURI() throws Exception {
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier("*&#%#$$@", REDIR_URI_LIST);
+			oauthClientManagerImpl.resolveSectorIdentifier("*&#%#$$@", REDIR_URI_LIST);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -347,7 +334,7 @@ public class OpenIDConnectManagerImplTest {
 		// scheme must be https not http
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier("http://insecure.com/file", REDIR_URI_LIST);
+			oauthClientManagerImpl.resolveSectorIdentifier("http://insecure.com/file", REDIR_URI_LIST);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -359,7 +346,7 @@ public class OpenIDConnectManagerImplTest {
 		// trying to use a redirect uri that's not in the file
 		try {
 			// method under test
-			openIDConnectManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
+			oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
 					Collections.singletonList("https://SomeOtherHost/redir1"));
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
@@ -372,10 +359,10 @@ public class OpenIDConnectManagerImplTest {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
 		// method under test
-		assertTrue(OpenIDConnectManagerImpl.canCreate(userInfo));
+		assertTrue(OAuthClientManagerImpl.canCreate(userInfo));
 		
 		// method under test
-		assertFalse(OpenIDConnectManagerImpl.canCreate(anonymousUserInfo));
+		assertFalse(OAuthClientManagerImpl.canCreate(anonymousUserInfo));
 	}
 
 	@Test
@@ -383,14 +370,14 @@ public class OpenIDConnectManagerImplTest {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
 		// method under test
-		assertTrue(OpenIDConnectManagerImpl.canAdministrate(userInfo, USER_ID));
+		assertTrue(OAuthClientManagerImpl.canAdministrate(userInfo, USER_ID));
 		// method under test
-		assertFalse(OpenIDConnectManagerImpl.canAdministrate(userInfo, "9999"));
+		assertFalse(OAuthClientManagerImpl.canAdministrate(userInfo, "9999"));
 		
 		UserInfo adminUserInfo = new UserInfo(true);
 		adminUserInfo.setId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// method under test
-		assertTrue(OpenIDConnectManagerImpl.canAdministrate(adminUserInfo, USER_ID));
+		assertTrue(OAuthClientManagerImpl.canAdministrate(adminUserInfo, USER_ID));
 	}
 	
 	@Test
@@ -405,7 +392,7 @@ public class OpenIDConnectManagerImplTest {
 		assertNull(oauthClient.getSector_identifier_uri());
 		
 		// method under test
-		OAuthClient result = openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		OAuthClient result = oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
 		assertEquals(USER_ID, result.getCreatedBy());
 		assertNotNull(result.getEtag());
@@ -429,7 +416,7 @@ public class OpenIDConnectManagerImplTest {
 		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
 		
 		// method under test
-		OAuthClient result = openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		OAuthClient result = oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
 		assertEquals("client.uri.com", result.getSector_identifier());
 		
@@ -447,7 +434,7 @@ public class OpenIDConnectManagerImplTest {
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(true);
 
 		// method under test
-		openIDConnectManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
+		oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
 		// make sure sector identifier was created
 		verify(mockOauthClientDao, never()).createSectorIdentifier((SectorIdentifier)any());
@@ -459,7 +446,7 @@ public class OpenIDConnectManagerImplTest {
 
 		try {
 			// method under test
-			openIDConnectManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
+			oauthClientManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
 			fail("Exception expected.");
 		} catch (UnauthorizedException e) {
 			//as expected
@@ -477,7 +464,7 @@ public class OpenIDConnectManagerImplTest {
 		when(mockOauthClientDao.getOAuthClient(id)).thenReturn(oauthClient);
 		
 		// method under test
-		openIDConnectManagerImpl.getOpenIDConnectClient(userInfo, id);
+		oauthClientManagerImpl.getOpenIDConnectClient(userInfo, id);
 		
 		verify(mockOauthClientDao).getOAuthClient(id);
 		
@@ -501,7 +488,7 @@ public class OpenIDConnectManagerImplTest {
 		when(mockOauthClientDao.getOAuthClient(id)).thenReturn(oauthClient);
 		
 		// method under test
-		openIDConnectManagerImpl.getOpenIDConnectClient(anonymousUserInfo, id);
+		oauthClientManagerImpl.getOpenIDConnectClient(anonymousUserInfo, id);
 		
 		verify(mockOauthClientDao).getOAuthClient(id);
 		
@@ -519,7 +506,7 @@ public class OpenIDConnectManagerImplTest {
 		String nextPageToken = "some token";
 		
 		// method under test
-		openIDConnectManagerImpl.listOpenIDConnectClients(userInfo, nextPageToken);
+		oauthClientManagerImpl.listOpenIDConnectClients(userInfo, nextPageToken);
 		
 		verify(mockOauthClientDao).listOAuthClients(nextPageToken, USER_ID_LONG);
 	}
@@ -565,7 +552,7 @@ public class OpenIDConnectManagerImplTest {
 		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		
 		// method under test
-		OAuthClient updated = openIDConnectManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
+		OAuthClient updated = oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
 		
 		assertEquals(toUpdate.getClientId(), updated.getClientId());
 		assertEquals(toUpdate.getClient_name(), updated.getClient_name());
@@ -591,7 +578,7 @@ public class OpenIDConnectManagerImplTest {
 	@Test
 	public void testDeleteOpenIDConnectClient() {
 		// method under test
-		openIDConnectManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
+		oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).deleteOAuthClient(OAUTH_CLIENT_ID);
 	}
 	
@@ -601,7 +588,7 @@ public class OpenIDConnectManagerImplTest {
 
 		try {
 			// method under test
-			openIDConnectManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
+			oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
 			fail("UnauthorizesException expected");
 		} catch (UnauthorizedException e) {
 			// as expected
@@ -613,7 +600,7 @@ public class OpenIDConnectManagerImplTest {
 	public void testGenerateOAuthClientSecret() {
 		assertTrue(StringUtils.isNotEmpty(
 				// method under test
-				openIDConnectManagerImpl.generateOAuthClientSecret()
+				oauthClientManagerImpl.generateOAuthClientSecret()
 		));
 	}
 	
@@ -621,7 +608,7 @@ public class OpenIDConnectManagerImplTest {
 	public void testCreateClientSecret() {
 		
 		// method under test
-		OAuthClientIdAndSecret idAndSecret = openIDConnectManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
+		OAuthClientIdAndSecret idAndSecret = oauthClientManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
 
 		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
 		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClientId());
@@ -630,84 +617,5 @@ public class OpenIDConnectManagerImplTest {
 	
 	// TODO testCreateClientSecret_unauthorized 
 	
-	@Test
-	public void testValidateAuthenticationRequest() {
-		OAuthClient client = new OAuthClient();
-		client.setRedirect_uris(Collections.singletonList(REDIRCT_URIS.get(0)));
-
-		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
-		authorizationRequest.setResponseType(OAuthResponseType.code);
-		
-		// method under test
-		OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
-		
-		authorizationRequest.setRedirectUri("some invalid uri");
-		
-		try {
-			OpenIDConnectManagerImpl.validateAuthenticationRequest(authorizationRequest, client);
-			fail("Exception expected.");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-	}
-
-	
-	@Test
-	public void testParseScopeString() throws Exception {
-		// method under test (happy case)
-		List<OAuthScope> scopes = OpenIDConnectManagerImpl.parseScopeString("openid openid");
-		List<OAuthScope> expected = new ArrayList<OAuthScope>();
-		expected.add(OAuthScope.openid);
-		expected.add(OAuthScope.openid);
-		assertEquals(expected, scopes);
-		
-		try {
-			// method under test
-			OpenIDConnectManagerImpl.parseScopeString("openid foo");
-			fail("IllegalArgumentException expected.");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		
-		// what if url encoded?
-		// method under test
-		scopes = OpenIDConnectManagerImpl.parseScopeString("openid+openid");
-		assertEquals(expected, scopes);
-		
-		// method under test
-		scopes = OpenIDConnectManagerImpl.parseScopeString("openid%20openid");
-		assertEquals(expected, scopes);
-		
-	}
-	
-	@Test
-	public void testGetClaimsMapFromClaimsRequestParam() throws Exception {
-		String claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
-		Map<OIDCClaimName,OIDCClaimsRequestDetails> map = OpenIDConnectManagerImpl.getClaimsMapFromClaimsRequestParam(claimsString, "somekey");
-		{
-			assertTrue(map.containsKey(OIDCClaimName.team));
-			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.team);
-			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
-			expectedDetails.setValues(Collections.singletonList("101"));
-			assertEquals(expectedDetails, details);
-		}
-		{
-			assertTrue(map.containsKey(OIDCClaimName.given_name));
-			assertNull(map.get(OIDCClaimName.given_name));
-		}
-		{
-			assertTrue(map.containsKey(OIDCClaimName.family_name));
-			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.family_name);
-			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
-			expectedDetails.setEssential(true);
-			expectedDetails.setValue("foo");
-			assertEquals(expectedDetails, details);
-		}
-		// what if key is omitted?
-		claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
-		map = OpenIDConnectManagerImpl.getClaimsMapFromClaimsRequestParam(claimsString, "some other key");
-		assertTrue(map.isEmpty());
-	}
 
 }
