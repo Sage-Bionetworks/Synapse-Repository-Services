@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -9,6 +10,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,8 +23,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,6 +43,7 @@ import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
@@ -65,6 +68,7 @@ public class OpenIDConnectManagerImplTest {
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
 	private static final String SECTOR_IDENTIFIER_URI_STRING = "https://client.uri.com/path/to/json/file";
 	private static final List<String> REDIR_URI_LIST = ImmutableList.of("https://host1.com/redir1", "https://host2.com/redir2");
+	private static final String OAUTH_CLIENT_ID = "123";
 
 	
 	@Mock
@@ -118,6 +122,8 @@ public class OpenIDConnectManagerImplTest {
 
 		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
+		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		
 	}
 	
 	private static OAuthClient createOAuthClient(String userId) {
@@ -521,8 +527,7 @@ public class OpenIDConnectManagerImplTest {
 	// create a fully populated object, to be updated
 	private static OAuthClient newCreatedOAuthClient() {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
-		String clientId = "123";
-		oauthClient.setClientId(clientId);
+		oauthClient.setClientId(OAUTH_CLIENT_ID);
 		oauthClient.setCreatedBy(USER_ID);
 		String etag = "some etag";
 		oauthClient.setEtag(etag);
@@ -535,13 +540,13 @@ public class OpenIDConnectManagerImplTest {
 	
 	@Test
 	public void testUpdateOpenIDConnectClient_HappyCase() throws Exception {
+		// 'created' simulates what's in the database already
 		OAuthClient created = newCreatedOAuthClient();
 		
+		// 'toUpdate' is the object as retrieved and modified by the client
 		OAuthClient toUpdate = newCreatedOAuthClient();
 		
-		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
-		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
-		
+		// these are all the fields we can change
 		toUpdate.setClient_name("some other name");
 		toUpdate.setClient_uri("some other client uri");
 		String newHost = "new.client.com";
@@ -551,10 +556,13 @@ public class OpenIDConnectManagerImplTest {
 		toUpdate.setUserinfo_signed_response_alg(null);
 		toUpdate.setSector_identifier_uri(null);
 		
-		// we can try to change these, but they changes will be ignored
+		// we can try to change these, but the changes will be ignored, as we will see below
 		toUpdate.setCreatedBy(null);
 		toUpdate.setCreatedOn(null);
 		toUpdate.setModifiedOn(null);
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		
 		// method under test
 		OAuthClient updated = openIDConnectManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
@@ -570,8 +578,57 @@ public class OpenIDConnectManagerImplTest {
 		assertNotNull(updated.getModifiedOn());
 		assertNotEquals(toUpdate.getEtag(), updated.getEtag());
 		assertFalse(updated.getVerified());
-		assertEquals(newHost, updated.getSector_identifier());	
+		assertEquals(newHost, updated.getSector_identifier());
+		
+		// this checks that client modifications to the fields are ignored
+		assertNotNull(updated.getCreatedBy());
+		assertNotNull(updated.getCreatedOn());
+		assertNotNull(updated.getModifiedOn());
 	}
+	
+	// TODO test the non-happy cases for update
+	
+	@Test
+	public void testDeleteOpenIDConnectClient() {
+		// method under test
+		openIDConnectManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
+		verify(mockOauthClientDao).deleteOAuthClient(OAUTH_CLIENT_ID);
+	}
+	
+	@Test
+	public void testDeleteOpenIDConnectClient_Unauthorized() {
+		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn("202");
+
+		try {
+			// method under test
+			openIDConnectManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
+			fail("UnauthorizesException expected");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
+	}
+	
+	@Test
+	public void testGenerateOAuthClientSecret() {
+		assertTrue(StringUtils.isNotEmpty(
+				// method under test
+				openIDConnectManagerImpl.generateOAuthClientSecret()
+		));
+	}
+	
+	@Test
+	public void testCreateClientSecret() {
+		
+		// method under test
+		OAuthClientIdAndSecret idAndSecret = openIDConnectManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
+
+		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
+		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClientId());
+		assertNotNull(idAndSecret.getClientSecret());
+	}
+	
+	// TODO testCreateClientSecret_unauthorized 
 	
 	@Test
 	public void testValidateAuthenticationRequest() {
@@ -594,6 +651,7 @@ public class OpenIDConnectManagerImplTest {
 			// as expected
 		}
 	}
+
 	
 	@Test
 	public void testParseScopeString() throws Exception {

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -85,7 +86,11 @@ public class OpenIDConnectManagerImplAutowiredTest {
 				// stale ID, no deletion necessary
 			}
 		}
-		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		try {
+			userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		} catch (DataAccessException e) {
+			// stale ID, no deletion necessary
+		}
 	}
 
 	// the business logic is tested in detail in the unit tests.  This just does a basic round-trip.
