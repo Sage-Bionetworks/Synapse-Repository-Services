@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.athena;
+package org.sagebionetworks.repo.model.athena;
 
 import java.util.Iterator;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.athena;
+package org.sagebionetworks.repo.model.athena;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,6 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
+import org.sagebionetworks.repo.model.athena.AthenaSupportImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.athena.AmazonAthena;

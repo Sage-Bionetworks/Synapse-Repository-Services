@@ -1,6 +1,6 @@
-package org.sagebionetworks.repo.manager.athena;
+package org.sagebionetworks.repo.model.athena;
 
-import static org.sagebionetworks.repo.manager.athena.AthenaResultsIterator.MAX_ATHENA_BATCH_SIZE;
+import static org.sagebionetworks.repo.model.athena.AthenaResultsIterator.MAX_ATHENA_BATCH_SIZE;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.logging.s3.LogKeyUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +40,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	private static final Logger LOG = LogManager.getLogger(AthenaSupportImpl.class);
 
 	private static final String TABLE_NAME_REGEX = "^%1$s.+";
-	private static final String QUERY_RESULTS_BUCKET = "s3://%1$s/%2$s/athena";
+	private static final String QUERY_RESULTS_BUCKET = "s3://%1$s/%2$09d/athena";
 	private static final long WAIT_INTERVAL = 1000;
 	
 	private static final String TEMPLATE_ATHENA_REPAIR_TABLE = "MSCK REPAIR TABLE %1$s";
@@ -59,8 +58,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		this.athenaClient = athenaClient;
 		this.stackPrefix = (stackConfig.getStack() + stackConfig.getStackInstance()).toLowerCase();
 		this.tableNameRegex = String.format(TABLE_NAME_REGEX, stackPrefix);
-		this.queryResultsOutputLocation = String.format(QUERY_RESULTS_BUCKET, stackConfig.getLogBucketName(),
-				LogKeyUtils.getInstancePrefix(stackConfig.getStackInstanceNumber()));
+		this.queryResultsOutputLocation = String.format(QUERY_RESULTS_BUCKET, stackConfig.getLogBucketName(), stackConfig.getStackInstanceNumber());
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.athena;
+package org.sagebionetworks.repo.model.athena;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -19,6 +19,9 @@ import static org.mockito.Mockito.when;
 
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
+import org.sagebionetworks.repo.model.athena.AthenaSupport;
+import org.sagebionetworks.repo.model.athena.AthenaSupportImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,7 +42,7 @@ import com.amazonaws.services.glue.AWSGlue;
 import com.amazonaws.services.glue.model.Table;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class AthenaSupportImplAutowireTest {
 
 	private static final String DATABASE_NAME = "firehoseLogs";
@@ -54,8 +57,6 @@ public class AthenaSupportImplAutowireTest {
 	@Autowired
 	private AmazonAthena athenaClient;
 
-	private AthenaSupport athenaSupport;
-
 	// We do not want to run the repair during tests
 	@Mock
 	private AmazonAthena mockAthenaClient;
@@ -69,6 +70,8 @@ public class AthenaSupportImplAutowireTest {
 	@Mock
 	private GetQueryResultsResult mockQueryResult;
 
+	private AthenaSupport athenaSupport;
+	
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
