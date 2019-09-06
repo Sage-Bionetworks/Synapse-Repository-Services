@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.entity;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -13,13 +14,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -36,7 +39,8 @@ import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ReplicationManagerTest {
 	
 	@Mock
@@ -54,7 +58,7 @@ public class ReplicationManagerTest {
 	List<ChangeMessage> changes;
 
 	@SuppressWarnings("unchecked")
-	@Before
+	@BeforeEach
 	public void before(){
 		
 		ChangeMessage update = new ChangeMessage();
@@ -113,7 +117,7 @@ public class ReplicationManagerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPLFM_4497Single() throws Exception{
 		int count = 1;
 		List<EntityDTO> entityData = createEntityDtos(count);
@@ -121,7 +125,9 @@ public class ReplicationManagerTest {
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		// Call under test.
-		manager.replicate(changes);
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.replicate(changes);
+		});
 	}
 	
 	
@@ -132,7 +138,7 @@ public class ReplicationManagerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Test(expected=RecoverableMessageException.class)
+	@Test
 	public void testPLFM_4497Batch() throws Exception{
 		int count = 2;
 		List<EntityDTO> entityData = createEntityDtos(count);
@@ -140,7 +146,10 @@ public class ReplicationManagerTest {
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		// Call under test.
-		manager.replicate(changes);
+		assertThrows(RecoverableMessageException.class, () -> {
+			manager.replicate(changes);
+		});
+
 	}
 	
 	@Test

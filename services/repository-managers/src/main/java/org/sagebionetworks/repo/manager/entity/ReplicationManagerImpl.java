@@ -15,9 +15,10 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 
+@Service
 public class ReplicationManagerImpl implements ReplicationManager {
 
 	public static final int MAX_ANNOTATION_CHARS = 500;
