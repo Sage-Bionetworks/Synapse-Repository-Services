@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -517,12 +518,59 @@ public class OpenIDConnectManagerImplTest {
 		verify(mockOauthClientDao).listOAuthClients(nextPageToken, USER_ID_LONG);
 	}
 	
+	// create a fully populated object, to be updated
+	private static OAuthClient newCreatedOAuthClient() {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		String clientId = "123";
+		oauthClient.setClientId(clientId);
+		oauthClient.setCreatedBy(USER_ID);
+		String etag = "some etag";
+		oauthClient.setEtag(etag);
+		String sector_identifier = "hostname.com";
+		oauthClient.setSector_identifier(sector_identifier);
+		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+		oauthClient.setVerified(false);
+		return oauthClient;
+	}
+	
 	@Test
-	public void testUpdateOpenIDConnectClient() throws Exception {
-		OAuthClient toUpdate = createOAuthClient(USER_ID);
+	public void testUpdateOpenIDConnectClient_HappyCase() throws Exception {
+		OAuthClient created = newCreatedOAuthClient();
+		
+		OAuthClient toUpdate = newCreatedOAuthClient();
+		
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		
+		toUpdate.setClient_name("some other name");
+		toUpdate.setClient_uri("some other client uri");
+		String newHost = "new.client.com";
+		toUpdate.setRedirect_uris(Collections.singletonList("https://"+newHost+"/redir"));
+		toUpdate.setPolicy_uri("some new policy URI");
+		toUpdate.setTos_uri("some new TOS URI");
+		toUpdate.setUserinfo_signed_response_alg(null);
+		toUpdate.setSector_identifier_uri(null);
+		
+		// we can try to change these, but they changes will be ignored
+		toUpdate.setCreatedBy(null);
+		toUpdate.setCreatedOn(null);
+		toUpdate.setModifiedOn(null);
 		
 		// method under test
 		OAuthClient updated = openIDConnectManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
+		
+		assertEquals(toUpdate.getClientId(), updated.getClientId());
+		assertEquals(toUpdate.getClient_name(), updated.getClient_name());
+		assertEquals(toUpdate.getClient_uri(), updated.getClient_uri());
+		assertEquals(toUpdate.getPolicy_uri(), updated.getPolicy_uri());
+		assertEquals(toUpdate.getTos_uri(), updated.getTos_uri());
+		assertEquals(toUpdate.getUserinfo_signed_response_alg(), updated.getUserinfo_signed_response_alg());
+		assertEquals(toUpdate.getRedirect_uris(), updated.getRedirect_uris());
+		assertEquals(toUpdate.getSector_identifier_uri(), updated.getSector_identifier_uri());
+		assertNotNull(updated.getModifiedOn());
+		assertNotEquals(toUpdate.getEtag(), updated.getEtag());
+		assertFalse(updated.getVerified());
+		assertEquals(newHost, updated.getSector_identifier());	
 	}
 	
 	@Test
