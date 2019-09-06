@@ -96,7 +96,7 @@ public class DockerManagerImpl implements DockerManager {
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
 
-		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), service, accessPermissions, now, uuid);
+		String token = DockerTokenUtil.createDockerAuthorizationToken(userInfo.getId().toString(), service, accessPermissions, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;

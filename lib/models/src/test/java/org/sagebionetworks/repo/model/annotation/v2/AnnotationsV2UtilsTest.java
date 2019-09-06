@@ -330,6 +330,14 @@ class AnnotationsV2UtilsTest {
 	}
 
 	@Test
+	public void testCheckValue_ContainsNullValue(){
+		annotationsV2Value.setValue(Arrays.asList("1.2", "2.3", null, "3.4"));
+		assertThrows(IllegalArgumentException.class, ()-> {
+			AnnotationsV2Utils.checkValue(key, annotationsV2Value);
+		});
+	}
+
+	@Test
 	public void testCheckValue_ContainsValidValues(){
 		annotationsV2Value.setValue(Arrays.asList("1.2", "2.3", "3.4"));
 		assertDoesNotThrow(()-> {

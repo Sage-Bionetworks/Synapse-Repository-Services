@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "description": "The OAuth 2.0 scopes supported by Synapse",
+  "enum": [
+    {
+      "name": "openid",
+      "description": "Required scope for OpenID Connect"
+    }
+  ]
+}
