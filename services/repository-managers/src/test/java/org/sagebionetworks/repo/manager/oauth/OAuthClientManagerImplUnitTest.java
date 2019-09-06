@@ -18,11 +18,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -33,22 +31,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.StackEncrypter;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
-import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
@@ -521,7 +511,7 @@ public class OAuthClientManagerImplUnitTest {
 		String sector_identifier = "hostname.com";
 		oauthClient.setSector_identifier(sector_identifier);
 		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
-		oauthClient.setVerified(false);
+		oauthClient.setVerified(true);
 		return oauthClient;
 	}
 	
@@ -564,8 +554,10 @@ public class OAuthClientManagerImplUnitTest {
 		assertEquals(toUpdate.getSector_identifier_uri(), updated.getSector_identifier_uri());
 		assertNotNull(updated.getModifiedOn());
 		assertNotEquals(toUpdate.getEtag(), updated.getEtag());
-		assertFalse(updated.getVerified());
+		// Note, we test that the sector identifier has been updated...
 		assertEquals(newHost, updated.getSector_identifier());
+		// ... and that updating it causes 'verified' to revert to 'false'
+		assertFalse(updated.getVerified());
 		
 		// this checks that client modifications to the fields are ignored
 		assertNotNull(updated.getCreatedBy());
@@ -573,7 +565,44 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotNull(updated.getModifiedOn());
 	}
 	
-	// TODO test the non-happy cases for update
+	@Test
+	public void testUpdateOpenIDConnectClient_unauthorized() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = newCreatedOAuthClient();
+		created.setCreatedBy(userInfo.getId().toString());
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = newCreatedOAuthClient();
+
+		try {
+			// method under test
+			oauthClientManagerImpl.updateOpenIDConnectClient(anonymousUserInfo, toUpdate);
+			fail("UnauthorizedException expected");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClient_etagMismatch() throws Exception {
+		// 'created' simulates what's in the database already
+		OAuthClient created = newCreatedOAuthClient();
+		created.setCreatedBy(userInfo.getId().toString());
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		
+		// 'toUpdate' is the object as retrieved and modified by the client
+		OAuthClient toUpdate = newCreatedOAuthClient();
+		toUpdate.setEtag("mismatched etag");
+
+		try {
+			// method under test
+			oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
+			fail("ConflictingUpdateException expected");
+		} catch (ConflictingUpdateException e) {
+			// as expected
+		}
+	}
 	
 	@Test
 	public void testDeleteOpenIDConnectClient() {
@@ -614,8 +643,17 @@ public class OAuthClientManagerImplUnitTest {
 		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClientId());
 		assertNotNull(idAndSecret.getClientSecret());
 	}
-	
-	// TODO testCreateClientSecret_unauthorized 
-	
 
+	@Test
+	public void testCreateClientSecret_unauthorized() {
+		try {
+			// method under test
+			oauthClientManagerImpl.createClientSecret(anonymousUserInfo, OAUTH_CLIENT_ID);
+			fail("UnauthorizedException expected");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+
+		verify(mockOauthClientDao, never()).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
+	}
 }
