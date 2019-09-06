@@ -55,7 +55,6 @@ import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenIDConnectManagerImplTest {
-	private static final String REDIRECT_URI = "https://foo.bar.com/user/login/synapse/login";
 	private static final String USER_ID = "101";
 	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
 	private static final String CLIENT_NAME = "some client";
@@ -98,12 +97,16 @@ public class OpenIDConnectManagerImplTest {
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
 	
 	private UserInfo userInfo;
+	UserInfo anonymousUserInfo;
 	private  URI sector_identifier_uri;
 	
 	@Before
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
+
+		anonymousUserInfo = new UserInfo(false);
+		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_STRING);
 
@@ -364,8 +367,6 @@ public class OpenIDConnectManagerImplTest {
 		// method under test
 		assertTrue(OpenIDConnectManagerImpl.canCreate(userInfo));
 		
-		UserInfo anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		// method under test
 		assertFalse(OpenIDConnectManagerImpl.canCreate(anonymousUserInfo));
 	}
@@ -447,8 +448,6 @@ public class OpenIDConnectManagerImplTest {
 	
 	@Test
 	public void testCreateOpenIDConnectClient_Unauthorized() throws Exception {
-		UserInfo anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 
 		try {
@@ -461,12 +460,78 @@ public class OpenIDConnectManagerImplTest {
 	}
 	
 	@Test
+	public void testGetOpenIDConnectClient_owner() throws Exception {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		String id = "123";
+		oauthClient.setClientId(id);
+		oauthClient.setCreatedBy(USER_ID);
+		oauthClient.setSector_identifier("foo.com");
+		oauthClient.setEtag("some etag");
+		when(mockOauthClientDao.getOAuthClient(id)).thenReturn(oauthClient);
+		
+		// method under test
+		openIDConnectManagerImpl.getOpenIDConnectClient(userInfo, id);
+		
+		verify(mockOauthClientDao).getOAuthClient(id);
+		
+		// verify not scrubbed of private info
+		assertNotNull(oauthClient.getCreatedBy());
+		assertNotNull(oauthClient.getRedirect_uris());
+		assertNotNull(oauthClient.getSector_identifier());
+		assertNotNull(oauthClient.getCreatedOn());
+		assertNotNull(oauthClient.getModifiedOn());
+		assertNotNull(oauthClient.getEtag());
+	}
+	
+	@Test
+	public void testGetOpenIDConnectClient_not_owner() throws Exception {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		String id = "123";
+		oauthClient.setClientId(id);
+		oauthClient.setCreatedBy(USER_ID);
+		oauthClient.setSector_identifier("foo.com");
+		oauthClient.setEtag("some etag");
+		when(mockOauthClientDao.getOAuthClient(id)).thenReturn(oauthClient);
+		
+		// method under test
+		openIDConnectManagerImpl.getOpenIDConnectClient(anonymousUserInfo, id);
+		
+		verify(mockOauthClientDao).getOAuthClient(id);
+		
+		// verify IS scrubbed of private info
+		assertNull(oauthClient.getCreatedBy());
+		assertNull(oauthClient.getRedirect_uris());
+		assertNull(oauthClient.getSector_identifier());
+		assertNull(oauthClient.getCreatedOn());
+		assertNull(oauthClient.getModifiedOn());
+		assertNull(oauthClient.getEtag());
+	}
+	
+	@Test
+	public void testListOpenIDConnectClients() throws Exception {
+		String nextPageToken = "some token";
+		
+		// method under test
+		openIDConnectManagerImpl.listOpenIDConnectClients(userInfo, nextPageToken);
+		
+		verify(mockOauthClientDao).listOAuthClients(nextPageToken, USER_ID_LONG);
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClient() throws Exception {
+		OAuthClient toUpdate = createOAuthClient(USER_ID);
+		
+		// method under test
+		OAuthClient updated = openIDConnectManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
+	}
+	
+	@Test
 	public void testValidateAuthenticationRequest() {
 		OAuthClient client = new OAuthClient();
-		client.setRedirect_uris(Collections.singletonList(REDIRECT_URI));
+		client.setRedirect_uris(Collections.singletonList(REDIRCT_URIS.get(0)));
 
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setRedirectUri(REDIRECT_URI);
+		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		
 		// method under test

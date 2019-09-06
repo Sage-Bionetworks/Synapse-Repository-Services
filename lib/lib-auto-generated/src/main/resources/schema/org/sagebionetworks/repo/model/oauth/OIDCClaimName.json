@@ -57,6 +57,46 @@
     {
       "name": "userid",
       "description": "The immutable principal ID referencing the Synapse user"
+    },
+    {
+      "name": "orcid",
+      "description": ""
+    },
+    {
+      "name": "is_certified",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#certified-users"
+    },
+    {
+      "name": "is_validated",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_given_name",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_family_name",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_location",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_email",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_company",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_orcid",
+      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_at",
+      "description": "The timestamp denoting whew validation occurred.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     }
   ]
 }

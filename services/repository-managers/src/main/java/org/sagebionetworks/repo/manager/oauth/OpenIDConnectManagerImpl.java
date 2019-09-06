@@ -363,6 +363,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
+		if (StringUtils.isEmpty(claims)) return Collections.EMPTY_MAP;
 		JSONObject claimsObject;
 		try {
 			claimsObject = new JSONObject(claims);
