@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -22,6 +23,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -46,7 +49,7 @@ public class ReplicationManagerTest {
 	TransactionStatus transactionStatus;
 	
 	@InjectMocks
-	ReplicationManagerImpl worker;
+	ReplicationManagerImpl manager;
 	
 	List<ChangeMessage> changes;
 
@@ -98,7 +101,7 @@ public class ReplicationManagerTest {
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		
 		// call under test
-		worker.replicate(changes);
+		manager.replicate(changes);
 		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
 		verify(mockIndexDao).deleteEntityData(eq(Lists.newArrayList(111L,222L,333L)));
 		verify(mockIndexDao).addEntityData(eq(entityData));
@@ -118,7 +121,7 @@ public class ReplicationManagerTest {
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		// Call under test.
-		worker.replicate(changes);
+		manager.replicate(changes);
 	}
 	
 	
@@ -137,7 +140,24 @@ public class ReplicationManagerTest {
 		entityData.get(0).setBenefactorId(null);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		// Call under test.
-		worker.replicate(changes);
+		manager.replicate(changes);
+	}
+	
+	@Test
+	public void testReplicatSingle() {
+		String entityId = "syn123";
+		IdAndVersion ideAndVersion = KeyFactory.idAndVersion(entityId);
+		when(mockConnectionFactory.getConnection(ideAndVersion)).thenReturn(mockIndexDao);
+		List<String> entityids = Collections.singletonList(entityId);
+		int count = 1;
+		List<EntityDTO> entityData = createEntityDtos(count);
+		when(mockNodeDao.getEntityDTOs(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS)).thenReturn(entityData);
+
+		// call under test
+		manager.replicate(entityId);
+		verify(mockNodeDao).getEntityDTOs(entityids, ReplicationManagerImpl.MAX_ANNOTATION_CHARS);
+		verify(mockIndexDao).deleteEntityData(Lists.newArrayList(123L));
+		verify(mockIndexDao).addEntityData(entityData);
 	}
 	
 	/**

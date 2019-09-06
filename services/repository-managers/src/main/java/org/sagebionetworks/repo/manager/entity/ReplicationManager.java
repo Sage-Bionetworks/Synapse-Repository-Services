@@ -21,4 +21,9 @@ public interface ReplicationManager {
 	 */
 	void replicate(List<ChangeMessage> messages) throws RecoverableMessageException;
 
+	/**
+	 * Replicate all data for a single entity.
+	 * @param entityId
+	 */
+	void replicate(String entityId);
 }

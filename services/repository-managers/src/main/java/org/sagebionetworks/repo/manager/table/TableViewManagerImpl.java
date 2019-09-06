@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
@@ -49,6 +50,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	ColumnModelDAO columnModelDao;
 	@Autowired
 	NodeManager nodeManager;
+	@Autowired
+	ReplicationManager replicationManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -177,6 +180,8 @@ public class TableViewManagerImpl implements TableViewManager {
 		if(updated){
 			// save the changes.
 			nodeManager.updateUserAnnotations(user, entityId, AnnotationsV2Translator.toAnnotationsV2(userAnnotations));
+			// Replicate the change
+			replicationManager.replicate(entityId);
 		}
 	}
 	

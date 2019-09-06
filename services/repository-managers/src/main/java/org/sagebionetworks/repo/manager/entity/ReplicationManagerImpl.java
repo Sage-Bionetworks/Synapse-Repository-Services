@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.entity;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.TransactionStatus;
@@ -51,15 +53,11 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
 			final TableIndexDAO indexDaoFinal = indexDao;
-			indexDao.executeInWriteTransaction(new TransactionCallback<Void>() {
-
-				@Override
-				public Void doInTransaction(TransactionStatus status) {
-					// clear everything.
-					indexDaoFinal.deleteEntityData(allIds);
-					indexDaoFinal.addEntityData(entityDTOs);
-					return null;
-				}
+			indexDao.executeInWriteTransaction((TransactionStatus status) -> {
+				// clear everything.
+				indexDaoFinal.deleteEntityData(allIds);
+				indexDaoFinal.addEntityData(entityDTOs);
+				return null;
 			});
 		}
 	}
@@ -103,5 +101,23 @@ public class ReplicationManagerImpl implements ReplicationManager {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Replicate a single entity.
+	 * 
+	 */
+	@Override
+	public void replicate(String entityId) {
+		ValidateArgument.required(entityId, "EntityId");
+		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(Collections.singletonList(entityId),
+				MAX_ANNOTATION_CHARS);
+		// Connect only to the index for this table
+		final TableIndexDAO indexDao = connectionFactory.getConnection(KeyFactory.idAndVersion(entityId));
+		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			indexDao.deleteEntityData(Collections.singletonList(KeyFactory.stringToKey(entityId)));
+			indexDao.addEntityData(entityDTOs);
+			return null;
+		});
 	}
 }
