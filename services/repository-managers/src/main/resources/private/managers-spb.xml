@@ -40,6 +40,12 @@
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
 	
+	<bean id="httpClient" class="org.sagebionetworks.repo.manager.HttpClientImpl" />
+	
+	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl" />
+	
+	<bean id="oauthClientManager" class="org.sagebionetworks.repo.manager.oauth.OAuthClientManagerImpl" />
+	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />
@@ -534,4 +540,8 @@
 	<bean id="storageReportManager"
 		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
 		  scope="singleton"/>
+		  
+	<bean id="oidcTokenHelper" class="org.sagebionetworks.repo.manager.oauth.OIDCTokenHelperImpl" scope="singleton" />
+	
+		  
 </beans>

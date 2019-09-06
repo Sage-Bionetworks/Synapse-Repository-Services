@@ -47,9 +47,12 @@ public class ValidateArgument {
 	public static void optional(String description, String string) {
 	}
 
-	public static void validUrl(String url) {
+	public static void validUrl(String url, String fieldDescriptor) {
 		if (!urlValidator.isValid(url)) {
-			throw new IllegalArgumentException("The ExternalURL is not a valid url: " + url);
+			throw new IllegalArgumentException(fieldDescriptor+" is not a valid url: " + url);
 		}
+	}
+	public static void validExternalUrl(String url) {
+		validUrl(url, "The External URL");
 	}
 }
