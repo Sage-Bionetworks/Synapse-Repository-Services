@@ -32,6 +32,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException 
 	 */
+	@Deprecated
 	public EntityBundle getEntityBundle(Long userId, String entityId, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
@@ -50,6 +51,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException 
 	 */
+	@Deprecated
 	public EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 	
@@ -74,6 +76,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 * @throws ACLInheritanceException 
 	 */
+	@Deprecated
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
@@ -99,6 +102,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
+	@Deprecated
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
 			EntityBundleCreate ebc,	String activityId) throws 
 			ConflictingUpdateException,	DatastoreException, 

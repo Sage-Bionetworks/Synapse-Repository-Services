@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +24,7 @@ public class AnnotationsV2Utils {
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
 			.compile("^[a-zA-Z0-9,_.]+");
+
 
 	/**
 	 *

@@ -48,6 +48,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -92,11 +94,12 @@ public class EntityBundleServiceImplTest {
 	private Folder studyWithId;
 	private FileEntity file;
 	private Annotations annos;
+	private AnnotationsV2 annotationsV2;
 	private AccessControlList acl;
 	private EntityThreadCounts threadCounts;
-	
+
 	private EntityBundle responseBundle;
-	
+
 	private static final String DUMMY_STUDY_1 = "Test Study 1";
 	private static final String DUMMY_PROJECT = "Test Project";
 	private static final String DUMMY_FILE = "Test File";
@@ -136,10 +139,13 @@ public class EntityBundleServiceImplTest {
 		file.setId(FILE_ID);
 
 		// Annotations
-		annos = new Annotations();		
+		annos = new Annotations();
+		annos.setId(STUDY_ID);
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
-		
+		//TODO: init v2 with actual values
+		annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annos);
+
 		// ACL
 		acl = new AccessControlList();
 		ResourceAccess ra = new ResourceAccess();
@@ -150,7 +156,7 @@ public class EntityBundleServiceImplTest {
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
-		
+
 		// Response bundle
 		responseBundle = new EntityBundle();
 		responseBundle.setEntity(study);
@@ -169,8 +175,8 @@ public class EntityBundleServiceImplTest {
 		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
-		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(new Annotations());
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos))).thenReturn(annos);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(new AnnotationsV2());
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 
 		// Create the bundle, verify contents
@@ -195,13 +201,13 @@ public class EntityBundleServiceImplTest {
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
 		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
 	}
 	
 	@Test
 	public void testUpdateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
-		Annotations annosWithId = new Annotations();
+		AnnotationsV2 annosWithId = new AnnotationsV2();
 		annosWithId.setId(STUDY_ID);
 		String activityId = "1";
 			
@@ -210,7 +216,7 @@ public class EntityBundleServiceImplTest {
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(annosWithId);
-		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos))).thenReturn(annos);
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		
 		// Create the bundle, verify contents
@@ -223,7 +229,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAccessControlList(acl);
 
 		EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, activityId);
-		
+
 		Folder s2 = (Folder) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
@@ -238,7 +244,7 @@ public class EntityBundleServiceImplTest {
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
 		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId));
-		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
 	}
 	

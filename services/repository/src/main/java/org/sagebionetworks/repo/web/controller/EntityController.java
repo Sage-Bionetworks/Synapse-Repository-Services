@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -452,8 +453,8 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Pass it along
-		return serviceProvider.getEntityService().getEntityAnnotations(userId,
-				id);
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId,
+				id));
 	}
 
 	/**
@@ -498,8 +499,8 @@ public class EntityController {
 			NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
 		// Pass it along
-		return serviceProvider.getEntityService().updateEntityAnnotations(
-				userId, id, updatedAnnotations);
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(
+				userId, id, AnnotationsV2Translator.toAnnotationsV2(updatedAnnotations)));
 	}
 
 	/**
@@ -1093,9 +1094,9 @@ public class EntityController {
 			@PathVariable Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
-		return serviceProvider.getEntityService()
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService()
 				.getEntityAnnotationsForVersion(userId, id, versionNumber
-				);
+				));
 	}
 
 	/**

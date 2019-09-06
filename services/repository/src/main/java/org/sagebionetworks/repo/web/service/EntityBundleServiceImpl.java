@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,13 +60,15 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	public EntityBundleServiceImpl(ServiceProvider serviceProvider) {
 		this.serviceProvider = serviceProvider;
 	}
-	
+
+	@Deprecated
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId, int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
 		return getEntityBundle(userId, entityId, null, mask);
 	}
 
+	@Deprecated
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId,
 			Long versionNumber, int mask)
@@ -87,9 +90,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if ((mask & EntityBundle.ANNOTATIONS) > 0) {
 			if(versionNumber == null) {
-				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId));
+				eb.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId)));
 			} else {
-				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber));
+				eb.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber)));
 			}
 		}
 		if ((mask & EntityBundle.PERMISSIONS) > 0) {
@@ -217,6 +220,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@WriteTransaction
 	@Override
+	@Deprecated
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
@@ -240,16 +244,17 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		// Create the Annotations
 		if (ebc.getAnnotations() != null) {
 			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
+			Annotations annos = AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId()));
 			annos.addAll(ebc.getAnnotations());
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
+			ebc.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), AnnotationsV2Translator.toAnnotationsV2(annos))));
 		}
 		
 		return getEntityBundle(userId, entity.getId(), partsMask);
 	}
-	
+
 	@WriteTransaction
 	@Override
+	@Deprecated
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
 			EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
@@ -286,9 +291,9 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityId.equals(ebc.getAnnotations().getId()))
 				throw new IllegalArgumentException("Annotations do not match requested entity ID");
 			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
+			Annotations toUpdate = AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId));
 			toUpdate.addAll(annos);
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
+			ebc.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, AnnotationsV2Translator.toAnnotationsV2(toUpdate))));
 		}
 		
 		return getEntityBundle(userId, entityId, partsMask);
