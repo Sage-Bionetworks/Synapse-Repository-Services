@@ -1645,7 +1645,7 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockTableManagerSupport.getTableType(KeyFactory.idAndVersion(tableId))).thenReturn(ObjectType.TABLE);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.TABLE);
 		// call under test
 		SnapshotResponse response = manager.createTableSnapshot(user, tableId, snapshotRequest);
 		assertNotNull(response);
@@ -1660,7 +1660,7 @@ public class TableEntityManagerTest {
 		when(mockNodeManager.createSnapshotAndVersion(user, tableId, snapshotRequest)).thenReturn(snapshotVersion);
 		when(mockTruthDao.getLastTransactionId(tableId)).thenReturn(Optional.of(transactionId));
 		when(mockTableTransactionDao.getTableIdWithLock(transactionId)).thenReturn(tableIdLong);
-		when(mockTableManagerSupport.getTableType(KeyFactory.idAndVersion(tableId))).thenReturn(ObjectType.ENTITY_VIEW);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse(tableId))).thenReturn(ObjectType.ENTITY_VIEW);
 		// call under test
 		try {
 			manager.createTableSnapshot(user, tableId, snapshotRequest);

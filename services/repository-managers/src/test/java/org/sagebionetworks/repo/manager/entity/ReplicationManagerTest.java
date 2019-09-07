@@ -155,7 +155,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testReplicatSingle() {
 		String entityId = "syn123";
-		IdAndVersion ideAndVersion = KeyFactory.idAndVersion(entityId);
+		IdAndVersion ideAndVersion = IdAndVersion.parse(entityId);
 		when(mockConnectionFactory.getConnection(ideAndVersion)).thenReturn(mockIndexDao);
 		List<String> entityids = Collections.singletonList(entityId);
 		int count = 1;

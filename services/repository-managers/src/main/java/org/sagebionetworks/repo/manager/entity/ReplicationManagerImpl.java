@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -53,13 +54,8 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
-			final TableIndexDAO indexDaoFinal = indexDao;
-			indexDao.executeInWriteTransaction((TransactionStatus status) -> {
-				// clear everything.
-				indexDaoFinal.deleteEntityData(allIds);
-				indexDaoFinal.addEntityData(entityDTOs);
-				return null;
-			});
+			// apply the change to this index.
+			replicateInIndex(indexDao, entityDTOs, allIds);
 		}
 	}
 	
@@ -114,9 +110,21 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(Collections.singletonList(entityId),
 				MAX_ANNOTATION_CHARS);
 		// Connect only to the index for this table
-		final TableIndexDAO indexDao = connectionFactory.getConnection(KeyFactory.idAndVersion(entityId));
+		
+		final TableIndexDAO indexDao = connectionFactory.getConnection(IdAndVersion.parse(entityId));
+		List<Long> ids = Collections.singletonList(KeyFactory.stringToKey(entityId));
+		replicateInIndex(indexDao, entityDTOs, ids);
+	}
+
+	/**
+	 * Replicate the given 
+	 * @param indexDao
+	 * @param entityDTOs DTO to be created/updated
+	 * @param ids All of the ids to be created/updated/deleted.
+	 */
+	void replicateInIndex(final TableIndexDAO indexDao, final List<EntityDTO> entityDTOs, List<Long> ids) {
 		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			indexDao.deleteEntityData(Collections.singletonList(KeyFactory.stringToKey(entityId)));
+			indexDao.deleteEntityData(ids);
 			indexDao.addEntityData(entityDTOs);
 			return null;
 		});

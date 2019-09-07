@@ -996,7 +996,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(request, "request");
 		
-		IdAndVersion idAndVersion = KeyFactory.idAndVersion(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		
 		ObjectType type = tableManagerSupport.getTableType(idAndVersion);
 		if(ObjectType.ENTITY_VIEW.equals(type)) {

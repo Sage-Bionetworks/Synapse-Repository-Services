@@ -135,14 +135,4 @@ public class KeyFactory {
 		ValidateArgument.required(entityId, "entityId");
 		return IdAndVersion.newBuilder().setId(stringToKey(entityId)).setVersion(versionNumber).build();
 	}
-	
-	/**
-	 * Create an IdAndVersion for the given entity id.
-	 * @param entityId
-	 * @return
-	 */
-	public static IdAndVersion idAndVersion(String entityId) {
-		ValidateArgument.required(entityId, "entityId");
-		return IdAndVersion.newBuilder().setId(stringToKey(entityId)).build();
-	}
 }
