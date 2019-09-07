@@ -36,6 +36,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
@@ -69,6 +70,8 @@ public class TableViewManagerImplTest {
 	ColumnModelDAO columnModelDao;
 	@Mock
 	NodeManager mockNodeManager;
+	@Mock
+	ReplicationManager mockReplicationManager;
 	
 	@InjectMocks
 	TableViewManagerImpl manager;
@@ -508,6 +511,7 @@ public class TableViewManagerImplTest {
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
 		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(AnnotationsV2.class));
+		verify(mockReplicationManager).replicate("syn111");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -531,6 +535,7 @@ public class TableViewManagerImplTest {
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	
 	@Test
@@ -540,6 +545,7 @@ public class TableViewManagerImplTest {
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	
 	@Test
@@ -550,6 +556,7 @@ public class TableViewManagerImplTest {
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
 		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	
 	@Test
