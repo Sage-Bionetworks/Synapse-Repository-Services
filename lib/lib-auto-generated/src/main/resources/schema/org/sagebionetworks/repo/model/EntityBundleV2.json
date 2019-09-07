@@ -1,0 +1,53 @@
+{
+	"description": "Bundle to transport an Entity and related data objects",
+	"properties": {
+		"entity": {
+			"$ref":"org.sagebionetworks.repo.model.Entity"
+		},
+		"entityType": {
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
+		},
+		"annotations": {
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2"
+		},
+		"permissions": {
+			"$ref": "org.sagebionetworks.repo.model.auth.UserEntityPermissions"
+		},
+		"path": {
+			"$ref": "org.sagebionetworks.repo.model.EntityPath"
+		},
+		"hasChildren": {
+			"type": "boolean"
+		},
+		"acl": {
+			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
+		},
+		"fileHandles":{
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandle",
+			}
+		},
+		"tableBundle": {
+			"$ref": "org.sagebionetworks.repo.model.table.TableBundle"
+		},
+		"rootWikiId": {
+			"type": "string"
+		},
+		"benefactorAcl": {
+			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
+		},
+		"doiAssociation": {
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiAssociation"
+		},
+		"fileName": {
+			"type": "string"
+		},
+		"threadCount": {
+			"type": "integer"
+		},
+		"restrictionInformation": {
+			"$ref": "org.sagebionetworks.repo.model.RestrictionInformationResponse"
+		}
+	}
+}
