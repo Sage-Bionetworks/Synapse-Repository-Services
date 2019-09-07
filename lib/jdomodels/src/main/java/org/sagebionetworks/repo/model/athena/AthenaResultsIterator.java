@@ -18,39 +18,39 @@ import com.amazonaws.services.athena.model.ResultSet;
  */
 public class AthenaResultsIterator<T> implements Iterator<T> {
 
-	public static final int MAX_ATHENA_BATCH_SIZE = 500;
+	// The maximum number of results per page that athena allows
+	public static final int MAX_FETCH_PAGE_SIZE = 500;
 
 	private AmazonAthena athenaClient;
 	private String queryExecutionId;
 	private RowMapper<T> rowMapper;
-	private int batchSize;
+	private int pageSize;
 	private boolean excludeHeader;
 
 	private String nextToken;
 	private Iterator<T> currentPage;
 
-	public AthenaResultsIterator(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, int batchSize,
-			boolean excludeHeader) {
+	public AthenaResultsIterator(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, int pageSize, boolean excludeHeader) {
 		this.athenaClient = athenaClient;
 		this.queryExecutionId = queryExecutionId;
 		this.rowMapper = rowMapper;
-		this.batchSize = batchSize;
+		this.pageSize = pageSize;
 		this.excludeHeader = excludeHeader;
 	}
-
+	
 	private List<T> nextPage() {
 
-		int pageSize = batchSize;
+		int maxResults = pageSize;
 
 		// Athena results include the header with column names, we fetch an additional row on the first page
 		// if we need to exclude it
-		if (excludeHeader && currentPage == null && pageSize < MAX_ATHENA_BATCH_SIZE) {
-			pageSize += 1;
+		if (excludeHeader && currentPage == null && pageSize < MAX_FETCH_PAGE_SIZE) {
+			maxResults += 1;
 		}
 
 		GetQueryResultsRequest request = new GetQueryResultsRequest()
 				.withQueryExecutionId(queryExecutionId)
-				.withMaxResults(pageSize)
+				.withMaxResults(maxResults)
 				.withNextToken(nextToken);
 
 		GetQueryResultsResult result = athenaClient.getQueryResults(request);

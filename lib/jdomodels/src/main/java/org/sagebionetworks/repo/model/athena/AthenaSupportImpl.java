@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.athena;
 
-import static org.sagebionetworks.repo.model.athena.AthenaResultsIterator.MAX_ATHENA_BATCH_SIZE;
+import static org.sagebionetworks.repo.model.athena.AthenaResultsIterator.MAX_FETCH_PAGE_SIZE;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -114,13 +114,20 @@ public class AthenaSupportImpl implements AthenaSupport {
 		return prefixWithStack(tableName);
 	}
 	
+
 	@Override
-	public <T> AthenaQueryResult<T> executeQuery(String databaseName, String query, RowMapper<T> rowMapper, int batchSize, boolean excludeHeader) {
+	public <T> AthenaQueryResult<T> executeQuery(String databaseName, String query, RowMapper<T> rowMapper, int pageSize) {
+		return executeQuery(databaseName, query, rowMapper, pageSize, true);
+	}
+
+	
+	@Override
+	public <T> AthenaQueryResult<T> executeQuery(String databaseName, String query, RowMapper<T> rowMapper, int pageSize, boolean excludeHeader) {
 		ValidateArgument.required(databaseName, "databaseName");
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowMapper, "rowMapper");
-		ValidateArgument.requirement(batchSize > 0 && batchSize <= MAX_ATHENA_BATCH_SIZE,
-				"The batch size should be within the (0, " + MAX_ATHENA_BATCH_SIZE + "] range.");
+		ValidateArgument.requirement(pageSize > 0 && pageSize <= MAX_FETCH_PAGE_SIZE,
+				"The batch size should be within the (0, " + MAX_FETCH_PAGE_SIZE + "] range.");
 		
 		LOG.debug("Executing query {} on database {}...", query, databaseName);
 
@@ -132,7 +139,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, databaseName,
 				queryStatistics.getDataScannedInBytes(), queryStatistics.getEngineExecutionTimeInMillis());
 		
-		Iterator<T> iterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, batchSize, excludeHeader);
+		Iterator<T> iterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, pageSize, excludeHeader);
 		
 		return new AthenaQueryResult<T>() {
 

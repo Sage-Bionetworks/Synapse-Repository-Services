@@ -163,7 +163,7 @@ public class AthenaSupportImplAutowireTest {
 	
 	// This can be useful to actually test queries
 	@Test
-	@Disabled("We do not want to run athena queries each time we run the tests")
+	//@Disabled("We do not want to run athena queries each time we run the tests")
 	public void testExecuteQueryIntegration() {
 		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
 		
