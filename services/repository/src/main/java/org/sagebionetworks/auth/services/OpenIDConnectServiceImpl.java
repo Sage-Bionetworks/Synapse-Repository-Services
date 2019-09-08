@@ -32,8 +32,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	
@@ -103,6 +101,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
+		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
 		return result;
 	}
 
