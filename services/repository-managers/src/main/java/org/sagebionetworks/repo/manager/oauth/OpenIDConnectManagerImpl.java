@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,7 +20,10 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.UserInfoHelper;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.VerificationHelper;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -37,6 +42,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -64,6 +70,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private AuthenticationDAO authDao;
+
+	@Autowired
+	private UserManager userManager;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
@@ -232,18 +241,30 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
-
+	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
 	 */
-	public Map<OIDCClaimName,String> getUserInfo(String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
+	public Map<OIDCClaimName,String> getUserInfo(final String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
 		Map<OIDCClaimName,String> result = new HashMap<OIDCClaimName,String>();
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (!scopes.contains(OAuthScope.openid)) return result;
 
-		UserProfile privateUserProfile = userProfileManager.getUserProfile(userId);
+		CachingGetter<UserInfo> userInfoGetter = new CachingGetter<UserInfo>() {
+			protected UserInfo getIntern() {return userManager.getUserInfo(Long.parseLong(userId));}
+		};
+
+		CachingGetter<UserProfile> userProfileGetter = new CachingGetter<UserProfile>() {
+			protected UserProfile getIntern() {return userProfileManager.getUserProfile(userId);}
+		};
+
+		CachingGetter<VerificationSubmission> verificationSubmissionGetter = new CachingGetter<VerificationSubmission>() {
+			protected VerificationSubmission getIntern() {
+				return userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
+			}
+		};
 
 		for (OIDCClaimName claimName : oidcClaims.keySet()) {
 			OIDCClaimsRequestDetails claimsDetails = oidcClaims.get(claimName);
@@ -251,19 +272,19 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			switch (claimName) {
 			case email:
 			case email_verified:
-				List<String> emails = privateUserProfile.getEmails();
+				List<String> emails = userProfileGetter.get().getEmails();
 				if (emails!=null && !emails.isEmpty()) {
 					claimValue = emails.get(0);
 				}
 				break;
 			case given_name:
-				claimValue = privateUserProfile.getFirstName();
+				claimValue = userProfileGetter.get().getFirstName();
 				break;
 			case family_name:
-				claimValue = privateUserProfile.getLastName();
+				claimValue = userProfileGetter.get().getLastName();
 				break;
 			case company:
-				claimValue = privateUserProfile.getCompany();
+				claimValue = userProfileGetter.get().getCompany();
 				break;
 			case team:
 				if (claimsDetails==null) {
@@ -282,36 +303,50 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			case userid:
 				claimValue = userId;
 				break;
-			
 			case is_certified:
-				claimValue = null;// TODO
+				claimValue = ""+UserInfoHelper.isCertified(userInfoGetter.get());
 				break;
 			case is_validated:
-				claimValue = null;// TODO
+				claimValue = ""+VerificationHelper.isVerified(verificationSubmissionGetter.get());
 				break;
 			case orcid:
-				claimValue = null;// TODO
+				claimValue = userProfileManager.getOrcid(Long.parseLong(userId));
 				break;
 			case validated_at:
-				claimValue = null;// TODO
-				break;
+				Date approvalDate = VerificationHelper.getApprovalDate(verificationSubmissionGetter.get());
+				if (approvalDate!=null) {
+					Long validatedEpochSeconds = approvalDate.getTime()/1000L;
+					claimValue = validatedEpochSeconds.toString();
+				}
 			case validated_company:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getCompany();
+				}
 				break;
 			case validated_email:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getEmails().toString();
+				}
 				break;
 			case validated_family_name:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getLastName();
+				}
 				break;
 			case validated_given_name:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getFirstName();
+				}
 				break;
 			case validated_location:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getLocation();
+				}
 				break;
 			case validated_orcid:
-				claimValue = null;// TODO
+				if (verificationSubmissionGetter.get()!=null) {
+					claimValue = verificationSubmissionGetter.get().getOrcid();
+				}
 				break;
 			default:
 				continue;
