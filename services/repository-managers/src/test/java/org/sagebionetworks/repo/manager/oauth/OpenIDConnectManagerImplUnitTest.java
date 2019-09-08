@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -461,24 +460,39 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		OIDCClaimsRequestDetails teamRequest = new OIDCClaimsRequestDetails();
 		teamRequest.setValues(ImmutableList.of("101", "102"));
+		oidcClaims.put(OIDCClaimName.team, teamRequest);
+
 		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
 		TeamMember tm = new TeamMember();
 		tm.setTeamId("101");
 		lw.setList(Collections.singletonList(tm));
-		when(mockTeamDAO.listMembers((List)any(), (List)any())).thenReturn(lw);
-		//when(mockTeamDAO.listMembers(ImmutableList.of(101L, 102L), ImmutableList.of(USER_ID_LONG))).thenReturn(lw);
-		oidcClaims.put(OIDCClaimName.team, teamRequest);
+		when(mockTeamDAO.listMembers(ImmutableList.of(101L, 102L), ImmutableList.of(USER_ID_LONG))).thenReturn(lw);
 		
 		oidcClaims.put(OIDCClaimName.userid, null);
+		
 		oidcClaims.put(OIDCClaimName.validated_company, null);
+		String validatedCompany = "validatedCompany";
+		verificationSubmission.setCompany(validatedCompany);
+		
 		oidcClaims.put(OIDCClaimName.validated_email, null);
-		String verifiedEmail = "verified@email.com";
-		verificationSubmission.setEmails(Collections.singletonList(verifiedEmail));
+		String validatedEmail = "validated@email.com";
+		verificationSubmission.setEmails(Collections.singletonList(validatedEmail));
 		
 		oidcClaims.put(OIDCClaimName.validated_family_name, null);
+		String validatedLastName = "validatedLastName";
+		verificationSubmission.setLastName(validatedLastName);
+		
 		oidcClaims.put(OIDCClaimName.validated_given_name, null);
+		String validatedFirstName = "validatedFirstName";
+		verificationSubmission.setFirstName(validatedFirstName);
+		
 		oidcClaims.put(OIDCClaimName.validated_location, null);
+		String validatedLocation = "validatedLocation";
+		verificationSubmission.setLocation(validatedLocation);
+		
 		oidcClaims.put(OIDCClaimName.validated_orcid, null);
+		String validatedOrcid = "validated-orcid";
+		verificationSubmission.setOrcid(validatedOrcid);
 		
 		// method under test
 		Map<OIDCClaimName, Object> result=openIDConnectManagerImpl.getUserInfo(USER_ID, Collections.singletonList(OAuthScope.openid), oidcClaims);
@@ -491,8 +505,58 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertTrue((Boolean)result.get(OIDCClaimName.email_verified));
 		assertEquals(new Long(now.getTime()/1000L), (Long)result.get(OIDCClaimName.validated_at));
 		assertEquals(true, result.get(OIDCClaimName.is_validated));
+		assertEquals(true, result.get(OIDCClaimName.is_certified));
 		assertEquals(orcid, result.get(OIDCClaimName.orcid));
 		assertEquals(Collections.singletonList("101"), result.get(OIDCClaimName.team));
+		assertEquals(USER_ID, result.get(OIDCClaimName.userid));
+		assertEquals(validatedCompany, result.get(OIDCClaimName.validated_company));
+		assertEquals(validatedLastName, result.get(OIDCClaimName.validated_family_name));
+		assertEquals(validatedFirstName, result.get(OIDCClaimName.validated_given_name));
+		assertEquals(validatedOrcid, result.get(OIDCClaimName.validated_orcid));
+	}
+
+	// make sure we correctly handle when information is unavaiable
+	@Test
+	public void testGetUserInfo_internal_missing_info() {
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		
+		oidcClaims.put(OIDCClaimName.company, null);
+		oidcClaims.put(OIDCClaimName.family_name, null);
+		oidcClaims.put(OIDCClaimName.given_name, null);
+		oidcClaims.put(OIDCClaimName.is_certified, null);
+		oidcClaims.put(OIDCClaimName.is_validated, null);
+		oidcClaims.put(OIDCClaimName.validated_at, null);
+		oidcClaims.put(OIDCClaimName.orcid, null);
+		
+		OIDCClaimsRequestDetails teamRequest = new OIDCClaimsRequestDetails();
+		teamRequest.setValues(ImmutableList.of("101", "102"));
+		oidcClaims.put(OIDCClaimName.team, teamRequest);
+
+		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
+		when(mockTeamDAO.listMembers(ImmutableList.of(101L, 102L), ImmutableList.of(USER_ID_LONG))).thenReturn(lw);
+		
+		oidcClaims.put(OIDCClaimName.validated_company, null);	
+		oidcClaims.put(OIDCClaimName.validated_email, null);		
+		oidcClaims.put(OIDCClaimName.validated_family_name, null);
+		oidcClaims.put(OIDCClaimName.validated_given_name, null);
+		oidcClaims.put(OIDCClaimName.validated_location, null);
+		oidcClaims.put(OIDCClaimName.validated_orcid, null);
+		
+		// method under test
+		Map<OIDCClaimName, Object> result=openIDConnectManagerImpl.getUserInfo(USER_ID, Collections.singletonList(OAuthScope.openid), oidcClaims);
+
+		assertFalse(result.containsKey(OIDCClaimName.company));
+		assertFalse(result.containsKey(OIDCClaimName.family_name));
+		assertFalse(result.containsKey(OIDCClaimName.given_name));
+		assertFalse(result.containsKey(OIDCClaimName.validated_at));
+		assertEquals(false, result.get(OIDCClaimName.is_validated));
+		assertEquals(false, result.get(OIDCClaimName.is_certified));
+		assertFalse(result.containsKey(OIDCClaimName.orcid));
+		assertEquals(Collections.EMPTY_LIST, result.get(OIDCClaimName.team));
+		assertFalse(result.containsKey(OIDCClaimName.validated_company));
+		assertFalse(result.containsKey(OIDCClaimName.validated_family_name));
+		assertFalse(result.containsKey(OIDCClaimName.validated_given_name));
+		assertFalse(result.containsKey(OIDCClaimName.validated_orcid));
 	}
 
 	@Test
@@ -504,7 +568,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(ImmutableList.of("id_token", "userinfo"));
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
@@ -518,16 +582,28 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
 				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
+		// elsewhere we test that we correctly build up the requested user-info
+		// here we just spot check a few fields to make sure everything's wired up
+		String email = "me@domain.com";
+		userProfile.setEmails(ImmutableList.of(email, "secondary-email"));
+
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		// verifying the mock token indirectly verifies all param's were correctly passed to oidcTokenHelper.createOIDCIdToken()
 		assertEquals(expectedIdToken, tokenResponse.getId_token());
-		System.out.println(userInfoCaptor.getValue());// TODO 
+		// just spot check a few fields to make sure everything's wired up
+		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
+		assertEquals(email, userInfo.get(OIDCClaimName.email));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
 
 		assertEquals(expectedAccessToken, tokenResponse.getAccess_token());
 		assertEquals(Collections.singletonList(OAuthScope.openid), scopesCaptor.getValue());
-		System.out.println(claimsCaptor.getValue());// TODO 
+		for (OIDCClaimName claimName : OpenIDConnectManagerImpl.CLAIM_DESCRIPTION.keySet()) {
+			assertTrue(claimsCaptor.getValue().containsKey(claimName));
+			assertNull(claimsCaptor.getValue().get(claimName));
+		}
 	
 		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
 	}
@@ -628,31 +704,58 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertNotNull(tokenResponse.getAccess_token());
 	}
 	
+	private Jwt<JwsHeader,Claims> createAccessToken() {
+		Claims claims = Jwts.claims();
+		Jwt<JwsHeader,Claims> accessToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
+		claims.setAudience(OAUTH_CLIENT_ID);
+		claims.setSubject(openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID));
+		claims.put(OIDCClaimName.auth_time.name(), now.getTime()/1000L);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		oidcClaims.put(OIDCClaimName.userid, null);
+		oidcClaims.put(OIDCClaimName.email, null);
+		oidcClaims.put(OIDCClaimName.email_verified, null);
+		ClaimsJsonUtil.addAccessClaims(Collections.singletonList(OAuthScope.openid), oidcClaims, claims);
+		return accessToken;
+	}
+	
+	@Test
+	public void testGetUserInfoAsMap() {
+		// if the client omits a signing algorithm it means it wants the UserInfo as json
+		oauthClient.setUserinfo_signed_response_alg(null);
+		
+		String email = "me@domain.com";
+		userProfile.setEmails(ImmutableList.of(email, "secondary-email"));
+
+		// method under test
+		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
+
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
+		assertEquals(email, userInfo.get(OIDCClaimName.email));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
+	}
+
 	@Test
 	public void testGetUserInfoAsJWT() {
 		// if the client sets a signing algorithm it means it wants the UserInfo json
 		// to be encoded as a JWT and signed
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 		
-		
-		Claims claims = Jwts.claims();
-		Jwt<JwsHeader,Claims> accessToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
-		claims.setAudience(OAUTH_CLIENT_ID);
-		claims.setSubject(openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID));
-		claims.put(OIDCClaimName.auth_time.name(), now.getTime()/1000L);
-		// TODO put 'access' in claims
-		
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), 
 				eq(null), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
+		String email = "me@domain.com";
+		userProfile.setEmails(ImmutableList.of(email, "secondary-email"));
+
 		// method under test
-		String jwt = (String)openIDConnectManagerImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
+		String jwt = (String)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
 		
 		assertEquals(expectedIdToken, jwt);
 		
-		// TODO
 		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
+		assertEquals(email, userInfo.get(OIDCClaimName.email));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
 	}
 
 }

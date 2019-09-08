@@ -326,7 +326,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				break;
 			case validated_email:
 				if (verificationSubmission.get()!=null) {
-					claimValue = verificationSubmission.get().getEmails().toString();
+					List<String> validatedEmails = verificationSubmission.get().getEmails();
+					if (validatedEmails!=null && !validatedEmails.isEmpty()) {
+						claimValue = validatedEmails.get(0);
+					}
 				}
 				break;
 			case validated_family_name:
@@ -378,8 +381,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		ListWrapper<TeamMember> teamMembers = teamDAO.listMembers(numericTeamIds, Collections.singletonList(Long.parseLong(userId)));
 		Set<String> result = new HashSet<String>();
-		for (TeamMember teamMember : teamMembers.getList()) {
-			result.add(teamMember.getTeamId());
+		if (teamMembers.getList()!=null) {
+			for (TeamMember teamMember : teamMembers.getList()) {
+				result.add(teamMember.getTeamId());
+			}
 		}
 		return result;
 	}
