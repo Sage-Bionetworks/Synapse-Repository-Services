@@ -43,6 +43,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	private static final String POLICY_URI = "https://client.uri.com/policy.html";
 	private static final String TOS_URI = "https://client.uri.com/termsOfService.html";
 	private static final List<String> REDIRCT_URIS = Collections.singletonList("https://client.com/redir");
+	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	
 	@Autowired
 	private UserManager userManager;
@@ -124,12 +125,10 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		
 		assertNotNull(authResponse.getAccess_code());
 		
-		String oauthEndpoint = "https://repo-prod.prod.sagebase.org/auth/v1";
-		
 		// method under test
 		OIDCTokenResponse tokenResponse = 
 				openIDConnectManager.getAccessToken(authResponse.getAccess_code(), 
-						oauthClient.getClientId(), oauthClient.getRedirect_uris().get(0), oauthEndpoint);
+						oauthClient.getClientId(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 		
 		
 		assertNotNull(tokenResponse.getAccess_token());
@@ -139,7 +138,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(tokenResponse.getAccess_token());
 		
 		// method under test
-		String oidcUserInfo = (String)openIDConnectManager.getUserInfo(accessToken, oauthEndpoint);
+		String oidcUserInfo = (String)openIDConnectManager.getUserInfo(accessToken, OAUTH_ENDPOINT);
 		
 		oidcTokenHelper.validateJWT(oidcUserInfo);
 		

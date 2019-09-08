@@ -17,8 +17,6 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -50,7 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
-import io.netty.util.internal.StringUtil;
 
 public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final long AUTHORIZATION_CODE_TIME_LIMIT_MILLIS = 60000L; // one minute
@@ -58,7 +55,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
-		@Autowired
+	
+	@Autowired
 	private StackEncrypter stackEncrypter;
 
 	@Autowired
@@ -74,12 +72,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private TeamDAO teamDAO;
 	
 	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenHelper oidcTokenHelper;
 
 	/*
 	 * The scope parameter in an OAuth authorization request is a space-delimited list of scope values.
 	 */
 	public static List<OAuthScope> parseScopeString(String s) {
+		if (StringUtils.isEmpty(s)) {
+			return Collections.EMPTY_LIST;
+		}
 		String decoded;
 		try {
 			decoded = URLDecoder.decode(s, "UTF-8");
@@ -99,7 +100,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return result;
 	}
 
-	private static Map<OIDCClaimName,String> CLAIM_DESCRIPTION;
+	public static Map<OIDCClaimName,String> CLAIM_DESCRIPTION;
 	static {
 		CLAIM_DESCRIPTION = new HashMap<OIDCClaimName,String>();
 		CLAIM_DESCRIPTION.put(OIDCClaimName.team, "Your team membership");
@@ -130,21 +131,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}		
 		if (authorizationRequest.getResponseType()!=OAuthResponseType.code) 
 			throw new IllegalArgumentException("Unsupported response type "+authorizationRequest.getResponseType());
-	}
-
-	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
-		if (StringUtils.isEmpty(claims)) return Collections.EMPTY_MAP;
-		JSONObject claimsObject;
-		try {
-			claimsObject = new JSONObject(claims);
-		} catch (JSONException e) {
-			throw new IllegalArgumentException(e);
-		}
-		if (!claimsObject.has(claimsField)) {
-			return Collections.EMPTY_MAP;
-		}
-		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
-		return ClaimsJsonUtil.getClaimsMapFromJSONObject(idTokenClaims);
 	}
 
 	@Override
@@ -183,17 +169,17 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
-		if (scopes.contains(OAuthScope.openid) && !StringUtil.isNullOrEmpty(authorizationRequest.getClaims())) {
+		if (scopes.contains(OAuthScope.openid) && !StringUtils.isEmpty(authorizationRequest.getClaims())) {
 			{
 				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap = 
-						getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY);
+						ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY);
 				for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
 					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
 			}
 			{
 				Map<OIDCClaimName,OIDCClaimsRequestDetails> userInfoClaimsMap = 
-						getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY);
+						ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY);
 				for (OIDCClaimName claim : userInfoClaimsMap.keySet()) {
 					scopeDescriptions.add(CLAIM_DESCRIPTION.get(claim));
 				}
@@ -210,8 +196,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new UnauthorizedException("Anonymous users may not provide access to OAuth clients.");
 		}
 
-		// 	when evaluating the claims object, how do we differentiate between a null value and a missing key?
-		// 	They mean different things https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 		OAuthClient client;
 		try {
 			client = oauthClientDao.getOAuthClient(authorizationRequest.getClientId());
@@ -418,7 +402,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
-					scopes, getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
+					scopes, ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
 			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
 			result.setId_token(idToken);
@@ -427,7 +411,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
 				oauthClientId, now, authTimeSeconds, accessTokenId, scopes, 
-				getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
+				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);
 		return result;
 	}
@@ -435,22 +419,22 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	public Object getUserInfo(Jwt<JwsHeader,Claims> accessToken, String oauthEndpoint) {
 
-		Claims accessTokenClaimsSet = accessToken.getBody();
+		Claims accessTokenClaims = accessToken.getBody();
 		// We set exactly one Audience when creating the token
-		String oauthClientId = accessTokenClaimsSet.getAudience();
+		String oauthClientId = accessTokenClaims.getAudience();
 		if (oauthClientId==null) {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
 		OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 
-		String ppid = accessTokenClaimsSet.getSubject();
-		Long authTimeSeconds = accessTokenClaimsSet.get(OIDCClaimName.auth_time.name(), Long.class);
+		String ppid = accessTokenClaims.getSubject();
+		Long authTimeSeconds = accessTokenClaims.get(OIDCClaimName.auth_time.name(), Long.class);
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
 
-		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaimsSet);
-		Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaimsSet);
+		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
 		Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
 

@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +48,37 @@ public class ClaimsJsonUtilTest {
 		familyNameDetails.setValue("foo");
 		assertEquals(familyNameDetails, actual.get(OIDCClaimName.family_name));
 	}
+	
+	@Test
+	public void testGetClaimsMapFromClaimsRequestParam() throws Exception {
+		String claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
+		Map<OIDCClaimName,OIDCClaimsRequestDetails> map = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, "somekey");
+		{
+			assertTrue(map.containsKey(OIDCClaimName.team));
+			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.team);
+			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
+			expectedDetails.setValues(Collections.singletonList("101"));
+			assertEquals(expectedDetails, details);
+		}
+		{
+			assertTrue(map.containsKey(OIDCClaimName.given_name));
+			assertNull(map.get(OIDCClaimName.given_name));
+		}
+		{
+			assertTrue(map.containsKey(OIDCClaimName.family_name));
+			OIDCClaimsRequestDetails details = map.get(OIDCClaimName.family_name);
+			OIDCClaimsRequestDetails expectedDetails = new OIDCClaimsRequestDetails();
+			expectedDetails.setEssential(true);
+			expectedDetails.setValue("foo");
+			assertEquals(expectedDetails, details);
+		}
+		// what if key is omitted?
+		claimsString = "{\"somekey\":{\"team\":{\"values\":[\"101\"]},\"given_name\":null,\"family_name\":{\"essential\":true,\"value\":\"foo\"}}}";
+		map = ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsString, "some other key");
+		assertTrue(map.isEmpty());
+	}
+	
+
 	
 	@Test
 	public void testAddAndExtractScopeAndClaims() throws Exception {		
