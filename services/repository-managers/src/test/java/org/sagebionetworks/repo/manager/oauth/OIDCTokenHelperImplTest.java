@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.security.PublicKey;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -48,18 +49,19 @@ public class OIDCTokenHelperImplTest {
 	private static final Long AUTH_TIME = (new Date()).getTime()/1000L;
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
-	private static final JSONArray TEAM_IDS = new JSONArray();
-	private static final Map<OIDCClaimName, String> USER_CLAIMS;
+	private static final List<String> TEAM_IDS = new ArrayList<String>();
+	private static final Map<OIDCClaimName, Object> USER_CLAIMS;
 	private static OIDCClaimsRequestDetails ESSENTIAL;
 	private static OIDCClaimsRequestDetails NON_ESSENTIAL;
 
 	static {
-		TEAM_IDS.put("9876543");
+		TEAM_IDS.add("9876543");
 
-		USER_CLAIMS = new HashMap<OIDCClaimName, String>();
-		USER_CLAIMS.put(OIDCClaimName.team, TEAM_IDS.toString());
+		USER_CLAIMS = new HashMap<OIDCClaimName, Object>();
+		USER_CLAIMS.put(OIDCClaimName.team, TEAM_IDS);
 		USER_CLAIMS.put(OIDCClaimName.given_name, "User");
 		USER_CLAIMS.put(OIDCClaimName.email, "user@synapse.org");
+		USER_CLAIMS.put(OIDCClaimName.email_verified, true);
 		USER_CLAIMS.put(OIDCClaimName.company, "University of Example");
 		
 		ESSENTIAL = new OIDCClaimsRequestDetails();
@@ -131,10 +133,10 @@ public class OIDCTokenHelperImplTest {
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(oidcToken);
 		Claims claims = jwt.getBody();
-		
-		assertEquals(TEAM_IDS.toString(), claims.get(OIDCClaimName.team.name(), String.class));
+		assertEquals(TEAM_IDS, claims.get(OIDCClaimName.team.name()));
 		assertEquals("User", claims.get(OIDCClaimName.given_name.name(), String.class));
 		assertEquals("user@synapse.org", claims.get(OIDCClaimName.email.name(), String.class));
+		assertTrue(claims.get(OIDCClaimName.email_verified.name(), Boolean.class));
 		assertEquals("University of Example", claims.get(OIDCClaimName.company.name(), String.class));
 		assertEquals(TOKEN_ID, claims.getId());
 		

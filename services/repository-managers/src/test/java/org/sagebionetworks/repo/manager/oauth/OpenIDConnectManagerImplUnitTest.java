@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,10 +32,14 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -48,6 +54,9 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -84,6 +93,9 @@ public class OpenIDConnectManagerImplUnitTest {
 	private UserProfileManager mockUserProfileManager;
 
 	@Mock
+	private UserManager mockUserManager;
+
+	@Mock
 	private OIDCTokenHelper oidcTokenHelper;
 	
 	@Mock
@@ -96,7 +108,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private StackConfiguration mockStackConfigurations;
 	
 	@Captor
-	private ArgumentCaptor<Map<OIDCClaimName, String>> userInfoCaptor;
+	private ArgumentCaptor<Map<OIDCClaimName, Object>> userInfoCaptor;
 	
 	@Captor
 	private ArgumentCaptor<List<OAuthScope>> scopesCaptor;
@@ -109,11 +121,14 @@ public class OpenIDConnectManagerImplUnitTest {
 	private Date now;
 	private String clientSpecificEncodingSecret;
 	private OAuthClient oauthClient;
+	private UserProfile userProfile;
+	private VerificationSubmission verificationSubmission;
 	
 	@Before
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
+		userInfo.setGroups(new HashSet<Long>());
 
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -135,9 +150,14 @@ public class OpenIDConnectManagerImplUnitTest {
 		now = new Date();
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		
-		
-		UserProfile userProfile = new UserProfile();
+		userProfile = new UserProfile();
 		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		
+		verificationSubmission = new VerificationSubmission();
+		verificationSubmission.setStateHistory(new ArrayList<VerificationState>());
+		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		
+		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
 	}
 	
 	@Test
@@ -226,17 +246,23 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final String NONCE = UUID.randomUUID().toString();
 	
 	// claimsTag must be 'id_token' or 'userinfo'
-	private static OIDCAuthorizationRequest createAuthorizationRequest(String claimsTag) {
+	private static OIDCAuthorizationRequest createAuthorizationRequest(List<String> claimsTags) {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(OAUTH_CLIENT_ID);
 		authorizationRequest.setScope(OAuthScope.openid.name());
-		StringBuilder claims = new StringBuilder("{\""+claimsTag+"\":{");
-		boolean firstTime = true;
-		for (OIDCClaimName claimName : OpenIDConnectManagerImpl.CLAIM_DESCRIPTION.keySet()) {
-			if (firstTime) {firstTime=false;} else {claims.append(",");}
-			claims.append("\""+claimName.name()+"\":\"null\"");
+		StringBuilder claims = new StringBuilder("{");
+		boolean firstTag = true;
+		for (String claimsTag : claimsTags) {
+			if (firstTag) {firstTag=false;} else {claims.append(",");}
+			claims.append("\""+claimsTag+"\":{");
+			boolean firstClaim = true;
+			for (OIDCClaimName claimName : OpenIDConnectManagerImpl.CLAIM_DESCRIPTION.keySet()) {
+				if (firstClaim) {firstClaim=false;} else {claims.append(",");}
+				claims.append("\""+claimName.name()+"\":\"null\"");
+			}
+			claims.append("}");
 		}
-		claims.append("}}");
+		claims.append("}");
 		authorizationRequest.setClaims(claims.toString());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
@@ -244,9 +270,13 @@ public class OpenIDConnectManagerImplUnitTest {
 		return authorizationRequest;
 	}
 	
+	private static OIDCAuthorizationRequest createAuthorizationRequest() {
+		return createAuthorizationRequest(Collections.EMPTY_LIST);
+	}
+		
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
 				openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
@@ -258,8 +288,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetAuthenticationRequestDescription_HappyCase_UserInfoToken() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("userinfo");
+	public void testGetAuthenticationRequestDescription_HappyCase_IdToken() {
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
 				openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
@@ -272,7 +302,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_NoOAuthScope() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("userinfo");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null);
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
@@ -285,7 +315,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_MissingOrInvalidClientId() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setClientId("42");
 		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
 
@@ -310,7 +340,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_BadRedirectURI() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setRedirectUri("some other redir uri");
 
 		try {
@@ -325,7 +355,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeClient() throws Exception {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
@@ -353,7 +383,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeClient_anonynmous() throws Exception {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
 		try {
@@ -366,7 +396,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeClient_InvalidClientId() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setClientId("42");
 		when(mockOauthClientDao.getOAuthClient("42")).thenThrow(new NotFoundException());
 
@@ -396,18 +426,85 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetUserInfo_internal() {
-		// TODO
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		
+		oidcClaims.put(OIDCClaimName.company, null);
+		String company = "company";
+		userProfile.setCompany(company);
+		
+		oidcClaims.put(OIDCClaimName.email, null);
+		oidcClaims.put(OIDCClaimName.email_verified, null);
+		String email = "me@domain.com";
+		userProfile.setEmails(ImmutableList.of(email, "secondary-email"));
+		
+		oidcClaims.put(OIDCClaimName.family_name, null);
+		String lastName="LastName";
+		userProfile.setLastName(lastName);
+		
+		oidcClaims.put(OIDCClaimName.given_name, null);
+		String firstName="FirstName";
+		userProfile.setFirstName(firstName);
+		
+		oidcClaims.put(OIDCClaimName.is_certified, null);
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		oidcClaims.put(OIDCClaimName.is_validated, null);
+		oidcClaims.put(OIDCClaimName.validated_at, null);
+		VerificationState verificationState = new VerificationState();
+		verificationState.setState(VerificationStateEnum.APPROVED);
+		verificationState.setCreatedOn(now);
+		verificationSubmission.getStateHistory().add(verificationState);
+		
+		oidcClaims.put(OIDCClaimName.orcid, null);
+		String orcid = "https://my-orcid";
+		when(mockUserProfileManager.getOrcid(USER_ID_LONG)).thenReturn(orcid);
+		
+		OIDCClaimsRequestDetails teamRequest = new OIDCClaimsRequestDetails();
+		teamRequest.setValues(ImmutableList.of("101", "102"));
+		ListWrapper<TeamMember> lw = new ListWrapper<TeamMember>();
+		TeamMember tm = new TeamMember();
+		tm.setTeamId("101");
+		lw.setList(Collections.singletonList(tm));
+		when(mockTeamDAO.listMembers((List)any(), (List)any())).thenReturn(lw);
+		//when(mockTeamDAO.listMembers(ImmutableList.of(101L, 102L), ImmutableList.of(USER_ID_LONG))).thenReturn(lw);
+		oidcClaims.put(OIDCClaimName.team, teamRequest);
+		
+		oidcClaims.put(OIDCClaimName.userid, null);
+		oidcClaims.put(OIDCClaimName.validated_company, null);
+		oidcClaims.put(OIDCClaimName.validated_email, null);
+		String verifiedEmail = "verified@email.com";
+		verificationSubmission.setEmails(Collections.singletonList(verifiedEmail));
+		
+		oidcClaims.put(OIDCClaimName.validated_family_name, null);
+		oidcClaims.put(OIDCClaimName.validated_given_name, null);
+		oidcClaims.put(OIDCClaimName.validated_location, null);
+		oidcClaims.put(OIDCClaimName.validated_orcid, null);
+		
+		// method under test
+		Map<OIDCClaimName, Object> result=openIDConnectManagerImpl.getUserInfo(USER_ID, Collections.singletonList(OAuthScope.openid), oidcClaims);
+
+		assertEquals(company, result.get(OIDCClaimName.company));
+		assertEquals(email, result.get(OIDCClaimName.email));
+		assertEquals(true, result.get(OIDCClaimName.email_verified));
+		assertEquals(lastName, result.get(OIDCClaimName.family_name));
+		assertEquals(firstName, result.get(OIDCClaimName.given_name));
+		assertTrue((Boolean)result.get(OIDCClaimName.email_verified));
+		assertEquals(new Long(now.getTime()/1000L), (Long)result.get(OIDCClaimName.validated_at));
+		assertEquals(true, result.get(OIDCClaimName.is_validated));
+		assertEquals(orcid, result.get(OIDCClaimName.orcid));
+		assertEquals(Collections.singletonList("101"), result.get(OIDCClaimName.team));
 	}
 
 	@Test
-	public void testGetSerializedJSON() {
-		String serJson = OpenIDConnectManagerImpl.asSerializedJSON(ImmutableList.of("a", "b", "c"));
-		assertEquals("[\"a\",\"b\",\"c\"]", serJson);
+	public void testGetUserInfo_internal_noOpenIDScope() {
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+		Map<OIDCClaimName, String> result=openIDConnectManagerImpl.getUserInfo(USER_ID, Collections.EMPTY_LIST, oidcClaims);
+		assertTrue(result.isEmpty());
 	}
 
 	@Test
 	public void testGetAccessToken() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
@@ -460,7 +557,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken_expiredAuthCode() throws Exception {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		
@@ -494,7 +591,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken_mismatchRedirectURI() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		// method under test
@@ -509,7 +606,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetAccessToken_noOpenIdScope() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest("id_token");
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null); // omit the 'openid' scope.  This should suppress the idToken
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
@@ -555,7 +652,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(expectedIdToken, jwt);
 		
 		// TODO
-		Map<OIDCClaimName, String> userInfo = userInfoCaptor.getValue();
+		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
 	}
 
 }

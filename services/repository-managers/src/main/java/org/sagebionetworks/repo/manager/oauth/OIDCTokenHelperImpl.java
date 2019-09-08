@@ -70,7 +70,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String nonce, 
 			Long authTimeSeconds,
 			String tokenId,
-			Map<OIDCClaimName,String> userInfo) {
+			Map<OIDCClaimName,Object> userInfo) {
 		
 		Claims claims = Jwts.claims();
 		

@@ -116,7 +116,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		CLAIM_DESCRIPTION.put(OIDCClaimName.family_name, "Your last name, if you share it with Synapse"); // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 		CLAIM_DESCRIPTION.put(OIDCClaimName.given_name, "Your first name, if you share it with Synapse"); // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 		CLAIM_DESCRIPTION.put(OIDCClaimName.email, "Your email address (<username>@synapse.org)");
-		CLAIM_DESCRIPTION.put(OIDCClaimName.email_verified, "Your email address (<username>@synapse.org)");
+		CLAIM_DESCRIPTION.put(OIDCClaimName.email_verified, "Whether Synapse verified your email address. (Always true for Synapse.)");
 		CLAIM_DESCRIPTION.put(OIDCClaimName.company, "Your company, if you share it with Synapse");
 		CLAIM_DESCRIPTION.put(OIDCClaimName.auth_time, "The time when you last logged in to Synapse");
 		CLAIM_DESCRIPTION.put(OIDCClaimName.is_certified, "Whether you are a certified Synapse user");
@@ -246,21 +246,21 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
 	 */
-	public Map<OIDCClaimName,String> getUserInfo(final String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
-		Map<OIDCClaimName,String> result = new HashMap<OIDCClaimName,String>();
+	public Map<OIDCClaimName,Object> getUserInfo(final String userId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims) {
+		Map<OIDCClaimName,Object> result = new HashMap<OIDCClaimName,Object>();
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (!scopes.contains(OAuthScope.openid)) return result;
 
-		CachingGetter<UserInfo> userInfoGetter = new CachingGetter<UserInfo>() {
+		CachingGetter<UserInfo> userInfo = new CachingGetter<UserInfo>() {
 			protected UserInfo getIntern() {return userManager.getUserInfo(Long.parseLong(userId));}
 		};
 
-		CachingGetter<UserProfile> userProfileGetter = new CachingGetter<UserProfile>() {
+		CachingGetter<UserProfile> userProfile = new CachingGetter<UserProfile>() {
 			protected UserProfile getIntern() {return userProfileManager.getUserProfile(userId);}
 		};
 
-		CachingGetter<VerificationSubmission> verificationSubmissionGetter = new CachingGetter<VerificationSubmission>() {
+		CachingGetter<VerificationSubmission> verificationSubmission = new CachingGetter<VerificationSubmission>() {
 			protected VerificationSubmission getIntern() {
 				return userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
 			}
@@ -268,23 +268,25 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		for (OIDCClaimName claimName : oidcClaims.keySet()) {
 			OIDCClaimsRequestDetails claimsDetails = oidcClaims.get(claimName);
-			String claimValue = null;
+			Object claimValue = null;
 			switch (claimName) {
 			case email:
-			case email_verified:
-				List<String> emails = userProfileGetter.get().getEmails();
+				List<String> emails = userProfile.get().getEmails();
 				if (emails!=null && !emails.isEmpty()) {
 					claimValue = emails.get(0);
 				}
 				break;
+			case email_verified:
+				claimValue = Boolean.TRUE;
+				break;
 			case given_name:
-				claimValue = userProfileGetter.get().getFirstName();
+				claimValue = userProfile.get().getFirstName();
 				break;
 			case family_name:
-				claimValue = userProfileGetter.get().getLastName();
+				claimValue = userProfile.get().getLastName();
 				break;
 			case company:
-				claimValue = userProfileGetter.get().getCompany();
+				claimValue = userProfile.get().getCompany();
 				break;
 			case team:
 				if (claimsDetails==null) {
@@ -294,58 +296,57 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 				if (StringUtils.isNotEmpty(claimsDetails.getValue())) {
 					requestedTeamIds.add(claimsDetails.getValue());
 				}
-				if (claimsDetails.getValues()!=null && !claimsDetails.getValues().isEmpty()) {
-					requestedTeamIds.addAll(requestedTeamIds);
+				if (claimsDetails.getValues()!=null) {
+					requestedTeamIds.addAll(claimsDetails.getValues());
 				}
-				Set<String> memberTeamIds = getMemberTeamIds(userId, requestedTeamIds);
-				claimValue = asSerializedJSON(memberTeamIds);
+				claimValue = new ArrayList<String>(getMemberTeamIds(userId, requestedTeamIds));
 				break;
 			case userid:
 				claimValue = userId;
 				break;
 			case is_certified:
-				claimValue = ""+UserInfoHelper.isCertified(userInfoGetter.get());
+				claimValue = UserInfoHelper.isCertified(userInfo.get());
 				break;
 			case is_validated:
-				claimValue = ""+VerificationHelper.isVerified(verificationSubmissionGetter.get());
+				claimValue = VerificationHelper.isVerified(verificationSubmission.get());
 				break;
 			case orcid:
 				claimValue = userProfileManager.getOrcid(Long.parseLong(userId));
 				break;
 			case validated_at:
-				Date approvalDate = VerificationHelper.getApprovalDate(verificationSubmissionGetter.get());
+				Date approvalDate = VerificationHelper.getApprovalDate(verificationSubmission.get());
 				if (approvalDate!=null) {
-					Long validatedEpochSeconds = approvalDate.getTime()/1000L;
-					claimValue = validatedEpochSeconds.toString();
+					claimValue = approvalDate.getTime()/1000L;
 				}
+				break;
 			case validated_company:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getCompany();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getCompany();
 				}
 				break;
 			case validated_email:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getEmails().toString();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getEmails().toString();
 				}
 				break;
 			case validated_family_name:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getLastName();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getLastName();
 				}
 				break;
 			case validated_given_name:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getFirstName();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getFirstName();
 				}
 				break;
 			case validated_location:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getLocation();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getLocation();
 				}
 				break;
 			case validated_orcid:
-				if (verificationSubmissionGetter.get()!=null) {
-					claimValue = verificationSubmissionGetter.get().getOrcid();
+				if (verificationSubmission.get()!=null) {
+					claimValue = verificationSubmission.get().getOrcid();
 				}
 				break;
 			default:
@@ -355,7 +356,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			// from https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
 			// "If a Claim is not returned, that Claim Name SHOULD be omitted from the JSON object 
 			// representing the Claims; it SHOULD NOT be present with a null or empty string value."
-			if (StringUtils.isNotEmpty(claimValue)) {
+			if (claimValue!=null) {
 				result.put(claimName, claimValue);
 			}
 		}
@@ -381,14 +382,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			result.add(teamMember.getTeamId());
 		}
 		return result;
-	}
-
-	public static String asSerializedJSON(Collection<?> c) {
-		JSONArray array = new JSONArray();
-		for (Object s : c) {
-			array.put(s.toString());
-		}
-		return array.toString();
 	}
 
 	@Override
@@ -436,7 +429,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid)) {
 			String idTokenId = UUID.randomUUID().toString();
-			Map<OIDCClaimName,String> userInfo = getUserInfo(authorizationRequest.getUserId(), 
+			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
 			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTimeSeconds, idTokenId, userInfo);
@@ -453,7 +446,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Override
 	public Object getUserInfo(Jwt<JwsHeader,Claims> accessToken, String oauthEndpoint) {
-
 		Claims accessTokenClaims = accessToken.getBody();
 		// We set exactly one Audience when creating the token
 		String oauthClientId = accessTokenClaims.getAudience();
@@ -471,7 +463,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
-		Map<OIDCClaimName,String> userInfo = getUserInfo(userId, scopes, oidcClaims);
+		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
 		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 		// "If this is specified, the response will be JWT serialized, and signed using JWS. 
