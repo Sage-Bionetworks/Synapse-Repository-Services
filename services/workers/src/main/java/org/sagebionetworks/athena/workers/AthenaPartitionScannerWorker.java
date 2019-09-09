@@ -8,6 +8,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.glue.model.Table;
 
@@ -17,6 +18,7 @@ public class AthenaPartitionScannerWorker implements ProgressingRunner {
 
 	private AthenaSupport athenaSupport;
 
+	@Autowired
 	public AthenaPartitionScannerWorker(AthenaSupport athenaSupport) {
 		this.athenaSupport = athenaSupport;
 	}

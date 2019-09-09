@@ -28,13 +28,16 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 	private StatisticsMonthlyStatusDAO statusDao;
 	private StatisticsMonthlyProcessorProvider processorProvider;
+	private StatisticsMonthlyProcessorNotifier processorNotifier;
+
 	private int maxMonths;
 
 	@Autowired
 	public StatisticsMonthlyManagerImpl(StatisticsMonthlyStatusDAO statusDao, StatisticsMonthlyProcessorProvider processorProvider,
-			StackConfiguration stackConfig) {
+			StatisticsMonthlyProcessorNotifier processorNotifier, StackConfiguration stackConfig) {
 		this.statusDao = statusDao;
 		this.processorProvider = processorProvider;
+		this.processorNotifier = processorNotifier;
 		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
 	}
 
@@ -51,10 +54,16 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		List<StatisticsMonthlyStatus> availableStatuses = statusDao.getAvailableStatusInRange(objectType, minMonth, maxMonth);
 
 		// Maps to their respective months
-		Set<YearMonth> availableMonths = availableStatuses.stream().map(StatisticsMonthlyStatus::getMonth).collect(Collectors.toSet());
+		Set<YearMonth> availableMonths = availableStatuses
+				.stream()
+				.map(StatisticsMonthlyStatus::getMonth)
+				.collect(Collectors.toSet());
 
 		// Filter out the months that are available
-		return consideredMonths.stream().filter(month -> !availableMonths.contains(month)).collect(Collectors.toList());
+		return consideredMonths
+				.stream()
+				.filter(month -> !availableMonths.contains(month))
+				.collect(Collectors.toList());
 
 	}
 
@@ -72,6 +81,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 		if (!status.isPresent() || shouldStartProcessing(status.get(), now, processingTimeout)) {
 			statusDao.setProcessing(objectType, month);
+			processorNotifier.sendStartProcessingNotification(objectType, month);
 			started = true;
 		}
 
@@ -87,7 +97,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 		ProgressListener progressListener = getProgressListener(objectType, month);
 
-		// Register a progress listener so that we keep the lastUpdatedOn timestamp up to date while processing so that this
+		// Register a progress listener so that we keep the lastUpdatedOn timestamp up to date while
+		// processing so that this
 		// particular month is not re-processed when the process is taking a long time
 		progressCallback.addProgressListener(progressListener);
 
@@ -108,7 +119,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 	private void runProcessing(StatisticsObjectType objectType, YearMonth month) {
 		LOG.info("Processing object type: {} (Month: {})...", objectType, month);
-		
+
 		List<StatisticsMonthlyProcessor> processors = getProcessors(objectType);
 
 		LOG.info("Found {} processors for object type {}", processors.size(), objectType);
@@ -118,7 +129,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 			processor.processMonth(month);
 			LOG.info("Executing processor {} on month {}...DONE", processor.getClass().getSimpleName(), month);
 		}
-		
+
 		LOG.info("Processing object type: {} (Month: {})...DONE", objectType, month);
 	}
 

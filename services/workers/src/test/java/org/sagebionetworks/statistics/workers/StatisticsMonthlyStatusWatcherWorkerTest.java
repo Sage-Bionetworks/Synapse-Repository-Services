@@ -3,7 +3,6 @@ package org.sagebionetworks.statistics.workers;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,35 +15,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
-
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 
 @ExtendWith(MockitoExtension.class)
 public class StatisticsMonthlyStatusWatcherWorkerTest {
 
-	private static final String QUEUE_NAME = "someQueueName";
-	private static final String QUEUE_URL = "someQueueUrl";
-
-	@Mock
-	private StackConfiguration mockConfig;
-
 	@Mock
 	private StatisticsMonthlyManager mockStatisticsManager;
-
-	@Mock
-	private AmazonSQS mockSqsClient;
 
 	private StatisticsMonthlyStatusWatcherWorker worker;
 
 	@BeforeEach
 	public void before() {
-		when(mockConfig.getQueueName(any())).thenReturn(QUEUE_NAME);
-		when(mockSqsClient.getQueueUrl(QUEUE_NAME)).thenReturn(new GetQueueUrlResult().withQueueUrl(QUEUE_URL));
-		worker = new StatisticsMonthlyStatusWatcherWorker(mockStatisticsManager, mockSqsClient, mockConfig);
+		worker = new StatisticsMonthlyStatusWatcherWorker(mockStatisticsManager);
 	}
 
 	@Test
@@ -60,7 +44,6 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 		}
 
 		verify(mockStatisticsManager, never()).startProcessingMonth(any(), any(), any(Long.class));
-		verify(mockSqsClient, never()).sendMessage(any(), any());
 	}
 
 	@Test
@@ -80,8 +63,6 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 			verify(mockStatisticsManager).getUnprocessedMonths(type);
 			verify(mockStatisticsManager).startProcessingMonth(eq(type), eq(month), any(Long.class));
 		}
-
-		verify(mockSqsClient, times(StatisticsObjectType.values().length)).sendMessage(eq(QUEUE_URL), any());
 	}
 
 }

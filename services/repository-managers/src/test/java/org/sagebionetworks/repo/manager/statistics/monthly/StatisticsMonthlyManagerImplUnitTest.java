@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
@@ -35,7 +33,6 @@ import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class StatisticsMonthlyManagerImplUnitTest {
 
 	private static final int PROCESSING_TIMEOUT = 100;
@@ -50,6 +47,9 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	@Mock
 	private StatisticsMonthlyProcessor mockProcessor;
+	
+	@Mock
+	private StatisticsMonthlyProcessorNotifier mockNotifier;
 
 	@Mock
 	private ProgressCallback mockCallback;
@@ -64,10 +64,9 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		when(mockProcessorProvider.getProcessors(any(StatisticsObjectType.class))).thenReturn(Collections.singletonList(mockProcessor));
 		when(mockConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS_TO_PROCESS);
 
-		manager = new StatisticsMonthlyManagerImpl(mockDao, mockProcessorProvider, mockConfig);
+		manager = new StatisticsMonthlyManagerImpl(mockDao, mockProcessorProvider, mockNotifier, mockConfig);
 	}
 
 	@Test
@@ -145,6 +144,8 @@ public class StatisticsMonthlyManagerImplUnitTest {
 	public void testProcessMonthSuccess() {
 
 		YearMonth month = YearMonth.of(2019, 8);
+		
+		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
 		// Call under test
 		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
@@ -162,6 +163,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		YearMonth month = YearMonth.of(2019, 8);
 
 		doThrow(IllegalStateException.class).when(mockProcessor).processMonth(any());
+		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
 		// Call under test
 		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
@@ -185,6 +187,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		String errorMessage = ex.getMessage();
 
 		doThrow(ex).when(mockProcessor).processMonth(any());
+		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
 		// Call under test
 		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
@@ -213,6 +216,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 
 		verify(mockDao).getStatusForUpdate(OBJECT_TYPE, month);
 		verify(mockDao).setProcessing(OBJECT_TYPE, month);
+		verify(mockNotifier).sendStartProcessingNotification(OBJECT_TYPE, month);
 	}
 
 	@Test
@@ -234,6 +238,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		verify(mockDao).getStatusForUpdate(OBJECT_TYPE, month);
 		verify(mockStatus).getStatus();
 		verify(mockDao, never()).setProcessing(any(), any());
+		verify(mockNotifier, never()).sendStartProcessingNotification(any(), any());
 	}
 
 	@Test
@@ -255,6 +260,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		verify(mockDao).getStatusForUpdate(OBJECT_TYPE, month);
 		verify(mockStatus).getStatus();
 		verify(mockDao).setProcessing(OBJECT_TYPE, month);
+		verify(mockNotifier).sendStartProcessingNotification(OBJECT_TYPE, month);
 	}
 
 	@Test
@@ -278,6 +284,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		verify(mockStatus).getStatus();
 		verify(mockStatus).getLastStartedOn();
 		verify(mockDao, never()).setProcessing(any(), any());
+		verify(mockNotifier, never()).sendStartProcessingNotification(any(), any());
 	}
 
 	@Test
@@ -301,6 +308,7 @@ public class StatisticsMonthlyManagerImplUnitTest {
 		verify(mockStatus).getStatus();
 		verify(mockStatus).getLastStartedOn();
 		verify(mockDao).setProcessing(OBJECT_TYPE, month);
+		verify(mockNotifier).sendStartProcessingNotification(OBJECT_TYPE, month);
 	}
 
 }
