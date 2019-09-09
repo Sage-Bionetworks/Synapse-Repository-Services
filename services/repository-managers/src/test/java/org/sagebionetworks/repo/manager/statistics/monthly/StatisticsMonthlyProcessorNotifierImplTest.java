@@ -25,7 +25,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 
 @ExtendWith(MockitoExtension.class)
-public class StatisticsMonthlyProcessorNotifierTest {
+public class StatisticsMonthlyProcessorNotifierImplTest {
 
 	private static final String TEST_QUEUE = "SomeQueue";
 	private static final String TEST_QUEUE_URL = "SomeQueueUrl";

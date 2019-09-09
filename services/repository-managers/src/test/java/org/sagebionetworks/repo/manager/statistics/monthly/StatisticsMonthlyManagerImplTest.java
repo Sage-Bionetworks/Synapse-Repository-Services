@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 
 @ExtendWith(MockitoExtension.class)
-public class StatisticsMonthlyManagerImplUnitTest {
+public class StatisticsMonthlyManagerImplTest {
 
 	private static final int PROCESSING_TIMEOUT = 100;
 	private static final int MAX_MONTHS_TO_PROCESS = 12;

@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
-public class StatisticsMonthlyProcessorProviderUnitTest {
+public class StatisticsMonthlyProcessorProviderTest {
 
 	@Mock
 	private StatisticsMonthlyProcessor mockProcessor1;
