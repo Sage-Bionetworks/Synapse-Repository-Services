@@ -176,6 +176,42 @@ public class BaseClientImpl implements BaseClient {
 		return this.defaultPOSTPUTHeaders.get(SESSION_TOKEN_HEADER);
 	}
 
+	/**
+	 * Set a uname and password as a Basic Authorization header.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param uname
+	 * @param password
+	 */
+	@Override
+	public void setBasicAuthorizationCredentials(String uname, String password) {
+		String basicAuthCredentials = ClientUtils.createBasicAuthorizationHeader(uname, password);
+		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
+		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
+	}
+	
+	/**
+	 * Set a bearer authorization token.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param bearerToken
+	 */
+	@Override
+	public void setBearerAuthorizationToken(String bearerToken) {
+		String bearerTokenHeader = AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken;
+		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
+		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
+	}
+
+	/**
+	 * Remove the Authorization Header
+	 */
+	@Override
+	public void removeAuthorizationHeader() {
+		defaultGETDELETEHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
+		defaultPOSTPUTHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
+	}
+	
 	@Override
 	public String getRepoEndpoint() {
 		return this.repoEndpoint;

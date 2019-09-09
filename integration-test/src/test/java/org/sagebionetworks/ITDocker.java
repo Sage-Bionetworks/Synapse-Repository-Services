@@ -12,19 +12,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.ClientUtils;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityType;
@@ -110,19 +111,14 @@ public class ITDocker {
 		}
 	}
 	
-	private static String createBasicAuthorizationHeader(String username, String password) {
-		return "Basic "+ (new String(Base64.
-				encodeBase64((username + ":" + password).getBytes())));
-	}
-
 	@Test
 	public void testDockerClientAuthorization() throws Exception {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
 		requestHeaders.put(
-				"Authorization",
-				createBasicAuthorizationHeader(username, password));
+				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
+				ClientUtils.createBasicAuthorizationHeader(username, password));
 		String service = "docker.synapse.org";
 		String repoPath = projectId+"/reponame";
 		String scope = TYPE+":"+repoPath+":"+ACCESS_TYPES_STRING;
@@ -207,8 +203,8 @@ public class ITDocker {
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
 		requestHeaders.put(
-				"Authorization",
-				createBasicAuthorizationHeader(registryUserName, registryPassword));
+				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
+				ClientUtils.createBasicAuthorizationHeader(registryUserName, registryPassword));
 		String host = "docker.synapse.org";
 		String repositorySuffix = "reponame";
 		String repositoryPath = projectId+"/"+repositorySuffix;
@@ -239,8 +235,8 @@ public class ITDocker {
 		// Note, without this header  we get a 415 response code
 		requestHeaders.put("Content-Type", "application/json"); 
 		requestHeaders.put(
-				"Authorization",
-				createBasicAuthorizationHeader("wrong user name", "wrong password"));
+				AuthorizationConstants.AUTHORIZATION_HEADER_NAME,
+				ClientUtils.createBasicAuthorizationHeader("wrong user name", "wrong password"));
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
 		URL url = new URL(config.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);

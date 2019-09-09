@@ -209,6 +209,12 @@ public class AuthorizationConstants {
 	/**
 	 * The Oauth access token is passed as the 'bearer' request header
 	 */
-	public static final String OAUTH2_ACCESS_TOKEN_HEADER = "Bearer";
+	public static final String BEARER_TOKEN_HEADER = "Bearer ";
+	
+	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	public static final String BASIC_PREFIX = "Basic ";
+
+
 
 }

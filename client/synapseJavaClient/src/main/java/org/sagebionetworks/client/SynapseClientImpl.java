@@ -181,11 +181,22 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
+import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
@@ -270,6 +281,10 @@ import org.sagebionetworks.util.FileProviderImpl;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -4259,6 +4274,107 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+	
+	@Override
+	public OIDConnectConfiguration getOIDConnectConfiguration() throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), AUTH_OPENID_CONFIG, OIDConnectConfiguration.class);
+	}
+
+	@Override
+	public JsonWebKeySet getOIDCJsonWebKeySet() throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_JWKS, JsonWebKeySet.class);
+	}
+
+	@Override
+	public OAuthClient createOAuthClient(OAuthClient oauthClient) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT, oauthClient, OAuthClient.class);
+	}
+
+	@Override
+	public OAuthClientIdAndSecret createOAuthClientSecret(String clientId) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT, oauthClient, OAuthClient.class);
+	}
+
+	@Override
+	public OAuthClient getOAuthClient(String clientId) throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+clientId, OAuthClient.class);
+	}
+
+	@Override
+	public OAuthClientList listOAuthClients(String nextPageToken) throws SynapseException {
+		String uri = AUTH_OAUTH_2_CLIENT;
+		if (nextPageToken != null) {
+			uri += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return getJSONEntity(getAuthEndpoint(), uri, OAuthClientList.class);
+	}
+
+	@Override
+	public OAuthClient updateOAuthClient(OAuthClient oauthClient) throws SynapseException {
+		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+oauthClient.getClientId(), oauthClient, OAuthClient.class);
+	}
+
+	@Override
+	public void deleteOAuthClient(String clientId) throws SynapseException {
+		deleteUri(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+clientId);
+	}
+
+	@Override
+	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
+			OIDCAuthorizationRequest authorizationRequest) throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_REQUEST_DESCRIPTION, authorizationRequest, OIDCAuthorizationRequestDescription.class);
+	}
+
+	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
+	public static final String AUTH_OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
+	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
+	
+	@Override
+	public OAuthAuthorizationResponse authorizeClient(OIDCAuthorizationRequest authorizationRequest)
+			throws SynapseException {
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_REQUEST_CONSENT, authorizationRequest, OAuthAuthorizationResponse.class);
+	}
+
+	@Override
+	public OIDCTokenResponse getTokenResponse(OAuthGrantType grant_type, String code, String redirectUri,
+			String refresh_token, String scope, String claims) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+		
+	}
+
+	/**
+	 * Get the user information for the user specified by the authorization
+	 * bearer token (which must be included as the authorization header).
+	 * 
+	 * The result is expected to be a JWT token, which is invoked by the 
+	 * client having registered a 'user info signed response algorithm'.
+	 * 
+	 * @return
+	 */
+	@Override
+	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() {
+		// TODO Auto-generated method stub
+		return null;
+		
+	}
+	
+	/**
+	 * Get the user information for the user specified by the authorization
+	 * bearer token (which must be included as the authorization header).
+	 * 
+	 * The result is expected to be a Map, which is invoked by the 
+	 * client having omitted a 'user info signed response algorithm'.
+	 * 
+	 * @return
+	 */
+	@Override
+	public Map<OIDCClaimName,Object> getUserInfoAsMap() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

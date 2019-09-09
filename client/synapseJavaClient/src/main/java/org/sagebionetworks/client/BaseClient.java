@@ -25,6 +25,28 @@ public interface BaseClient {
 	 * Authenticate the Synapse client with an existing session token
 	 */
 	public void setSessionToken(String sessionToken);
+	
+	/**
+	 * Set a uname and password as a Basic Authorization header.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param uname
+	 * @param password
+	 */
+	public void setBasicAuthorizationCredentials(String uname, String password);
+	
+	/**
+	 * Remove the Authorization Header
+	 */
+	public void removeAuthorizationHeader();
+	
+	/**
+	 * Set a bearer authorization token.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param bearerToken
+	 */
+	public void setBearerAuthorizationToken(String bearerToken);
 
 	/**
 	 * Get the current session token used by this client.

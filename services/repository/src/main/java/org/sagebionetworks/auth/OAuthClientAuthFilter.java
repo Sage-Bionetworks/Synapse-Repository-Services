@@ -60,8 +60,7 @@ public class OAuthClientAuthFilter implements Filter {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
 			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			httpResponse.setContentType("application/json");
-			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials.\"}");
-			
+			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
 		}
 	}
 
