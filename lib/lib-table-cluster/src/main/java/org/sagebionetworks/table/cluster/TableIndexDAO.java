@@ -281,14 +281,14 @@ public interface TableIndexDAO {
 	 * 
 	 * @param allIds
 	 */
-	public void deleteEntityData(ProgressCallback progressCallback, List<Long> allIds);
+	public void deleteEntityData(List<Long> allIds);
 
 	/**
 	 * Add the given entity data to the index.
 	 * 
 	 * @param entityDTOs
 	 */
-	public void addEntityData(ProgressCallback progressCallback, List<EntityDTO> entityDTOs);
+	public void addEntityData(List<EntityDTO> entityDTOs);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.

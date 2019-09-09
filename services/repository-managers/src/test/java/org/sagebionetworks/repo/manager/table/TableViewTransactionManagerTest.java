@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
@@ -207,6 +208,45 @@ public class TableViewTransactionManagerTest {
 		assertEquals(schema, schemaResponse.getSchema());
 		// user must have write on the view.
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+	}
+	
+	@Test
+	public void testUpdateTableWithTransactionWithSnapshot() throws RecoverableMessageException, TableUnavailableException{
+		request.setCreateSnapshot(true);
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotLabel("some label");
+		request.setSnapshotOptions(snapshotOptions);
+		// call under test
+		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse single =  response.getResults().get(0);
+		assertTrue(single instanceof TableSchemaChangeResponse);
+		TableSchemaChangeResponse schemaResponse = (TableSchemaChangeResponse) single;
+		assertEquals(schema, schemaResponse.getSchema());
+		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
+		// calls create snapshot.
+		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+	}
+	
+	@Test
+	public void testUpdateTableWithTransactionWithSnapshotNull() throws RecoverableMessageException, TableUnavailableException{
+		request.setCreateSnapshot(null);
+		// call under test
+		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
+		assertNotNull(response);
+		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
+	}
+	
+	@Test
+	public void testUpdateTableWithTransactionWithSnapshotFalse() throws RecoverableMessageException, TableUnavailableException{
+		request.setCreateSnapshot(false);
+		// call under test
+		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
+		assertNotNull(response);
+		verify(mockTableViewManger, never()).createSnapshot(any(UserInfo.class), anyString(), any(SnapshotRequest.class));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

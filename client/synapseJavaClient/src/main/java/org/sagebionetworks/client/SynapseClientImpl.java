@@ -4331,6 +4331,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
 	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
+	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	
 	@Override
 	public OAuthAuthorizationResponse authorizeClient(OIDCAuthorizationRequest authorizationRequest)
@@ -4341,8 +4342,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public OIDCTokenResponse getTokenResponse(OAuthGrantType grant_type, String code, String redirectUri,
 			String refresh_token, String scope, String claims) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(AUTH_OAUTH_2_TOKEN);
+		if (grant_type != null) {
+			uri.setParameter("grant_type", grant_type.name());
+		}
+		if (code != null) {
+			uri.setParameter("code", code);
+		}
+		if (redirectUri != null) {
+			uri.setParameter("redirect_uri", redirectUri);
+		}
+		if (refresh_token != null) {
+			uri.setParameter("refresh_token", refresh_token);
+		}
+		if (scope != null) {
+			uri.setParameter("scope", scope);
+		}
+		if (claims != null) {
+			uri.setParameter("", claims);
+		}
+		return getJSONEntity(getAuthEndpoint(), uri.toString(), OIDCTokenResponse.class);
 		
 	}
 

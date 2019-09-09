@@ -1314,10 +1314,19 @@ public class TableController {
 	}
 	
 	/**
-	 * Request to create a new snapshot of a table or view. The provided comment,
-	 * label, and activity ID will be applied to the current version thereby
-	 * creating a snapshot and locking the current version. After the snapshot is
-	 * created a new version will be started with an 'in-progress' label.
+	 * Request to create a new snapshot of a table. The provided comment, label, and
+	 * activity ID will be applied to the current version thereby creating a
+	 * snapshot and locking the current version. After the snapshot is created a new
+	 * version will be started with an 'in-progress' label.
+	 * <p>
+	 * NOTE: This service is for
+	 * <a href= "${org.sagebionetworks.repo.model.table.TableEntity}"
+	 * >TableEntities</a> only. Snapshots of
+	 * <a href= "${org.sagebionetworks.repo.model.table.EntityView}"
+	 * >EntityViews</a> require asynchronous processing and can be created via:
+	 * <a href="${POST.entity.id.table.transaction.async.start}">POST
+	 * /entity/{id}/table/transaction/async/start</a>
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id

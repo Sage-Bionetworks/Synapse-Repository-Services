@@ -91,7 +91,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		assertEquals(projectIdLong, dto.getId());
 		
 		// Simulate out-of-synch by deleting the project's replication data
-		indexDao.deleteEntityData(mockProgressCallback, Lists.newArrayList(projectIdLong));
+		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
 		
 		// trigger the reconciliation of the container.
 		Long projectParent = KeyFactory.stringToKey(project.getParentId());
@@ -118,9 +118,9 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		EntityDTO dto = waitForEntityDto(folder.getId());
 		assertNotNull(dto);
 		// simulate a stale benefactor on the folder
-		indexDao.deleteEntityData(null, Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
+		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		dto.setBenefactorId(dto.getParentId());
-		indexDao.addEntityData(null, Lists.newArrayList(dto));
+		indexDao.addEntityData(Lists.newArrayList(dto));
 		
 		// trigger the reconciliation of the container.
 		List<Long> scope = KeyFactory.stringToKey(Lists.newArrayList(project.getParentId(), folder.getParentId(), folder.getId()));
