@@ -6,9 +6,14 @@ import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyProc
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.springframework.stereotype.Service;
 
+/**
+ * Processor for monthly project file downloads
+ * 
+ * @author maras
+ */
 @Service
-public class StatisticsMonthlyProjectProcessor implements StatisticsMonthlyProcessor {
-	
+public class StatisticsMonthlyProjectFileDownloadsProcessor implements StatisticsMonthlyProcessor {
+
 	@Override
 	public StatisticsObjectType getSupportedType() {
 		return StatisticsObjectType.PROJECT;
@@ -16,12 +21,7 @@ public class StatisticsMonthlyProjectProcessor implements StatisticsMonthlyProce
 
 	@Override
 	public void processMonth(YearMonth month) {
-		try {
-			Thread.sleep(3000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		throw new IllegalStateException("Some error UAU");
+		throw new UnsupportedOperationException("Not implemented yet");
 	}
 
 }
