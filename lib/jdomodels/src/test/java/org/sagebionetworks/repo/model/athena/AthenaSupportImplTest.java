@@ -20,12 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.athena.AthenaSupportImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.Datum;
@@ -46,6 +43,8 @@ import com.amazonaws.services.glue.AWSGlue;
 import com.amazonaws.services.glue.model.Column;
 import com.amazonaws.services.glue.model.Database;
 import com.amazonaws.services.glue.model.EntityNotFoundException;
+import com.amazonaws.services.glue.model.GetDatabaseRequest;
+import com.amazonaws.services.glue.model.GetDatabaseResult;
 import com.amazonaws.services.glue.model.GetDatabasesResult;
 import com.amazonaws.services.glue.model.GetTableRequest;
 import com.amazonaws.services.glue.model.GetTableResult;
@@ -53,7 +52,6 @@ import com.amazonaws.services.glue.model.GetTablesResult;
 import com.amazonaws.services.glue.model.Table;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class AthenaSupportImplTest {
 
 	private static final String TEST_STACK = "test";
@@ -83,6 +81,9 @@ public class AthenaSupportImplTest {
 	private GetTableResult mockTableResult;
 
 	@Mock
+	private GetDatabaseResult mockDatabaseResult;
+
+	@Mock
 	private StartQueryExecutionResult mockStartQueryResult;
 
 	@Mock
@@ -104,7 +105,19 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetPartitionedTablesEmpty() {
+	public void testOutputResultLocation() {
+		when(mockConfig.getStack()).thenReturn("Stack");
+		when(mockConfig.getStackInstance()).thenReturn("Instance");
+		when(mockConfig.getLogBucketName()).thenReturn("LogBucket");
+		when(mockConfig.getStackInstanceNumber()).thenReturn(Integer.valueOf(123));
+
+		athenaSupport = new AthenaSupportImpl(mockGlueClient, mockAthenaClient, mockConfig);
+
+		assertEquals("s3://logbucket/000000123/athena", athenaSupport.getOutputResultLocation());
+	}
+
+	@Test
+	public void testGetPartitionedTablesEmpty() throws ServiceUnavailableException {
 		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
 
 		List<Table> mockTables = Collections.singletonList(new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB));
@@ -124,7 +137,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetPartitionedTables() {
+	public void testGetPartitionedTables() throws ServiceUnavailableException {
 		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
 
 		List<Table> mockTables = Collections.singletonList(
@@ -145,10 +158,12 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetTable() {
+	public void testGetTable() throws ServiceUnavailableException {
 
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
+
+		Database database = new Database().withName(databaseName);
 
 		GetTableRequest request = new GetTableRequest().withDatabaseName(databaseName).withName(tableName);
 
@@ -157,7 +172,7 @@ public class AthenaSupportImplTest {
 		when(mockGlueClient.getTable(eq(request))).thenReturn(mockTableResult);
 
 		// Call under test
-		Table table = athenaSupport.getTable(TEST_DB, TEST_TABLE);
+		Table table = athenaSupport.getTable(database, TEST_TABLE);
 
 		assertNotNull(table);
 		assertEquals(tableName, table.getName());
@@ -166,7 +181,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testRepairTable() {
+	public void testRepairTable() throws ServiceUnavailableException {
 
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
@@ -198,48 +213,43 @@ public class AthenaSupportImplTest {
 		verify(mockAthenaClient).getQueryExecution(eq(queryExecutionRequest));
 	}
 
-	private GetQueryExecutionRequest getQueryExecutionRequest(String queryId) {
-		return new GetQueryExecutionRequest().withQueryExecutionId(queryId);
-	}
-
-	private StartQueryExecutionRequest getStartQueryExecutionRequest(String databaseName, String tableName) {
-		QueryExecutionContext queryContext = new QueryExecutionContext().withDatabase(databaseName.toLowerCase());
-
-		ResultConfiguration resultConfiguration = new ResultConfiguration().withOutputLocation(TEST_OUTPUT_RESULTS_LOCATION);
-
-		StartQueryExecutionRequest request = new StartQueryExecutionRequest().withQueryExecutionContext(queryContext)
-				.withResultConfiguration(resultConfiguration).withQueryString("MSCK REPAIR TABLE " + tableName);
-
-		return request;
-	}
-
 	@Test
-	public void testGetTableNotFound() {
+	public void testGetTableNotFound() throws ServiceUnavailableException {
+
+		Database database = new Database().withName(prefixWithInstance(TEST_DB));
 
 		when(mockGlueClient.getTable(any())).thenThrow(EntityNotFoundException.class);
 
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			athenaSupport.getTable(TEST_DB, TEST_TABLE);
+			athenaSupport.getTable(database, TEST_TABLE);
 		});
 	}
 
 	@Test
-	public void testGetDatabaseNameInvalidInput() {
+	public void testGetDatabaseInvalidInput() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			athenaSupport.getDatabaseName(null);
+			athenaSupport.getDatabase(null);
 		});
 	}
 
 	@Test
-	public void testGetDatabaseName() {
+	public void testGetDatabase() throws ServiceUnavailableException {
 		String databaseName = "someDatabase";
 
-		// Call under test
-		String result = athenaSupport.getDatabaseName(databaseName);
+		Database database = new Database().withName(prefixWithInstance(databaseName));
 
-		assertEquals(prefixWithInstance(databaseName), result);
+		GetDatabaseRequest request = new GetDatabaseRequest().withName(database.getName().toLowerCase());
+
+		when(mockDatabaseResult.getDatabase()).thenReturn(database);
+		when(mockGlueClient.getDatabase(request)).thenReturn(mockDatabaseResult);
+
+		// Call under test
+		Database result = athenaSupport.getDatabase(databaseName);
+
+		assertEquals(database, result);
+		verify(mockGlueClient).getDatabase(eq(request));
 	}
 
 	@Test
@@ -261,12 +271,14 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testExecuteQuery() {
+	public void testExecuteQuery() throws ServiceUnavailableException {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 		String query = "SELECT count(*) FROM " + tableName;
 		String countResult = "1000";
 		String queryId = "abcd";
+
+		Database database = new Database().withName(databaseName);
 
 		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
 
@@ -276,10 +288,8 @@ public class AthenaSupportImplTest {
 		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
 				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
 
-		ResultSet resultSet = new ResultSet().withRows(
-				new Row().withData(new Datum().withVarCharValue("Count")),
-				new Row().withData(new Datum().withVarCharValue(countResult))
-		);
+		ResultSet resultSet = new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Count")),
+				new Row().withData(new Datum().withVarCharValue(countResult)));
 
 		when(mockQueryResult.getResultSet()).thenReturn(resultSet);
 		when(mockQueryResult.getNextToken()).thenReturn(null);
@@ -289,7 +299,7 @@ public class AthenaSupportImplTest {
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
 
 		// Call under test
-		AthenaQueryResult<String> result = athenaSupport.executeQuery(databaseName, query, (Row row) -> {
+		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return row.getData().get(0).getVarCharValue();
 		}, 1, true);
 
@@ -309,14 +319,16 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testExecuteQueryMultiplePages() {
+	public void testExecuteQueryMultiplePages() throws ServiceUnavailableException {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 		String query = "SELECT * FROM " + tableName;
 		String queryId = "abcd";
 		int batchSize = 10;
 		int secondPageResults = 5;
-		
+
+		Database database = new Database().withName(databaseName);
+
 		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
 
 		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
@@ -328,24 +340,24 @@ public class AthenaSupportImplTest {
 		// The first page includes the header
 		ResultSet firstPage = new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Column")));
 		ResultSet secondPage = new ResultSet();
-		
+
 		for (int i = 0; i < batchSize; i++) {
 			firstPage.withRows(new Row().withData(new Datum().withVarCharValue(String.valueOf(i))));
 		}
-		
+
 		for (int i = batchSize; i < batchSize + secondPageResults; i++) {
 			secondPage.withRows(new Row().withData(new Datum().withVarCharValue(String.valueOf(i))));
 		}
 
 		when(mockQueryResult.getResultSet()).thenReturn(firstPage, secondPage);
-		when(mockQueryResult.getNextToken()).thenReturn("secondPageToken", new String[] {null});
+		when(mockQueryResult.getNextToken()).thenReturn("secondPageToken", new String[] { null });
 
 		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
 
 		// Call under test
-		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(databaseName, query, (Row row) -> {
+		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
 		}, batchSize, true);
 
@@ -358,9 +370,9 @@ public class AthenaSupportImplTest {
 		assertTrue(result.iterator().hasNext());
 		// First page should be loaded
 		verify(mockQueryResult).getResultSet();
-		
+
 		int i = 0;
-		
+
 		while (result.iterator().hasNext()) {
 			int value = result.iterator().next();
 			assertEquals(i, value);
@@ -369,6 +381,21 @@ public class AthenaSupportImplTest {
 		// Should load only another page (e.g. only invoked another time)
 		verify(mockQueryResult, times(2)).getResultSet();
 
+	}
+
+	private GetQueryExecutionRequest getQueryExecutionRequest(String queryId) {
+		return new GetQueryExecutionRequest().withQueryExecutionId(queryId);
+	}
+
+	private StartQueryExecutionRequest getStartQueryExecutionRequest(String databaseName, String tableName) {
+		QueryExecutionContext queryContext = new QueryExecutionContext().withDatabase(databaseName.toLowerCase());
+
+		ResultConfiguration resultConfiguration = new ResultConfiguration().withOutputLocation(TEST_OUTPUT_RESULTS_LOCATION);
+
+		StartQueryExecutionRequest request = new StartQueryExecutionRequest().withQueryExecutionContext(queryContext)
+				.withResultConfiguration(resultConfiguration).withQueryString("MSCK REPAIR TABLE " + tableName);
+
+		return request;
 	}
 
 	private String prefixWithInstance(String value) {

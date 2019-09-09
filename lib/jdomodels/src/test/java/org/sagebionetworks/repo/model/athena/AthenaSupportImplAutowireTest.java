@@ -4,6 +4,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -13,16 +16,10 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.athena.AthenaSupport;
-import org.sagebionetworks.repo.model.athena.AthenaSupportImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -39,6 +36,7 @@ import com.amazonaws.services.athena.model.ResultSet;
 import com.amazonaws.services.athena.model.Row;
 import com.amazonaws.services.athena.model.StartQueryExecutionResult;
 import com.amazonaws.services.glue.AWSGlue;
+import com.amazonaws.services.glue.model.Database;
 import com.amazonaws.services.glue.model.Table;
 
 @ExtendWith(SpringExtension.class)
@@ -71,7 +69,7 @@ public class AthenaSupportImplAutowireTest {
 	private GetQueryResultsResult mockQueryResult;
 
 	private AthenaSupport athenaSupport;
-	
+
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
@@ -79,29 +77,38 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testGetParitionedTables() {
+	public void testGetParitionedTables() throws ServiceUnavailableException {
 		// Call under test
 		List<Table> tables = athenaSupport.getPartitionedTables();
 		assertFalse(tables.isEmpty());
 	}
 
 	@Test
-	public void testGetTable() {
+	public void testGetDatabase() throws ServiceUnavailableException {
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+		assertNotNull(database);
+	}
+
+	@Test
+	public void testGetTable() throws ServiceUnavailableException {
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 		// Call under test
-		Table table = athenaSupport.getTable(DATABASE_NAME, TABLE_NAME);
+		Table table = athenaSupport.getTable(database, TABLE_NAME);
 		assertNotNull(table);
 	}
 
 	@Test
-	public void testGetTableNotFound() {
+	public void testGetTableNotFound() throws ServiceUnavailableException {
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			athenaSupport.getTable(DATABASE_NAME, TABLE_NAME + System.currentTimeMillis());
+			athenaSupport.getTable(database, TABLE_NAME + System.currentTimeMillis());
 		});
 	}
 
 	@Test
-	public void testRepairTable() {
+	public void testRepairTable() throws ServiceUnavailableException {
 
 		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
 				.withEngineExecutionTimeInMillis(1000L);
@@ -113,7 +120,9 @@ public class AthenaSupportImplAutowireTest {
 		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
 
-		Table table = athenaSupport.getTable(DATABASE_NAME, TABLE_NAME);
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+
+		Table table = athenaSupport.getTable(database, TABLE_NAME);
 
 		// Call under test
 		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
@@ -124,7 +133,7 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testExecuteQuery() {
+	public void testExecuteQuery() throws ServiceUnavailableException {
 		String queryId = "abcd";
 		String countQueryResult = "1000";
 
@@ -135,24 +144,22 @@ public class AthenaSupportImplAutowireTest {
 		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
 				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
 
-		when(mockQueryResult.getResultSet())
-				.thenReturn(new ResultSet().withRows(
-						new Row().withData(new Datum().withVarCharValue("Count")),
-						new Row().withData(new Datum().withVarCharValue(countQueryResult)))
-				);
+		when(mockQueryResult.getResultSet()).thenReturn(new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Count")),
+				new Row().withData(new Datum().withVarCharValue(countQueryResult))));
 
 		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
 
-		String databaseName = athenaSupport.getDatabaseName(DATABASE_NAME);
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
 		// Call under test
-		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(databaseName, query, (Row row) -> {
+		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
 		}, 1, true);
-		
+
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
 		assertEquals(expectedStats, result.getQueryExecutionStatistics());
@@ -160,21 +167,22 @@ public class AthenaSupportImplAutowireTest {
 		assertEquals(Integer.valueOf(countQueryResult), result.iterator().next());
 		assertFalse(result.iterator().hasNext());
 	}
-	
+
 	// This can be useful to actually test queries
 	@Test
-	//@Disabled("We do not want to run athena queries each time we run the tests")
-	public void testExecuteQueryIntegration() {
+	@Disabled("We do not want to run athena queries each time we run the tests")
+	public void testExecuteQueryIntegration() throws ServiceUnavailableException {
 		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
-		
-		String databaseName = athenaSupport.getDatabaseName(DATABASE_NAME);
+
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
 		// Call under test
-		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(databaseName, query, (Row row) -> {
+		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
 		}, 1, true);
-		
+
 		assertNotNull(result);
 		assertTrue(result.iterator().hasNext());
 		result.iterator().next();
@@ -184,10 +192,12 @@ public class AthenaSupportImplAutowireTest {
 	// This can be useful to actually test that it works
 	@Test
 	@Disabled("We do not want to run athena repair each time we run the tests")
-	public void testRepairIntegration() {
+	public void testRepairIntegration() throws ServiceUnavailableException {
 		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
 
-		Table table = athenaSupport.getTable(DATABASE_NAME, TABLE_NAME);
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+
+		Table table = athenaSupport.getTable(database, TABLE_NAME);
 
 		// Call under test
 		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);

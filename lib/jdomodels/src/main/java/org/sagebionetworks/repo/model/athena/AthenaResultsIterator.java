@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.athena.AmazonAthena;
+import com.amazonaws.services.athena.model.AmazonAthenaException;
 import com.amazonaws.services.athena.model.GetQueryResultsRequest;
 import com.amazonaws.services.athena.model.GetQueryResultsResult;
 import com.amazonaws.services.athena.model.ResultSet;
@@ -12,9 +13,9 @@ import com.amazonaws.services.athena.model.ResultSet;
 /**
  * Custom iterator to retrieve batch of results from an athena query execution
  * 
- * @author     Marco
+ * @author Marco
  *
- * @param  <T>
+ * @param <T>
  */
 public class AthenaResultsIterator<T> implements Iterator<T> {
 
@@ -30,14 +31,15 @@ public class AthenaResultsIterator<T> implements Iterator<T> {
 	private String nextToken;
 	private Iterator<T> currentPage;
 
-	public AthenaResultsIterator(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, int pageSize, boolean excludeHeader) {
+	public AthenaResultsIterator(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, int pageSize,
+			boolean excludeHeader) {
 		this.athenaClient = athenaClient;
 		this.queryExecutionId = queryExecutionId;
 		this.rowMapper = rowMapper;
 		this.pageSize = pageSize;
 		this.excludeHeader = excludeHeader;
 	}
-	
+
 	private List<T> nextPage() {
 
 		int maxResults = pageSize;
@@ -48,12 +50,21 @@ public class AthenaResultsIterator<T> implements Iterator<T> {
 			maxResults += 1;
 		}
 
+		// @formatter:off
+
 		GetQueryResultsRequest request = new GetQueryResultsRequest()
 				.withQueryExecutionId(queryExecutionId)
 				.withMaxResults(maxResults)
 				.withNextToken(nextToken);
+				
+		GetQueryResultsResult result;
 
-		GetQueryResultsResult result = athenaClient.getQueryResults(request);
+		try {
+			result = athenaClient.getQueryResults(request);
+		} catch (AmazonAthenaException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
+		
 		nextToken = result.getNextToken();
 
 		ResultSet resultSet = result.getResultSet();
@@ -64,6 +75,8 @@ public class AthenaResultsIterator<T> implements Iterator<T> {
 				.skip(excludeHeader && currentPage == null ? 1 : 0)
 				.map(rowMapper::mapRow)
 				.collect(Collectors.toList());
+		 
+		// @formatter:on
 
 		return results;
 	}
