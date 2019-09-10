@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth.claimprovider;
 
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.VerificationHelper;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -23,12 +24,10 @@ public class ValidatedGivenNameClaimProvider implements OIDCClaimProvider {
 	@Override
 	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
 		VerificationSubmission verificationSubmission = userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
-
-		if (verificationSubmission==null) {
-			return null;
-		} else {
+		if (VerificationHelper.isVerified(verificationSubmission)) {
 			return verificationSubmission.getFirstName();
+		} else {
+			return null;
 		}
 	}
-
 }
