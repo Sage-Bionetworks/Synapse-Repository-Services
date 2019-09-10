@@ -4378,6 +4378,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 	}
 
+	
 	/**
 	 * Get the user information for the user specified by the authorization
 	 * bearer token (which must be included as the authorization header).
@@ -4396,10 +4397,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			ClientUtils.throwException(response.getStatusCode(), response.getContent());
 		}
 		
+		validateContentType(response, APPLICATION_JWT);
+		
 		String signedToken = response.getContent();
 		
 		return JSONWebTokenHelper.parseJWT(signedToken, getOIDCJsonWebKeySet());
-		
 	}
 	
 	/**

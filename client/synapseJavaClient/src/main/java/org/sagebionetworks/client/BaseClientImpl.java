@@ -66,8 +66,11 @@ public class BaseClientImpl implements BaseClient {
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
-	private static final String APPLICATION_JSON_CHARSET_UTF8 = "application/json; charset="+SYNAPSE_ENCODING_CHARSET;
+	private static final String APPLICATION_JSON = "application/json";
+	private static final String APPLICATION_JSON_CHARSET_UTF8 = APPLICATION_JSON+"; charset="+SYNAPSE_ENCODING_CHARSET;
 
+	protected static final String APPLICATION_JWT = "application/jwt";
+	
 	private static final String CONTENT_TYPE = "Content-Type";
 	private static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
@@ -464,6 +467,13 @@ public class BaseClientImpl implements BaseClient {
 	//================================================================================
 	// Helpers that perform request and return JSONObject
 	//================================================================================
+	
+	protected void validateContentType(SimpleHttpResponse response, String expectedContentType) throws SynapseClientException {
+		String actualContentType = response.getFirstHeader(CONTENT_TYPE).getValue();
+		if (!actualContentType.toLowerCase().startsWith(expectedContentType.toLowerCase())) {
+			throw new SynapseClientException("Expected "+expectedContentType+" but received "+actualContentType);
+		}
+	}
 
 	/**
 	 * Get a JSONObject
@@ -473,6 +483,7 @@ public class BaseClientImpl implements BaseClient {
 	protected JSONObject getJson(String endpoint, String uri) throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
+		validateContentType(response, APPLICATION_JSON);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
