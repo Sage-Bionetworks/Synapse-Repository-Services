@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -298,10 +297,12 @@ public class AthenaSupportImplTest {
 		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
 
+		boolean excludeHeader = true;
+
 		// Call under test
 		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return row.getData().get(0).getVarCharValue();
-		}, 1, true);
+		}, excludeHeader);
 
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
@@ -315,71 +316,6 @@ public class AthenaSupportImplTest {
 
 		verify(mockQueryResult).getResultSet();
 		assertFalse(result.iterator().hasNext());
-
-	}
-
-	@Test
-	public void testExecuteQueryMultiplePages() throws ServiceUnavailableException {
-		String databaseName = prefixWithInstance(TEST_DB);
-		String tableName = prefixWithInstance(TEST_TABLE);
-		String query = "SELECT * FROM " + tableName;
-		String queryId = "abcd";
-		int batchSize = 10;
-		int secondPageResults = 5;
-
-		Database database = new Database().withName(databaseName);
-
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
-
-		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
-
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
-				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
-
-		// The first page includes the header
-		ResultSet firstPage = new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Column")));
-		ResultSet secondPage = new ResultSet();
-
-		for (int i = 0; i < batchSize; i++) {
-			firstPage.withRows(new Row().withData(new Datum().withVarCharValue(String.valueOf(i))));
-		}
-
-		for (int i = batchSize; i < batchSize + secondPageResults; i++) {
-			secondPage.withRows(new Row().withData(new Datum().withVarCharValue(String.valueOf(i))));
-		}
-
-		when(mockQueryResult.getResultSet()).thenReturn(firstPage, secondPage);
-		when(mockQueryResult.getNextToken()).thenReturn("secondPageToken", new String[] { null });
-
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
-
-		// Call under test
-		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
-			return Integer.valueOf(row.getData().get(0).getVarCharValue());
-		}, batchSize, true);
-
-		assertNotNull(result);
-		assertEquals(queryId, result.getQueryExecutionId());
-		assertEquals(expectedStats, result.getQueryExecutionStatistics());
-
-		verify(mockQueryResult, never()).getResultSet();
-
-		assertTrue(result.iterator().hasNext());
-		// First page should be loaded
-		verify(mockQueryResult).getResultSet();
-
-		int i = 0;
-
-		while (result.iterator().hasNext()) {
-			int value = result.iterator().next();
-			assertEquals(i, value);
-			i++;
-		}
-		// Should load only another page (e.g. only invoked another time)
-		verify(mockQueryResult, times(2)).getResultSet();
 
 	}
 

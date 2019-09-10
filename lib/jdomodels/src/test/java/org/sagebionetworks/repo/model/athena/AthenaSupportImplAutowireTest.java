@@ -155,10 +155,12 @@ public class AthenaSupportImplAutowireTest {
 
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
+		boolean excludeHeader = true;
+		
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
-		}, 1, true);
+		}, excludeHeader);
 
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
@@ -178,10 +180,12 @@ public class AthenaSupportImplAutowireTest {
 
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
+		boolean excludeHeader = true;
+		
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
-		}, 1, true);
+		}, excludeHeader);
 
 		assertNotNull(result);
 		assertTrue(result.iterator().hasNext());

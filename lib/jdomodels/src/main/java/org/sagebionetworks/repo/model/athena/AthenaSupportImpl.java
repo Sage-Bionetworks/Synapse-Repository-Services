@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.athena;
 
-import static org.sagebionetworks.repo.model.athena.AthenaResultsIterator.MAX_FETCH_PAGE_SIZE;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -142,19 +140,17 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, int pageSize)
+	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper)
 			throws ServiceUnavailableException {
-		return executeQuery(database, query, rowMapper, pageSize, true);
+		return executeQuery(database, query, rowMapper, true);
 	}
 
 	@Override
-	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, int pageSize,
-			boolean excludeHeader) throws ServiceUnavailableException {
+	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, boolean excludeHeader)
+			throws ServiceUnavailableException {
 		ValidateArgument.required(database, "database");
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowMapper, "rowMapper");
-		ValidateArgument.requirement(pageSize > 0 && pageSize <= MAX_FETCH_PAGE_SIZE,
-				"The batch size should be within the (0, " + MAX_FETCH_PAGE_SIZE + "] range.");
 
 		LOG.debug("Executing query {} on database {}...", query, database.getName());
 
@@ -166,7 +162,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
 				queryStatistics.getDataScannedInBytes(), queryStatistics.getEngineExecutionTimeInMillis());
 
-		Iterator<T> iterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, pageSize, excludeHeader);
+		Iterator<T> iterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
 
 		return new AthenaQueryResult<T>() {
 

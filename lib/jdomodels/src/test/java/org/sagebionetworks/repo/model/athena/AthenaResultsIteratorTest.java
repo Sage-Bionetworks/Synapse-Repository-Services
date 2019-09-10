@@ -53,7 +53,7 @@ public class AthenaResultsIteratorTest {
 	public void testNextWithoutHasNext() {
 		boolean excludeHeader = true;
 		
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, MAX_FETCH_PAGE_SIZE);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 		
 		Assertions.assertThrows(IllegalStateException.class, () -> {
 			iterator.next();
@@ -63,9 +63,9 @@ public class AthenaResultsIteratorTest {
 	@Test
 	public void testHasNextOnFirstPageExcludingHeader() {
 
-		int pageSize = 10;
+		int resultsNumber = 10;
 				
-		ResultSet resultSet = getResultSet(pageSize);
+		ResultSet resultSet = getResultSet(resultsNumber);
 
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
@@ -73,7 +73,7 @@ public class AthenaResultsIteratorTest {
 		
 		boolean excludeHeader = true;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		
@@ -82,8 +82,7 @@ public class AthenaResultsIteratorTest {
 		assertTrue(result);
 		
 		GetQueryResultsRequest request = new GetQueryResultsRequest()
-				// On the first page when excluding the header it should fetch pageSize + 1
-				.withMaxResults(pageSize + 1)
+				.withMaxResults(MAX_FETCH_PAGE_SIZE)
 				.withQueryExecutionId(QUERY_ID)
 				.withNextToken(null);
 		
@@ -95,9 +94,9 @@ public class AthenaResultsIteratorTest {
 	@Test
 	public void testHasNextOnFirstPageIncludingHeader() {
 
-		int pageSize = 10;
+		int resultsNumber = 10;
 				
-		ResultSet resultSet = getResultSet(pageSize);
+		ResultSet resultSet = getResultSet(resultsNumber);
 
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
@@ -105,7 +104,7 @@ public class AthenaResultsIteratorTest {
 		
 		boolean excludeHeader = false;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		
@@ -114,37 +113,6 @@ public class AthenaResultsIteratorTest {
 		assertTrue(result);
 		
 		GetQueryResultsRequest request = new GetQueryResultsRequest()
-				.withMaxResults(pageSize)
-				.withQueryExecutionId(QUERY_ID)
-				.withNextToken(null);
-		
-		verify(mockAthenaClient).getQueryResults(eq(request));
-		verify(mockQueryResults).getResultSet();
-		verify(mockQueryResults).getNextToken();
-	}
-
-	
-	@Test
-	public void testHasNextOnFirstPageWithMaxPageSize() {
-		
-		ResultSet resultSet = getResultSet(10);
-
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
-		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
-		when(mockQueryResults.getNextToken()).thenReturn(null);
-		
-		boolean excludeHeader = true;
-
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, MAX_FETCH_PAGE_SIZE);
-
-		assertNotNull(iterator);
-		
-		boolean result = iterator.hasNext();
-		
-		assertTrue(result);
-		
-		GetQueryResultsRequest request = new GetQueryResultsRequest()
-				// Even when excluding the header the max fetch size for athena should not be exceeded
 				.withMaxResults(MAX_FETCH_PAGE_SIZE)
 				.withQueryExecutionId(QUERY_ID)
 				.withNextToken(null);
@@ -156,8 +124,10 @@ public class AthenaResultsIteratorTest {
 
 	@Test
 	public void testIteratorWithNoResultExcludingHeader() {
+
+		int resultsNumber = 0;
 		
-		ResultSet resultSet = getResultSet(0);
+		ResultSet resultSet = getResultSet(resultsNumber);
 
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
@@ -165,7 +135,7 @@ public class AthenaResultsIteratorTest {
 
 		boolean excludeHeader = true;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, MAX_FETCH_PAGE_SIZE);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertFalse(iterator.hasNext());
@@ -177,7 +147,10 @@ public class AthenaResultsIteratorTest {
 
 	@Test
 	public void testIteratorWithNoResultIncludingHeader() {
-		ResultSet resultSet = getResultSet(0);
+		
+		int resultsNumber = 0;
+		
+		ResultSet resultSet = getResultSet(resultsNumber);
 
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
@@ -185,7 +158,7 @@ public class AthenaResultsIteratorTest {
 
 		boolean excludeHeader = false;
 		
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, MAX_FETCH_PAGE_SIZE);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertTrue(iterator.hasNext());
@@ -198,21 +171,23 @@ public class AthenaResultsIteratorTest {
 
 	@Test
 	public void testIteratorWithOnePageExcludingHeader() {
-		int pageSize = 10;
-		ResultSet resultSet = getResultSet(pageSize);
-
+		
+		int resultsNumber = 10;
+		
+		ResultSet resultSet = getResultSet(resultsNumber);
+		
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
 		when(mockQueryResults.getNextToken()).thenReturn(null);
 
 		boolean excludeHeader = true;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertTrue(iterator.hasNext());
 
-		for (int i = 0; i < pageSize; i++) {
+		for (int i = 0; i < resultsNumber; i++) {
 			assertTrue(iterator.hasNext());
 			assertEquals(String.valueOf(i), iterator.next());
 		}
@@ -226,8 +201,10 @@ public class AthenaResultsIteratorTest {
 
 	@Test
 	public void testIteratorWithOnePageIncludingHeader() {
-		int pageSize = 10;
-		ResultSet resultSet = getResultSet(pageSize);
+		
+		int resultsNumber = 10;
+		
+		ResultSet resultSet = getResultSet(resultsNumber);
 
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
 		when(mockQueryResults.getResultSet()).thenReturn(resultSet);
@@ -235,13 +212,13 @@ public class AthenaResultsIteratorTest {
 
 		boolean excludeHeader = false;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertTrue(iterator.hasNext());
 		assertEquals(HEADER_COL, iterator.next());
 
-		for (int i = 0; i < pageSize; i++) {
+		for (int i = 0; i < resultsNumber; i++) {
 			assertTrue(iterator.hasNext());
 			assertEquals(String.valueOf(i), iterator.next());
 		}
@@ -252,7 +229,8 @@ public class AthenaResultsIteratorTest {
 
 	@Test
 	public void testIteratorWithMultiplePagesExcludingHeader() {
-		int pageSize = 10;
+		
+		int pageSize = MAX_FETCH_PAGE_SIZE;
 		int resultsNumber = pageSize * 2;
 
 		ResultSet firstPage = getResultSet(pageSize);
@@ -264,7 +242,7 @@ public class AthenaResultsIteratorTest {
 
 		boolean excludeHeader = true;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertTrue(iterator.hasNext());
@@ -283,7 +261,8 @@ public class AthenaResultsIteratorTest {
 	
 	@Test
 	public void testIteratorWithMultiplePagesIncludingHeader() {
-		int pageSize = 10;
+		
+		int pageSize = MAX_FETCH_PAGE_SIZE;
 		int resultsNumber = pageSize * 2;
 
 		ResultSet firstPage = getResultSet(pageSize);
@@ -295,7 +274,7 @@ public class AthenaResultsIteratorTest {
 
 		boolean excludeHeader = false;
 
-		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader, pageSize);
+		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
 		assertTrue(iterator.hasNext());
@@ -313,8 +292,8 @@ public class AthenaResultsIteratorTest {
 
 	}
 	
-	private Iterator<String> getAthenaIteratorInstance(boolean excludeHeader, int pageSize) {
-		return new AthenaResultsIterator<>(mockAthenaClient, QUERY_ID, ROW_MAPPER, pageSize, excludeHeader);
+	private Iterator<String> getAthenaIteratorInstance(boolean excludeHeader) {
+		return new AthenaResultsIterator<>(mockAthenaClient, QUERY_ID, ROW_MAPPER, excludeHeader);
 	}
 
 	private ResultSet getResultSet(int numberOfRows) {
