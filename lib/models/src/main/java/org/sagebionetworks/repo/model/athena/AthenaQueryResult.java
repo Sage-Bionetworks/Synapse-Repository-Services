@@ -2,30 +2,33 @@ package org.sagebionetworks.repo.model.athena;
 
 import java.util.Iterator;
 
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
-
 /**
  * Represent the results of an Athena query
  * 
- * @author Marco
+ * @author     Marco
  *
- * @param <T>
+ * @param  <T>
  */
 public interface AthenaQueryResult<T> {
-	
+
+	/**
+	 * @return True if the iterator includes the header as the first element
+	 */
+	boolean includeHeader();
+
 	/**
 	 * @return The query execution id
 	 */
 	String getQueryExecutionId();
-	
+
 	/**
 	 * @return The statistics about the query execution
 	 */
-	QueryExecutionStatistics getQueryExecutionStatistics();
+	AthenaQueryStatistics getQueryExecutionStatistics();
 
 	/**
 	 * @return A (lazy) iterator over the results
 	 */
-	Iterator<T> iterator();
+	Iterator<T> getQueryResultsiterator();
 
 }

@@ -205,9 +205,9 @@ public class AthenaSupportImplTest {
 		Table table = new Table().withDatabaseName(databaseName).withName(tableName);
 
 		// Call under test
-		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
+		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
 
-		assertEquals(expectedStats, queryStats);
+		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), queryStats);
 		verify(mockAthenaClient).startQueryExecution(eq(startQueryRequest));
 		verify(mockAthenaClient).getQueryExecution(eq(queryExecutionRequest));
 	}
@@ -306,16 +306,16 @@ public class AthenaSupportImplTest {
 
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
-		assertEquals(expectedStats, result.getQueryExecutionStatistics());
+		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), result.getQueryExecutionStatistics());
 
 		verify(mockQueryResult, never()).getResultSet();
 
-		assertTrue(result.iterator().hasNext());
+		assertTrue(result.getQueryResultsiterator().hasNext());
 
-		assertEquals(countResult, result.iterator().next());
+		assertEquals(countResult, result.getQueryResultsiterator().next());
 
 		verify(mockQueryResult).getResultSet();
-		assertFalse(result.iterator().hasNext());
+		assertFalse(result.getQueryResultsiterator().hasNext());
 
 	}
 

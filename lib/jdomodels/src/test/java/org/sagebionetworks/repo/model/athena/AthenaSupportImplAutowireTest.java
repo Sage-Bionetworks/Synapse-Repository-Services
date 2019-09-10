@@ -125,9 +125,9 @@ public class AthenaSupportImplAutowireTest {
 		Table table = athenaSupport.getTable(database, TABLE_NAME);
 
 		// Call under test
-		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
+		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
 
-		assertEquals(expectedStats, queryStats);
+		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), queryStats);
 		verify(mockAthenaClient).startQueryExecution(any());
 		verify(mockAthenaClient).getQueryExecution(any());
 	}
@@ -164,10 +164,10 @@ public class AthenaSupportImplAutowireTest {
 
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
-		assertEquals(expectedStats, result.getQueryExecutionStatistics());
-		assertTrue(result.iterator().hasNext());
-		assertEquals(Integer.valueOf(countQueryResult), result.iterator().next());
-		assertFalse(result.iterator().hasNext());
+		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), result.getQueryExecutionStatistics());
+		assertTrue(result.getQueryResultsiterator().hasNext());
+		assertEquals(Integer.valueOf(countQueryResult), result.getQueryResultsiterator().next());
+		assertFalse(result.getQueryResultsiterator().hasNext());
 	}
 
 	// This can be useful to actually test queries
@@ -188,9 +188,9 @@ public class AthenaSupportImplAutowireTest {
 		}, excludeHeader);
 
 		assertNotNull(result);
-		assertTrue(result.iterator().hasNext());
-		result.iterator().next();
-		assertFalse(result.iterator().hasNext());
+		assertTrue(result.getQueryResultsiterator().hasNext());
+		result.getQueryResultsiterator().next();
+		assertFalse(result.getQueryResultsiterator().hasNext());
 	}
 
 	// This can be useful to actually test that it works
@@ -204,11 +204,11 @@ public class AthenaSupportImplAutowireTest {
 		Table table = athenaSupport.getTable(database, TABLE_NAME);
 
 		// Call under test
-		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
+		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
 
 		assertNotNull(queryStats);
-		assertNotNull(queryStats.getDataScannedInBytes());
-		assertNotNull(queryStats.getEngineExecutionTimeInMillis());
+		assertNotNull(queryStats.getDataScanned());
+		assertNotNull(queryStats.getExecutionTime());
 
 	}
 

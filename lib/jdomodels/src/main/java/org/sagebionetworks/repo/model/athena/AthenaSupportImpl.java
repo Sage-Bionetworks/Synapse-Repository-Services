@@ -114,7 +114,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public QueryExecutionStatistics repairTable(Table table) throws ServiceUnavailableException {
+	public AthenaQueryStatistics repairTable(Table table) throws ServiceUnavailableException {
 
 		ValidateArgument.required(table, "table");
 
@@ -125,10 +125,10 @@ public class AthenaSupportImpl implements AthenaSupport {
 		String queryExecutionId = queryRequest(table.getDatabaseName(), repairQuery);
 
 		// Just wait for the result
-		QueryExecutionStatistics queryStats = waitForQueryResults(queryExecutionId);
+		AthenaQueryStatistics queryStats = waitForQueryResults(queryExecutionId);
 
 		LOG.info("Repairing table {} in database {}...DONE (Scanned: {} bytes, Elapsed Time: {} ms)", table.getName(),
-				table.getDatabaseName(), queryStats.getDataScannedInBytes(), queryStats.getEngineExecutionTimeInMillis());
+				table.getDatabaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
 
 		return queryStats;
 	}
@@ -157,14 +157,25 @@ public class AthenaSupportImpl implements AthenaSupport {
 		// Run the query
 		String queryExecutionId = queryRequest(database.getName().toLowerCase(), query);
 
-		QueryExecutionStatistics queryStatistics = waitForQueryResults(queryExecutionId);
+		AthenaQueryStatistics queryStatistics = waitForQueryResults(queryExecutionId);
 
 		LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
-				queryStatistics.getDataScannedInBytes(), queryStatistics.getEngineExecutionTimeInMillis());
+				queryStatistics.getDataScanned(), queryStatistics.getExecutionTime());
 
-		Iterator<T> iterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
+		Iterator<T> resultsIterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
 
+		return buildQueryResult(queryExecutionId, queryStatistics, resultsIterator, !excludeHeader);
+
+	}
+
+	private <T> AthenaQueryResult<T> buildQueryResult(String queryExecutionId, AthenaQueryStatistics queryStatistics,
+			Iterator<T> resultsIterator, boolean includeHeader) {
 		return new AthenaQueryResult<T>() {
+
+			@Override
+			public boolean includeHeader() {
+				return includeHeader;
+			}
 
 			@Override
 			public String getQueryExecutionId() {
@@ -172,13 +183,13 @@ public class AthenaSupportImpl implements AthenaSupport {
 			}
 
 			@Override
-			public QueryExecutionStatistics getQueryExecutionStatistics() {
+			public AthenaQueryStatistics getQueryExecutionStatistics() {
 				return queryStatistics;
 			}
 
 			@Override
-			public Iterator<T> iterator() {
-				return iterator;
+			public Iterator<T> getQueryResultsiterator() {
+				return resultsIterator;
 			}
 		};
 	}
@@ -211,7 +222,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		}
 	}
 
-	private QueryExecutionStatistics waitForQueryResults(String queryId) throws ServiceUnavailableException {
+	private AthenaQueryStatistics waitForQueryResults(String queryId) throws ServiceUnavailableException {
 
 		QueryExecutionStatistics queryStats = null;
 		boolean done = false;
@@ -251,7 +262,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 		}
 
-		return queryStats;
+		return new AthenaQueryStatisticsAdapter(queryStats);
 
 	}
 

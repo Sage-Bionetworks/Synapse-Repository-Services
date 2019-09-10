@@ -5,7 +5,6 @@ import java.util.List;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
 import com.amazonaws.services.athena.model.ResultSet;
 import com.amazonaws.services.athena.model.Row;
 import com.amazonaws.services.glue.model.Database;
@@ -29,11 +28,11 @@ public interface AthenaSupport {
 	 * Run the repair table command for athena (MSCK REPAIR TABLE) on the given table
 	 * 
 	 * @param  table                       The table to repair
-	 * @return                             The {@link QueryExecutionStatistics} contianing data about the byte scanned and
-	 *                                     the running time
+	 * @return                             The {@link AthenaQueryStatistics} containing data about the byte scanned and the
+	 *                                     running time
 	 * @throws ServiceUnavailableException If an error occurs contacting AWS Athena
 	 */
-	QueryExecutionStatistics repairTable(Table table) throws ServiceUnavailableException;
+	AthenaQueryStatistics repairTable(Table table) throws ServiceUnavailableException;
 
 	/**
 	 * Returns the glue {@link Database} with the given name, the database name will be automatically parameterized by the
