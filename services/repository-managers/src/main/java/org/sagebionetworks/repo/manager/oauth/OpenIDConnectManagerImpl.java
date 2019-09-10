@@ -61,7 +61,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-	@Autowired
+	/**
+	 * Injected.
+	 */
 	private Map<OIDCClaimName, OIDCClaimProvider> claimProviders;
 
 	/*
