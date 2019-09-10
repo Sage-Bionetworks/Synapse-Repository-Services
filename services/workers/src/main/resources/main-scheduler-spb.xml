@@ -59,6 +59,7 @@
 	<import resource="classpath:storage-report-worker-sqs-spb.xml" />
     <import resource="classpath:add-files-to-download-list-spb.xml" />
     <import resource="classpath:semaphore-garbage-collection-spb.xml" />
+    <import resource="classpath:athena-spb.xml" />
     <import resource="classpath:statistics-spb.xml" />
 
 	<util:list id="workersList">
@@ -101,7 +102,10 @@
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="statisticsQueueTrigger" />
-		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" />
+		<ref bean="athenaPartitionScannerTrigger" />
+		<!-- Temporary: disabled to allow merging 		
+		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
+		-->
 		<ref bean="statisticsMonthlyWorkerTrigger" />
 	</util:list>
 

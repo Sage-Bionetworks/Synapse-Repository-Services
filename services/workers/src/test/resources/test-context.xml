@@ -20,5 +20,8 @@
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 	
 	<bean id="asynchronousJobWorkerHelper" class="org.sagebionetworks.AsynchronousJobWorkerHelperImpl"/>
+	
+	<!--  During integration tests we do not want to scan partitions -->
+	<bean id="athenaPartitionScannerWorker" class="org.sagebionetworks.athena.workers.AthenaPartitionScannerWorkerStub" />
 
 </beans>

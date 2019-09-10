@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy proxy-target-class="true"/>
 
 	<!-- This worker scans for new partitions in the glue tables defined for the stack -->
-	<bean id="athenaPartitionScannerWorker" class="org.sagebionetworks.athena.AthenaPartitionScannerWorker" scope="singleton" />
+	<bean id="athenaPartitionScannerWorker" class="org.sagebionetworks.athena.workers.AthenaPartitionScannerWorker" scope="singleton" />
 
 	<!-- Trigger for the monthly statistics status watcher worker -->
 	<bean id="athenaPartitionScannerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">

@@ -1,4 +1,4 @@
-package org.sagebionetworks.athena.worker;
+package org.sagebionetworks.athena.workers;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;

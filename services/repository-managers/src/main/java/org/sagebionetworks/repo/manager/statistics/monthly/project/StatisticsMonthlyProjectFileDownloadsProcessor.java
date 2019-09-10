@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * Processor for monthly project file downloads
  * 
- * @author maras
+ * @author Marco
  */
 @Service
 public class StatisticsMonthlyProjectFileDownloadsProcessor implements StatisticsMonthlyProcessor {
