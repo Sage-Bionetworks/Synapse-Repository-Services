@@ -1,0 +1,8 @@
+{
+	"description": "Used to create Entity and associated metadata in a single transaction",
+	"properties": {
+		"entity":{
+			"$ref":"org.sagebionetworks.repo.model.Entity"
+		}
+	}
+}

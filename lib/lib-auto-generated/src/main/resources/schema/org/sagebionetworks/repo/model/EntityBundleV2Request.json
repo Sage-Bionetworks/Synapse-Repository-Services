@@ -1,47 +1,47 @@
 {
 	"description": "Specifies what fields to include in an EntityBundle",
 	"properties": {
-		"entity": {
+		"includeEntity": {
 			"type": "boolean",
 			"description": "Include Entity"
 		},
-		"annotations":{
+		"includeAnnotations":{
 			"type": "boolean"
 		},
-		"permissions":{
+		"includePermissions":{
 			"type": "boolean"
 		},
-		"entityPath":{
+		"includeEntityPath":{
 			"type": "boolean"
 		},
-		"hasChildren":{
+		"includeHasChildren":{
 			"type": "boolean"
 		},
-		"accesControlList":{
+		"includeAccessControlList":{
 			"type": "boolean"
 		},
-		"fileHandles":{
+		"includeFileHandles":{
 			"type": "boolean"
 		},
-		"tableEntityMetadata":{
+		"includeTableBundle":{
 			"type": "boolean"
 		},
-		"rootWikiId":{
+		"includeRootWikiId":{
 			"type": "boolean"
 		},
-		"benefactorACL":{
+		"includeBenefactorACL":{
 			"type": "boolean"
 		},
-		"DOIAssociation":{
+		"includeDOIAssociation":{
 			"type": "boolean"
 		},
-		"fileName":{
+		"includeFileName":{
 			"type": "boolean"
 		},
-		"threadCount":{
+		"includeThreadCount":{
 			"type": "boolean"
 		},
-		"restrictionInformation":{
+		"includeRestrictionInformation":{
 			"type": "boolean"
 		}
 	}

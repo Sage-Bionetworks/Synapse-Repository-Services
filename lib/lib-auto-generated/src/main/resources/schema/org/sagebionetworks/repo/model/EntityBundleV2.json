@@ -19,7 +19,7 @@
 		"hasChildren": {
 			"type": "boolean"
 		},
-		"acl": {
+		"accessControlList": {
 			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
 		},
 		"fileHandles":{
