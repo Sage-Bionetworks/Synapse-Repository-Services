@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.auth.HttpAuthUtil;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 import com.sun.syndication.io.impl.Base64;
 
@@ -46,7 +47,7 @@ public class DockerRegistryAuthFilterTest {
 
 	@Test
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
-		String basicAuthenticationHeader = HttpAuthUtil.BASIC_PREFIX + Base64.encode(
+		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX + Base64.encode(
 				"wrongRegistryUserName:wrongRegistryPassword");
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -55,7 +56,7 @@ public class DockerRegistryAuthFilterTest {
 
 	@Test
 	public void testDoFilterAuthenticateSuccess() throws Exception {
-		String basicAuthenticationHeader = HttpAuthUtil.BASIC_PREFIX + Base64.encode(
+		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX + Base64.encode(
 				StackConfigurationSingleton.singleton().getDockerRegistryUser()+":"+
 						StackConfigurationSingleton.singleton().getDockerRegistryPassword());
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);

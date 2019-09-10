@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -137,7 +138,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		Jwt<JwsHeader,Claims> accessToken = null;
 		try {
-			accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
+			accessToken = JSONWebTokenHelper.parseJWT(accessTokenParam, oidcTokenHelper.getJSONWebKeySet());
 		} catch (IllegalArgumentException e) {
 			throw new UnauthenticatedException("Could not interpret access token.", e);
 		}

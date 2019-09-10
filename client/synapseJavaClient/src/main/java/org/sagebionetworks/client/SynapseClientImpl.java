@@ -1,5 +1,7 @@
 package org.sagebionetworks.client;
 
+import static org.sagebionetworks.client.Method.GET;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -102,6 +104,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -277,6 +280,7 @@ import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.FileProviderImpl;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -467,6 +471,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	
+	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
+	public static final String AUTH_OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
+	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
+	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
+	public static final String AUTH_OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
+	
+	public static final String AUTH_OAUTH_2_GRANT_TYPE_PARAM = "grant_type";
+	public static final String AUTH_OAUTH_2_CODE_PARAM = "code";
+	public static final String AUTH_OAUTH_2_REDIRECT_URI_PARAM = "redirect_uri";
+	public static final String AUTH_OAUTH_2_REfRESH_TOKEN_PARAM = "refresh_token";
+	public static final String AUTH_OAUTH_2_SCOPE_PARAM = "scope";
+	public static final String AUTH_OAUTH_2_CLAIMS_PARAM = "claims";
 	
 	private static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
 	private static final String CURRENT_VERIFICATION_STATE = "currentVerificationState";
@@ -4293,7 +4312,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public OAuthClientIdAndSecret createOAuthClientSecret(String clientId) throws SynapseException {
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT, oauthClient, OAuthClient.class);
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT, null, OAuthClientIdAndSecret.class);
 	}
 
 	@Override
@@ -4326,13 +4345,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_REQUEST_DESCRIPTION, authorizationRequest, OIDCAuthorizationRequestDescription.class);
 	}
 
-	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
-	public static final String AUTH_OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
-	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
-	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
-	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
-	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
-	
 	@Override
 	public OAuthAuthorizationResponse authorizeClient(OIDCAuthorizationRequest authorizationRequest)
 			throws SynapseException {
@@ -4345,22 +4357,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		URIBuilder uri = new URIBuilder();
 		uri.setPath(AUTH_OAUTH_2_TOKEN);
 		if (grant_type != null) {
-			uri.setParameter("grant_type", grant_type.name());
+			uri.setParameter(AUTH_OAUTH_2_GRANT_TYPE_PARAM, grant_type.name());
 		}
 		if (code != null) {
-			uri.setParameter("code", code);
+			uri.setParameter(AUTH_OAUTH_2_CODE_PARAM, code);
 		}
 		if (redirectUri != null) {
-			uri.setParameter("redirect_uri", redirectUri);
+			uri.setParameter( AUTH_OAUTH_2_REDIRECT_URI_PARAM, urlEncode(redirectUri));
 		}
 		if (refresh_token != null) {
-			uri.setParameter("refresh_token", refresh_token);
+			uri.setParameter(AUTH_OAUTH_2_REfRESH_TOKEN_PARAM, refresh_token);
 		}
 		if (scope != null) {
-			uri.setParameter("scope", scope);
+			uri.setParameter(AUTH_OAUTH_2_SCOPE_PARAM, urlEncode(scope));
 		}
 		if (claims != null) {
-			uri.setParameter("", claims);
+			uri.setParameter(AUTH_OAUTH_2_CLAIMS_PARAM, urlEncode(claims));
 		}
 		return getJSONEntity(getAuthEndpoint(), uri.toString(), OIDCTokenResponse.class);
 		
@@ -4376,9 +4388,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 */
 	@Override
-	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() {
-		// TODO Auto-generated method stub
-		return null;
+	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException {
+		Map<String,String> requestHeaders = new HashMap<String,String>();
+		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
+		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
+			ClientUtils.throwException(response.getStatusCode(), response.getContent());
+		}
+		
+		String signedToken = response.getContent();
+		
+		return JSONWebTokenHelper.parseJWT(signedToken, getOIDCJsonWebKeySet());
 		
 	}
 	
@@ -4392,9 +4412,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 */
 	@Override
-	public Map<OIDCClaimName,Object> getUserInfoAsMap() {
-		// TODO Auto-generated method stub
-		return null;
+	public JSONObject getUserInfoAsJSON() throws SynapseException {
+		return getJson(getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO);
 	}
 
 	@Override

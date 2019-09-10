@@ -52,7 +52,7 @@ public class OAuthAccessTokenFilterTest {
 	public void setUp() throws Exception {
 		String bearerTokenHeader = "Bearer "+BEARER_TOKEN;
 		
-		when(mockHttpRequest.getHeader(HttpAuthUtil.AUTHORIZATION_HEADER_NAME)).thenReturn(bearerTokenHeader);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(bearerTokenHeader);
 		
 		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 	}
@@ -88,7 +88,7 @@ public class OAuthAccessTokenFilterTest {
 
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
-		when(mockHttpRequest.getHeader(HttpAuthUtil.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 
 		// method under test
 		oauthAccessTokenFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);

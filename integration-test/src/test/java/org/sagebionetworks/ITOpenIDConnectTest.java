@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Collections;
-import java.util.Map;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,6 +16,8 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
@@ -24,7 +26,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
@@ -82,11 +83,12 @@ class ITOpenIDConnectTest {
 
 	
 	@Test
-	void testRoundTrip() throws SynapseException {
+	void testRoundTrip() throws Exception {
 		OIDConnectConfiguration connectConfig = synapseAnonymous.getOIDConnectConfiguration();
 		assertNotNull(connectConfig.getIssuer());
 		
-		assertFalse(synapseAnonymous.getOIDCJsonWebKeySet().getKeys().isEmpty());
+		JsonWebKeySet jsonWebKeySet = synapseAnonymous.getOIDCJsonWebKeySet();
+		assertFalse(jsonWebKeySet.getKeys().isEmpty());
 		
 		OAuthClient client = new OAuthClient();
 		client.setClient_name("some client");
@@ -109,15 +111,17 @@ class ITOpenIDConnectTest {
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
-		authorizationRequest.setClaims("{\"todo\"}"); // TODO
+		authorizationRequest.setClaims("{\"id_token\":{\"userid\":\"null\"},\"userinfo\":{\"userid\":\"null\"}}");
 		
 		// Note, we get the authorization description anonymously
 		OIDCAuthorizationRequestDescription description = 
 				synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
+		// make sure we got something back
+		assertFalse(description.getScope().isEmpty());
 		
 		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
 		
-		// Note, we use Basic auth to authorize the client 
+		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
 		try {
 			synapseAnonymous.setBasicAuthorizationCredentials(client.getClientId(), secret.getClientSecret());
@@ -127,13 +131,16 @@ class ITOpenIDConnectTest {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
 		
-		tokenResponse.getId_token(); // TODO check content
+		Jwt<JwsHeader, Claims> parsedIdToken = JSONWebTokenHelper.parseJWT(tokenResponse.getId_token(), jsonWebKeySet);
+		String myId = synapseOne.getMyProfile().getOwnerId();
+		assertEquals(myId, parsedIdToken.getBody().get("userid", String.class));
 
 		// Note, we use a bearer token to authorize the client 
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
-			Map<OIDCClaimName,Object> userInfo = synapseAnonymous.getUserInfoAsMap();
-			// TODO verify userInfo
+			JSONObject userInfo = synapseAnonymous.getUserInfoAsJSON();
+			// spot check verify userInfo
+			assertEquals(myId, (String)userInfo.get("userid"), userInfo.toString());
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
@@ -146,7 +153,7 @@ class ITOpenIDConnectTest {
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
 			Jwt<JwsHeader,Claims> userInfo = synapseAnonymous.getUserInfoAsJSONWebToken();
-			// TODO verify userInfo
+			assertEquals(myId, userInfo.getBody().get("userid", String.class));
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}

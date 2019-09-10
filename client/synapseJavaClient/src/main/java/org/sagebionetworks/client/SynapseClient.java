@@ -1990,7 +1990,7 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @return
 	 */
-	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken();
+	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException;
 	
 	/**
 	 * Get the user information for the user specified by the authorization
@@ -2001,7 +2001,7 @@ public interface SynapseClient extends BaseClient {
 	 * 
 	 * @return
 	 */
-	Map<OIDCClaimName,Object> getUserInfoAsMap();
+	JSONObject getUserInfoAsJSON() throws SynapseException;
 	
 	/**
 	 * Get the Quiz specifically intended to be the Certified User test

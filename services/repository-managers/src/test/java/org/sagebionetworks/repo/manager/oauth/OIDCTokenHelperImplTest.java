@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.json.JSONArray;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.KeyPairUtil;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -124,7 +123,7 @@ public class OIDCTokenHelperImplTest {
 	// get the public side of the current signing key
 	private PublicKey getPublicSigningKey() {
 		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
-		return KeyPairUtil.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
+		return JSONWebTokenHelper.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
 	}
 	
 	@Test
@@ -151,7 +150,7 @@ public class OIDCTokenHelperImplTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    Jwt<JwsHeader,Claims> signedJWT = oidcTokenHelper.parseJWT(jwtString);
+	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenHelper.getJSONWebKeySet());
 		assertNotNull(signedJWT);
 	    
 	    

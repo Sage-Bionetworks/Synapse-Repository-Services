@@ -67,7 +67,7 @@ public class OAuthClientAuthFilterTest {
 	public void testFilter_validCredentials() throws Exception {
 		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":"+CLIENT_SECRET));
 		
-		when(mockHttpRequest.getHeader(HttpAuthUtil.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -81,7 +81,7 @@ public class OAuthClientAuthFilterTest {
 	public void testFilter_invalid_Credentials() throws Exception {
 		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":incorrect-secret"));
 
-		when(mockHttpRequest.getHeader(HttpAuthUtil.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -94,7 +94,7 @@ public class OAuthClientAuthFilterTest {
 
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
-		when(mockHttpRequest.getHeader(HttpAuthUtil.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);

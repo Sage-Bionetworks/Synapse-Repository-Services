@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -135,7 +136,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		assertNotNull(tokenResponse.getId_token());
 		
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
-		Jwt<JwsHeader,Claims> accessToken = oidcTokenHelper.parseJWT(tokenResponse.getAccess_token());
+		Jwt<JwsHeader,Claims> accessToken = JSONWebTokenHelper.parseJWT(tokenResponse.getAccess_token(), oidcTokenHelper.getJSONWebKeySet());
 		
 		// method under test
 		String oidcUserInfo = (String)openIDConnectManager.getUserInfo(accessToken, OAUTH_ENDPOINT);

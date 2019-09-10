@@ -51,7 +51,7 @@ public class DockerClientAuthFilterTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		filter = new DockerClientAuthFilter();
-		header = HttpAuthUtil.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
+		header = AuthorizationConstants.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
 		ReflectionTestUtils.setField(filter, "authenticationService", mockAuthenticationService);
 	}
 
