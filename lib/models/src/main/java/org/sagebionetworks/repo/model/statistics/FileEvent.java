@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.statistics;
 
-public enum FileAction {
+public enum FileEvent {
 
 	FILE_DOWNLOAD, FILE_UPLOAD
 	

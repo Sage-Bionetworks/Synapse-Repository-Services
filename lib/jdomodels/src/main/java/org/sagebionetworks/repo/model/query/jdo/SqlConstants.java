@@ -949,7 +949,7 @@ public class SqlConstants {
 	public static final String DDL_STATISTICS_MONTHLY_PROJECT_FILES =					"schema/statistics/StatisticsMonthlyProjectFiles-ddl.sql";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID =		"PROJECT_ID";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH =				"MONTH";
-	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_ACTION =			"ACTION";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE =		"EVENT_TYPE";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT =		"FILES_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT =		"USERS_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON =	"LAST_UPDATED_ON";

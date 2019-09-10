@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_ACTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH;
@@ -29,7 +29,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("projectId", COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID, true),
 			new FieldColumn("month", COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH, true),
-			new FieldColumn("fileAction", COL_STATISTICS_MONTHLY_PROJECT_FILES_ACTION, true),
+			new FieldColumn("eventType", COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE, true),
 			new FieldColumn("filesCount", COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT),
 			new FieldColumn("usersCount", COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT),
 			new FieldColumn("lastUpdatedOn", COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON) };
@@ -42,7 +42,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 
 			dbo.setProjectId(rs.getLong(COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID));
 			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH, LocalDate.class));
-			dbo.setFileAction(rs.getString(COL_STATISTICS_MONTHLY_PROJECT_FILES_ACTION));
+			dbo.setEventType(rs.getString(COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE));
 			dbo.setFilesCount(rs.getInt(COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT));
 			dbo.setUsersCount(rs.getInt(COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT));
 			dbo.setLastUpdatedOn(rs.getLong(COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON));
@@ -74,7 +74,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 
 	private Long projectId;
 	private LocalDate month;
-	private String fileAction;
+	private String eventType;
 	private Integer filesCount;
 	private Integer usersCount;
 	private Long lastUpdatedOn;
@@ -95,12 +95,12 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 		this.month = month;
 	}
 
-	public String getFileAction() {
-		return fileAction;
+	public String getEventType() {
+		return eventType;
 	}
 
-	public void setFileAction(String fileAction) {
-		this.fileAction = fileAction;
+	public void setEventType(String eventType) {
+		this.eventType = eventType;
 	}
 
 	public Integer getFilesCount() {
@@ -134,7 +134,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(fileAction, filesCount, lastUpdatedOn, month, projectId, usersCount);
+		return Objects.hash(eventType, filesCount, lastUpdatedOn, month, projectId, usersCount);
 	}
 
 	@Override
@@ -149,14 +149,14 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 			return false;
 		}
 		DBOMonthlyStatisticsProjectFiles other = (DBOMonthlyStatisticsProjectFiles) obj;
-		return Objects.equals(fileAction, other.fileAction) && Objects.equals(filesCount, other.filesCount)
+		return Objects.equals(eventType, other.eventType) && Objects.equals(filesCount, other.filesCount)
 				&& Objects.equals(lastUpdatedOn, other.lastUpdatedOn) && Objects.equals(month, other.month)
 				&& Objects.equals(projectId, other.projectId) && Objects.equals(usersCount, other.usersCount);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMonthlyStatisticsProjectFiles [projectId=" + projectId + ", month=" + month + ", fileAction=" + fileAction
+		return "DBOMonthlyStatisticsProjectFiles [projectId=" + projectId + ", month=" + month + ", eventType=" + eventType
 				+ ", filesCount=" + filesCount + ", usersCount=" + usersCount + ", lastUpdatedOn=" + lastUpdatedOn + "]";
 	}
 

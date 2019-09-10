@@ -2,32 +2,32 @@ package org.sagebionetworks.repo.manager.statistics.events;
 
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.statistics.FileAction;
+import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class StatisticsFileEventUtils {
 
 	public static StatisticsFileEvent buildFileDownloadEvent(Long userId, FileHandleAssociation association) {
-		return buildFileEvent(FileAction.FILE_DOWNLOAD, userId, association);
+		return buildFileEvent(FileEvent.FILE_DOWNLOAD, userId, association);
 	}
 
 	public static StatisticsFileEvent buildFileDownloadEvent(Long userId, String fileHandleId, String associateObjectId,
 			FileHandleAssociateType associateObjectType) {
-		return buildFileEvent(FileAction.FILE_DOWNLOAD, userId, fileHandleId, associateObjectId,
+		return buildFileEvent(FileEvent.FILE_DOWNLOAD, userId, fileHandleId, associateObjectId,
 				associateObjectType);
 	}
 
 	public static StatisticsFileEvent buildFileUploadEvent(Long userId, FileHandleAssociation association) {
-		return buildFileEvent(FileAction.FILE_UPLOAD, userId, association);
+		return buildFileEvent(FileEvent.FILE_UPLOAD, userId, association);
 	}
 
 	public static StatisticsFileEvent buildFileUploadEvent(Long userId, String fileHandleId, String associateObjectId,
 			FileHandleAssociateType associateObjectType) {
-		return buildFileEvent(FileAction.FILE_UPLOAD, userId, fileHandleId, associateObjectId,
+		return buildFileEvent(FileEvent.FILE_UPLOAD, userId, fileHandleId, associateObjectId,
 				associateObjectType);
 	}
 
-	private static StatisticsFileEvent buildFileEvent(FileAction type, Long userId,
+	private static StatisticsFileEvent buildFileEvent(FileEvent type, Long userId,
 			FileHandleAssociation association) {
 		ValidateArgument.required(association, "association");
 
@@ -35,7 +35,7 @@ public class StatisticsFileEventUtils {
 				association.getAssociateObjectType());
 	}
 
-	private static StatisticsFileEvent buildFileEvent(FileAction type, Long userId, String fileHandleId,
+	private static StatisticsFileEvent buildFileEvent(FileEvent type, Long userId, String fileHandleId,
 			String associateObjectId, FileHandleAssociateType associateObjectType) {
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(userId, "userId");
