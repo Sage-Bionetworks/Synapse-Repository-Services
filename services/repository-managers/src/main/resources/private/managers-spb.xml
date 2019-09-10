@@ -55,7 +55,7 @@
 	<bean id="validatedAtClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider"/>
 	<bean id="validatedCompanyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedCompanyClaimProvider"/>
 	<bean id="validatedEmailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedEmailClaimProvider"/>
-	<bean id="validtedFamilyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedFamilyNameClaimProvider"/>
+	<bean id="validatedFamilyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedFamilyNameClaimProvider"/>
 	<bean id="validatedGivenNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedGivenNameClaimProvider"/>
 	<bean id="validatedLocationClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedLocationClaimProvider"/>
 	<bean id="validatedOrcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedOrcidClaimProvider"/>
