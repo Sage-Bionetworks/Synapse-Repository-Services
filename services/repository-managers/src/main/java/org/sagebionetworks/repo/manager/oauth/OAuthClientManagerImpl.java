@@ -81,6 +81,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	}
 	
 	public static URI getUri(String s) {
+		if (s==null) throw new IllegalArgumentException("null URI is not allowed.");
 		try {
 			return new URI(s);
 		} catch (URISyntaxException e) {
