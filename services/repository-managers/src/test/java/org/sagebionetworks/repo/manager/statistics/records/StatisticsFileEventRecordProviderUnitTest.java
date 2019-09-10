@@ -17,9 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.statistics.FileAction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,17 +53,17 @@ public class StatisticsFileEventRecordProviderUnitTest {
 
 	@Test
 	public void testGetStreamNameForDownload() {
-		when(mockEvent.getActionType()).thenReturn(StatisticsFileActionType.FILE_DOWNLOAD);
+		when(mockEvent.getActionType()).thenReturn(FileAction.FILE_DOWNLOAD);
 		String expectedStreamName = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(StatisticsFileActionType.FILE_DOWNLOAD);
+				.get(FileAction.FILE_DOWNLOAD);
 		assertEquals(expectedStreamName, provider.getStreamName(mockEvent));
 	}
 
 	@Test
 	public void testGetStreamNameForUpload() {
-		when(mockEvent.getActionType()).thenReturn(StatisticsFileActionType.FILE_UPLOAD);
+		when(mockEvent.getActionType()).thenReturn(FileAction.FILE_UPLOAD);
 		String expectedStreamName = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(StatisticsFileActionType.FILE_UPLOAD);
+				.get(FileAction.FILE_UPLOAD);
 		assertEquals(expectedStreamName, provider.getStreamName(mockEvent));
 	}
 
@@ -75,7 +75,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		String associateId = "123";
 		FileHandleAssociateType associateType = FileHandleAssociateType.FileEntity;
 
-		StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId,
+		StatisticsFileEvent event = new StatisticsFileEvent(FileAction.FILE_DOWNLOAD, userId,
 				fileHandleId, associateId, associateType);
 
 		StatisticsEventLogRecord expectedRecord = new StatisticsFileEventLogRecord()
@@ -100,7 +100,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		String associateId = "123";
 		FileHandleAssociateType associateType = FileHandleAssociateType.TeamAttachment;
 
-		StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId,
+		StatisticsFileEvent event = new StatisticsFileEvent(FileAction.FILE_DOWNLOAD, userId,
 				fileHandleId, associateId, associateType);
 
 		// Call under test
@@ -116,7 +116,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		String associateId = "123";
 		FileHandleAssociateType associateType = FileHandleAssociateType.FileEntity;
 
-		StatisticsFileEvent event = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, userId,
+		StatisticsFileEvent event = new StatisticsFileEvent(FileAction.FILE_DOWNLOAD, userId,
 				fileHandleId, associateId, associateType);
 		
 		NotFoundException ex = new NotFoundException("Not Found");
