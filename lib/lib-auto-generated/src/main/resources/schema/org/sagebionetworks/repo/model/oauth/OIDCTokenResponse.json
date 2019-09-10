@@ -1,0 +1,17 @@
+{
+    "description": "Oauth 2.0 Token Response",
+ 	"properties": {
+		"access_token":{
+			"type": "string",
+			"description":""
+		},
+		"refresh_token": {
+			"type": "string",
+			"description": ""
+		},
+		"id_token": {
+			"type": "string",
+			"description": ""
+		}
+	}
+}

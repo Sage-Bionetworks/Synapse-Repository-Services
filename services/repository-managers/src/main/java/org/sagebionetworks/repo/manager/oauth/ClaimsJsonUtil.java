@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -89,4 +91,22 @@ public class ClaimsJsonUtil {
 		}
 		return result;
 	}
+	
+	
+	public static Map<OIDCClaimName,OIDCClaimsRequestDetails> getClaimsMapFromClaimsRequestParam(String claims, String claimsField) {
+		if (StringUtils.isEmpty(claims)) return Collections.EMPTY_MAP;
+		JSONObject claimsObject;
+		try {
+			claimsObject = new JSONObject(claims);
+		} catch (JSONException e) {
+			throw new IllegalArgumentException(e);
+		}
+		if (!claimsObject.has(claimsField)) {
+			return Collections.EMPTY_MAP;
+		}
+		JSONObject idTokenClaims = (JSONObject)claimsObject.get(claimsField);
+		return getClaimsMapFromJSONObject(idTokenClaims);
+	}
+
+
 }

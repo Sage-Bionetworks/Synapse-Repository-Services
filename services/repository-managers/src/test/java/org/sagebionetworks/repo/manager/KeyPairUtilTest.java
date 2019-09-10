@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 
 import org.junit.Test;
@@ -65,19 +64,5 @@ public class KeyPairUtilTest {
 		assertEquals("SIGNATURE", key.getUse());
 		assertNotNull(key.getE());
 		assertNotNull(key.getN());		
-	}
-	
-	@Test
-	public void getRSAPublicKeyForJsonWebKeyRSA() throws Exception {
-		List<String> devPrivateKeys = STACK_CONFIG.getOIDCSignatureRSAPrivateKeys();
-		JsonWebKeySet jwks = KeyPairUtil.getJSONWebKeySetForPEMEncodedRsaKeys(devPrivateKeys);
-		JsonWebKeyRSA key = (JsonWebKeyRSA)jwks.getKeys().get(0);
-		
-		// method under test
-		RSAPublicKey rsaPublicKey = KeyPairUtil.getRSAPublicKeyForJsonWebKeyRSA(key);
-		
-		assertEquals("RSA", rsaPublicKey.getAlgorithm());
-		assertEquals(key.getN(), rsaPublicKey.getModulus().toString());
-		assertEquals(key.getE(), rsaPublicKey.getPublicExponent().toString());
 	}
 }

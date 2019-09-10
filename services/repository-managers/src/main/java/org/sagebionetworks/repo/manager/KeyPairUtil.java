@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayInputStream;
-import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
@@ -13,7 +11,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
@@ -134,16 +131,5 @@ public class KeyPairUtil {
 		}
 		return jsonWebKeySet;
 	}
-	
-	public static RSAPublicKey getRSAPublicKeyForJsonWebKeyRSA(JsonWebKeyRSA jwkRsa) {
-		BigInteger modulus = new BigInteger(jwkRsa.getN());
-		BigInteger publicExponent = new BigInteger(jwkRsa.getE());
-		RSAPublicKeySpec keySpec = new RSAPublicKeySpec(modulus, publicExponent);
-		try {
-			KeyFactory kf = KeyFactory.getInstance(RSA);
-			return (RSAPublicKey)kf.generatePublic(keySpec);
-		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-			throw new RuntimeException(e);
-		} 
-	}
+
 }

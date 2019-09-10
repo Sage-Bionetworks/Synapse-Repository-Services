@@ -58,6 +58,8 @@ public class DBOAuthenticationDAOImplTest {
 	private DBOSessionToken sessionToken;
 	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
+	
+	private static final Date VALIDATED_ON = new Date();
 
 	
 	@Before
@@ -81,7 +83,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		sessionToken = new DBOSessionToken();
 		sessionToken.setPrincipalId(userId);
-		sessionToken.setValidatedOn(new Date());
+		sessionToken.setValidatedOn(VALIDATED_ON);
 		sessionToken.setSessionToken("Hsssssss...");
 		sessionToken = basicDAO.createNew(sessionToken);
 		
@@ -337,5 +339,17 @@ public class DBOAuthenticationDAOImplTest {
 		//method under test
 		authDAO.deleteSessionToken(userId);
 		assertNull(authDAO.getSessionTokenIfValid(userId).getSessionToken());
+	}
+	
+	@Test
+	public void testGetSessionValidatedOn() {
+		// if no validation date, return null
+		assertNull(authDAO.getSessionValidatedOn(999999L));
+		
+		// check that 'userId's validation date is as expected
+		Date validatedOn = authDAO.getSessionValidatedOn(userId);
+		assertEquals(VALIDATED_ON, validatedOn);
+		
+		
 	}
 }
