@@ -335,6 +335,16 @@ public class UrlHelpers {
 	public static final String DOI_LOCATE = DOI + "/locate";
 	public static final String DOI_ASYNC_START = DOI + ASYNC_START_REQUEST;
 	public static final String DOI_ASYNC_GET = DOI + ASYNC_GET_REQUEST;
+	
+	/**
+	 * Form  API URIs
+	 * 
+	 */
+	public static final String FORM = "/form";
+	public static final String FORM_GROUP = FORM+"/group";
+	public static final String FORM_GROUP_ACL = FORM_GROUP+"/{id}/acl";
+	public static final String FORM_DATA = FORM+"/{id}";
+	public static final String FORM_DATA_SUBMIT = FORM+"/{id}/submit";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).
