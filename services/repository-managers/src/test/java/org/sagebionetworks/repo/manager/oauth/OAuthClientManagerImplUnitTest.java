@@ -18,11 +18,11 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -116,6 +116,21 @@ public class OAuthClientManagerImplUnitTest {
 		return result;
 	}
 	
+	@Test
+	public void testGetURI() throws Exception {
+		// method under test
+		OAuthClientManagerImpl.getUri(SECTOR_IDENTIFIER_URI_STRING);
+		
+		try {
+			// method under test
+			OAuthClientManagerImpl.getUri("not #$%^ valid");
+			fail("IllegalArgumentException expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+
+
 	@Test
 	public void testValidateOAuthClientForCreateOrUpdate() {
 		// happy case
@@ -258,6 +273,20 @@ public class OAuthClientManagerImplUnitTest {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(null, 
 					ImmutableList.of("https://host/redir1", "https://host/%$#@*"));
+			fail("exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+
+	@Test
+	public void testResolveSectorIdentifier_NoSIURI_NULL_URI() throws Exception {
+		try {
+			List<String> uris = new ArrayList<String>();
+			uris.add("https://host/redir1");
+			uris.add(null);
+			// method under test
+			oauthClientManagerImpl.resolveSectorIdentifier(null, uris);
 			fail("exception expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -623,14 +652,6 @@ public class OAuthClientManagerImplUnitTest {
 			// as expected
 		}
 		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
-	}
-	
-	@Test
-	public void testGenerateOAuthClientSecret() {
-		assertTrue(StringUtils.isNotEmpty(
-				// method under test
-				oauthClientManagerImpl.generateOAuthClientSecret()
-		));
 	}
 	
 	@Test

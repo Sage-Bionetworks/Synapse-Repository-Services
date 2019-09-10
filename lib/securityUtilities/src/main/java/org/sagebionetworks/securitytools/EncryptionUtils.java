@@ -28,6 +28,13 @@ public class EncryptionUtils {
 		return new SecretKeySpec(bytes, 0, bytes.length, AES_ALGORITHM); 
 	}
 
+	/**
+	 * Create an encryption key for symmetric encryption of sensitive data to be sent to the client.
+	 * Note:  The use case is different than that of the stack encyrption key as the encryption
+	 * must be consistent for an indefinite period.  The key is not meant to be shared with the client.
+	 * 
+	 * @return
+	 */
 	public static String newSecretKey() {
 		try {
 			SecretKey key = KeyGenerator.getInstance(AES_ALGORITHM).generateKey();
@@ -37,6 +44,13 @@ public class EncryptionUtils {
 		}
 	}
 	
+	/**
+	 * Encrypt and base 64 encode a plain text string.
+	 * 
+	 * @param plaintext the text to encrypt
+	 * @param key the encryption key
+	 * @return
+	 */
 	public static String encrypt(String plaintext, String key) {
 		try {
 			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);
@@ -48,6 +62,13 @@ public class EncryptionUtils {
 		}		    
 	}
 
+	/**
+	 * Base64 decode and decrypt a String encrypted by the encrypt() function.
+	 * 
+	 * @param encrypted the encrypted text
+	 * @param key the encryption key
+	 * @return
+	 */
 	public static String decrypt(String encrypted, String key) {
 		try {
 			Cipher desCipher = Cipher.getInstance(AES_ALGORITHM);

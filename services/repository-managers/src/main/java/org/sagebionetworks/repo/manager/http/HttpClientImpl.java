@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.http;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,14 +16,14 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
  * Spring MVC to inject into other classes.
  */
 public class HttpClientImpl implements SimpleHttpClient {
-	private static SimpleHttpClient client;
+	private SimpleHttpClient client;
 	
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
 
-	static {
+	public HttpClientImpl() {
 		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
 		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
-		client = new SimpleHttpClientImpl(httpClientConfig);
+		this.client = new SimpleHttpClientImpl(httpClientConfig);
 	}
 
 	@Override
@@ -45,8 +45,7 @@ public class HttpClientImpl implements SimpleHttpClient {
 
 	@Override
 	public SimpleHttpResponse delete(SimpleHttpRequest request) throws ClientProtocolException, IOException {
-		// TODO Auto-generated method stub
-		return null;
+		return delete(request);
 	}
 
 	@Override
