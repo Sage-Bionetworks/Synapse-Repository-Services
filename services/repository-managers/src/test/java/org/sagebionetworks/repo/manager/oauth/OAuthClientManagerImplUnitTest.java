@@ -117,6 +117,21 @@ public class OAuthClientManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testGetURI() throws Exception {
+		// method under test
+		OAuthClientManagerImpl.getUri(SECTOR_IDENTIFIER_URI_STRING);
+		
+		try {
+			// method under test
+			OAuthClientManagerImpl.getUri("not #$%^ valid");
+			fail("IllegalArgumentException expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+
+
+	@Test
 	public void testValidateOAuthClientForCreateOrUpdate() {
 		// happy case
 		{
@@ -623,14 +638,6 @@ public class OAuthClientManagerImplUnitTest {
 			// as expected
 		}
 		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
-	}
-	
-	@Test
-	public void testGenerateOAuthClientSecret() {
-		assertTrue(StringUtils.isNotEmpty(
-				// method under test
-				oauthClientManagerImpl.generateOAuthClientSecret()
-		));
 	}
 	
 	@Test

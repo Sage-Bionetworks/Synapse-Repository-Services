@@ -4,12 +4,9 @@ package org.sagebionetworks.repo.manager.oauth;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class OAuthClientManagerImpl implements OAuthClientManager {
 	
-	private static final Random RANDOM = new SecureRandom();
-
 	@Autowired
 	private OAuthClientDao oauthClientDao;
 	
@@ -84,6 +79,14 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 		return result;
 	}
+	
+	public static URI getUri(String s) {
+		try {
+			return new URI(s);
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException(s+" is not a valid URI.");
+		}
+	}
 
 	// implements https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String resolveSectorIdentifier(String sectorIdentifierUriString, List<String> redirectUris) throws ServiceUnavailableException {
@@ -92,12 +95,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			// the sector ID is the host common to all uris in the list
 			String result=null;
 			for (String uriString: redirectUris) {
-				URI uri=null;
-				try {
-					uri = new URI(uriString);
-				} catch (URISyntaxException e) {
-					ValidateArgument.failRequirement(uriString+" is not a valid URI.");
-				}
+				URI uri=getUri(uriString);
 				if (result==null) {
 					result=uri.getHost();
 				} else {
@@ -109,12 +107,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			return result;
 		} else {
 			// scheme must be https
-			URI uri=null;
-			try {
-				uri = new URI(sectorIdentifierUriString);
-			} catch (URISyntaxException e) {
-				ValidateArgument.failRequirement(sectorIdentifierUriString+" is not a valid URI.");
-			}
+			URI uri=getUri(sectorIdentifierUriString);
 			ValidateArgument.requirement(uri.getScheme().equalsIgnoreCase("https"), 
 					sectorIdentifierUriString+" must use the https scheme.");
 			// read file, parse json, and make sure it contains all of redirectUris values
@@ -127,8 +120,8 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		}
 	}
 
-	private void ensureSectorIdentifierExists(String sectorIdentiferURI, Long createdBy) {
-		if (oauthClientDao.doesSectorIdentifierExistForURI(sectorIdentiferURI)) {
+	private void ensureSectorIdentifierExists(String sectorIdentiferHostName, Long createdBy) {
+		if (oauthClientDao.doesSectorIdentifierExistForURI(sectorIdentiferHostName)) {
 			return;
 		}
 		SectorIdentifier sectorIdentifier = new SectorIdentifier();
@@ -136,7 +129,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		sectorIdentifier.setCreatedOn(System.currentTimeMillis());
 		String sectorIdentifierSecret = EncryptionUtils.newSecretKey();
 		sectorIdentifier.setSecret(sectorIdentifierSecret);
-		sectorIdentifier.setSectorIdentifierUri(sectorIdentiferURI);
+		sectorIdentifier.setSectorIdentifierUri(sectorIdentiferHostName);
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
 	}
 
@@ -240,12 +233,6 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		oauthClientDao.deleteOAuthClient(id);
 	}
 
-	public static String generateOAuthClientSecret() {
-		byte[] randomBytes = new byte[32];
-		RANDOM.nextBytes(randomBytes);
-		return Base64.getUrlEncoder().encodeToString(randomBytes);
-	}
-
 	@WriteTransaction
 	@Override
 	public OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId) {
@@ -253,7 +240,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		if (!canAdministrate(userInfo, creator)) {
 			throw new UnauthorizedException("You can only generate credentials for your own OAuth client(s).");
 		}		
-		String secret = generateOAuthClientSecret();
+		String secret = PBKDF2Utils.generateClientSecret();
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();

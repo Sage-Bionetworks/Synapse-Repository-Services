@@ -138,7 +138,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		Jwt<JwsHeader,Claims> accessToken = null;
 		try {
-			accessToken = JSONWebTokenHelper.parseJWT(accessTokenParam, oidcTokenHelper.getJSONWebKeySet());
+			accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
 		} catch (IllegalArgumentException e) {
 			throw new UnauthenticatedException("Could not interpret access token.", e);
 		}
