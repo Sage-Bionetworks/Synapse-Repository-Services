@@ -205,8 +205,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockTeamDAO.listMembers((List<Long>)any(), (List<Long>)any())).thenReturn(teamMembers);
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
-		ReflectionTestUtils.setField(openIDConnectManagerImpl, "claimProviders", mockClaimProviders);
-				
+		openIDConnectManagerImpl.setClaimProviders(mockClaimProviders);
 	}
 	
 	@Test

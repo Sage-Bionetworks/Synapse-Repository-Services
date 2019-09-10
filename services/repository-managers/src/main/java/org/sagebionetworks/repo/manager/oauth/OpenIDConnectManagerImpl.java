@@ -65,6 +65,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * Injected.
 	 */
 	private Map<OIDCClaimName, OIDCClaimProvider> claimProviders;
+	
+	public void setClaimProviders(Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
+		this.claimProviders = claimProviders;
+	}
 
 	/*
 	 * The scope parameter in an OAuth authorization request is a space-delimited list of scope values.
