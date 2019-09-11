@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
+import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
@@ -47,15 +48,15 @@ public class StatisticsMonthlyManagerImplTest {
 
 	@Mock
 	private StatisticsMonthlyProcessor mockProcessor;
-	
+
 	@Mock
 	private StatisticsMonthlyProcessorNotifier mockNotifier;
 
 	@Mock
-	private ProgressCallback mockCallback;
+	private StackConfiguration mockConfig;
 
 	@Mock
-	private StackConfiguration mockConfig;
+	private ProgressCallback mockCallback;
 
 	@Mock
 	private StatisticsMonthlyStatus mockStatus;
@@ -144,13 +145,12 @@ public class StatisticsMonthlyManagerImplTest {
 	public void testProcessMonthSuccess() {
 
 		YearMonth month = YearMonth.of(2019, 8);
-		
+
 		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
 		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
+		manager.processMonth(OBJECT_TYPE, month, mockCallback);
 
-		assertTrue(result);
 		verify(mockCallback).addProgressListener(any(ProgressListener.class));
 		verify(mockProcessor).processMonth(month);
 		verify(mockDao).setAvailable(OBJECT_TYPE, month);
@@ -162,16 +162,19 @@ public class StatisticsMonthlyManagerImplTest {
 
 		YearMonth month = YearMonth.of(2019, 8);
 
-		doThrow(IllegalStateException.class).when(mockProcessor).processMonth(any());
+		Exception ex = new IllegalStateException();
+
+		doThrow(ex).when(mockProcessor).processMonth(any());
+
 		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
-		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
-
-		assertFalse(result);
+		Assertions.assertThrows(StatisticsProcessingException.class, () -> {
+			// Call under test
+			manager.processMonth(OBJECT_TYPE, month, mockCallback);
+		});
 
 		verify(mockCallback).addProgressListener(any(ProgressListener.class));
-		verify(mockProcessor).processMonth(any());
+		verify(mockProcessor).processMonth(month);
 		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
 		verify(mockDao).setProcessingFailed(eq(OBJECT_TYPE), eq(month), nullable(String.class), any(String.class));
 		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
@@ -189,12 +192,13 @@ public class StatisticsMonthlyManagerImplTest {
 		doThrow(ex).when(mockProcessor).processMonth(any());
 		when(mockProcessorProvider.getProcessors(OBJECT_TYPE)).thenReturn(Collections.singletonList(mockProcessor));
 
-		// Call under test
-		boolean result = manager.processMonth(OBJECT_TYPE, month, mockCallback);
+		Assertions.assertThrows(StatisticsProcessingException.class, () -> {
+			// Call under test
+			manager.processMonth(OBJECT_TYPE, month, mockCallback);
+		});
 
-		assertFalse(result);
 		verify(mockCallback).addProgressListener(any(ProgressListener.class));
-		verify(mockProcessor).processMonth(any());
+		verify(mockProcessor).processMonth(month);
 		verify(mockDao, never()).setAvailable(OBJECT_TYPE, month);
 		verify(mockDao).setProcessingFailed(eq(OBJECT_TYPE), eq(month), eq(errorMessage), any(String.class));
 		verify(mockCallback).removeProgressListener(any(ProgressListener.class));
@@ -310,65 +314,65 @@ public class StatisticsMonthlyManagerImplTest {
 		verify(mockDao).setProcessing(OBJECT_TYPE, month);
 		verify(mockNotifier).sendStartProcessingNotification(OBJECT_TYPE, month);
 	}
-	
+
 	@Test
 	public void testShouldStartProcessingWhenProcessingFailed() {
 		long now = System.currentTimeMillis();
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING_FAILED);
-		
+
 		// Call under test
 		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
-		
+
 		assertTrue(result);
-		
+
 		verify(mockStatus).getStatus();
 		verify(mockStatus, never()).getLastUpdatedOn();
 	}
-	
+
 	@Test
 	public void testShouldStartProcessingWhenAvailable() {
 		long now = System.currentTimeMillis();
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.AVAILABLE);
-		
+
 		// Call under test
 		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
-		
+
 		assertFalse(result);
-		
+
 		verify(mockStatus).getStatus();
 		verify(mockStatus, never()).getLastUpdatedOn();
 	}
-	
+
 	@Test
 	public void testShouldStartProcessingWhenProcessingOngoing() {
 		long now = System.currentTimeMillis();
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
 		when(mockStatus.getLastUpdatedOn()).thenReturn(now + PROCESSING_TIMEOUT);
-		
+
 		// Call under test
 		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
-		
+
 		assertFalse(result);
-		
+
 		verify(mockStatus).getStatus();
 		verify(mockStatus).getLastUpdatedOn();
 	}
-	
+
 	@Test
 	public void testShouldStartProcessingWhenProcessingTimedout() {
 		long now = System.currentTimeMillis();
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
 		when(mockStatus.getLastUpdatedOn()).thenReturn(now - PROCESSING_TIMEOUT);
-		
+
 		// Call under test
 		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
-		
+
 		assertTrue(result);
-		
+
 		verify(mockStatus).getStatus();
 		verify(mockStatus).getLastUpdatedOn();
 	}

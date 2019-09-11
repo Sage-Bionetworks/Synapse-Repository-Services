@@ -9,13 +9,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.AmazonAthenaException;
 import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
 import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.athena.model.QueryExecutionContext;
@@ -25,7 +23,6 @@ import com.amazonaws.services.athena.model.QueryExecutionStatus;
 import com.amazonaws.services.athena.model.ResultConfiguration;
 import com.amazonaws.services.athena.model.StartQueryExecutionRequest;
 import com.amazonaws.services.glue.AWSGlue;
-import com.amazonaws.services.glue.model.AWSGlueException;
 import com.amazonaws.services.glue.model.Database;
 import com.amazonaws.services.glue.model.EntityNotFoundException;
 import com.amazonaws.services.glue.model.GetDatabaseRequest;
@@ -70,7 +67,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public List<Table> getPartitionedTables() throws ServiceUnavailableException {
+	public List<Table> getPartitionedTables() {
 		List<Table> tables = new ArrayList<>();
 		for (Database database : getDatabases()) {
 			tables.addAll(getPartitionedTables(database));
@@ -79,7 +76,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public Table getTable(Database database, String tableName) throws ServiceUnavailableException {
+	public Table getTable(Database database, String tableName) {
 		ValidateArgument.required(database, "database");
 		ValidateArgument.requiredNotEmpty(tableName, "tableName");
 		// @formatter:off
@@ -91,13 +88,11 @@ public class AthenaSupportImpl implements AthenaSupport {
 			return glueClient.getTable(request).getTable();
 		} catch (EntityNotFoundException e) {
 			throw new NotFoundException(e.getMessage(), e);
-		} catch (AWSGlueException e) {
-			throw new ServiceUnavailableException(e.getMessage(), e);
 		}
 	}
 
 	@Override
-	public Database getDatabase(String databaseName) throws ServiceUnavailableException {
+	public Database getDatabase(String databaseName) {
 		ValidateArgument.requiredNotEmpty(databaseName, "databaseName");
 
 		// @formatter:off
@@ -108,13 +103,11 @@ public class AthenaSupportImpl implements AthenaSupport {
 			return glueClient.getDatabase(request).getDatabase();
 		} catch (EntityNotFoundException e) {
 			throw new NotFoundException(e.getMessage(), e);
-		} catch (AWSGlueException e) {
-			throw new ServiceUnavailableException(e.getMessage(), e);
 		}
 	}
 
 	@Override
-	public AthenaQueryStatistics repairTable(Table table) throws ServiceUnavailableException {
+	public AthenaQueryStatistics repairTable(Table table) {
 
 		ValidateArgument.required(table, "table");
 
@@ -140,14 +133,12 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper)
-			throws ServiceUnavailableException {
+	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper) {
 		return executeQuery(database, query, rowMapper, true);
 	}
 
 	@Override
-	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, boolean excludeHeader)
-			throws ServiceUnavailableException {
+	public <T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, boolean excludeHeader) {
 		ValidateArgument.required(database, "database");
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowMapper, "rowMapper");
@@ -198,7 +189,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		return (stackPrefix + value).toLowerCase();
 	}
 
-	private String queryRequest(String databaseName, String query) throws ServiceUnavailableException {
+	private String queryRequest(String databaseName, String query) {
 		ValidateArgument.required(databaseName, "databaseName");
 		ValidateArgument.required(query, "query");
 
@@ -214,15 +205,11 @@ public class AthenaSupportImpl implements AthenaSupport {
 				.withResultConfiguration(resultConfiguration)
 				.withQueryString(query);
 		// @formatter:on
+		return athenaClient.startQueryExecution(request).getQueryExecutionId();
 
-		try {
-			return athenaClient.startQueryExecution(request).getQueryExecutionId();
-		} catch (AmazonAthenaException e) {
-			throw new ServiceUnavailableException(e.getMessage(), e);
-		}
 	}
 
-	private AthenaQueryStatistics waitForQueryResults(String queryId) throws ServiceUnavailableException {
+	private AthenaQueryStatistics waitForQueryResults(String queryId) {
 
 		QueryExecutionStatistics queryStats = null;
 		boolean done = false;
@@ -233,14 +220,8 @@ public class AthenaSupportImpl implements AthenaSupport {
 			GetQueryExecutionRequest request = new GetQueryExecutionRequest()
 					.withQueryExecutionId(queryId);
 
-			QueryExecution result;
-			
-			try {
-				result = athenaClient.getQueryExecution(request)
+			QueryExecution result  = athenaClient.getQueryExecution(request)
 						.getQueryExecution();
-			} catch (AmazonAthenaException e) {
-				throw new ServiceUnavailableException(e.getMessage(), e);
-			}
 
 			QueryExecutionStatus status = result.getStatus();
 
@@ -266,7 +247,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 	}
 
-	private List<Table> getPartitionedTables(Database database) throws ServiceUnavailableException {
+	private List<Table> getPartitionedTables(Database database) {
 		List<Table> tables = new ArrayList<>();
 
 		String nextToken = null;
@@ -278,13 +259,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 					.withExpression(tableNameRegex)
 					.withNextToken(nextToken);
 
-			GetTablesResult result;
-			
-			try {
-				result = glueClient.getTables(request);
-			} catch (AWSGlueException e) {
-				throw new ServiceUnavailableException(e.getMessage(), e);
-			}
+			GetTablesResult result = glueClient.getTables(request);
 
 			nextToken = result.getNextToken();
 
@@ -301,7 +276,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		return tables;
 	}
 
-	private List<Database> getDatabases() throws ServiceUnavailableException {
+	private List<Database> getDatabases() {
 		List<Database> databases = new ArrayList<>();
 
 		String nextToken = null;
@@ -312,12 +287,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 					.withNextToken(nextToken);
 			// @formatter:on
 
-			GetDatabasesResult result;
-			try {
-				result = glueClient.getDatabases(request);
-			} catch (AWSGlueException e) {
-				throw new ServiceUnavailableException(e.getMessage(), e);
-			}
+			GetDatabasesResult result = glueClient.getDatabases(request);
 
 			nextToken = result.getNextToken();
 

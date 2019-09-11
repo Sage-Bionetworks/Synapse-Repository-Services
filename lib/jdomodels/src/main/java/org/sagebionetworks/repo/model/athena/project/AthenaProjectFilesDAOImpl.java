@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.athena.RowMapper;
 import org.sagebionetworks.repo.model.dao.project.AthenaProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -59,8 +58,7 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 	}
 
 	@Override
-	public AthenaQueryResult<StatisticsMonthlyProjectFiles> aggregateForMonth(FileEvent eventType, YearMonth month)
-			throws ServiceUnavailableException {
+	public AthenaQueryResult<StatisticsMonthlyProjectFiles> aggregateForMonth(FileEvent eventType, YearMonth month) {
 		ValidateArgument.required(eventType, "eventType");
 		ValidateArgument.required(month, "month");
 
@@ -111,7 +109,7 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 		return String.format(SQL_AGGREGATE_TEMPLATE, tableName, yearValue, monthValue);
 	}
 
-	private Database getDatabase() throws ServiceUnavailableException {
+	private Database getDatabase() {
 		return athenaSupport.getDatabase(DATABASE_NAME);
 	}
 

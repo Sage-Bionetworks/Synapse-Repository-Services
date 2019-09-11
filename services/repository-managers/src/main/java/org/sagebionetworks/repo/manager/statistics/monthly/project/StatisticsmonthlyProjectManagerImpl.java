@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.dao.project.AthenaProjectFilesDAO;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -32,17 +31,11 @@ public class StatisticsmonthlyProjectManagerImpl implements StatisticsMonthlyPro
 	}
 
 	@Override
-	public void computeMonthlyProjectFilesStatistcis(FileEvent eventType, YearMonth month) {
+	public void computeMonthlyProjectFilesStatistics(FileEvent eventType, YearMonth month) {
 		ValidateArgument.required(eventType, "eventType");
 		ValidateArgument.required(month, "month");
 
-		AthenaQueryResult<StatisticsMonthlyProjectFiles> queryResult;
-
-		try {
-			queryResult = athenaDao.aggregateForMonth(eventType, month);
-		} catch (ServiceUnavailableException e) {
-			throw new IllegalStateException("Cannot process " + eventType.toString() + " statistics for month " + month + ": " + e.getMessage(), e);
-		}
+		AthenaQueryResult<StatisticsMonthlyProjectFiles> queryResult = athenaDao.aggregateForMonth(eventType, month);
 
 		Iterator<StatisticsMonthlyProjectFiles> resultsIterator = queryResult.getQueryResultsIterator();
 

@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
+import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
@@ -93,7 +94,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	}
 
 	@Override
-	public boolean processMonth(StatisticsObjectType objectType, YearMonth month, ProgressCallback progressCallback) {
+	public void processMonth(StatisticsObjectType objectType, YearMonth month, ProgressCallback progressCallback)
+			throws StatisticsProcessingException {
 		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(month, "month");
 
@@ -106,21 +108,17 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		// particular month is not re-processed when the process is taking a long time
 		progressCallback.addProgressListener(progressListener);
 
-		boolean processingSuceeded = true;
-
 		try {
 			runProcessing(objectType, month);
 			setAvailable(objectType, month);
-		} catch (Exception ex) {
+		} catch (Throwable ex) {
 			setProcessingFailed(objectType, month, ex);
-			processingSuceeded = false;
 		} finally {
 			progressCallback.removeProgressListener(progressListener);
 		}
 
-		return processingSuceeded;
 	}
-	
+
 	/**
 	 * @return True if the given status is in {@link StatisticsStatus#PROCESSING_FAILED} or
 	 *         {@link StatisticsStatus#PROCESSING} and exceeded the timeout
@@ -171,12 +169,17 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		statusDao.setAvailable(objectType, month);
 	}
 
-	private void setProcessingFailed(StatisticsObjectType objectType, YearMonth month, Exception ex) {
+	private void setProcessingFailed(StatisticsObjectType objectType, YearMonth month, Throwable ex) throws StatisticsProcessingException {
 		LOG.error("Processing failed for object type: {} (Month: {}): ", objectType, month);
 		LOG.error(ex.getMessage(), ex);
+
 		String errorMessage = ex.getMessage();
 		String errorDetails = StatisticsMonthlyUtils.createErrorDetails(ex);
+
 		statusDao.setProcessingFailed(objectType, month, errorMessage, errorDetails);
+
+		throw new StatisticsProcessingException(
+				"Processing failed for object type: " + objectType + " (Month: " + month + "): " + ex.getMessage(), ex);
 	}
 
 	private List<StatisticsMonthlyProcessor> getProcessors(StatisticsObjectType objectType) {

@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.Datum;
@@ -116,7 +115,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetPartitionedTablesEmpty() throws ServiceUnavailableException {
+	public void testGetPartitionedTablesEmpty() {
 		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
 
 		List<Table> mockTables = Collections.singletonList(new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB));
@@ -136,7 +135,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetPartitionedTables() throws ServiceUnavailableException {
+	public void testGetPartitionedTables() {
 		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
 
 		List<Table> mockTables = Collections.singletonList(
@@ -157,7 +156,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetTable() throws ServiceUnavailableException {
+	public void testGetTable() {
 
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
@@ -180,7 +179,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testRepairTable() throws ServiceUnavailableException {
+	public void testRepairTable() {
 
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
@@ -213,7 +212,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetTableNotFound() throws ServiceUnavailableException {
+	public void testGetTableNotFound() {
 
 		Database database = new Database().withName(prefixWithInstance(TEST_DB));
 
@@ -234,7 +233,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testGetDatabase() throws ServiceUnavailableException {
+	public void testGetDatabase() {
 		String databaseName = "someDatabase";
 
 		Database database = new Database().withName(prefixWithInstance(databaseName));
@@ -270,7 +269,7 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testExecuteQuery() throws ServiceUnavailableException {
+	public void testExecuteQuery() {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 		String query = "SELECT count(*) FROM " + tableName;

@@ -18,6 +18,6 @@ public interface StatisticsMonthlyProjectManager {
 	 * @param eventType The type of file event to recompute the statistics for
 	 * @param month     The month to recompute the statistics for
 	 */
-	void computeMonthlyProjectFilesStatistcis(FileEvent eventType, YearMonth month);
+	void computeMonthlyProjectFilesStatistics(FileEvent eventType, YearMonth month);
 
 }

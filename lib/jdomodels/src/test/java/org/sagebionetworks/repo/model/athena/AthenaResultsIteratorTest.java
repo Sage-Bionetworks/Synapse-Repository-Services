@@ -77,6 +77,7 @@ public class AthenaResultsIteratorTest {
 
 		assertNotNull(iterator);
 		
+		// Call under test
 		boolean result = iterator.hasNext();
 		
 		assertTrue(result);
@@ -89,6 +90,11 @@ public class AthenaResultsIteratorTest {
 		verify(mockAthenaClient).getQueryResults(eq(request));
 		verify(mockQueryResults).getResultSet();
 		verify(mockQueryResults).getNextToken();
+
+		for (int i = 0; i < resultsNumber; i++) {
+			assertTrue(iterator.hasNext());
+			assertEquals(String.valueOf(i), iterator.next());
+		}
 	}
 	
 	@Test
@@ -107,7 +113,8 @@ public class AthenaResultsIteratorTest {
 		Iterator<String> iterator = getAthenaIteratorInstance(excludeHeader);
 
 		assertNotNull(iterator);
-		
+
+		// Call under test
 		boolean result = iterator.hasNext();
 		
 		assertTrue(result);
@@ -120,6 +127,13 @@ public class AthenaResultsIteratorTest {
 		verify(mockAthenaClient).getQueryResults(eq(request));
 		verify(mockQueryResults).getResultSet();
 		verify(mockQueryResults).getNextToken();
+		
+		assertEquals(HEADER_COL, iterator.next());
+
+		for (int i = 0; i < resultsNumber; i++) {
+			assertTrue(iterator.hasNext());
+			assertEquals(String.valueOf(i), iterator.next());
+		}
 	}
 
 	@Test

@@ -27,12 +27,12 @@ public class StatisticsMonthlyProjectFileUploadsProcessorTest {
 		FileEvent eventType = FileEvent.FILE_UPLOAD;
 		YearMonth month = YearMonth.of(2019, 8);
 
-		doNothing().when(mockManager).computeMonthlyProjectFilesStatistcis(eventType, month);
+		doNothing().when(mockManager).computeMonthlyProjectFilesStatistics(eventType, month);
 
 		// Call under test
 		processor.processMonth(month);
 
-		verify(mockManager).computeMonthlyProjectFilesStatistcis(eventType, month);
+		verify(mockManager).computeMonthlyProjectFilesStatistics(eventType, month);
 	}
 
 }

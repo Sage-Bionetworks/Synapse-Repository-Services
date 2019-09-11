@@ -2,6 +2,7 @@ package org.sagebionetworks.statistics.workers;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
@@ -24,25 +25,33 @@ public class StatisticsMonthlyWorker implements MessageDrivenRunner {
 
 	private StatisticsMonthlyManager manager;
 
+	private WorkerLogger workerLogger;
+
 	@Autowired
-	public StatisticsMonthlyWorker(StatisticsMonthlyManager manager) {
+	public StatisticsMonthlyWorker(StatisticsMonthlyManager manager, WorkerLogger workerLogger) {
 		this.manager = manager;
+		this.workerLogger = workerLogger;
 	}
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		String messageBody = message.getBody();
 
-		LOG.debug("Process notification received: " + messageBody);
+		try {
+			String messageBody = message.getBody();
 
-		StatisticsMonthlyProcessNotification notification = StatisticsMonthlyUtils.fromNotificationBody(messageBody);
+			LOG.debug("Process notification received: " + messageBody);
 
-		LOG.info("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
+			StatisticsMonthlyProcessNotification notification = StatisticsMonthlyUtils.fromNotificationBody(messageBody);
 
-		if (manager.processMonth(notification.getObjectType(), notification.getMonth(), progressCallback)) {
-			LOG.info("Proccessing months {} for object type {}...DONE", notification.getMonth(), notification.getObjectType());
-		} else {
-			LOG.info("Proccessing months {} for object type {}...FAILED", notification.getMonth(), notification.getObjectType());
+			LOG.info("Proccessing months {} for object type {}...", notification.getMonth(), notification.getObjectType());
+
+			manager.processMonth(notification.getObjectType(), notification.getMonth(), progressCallback);
+		} catch (Throwable e) {
+			LOG.error(e.getMessage(), e);
+
+			boolean willRetry = false;
+			// Sends a fail metric for cloud watch
+			workerLogger.logWorkerFailure(StatisticsMonthlyWorker.class.getName(), e, willRetry);
 		}
 	}
 

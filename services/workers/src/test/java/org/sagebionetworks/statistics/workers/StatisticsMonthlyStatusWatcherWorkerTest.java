@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 
@@ -23,6 +24,9 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 
 	@Mock
 	private StatisticsMonthlyManager mockStatisticsManager;
+
+	@Mock
+	private WorkerLogger workerLogger;
 
 	@InjectMocks
 	private StatisticsMonthlyStatusWatcherWorker worker;
@@ -58,6 +62,27 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 		for (StatisticsObjectType type : StatisticsObjectType.values()) {
 			verify(mockStatisticsManager).getUnprocessedMonths(type);
 			verify(mockStatisticsManager).startProcessingMonth(eq(type), eq(month), any(Long.class));
+		}
+	}
+
+	@Test
+	public void testRunWithFailure() throws Exception {
+		YearMonth month = YearMonth.of(2019, 8);
+
+		List<YearMonth> unprocessedMonths = Collections.singletonList(month);
+
+		IllegalStateException ex = new IllegalStateException();
+		when(mockStatisticsManager.startProcessingMonth(any(StatisticsObjectType.class), any(YearMonth.class), any(Long.class)))
+				.thenThrow(ex);
+		when(mockStatisticsManager.getUnprocessedMonths(any(StatisticsObjectType.class))).thenReturn(unprocessedMonths);
+
+		// Call under test
+		worker.run(null);
+
+		for (StatisticsObjectType type : StatisticsObjectType.values()) {
+			verify(mockStatisticsManager).getUnprocessedMonths(type);
+			verify(mockStatisticsManager).startProcessingMonth(eq(type), eq(month), any(Long.class));
+			verify(workerLogger).logWorkerFailure(StatisticsMonthlyStatusWatcherWorker.class.getName(), ex, false);
 		}
 	}
 

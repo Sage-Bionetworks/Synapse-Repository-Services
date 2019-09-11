@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyProc
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
  * @author Marco
  */
 @Service
+@Order(1)
 public class StatisticsMonthlyProjectFileDownloadsProcessor implements StatisticsMonthlyProcessor {
 
 	private StatisticsMonthlyProjectManager statisticsManager;
@@ -30,7 +32,7 @@ public class StatisticsMonthlyProjectFileDownloadsProcessor implements Statistic
 
 	@Override
 	public void processMonth(YearMonth month) {
-		statisticsManager.computeMonthlyProjectFilesStatistcis(FileEvent.FILE_DOWNLOAD, month);
+		statisticsManager.computeMonthlyProjectFilesStatistics(FileEvent.FILE_DOWNLOAD, month);
 	}
 
 }

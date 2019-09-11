@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -77,20 +76,20 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testGetParitionedTables() throws ServiceUnavailableException {
+	public void testGetParitionedTables() {
 		// Call under test
 		List<Table> tables = athenaSupport.getPartitionedTables();
 		assertFalse(tables.isEmpty());
 	}
 
 	@Test
-	public void testGetDatabase() throws ServiceUnavailableException {
+	public void testGetDatabase() {
 		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 		assertNotNull(database);
 	}
 
 	@Test
-	public void testGetTable() throws ServiceUnavailableException {
+	public void testGetTable() {
 		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 		// Call under test
 		Table table = athenaSupport.getTable(database, TABLE_NAME);
@@ -98,7 +97,7 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testGetTableNotFound() throws ServiceUnavailableException {
+	public void testGetTableNotFound() {
 		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 
 		Assertions.assertThrows(NotFoundException.class, () -> {
@@ -108,7 +107,7 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testRepairTable() throws ServiceUnavailableException {
+	public void testRepairTable() {
 
 		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
 				.withEngineExecutionTimeInMillis(1000L);
@@ -133,7 +132,7 @@ public class AthenaSupportImplAutowireTest {
 	}
 
 	@Test
-	public void testExecuteQuery() throws ServiceUnavailableException {
+	public void testExecuteQuery() {
 		String queryId = "abcd";
 		String countQueryResult = "1000";
 
@@ -156,7 +155,7 @@ public class AthenaSupportImplAutowireTest {
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
 		boolean excludeHeader = true;
-		
+
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
@@ -173,7 +172,7 @@ public class AthenaSupportImplAutowireTest {
 	// This can be useful to actually test queries
 	@Test
 	@Disabled("We do not want to run athena queries each time we run the tests")
-	public void testExecuteQueryIntegration() throws ServiceUnavailableException {
+	public void testExecuteQueryIntegration() {
 		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
 
 		Database database = athenaSupport.getDatabase(DATABASE_NAME);
@@ -181,7 +180,7 @@ public class AthenaSupportImplAutowireTest {
 		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
 
 		boolean excludeHeader = true;
-		
+
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
@@ -196,7 +195,7 @@ public class AthenaSupportImplAutowireTest {
 	// This can be useful to actually test that it works
 	@Test
 	@Disabled("We do not want to run athena repair each time we run the tests")
-	public void testRepairIntegration() throws ServiceUnavailableException {
+	public void testRepairIntegration() {
 		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
 
 		Database database = athenaSupport.getDatabase(DATABASE_NAME);
