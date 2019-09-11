@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormDataStatus;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.ListRequest;
+import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
@@ -185,6 +187,7 @@ public class FormController {
 	 * Note: The caller must have the
 	 * <a href= "${org.sagebionetworks.repo.model.ACCESS_TYPE}">SUBMIT</a>
 	 * permission on the identified group to update the group's ACL.
+	 * 
 	 * @param userId
 	 * @param id
 	 * @return
@@ -194,6 +197,41 @@ public class FormController {
 	public @ResponseBody FormDataStatus submitFormData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
+		return null;
+	}
+
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request that are owned by the caller. Note: Only objects owned
+	 * by the caller will be returend.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.FORM_LIST }, method = RequestMethod.POST)
+	public @ResponseBody ListResponse listFormStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
+		return null;
+	}
+
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request for the entire group. This is used by service accounts
+	 * to process submissions.
+	 * <p>
+	 * Note: The caller must have the
+	 * <a href= "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
+	 * permission on the identified group to update the group's ACL.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.FORM_LIST_ADMIN }, method = RequestMethod.POST)
+	public @ResponseBody ListResponse listFormStatusAdmin(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
 		return null;
 	}
 }

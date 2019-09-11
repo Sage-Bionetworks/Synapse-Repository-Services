@@ -1,0 +1,13 @@
+{
+	"description": "FormData paired with its status.",
+	"properties": {
+		"data": {
+			"description": "The FormData object.",
+			"$ref": "org.sagebionetworks.repo.model.form.FormDataStatus"
+		},
+		"status": {
+			"description": "The status of the FormData object",
+			"$ref": "org.sagebionetworks.repo.model.form.FormDataStatus"
+		}
+	}
+}
