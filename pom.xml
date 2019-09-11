@@ -167,6 +167,12 @@
 				<artifactId>jackson-core</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
+			
+			<dependency>
+				<groupId>com.fasterxml.jackson.datatype</groupId>
+				<artifactId>jackson-datatype-jsr310</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>com.fasterxml.jackson.jaxrs</groupId>
@@ -183,7 +189,7 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>${jackson.version}</version>
+				<version>${jackson.databind.version}</version>
 			</dependency>
 
 			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
@@ -942,23 +948,20 @@
 		<gwtVersion>2.5.1</gwtVersion>
 		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>5.1.5.RELEASE
-		</org.springframework.version>
+		<org.springframework.version>5.1.5.RELEASE</org.springframework.version>
 		<jackson.version>2.9.9</jackson.version>
+		<jackson.databind.version>2.9.9.3</jackson.databind.version>
 		<xstream.version>1.4.11.1</xstream.version>
-		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ
-		</maven.build.timestamp.format>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>8.0.11
-		</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>8.0.16</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<schema-to-pojo.version>0.3.23</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.535</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.7
-		</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.7</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>

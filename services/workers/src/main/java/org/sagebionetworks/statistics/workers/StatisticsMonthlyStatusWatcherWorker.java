@@ -1,0 +1,58 @@
+package org.sagebionetworks.statistics.workers;
+
+import java.time.YearMonth;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingRunner;
+import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
+import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * This worker runs periodically to watch the status of the monthly statistics in order to compute
+ * them if needed.
+ * 
+ * @author Marco
+ */
+public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
+
+	private static final long PROCESSING_TIMEOUT = 10 * 60 * 1000; // 10 minutes of idle time before the processing is restarted
+	private static final Logger LOG = LogManager.getLogger(StatisticsMonthlyStatusWatcherWorker.class);
+
+	private StatisticsMonthlyManager statisticsManager;
+
+	@Autowired
+	public StatisticsMonthlyStatusWatcherWorker(StatisticsMonthlyManager statisticsManager) {
+		this.statisticsManager = statisticsManager;
+	}
+
+	@Override
+	public void run(ProgressCallback progressCallback) throws Exception {
+		LOG.debug("Checking monthly statistics status...");
+
+		for (StatisticsObjectType objectType : StatisticsObjectType.values()) {
+			List<YearMonth> unprocessedMonths = statisticsManager.getUnprocessedMonths(objectType);
+			if (!unprocessedMonths.isEmpty()) {
+				LOG.info("Found {} unprocessed months for object type {}", unprocessedMonths.size(), objectType);
+				submitProcessing(objectType, unprocessedMonths);
+			}
+		}
+
+		LOG.debug("Checking monthly statistics status...DONE");
+	}
+
+	private void submitProcessing(StatisticsObjectType objectType, List<YearMonth> months) {
+		months.forEach(month -> {
+			if (statisticsManager.startProcessingMonth(objectType, month, PROCESSING_TIMEOUT)) {
+				LOG.info("Processing request sent for object type {} and month {}", objectType, month);
+			} else {
+				LOG.info("Skipping processing request for object type {} and month {}", objectType, month);
+			}
+		});
+
+	}
+
+}
