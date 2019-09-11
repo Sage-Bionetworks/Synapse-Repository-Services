@@ -3,15 +3,15 @@
  	"properties": {
 		"access_token":{
 			"type": "string",
-			"description":""
+			"description":"The OAuth 2.0 access token"
 		},
 		"refresh_token": {
 			"type": "string",
-			"description": ""
+			"description": "The Oauth 2.0 refresh token"
 		},
 		"id_token": {
 			"type": "string",
-			"description": ""
+			"description": "The Open ID Connect IT Token"
 		}
 	}
 }
