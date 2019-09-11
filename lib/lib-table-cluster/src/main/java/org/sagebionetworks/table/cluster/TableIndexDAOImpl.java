@@ -563,7 +563,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteEntityData(final ProgressCallback progressCallback, List<Long> entityIds) {
+	public void deleteEntityData(List<Long> entityIds) {
 		final List<Long> sorted = new ArrayList<Long>(entityIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -584,7 +584,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addEntityData(final ProgressCallback progressCallback, List<EntityDTO> entityDTOs) {
+	public void addEntityData(List<EntityDTO> entityDTOs) {
 		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(entityDTOs);
 		Collections.sort(sorted);
 		// batch update the entity table

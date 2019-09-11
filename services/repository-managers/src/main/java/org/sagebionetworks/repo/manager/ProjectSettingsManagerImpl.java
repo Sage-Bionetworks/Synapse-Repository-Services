@@ -195,7 +195,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
-			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
+			ValidateArgument.validExternalUrl(externalStorageLocationSetting.getUrl());
 		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting) {
 			ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
 
@@ -203,7 +203,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			String strippedEndpoint = StringUtils.strip(externalObjectStorageLocationSetting.getEndpointUrl(), "/ \t");
 
 			// validate url
-			ValidateArgument.validUrl(strippedEndpoint);
+			ValidateArgument.validExternalUrl(strippedEndpoint);
 			// A valid bucket name must also be a valid domain name
 			ValidateArgument.requirement(InternetDomainName.isValid(externalObjectStorageLocationSetting.getBucket()),
 					"Invalid Bucket Name");

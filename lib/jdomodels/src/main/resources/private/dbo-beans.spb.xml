@@ -7,7 +7,7 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
+	
 
 	<bean id="ddlUtils" class="org.sagebionetworks.repo.model.dbo.DDLUtilsImpl" />
 	
@@ -130,6 +130,8 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -217,10 +219,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />
-				
+			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
-				
+		
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

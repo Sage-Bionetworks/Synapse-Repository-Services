@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
@@ -51,6 +53,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	ColumnModelDAO columnModelDao;
 	@Autowired
 	NodeManager nodeManager;
+	@Autowired
+	ReplicationManager replicationManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -178,6 +182,8 @@ public class TableViewManagerImpl implements TableViewManager {
 		if(updated){
 			// save the changes. validation of updated values will occur in this call
 			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
+			// Replicate the change
+			replicationManager.replicate(entityId);
 		}
 	}
 	
@@ -230,5 +236,11 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		return updated;
+	}
+
+	@Override
+	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

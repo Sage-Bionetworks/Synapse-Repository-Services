@@ -1188,4 +1188,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getOAuthAuthorizationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.oauth.authorization.endpoint");
 	}
+	
+	@Override
+	public int getMaximumMonthsForMonthlyStatistics() {
+		return  Integer.parseInt(configuration.getProperty("org.sagebionetworks.statistics.monthly.max"));
+	}
 }

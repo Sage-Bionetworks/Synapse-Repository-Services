@@ -932,6 +932,18 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"IS_VERIFIED";
 
+	// Status table for monthly statistics
+	public static final String TABLE_STATISTICS_MONTHLY_STATUS =						"STATISTICS_MONTHLY_STATUS";
+	public static final String DDL_STATISTICS_MONTHLY_STATUS =							"schema/statistics/StatisticsMonthlyStatus-ddl.sql";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE =				"OBJECT_TYPE";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_MONTH =					"MONTH";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_STATUS =					"STATUS";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_LAST_STARTED_ON =			"LAST_STARTED_ON";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON =			"LAST_UPDATED_ON";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE	=			"ERROR_MESSAGE";
+	public static final String COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS = 			"ERROR_DETAILS";
+
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

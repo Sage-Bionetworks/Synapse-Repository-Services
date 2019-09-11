@@ -1190,12 +1190,12 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplication(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
 		
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
 		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file, folder, project));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file, folder, project));
 		
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
@@ -1209,13 +1209,13 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplicationWithNulls(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L));
 		
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
+		tableIndexDAO.addEntityData(Lists.newArrayList(project));
 		
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
@@ -1225,12 +1225,12 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplicationWithNullBenefactor(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L));
 		
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		project.setBenefactorId(null);
 		try {
-			tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
+			tableIndexDAO.addEntityData(Lists.newArrayList(project));
 			fail();
 		} catch (Exception e) {
 			// expected
@@ -1240,14 +1240,14 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testEntityReplicationUpdate(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L));
 		
 		EntityDTO file = createEntityDTO(1L, EntityType.file, 5);
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file));
 		// delete before an update
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(file.getId()));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(file.getId()));
 		file = createEntityDTO(1L, EntityType.file, 3);
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file));
 		
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
@@ -1257,7 +1257,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCalculateCRC32ofEntityReplicationScopeFile(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
@@ -1265,7 +1265,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// call under test
@@ -1287,7 +1287,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCalculateCRC32ofEntityReplicationScopeProject(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 0);
@@ -1295,7 +1295,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 0);
 		project2.setParentId(111L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(project1, project2));
 		// both parents
 		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
 		// call under test
@@ -1348,7 +1348,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTable(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
@@ -1356,7 +1356,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1381,7 +1381,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
@@ -1401,7 +1401,7 @@ public class TableIndexDAOImplTest {
 		double2.setEntityId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
@@ -1420,7 +1420,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTableScopeEmpty(){
 		isView = true;
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
@@ -1428,7 +1428,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		// both parents
 		Set<Long> scope = new HashSet<Long>();
@@ -1449,7 +1449,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainers(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
@@ -1457,7 +1457,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
@@ -1488,7 +1488,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersPLFM_5034(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		String duplicateName = "duplicate";
 		
@@ -1516,7 +1516,7 @@ public class TableIndexDAOImplTest {
 		annoDto.setValue("123456");
 		file1.getAnnotations().add(annoDto);
 
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
@@ -1548,7 +1548,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCaseSensitiveAnnotationNamesPLFM_5449() {
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		// one
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 1);
 		file1.getAnnotations().clear();
@@ -1570,7 +1570,7 @@ public class TableIndexDAOImplTest {
 		upper.setValue("123");
 		file1.getAnnotations().add(upper);
 		// call under test
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1));
 	}
 	
 	@Test
@@ -1637,7 +1637,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetPossibleAnnotationsForContainersProject(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		// setup some hierarchy.
 		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 15);
@@ -1645,7 +1645,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 12);
 		project2.setParentId(111L);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(project1, project2));
 		
 		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
 		long limit = 5;
@@ -1673,7 +1673,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfChildCRCsForEachParent(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -1684,7 +1684,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		List<Long> parentIds = Lists.newArrayList(parentOneId,parentTwoId,parentThreeId);
 		// call under test
@@ -1708,7 +1708,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetEntityChildren(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -1719,7 +1719,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		
 		List<IdAndEtag> results = tableIndexDAO.getEntityChildren(parentOneId);
 		assertNotNull(results);
@@ -1739,7 +1739,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfFileSizes(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
@@ -1749,7 +1749,7 @@ public class TableIndexDAOImplTest {
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		// call under test
 		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(file1.getId(), file2.getId()));
 		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
@@ -1761,14 +1761,14 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetSumOfFileSizesNoFiles(){
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
 		
 		Long parentOneId = 333L;
 		// setup some hierarchy.
 		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 2);
 		folder.setParentId(parentOneId);
 		
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(folder));
+		tableIndexDAO.addEntityData(Lists.newArrayList(folder));
 		// call under test
 		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(folder.getId()));
 		assertEquals(0L, fileSizes);
@@ -1986,7 +1986,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void generateProjectStatistics() {
 		// delete all data
-		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
 
 		// Set up some data to test
 		EntityDTO project1 = createEntityDTO(1L, EntityType.project, 0);
@@ -2019,7 +2019,7 @@ public class TableIndexDAOImplTest {
 		file3.setProjectId(2L);
 		file4.setProjectId(2L);
 
-		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2, file1, file2, file3, file4));
+		tableIndexDAO.addEntityData(Lists.newArrayList(project1, project2, file1, file2, file3, file4));
 
 		List<SynapseStorageProjectStats> result = new ArrayList<>();
 
