@@ -11,7 +11,7 @@
 		},
 		"createdBy": {
 			"type": "string",
-			"description": "Id of the user that created this object"
+			"description": "Id of the user that created this group"
 		},
 		"createdOn": {
 			"type": "string",

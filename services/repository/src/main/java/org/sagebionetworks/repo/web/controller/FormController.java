@@ -137,7 +137,7 @@ public class FormController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.FORM }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
 	public @ResponseBody FormData createFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestParam(required = true) String groupId,
 			@RequestParam(required = true) String name, @RequestParam(required = true) String dataFileHandleId) {
 		return null;
@@ -222,7 +222,8 @@ public class FormController {
 	/**
 	 * List FormData objects and their associated status that match the filters of
 	 * the provided request for the entire group. This is used by service accounts
-	 * to process submissions.
+	 * to process submissions. Filtering by WAITING_FOR_SUBMISSION is not allowed
+	 * for this call.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
@@ -239,7 +240,7 @@ public class FormController {
 	}
 
 	/**
-	 * Called by the form processing service to accept a submitted from.
+	 * Called by the form processing service to accept a submitted data.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
@@ -257,7 +258,7 @@ public class FormController {
 	}
 
 	/**
-	 * Called by the form processing service to reject a submitted from.
+	 * Called by the form processing service to reject a submitted data.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>

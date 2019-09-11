@@ -2,7 +2,7 @@
 	"description": "Request for a list of StatusResults matching the provided filters.",
 	"properties": {
 		"filterByStatus": {
-			"description": "Only return results with a status that matches elements from this list.  If this option is excluded or empty all result will be returned regardless of status.",
+			"description": "Only return results with a status that matches elements from this set.  Exclude to return all.",
 			"type": "array",
 			"uniqueItems": true,
 			"items": {

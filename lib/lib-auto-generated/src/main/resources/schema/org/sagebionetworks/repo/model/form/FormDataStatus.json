@@ -5,7 +5,7 @@
 			"type": "string",
 			"description": "The system issued identifier of the FormData object."
 		},
-		"submitedOn": {
+		"submittedOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date when the object was submitted."

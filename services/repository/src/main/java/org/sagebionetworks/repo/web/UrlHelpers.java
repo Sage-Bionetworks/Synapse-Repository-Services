@@ -341,15 +341,16 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String FORM = "/form";
+	public static final String FORM_DATA = FORM+"/data";
 	public static final String FORM_GROUP = FORM+"/group";
 	public static final String FORM_GROUP_ACL = FORM_GROUP+"/{id}/acl";
-	public static final String FORM_DATA = FORM+"/{id}";
-	public static final String FORM_DATA_SUBMIT = FORM+"/{id}/submit";
-	public static final String FORM_LIST = FORM+"/list";
-	public static final String FORM_LIST_ADMIN = FORM+"/list/admin";
+	public static final String FORM_DATA_ID = FORM_DATA+"/{id}";
+	public static final String FORM_DATA_SUBMIT = FORM_DATA+"/{id}/submit";
+	public static final String FORM_LIST = FORM_DATA+"/list";
+	public static final String FORM_LIST_ADMIN = FORM_DATA+"/list/admin";
 	
-	public static final String FORM_DATA_ACCEPT = FORM_DATA+"/accept";
-	public static final String FORM_DATA_REJECT = FORM_DATA+"/reject";
+	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
+	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).

@@ -3,10 +3,10 @@
 	"properties": {
 		"data": {
 			"description": "The FormData object.",
-			"$ref": "org.sagebionetworks.repo.model.form.FormDataStatus"
+			"$ref": "org.sagebionetworks.repo.model.form.FormData"
 		},
 		"status": {
-			"description": "The status of the FormData object",
+			"description": "The status of the FormData object.",
 			"$ref": "org.sagebionetworks.repo.model.form.FormDataStatus"
 		}
 	}

@@ -1,5 +1,5 @@
 {
-	"description": "A singe page of results from a ListRequest.",
+	"description": "A single page of results from a ListRequest.",
 	"properties": {
 		"page": {
 			"description": "A single page of results matching the request.",

@@ -25,7 +25,7 @@
 		"modifiedOn": {
 			"type": "string",
 			"format":"date-time",
-			"description": "The date this object was last modified created."
+			"description": "The date this object was last modified."
 		},
 		"dataFileHandleId": {
 			"type": "string",
