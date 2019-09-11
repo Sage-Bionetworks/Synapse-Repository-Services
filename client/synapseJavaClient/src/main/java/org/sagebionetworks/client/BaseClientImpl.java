@@ -47,6 +47,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
@@ -71,6 +72,7 @@ public class BaseClientImpl implements BaseClient {
 
 	protected static final String APPLICATION_JWT = "application/jwt";
 	
+	private static final String CONTENT_LENGTH = "Content-Length";
 	private static final String CONTENT_TYPE = "Content-Type";
 	private static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
@@ -469,7 +471,16 @@ public class BaseClientImpl implements BaseClient {
 	//================================================================================
 	
 	protected void validateContentType(SimpleHttpResponse response, String expectedContentType) throws SynapseClientException {
-		String actualContentType = response.getFirstHeader(CONTENT_TYPE).getValue();
+		// If Synapse returns null there is no content-type header, so check content length
+		// and if equals zero then don't check content type.
+		Header contentLengthHeader = response.getFirstHeader(CONTENT_LENGTH);
+		if (contentLengthHeader!=null) {
+			Long contentLength = Long.parseLong(contentLengthHeader.getValue());
+			if (contentLength==0) return;
+		}
+		Header contentTypeHeader = response.getFirstHeader(CONTENT_TYPE);
+		if (contentTypeHeader==null) throw new SynapseClientException("Missing "+CONTENT_TYPE+" header.");
+		String actualContentType = contentTypeHeader.getValue();
 		if (!actualContentType.toLowerCase().startsWith(expectedContentType.toLowerCase())) {
 			throw new SynapseClientException("Expected "+expectedContentType+" but received "+actualContentType);
 		}
