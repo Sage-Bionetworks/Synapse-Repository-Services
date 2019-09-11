@@ -10,9 +10,9 @@ import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
@@ -24,12 +24,8 @@ public class StatisticsMonthlyStatusWatcherWorkerTest {
 	@Mock
 	private StatisticsMonthlyManager mockStatisticsManager;
 
+	@InjectMocks
 	private StatisticsMonthlyStatusWatcherWorker worker;
-
-	@BeforeEach
-	public void before() {
-		worker = new StatisticsMonthlyStatusWatcherWorker(mockStatisticsManager);
-	}
 
 	@Test
 	public void testRunWithNoProcessing() throws Exception {
