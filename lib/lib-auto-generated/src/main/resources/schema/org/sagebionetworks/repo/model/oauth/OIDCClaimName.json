@@ -36,7 +36,7 @@
     },
     {
       "name": "email_verified",
-      "description": "The user's email address and a synonym for 'email', since the email is always verified"
+      "description": "Whether the email was verified as belonging to the user.  (Always true for Synapse.)"
     },
     {
       "name": "given_name",
@@ -84,15 +84,15 @@
     },
     {
       "name": "validated_email",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated email, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_company",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated company/organization, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_orcid",
-      "description": "https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+      "description": "The validated ORCID, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     },
     {
       "name": "validated_at",
