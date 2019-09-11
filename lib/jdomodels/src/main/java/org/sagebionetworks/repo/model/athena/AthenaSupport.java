@@ -53,6 +53,15 @@ public interface AthenaSupport {
 	Table getTable(Database database, String tableName);
 
 	/**
+	 * Parameterizes the given table name by the current stack instance configuration, can be used to perform queries
+	 * 
+	 * @param  tableName
+	 * @return                          The table name parameterized by the current stack configuration
+	 * @throws IllegalArgumentException If the given table name is null or empty
+	 */
+	String getTableName(String tableName);
+
+	/**
 	 * See {@link #executeQuery(String, String, RowMapper, boolean)}, this method excludes the header from the results by
 	 * default.
 	 * 
@@ -84,11 +93,43 @@ public interface AthenaSupport {
 	<T> AthenaQueryResult<T> executeQuery(Database database, String query, RowMapper<T> rowMapper, boolean excludeHeader);
 
 	/**
-	 * Parameterizes the given table name by the current stack instance configuration, can be used to perform queries
+	 * Submits the given query to Athena and provide the queryExecutionId of the query
 	 * 
-	 * @param  tableName
-	 * @return                          The table name parameterized by the current stack configuration
-	 * @throws IllegalArgumentException If the given table name is null or empty
+	 * @param  database The glue {@link Database} where the query will be run against
+	 * @param  query    The query to run
+	 * @return          The queryExecutionId of the query
 	 */
-	String getTableName(String tableName);
+	String submitQuery(Database database, String query);
+
+	/**
+	 * Retrieve the status of the query identified by the given queryExecutionId
+	 * 
+	 * @param  queryExecutionId The id of the query
+	 * @return                  The status of the query with the given id
+	 */
+	AthenaQueryExecution getQueryExecutionStatus(String queryExecutionId);
+
+	/**
+	 * Waits for the results of the query identified by the given queryExecutionId
+	 * 
+	 * @param  queryExecutionId The id of the query
+	 * @return                  The statistics about the executed query
+	 */
+	AthenaQueryStatistics waitForQueryResults(String queryExecutionId);
+
+	/**
+	 * Retrieves the results of the query identified by the given queryExecutionId, using the given mapper to transform the
+	 * {@link Row rows} in the {@link ResultSet}.
+	 * 
+	 * @param  <T>
+	 * 
+	 * @param  queryExecutionId The id of the query
+	 * @param  rowMapper        A row mapper to map a {@link Row} to T
+	 * @param  excludeHeader    True if the header of the query results should be excluded, if false the first row in the
+	 *                          iterator will contain the column names of the query
+	 * @return                  A wrapper around the query execution that allows access to the iterator over the results and
+	 *                          other informations about the query
+	 */
+	<T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader);
+
 }

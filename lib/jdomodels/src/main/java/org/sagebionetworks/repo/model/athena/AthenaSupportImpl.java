@@ -17,9 +17,6 @@ import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
 import com.amazonaws.services.athena.model.QueryExecution;
 import com.amazonaws.services.athena.model.QueryExecutionContext;
-import com.amazonaws.services.athena.model.QueryExecutionState;
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
-import com.amazonaws.services.athena.model.QueryExecutionStatus;
 import com.amazonaws.services.athena.model.ResultConfiguration;
 import com.amazonaws.services.athena.model.StartQueryExecutionRequest;
 import com.amazonaws.services.glue.AWSGlue;
@@ -115,7 +112,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.getName().toLowerCase());
 
-		String queryExecutionId = queryRequest(table.getDatabaseName(), repairQuery);
+		String queryExecutionId = submitQuery(table.getDatabaseName(), repairQuery);
 
 		// Just wait for the result
 		AthenaQueryStatistics queryStats = waitForQueryResults(queryExecutionId);
@@ -146,17 +143,110 @@ public class AthenaSupportImpl implements AthenaSupport {
 		LOG.debug("Executing query {} on database {}...", query, database.getName());
 
 		// Run the query
-		String queryExecutionId = queryRequest(database.getName().toLowerCase(), query);
+		String queryExecutionId = submitQuery(database, query);
 
 		AthenaQueryStatistics queryStatistics = waitForQueryResults(queryExecutionId);
 
 		LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
 				queryStatistics.getDataScanned(), queryStatistics.getExecutionTime());
 
+		return retrieveQueryResults(queryExecutionId, queryStatistics, rowMapper, excludeHeader);
+
+	}
+
+	@Override
+	public String submitQuery(Database database, String query) {
+		ValidateArgument.required(database, "database");
+		return submitQuery(database.getName(), query);
+	}
+
+	@Override
+	public AthenaQueryStatistics waitForQueryResults(String queryExecutionId) {
+
+		AthenaQueryStatistics queryStats = null;
+
+		boolean done = false;
+
+		while (!done) {
+
+			AthenaQueryExecution queryExecution = getQueryExecutionStatus(queryExecutionId);
+
+			AthenaQueryExecutionState state = queryExecution.getState();
+
+			if (AthenaQueryExecutionState.SUCCEEDED.equals(state)) {
+				done = true;
+				queryStats = queryExecution.getStatistics();
+			} else if (AthenaQueryExecutionState.FAILED.equals(state) || AthenaQueryExecutionState.CANCELLED.equals(state)) {
+				throw new RuntimeException(
+						"Query execution " + queryExecutionId + " " + state.toString() + ": " + queryExecution.getStateChangeReason());
+			} else {
+				try {
+					Thread.sleep(WAIT_INTERVAL);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+
+		}
+
+		return queryStats;
+
+	}
+
+	@Override
+	public AthenaQueryExecution getQueryExecutionStatus(String queryExecutionId) {
+		ValidateArgument.required(queryExecutionId, "queryExecutionId");
+		// @formatter:off
+		GetQueryExecutionRequest request = new GetQueryExecutionRequest()
+				.withQueryExecutionId(queryExecutionId);
+
+		QueryExecution queryExecution = athenaClient.getQueryExecution(request)
+					.getQueryExecution();
+		// @formatter:on
+
+		return new AthenaQueryExecutionAdapter(queryExecution);
+	}
+
+	@Override
+	public <T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
+		ValidateArgument.required(queryExecutionId, "executionQueryId");
+		ValidateArgument.required(rowMapper, "rowMapper");
+
+		AthenaQueryExecution queryExecution = getQueryExecutionStatus(queryExecutionId);
+
+		if (!AthenaQueryExecutionState.SUCCEEDED.equals(queryExecution.getState())) {
+			throw new IllegalArgumentException("The query with id " + queryExecutionId + " is not completed or did not succeed, state: "
+					+ queryExecution.getState().toString());
+		}
+
+		return retrieveQueryResults(queryExecutionId, queryExecution.getStatistics(), rowMapper, excludeHeader);
+	}
+
+	private <T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, AthenaQueryStatistics queryStatistics,
+			RowMapper<T> rowMapper, boolean excludeHeader) {
+
 		Iterator<T> resultsIterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
 
 		return buildQueryResult(queryExecutionId, queryStatistics, resultsIterator, !excludeHeader);
+	}
 
+	private String submitQuery(String databaseName, String query) {
+		ValidateArgument.requiredNotEmpty(databaseName, "databaseName");
+		ValidateArgument.requiredNotEmpty(query, "query");
+
+		// @formatter:off
+		QueryExecutionContext queryContext = new QueryExecutionContext()
+				.withDatabase(databaseName.toLowerCase());
+
+		ResultConfiguration resultConfiguration = new ResultConfiguration()
+				.withOutputLocation(queryOutputLocation);
+		
+		StartQueryExecutionRequest request = new StartQueryExecutionRequest()
+				.withQueryExecutionContext(queryContext)
+				.withResultConfiguration(resultConfiguration)
+				.withQueryString(query);
+		// @formatter:on
+		return athenaClient.startQueryExecution(request).getQueryExecutionId();
 	}
 
 	private <T> AthenaQueryResult<T> buildQueryResult(String queryExecutionId, AthenaQueryStatistics queryStatistics,
@@ -187,64 +277,6 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 	private String prefixWithStack(String value) {
 		return (stackPrefix + value).toLowerCase();
-	}
-
-	private String queryRequest(String databaseName, String query) {
-		ValidateArgument.required(databaseName, "databaseName");
-		ValidateArgument.required(query, "query");
-
-		// @formatter:off
-		QueryExecutionContext queryContext = new QueryExecutionContext()
-				.withDatabase(databaseName.toLowerCase());
-
-		ResultConfiguration resultConfiguration = new ResultConfiguration()
-				.withOutputLocation(queryOutputLocation);
-		
-		StartQueryExecutionRequest request = new StartQueryExecutionRequest()
-				.withQueryExecutionContext(queryContext)
-				.withResultConfiguration(resultConfiguration)
-				.withQueryString(query);
-		// @formatter:on
-		return athenaClient.startQueryExecution(request).getQueryExecutionId();
-
-	}
-
-	private AthenaQueryStatistics waitForQueryResults(String queryId) {
-
-		QueryExecutionStatistics queryStats = null;
-		boolean done = false;
-
-		while (!done) {
-
-			// @formatter:off
-			GetQueryExecutionRequest request = new GetQueryExecutionRequest()
-					.withQueryExecutionId(queryId);
-
-			QueryExecution result  = athenaClient.getQueryExecution(request)
-						.getQueryExecution();
-
-			QueryExecutionStatus status = result.getStatus();
-
-			QueryExecutionState state = QueryExecutionState.fromValue(status.getState());
-			// @formatter:on
-
-			if (QueryExecutionState.SUCCEEDED.equals(state)) {
-				done = true;
-				queryStats = result.getStatistics();
-			} else if (QueryExecutionState.FAILED.equals(state) || QueryExecutionState.CANCELLED.equals(state)) {
-				throw new RuntimeException("Query execution " + queryId + " " + state.toString() + ": " + status.getStateChangeReason());
-			} else {
-				try {
-					Thread.sleep(WAIT_INTERVAL);
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e.getMessage(), e);
-				}
-			}
-
-		}
-
-		return new AthenaQueryStatisticsAdapter(queryStats);
-
 	}
 
 	private List<Table> getPartitionedTables(Database database) {
