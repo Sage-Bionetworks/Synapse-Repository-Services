@@ -1,0 +1,20 @@
+{
+    "description": "Human readable description / details about an authorization request",
+ 	"properties": {
+		"clientId":{
+			"type": "string",
+			"description":"ID of the client requesting authorization"
+		},
+		"redirect_uri": {
+			"type": "string",
+			"description":"URL to which the user-agent is to be redirected after consent is given."
+		},
+		"scope": {
+			"type": "array",
+			"description": "Scopes and claims requested by client",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

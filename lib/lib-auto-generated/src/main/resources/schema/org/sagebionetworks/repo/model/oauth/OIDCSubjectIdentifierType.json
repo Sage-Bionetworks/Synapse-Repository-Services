@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "description": "The OIDC subject identifier types supported by Synapse",
+  "enum": [
+    {
+      "name": "pairwise",
+      "description": "encrypted/obfuscated identifier type"
+    }
+  ]
+}

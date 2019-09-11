@@ -1,8 +1,12 @@
 package org.sagebionetworks.securitytools;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.platform.commons.util.StringUtils;
+
 
 /**
  * Unit test for the password hashing scheme
@@ -45,4 +49,14 @@ public class PBKDF2UtilsTest {
 		String passHash = "Oops, I forgot to add the prefix to this invalid password hash..........."; // right length though
 		PBKDF2Utils.extractSalt(passHash);
 	}
+	
+	@Test
+	public void testGenerateClientSecret() {
+		assertTrue(StringUtils.isNotBlank(
+				// method under test
+				PBKDF2Utils.generateClientSecret()
+		));
+	}
+	
+
 }

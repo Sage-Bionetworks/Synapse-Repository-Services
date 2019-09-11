@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "description": "The OAuth 2.0 response types supported by Synapse",
+  "enum": [
+    {
+      "name": "code",
+      "description": "Response type for the OAuth 2.0 'code flow'"
+    }
+  ]
+}

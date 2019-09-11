@@ -36,7 +36,7 @@
     },
     {
       "name": "email_verified",
-      "description": "The user's email address and a synonym for 'email', since the email is always verified"
+      "description": "Whether the email was verified as belonging to the user.  (Always true for Synapse.)"
     },
     {
       "name": "given_name",
@@ -57,6 +57,46 @@
     {
       "name": "userid",
       "description": "The immutable principal ID referencing the Synapse user"
+    },
+    {
+      "name": "orcid",
+      "description": "The ORCID linked to the user account"
+    },
+    {
+      "name": "is_certified",
+      "description": "Whether the user is certified.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#certified-users"
+    },
+    {
+      "name": "is_validated",
+      "description": "Whether the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_given_name",
+      "description": "The validated first name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_family_name",
+      "description": "The validated last name, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_location",
+      "description": "The validated location, if the user is validated.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_email",
+      "description": "The validated email, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_company",
+      "description": "The validated company/organization, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_orcid",
+      "description": "The validated ORCID, if the user is validated.  https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
+    },
+    {
+      "name": "validated_at",
+      "description": "The timestamp (seconds since the epoch) when validation occurred.  See https://docs.synapse.org/articles/accounts_certified_users_and_profile_validation.html#validated-profile"
     }
   ]
 }
