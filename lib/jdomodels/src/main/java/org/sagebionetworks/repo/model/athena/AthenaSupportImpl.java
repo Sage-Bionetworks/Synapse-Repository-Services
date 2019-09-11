@@ -188,7 +188,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 			}
 
 			@Override
-			public Iterator<T> getQueryResultsiterator() {
+			public Iterator<T> getQueryResultsIterator() {
 				return resultsIterator;
 			}
 		};

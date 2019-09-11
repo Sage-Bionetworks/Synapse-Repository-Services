@@ -310,12 +310,12 @@ public class AthenaSupportImplTest {
 
 		verify(mockQueryResult, never()).getResultSet();
 
-		assertTrue(result.getQueryResultsiterator().hasNext());
+		assertTrue(result.getQueryResultsIterator().hasNext());
 
-		assertEquals(countResult, result.getQueryResultsiterator().next());
+		assertEquals(countResult, result.getQueryResultsIterator().next());
 
 		verify(mockQueryResult).getResultSet();
-		assertFalse(result.getQueryResultsiterator().hasNext());
+		assertFalse(result.getQueryResultsIterator().hasNext());
 
 	}
 

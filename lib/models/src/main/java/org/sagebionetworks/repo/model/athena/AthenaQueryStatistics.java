@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.model.athena;
 
+/**
+ * Statistics about an Athena query execution, contains information about the execution time as well as the amount of
+ * data scanned.
+ * 
+ * @author Marco
+ *
+ */
 public interface AthenaQueryStatistics {
 
 	/**

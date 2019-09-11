@@ -29,6 +29,6 @@ public interface AthenaQueryResult<T> {
 	/**
 	 * @return A (lazy) iterator over the results
 	 */
-	Iterator<T> getQueryResultsiterator();
+	Iterator<T> getQueryResultsIterator();
 
 }

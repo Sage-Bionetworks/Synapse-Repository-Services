@@ -133,7 +133,7 @@ public class AthenaProjectFilesDAOImplTest {
 		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
 
 		when(mockQueryResult.getQueryExecutionStatistics()).thenReturn(mockQueryStats);
-		when(mockQueryResult.getQueryResultsiterator()).thenReturn(mockResultsIterator);
+		when(mockQueryResult.getQueryResultsIterator()).thenReturn(mockResultsIterator);
 		when(mockAthenaSupport.executeQuery(eq(mockDatabase), any(), (RowMapper<StatisticsMonthlyProjectFiles>) any()))
 				.thenReturn(mockQueryResult);
 
@@ -142,7 +142,7 @@ public class AthenaProjectFilesDAOImplTest {
 
 		assertEquals(mockQueryResult, result);
 		assertEquals(mockQueryStats, result.getQueryExecutionStatistics());
-		assertEquals(mockResultsIterator, result.getQueryResultsiterator());
+		assertEquals(mockResultsIterator, result.getQueryResultsIterator());
 
 		verify(mockAthenaSupport).getDatabase(AthenaProjectFilesDAOImpl.DATABASE_NAME);
 

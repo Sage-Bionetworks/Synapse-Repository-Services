@@ -165,9 +165,9 @@ public class AthenaSupportImplAutowireTest {
 		assertNotNull(result);
 		assertEquals(queryId, result.getQueryExecutionId());
 		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), result.getQueryExecutionStatistics());
-		assertTrue(result.getQueryResultsiterator().hasNext());
-		assertEquals(Integer.valueOf(countQueryResult), result.getQueryResultsiterator().next());
-		assertFalse(result.getQueryResultsiterator().hasNext());
+		assertTrue(result.getQueryResultsIterator().hasNext());
+		assertEquals(Integer.valueOf(countQueryResult), result.getQueryResultsIterator().next());
+		assertFalse(result.getQueryResultsIterator().hasNext());
 	}
 
 	// This can be useful to actually test queries
@@ -188,9 +188,9 @@ public class AthenaSupportImplAutowireTest {
 		}, excludeHeader);
 
 		assertNotNull(result);
-		assertTrue(result.getQueryResultsiterator().hasNext());
-		result.getQueryResultsiterator().next();
-		assertFalse(result.getQueryResultsiterator().hasNext());
+		assertTrue(result.getQueryResultsIterator().hasNext());
+		result.getQueryResultsIterator().next();
+		assertFalse(result.getQueryResultsIterator().hasNext());
 	}
 
 	// This can be useful to actually test that it works

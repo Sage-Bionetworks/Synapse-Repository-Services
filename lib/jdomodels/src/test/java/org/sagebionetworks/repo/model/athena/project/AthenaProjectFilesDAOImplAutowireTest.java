@@ -42,7 +42,7 @@ public class AthenaProjectFilesDAOImplAutowireTest {
 		assertNotNull(stats.getDataScanned());
 		assertNotNull(stats.getExecutionTime());
 		
-		Iterator<StatisticsMonthlyProjectFiles> iterator = result.getQueryResultsiterator();
+		Iterator<StatisticsMonthlyProjectFiles> iterator = result.getQueryResultsIterator();
 		
 		assertNotNull(iterator);
 		assertFalse(iterator.hasNext());
