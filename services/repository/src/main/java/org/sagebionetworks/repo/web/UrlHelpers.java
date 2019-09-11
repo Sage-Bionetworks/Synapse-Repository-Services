@@ -347,6 +347,9 @@ public class UrlHelpers {
 	public static final String FORM_DATA_SUBMIT = FORM+"/{id}/submit";
 	public static final String FORM_LIST = FORM+"/list";
 	public static final String FORM_LIST_ADMIN = FORM+"/list/admin";
+	
+	public static final String FORM_DATA_ACCEPT = FORM_DATA+"/accept";
+	public static final String FORM_DATA_REJECT = FORM_DATA+"/reject";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).

@@ -1,5 +1,5 @@
 {
-	"description": "Represent an end user's data gathered from a form template. All FormData belongs to a single FormGroup.",
+	"description": "User's data gathered from a form template. All FormData belongs to a single FormGroup.",
 	"properties": {
 		"formDataId": {
 			"type": "string",
@@ -7,11 +7,11 @@
 		},
 		"groupId": {
 			"type": "string",
-			"description": "The identifier of the group that manages this data. Required"
+			"description": "The identifier of the group that manages this data. Required."
 		},
 		"name": {
 			"type": "string",
-			"description": "User provided name for this submission. Required"
+			"description": "User provided name for this submission. Required."
 		},
 		"createdBy": {
 			"type": "string",
@@ -29,7 +29,7 @@
 		},
 		"dataFileHandleId": {
 			"type": "string",
-			"description": "The identifier of the data file for this object."
+			"description": "The identifier of the data FileHandle for this object."
 		}
 	}
 }
