@@ -42,7 +42,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	private static final Logger LOG = LogManager.getLogger(AthenaSupportImpl.class);
 
 	private static final String TABLE_NAME_REGEX = "^%1$s.+";
-	private static final String QUERY_RESULTS_BUCKET = "s3://%1$s/%2$09d/athena";
+	private static final String QUERY_RESULTS_BUCKET = "s3://%1$s/athena/%2$09d";
 	private static final long WAIT_INTERVAL = 1000;
 
 	private static final String TEMPLATE_ATHENA_REPAIR_TABLE = "MSCK REPAIR TABLE %1$s";

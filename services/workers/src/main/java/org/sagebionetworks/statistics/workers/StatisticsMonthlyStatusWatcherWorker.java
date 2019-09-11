@@ -12,8 +12,7 @@ import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * This worker runs periodically to watch the status of the monthly statistics in order to compute
- * them if needed.
+ * This worker runs periodically to watch the status of the monthly statistics in order to compute them if needed.
  * 
  * @author Marco
  */
@@ -35,10 +34,14 @@ public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
 
 		for (StatisticsObjectType objectType : StatisticsObjectType.values()) {
 			List<YearMonth> unprocessedMonths = statisticsManager.getUnprocessedMonths(objectType);
-			if (!unprocessedMonths.isEmpty()) {
-				LOG.info("Found {} unprocessed months for object type {}", unprocessedMonths.size(), objectType);
-				submitProcessing(objectType, unprocessedMonths);
+			
+			if (unprocessedMonths.isEmpty()) {
+				continue;
 			}
+			
+			LOG.info("Found {} unprocessed months for object type {}", unprocessedMonths.size(), objectType);
+			
+			submitProcessing(objectType, unprocessedMonths);
 		}
 
 		LOG.debug("Checking monthly statistics status...DONE");
@@ -46,7 +49,10 @@ public class StatisticsMonthlyStatusWatcherWorker implements ProgressingRunner {
 
 	private void submitProcessing(StatisticsObjectType objectType, List<YearMonth> months) {
 		months.forEach(month -> {
-			if (statisticsManager.startProcessingMonth(objectType, month, PROCESSING_TIMEOUT)) {
+
+			boolean processingStarted = statisticsManager.startProcessingMonth(objectType, month, PROCESSING_TIMEOUT);
+
+			if (processingStarted) {
 				LOG.info("Processing request sent for object type {} and month {}", objectType, month);
 			} else {
 				LOG.info("Skipping processing request for object type {} and month {}", objectType, month);
