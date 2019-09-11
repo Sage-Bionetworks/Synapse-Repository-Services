@@ -268,7 +268,7 @@ public class StatisticsMonthlyManagerImplTest {
 		YearMonth month = YearMonth.of(2019, 8);
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
-		when(mockStatus.getLastStartedOn()).thenReturn(System.currentTimeMillis() + PROCESSING_TIMEOUT);
+		when(mockStatus.getLastUpdatedOn()).thenReturn(System.currentTimeMillis() + PROCESSING_TIMEOUT);
 
 		Optional<StatisticsMonthlyStatus> status = Optional.of(mockStatus);
 
@@ -282,7 +282,7 @@ public class StatisticsMonthlyManagerImplTest {
 
 		verify(mockDao).getStatusForUpdate(OBJECT_TYPE, month);
 		verify(mockStatus).getStatus();
-		verify(mockStatus).getLastStartedOn();
+		verify(mockStatus).getLastUpdatedOn();
 		verify(mockDao, never()).setProcessing(any(), any());
 		verify(mockNotifier, never()).sendStartProcessingNotification(any(), any());
 	}
@@ -292,7 +292,7 @@ public class StatisticsMonthlyManagerImplTest {
 		YearMonth month = YearMonth.of(2019, 8);
 
 		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
-		when(mockStatus.getLastStartedOn()).thenReturn(System.currentTimeMillis() - PROCESSING_TIMEOUT);
+		when(mockStatus.getLastUpdatedOn()).thenReturn(System.currentTimeMillis() - PROCESSING_TIMEOUT);
 
 		Optional<StatisticsMonthlyStatus> status = Optional.of(mockStatus);
 
@@ -306,9 +306,71 @@ public class StatisticsMonthlyManagerImplTest {
 
 		verify(mockDao).getStatusForUpdate(OBJECT_TYPE, month);
 		verify(mockStatus).getStatus();
-		verify(mockStatus).getLastStartedOn();
+		verify(mockStatus).getLastUpdatedOn();
 		verify(mockDao).setProcessing(OBJECT_TYPE, month);
 		verify(mockNotifier).sendStartProcessingNotification(OBJECT_TYPE, month);
+	}
+	
+	@Test
+	public void testShouldStartProcessingWhenProcessingFailed() {
+		long now = System.currentTimeMillis();
+
+		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING_FAILED);
+		
+		// Call under test
+		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
+		
+		assertTrue(result);
+		
+		verify(mockStatus).getStatus();
+		verify(mockStatus, never()).getLastUpdatedOn();
+	}
+	
+	@Test
+	public void testShouldStartProcessingWhenAvailable() {
+		long now = System.currentTimeMillis();
+
+		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.AVAILABLE);
+		
+		// Call under test
+		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
+		
+		assertFalse(result);
+		
+		verify(mockStatus).getStatus();
+		verify(mockStatus, never()).getLastUpdatedOn();
+	}
+	
+	@Test
+	public void testShouldStartProcessingWhenProcessingOngoing() {
+		long now = System.currentTimeMillis();
+
+		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
+		when(mockStatus.getLastUpdatedOn()).thenReturn(now + PROCESSING_TIMEOUT);
+		
+		// Call under test
+		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
+		
+		assertFalse(result);
+		
+		verify(mockStatus).getStatus();
+		verify(mockStatus).getLastUpdatedOn();
+	}
+	
+	@Test
+	public void testShouldStartProcessingWhenProcessingTimedout() {
+		long now = System.currentTimeMillis();
+
+		when(mockStatus.getStatus()).thenReturn(StatisticsStatus.PROCESSING);
+		when(mockStatus.getLastUpdatedOn()).thenReturn(now - PROCESSING_TIMEOUT);
+		
+		// Call under test
+		boolean result = manager.shouldStartProcessing(mockStatus, now, PROCESSING_TIMEOUT);
+		
+		assertTrue(result);
+		
+		verify(mockStatus).getStatus();
+		verify(mockStatus).getLastUpdatedOn();
 	}
 
 }

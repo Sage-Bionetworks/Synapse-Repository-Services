@@ -50,6 +50,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		YearMonth minMonth = consideredMonths.get(0);
 		YearMonth maxMonth = consideredMonths.get(consideredMonths.size() - 1);
 
+		// @formatter:off
+
 		// Retrieve the list of available statuses
 		List<StatisticsMonthlyStatus> availableStatuses = statusDao.getAvailableStatusInRange(objectType, minMonth, maxMonth);
 
@@ -64,6 +66,8 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 				.stream()
 				.filter(month -> !availableMonths.contains(month))
 				.collect(Collectors.toList());
+		 
+		// @formatter:on
 
 	}
 
@@ -116,6 +120,21 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 
 		return processingSuceeded;
 	}
+	
+	/**
+	 * @return True if the given status is in {@link StatisticsStatus#PROCESSING_FAILED} or
+	 *         {@link StatisticsStatus#PROCESSING} and exceeded the timeout
+	 */
+	boolean shouldStartProcessing(StatisticsMonthlyStatus status, long now, long processingTimeout) {
+		StatisticsStatus actualStatus = status.getStatus();
+		if (StatisticsStatus.PROCESSING_FAILED.equals(actualStatus)) {
+			return true;
+		}
+		if (StatisticsStatus.PROCESSING.equals(actualStatus) && now - status.getLastUpdatedOn() >= processingTimeout) {
+			return true;
+		}
+		return false;
+	}
 
 	private void runProcessing(StatisticsObjectType objectType, YearMonth month) {
 		LOG.info("Processing object type: {} (Month: {})...", objectType, month);
@@ -146,21 +165,6 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		};
 
 		return progressListener;
-	}
-
-	/**
-	 * @return True if the given status is in {@link StatisticsStatus#PROCESSING_FAILED} or
-	 *         {@link StatisticsStatus#PROCESSING} and exceeded the timeout
-	 */
-	private boolean shouldStartProcessing(StatisticsMonthlyStatus status, long now, long processingTimeout) {
-		StatisticsStatus actualStatus = status.getStatus();
-		if (StatisticsStatus.PROCESSING_FAILED.equals(actualStatus)) {
-			return true;
-		}
-		if (StatisticsStatus.PROCESSING.equals(actualStatus) && now - status.getLastStartedOn() >= processingTimeout) {
-			return true;
-		}
-		return false;
 	}
 
 	private void setAvailable(StatisticsObjectType objectType, YearMonth month) {
