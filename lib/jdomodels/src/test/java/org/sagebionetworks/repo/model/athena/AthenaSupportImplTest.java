@@ -59,7 +59,7 @@ public class AthenaSupportImplTest {
 	private static final String TEST_TABLE = "table";
 	private static final String TEST_COLUMN = "column";
 	private static final String TEST_LOG_BUCKET_NAME = "test.log.bucket";
-	private static final String TEST_OUTPUT_RESULTS_LOCATION = "s3://test.log.bucket/000000123/athena";
+	private static final String TEST_OUTPUT_RESULTS_LOCATION = "s3://test.log.bucket/athena/000000123";
 
 	@Mock
 	private AWSGlue mockGlueClient;
@@ -112,7 +112,7 @@ public class AthenaSupportImplTest {
 
 		athenaSupport = new AthenaSupportImpl(mockGlueClient, mockAthenaClient, mockConfig);
 
-		assertEquals("s3://logbucket/000000123/athena", athenaSupport.getOutputResultLocation());
+		assertEquals("s3://logbucket/athena/000000123", athenaSupport.getOutputResultLocation());
 	}
 
 	@Test
