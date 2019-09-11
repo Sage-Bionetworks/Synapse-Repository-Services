@@ -6,20 +6,19 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Create;
 import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -34,8 +33,8 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -148,7 +147,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setFileHandles(fileHandles);
 			}
 		}
-		if (isTrue(request.getIncludeTableEntityMetadata())) {
+		if (isTrue(request.getIncludeTableBundle())) {
 			// This mask only has meaning for implementations of tables.
 			eb.setTableBundle(serviceProvider.getTableServices().getTableBundle(idAndVersion));
 		}
@@ -210,6 +209,87 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return eb;
 	}
 
+
+	@WriteTransaction
+	@Override
+	public EntityBundleV2 createEntityBundle(Long userId, EntityBundleV2Create ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		if (ebc.getEntity() == null) {
+			throw new IllegalArgumentException("Invalid request: no entity to create");
+		}
+
+		EntityBundleV2Request fetchRequest = new EntityBundleV2Request();
+
+		// Create the Entity
+		fetchRequest.setIncludeEntity(true);
+		Entity toCreate = ebc.getEntity();
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId);
+
+		// Create the ACL
+		if (ebc.getAccessControlList() != null) {
+			fetchRequest.setIncludeAccessControlList(true);
+			AccessControlList acl = ebc.getAccessControlList();
+			acl.setId(entity.getId());
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
+		}
+
+		// Create the Annotations
+		if (ebc.getAnnotations() != null) {
+			fetchRequest.setIncludeAnnotations(true);
+			AnnotationsV2 annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
+			annos.getAnnotations().putAll(ebc.getAnnotations().getAnnotations());
+			ebc.setAnnotations(serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos));
+		}
+
+		return getEntityBundle(userId, entity.getId(), fetchRequest);
+	}
+
+	@WriteTransaction
+	@Override
+	public EntityBundleV2 updateEntityBundle(Long userId, String entityId,
+											 EntityBundleV2Create ebc, String activityId)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException,
+			ACLInheritanceException, ParseException {
+
+
+		Entity entity = ebc.getEntity();
+		AccessControlList acl = ebc.getAccessControlList();
+		AnnotationsV2 annos = ebc.getAnnotations();
+
+		EntityBundleV2Request fetchRequest = new EntityBundleV2Request();
+
+		// Update the Entity
+		if (ebc.getEntity() != null) {
+			if (!entityId.equals(ebc.getEntity().getId()))
+				throw new IllegalArgumentException("Entity does not match requested entity ID");
+			fetchRequest.setIncludeEntity(true);
+			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId);
+		}
+
+		// Update the ACL
+		if (ebc.getAccessControlList() != null) {
+			Long entityKey = KeyFactory.stringToKey(entityId);
+			Long aclKey = KeyFactory.stringToKey(acl.getId());
+			if (!entityKey.equals(aclKey)) {
+				throw new IllegalArgumentException("ACL does not match requested entity ID");
+			}
+			fetchRequest.setIncludeAccessControlList(true);
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
+		}
+
+		// Update the Annotations
+		if (ebc.getAnnotations() != null) {
+			if (!entityId.equals(ebc.getAnnotations().getId()))
+				throw new IllegalArgumentException("Annotations do not match requested entity ID");
+			fetchRequest.setIncludeAnnotations(true);
+			AnnotationsV2 toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
+			toUpdate.getAnnotations().putAll(annos.getAnnotations());
+			ebc.setAnnotations(serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate));
+		}
+
+		return getEntityBundle(userId, entityId, fetchRequest);
+	}
+
 	@Deprecated
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId, int mask)
@@ -224,7 +304,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
+		//translate from V2 bundle
 		EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
+
+		///additional deprecated flags not supported by V2 bundle
 		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
 			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
 		}
@@ -249,31 +332,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
-		
-		int partsMask = 0;
-		
-		// Create the Entity
-		partsMask += EntityBundle.ENTITY;
-		Entity toCreate = ebc.getEntity();
-		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId);
-		
-		// Create the ACL
-		if (ebc.getAccessControlList() != null) {
-			partsMask += EntityBundle.ACL;
-			AccessControlList acl = ebc.getAccessControlList();
-			acl.setId(entity.getId());
-			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
-		}
-		
-		// Create the Annotations
-		if (ebc.getAnnotations() != null) {
-			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations annos = AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId()));
-			annos.addAll(ebc.getAnnotations());
-			ebc.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), AnnotationsV2Translator.toAnnotationsV2(annos))));
-		}
-		
-		return getEntityBundle(userId, entity.getId(), partsMask);
+		return translateEntityBundle(createEntityBundle(userId, translateEntityBundleCreate(ebc), activityId));
 	}
 
 	@WriteTransaction
@@ -285,42 +344,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			InvalidModelException, UnauthorizedException, NotFoundException,
 			ACLInheritanceException, ParseException {
 		
-		int partsMask = 0;
-		
-		Entity entity = ebc.getEntity();
-		AccessControlList acl = ebc.getAccessControlList();
-		Annotations annos = ebc.getAnnotations();
-		
-		// Update the Entity
-		if (ebc.getEntity() != null) {
-			if (!entityId.equals(ebc.getEntity().getId()))
-				throw new IllegalArgumentException("Entity does not match requested entity ID");
-			partsMask += EntityBundle.ENTITY;
-			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId);
-		}
-			
-		// Update the ACL
-		if (ebc.getAccessControlList() != null) {
-			Long entityKey = KeyFactory.stringToKey(entityId);
-			Long aclKey = KeyFactory.stringToKey(acl.getId());
-			if (!entityKey.equals(aclKey)) {
-				throw new IllegalArgumentException("ACL does not match requested entity ID");
-			}
-			partsMask += EntityBundle.ACL;
-			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
-		}
-		
-		// Update the Annotations
-		if (ebc.getAnnotations() != null) {
-			if (!entityId.equals(ebc.getAnnotations().getId()))
-				throw new IllegalArgumentException("Annotations do not match requested entity ID");
-			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations toUpdate = AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId));
-			toUpdate.addAll(annos);
-			ebc.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, AnnotationsV2Translator.toAnnotationsV2(toUpdate))));
-		}
-		
-		return getEntityBundle(userId, entityId, partsMask);
+		return translateEntityBundle(updateEntityBundle(userId, entityId, translateEntityBundleCreate(ebc), activityId));
 	}
 
 	@Deprecated
@@ -344,22 +368,31 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	}
 
 	@Deprecated
+	static EntityBundleV2Create translateEntityBundleCreate(EntityBundleCreate entityBundleCreate){
+		EntityBundleV2Create v2Create = new EntityBundleV2Create();
+		v2Create.setEntity(entityBundleCreate.getEntity());
+		v2Create.setAnnotations(AnnotationsV2Translator.toAnnotationsV2(entityBundleCreate.getAnnotations()));
+		v2Create.setAccessControlList(entityBundleCreate.getAccessControlList());
+		return v2Create;
+	}
+
+	@Deprecated
 	static EntityBundleV2Request requestFromMask(int mask){
 		EntityBundleV2Request request = new EntityBundleV2Request();
-		request.setIncludeEntity((mask | EntityBundle.ENTITY) > 0);
-		request.setIncludeAnnotations((mask | EntityBundle.ANNOTATIONS) > 0);
-		request.setIncludePermissions((mask | EntityBundle.PERMISSIONS) > 0);
-		request.setIncludeEntityPath((mask | EntityBundle.ENTITY_PATH) > 0);
-		request.setIncludeHasChildren((mask | EntityBundle.HAS_CHILDREN) > 0);
-		request.setIncludeAccessControlList((mask | EntityBundle.ACL) > 0);
-		request.setIncludeFileHandles((mask | EntityBundle.FILE_HANDLES) > 0);
-		request.setIncludeTableBundle((mask | EntityBundle.TABLE_DATA) > 0);
-		request.setIncludeRootWikiId((mask | EntityBundle.ROOT_WIKI_ID) > 0);
-		request.setIncludeBenefactorACL((mask | EntityBundle.BENEFACTOR_ACL) > 0);
-		request.setIncludeDOIAssociation((mask | EntityBundle.DOI) > 0);
-		request.setIncludeFileName((mask | EntityBundle.FILE_NAME) > 0);
-		request.setIncludeThreadCount((mask | EntityBundle.THREAD_COUNT) > 0);
-		request.setIncludeRestrictionInformation((mask | EntityBundle.RESTRICTION_INFORMATION) > 0);
+		request.setIncludeEntity((mask & EntityBundle.ENTITY) > 0);
+		request.setIncludeAnnotations((mask & EntityBundle.ANNOTATIONS) > 0);
+		request.setIncludePermissions((mask & EntityBundle.PERMISSIONS) > 0);
+		request.setIncludeEntityPath((mask & EntityBundle.ENTITY_PATH) > 0);
+		request.setIncludeHasChildren((mask & EntityBundle.HAS_CHILDREN) > 0);
+		request.setIncludeAccessControlList((mask & EntityBundle.ACL) > 0);
+		request.setIncludeFileHandles((mask & EntityBundle.FILE_HANDLES) > 0);
+		request.setIncludeTableBundle((mask & EntityBundle.TABLE_DATA) > 0);
+		request.setIncludeRootWikiId((mask & EntityBundle.ROOT_WIKI_ID) > 0);
+		request.setIncludeBenefactorACL((mask & EntityBundle.BENEFACTOR_ACL) > 0);
+		request.setIncludeDOIAssociation((mask & EntityBundle.DOI) > 0);
+		request.setIncludeFileName((mask & EntityBundle.FILE_NAME) > 0);
+		request.setIncludeThreadCount((mask & EntityBundle.THREAD_COUNT) > 0);
+		request.setIncludeRestrictionInformation((mask & EntityBundle.RESTRICTION_INFORMATION) > 0);
 		return request;
 	}
 

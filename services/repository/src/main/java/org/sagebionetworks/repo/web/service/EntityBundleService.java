@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Create;
 import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -145,4 +146,56 @@ public interface EntityBundleService {
 			InvalidModelException, UnauthorizedException, NotFoundException, 
 			ACLInheritanceException, ParseException;
 
+
+	/**
+	 * Create an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 *
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * created components, as defined by the partsMask.
+	 *
+	 * @param userId
+	 * @param eb
+	 * @param partsMask
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ParseException
+	 * @throws ACLInheritanceException
+	 */
+	public EntityBundleV2 createEntityBundle(Long userId, EntityBundleV2Create ebc, String activityId)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
+
+	/**
+	 * Update an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 *
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * updated components.
+	 *
+	 * @param userId
+	 * @param entityId
+	 * @param ebc
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
+	 */
+	public EntityBundleV2 updateEntityBundle(Long userId, String entityId,
+										   EntityBundleV2Create ebc, String activityId) throws
+			ConflictingUpdateException,	DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException,
+			ACLInheritanceException, ParseException;
 }

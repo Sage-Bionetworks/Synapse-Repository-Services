@@ -61,7 +61,12 @@ public class AnnotationsV2TestUtils {
 	}
 
 	public static AnnotationsV2 newEmptyAnnotationsV2(){
+		return newEmptyAnnotationsV2(null);
+	}
+
+	public static AnnotationsV2 newEmptyAnnotationsV2(String id){
 		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		annotationsV2.setId(id);
 		annotationsV2.setAnnotations(new HashMap<>());
 		return annotationsV2;
 	}
