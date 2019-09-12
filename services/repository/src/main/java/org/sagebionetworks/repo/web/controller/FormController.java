@@ -49,7 +49,7 @@ public class FormController {
 	 * List (ACL)</a> with the creator listed as an administrator.
 	 * 
 	 * @param userId
-	 * @param name   A globally unique name for the group. Required.
+	 * @param name   A globally unique name for the group. Required. Limit 256 characters or less.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -91,8 +91,8 @@ public class FormController {
 	 * <li><a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">CHANGE_PERMISSIONS</a> -
 	 * Grants access to update the group's ACL.</li>
-	 * <li>SUBMIT - Grants access to both create and submit FormData to the
-	 * group.</li>
+	 * <li><a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">SUBMIT</a> -
+	 * Grants access to both create and submit FormData to the group.</li>
 	 * <li><a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a> -
 	 * Grants administrator's access to the submitted FormData, including both
@@ -131,7 +131,7 @@ public class FormController {
 	 * @param userId
 	 * @param groupId          The identifier of the group that manages this data.
 	 *                         Required.
-	 * @param name             User provided name for this submission. Required.
+	 * @param name             User provided name for this submission. Required. Limit 256 characters or less.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
@@ -156,7 +156,7 @@ public class FormController {
 	 * 
 	 * @param userId
 	 * @param id
-	 * @param name             Rename this submission. Optional.
+	 * @param name             Rename this submission. Optional. Limit 256 chars.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
@@ -266,7 +266,7 @@ public class FormController {
 	 * 
 	 * @param userId
 	 * @param id     Identifier of the FormData to accept.
-	 * @param reason The reason for the rejection. 500 characters or less.
+	 * @param reason The reason for the rejection. Limit 500 characters or less.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
