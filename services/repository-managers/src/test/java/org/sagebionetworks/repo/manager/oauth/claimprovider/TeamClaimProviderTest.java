@@ -62,6 +62,10 @@ public class TeamClaimProviderTest {
 
 	@Test
 	public void testClaimEmpty() {
+		listWrapper.setList(null);
+		// method under test
+		assertEquals(Collections.EMPTY_LIST, claimProvider.getClaim(USER_ID, teamRequest));
+		
 		listWrapper.setList(Collections.EMPTY_LIST);
 		// method under test
 		assertEquals(Collections.EMPTY_LIST, claimProvider.getClaim(USER_ID, teamRequest));

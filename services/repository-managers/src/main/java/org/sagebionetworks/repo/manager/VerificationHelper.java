@@ -16,16 +16,15 @@ public class VerificationHelper {
 	}
 	
 	public static boolean isVerified(VerificationSubmission verificationSubmission) {
-		if (verificationSubmission==null) return false;
 		VerificationState currentState = getLatestState(verificationSubmission);
 		if (currentState==null) return false;
 		return currentState.getState()==VerificationStateEnum.APPROVED;
 	}
 	
 	public static Date getApprovalDate(VerificationSubmission verificationSubmission) {
-		if (verificationSubmission==null) return null;
 		VerificationState currentState = getLatestState(verificationSubmission);
 		if (currentState==null) return null;
+		if (currentState.getState()!=VerificationStateEnum.APPROVED) return null;
 		return currentState.getCreatedOn();
 		
 	}

@@ -35,6 +35,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -60,6 +61,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	Clock clock;
 	
 	/**
 	 * Injected.
@@ -102,7 +106,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Redirect URI "+authorizationRequest.getRedirectUri()+
 					" is not registered for "+client.getClient_name());
 		}		
-		if (authorizationRequest.getResponseType()!=OAuthResponseType.code) 
+		if (OAuthResponseType.code!=authorizationRequest.getResponseType()) 
 			throw new IllegalArgumentException("Unsupported response type "+authorizationRequest.getResponseType());
 	}
 
@@ -143,29 +147,26 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Use of [the OpenID Connect] extension [to OAuth 2.0] is requested by Clients by including the openid scope value in the Authorization Request.
 		// https://openid.net/specs/openid-connect-core-1_0.html#Introduction
 		if (scopes.contains(OAuthScope.openid) && !StringUtils.isEmpty(authorizationRequest.getClaims())) {
-			{
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap = 
-						ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY);
-				for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
-					OIDCClaimProvider provider = claimProviders.get(claim);
-					if (provider!=null) {
-						scopeDescriptions.add(provider.getDescription());
-					}
-				}
-			}
-			{
-				Map<OIDCClaimName,OIDCClaimsRequestDetails> userInfoClaimsMap = 
-						ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY);
-				for (OIDCClaimName claim : userInfoClaimsMap.keySet()) {
-					OIDCClaimProvider provider = claimProviders.get(claim);
-					if (provider!=null) {
-						scopeDescriptions.add(provider.getDescription());
-					}
-				}
-			}
+			scopeDescriptions.addAll(getDecriptionsForClaims(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
+			scopeDescriptions.addAll(getDecriptionsForClaims(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		}
 		result.setScope(new ArrayList<String>(scopeDescriptions));
 		return result;
+	}
+	
+	private Set<String> getDecriptionsForClaims(String claimsJsonString, String jsonField) {
+		Set<String> scopeDescriptions = new TreeSet<String>();
+		{
+			Map<OIDCClaimName,OIDCClaimsRequestDetails> idTokenClaimsMap = 
+					ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(claimsJsonString, jsonField);
+			for (OIDCClaimName claim : idTokenClaimsMap.keySet()) {
+				OIDCClaimProvider provider = claimProviders.get(claim);
+				if (provider!=null) {
+					scopeDescriptions.add(provider.getDescription());
+				}
+			}
+		}
+		return scopeDescriptions;
 	}
 
 	@Override
@@ -184,7 +185,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		validateAuthenticationRequest(authorizationRequest, client);
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
-		authorizationRequest.setAuthorizedAt((new Date(System.currentTimeMillis())));
+		authorizationRequest.setAuthorizedAt(clock.now());
 		authorizationRequest.setAuthenticatedAt(authDao.getSessionValidatedOn(userInfo.getId()));
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -240,6 +241,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Override
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
+		ValidateArgument.required(code, "Authorization Code");
+		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
+		ValidateArgument.required(redirectUri, "Redirect URI");
+		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
 		String serializedAuthorizationRequest;
 		try {
 			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
@@ -251,12 +256,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(serializedAuthorizationRequest);
 			authorizationRequest.initializeFromJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException("Incorrectly formatted authorization code: "+code, e);
+			throw new IllegalStateException("Incorrectly formatted authorization code: "+code, e);
 		}
 
 		// enforce expiration of authorization code
-		long now = System.currentTimeMillis();
-		if (System.currentTimeMillis() > authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS) {
+		long now = clock.currentTimeMillis();
+		if (now > authorizationRequest.getAuthorizedAt().getTime()+AUTHORIZATION_CODE_TIME_LIMIT_MILLIS) {
 			throw new IllegalArgumentException("Authorization code has expired.");
 		}
 
@@ -320,7 +325,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId, scopes, oidcClaims);
 
 		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-		// "If this is specified, the response will be JWT serialized, and signed using JWS. 
+		// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
 		// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
 		// encoded JSON object using the application/json content-type."
 		// 
@@ -334,8 +339,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
-			long now = System.currentTimeMillis();
-			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null,
+			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTimeSeconds, UUID.randomUUID().toString(), userInfo);
 
 			return jwtIdToken;

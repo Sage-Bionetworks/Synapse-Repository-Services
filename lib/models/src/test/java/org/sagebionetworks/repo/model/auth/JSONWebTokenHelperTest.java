@@ -116,6 +116,34 @@ public class JSONWebTokenHelperTest {
 	}
 
 	@Test
+	public void testParseJWT_inCompleteToken() {
+		// should be three sections, separated by two periods
+		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), "foo.bar");
+
+		try {
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+			fail("IllegalArgumentException expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+
+	}
+
+	@Test
+	public void testParseJWT_unparseableToken() {
+		// should be three sections, separated by two periods
+		String token = createSignedToken(new Date(System.currentTimeMillis()+100000L), "foo.bar.baz");
+
+		try {
+			JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+			fail("IllegalArgumentException expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+
+	}
+
+	@Test
 	public void testParseJWT_expired() {
 		String token = createSignedToken(new Date(System.currentTimeMillis()-100000L), KEY_ID);
 
