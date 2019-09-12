@@ -58,6 +58,12 @@ public class VerificationHelperTest {
 		verificationState.setCreatedOn(now);
 		
 		// method under test
+		assertNull(VerificationHelper.getApprovalDate(verificationSubmission));
+		
+		
+		verificationState.setState(VerificationStateEnum.APPROVED);
+
+		// method under test
 		assertEquals(now, VerificationHelper.getApprovalDate(verificationSubmission));
 	}
 

@@ -11,6 +11,7 @@ import java.security.spec.RSAPublicKeySpec;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.util.ValidateArgument;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -31,6 +32,8 @@ public class JSONWebTokenHelper {
 	 * @throws IllegalArgumentException if the token is invalid or the signature incorrect.
 	 */
 	public static Jwt<JwsHeader,Claims> parseJWT(String token, JsonWebKeySet jsonWebKeySet) {
+		ValidateArgument.required(token, "JSON Web Token");
+		ValidateArgument.required(jsonWebKeySet, "JSON Web Key Set");
 		// This is a little awkward:  We first have to parse the token to
 		// find the key Id, then, once we map the key Id to the signing key,
 		// we parse again, setting the matching public key for verification

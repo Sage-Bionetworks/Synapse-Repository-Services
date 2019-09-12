@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -68,7 +70,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.EncryptionUtils;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
 
@@ -114,6 +116,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private UserManager mockUserManager;
+	
+	@Mock
+	private Clock mockClock;
 	
 	@InjectMocks
 	private EmailClaimProvider mockEmailClaimProvider;
@@ -178,6 +183,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		
 		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
+		
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
 
 		// we don't wire up all the claim providers, just a representative sample returning a variety of object types
 		mockClaimProviders = new HashMap<OIDCClaimName, OIDCClaimProvider>();
@@ -323,7 +331,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 		
 	@Test
-	public void testGetAuthenticationRequestDescription_HappyCase() {
+	public void testGetAuthenticationRequestDescription_HappyCase_IdTokenClaims() {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
@@ -339,8 +347,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
-	public void testGetAuthenticationRequestDescription_HappyCase_IdToken() {
-		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
+	public void testGetAuthenticationRequestDescription_HappyCase_UserInfoClaims() {
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
 				openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
@@ -586,38 +594,27 @@ public class OpenIDConnectManagerImplUnitTest {
 			// method under test
 			openIDConnectManagerImpl.getAccessToken(invalidAuthorizationObjectCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
-		}  catch (IllegalArgumentException e) {
+		}  catch (IllegalStateException e) {
 			// as expected
 		}
 	}
 
 	@Test
 	public void testGetAccessToken_expiredAuthCode() throws Exception {
+		when(mockClock.now()).thenReturn(new Date(System.currentTimeMillis()-100000L));
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		
 		// now let's doctor the authorization time stamp:
 		String code = authResponse.getAccess_code();
-		String decrypted = mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
-		
-		OIDCAuthorizationRequest authRequestFromCode = new OIDCAuthorizationRequest();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(decrypted);
-		authRequestFromCode.initializeFromJSONObject(adapter);
-		// authorized 100 sec ago (expiration is 60 sec)
-		authRequestFromCode.setAuthorizedAt(new Date(authRequestFromCode.getAuthorizedAt().getTime()-100000L));
-		// now turn back into an authorization code
-		try {
-			authRequestFromCode.writeToJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-		String serializedAuthorizationRequest = adapter.toJSONString();
-		String modifiedCode = mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(serializedAuthorizationRequest);
+
+		// now let's return the clock to normal, making the token expire
+		when(mockClock.now()).thenReturn(new Date());
 
 		// method under test
 		try {
-			openIDConnectManagerImpl.getAccessToken(modifiedCode, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+			openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 			fail("IllegalArgumentException expected");
 		}  catch (IllegalArgumentException e) {
 			// as expected
@@ -648,16 +645,15 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
-		String expectedIdToken = "ID-TOKEN";
-		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(NONCE), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
-		
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
 				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		
+		verify(oidcTokenHelper, never()).
+			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyString(), (Map)any());
 		
 		assertNull(tokenResponse.getId_token());
 

@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,8 +14,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-
-import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FamilyNameClaimProviderTest {
@@ -52,7 +48,7 @@ public class FamilyNameClaimProviderTest {
 	}
 
 	@Test
-	public void testEmailMissing() {
+	public void testClaimMissing() {
 		userProfile.setLastName(null);
 		// method under test
 		assertNull(claimProvider.getClaim(USER_ID, null));
