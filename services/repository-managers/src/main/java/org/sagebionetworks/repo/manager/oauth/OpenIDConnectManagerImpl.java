@@ -342,7 +342,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTimeSeconds, UUID.randomUUID().toString(), userInfo);
 
-			return jwtIdToken;
+			return new JWTWrapper(jwtIdToken);
 		}
 	}
 }

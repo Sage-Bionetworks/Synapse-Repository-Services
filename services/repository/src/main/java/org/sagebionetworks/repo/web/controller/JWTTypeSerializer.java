@@ -3,12 +3,13 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.sagebionetworks.repo.manager.oauth.JWTWrapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 
 
-public interface JWTTypeSerializer extends HttpMessageConverter<String> {
+public interface JWTTypeSerializer extends HttpMessageConverter<JWTWrapper> {
 
 	/**
 	 * Read the entity from the input stream and create a JSONEntity
@@ -29,6 +30,6 @@ public interface JWTTypeSerializer extends HttpMessageConverter<String> {
 	 * @param toSerializer
 	 * @param type
 	 */
-	public void serializer(final OutputStream body, final HttpHeaders headers, String toSerializer, MediaType type);
+	public void serializer(final OutputStream body, final HttpHeaders headers, JWTWrapper toSerializer, MediaType type);
 
 }

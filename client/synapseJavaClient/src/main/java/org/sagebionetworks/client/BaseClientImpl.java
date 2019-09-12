@@ -560,6 +560,7 @@ public class BaseClientImpl implements BaseClient {
 			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
+		validateContentType(response, "text/plain");
 		ClientUtils.checkStatusCodeAndThrowException(response);
 		return response.getContent();
 	}

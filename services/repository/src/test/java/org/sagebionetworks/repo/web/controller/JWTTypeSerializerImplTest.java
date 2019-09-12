@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.repo.manager.oauth.JWTWrapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -35,13 +36,15 @@ public class JWTTypeSerializerImplTest {
 	@Test
 	public void testCanRead() {
 		// method under test
-		assertFalse(jwtTypeSerializerImpl.canRead(String.class, APPLICATON_JWT));
+		assertFalse(jwtTypeSerializerImpl.canRead(JWTWrapper.class, APPLICATON_JWT));
 	}
 
 	@Test
 	public void testCanWrite() {
 		// method under test
-		assertTrue(jwtTypeSerializerImpl.canWrite(String.class, APPLICATON_JWT));
+		assertTrue(jwtTypeSerializerImpl.canWrite(JWTWrapper.class, APPLICATON_JWT));
+		// method under test
+		assertFalse(jwtTypeSerializerImpl.canWrite(String.class, APPLICATON_JWT));
 		// method under test
 		assertFalse(jwtTypeSerializerImpl.canWrite(String.class,  new MediaType("application", "json")));
 	}
@@ -56,7 +59,7 @@ public class JWTTypeSerializerImplTest {
 	public void testRead() throws Exception {
 		try {
 			// method under test
-			jwtTypeSerializerImpl.read(String.class, mockHttpInputMessage);
+			jwtTypeSerializerImpl.read(JWTWrapper.class, mockHttpInputMessage);
 			fail("IllegalArgumentException expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
@@ -74,7 +77,7 @@ public class JWTTypeSerializerImplTest {
 		String content = "some content";
 		
 		// method under test
-		jwtTypeSerializerImpl.write(content, APPLICATON_JWT, mockHttpOutputMessage);
+		jwtTypeSerializerImpl.write(new JWTWrapper(content), APPLICATON_JWT, mockHttpOutputMessage);
 		
 		assertEquals(content, baos.toString());
 		
@@ -103,7 +106,7 @@ public class JWTTypeSerializerImplTest {
 		HttpHeaders headers = new HttpHeaders();
 		
 		// method under test
-		jwtTypeSerializerImpl.serializer(baos, headers, content, APPLICATON_JWT);
+		jwtTypeSerializerImpl.serializer(baos, headers, new JWTWrapper(content), APPLICATON_JWT);
 		assertEquals(content, baos.toString());
 		
 		// check content type and content length headers

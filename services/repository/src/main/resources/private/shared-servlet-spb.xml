@@ -37,7 +37,6 @@
 		<property name="messageConverters">
 			<list>
 				<ref bean="objectTypeSerializer" />
-				<!-- TODO The following doesn't seem to work: The 'type serializer' isn't invoked as expected. -->
 				<ref bean="jwtTypeSerializer" />
 			</list>
 		</property>

@@ -4,18 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.oauth.JWTWrapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
-
-import io.jsonwebtoken.Jwt;
 
 public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	
@@ -31,7 +29,7 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return APPLICATION_JWT_MEDIA_TYPE.isCompatibleWith(mediaType);	
+		return JWTWrapper.class.equals(clazz) && APPLICATION_JWT_MEDIA_TYPE.isCompatibleWith(mediaType);	
 	}
 
 	@Override
@@ -40,13 +38,13 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	}
 
 	@Override
-	public String read(Class<? extends String> clazz, HttpInputMessage inputMessage)
+	public JWTWrapper read(Class<? extends JWTWrapper> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
 		throw new IllegalArgumentException("Cannot read "+APPLICATION_JWT_MEDIA_TYPE);
 	}
 
 	@Override
-	public void write(String t, MediaType contentType, HttpOutputMessage outputMessage)
+	public void write(JWTWrapper t, MediaType contentType, HttpOutputMessage outputMessage)
 			throws IOException, HttpMessageNotWritableException {
 		if (!canWrite(t.getClass(), contentType)) throw new IllegalArgumentException("Cannot write "+contentType);
 		Charset charsetForSerializingBody = contentType.getCharset()==null ? UTF_8_CHARSET : contentType.getCharset();
@@ -57,7 +55,7 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 		HttpHeaders headers = outputMessage.getHeaders();
 		headers.setContentType(contentTypeForResponseHeader);
 
-		long length = JSONEntityHttpMessageConverter.writeToStream(t, outputMessage.getBody(), charsetForSerializingBody);
+		long length = JSONEntityHttpMessageConverter.writeToStream(t.getJwt(), outputMessage.getBody(), charsetForSerializingBody);
 		if (headers.getContentLength() == -1) {
 			headers.setContentLength(length);
 		}
@@ -69,7 +67,7 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	}
 
 	@Override
-	public void serializer(OutputStream body, HttpHeaders headers, String toSerializer, MediaType type) {
+	public void serializer(OutputStream body, HttpHeaders headers, JWTWrapper toSerializer, MediaType type) {
 		HttpOutputMessage message = new HttpOutputMessage() {
 			@Override
 			public HttpHeaders getHeaders() {
