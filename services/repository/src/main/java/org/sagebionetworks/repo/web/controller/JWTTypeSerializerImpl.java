@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
@@ -35,7 +36,7 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 
 	@Override
 	public List<MediaType> getSupportedMediaTypes() {
-		return Arrays.asList(new MediaType[] {APPLICATION_JWT_MEDIA_TYPE});
+		return Collections.singletonList(APPLICATION_JWT_MEDIA_TYPE);
 	}
 
 	@Override
@@ -64,23 +65,7 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 
 	@Override
 	public String deserialize(InputStream body, HttpHeaders headers, MediaType type) {
-		if (!canRead(Jwt.class, type)) throw new IllegalArgumentException("Cannot read "+type);
-		HttpInputMessage message = new HttpInputMessage() {
-			@Override
-			public HttpHeaders getHeaders() {
-				return headers;
-			}
-
-			@Override
-			public InputStream getBody() throws IOException {
-				return body;
-			}
-		};
-		try {
-			return read(String.class, message);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		throw new IllegalArgumentException("Cannot read "+APPLICATION_JWT_MEDIA_TYPE);
 	}
 
 	@Override
