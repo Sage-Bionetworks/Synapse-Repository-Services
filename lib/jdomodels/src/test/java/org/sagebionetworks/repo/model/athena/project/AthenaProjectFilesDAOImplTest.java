@@ -117,7 +117,36 @@ public class AthenaProjectFilesDAOImplTest {
 			// Call under test
 			mapper.mapRow(row);
 		});
+	}
 
+	@Test
+	public void testGetAggregateQueryOneDigitMonth() {
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		YearMonth month = YearMonth.of(2019, 1);
+		String tableName = getExpectedTableName(eventType);
+
+		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
+
+		// Call under test
+		String result = dao.getAggregateQuery(eventType, month);
+		String expectedQuery = getExpectedQuery(tableName, month);
+
+		assertEquals(expectedQuery, result);
+	}
+
+	@Test
+	public void testGetAggregateQueryTwoDigitsMonth() {
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		YearMonth month = YearMonth.of(2019, 10);
+		String tableName = getExpectedTableName(eventType);
+
+		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
+
+		// Call under test
+		String result = dao.getAggregateQuery(eventType, month);
+		String expectedQuery = getExpectedQuery(tableName, month);
+
+		assertEquals(expectedQuery, result);
 	}
 
 	private Datum datum(String value) {
@@ -150,7 +179,7 @@ public class AthenaProjectFilesDAOImplTest {
 
 		verify(mockAthenaSupport).executeQuery(eq(mockDatabase), queryCaptor.capture(), any());
 
-		assertEquals(getExpectedQuery(tableName), queryCaptor.getValue());
+		assertEquals(getExpectedQuery(tableName, month), queryCaptor.getValue());
 	}
 
 	private String getExpectedTableName(FileEvent eventType) {
@@ -164,9 +193,10 @@ public class AthenaProjectFilesDAOImplTest {
 		}
 	}
 
-	private String getExpectedQuery(String tableName) {
-		return "SELECT projectId AS PROJECT_ID, COUNT(projectId) AS FILES_COUNT, COUNT(DISTINCT userId) AS USERS_COUNT FROM " + tableName
-				+ " WHERE year='" + month.getYear() + "'" + " AND month='" + month.getMonthValue() + "'" + " GROUP BY projectId";
+	private String getExpectedQuery(String tableName, YearMonth month) {
+		return String.format(
+				"SELECT projectId AS PROJECT_ID, COUNT(projectId) AS FILES_COUNT, COUNT(DISTINCT userId) AS USERS_COUNT FROM %1$s WHERE year='%2$d' AND month='%3$02d' GROUP BY projectId",
+				tableName, month.getYear(), month.getMonthValue());
 	}
 
 }

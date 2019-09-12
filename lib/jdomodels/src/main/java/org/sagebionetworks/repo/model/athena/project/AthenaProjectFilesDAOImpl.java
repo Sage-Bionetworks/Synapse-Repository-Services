@@ -45,7 +45,9 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 			+ "COUNT(DISTINCT " + COL_USER_ID + ") AS USERS_COUNT "
 			+ "FROM %1$s WHERE " 
 			+ COL_YEAR + "='%2$s' AND "
-			+ COL_MONTH + "='%3$s' "
+			// Note: The year, month and day partition key types are defined in glue as string, 
+			// makes sure that we have the 0 padded version of the month
+			+ COL_MONTH + "='%3$02d' "
 			+ "GROUP BY " + COL_PROJECT_ID;
 	
 	// @formatter:on
@@ -95,7 +97,7 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 		};
 	}
 
-	private String getAggregateQuery(FileEvent eventType, YearMonth month) {
+	String getAggregateQuery(FileEvent eventType, YearMonth month) {
 		String tableName = TABLE_NAME_MAP.get(eventType);
 
 		if (tableName == null) {
@@ -103,8 +105,8 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 		}
 
 		tableName = athenaSupport.getTableName(tableName);
-		String yearValue = String.valueOf(month.getYear());
-		String monthValue = String.valueOf(month.getMonthValue());
+		int yearValue = month.getYear();
+		int monthValue = month.getMonthValue();
 
 		return String.format(SQL_AGGREGATE_TEMPLATE, tableName, yearValue, monthValue);
 	}
