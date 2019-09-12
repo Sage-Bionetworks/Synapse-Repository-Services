@@ -53,6 +53,15 @@ public interface AthenaSupport {
 	 * @throws IllegalArgumentException If the given database name is null or empty
 	 */
 	Database getDatabase(String databaseName);
+	
+	/**
+	 * Parameterizes the given database name by the current stack instance configuration
+	 * 
+	 * @param databaseName
+	 * @return The database name parameterized by the current stack configuration
+	 * @throws IllegalArgumentException If the given database name is null or empty
+	 */
+	String getDatabaseName(String databaseName);
 
 	/**
 	 * Returns the glue {@link Table} with the given name within the given database, the table name and will automatically

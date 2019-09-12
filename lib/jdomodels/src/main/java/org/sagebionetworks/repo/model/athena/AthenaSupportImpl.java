@@ -132,6 +132,12 @@ public class AthenaSupportImpl implements AthenaSupport {
 			throw new NotFoundException(e.getMessage(), e);
 		}
 	}
+	
+	@Override
+	public String getDatabaseName(String databaseName) {
+		ValidateArgument.requiredNotEmpty(databaseName, "databaseName");
+		return prefixWithStack(databaseName);
+	}
 
 	@Override
 	public AthenaQueryStatistics repairTable(Table table) {
@@ -164,7 +170,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 	@Override
 	public String getTableName(String tableName) {
-		ValidateArgument.required(tableName, "tableName");
+		ValidateArgument.requiredNotEmpty(tableName, "tableName");
 		return prefixWithStack(tableName);
 	}
 

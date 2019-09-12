@@ -266,12 +266,38 @@ public class AthenaSupportImplTest {
 		assertEquals(database, result);
 		verify(mockGlueClient).getDatabase(eq(request));
 	}
+	
+	@Test
+	public void testGetDatabaseNameInvalidInput() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			athenaSupport.getDatabaseName(null);
+		});
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			athenaSupport.getDatabaseName("");
+		});
+	}
+
+	@Test
+	public void testGetDatabaseName() {
+		String databaseName = "someDatabase";
+
+		// Call under test
+		String result = athenaSupport.getDatabaseName(databaseName);
+
+		assertEquals(prefixWithInstance(databaseName), result);
+	}
 
 	@Test
 	public void testGetTableNameInvalidInput() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			athenaSupport.getTableName(null);
+		});
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			athenaSupport.getTableName("");
 		});
 	}
 
