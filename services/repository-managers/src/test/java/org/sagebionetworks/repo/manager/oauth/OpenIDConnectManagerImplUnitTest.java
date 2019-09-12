@@ -698,9 +698,9 @@ public class OpenIDConnectManagerImplUnitTest {
 				eq(null), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
-		String jwt = (String)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
+		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
 		
-		assertEquals(expectedIdToken, jwt);
+		assertEquals(expectedIdToken, jwt.getJwt());
 		
 		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
 		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
