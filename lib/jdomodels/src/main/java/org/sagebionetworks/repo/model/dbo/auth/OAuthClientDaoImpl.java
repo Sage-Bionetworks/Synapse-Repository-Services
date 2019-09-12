@@ -88,7 +88,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.allowTypes(OAuthClient.class)
-			.omitField(OAuthClient.class, "clientId")
+			.omitField(OAuthClient.class, "client_id")
 			.omitField(OAuthClient.class, "createdBy")
 			.omitField(OAuthClient.class, "createdOn")
 			.omitField(OAuthClient.class, "etag")
