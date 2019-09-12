@@ -127,8 +127,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
 		if (grantType==OAuthGrantType.authorization_code) {
 			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
-		} else if (grantType==OAuthGrantType.refresh_token) {
-			throw new IllegalArgumentException(OAuthGrantType.refresh_token+" unsupported.");
 		} else {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);
 		}
