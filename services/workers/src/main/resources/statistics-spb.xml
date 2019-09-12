@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
+
+	<!-- This worker watches for the monthly statistics status and broadcast the work to be done to the dedicated workers -->
+	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyStatusWatcherWorker" scope="singleton" />
+	<!-- This worker process a month worth of statistics for a particular object type -->
+	<bean id="statisticsMonthlyWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyWorker" scope="singleton" />
+
+	<!-- Trigger for the monthly statistics status watcher worker -->
+	<bean id="statisticsMonthlyStatusWatcherWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1">
+							<bean class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
+								<property name="progressingRunner" ref="statisticsMonthlyStatusWatcherWorker"/>
+								<property name="semaphoreLockKey" value="statisticsMonthlyStatusWatcher" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockTimeoutSec" value="60" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- Long start delay to let the (potential) partition discovery finish before starting processing -->
+		<property name="startDelay" value="600000" />
+		<property name="repeatInterval" value="1800000" />
+	</bean>
+	
+	<!-- Trigger for the worker that will consume the messages to process a month of statistics -->
+	<bean id="statisticsMonthlyWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2">
+							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
+								<property name="runner" ref="statisticsMonthlyWorker" />
+								<property name="semaphoreLockKey" value="statisticsMonthlyWorker" />
+								<property name="semaphoreMaxLockCount" value="2" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
+								<property name="queueName" value="#{stackConfiguration.getQueueName('STATISTICS_MONTHLY')}"/>
+
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<!-- We stagger the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1674" />
+		<property name="repeatInterval" value="1000" />
+	</bean>
+
+</beans>

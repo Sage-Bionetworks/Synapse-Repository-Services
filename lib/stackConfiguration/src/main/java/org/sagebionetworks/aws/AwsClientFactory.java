@@ -5,14 +5,16 @@ import java.util.Map;
 
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.athena.AmazonAthena;
+import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClientBuilder;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.glue.AWSGlue;
+import com.amazonaws.services.glue.AWSGlueClientBuilder;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClientBuilder;
 import com.amazonaws.services.kms.AWSKMS;
@@ -166,8 +168,31 @@ public class AwsClientFactory {
 		return builder.build();
 	}
 
+	/**
+	 * @return An instance of AmazonKinesisFirehose client using the synapse credential chain
+	 */
 	public static AmazonKinesisFirehose createAmazonKinesisFirehoseClient(){
 		return AmazonKinesisFirehoseClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+				.build();
+	}
+	
+	/**
+	 * @return An instance of AmazonAthena client using the synapse credential chain
+	 */
+	public static AmazonAthena createAmazonAthenaClient() {
+		return AmazonAthenaClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+				.build();
+	}
+	
+	/**
+	 * @return An instance of AWSGlue client using the synapse credential chain
+	 */
+	public static AWSGlue createAmazonGlueClient() {
+		return AWSGlueClientBuilder.standard()
 				.withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
