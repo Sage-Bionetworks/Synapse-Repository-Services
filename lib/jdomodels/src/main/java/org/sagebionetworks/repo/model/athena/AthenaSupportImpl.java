@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.athena;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,6 +8,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TokenPaginationIterator;
+import org.sagebionetworks.util.TokenPaginationPage;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	private static final String TABLE_NAME_REGEX = "^%1$s.+";
 	private static final String QUERY_RESULTS_BUCKET = "s3://%1$s/athena/%2$09d";
 	private static final long WAIT_INTERVAL = 1000;
+	private static final int GLUE_MAX_RESULTS = 1000;
 
 	private static final String TEMPLATE_ATHENA_REPAIR_TABLE = "MSCK REPAIR TABLE %1$s";
 
@@ -64,12 +66,40 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public List<Table> getPartitionedTables() {
-		List<Table> tables = new ArrayList<>();
-		for (Database database : getDatabases()) {
-			tables.addAll(getPartitionedTables(database));
-		}
-		return tables;
+	public Iterator<Database> getDatabases() {
+		return new TokenPaginationIterator<Database>((nextToken) -> {
+			// @formatter:off
+			GetDatabasesRequest request = new GetDatabasesRequest()
+					.withMaxResults(GLUE_MAX_RESULTS)
+					.withNextToken(nextToken);
+			// @formatter:on
+
+			GetDatabasesResult result = glueClient.getDatabases(request);
+
+			return new TokenPaginationPage<>(result.getDatabaseList(), result.getNextToken());
+		});
+	}
+
+	@Override
+	public Iterator<Table> getPartitionedTables(Database database) {
+		return new TokenPaginationIterator<>((nextToken) -> {
+			// @formatter:off
+			GetTablesRequest request = new GetTablesRequest()
+					.withDatabaseName(database.getName().toLowerCase())
+					.withExpression(tableNameRegex)
+					.withMaxResults(GLUE_MAX_RESULTS)
+					.withNextToken(nextToken);
+
+			GetTablesResult result = glueClient.getTables(request);
+
+			List<Table> page = result.getTableList()
+					.stream()
+					.filter(table -> table.getPartitionKeys() != null && !table.getPartitionKeys().isEmpty())
+					.collect(Collectors.toList());
+			
+			// @formatter:on
+			return new TokenPaginationPage<>(page, result.getNextToken());
+		});
 	}
 
 	@Override
@@ -225,7 +255,9 @@ public class AthenaSupportImpl implements AthenaSupport {
 	private <T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, AthenaQueryStatistics queryStatistics,
 			RowMapper<T> rowMapper, boolean excludeHeader) {
 
-		Iterator<T> resultsIterator = new AthenaResultsIterator<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
+		AthenaResultsProvider<T> resultsProvider = new AthenaResultsProvider<>(athenaClient, queryExecutionId, rowMapper, excludeHeader);
+
+		Iterator<T> resultsIterator = new TokenPaginationIterator<>(resultsProvider);
 
 		return buildQueryResult(queryExecutionId, queryStatistics, resultsIterator, !excludeHeader);
 	}
@@ -277,56 +309,6 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 	private String prefixWithStack(String value) {
 		return (stackPrefix + value).toLowerCase();
-	}
-
-	private List<Table> getPartitionedTables(Database database) {
-		List<Table> tables = new ArrayList<>();
-
-		String nextToken = null;
-
-		do {
-			// @formatter:off
-			GetTablesRequest request = new GetTablesRequest()
-					.withDatabaseName(database.getName().toLowerCase())
-					.withExpression(tableNameRegex)
-					.withNextToken(nextToken);
-
-			GetTablesResult result = glueClient.getTables(request);
-
-			nextToken = result.getNextToken();
-
-			List<Table> page = result.getTableList()
-					.stream()
-					.filter(table -> table.getPartitionKeys() != null && !table.getPartitionKeys().isEmpty())
-					.collect(Collectors.toList());
-			// @formatter:on
-
-			tables.addAll(page);
-
-		} while (nextToken != null);
-
-		return tables;
-	}
-
-	private List<Database> getDatabases() {
-		List<Database> databases = new ArrayList<>();
-
-		String nextToken = null;
-
-		do {
-			// @formatter:off
-			GetDatabasesRequest request = new GetDatabasesRequest()
-					.withNextToken(nextToken);
-			// @formatter:on
-
-			GetDatabasesResult result = glueClient.getDatabases(request);
-
-			nextToken = result.getNextToken();
-
-			databases.addAll(result.getDatabaseList());
-		} while (nextToken != null);
-
-		return databases;
 	}
 
 }

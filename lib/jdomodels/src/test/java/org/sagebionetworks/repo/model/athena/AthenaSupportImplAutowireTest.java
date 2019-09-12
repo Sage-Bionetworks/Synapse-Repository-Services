@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.util.Iterator;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,12 +74,20 @@ public class AthenaSupportImplAutowireTest {
 		MockitoAnnotations.initMocks(this);
 		athenaSupport = new AthenaSupportImpl(glueClient, mockAthenaClient, stackConfig);
 	}
+	
+	@Test
+	public void testGetDatabases() {
+		// Call under test
+		Iterator<Database> databases = athenaSupport.getDatabases();
+		assertTrue(databases.hasNext());
+	}
 
 	@Test
 	public void testGetParitionedTables() {
+		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 		// Call under test
-		List<Table> tables = athenaSupport.getPartitionedTables();
-		assertFalse(tables.isEmpty());
+		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
+		assertTrue(tables.hasNext());
 	}
 
 	@Test

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -113,45 +114,56 @@ public class AthenaSupportImplTest {
 
 		assertEquals("s3://logbucket/athena/000000123", athenaSupport.getOutputResultLocation());
 	}
+	
+	@Test
+	public void testGetDatabases() {
+		Database database = new Database().withName(TEST_DB);
+		List<Database> mockDatabases = Collections.singletonList(database);
+		
+		when(mockDatabasesResults.getDatabaseList()).thenReturn(mockDatabases);
+		when(mockGlueClient.getDatabases(any())).thenReturn(mockDatabasesResults);
+		
+		Iterator<Database> databases = athenaSupport.getDatabases();
+		
+		assertTrue(databases.hasNext());
+		assertEquals(database, databases.next());
+		
+		verify(mockGlueClient).getDatabases(any());
+	}
 
 	@Test
 	public void testGetPartitionedTablesEmpty() {
-		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
+		Database database = new Database().withName(TEST_DB);
 
 		List<Table> mockTables = Collections.singletonList(new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB));
 
-		when(mockDatabasesResults.getDatabaseList()).thenReturn(mockDatabases);
 		when(mockTablesResults.getTableList()).thenReturn(mockTables);
-
-		when(mockGlueClient.getDatabases(any())).thenReturn(mockDatabasesResults);
 		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
 
 		// Call under test
-		List<Table> tables = athenaSupport.getPartitionedTables();
+		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
 
-		assertTrue(tables.isEmpty());
-		verify(mockGlueClient).getDatabases(any());
+		assertFalse(tables.hasNext());
 		verify(mockGlueClient).getTables(any());
 	}
 
 	@Test
 	public void testGetPartitionedTables() {
-		List<Database> mockDatabases = Collections.singletonList(new Database().withName(TEST_DB));
+		Database database = new Database().withName(TEST_DB);
 
-		List<Table> mockTables = Collections.singletonList(
-				new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB).withPartitionKeys(new Column().withName(TEST_COLUMN)));
+		Table table = new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB).withPartitionKeys(new Column().withName(TEST_COLUMN));
 
-		when(mockDatabasesResults.getDatabaseList()).thenReturn(mockDatabases);
+		List<Table> mockTables = Collections.singletonList(table);
+
 		when(mockTablesResults.getTableList()).thenReturn(mockTables);
-
-		when(mockGlueClient.getDatabases(any())).thenReturn(mockDatabasesResults);
 		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
 
 		// Call under test
-		List<Table> tables = athenaSupport.getPartitionedTables();
+		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
 
-		assertEquals(mockTables, tables);
-		verify(mockGlueClient).getDatabases(any());
+		assertTrue(tables.hasNext());
+		assertEquals(table, tables.next());
+		assertFalse(tables.hasNext());
 		verify(mockGlueClient).getTables(any());
 	}
 
