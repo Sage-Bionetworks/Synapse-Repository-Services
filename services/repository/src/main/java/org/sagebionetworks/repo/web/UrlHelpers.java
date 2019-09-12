@@ -36,6 +36,8 @@ public class UrlHelpers {
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
 	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
+
+	public static final String REPO_PATH_V2			= "/repo/v2";
 	
 	/**
 	 * Used for batch requests
@@ -53,6 +55,8 @@ public class UrlHelpers {
 	public static final String GENERATED_BY			= "/generatedBy";
 	
 	public static final String GENERATED			= "/generated";
+
+	public static final String CREATE				= "/create";
 
 	/**
 	 * All administration URLs must start with this URL or calls will be
@@ -199,6 +203,7 @@ public class UrlHelpers {
 	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
+	public static final String ENTITY_BUNDLE_CREATE = ENTITY_ID+BUNDLE+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 

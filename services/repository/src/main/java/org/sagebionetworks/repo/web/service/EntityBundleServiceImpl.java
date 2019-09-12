@@ -237,7 +237,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			fetchRequest.setIncludeAnnotations(true);
 			AnnotationsV2 annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
 			annos.getAnnotations().putAll(ebc.getAnnotations().getAnnotations());
-			ebc.setAnnotations(serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos));
+			serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
 
 		return getEntityBundle(userId, entity.getId(), fetchRequest);
@@ -284,7 +284,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			fetchRequest.setIncludeAnnotations(true);
 			AnnotationsV2 toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
 			toUpdate.getAnnotations().putAll(annos.getAnnotations());
-			ebc.setAnnotations(serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate));
+			serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}
 
 		return getEntityBundle(userId, entityId, fetchRequest);
