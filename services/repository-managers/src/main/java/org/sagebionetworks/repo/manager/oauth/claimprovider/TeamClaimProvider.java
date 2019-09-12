@@ -31,7 +31,7 @@ public class TeamClaimProvider implements OIDCClaimProvider {
 	@Override
 	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
 		if (details==null) {
-			return null;
+			return Collections.EMPTY_LIST;
 		}
 		Set<String> requestedTeamIds = new HashSet<String>();
 		if (StringUtils.isNotEmpty(details.getValue())) {
