@@ -94,20 +94,20 @@ class ITOpenIDConnectTest {
 		client.setClient_name("some client");
 		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
 		client = synapseOne.createOAuthClient(client);
-		clientToDelete = client.getClientId();
+		clientToDelete = client.getClient_id();
 		
-		OAuthClient retrieved = synapseOne.getOAuthClient(client.getClientId());
+		OAuthClient retrieved = synapseOne.getOAuthClient(client.getClient_id());
 		assertEquals(client, retrieved);
 		
 		OAuthClientList clientList = synapseOne.listOAuthClients(null);
 		assertEquals(client, clientList.getResults().get(0));
 		
-		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClientId());
-		assertEquals(client.getClientId(), secret.getClientId());
-		assertNotNull(secret.getClientSecret());
+		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		assertEquals(client.getClient_id(), secret.getClient_id());
+		assertNotNull(secret.getClient_secret());
 				
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(client.getClientId());
+		authorizationRequest.setClientId(client.getClient_id());
 		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope("openid");
@@ -124,7 +124,7 @@ class ITOpenIDConnectTest {
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
 		try {
-			synapseAnonymous.setBasicAuthorizationCredentials(client.getClientId(), secret.getClientSecret());
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
 			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code, 
 					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
 		} finally {
@@ -158,7 +158,7 @@ class ITOpenIDConnectTest {
 			synapseAnonymous.removeAuthorizationHeader();
 		}
 		
-		synapseOne.deleteOAuthClient(client.getClientId());
+		synapseOne.deleteOAuthClient(client.getClient_id());
 		clientToDelete=null;
 	}
 

@@ -88,14 +88,14 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		
 		// method under test
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
-		assertNotNull(oauthClient.getClientId());
+		assertNotNull(oauthClient.getClient_id());
 
 	}
 	
 	@After
 	public void tearDown() throws Exception {
 		try {
-			oauthClientManager.deleteOpenIDConnectClient(adminUserInfo, oauthClient.getClientId());
+			oauthClientManager.deleteOpenIDConnectClient(adminUserInfo, oauthClient.getClient_id());
 		} catch (NotFoundException e) {
 			// stale ID, no deletion necessary
 		}
@@ -109,7 +109,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	@Test
 	public void testAuthorizationRoundTrip() throws Exception {		
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(oauthClient.getClientId());
+		authorizationRequest.setClientId(oauthClient.getClient_id());
 		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
 		authorizationRequest.setScope(OAuthScope.openid.name());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
@@ -129,7 +129,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		// method under test
 		OIDCTokenResponse tokenResponse = 
 				openIDConnectManager.getAccessToken(authResponse.getAccess_code(), 
-						oauthClient.getClientId(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
+						oauthClient.getClient_id(), oauthClient.getRedirect_uris().get(0), OAUTH_ENDPOINT);
 		
 		
 		assertNotNull(tokenResponse.getAccess_token());

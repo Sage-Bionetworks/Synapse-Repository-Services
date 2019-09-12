@@ -166,7 +166,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
-		oauthClient.setClientId(OAUTH_CLIENT_ID);
+		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
 
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	

@@ -476,7 +476,7 @@ public class OAuthClientManagerImplUnitTest {
 	public void testGetOpenIDConnectClient_owner() throws Exception {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		String id = "123";
-		oauthClient.setClientId(id);
+		oauthClient.setClient_id(id);
 		oauthClient.setCreatedBy(USER_ID);
 		oauthClient.setSector_identifier("foo.com");
 		oauthClient.setEtag("some etag");
@@ -500,7 +500,7 @@ public class OAuthClientManagerImplUnitTest {
 	public void testGetOpenIDConnectClient_not_owner() throws Exception {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		String id = "123";
-		oauthClient.setClientId(id);
+		oauthClient.setClient_id(id);
 		oauthClient.setCreatedBy(USER_ID);
 		oauthClient.setSector_identifier("foo.com");
 		oauthClient.setEtag("some etag");
@@ -533,7 +533,7 @@ public class OAuthClientManagerImplUnitTest {
 	// create a fully populated object, to be updated
 	private static OAuthClient newCreatedOAuthClient() {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
-		oauthClient.setClientId(OAUTH_CLIENT_ID);
+		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setCreatedBy(USER_ID);
 		String etag = "some etag";
 		oauthClient.setEtag(etag);
@@ -567,13 +567,13 @@ public class OAuthClientManagerImplUnitTest {
 		toUpdate.setCreatedOn(null);
 		toUpdate.setModifiedOn(null);
 		
-		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
 		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		
 		// method under test
 		OAuthClient updated = oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
 		
-		assertEquals(toUpdate.getClientId(), updated.getClientId());
+		assertEquals(toUpdate.getClient_id(), updated.getClient_id());
 		assertEquals(toUpdate.getClient_name(), updated.getClient_name());
 		assertEquals(toUpdate.getClient_uri(), updated.getClient_uri());
 		assertEquals(toUpdate.getPolicy_uri(), updated.getPolicy_uri());
@@ -599,7 +599,7 @@ public class OAuthClientManagerImplUnitTest {
 		// 'created' simulates what's in the database already
 		OAuthClient created = newCreatedOAuthClient();
 		created.setCreatedBy(userInfo.getId().toString());
-		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
 		
 		// 'toUpdate' is the object as retrieved and modified by the client
 		OAuthClient toUpdate = newCreatedOAuthClient();
@@ -618,7 +618,7 @@ public class OAuthClientManagerImplUnitTest {
 		// 'created' simulates what's in the database already
 		OAuthClient created = newCreatedOAuthClient();
 		created.setCreatedBy(userInfo.getId().toString());
-		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClientId())).thenReturn(created);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(created.getClient_id())).thenReturn(created);
 		
 		// 'toUpdate' is the object as retrieved and modified by the client
 		OAuthClient toUpdate = newCreatedOAuthClient();
@@ -661,8 +661,8 @@ public class OAuthClientManagerImplUnitTest {
 		OAuthClientIdAndSecret idAndSecret = oauthClientManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
 
 		verify(mockOauthClientDao).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
-		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClientId());
-		assertNotNull(idAndSecret.getClientSecret());
+		assertEquals(OAUTH_CLIENT_ID, idAndSecret.getClient_id());
+		assertNotNull(idAndSecret.getClient_secret());
 	}
 
 	@Test

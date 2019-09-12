@@ -179,8 +179,8 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@WriteTransaction
 	@Override
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
-		ValidateArgument.requiredNotEmpty(toUpdate.getClientId(), "Client ID");
-		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClientId());
+		ValidateArgument.requiredNotEmpty(toUpdate.getClient_id(), "Client ID");
+		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClient_id());
 		if (!canAdministrate(userInfo, currentClient.getCreatedBy())) {
 			throw new UnauthorizedException("You can only update your own OAuth client(s).");
 		}
@@ -202,7 +202,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		// now fill in 'toStore' with info from updatedClient
 		// we *never* change: clientID, createdBy, createdOn
 		// (1) immutable:
-		toStore.setClientId(currentClient.getClientId());
+		toStore.setClient_id(currentClient.getClient_id());
 		toStore.setCreatedBy(currentClient.getCreatedBy());
 		toStore.setCreatedOn(currentClient.getCreatedOn());
 		// (2) settable by client
@@ -245,8 +245,8 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
 		OAuthClientIdAndSecret result = new OAuthClientIdAndSecret();
-		result.setClientId(clientId);
-		result.setClientSecret(secret);
+		result.setClient_id(clientId);
+		result.setClient_secret(secret);
 		return result;
 	}
 

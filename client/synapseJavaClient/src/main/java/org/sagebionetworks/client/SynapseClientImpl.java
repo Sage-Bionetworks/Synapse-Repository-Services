@@ -4331,7 +4331,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public OAuthClient updateOAuthClient(OAuthClient oauthClient) throws SynapseException {
-		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+oauthClient.getClientId(), oauthClient, OAuthClient.class);
+		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+oauthClient.getClient_id(), oauthClient, OAuthClient.class);
 	}
 
 	@Override
