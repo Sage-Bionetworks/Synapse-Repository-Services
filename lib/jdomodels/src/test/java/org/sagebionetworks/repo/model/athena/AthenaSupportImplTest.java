@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TokenPaginationIterator;
 
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.model.Datum;
@@ -92,6 +93,10 @@ public class AthenaSupportImplTest {
 	private GetQueryResultsResult mockQueryResult;
 
 	private AthenaSupportImpl athenaSupport;
+	
+	private RowMapper<String> rowMapper = (Row row) -> {
+		return row.getData().get(0).getVarCharValue();
+	};
 
 	@BeforeEach
 	public void before() {
@@ -114,20 +119,20 @@ public class AthenaSupportImplTest {
 
 		assertEquals("s3://logbucket/athena/000000123", athenaSupport.getOutputResultLocation());
 	}
-	
+
 	@Test
 	public void testGetDatabases() {
 		Database database = new Database().withName(TEST_DB);
 		List<Database> mockDatabases = Collections.singletonList(database);
-		
+
 		when(mockDatabasesResults.getDatabaseList()).thenReturn(mockDatabases);
 		when(mockGlueClient.getDatabases(any())).thenReturn(mockDatabasesResults);
-		
+
 		Iterator<Database> databases = athenaSupport.getDatabases();
-		
+
 		assertTrue(databases.hasNext());
 		assertEquals(database, databases.next());
-		
+
 		verify(mockGlueClient).getDatabases(any());
 	}
 
@@ -196,7 +201,7 @@ public class AthenaSupportImplTest {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 
-		StartQueryExecutionRequest startQueryRequest = getStartQueryExecutionRequest(databaseName, tableName);
+		StartQueryExecutionRequest expectedRequest = getStartQueryExecutionRequest(databaseName, "MSCK REPAIR TABLE " + tableName);
 
 		String queryId = "abcd";
 
@@ -210,7 +215,7 @@ public class AthenaSupportImplTest {
 		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
 				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
 
-		when(mockAthenaClient.startQueryExecution(eq(startQueryRequest))).thenReturn(mockStartQueryResult);
+		when(mockAthenaClient.startQueryExecution(eq(expectedRequest))).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(eq(queryExecutionRequest))).thenReturn(mockQueryExecutionResult);
 
 		Table table = new Table().withDatabaseName(databaseName).withName(tableName);
@@ -219,7 +224,7 @@ public class AthenaSupportImplTest {
 		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
 
 		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), queryStats);
-		verify(mockAthenaClient).startQueryExecution(eq(startQueryRequest));
+		verify(mockAthenaClient).startQueryExecution(eq(expectedRequest));
 		verify(mockAthenaClient).getQueryExecution(eq(queryExecutionRequest));
 	}
 
@@ -281,66 +286,217 @@ public class AthenaSupportImplTest {
 	}
 
 	@Test
-	public void testExecuteQuery() {
+	public void testSubmitQuery() {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 		String query = "SELECT count(*) FROM " + tableName;
-		String countResult = "1000";
 		String queryId = "abcd";
 
 		Database database = new Database().withName(databaseName);
 
 		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
+		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
 
-		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
+		// Call under test
+		String queryExecutionId = athenaSupport.submitQuery(database, query);
 
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
-				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
+		assertEquals(queryId, queryExecutionId);
 
-		ResultSet resultSet = new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Count")),
-				new Row().withData(new Datum().withVarCharValue(countResult)));
+		StartQueryExecutionRequest expectedRequest = getStartQueryExecutionRequest(databaseName, query);
 
-		when(mockQueryResult.getResultSet()).thenReturn(resultSet);
-		when(mockQueryResult.getNextToken()).thenReturn(null);
+		verify(mockAthenaClient).startQueryExecution(expectedRequest);
+	}
 
+	@Test
+	public void testGetQueryExecutionStatus() {
+		String queryId = "abcd";
+
+		QueryExecution queryExecution = getQueryExecution(queryId);
+
+		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(queryExecution);
+		when(mockAthenaClient.getQueryExecution(getQueryExecutionRequest(queryId))).thenReturn(mockQueryExecutionResult);
+
+		AthenaQueryExecution result = athenaSupport.getQueryExecutionStatus(queryId);
+
+		assertEquals(new AthenaQueryExecutionAdapter(queryExecution), result);
+
+		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
+		verify(mockQueryExecutionResult).getQueryExecution();
+	}
+
+	@Test
+	public void testGetQueryResults() {
+		String queryId = "abcd";
+		boolean excludeHeader = true;
+		String value = "Some Value";
+
+		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", value));
+		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
+		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+
+		// Call under test
+		AthenaQueryResult<String> result = athenaSupport.getQueryResults(queryId, rowMapper, excludeHeader);
+
+		AthenaQueryResult<String> expected = getQueryResult(false, queryId);
+		
+		assertEquals(expected.getQueryExecutionId(), result.getQueryExecutionId());
+		assertEquals(expected.getQueryExecutionStatistics(), result.getQueryExecutionStatistics());
+
+		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
+
+		// The results are actually fetched from the iterator
+		verify(mockAthenaClient, never()).getQueryResults(any());
+
+		assertTrue(result.getQueryResultsIterator().hasNext());
+
+		// Now the fetch is fired
+		verify(mockAthenaClient).getQueryResults(any());
+
+	}
+
+	@Test
+	public void testExecuteQueryWithIncludeHeader() {
+		String databaseName = prefixWithInstance(TEST_DB);
+		String tableName = prefixWithInstance(TEST_TABLE);
+		String query = "SELECT count(*) FROM " + tableName;
+		String countResult = "1000";
+		String queryId = "abcd";
+		boolean excludeHeader = false;
+
+		Database database = new Database().withName(databaseName);
+
+		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
+		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", countResult));
 		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
 		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
 
-		boolean excludeHeader = true;
-
 		// Call under test
-		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, (Row row) -> {
-			return row.getData().get(0).getVarCharValue();
-		}, excludeHeader);
+		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, rowMapper, excludeHeader);
+		
+		AthenaQueryResult<String> expected = getQueryResult(excludeHeader, queryId);
 
-		assertNotNull(result);
-		assertEquals(queryId, result.getQueryExecutionId());
-		assertEquals(new AthenaQueryStatisticsAdapter(expectedStats), result.getQueryExecutionStatistics());
+		assertEquals(expected.includeHeader(), result.includeHeader());
+		assertEquals(expected.getQueryExecutionId(), result.getQueryExecutionId());
+		assertEquals(expected.getQueryExecutionStatistics(), result.getQueryExecutionStatistics());
 
-		verify(mockQueryResult, never()).getResultSet();
+		verify(mockAthenaClient).startQueryExecution(getStartQueryExecutionRequest(databaseName, query));
+		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
+		verify(mockAthenaClient, never()).getQueryResults(any());
 
 		assertTrue(result.getQueryResultsIterator().hasNext());
-
+		
+		verify(mockAthenaClient).getQueryResults(any());
+		
+		assertEquals("Header", result.getQueryResultsIterator().next());
 		assertEquals(countResult, result.getQueryResultsIterator().next());
-
-		verify(mockQueryResult).getResultSet();
+		
 		assertFalse(result.getQueryResultsIterator().hasNext());
 
+	}
+	
+	@Test
+	public void testExecuteQueryWithExcludeHeader() {
+		String databaseName = prefixWithInstance(TEST_DB);
+		String tableName = prefixWithInstance(TEST_TABLE);
+		String query = "SELECT count(*) FROM " + tableName;
+		String countResult = "1000";
+		String queryId = "abcd";
+		boolean excludeHeader = true;
+
+		Database database = new Database().withName(databaseName);
+
+		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
+		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", countResult));
+		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
+		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
+		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+
+		// Call under test
+		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, rowMapper, excludeHeader);
+		
+		AthenaQueryResult<String> expected = getQueryResult(excludeHeader, queryId);
+
+		assertEquals(expected.includeHeader(), result.includeHeader());
+		assertEquals(expected.getQueryExecutionId(), result.getQueryExecutionId());
+		assertEquals(expected.getQueryExecutionStatistics(), result.getQueryExecutionStatistics());
+
+		verify(mockAthenaClient).startQueryExecution(getStartQueryExecutionRequest(databaseName, query));
+		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
+		verify(mockAthenaClient, never()).getQueryResults(any());
+
+		assertTrue(result.getQueryResultsIterator().hasNext());
+		
+		verify(mockAthenaClient).getQueryResults(any());
+		
+		assertEquals(countResult, result.getQueryResultsIterator().next());
+		assertFalse(result.getQueryResultsIterator().hasNext());
+
+	}
+
+	private ResultSet getResultSet(String... values) {
+		ResultSet resultSet = new ResultSet();
+
+		for (String value : values) {
+			resultSet.withRows(getRow(value));
+		}
+
+		return resultSet;
+	}
+
+	private Row getRow(String value) {
+		return new Row().withData(new Datum().withVarCharValue(value));
+	}
+
+	private AthenaQueryResult<String> getQueryResult(boolean excludeHeader, String queryId) {
+		return new AthenaQueryResult<String>() {
+
+			@Override
+			public boolean includeHeader() {
+				return !excludeHeader;
+			}
+
+			@Override
+			public Iterator<String> getQueryResultsIterator() {
+				return new TokenPaginationIterator<>(new AthenaResultsProvider<>(mockAthenaClient, queryId, rowMapper, excludeHeader));
+			}
+
+			@Override
+			public AthenaQueryStatistics getQueryExecutionStatistics() {
+				return new AthenaQueryStatisticsAdapter(getQueryExecution(queryId).getStatistics());
+			}
+
+			@Override
+			public String getQueryExecutionId() {
+				return queryId;
+			}
+		};
+	}
+
+	private QueryExecution getQueryExecution(String queryId) {
+		QueryExecutionStatistics queryStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
+				.withEngineExecutionTimeInMillis(1000L);
+
+		QueryExecution queryExecution = new QueryExecution().withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED))
+				.withStatistics(queryStats);
+
+		return queryExecution;
 	}
 
 	private GetQueryExecutionRequest getQueryExecutionRequest(String queryId) {
 		return new GetQueryExecutionRequest().withQueryExecutionId(queryId);
 	}
 
-	private StartQueryExecutionRequest getStartQueryExecutionRequest(String databaseName, String tableName) {
+	private StartQueryExecutionRequest getStartQueryExecutionRequest(String databaseName, String query) {
 		QueryExecutionContext queryContext = new QueryExecutionContext().withDatabase(databaseName.toLowerCase());
 
 		ResultConfiguration resultConfiguration = new ResultConfiguration().withOutputLocation(TEST_OUTPUT_RESULTS_LOCATION);
 
 		StartQueryExecutionRequest request = new StartQueryExecutionRequest().withQueryExecutionContext(queryContext)
-				.withResultConfiguration(resultConfiguration).withQueryString("MSCK REPAIR TABLE " + tableName);
+				.withResultConfiguration(resultConfiguration).withQueryString(query);
 
 		return request;
 	}

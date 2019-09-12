@@ -104,8 +104,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 		ProgressListener progressListener = getProgressListener(objectType, month);
 
 		// Register a progress listener so that we keep the lastUpdatedOn timestamp up to date while
-		// processing so that this
-		// particular month is not re-processed when the process is taking a long time
+		// processing so that this particular month is not re-processed when the process is taking a long time
 		progressCallback.addProgressListener(progressListener);
 
 		try {

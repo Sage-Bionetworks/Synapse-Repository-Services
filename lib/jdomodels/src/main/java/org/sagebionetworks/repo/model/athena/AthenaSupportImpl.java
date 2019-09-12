@@ -136,13 +136,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	@Override
 	public AthenaQueryStatistics repairTable(Table table) {
 
-		ValidateArgument.required(table, "table");
-
-		LOG.info("Repairing table {} in database {}...", table.getName(), table.getDatabaseName());
-
-		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.getName().toLowerCase());
-
-		String queryExecutionId = submitQuery(table.getDatabaseName(), repairQuery);
+		String queryExecutionId = submitRepairTable(table);
 
 		// Just wait for the result
 		AthenaQueryStatistics queryStats = waitForQueryResults(queryExecutionId);
@@ -151,6 +145,21 @@ public class AthenaSupportImpl implements AthenaSupport {
 				table.getDatabaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
 
 		return queryStats;
+	}
+
+	@Override
+	public String submitRepairTable(Table table) {
+		ValidateArgument.required(table, "table");
+
+		LOG.info("Repairing table {} in database {}...", table.getName(), table.getDatabaseName());
+
+		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.getName().toLowerCase());
+
+		String queryExecutionId = submitQuery(table.getDatabaseName(), repairQuery);
+
+		LOG.info("Repairing table {} in database {}...SUBMITTED", table.getName(), table.getDatabaseName());
+
+		return queryExecutionId;
 	}
 
 	@Override
@@ -238,7 +247,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	}
 
 	@Override
-	public <T> AthenaQueryResult<T> retrieveQueryResults(String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
+	public <T> AthenaQueryResult<T> getQueryResults(String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
 		ValidateArgument.required(queryExecutionId, "executionQueryId");
 		ValidateArgument.required(rowMapper, "rowMapper");
 
