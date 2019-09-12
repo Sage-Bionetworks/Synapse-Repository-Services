@@ -33,7 +33,7 @@ public class StatisticsMonthlyProjectFileUploadsProcessor implements StatisticsM
 
 	@Override
 	public void processMonth(YearMonth month) {
-		statisticsManager.computeMonthlyProjectFilesStatistics(FileEvent.FILE_UPLOAD, month);
+		statisticsManager.computeFileEventsStatistics(FileEvent.FILE_UPLOAD, month);
 	}
 
 }

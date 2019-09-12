@@ -42,7 +42,7 @@ public class StatisticsMonthlyProjectManagerAutowireTest {
 		YearMonth month = YearMonth.now(ZoneOffset.UTC).plusMonths(1);
 		
 		// Call under test
-		manager.computeMonthlyProjectFilesStatistics(FileEvent.FILE_DOWNLOAD, month);
+		manager.computeFileEventsStatistics(FileEvent.FILE_DOWNLOAD, month);
 		
 		Long count = statisticsDao.countProjectsInRange(FileEvent.FILE_DOWNLOAD, month, month);
 	

@@ -32,7 +32,7 @@ public class StatisticsMonthlyProjectFileDownloadsProcessor implements Statistic
 
 	@Override
 	public void processMonth(YearMonth month) {
-		statisticsManager.computeMonthlyProjectFilesStatistics(FileEvent.FILE_DOWNLOAD, month);
+		statisticsManager.computeFileEventsStatistics(FileEvent.FILE_DOWNLOAD, month);
 	}
 
 }

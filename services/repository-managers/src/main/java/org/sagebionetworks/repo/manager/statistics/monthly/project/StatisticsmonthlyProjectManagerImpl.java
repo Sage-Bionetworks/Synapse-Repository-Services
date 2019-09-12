@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,13 +26,14 @@ public class StatisticsmonthlyProjectManagerImpl implements StatisticsMonthlyPro
 	private AthenaProjectFilesDAO athenaDao;
 	private StatisticsMonthlyProjectDAO statisticsDao;
 
+	@Autowired
 	public StatisticsmonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectDAO statisticsDao) {
 		this.athenaDao = athenaDao;
 		this.statisticsDao = statisticsDao;
 	}
 
 	@Override
-	public void computeMonthlyProjectFilesStatistics(FileEvent eventType, YearMonth month) {
+	public void computeFileEventsStatistics(FileEvent eventType, YearMonth month) {
 		ValidateArgument.required(eventType, "eventType");
 		ValidateArgument.required(month, "month");
 

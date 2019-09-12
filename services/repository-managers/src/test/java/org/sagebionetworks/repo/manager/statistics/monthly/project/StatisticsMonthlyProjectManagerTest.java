@@ -56,7 +56,7 @@ public class StatisticsMonthlyProjectManagerTest {
 			YearMonth month = YearMonth.of(2019, 8);
 
 			// Call under test
-			manager.computeMonthlyProjectFilesStatistics(eventType, month);
+			manager.computeFileEventsStatistics(eventType, month);
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -65,7 +65,7 @@ public class StatisticsMonthlyProjectManagerTest {
 			YearMonth month = null;
 
 			// Call under test
-			manager.computeMonthlyProjectFilesStatistics(eventType, month);
+			manager.computeFileEventsStatistics(eventType, month);
 		});
 	}
 
@@ -88,7 +88,7 @@ public class StatisticsMonthlyProjectManagerTest {
 		when(mockAthenaDao.aggregateForMonth(eventType, month)).thenReturn(mockQueryResults);
 
 		// Call under test
-		manager.computeMonthlyProjectFilesStatistics(eventType, month);
+		manager.computeFileEventsStatistics(eventType, month);
 
 		verify(mockAthenaDao).aggregateForMonth(eventType, month);
 		verify(mockQueryResults).getQueryResultsIterator();
@@ -114,7 +114,7 @@ public class StatisticsMonthlyProjectManagerTest {
 		when(mockAthenaDao.aggregateForMonth(eventType, month)).thenReturn(mockQueryResults);
 
 		// Call under test
-		manager.computeMonthlyProjectFilesStatistics(eventType, month);
+		manager.computeFileEventsStatistics(eventType, month);
 
 		verify(mockAthenaDao).aggregateForMonth(eventType, month);
 		verify(mockQueryResults).getQueryResultsIterator();
