@@ -78,7 +78,7 @@ public class OpenIDConnectController {
 	 * Create an OAuth 2.0 client.  Note:  After creating the client one must also set the client secret
 	 * and verify ownership of the host(s) in the registered redirect URIs.
 	 * 
-	 * @param oauthClient
+	 * @param oauthClient the client metadata for the new client
 	 * @return
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException if a sector identifer URI is registered but the file cannot be read
@@ -103,7 +103,7 @@ public class OpenIDConnectController {
 	 * <br>
 	 * <em>NOTE:  This request will invalidate any previously issued secrets.</em>
 	 * 
-	 * @param clientId
+	 * @param clientId the ID of the client whose secret is to be generated
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -119,7 +119,7 @@ public class OpenIDConnectController {
 	/**
 	 * Get an existing OAuth 2.0 client.
 	 * 
-	 * @param id
+	 * @param id the ID of the client to retrieve
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -138,9 +138,9 @@ public class OpenIDConnectController {
 	 * 
 	 * List the OAuth 2.0 clients created by the current user.
 	 * 
+	 * @param userId
 	 * @param nextPageToken returned along with a page of results, this is passed to 
 	 * the server to retrieve the next page.
-	 * @param id
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -160,7 +160,7 @@ public class OpenIDConnectController {
 	 * Note, changing the redirect URIs will revert the 'verified' status of the client,
 	 * necessitating re-verification.
 	 * 
-	 * @param oauthClient
+	 * @param oauthClient the client metadata to update
 	 * @return
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException 
@@ -179,7 +179,7 @@ public class OpenIDConnectController {
 	/**
 	 * Delete OAuth 2.0 client
 	 * 
-	 * @param id
+	 * @param id the ID of the client to delete
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -197,7 +197,7 @@ public class OpenIDConnectController {
 	 * <br>
 	 * This request does not need to be authenticated.
 	 * 
-	 * @param authorizationRequest
+	 * @param authorizationRequest The request to be described
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -211,7 +211,7 @@ public class OpenIDConnectController {
 	
 	/**
 	 * 
-	 * get access code for a given client, scopes, response type(s), and extra claim(s).
+	 * Get authorization code for a given client, scopes, response type(s), and extra claim(s).
 	 * <br>
 	 * This request does not need to be authenticated.
 	 * <br>
@@ -219,7 +219,7 @@ public class OpenIDConnectController {
 	 * https://openid.net/specs/openid-connect-core-1_0.html#Consent
 	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 	 *
-	 * @param authorizationRequest
+	 * @param authorizationRequest the request to be authorized
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -233,7 +233,6 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
-	// TODO how to suppress verifiedClientId from showing up in API docs
 	/**
 	 * 
 	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
@@ -241,7 +240,6 @@ public class OpenIDConnectController {
 	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method: 
 	 *  https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
 	 *  
-	 * @param verifiedClientId id of the OAuth Client, verified via Basic Authentication
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
 	 * @param redirectUri required if grant_type is authorization_code
@@ -255,7 +253,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, required=false) String verifiedClientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, required=false) String userId,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM, required=false) String code,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
@@ -264,10 +262,11 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
-		if (StringUtils.isEmpty(verifiedClientId)) {
+		if (StringUtils.isEmpty(userId)) {
+			// the 'userId' param is actually the OAuth client ID, verified by Basic Authentication
 			throw new UnauthenticatedException("OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
 		}
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(userId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
 	}
 		
 	/**
@@ -275,7 +274,7 @@ public class OpenIDConnectController {
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	 * 
-	 * @param accessTokenHeader
+	 * @param accessTokenHeader authorization header containing as a bearer token an OAuth access token
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -294,7 +293,7 @@ public class OpenIDConnectController {
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	 * 
-	 * @param accessTokenHeader
+	 * @param accessTokenHeader authorization header containing as a bearer token an OAuth access token
 	 * @return
 	 * @throws NotFoundException
 	 */
