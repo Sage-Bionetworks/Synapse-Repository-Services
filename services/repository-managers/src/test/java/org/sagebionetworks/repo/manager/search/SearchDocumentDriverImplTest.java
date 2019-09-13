@@ -70,6 +70,7 @@ public class SearchDocumentDriverImplTest {
 
 	@Before
 	public void setUp(){
+		annotationsV2 = new AnnotationsV2();
 
 		documentFields = new DocumentFields();
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());

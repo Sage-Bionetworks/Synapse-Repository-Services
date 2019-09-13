@@ -25,7 +25,7 @@
 		"fileHandles":{
 			"type": "array",
 			"items": {
-				"$ref":"org.sagebionetworks.repo.model.file.FileHandle",
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandle"
 			}
 		},
 		"tableBundle": {

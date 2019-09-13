@@ -147,7 +147,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(authEndpoint, "/session");
+		deleteUri(getAuthEndpoint(), "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 	}
@@ -255,7 +255,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	@Override
 	public void invalidateApiKey() throws SynapseException {
-		deleteUri(authEndpoint, "/secretKey");
+		deleteUri(getAuthEndpoint(), "/secretKey");
 		this.apiKey = null;
 	}
 
@@ -300,7 +300,7 @@ public class BaseClientImpl implements BaseClient {
 			SynapseClientException("You must log in before revalidating the session.");
 		session.setSessionToken(currentSessionToken);
 		try {
-			voidPut(authEndpoint, "/session", session);
+			voidPut(getAuthEndpoint(), "/session", session);
 		} catch (SynapseForbiddenException e) {
 			throw new SynapseTermsOfUseException(e.getMessage());
 		}

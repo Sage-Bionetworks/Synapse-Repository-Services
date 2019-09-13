@@ -45,6 +45,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -503,8 +507,8 @@ public class TableViewIntegrationTest {
 		assertNull(eur.getFailureMessage());
 		
 		// is the annotation changed?
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
-		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
 	@Test
@@ -554,8 +558,8 @@ public class TableViewIntegrationTest {
 		assertNull(eur.getFailureMessage());
 		
 		// is the annotation changed?
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
-		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
 	
@@ -615,8 +619,8 @@ public class TableViewIntegrationTest {
 
 		// Add an annotation with the same name and a value larger than the size
 		// of the column.
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "too big");
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "too big", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		waitForEntityReplication(fileViewId, fileId);
 
@@ -630,10 +634,10 @@ public class TableViewIntegrationTest {
 					expected.getStatus().getErrorMessage());
 		}
 	}
-	
+
 	/**
 	 * See PLFM-4371.
-	 * 
+	 *
 	 */
 	@Test
 	public void testPLFM_4371() throws Exception {
@@ -654,13 +658,13 @@ public class TableViewIntegrationTest {
 				scope, fileViewId);
 
 		// Add an annotation with a duplicate name as a primary annotation.
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "this is a duplicate value");
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "this is a duplicate value", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// For PLFM-4371 the replication was failing due to the duplicate name
 		waitForEntityReplication(fileViewId, fileId);
 	}
-	
+
 	/**
 	 * Test for PLFM-4366. To reproduce:
 	 * <ol>
@@ -688,7 +692,7 @@ public class TableViewIntegrationTest {
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
 	}
-	
+
 	@Test
 	public void testProjectView() throws Exception{
 		// Create some projects
@@ -718,11 +722,11 @@ public class TableViewIntegrationTest {
 		List<Row> rows  = extractRows(results);
 		assertEquals("Should have one row for each scope.",scope.size(), rows.size());
 	}
-	
+
 	/**
 	 * PLFM-4413 and PLFM-4410 are both bugs where view contents are incorrect after
 	 * ACLs are added/removed to the scopes of a view.  This test covers both issues.
-	 * @throws InterruptedException 
+	 * @throws InterruptedException
 	 */
 	@Test
 	public void testPLFM_4413() throws Exception {
@@ -753,7 +757,7 @@ public class TableViewIntegrationTest {
 		assertEquals(1, rows.size());
 		Row row = rows.get(0);
 		assertEquals(fileIdLong, row.getRowId());
-		
+
 		/*
 		 * Removing the ACL on the folder should set the file's benefactor to be
 		 * the project. This should be reflected in the view.
@@ -769,14 +773,14 @@ public class TableViewIntegrationTest {
 		row = rows.get(0);
 		assertEquals(fileIdLong, row.getRowId());
 	}
-	
+
 	/**
-	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * The fix for PLFM-4399 involved adding a worker to reconcile
 	 * entity replication with the truth.  This test ensure that when
 	 * replication data is missing for a FileView, a query of the
 	 * view triggers the reconciliation.
-	 * @throws Exception 
-	 * 
+	 * @throws Exception
+	 *
 	 */
 	@Test
 	public void testFileViewReconciliation() throws Exception{
@@ -789,26 +793,26 @@ public class TableViewIntegrationTest {
 		String sql = "select * from "+fileViewId+" where id ='"+firstFileId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		
+
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 	}
 
-	
+
 	/**
-	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * The fix for PLFM-4399 involved adding a worker to reconcile
 	 * entity replication with the truth.  This test ensure that when
 	 * replication data is missing for a ProjectView, a query of the
 	 * view triggers the reconciliation.
-	 * @throws Exception 
-	 * 
+	 * @throws Exception
+	 *
 	 */
 	@Test
 	public void testProjectViewReconciliation() throws Exception{
@@ -822,47 +826,47 @@ public class TableViewIntegrationTest {
 		String sql = "select * from "+viewId+" where id ='"+projectId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		
+
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 	}
-	
+
 	/**
 	 * For PLFM-4446, users want to add boolean annotation with 'true' and 'false'
 	 * and view the annotations with a column of type boolean.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4446() throws Exception{
 		// Add 'boolean' annotations to each file
 		// one
 		String fileId = fileIds.get(0);
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(), "true");
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(), "false");
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(),"");
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(),"", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(booleanColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+booleanColumn.getName()+" from "+fileViewId;
@@ -874,37 +878,37 @@ public class TableViewIntegrationTest {
 		assertEquals("false", rows.get(1).getValues().get(0));
 		assertEquals(null, rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
 	 * Part of PLFM-4521 states that viewing a 'Float point' annotation with a string column
 	 * shows a null even when the value is not null.  This is unexpected, as any annotation
 	 * type should be visible as a string.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4521FloatToString() throws Exception{
 		// one
 		String fileId = fileIds.get(0);
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		annos.addAnnotation(stringColumn.getName(), 1.3);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.3", AnnotationsV2ValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "not a double");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not a double", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+stringColumn.getName()+" from "+fileViewId;
@@ -916,38 +920,38 @@ public class TableViewIntegrationTest {
 		assertEquals("not a double", rows.get(1).getValues().get(0));
 		assertEquals("", rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
-	 * Part of PLFM-4521 states that a non-entity ID string annotation breaks a view that includes 
+	 * Part of PLFM-4521 states that a non-entity ID string annotation breaks a view that includes
 	 * a column of type entity ID.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4521StringToEntityId() throws Exception{
 		// Add 'boolean' annotations to each file
 		// one
 		String fileId = fileIds.get(0);
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		annos.addAnnotation(entityIdColumn.getName(), "syn123");
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "syn123", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// a long can be used as an entity ID.
-		annos.addAnnotation(entityIdColumn.getName(), 456L);
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "456", AnnotationsV2ValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(entityIdColumn.getName(), "");
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(entityIdColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+entityIdColumn.getName()+" from "+fileViewId;
@@ -959,37 +963,37 @@ public class TableViewIntegrationTest {
 		assertEquals("syn456", rows.get(1).getValues().get(0));
 		assertEquals(null, rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
-	 * For PLFM-4517 updating file entity annotations using a view update 
+	 * For PLFM-4517 updating file entity annotations using a view update
 	 * would add duplicate annotations with the same name but different type.
 	 * Duplicate annotation names are no longer supported.  Therefore, updates
 	 * to annotations using a view should replace annotations, not add duplicates.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4517() throws Exception{
 		// Add various types of annotations with the same name to the files in the view.
 		// one
 		String fileId = fileIds.get(0);
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), 1.23);
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.23", AnnotationsV2ValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), 456L);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "456", AnnotationsV2ValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), new Date(789));
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "789", AnnotationsV2ValueType.TIMESTAMP_MS);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId(), etagColumn.getId());
 		createFileView();
-		
+
 		// Query for the values as strings.
 		String sql = "select "+stringColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
 		int rowCount = 3;
@@ -1000,7 +1004,7 @@ public class TableViewIntegrationTest {
 		assertEquals("1.23", rows.get(0).getValues().get(0));
 		assertEquals("456", rows.get(1).getValues().get(0));
 		assertEquals("789", rows.get(2).getValues().get(0));
-		
+
 		// use the results to update the annotations.
 		RowSet rowSet = results.getQueryResult().getQueryResults();
 		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
@@ -1017,8 +1021,8 @@ public class TableViewIntegrationTest {
 	public void testUpdateViewWithRowsetAndEtag() throws Exception{
 		// one
 		String fileId = fileIds.get(0);
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "1");
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsV2ValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		
 		// the view does not have an etag column

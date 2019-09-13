@@ -839,7 +839,7 @@ public class BaseClientImplTest {
 
 		baseClient.setRepositoryEndpoint(repoEndpoint);
 
-		assertEquals(repoEndpoint, baseClient.getRepoEndpoint());
+		assertEquals(repoEndpoint + "/v1", baseClient.getRepoEndpoint());
 		assertEquals("my.test.endpoint.com", baseClient.repoEndpointBaseDomain);
 	}
 }
