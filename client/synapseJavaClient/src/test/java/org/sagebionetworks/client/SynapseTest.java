@@ -43,6 +43,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
@@ -57,8 +58,13 @@ public class SynapseTest {
 	SimpleHttpResponse mockResponse;
 	@Mock
 	SimpleHttpClient mockClient;
+	@Mock
+	Header mockHeader;
 	
 	SynapseClientImpl synapse;
+	
+	private static final String CONTENT_TYPE = "Content-Type";
+	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
 	
 	@Before
 	public void before() throws Exception{
@@ -86,6 +92,8 @@ public class SynapseTest {
 	private void configureMockHttpResponse(final int statusCode, final String responseBody) {
 		when(mockResponse.getStatusCode()).thenReturn(statusCode);
 		when(mockResponse.getContent()).thenReturn(responseBody);
+		when(mockHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
+		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 	}
 	
 	@Test (expected=SynapseTermsOfUseException.class)

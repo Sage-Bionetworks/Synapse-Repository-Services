@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileManager {
@@ -26,6 +27,20 @@ public interface UserProfileManager {
 	 */
 	public UserProfile getUserProfile(String ownerid)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * 
+	 * @param userId
+	 * @return the user's current verification document
+	 */
+	public VerificationSubmission getCurrentVerificationSubmission(Long userId);
+	
+	/**
+	 * 
+	 * @param userId
+	 * @return the user's linked ORCID
+	 */
+	public String getOrcid(Long userId);
 
 	/**
 	 * Get the public profiles of the users in the system, paginated. 

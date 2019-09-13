@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.security.Key;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.util.Date;
@@ -9,8 +8,7 @@ import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
-import org.sagebionetworks.repo.model.oauth.JsonWebKey;
-import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
+import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -24,7 +22,6 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SignatureException;
 
 public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	private static final String NONCE = "nonce";
@@ -70,7 +67,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String nonce, 
 			Long authTimeSeconds,
 			String tokenId,
-			Map<OIDCClaimName,String> userInfo) {
+			Map<OIDCClaimName,Object> userInfo) {
 		
 		Claims claims = Jwts.claims();
 		
@@ -123,44 +120,11 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	
 	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {
-		// This is a little awkward:  We first have to parse the token to
-		// find the key Id, then, once we map the key Id to the signing key,
-		// we parse again, setting the matching public key for verification
-		String[] pieces = token.split("\\.");
-		if (pieces.length!=3) throw new IllegalArgumentException("Expected three sections of the token but found "+pieces.length);
-		String unsignedToken = pieces[0]+"."+pieces[1]+".";
-		JsonWebKey matchingKey=null;
-		{
-			Jwt<Header,Claims> unsignedJwt = Jwts.parser().parseClaimsJwt(unsignedToken);
-			String keyId = (String)unsignedJwt.getHeader().get(JwsHeader.KEY_ID);
-			for (JsonWebKey jwk : jsonWebKeySet.getKeys()) {
-				if (jwk.getKid().equals(keyId)) {
-					matchingKey = jwk;
-					break;
-				}
-			}
-			if (matchingKey==null) {
-				throw new IllegalArgumentException("Could not find token key, "+keyId+" in the list of available public keys.");
-			}
-		}
-		Jwt<JwsHeader,Claims> result = null;
-		try {
-			Key rsaPublicKey = KeyPairUtil.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)matchingKey);
-			result = Jwts.parser().setSigningKey(rsaPublicKey).parse(token);
-		} catch (SignatureException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-		
-		Claims claims = result.getBody();
-		if (System.currentTimeMillis()>claims.getExpiration().getTime()) {
-			throw new IllegalArgumentException("Token has expired.");
-		}
-
-		return result;
+		return JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 	}
 	
 	@Override
 	public void validateJWT(String token) {
-		parseJWT(token);
+		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 	}
 }

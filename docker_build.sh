@@ -9,7 +9,7 @@
 # org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
 # JOB_NAME - a unique string differentiating concurrent builds.  if omitted is the stack + user
-# build_deploy - when set to "true" deploy artifacts
+# build_deploy - when set to any value, deploy artifacts (omit this if you do not wish to deploy)
 # artifactory_username - username to deploy artifacts
 # artifactory_password - password to deploy artifacts
 # org_sagebionetworks_repository_database_connection_url - endpoint to mysql database for repo data

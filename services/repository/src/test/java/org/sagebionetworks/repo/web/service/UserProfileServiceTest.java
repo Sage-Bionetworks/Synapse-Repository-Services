@@ -91,8 +91,6 @@ public class UserProfileServiceTest {
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
-	private VerificationDAO mockVerificationDao;
-	@Mock
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
 	@Mock
 	private TokenGenerator mockTokenGenerator;
@@ -140,7 +138,6 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
-		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
 		ReflectionTestUtils.setField(userProfileService, "tokenGenerator", mockTokenGenerator);
 		
@@ -309,8 +306,8 @@ public class UserProfileServiceTest {
 		attachmentMetadata.setId("123");
 		verificationSubmission.setAttachments(Collections.singletonList(attachmentMetadata));
 		verificationSubmission.setEmails(Collections.singletonList("test@example.com"));
-		when(mockVerificationDao.
-				getCurrentVerificationSubmissionForUser(userId)).thenReturn(verificationSubmission);
+		when(mockUserProfileManager.
+				getCurrentVerificationSubmission(userId)).thenReturn(verificationSubmission);
 		return verificationSubmission;
 	}
 	
@@ -336,8 +333,7 @@ public class UserProfileServiceTest {
 	private void mockOrcid(Long userId, String alias) {
 		PrincipalAlias orcidAlias = new PrincipalAlias();
 		orcidAlias.setAlias(alias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(userId, AliasType.USER_ORCID)).
-			thenReturn(Collections.singletonList(orcidAlias));		
+		when(mockUserProfileManager.getOrcid(userId)).thenReturn(alias);		
 	}
 	
 	@Test

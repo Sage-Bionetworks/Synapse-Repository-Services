@@ -128,16 +128,16 @@ public class OAuthClientDaoImplTest {
 		oauthClientDao.createSectorIdentifier(sectorIdentifier);
 		OAuthClient oauthClient = newDTO();
 		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
-		assertNotNull(oauthClient.getClientId());
-		idsToDelete.add(oauthClient.getClientId());
-		return oauthClient.getClientId();
+		assertNotNull(oauthClient.getClient_id());
+		idsToDelete.add(oauthClient.getClient_id());
+		return oauthClient.getClient_id();
 	}
 	
 	@Test
 	public void testClientDtoToDbo() throws Exception {
 		OAuthClient dto = newDTO();
 		Long clientId=101L;
-		dto.setClientId(clientId.toString());
+		dto.setClient_id(clientId.toString());
 		String etag = "999";
 		dto.setEtag(etag);
 		dto.setCreatedOn(new Date());
@@ -163,7 +163,7 @@ public class OAuthClientDaoImplTest {
 		OAuthClient deser = (OAuthClient)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getProperties());
 		// these should be omitted from serialization
 		assertNull(deser.getClient_name());
-		assertNull(deser.getClientId());
+		assertNull(deser.getClient_id());
 		assertNull(deser.getCreatedBy());
 		assertNull(deser.getCreatedOn());
 		assertNull(deser.getEtag());
@@ -183,7 +183,7 @@ public class OAuthClientDaoImplTest {
 	public void testClientDboToDto() throws Exception {
 		OAuthClient dto = newDTO();
 		Long clientId=101L;
-		dto.setClientId(clientId.toString());
+		dto.setClient_id(clientId.toString());
 		String etag = "999";
 		dto.setEtag(etag);
 		dto.setCreatedOn(new Date());
@@ -205,7 +205,7 @@ public class OAuthClientDaoImplTest {
 	private static void checkOauthClientFields(OAuthClient retrieved, String clientId) {
 		assertEquals(CLIENT_NAME, retrieved.getClient_name());
 		assertEquals(CLIENT_URI, retrieved.getClient_uri());
-		assertEquals(clientId, retrieved.getClientId());
+		assertEquals(clientId, retrieved.getClient_id());
 		assertEquals(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(), retrieved.getCreatedBy());
 		assertTrue(System.currentTimeMillis()-retrieved.getCreatedOn().getTime()<60000L);
 		assertNotNull(retrieved.getEtag());
@@ -374,7 +374,7 @@ public class OAuthClientDaoImplTest {
 			String clientName = "ANOTHER CLIENT "+i;
 			expectedClientNames.add(clientName);
 			OAuthClient oauthClient = newDTO(userId2, clientName);
-			String id = oauthClientDao.createOAuthClient(oauthClient).getClientId();
+			String id = oauthClientDao.createOAuthClient(oauthClient).getClient_id();
 			assertNotNull(id);
 			idsToDelete.add(id);
 		}
@@ -437,7 +437,7 @@ public class OAuthClientDaoImplTest {
 		OAuthClient updated = oauthClientDao.updateOAuthClient(clientToUpdate);
 		assertEquals(newName, updated.getClient_name());
 		assertEquals(newClientUri, updated.getClient_uri());
-		assertEquals(id, updated.getClientId());
+		assertEquals(id, updated.getClient_id());
 		assertEquals(clientToUpdate.getCreatedBy(), updated.getCreatedBy());
 		assertEquals(clientToUpdate.getCreatedOn(), updated.getCreatedOn());
 		assertEquals(newEtag, updated.getEtag());

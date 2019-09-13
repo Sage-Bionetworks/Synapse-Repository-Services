@@ -9,14 +9,14 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.UserInfoHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.VerificationHelper;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -31,24 +31,19 @@ import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
-import org.sagebionetworks.repo.model.verification.VerificationState;
-import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -68,9 +63,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserProfileManager userProfileManager;
 	
 	@Autowired
-	private VerificationDAO verificationDao;
-	
-	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
@@ -87,9 +79,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
 	PrincipalPrefixDAO principalPrefixDAO;
-	
-	@Autowired
-	UserGroupDAO userGroupDao;
 	
 	@Autowired
 	TokenGenerator tokenGenerator;
@@ -346,31 +335,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		UserInfo userInfo = userManager.getUserInfo(profileId);
 		if ((mask&IS_ACT_MEMBER_MASK)!=0) {
-			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
+			result.setIsACTMember(UserInfoHelper.isACTMember(userInfo));
 		}
 		if ((mask&IS_CERTIFIED_MASK)!=0) {
-			result.setIsCertified(userInfo.getGroups().contains(
-					BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+			result.setIsCertified(UserInfoHelper.isCertified(userInfo));
 		}
 		VerificationSubmission verificationSubmission = null;
 		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {
-			verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(profileId);
-		}
-		if ((mask&IS_VERIFIED_MASK)!=0) {
-			result.setIsVerified(false);
-			if (verificationSubmission!=null) {
-				List<VerificationState> list = verificationSubmission.getStateHistory();
-				VerificationStateEnum currentState = list.get(list.size()-1).getState();
-				result.setIsVerified(currentState==VerificationStateEnum.APPROVED);
-			}
-		}
-		if ((mask&ORCID_MASK)!=0) {
-			List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(profileId, AliasType.USER_ORCID);
-			if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
-			result.setORCID(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+			verificationSubmission = userProfileManager.getCurrentVerificationSubmission(profileId);
 		}
 		if ((mask&VERIFICATION_MASK)!=0) {
 			result.setVerificationSubmission(verificationSubmission);
+		}
+		if ((mask&IS_VERIFIED_MASK)!=0) {
+			result.setIsVerified(VerificationHelper.isVerified(verificationSubmission));
+		}
+		if ((mask&ORCID_MASK)!=0) {
+			result.setORCID(userProfileManager.getOrcid(profileId));
 		}
 		return result;
 		

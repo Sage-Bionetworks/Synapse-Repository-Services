@@ -177,7 +177,7 @@ public class SubscriptionController{
 	public @ResponseBody SubscriberPagedResults getSubscribers(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Topic topic,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getSubscriptionService().getSubscribers(userId, topic, nextPageToken);
 	}
 

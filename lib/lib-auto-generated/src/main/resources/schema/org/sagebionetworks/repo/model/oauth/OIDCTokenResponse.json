@@ -1,0 +1,17 @@
+{
+    "description": "Oauth 2.0 Token Response",
+ 	"properties": {
+		"access_token":{
+			"type": "string",
+			"description":"The OAuth 2.0 access token"
+		},
+		"refresh_token": {
+			"type": "string",
+			"description": "The Oauth 2.0 refresh token"
+		},
+		"id_token": {
+			"type": "string",
+			"description": "The Open ID Connect IT Token"
+		}
+	}
+}

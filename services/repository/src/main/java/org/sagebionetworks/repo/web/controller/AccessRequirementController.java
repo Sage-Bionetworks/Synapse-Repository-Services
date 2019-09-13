@@ -300,7 +300,7 @@ public class AccessRequirementController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS, method = RequestMethod.GET)
 	public @ResponseBody RestrictableObjectDescriptorResponse getSubjects(
 			@PathVariable String requirementId,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getAccessRequirementService().getSubjects(requirementId, nextPageToken);
 	}
 }
