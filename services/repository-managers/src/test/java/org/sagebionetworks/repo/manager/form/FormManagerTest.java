@@ -257,7 +257,7 @@ public class FormManagerTest {
 	@Test
 	public void testUpdateGroupAclNullUser() {
 		user = null;
-		assertThrows(InvalidModelException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.updateGroupAcl(user, groupId, aclToReturn);
 		});
@@ -266,7 +266,7 @@ public class FormManagerTest {
 	@Test
 	public void testUpdateGroupAclNullGroup() {
 		groupId = null;
-		assertThrows(InvalidModelException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.updateGroupAcl(user, groupId, aclToReturn);
 		});
@@ -275,7 +275,7 @@ public class FormManagerTest {
 	@Test
 	public void testUpdateGroupAclNullAcl() {
 		aclToReturn = null;
-		assertThrows(InvalidModelException.class, () -> {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.updateGroupAcl(user, groupId, aclToReturn);
 		});
