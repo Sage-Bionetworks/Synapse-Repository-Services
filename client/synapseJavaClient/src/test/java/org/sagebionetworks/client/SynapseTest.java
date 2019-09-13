@@ -28,12 +28,17 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -273,19 +278,19 @@ public class SynapseTest {
 		Folder s = EntityCreator.createNewFolder();
 		
 		// Get/add/update annotations for this entity
-		Annotations a = new Annotations();
+		AnnotationsV2 a = new AnnotationsV2();
 		a.setEtag(s.getEtag());
-		a.addAnnotation("doubleAnno", new Double(45.0001));
-		a.addAnnotation("string", "A string");		
+		AnnotationsV2TestUtils.putAnnotations(a, "doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);		
 		JSONObjectAdapter adapter0 = new JSONObjectAdapterImpl();
 		a.writeToJSONObject(adapter0);
 		
 		// We want the mock response to return JSON
 		configureMockHttpResponse(200, adapter0.toJSONString());
-		synapse.updateAnnotations(s.getId(), a);
+		synapse.updateAnnotationsV2(s.getId(), a);
 		
 		// Assemble the bundle
-		EntityBundle eb = new EntityBundle();
+		EntityBundleV2 eb = new EntityBundleV2();
 		eb.setEntity(s);
 		eb.setAnnotations(a);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -295,13 +300,15 @@ public class SynapseTest {
 		configureMockHttpResponse(200, adapter.toJSONString());
 		
 		// Get the bundle, verify contents
-		int mask =  EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
-		EntityBundle eb2 = synapse.getEntityBundle(s.getId(), mask);
+		EntityBundleV2Request request = new EntityBundleV2Request();
+		request.setIncludeEntity(true);
+		request.setIncludeAnnotations(true);
+		EntityBundleV2 eb2 = synapse.getEntityBundleV2(s.getId(), request);
 		
 		Folder s2 = (Folder) eb2.getEntity();
 		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
 		
-		Annotations a2 = eb2.getAnnotations();
+		AnnotationsV2 a2 = eb2.getAnnotations();
 		assertEquals("Retrieved Annotations in bundle do not match original ones", a, a2);
 		
 		UserEntityPermissions uep = eb2.getPermissions();
@@ -309,9 +316,6 @@ public class SynapseTest {
 		
 		EntityPath path = eb2.getPath();
 		assertNull("Path was not requested, but was returned in bundle", path);
-		
-		eb2.getAccessRequirements();
-		assertNull("Access Requirements were not requested, but were returned in bundle", path);
 	}
 
 	

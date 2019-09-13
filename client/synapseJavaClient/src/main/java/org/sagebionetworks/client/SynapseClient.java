@@ -42,6 +42,9 @@ import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Create;
+import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -77,6 +80,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -385,26 +389,50 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
 			String activityId) throws SynapseException;
 
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle getEntityBundle(String entityId, int partsMask)
 			throws SynapseException;
 
+	@Deprecated
 	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
 			int partsMask) throws SynapseException;
+
+	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc)
+			throws SynapseException;
+
+	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc, String activityId)
+			throws SynapseException;
+
+	public EntityBundleV2 updateEntityBundleV2(String entityId, EntityBundleV2Create ebc)
+			throws SynapseException;
+
+	public EntityBundleV2 updateEntityBundleV2(String entityId, EntityBundleV2Create ebc,
+										   String activityId) throws SynapseException;
+
+	public EntityBundleV2 getEntityBundleV2(String entityId, EntityBundleV2Request bundleV2Request)
+			throws SynapseException;
+
+	public EntityBundleV2 getEntityBundleV2(String entityId, Long versionNumber,
+										EntityBundleV2Request bundleV2Request) throws SynapseException;
 
 	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
 			int offset, int limit) throws SynapseException;
@@ -510,9 +538,16 @@ public interface SynapseClient extends BaseClient {
 	public UserEntityPermissions getUsersEntityPermissions(String entityId)
 			throws SynapseException;
 
+	@Deprecated
 	public Annotations getAnnotations(String entityId) throws SynapseException;
 
+	@Deprecated
 	public Annotations updateAnnotations(String entityId, Annotations updated)
+			throws SynapseException;
+
+	public AnnotationsV2 getAnnotationsV2(String entityId) throws SynapseException;
+
+	public AnnotationsV2 updateAnnotationsV2(String entityId, AnnotationsV2 updated)
 			throws SynapseException;
 
 	public <T extends AccessRequirement> T createAccessRequirement(T ar)

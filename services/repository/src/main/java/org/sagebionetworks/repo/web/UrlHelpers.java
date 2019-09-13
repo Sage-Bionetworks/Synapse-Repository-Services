@@ -203,7 +203,7 @@ public class UrlHelpers {
 	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
-	public static final String ENTITY_BUNDLE_CREATE = ENTITY_ID+BUNDLE+CREATE;
+	public static final String ENTITY_BUNDLE_CREATE = ENTITY+BUNDLE+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 

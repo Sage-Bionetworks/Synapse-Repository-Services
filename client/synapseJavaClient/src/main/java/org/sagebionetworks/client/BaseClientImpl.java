@@ -61,9 +61,9 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for REST APIs
  */
 public class BaseClientImpl implements BaseClient {
-	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
-	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
-	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
+	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth";
+	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo";
+	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 	private static final String APPLICATION_JSON_CHARSET_UTF8 = "application/json; charset="+SYNAPSE_ENCODING_CHARSET;
@@ -178,7 +178,12 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public String getRepoEndpoint() {
-		return this.repoEndpoint;
+		return getRepoEndpoint(1);
+	}
+
+	@Override
+	public String getRepoEndpoint(int version){
+		return this.repoEndpoint + "/v" + version;
 	}
 
 	@Override
@@ -201,7 +206,12 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public String getAuthEndpoint() {
-		return authEndpoint;
+		return getAuthEndpoint(1);
+	}
+
+	@Override
+	public String getAuthEndpoint(int version) {
+		return authEndpoint + "/v" + version;
 	}
 
 	@Override
@@ -210,8 +220,13 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	@Override
+	public String getFileEndpoint(int version) {
+		return authEndpoint + "/v" + version;
+	}
+
+	@Override
 	public String getFileEndpoint() {
-		return this.fileEndpoint;
+		return getFileEndpoint(1);
 	}
 
 	@Override

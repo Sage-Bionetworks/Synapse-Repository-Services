@@ -28,7 +28,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ControllerInfo(displayName="Entity Bundle Services", path="repo/v2")
+/**
+ * <p>
+ * The Entity Bundle Services provide bundled access to Entities and their related data components.
+ * An EntityBundle can be used to create, fetch, or update an Entity and associated objects with a
+ * single web service request.
+ * </p>
+ */
+@ControllerInfo(displayName="Entity Bundle Services V2", path="repo/v2")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH_V2)
 public class EntityBundleV2Controller {

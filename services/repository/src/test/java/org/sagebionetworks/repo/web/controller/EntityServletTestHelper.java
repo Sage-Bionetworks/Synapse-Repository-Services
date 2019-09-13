@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -114,7 +115,7 @@ public class EntityServletTestHelper {
 	 */
 	public EntityBundleV2 getEntityBundle(String id, EntityBundleV2Request bundleV2Request, Long userId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
 				userId, null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
@@ -133,8 +134,8 @@ public class EntityServletTestHelper {
 	 */
 	public EntityBundleV2 getEntityBundleForVersion(String id,
 												  Long versionNumber, EntityBundleV2Request bundleV2Request, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
 						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
 				null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
@@ -246,6 +247,38 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), UserEntityPermissions.class);
+	}
+
+	/**
+	 * Get the annotations for an entity.
+	 */
+	public AnnotationsV2 getEntityAnnotationsV2(String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.ANNOTATIONS, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AnnotationsV2.class);
+	}
+
+	/**
+	 * Update the annotations of an entity
+	 */
+	public AnnotationsV2 updateAnnotationsV2(AnnotationsV2 annos, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
+						+ UrlHelpers.ANNOTATIONS, userId, annos);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AnnotationsV2.class);
 	}
 
 	/**

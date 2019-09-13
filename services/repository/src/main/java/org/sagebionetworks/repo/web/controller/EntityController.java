@@ -447,6 +447,7 @@ public class EntityController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
+	@Deprecated
 	public @ResponseBody
 	Annotations getEntityAnnotations(
 			@PathVariable String id,
@@ -491,6 +492,7 @@ public class EntityController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
+	@Deprecated
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
 			@PathVariable String id,
@@ -504,86 +506,6 @@ public class EntityController {
 				userId, id, AnnotationsV2Translator.toAnnotationsV2(updatedAnnotations)));
 	}
 
-
-	/**
-	 * Get the annotations for an entity.
-	 * <p>
-	 * Note: The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> on the Entity, to get its annotations.
-	 * </p>
-	 *
-	 * @param id
-	 *            - The id of the entity to update.
-	 * @param userId
-	 *            - The user that is doing the update.
-	 * @param request
-	 *            - Used to read the contents.
-	 * @return The annotations for the given entity.
-	 * @throws NotFoundException
-	 *             - Thrown if the given entity does not exist.
-	 * @throws DatastoreException
-	 *             - Thrown when there is a server side problem.
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
-	public @ResponseBody
-	AnnotationsV2 getEntityAnnotations(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
-		// Pass it along
-		return serviceProvider.getEntityService().getEntityAnnotations(userId,
-				id);
-	}
-
-	/**
-	 * Update an entities annotations.
-	 * <p>
-	 * Note: The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> on the Entity, to update its annotations.
-	 * </p>
-	 *
-	 * @param id
-	 *            - The id of the entity to update.
-	 * @param userId
-	 *            - The user that is doing the update.
-	 * @param etag
-	 *            - A valid etag must be provided for every update call.
-	 * @param updatedAnnotations
-	 *            - The updated annotations
-	 * @param request
-	 * @return the updated annotations
-	 * @throws ConflictingUpdateException
-	 *             - Thrown when the passed etag does not match the current etag
-	 *             of an entity. This will occur when an entity gets updated
-	 *             after getting the current etag.
-	 * @throws NotFoundException
-	 *             - Thrown if the given entity does not exist.
-	 * @throws DatastoreException
-	 *             - Thrown when there is a server side problem.
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 *             - Thrown if the passed entity contents doe not match the
-	 *             expected schema.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
-	public @ResponseBody
-	AnnotationsV2 updateEntityAnnotations(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AnnotationsV2 updatedAnnotations,
-			HttpServletRequest request) throws ConflictingUpdateException,
-			NotFoundException, DatastoreException, UnauthorizedException,
-			InvalidModelException {
-		// Pass it along
-		return serviceProvider.getEntityService().updateEntityAnnotations(
-				userId, id, updatedAnnotations);
-	}
 
 	/**
 	 * This is a duplicate method to update.
@@ -1180,32 +1102,6 @@ public class EntityController {
 		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService()
 				.getEntityAnnotationsForVersion(userId, id, versionNumber
 				));
-	}
-
-	/**
-	 * Get an Entity's annotations for a specific version of a FileEntity.
-	 *
-	 * @param id
-	 *            The ID of the Entity.
-	 * @param versionNumber
-	 *            The version number of the Entity.
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS }, method = RequestMethod.GET)
-	public @ResponseBody
-	AnnotationsV2 getEntityAnnotationsV2ForVersion(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable Long versionNumber)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Pass it along
-		return serviceProvider.getEntityService()
-				.getEntityAnnotationsForVersion(userId, id, versionNumber);
 	}
 
 	/**
