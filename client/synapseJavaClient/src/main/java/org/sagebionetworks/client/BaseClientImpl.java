@@ -136,7 +136,7 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
+		LoginResponse response = postJSONEntity(getAuthEndpoint(), "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		return response;
@@ -221,7 +221,7 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public String getFileEndpoint(int version) {
-		return authEndpoint + "/v" + version;
+		return fileEndpoint + "/v" + version;
 	}
 
 	@Override
