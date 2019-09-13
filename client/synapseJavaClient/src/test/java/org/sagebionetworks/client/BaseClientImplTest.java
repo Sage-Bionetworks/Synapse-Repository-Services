@@ -374,6 +374,7 @@ public class BaseClientImplTest {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
+		when(mockHeader.getValue()).thenReturn("text/plain");
 		assertEquals("content",
 				baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", "/entity"));
 	}
