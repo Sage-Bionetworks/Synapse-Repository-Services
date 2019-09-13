@@ -103,9 +103,7 @@
 		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="statisticsQueueTrigger" />
 		<ref bean="athenaPartitionScannerTrigger" />
-		<!-- Temporary: disabled to allow merging 		
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
-		-->
 		<ref bean="statisticsMonthlyWorkerTrigger" />
 	</util:list>
 

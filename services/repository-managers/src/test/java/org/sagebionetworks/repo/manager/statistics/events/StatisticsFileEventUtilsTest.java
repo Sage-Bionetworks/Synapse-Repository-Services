@@ -6,12 +6,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.statistics.FileEvent;
 
 public class StatisticsFileEventUtilsTest {
 
 	@Test
 	public void testBuildFileDownloadEvent() {
-		StatisticsFileEvent expectedEvent = new StatisticsFileEvent(StatisticsFileActionType.FILE_DOWNLOAD, 123L, "345",
+		StatisticsFileEvent expectedEvent = new StatisticsFileEvent(FileEvent.FILE_DOWNLOAD, 123L, "345",
 				"678", FileHandleAssociateType.FileEntity);
 
 		FileHandleAssociation association = new FileHandleAssociation();
@@ -33,7 +34,7 @@ public class StatisticsFileEventUtilsTest {
 	
 	@Test
 	public void testBuildFileUploadEvent() {
-		StatisticsFileEvent expectedEvent = new StatisticsFileEvent(StatisticsFileActionType.FILE_UPLOAD, 123L, "345",
+		StatisticsFileEvent expectedEvent = new StatisticsFileEvent(FileEvent.FILE_UPLOAD, 123L, "345",
 				"678", FileHandleAssociateType.FileEntity);
 
 		FileHandleAssociation association = new FileHandleAssociation();
