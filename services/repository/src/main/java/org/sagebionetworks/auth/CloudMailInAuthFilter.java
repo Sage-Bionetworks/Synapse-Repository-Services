@@ -32,7 +32,7 @@ public class CloudMailInAuthFilter implements Filter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 
 		if (up!=null && 
 				cloudMailInUser.equals(up.getUserName()) && 

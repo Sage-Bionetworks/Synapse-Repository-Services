@@ -124,7 +124,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		validateAuthenticationRequest(authorizationRequest, client);
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
-		result.setClientId(client.getClientId());
+		result.setClientId(client.getClient_id());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
 
 		List<OAuthScope> scopes = parseScopeString(authorizationRequest.getScope());
@@ -342,7 +342,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTimeSeconds, UUID.randomUUID().toString(), userInfo);
 
-			return jwtIdToken;
+			return new JWTWrapper(jwtIdToken);
 		}
 	}
 }

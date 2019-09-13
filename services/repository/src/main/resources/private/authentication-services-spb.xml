@@ -13,5 +13,11 @@
 	
 	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
 	
+	<bean id="openIDConnectService" class="org.sagebionetworks.auth.services.OpenIDConnectServiceImpl" />
+	
 	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />	
+	
+	<bean id="oauthClientAuthFilter" class="org.sagebionetworks.auth.OAuthClientAuthFilter" />
+	
+	<bean id="oauthAccessTokenFilter" class="org.sagebionetworks.auth.OAuthAccessTokenFilter" />	
 </beans>

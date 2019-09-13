@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
@@ -71,6 +72,8 @@ public interface ServiceProvider {
 	
 	public DockerService getDockerService();
 
-	DataAccessService getDataAccessService();
+	public DataAccessService getDataAccessService();
+	
+	public OpenIDConnectService getOpenIDConnectService();
 	
 }

@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
-import org.sagebionetworks.auth.BasicAuthUtils;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
@@ -36,7 +36,7 @@ public class DockerClientAuthFilter implements Filter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 
 		Long userId = null;
 		if (up == null) {

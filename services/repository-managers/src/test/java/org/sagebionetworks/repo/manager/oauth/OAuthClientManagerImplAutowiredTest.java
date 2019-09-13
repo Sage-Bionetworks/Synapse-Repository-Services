@@ -94,7 +94,7 @@ public class OAuthClientManagerImplAutowiredTest {
 		
 		// method under test
 		OAuthClient created = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
-		String id = created.getClientId();
+		String id = created.getClient_id();
 		assertNotNull(id);
 		oauthClientsToDelete.add(id);
 		
@@ -118,8 +118,8 @@ public class OAuthClientManagerImplAutowiredTest {
 		// method under test
 		OAuthClientIdAndSecret idAndSecret = oauthClientManager.createClientSecret(userInfo, id);
 		
-		assertEquals(id, idAndSecret.getClientId());
-		assertNotNull(idAndSecret.getClientSecret());
+		assertEquals(id, idAndSecret.getClient_id());
+		assertNotNull(idAndSecret.getClient_secret());
 		
 		// method under test
 		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);

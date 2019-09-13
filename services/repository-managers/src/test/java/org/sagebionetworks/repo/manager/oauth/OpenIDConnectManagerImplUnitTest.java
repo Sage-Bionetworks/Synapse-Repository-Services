@@ -166,7 +166,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
-		oauthClient.setClientId(OAUTH_CLIENT_ID);
+		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
 
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
@@ -698,9 +698,9 @@ public class OpenIDConnectManagerImplUnitTest {
 				eq(null), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
-		String jwt = (String)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
+		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
 		
-		assertEquals(expectedIdToken, jwt);
+		assertEquals(expectedIdToken, jwt.getJwt());
 		
 		Map<OIDCClaimName, Object> userInfo = userInfoCaptor.getValue();
 		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));

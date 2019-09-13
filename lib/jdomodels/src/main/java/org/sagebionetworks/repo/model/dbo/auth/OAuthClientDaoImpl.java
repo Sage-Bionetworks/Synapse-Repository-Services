@@ -88,7 +88,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.allowTypes(OAuthClient.class)
-			.omitField(OAuthClient.class, "clientId")
+			.omitField(OAuthClient.class, "client_id")
 			.omitField(OAuthClient.class, "createdBy")
 			.omitField(OAuthClient.class, "createdOn")
 			.omitField(OAuthClient.class, "etag")
@@ -106,7 +106,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		dto.setClientId(dbo.getId().toString());
+		dto.setClient_id(dbo.getId().toString());
 		dto.setClient_name(dbo.getName());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
@@ -125,7 +125,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		dbo.setId(Long.parseLong(dto.getClientId()));
+		dbo.setId(Long.parseLong(dto.getClient_id()));
 		dbo.setName(dto.getClient_name());
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
@@ -154,7 +154,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		client.setCreatedOn(now);
 		client.setModifiedOn(now);
 		String id = idGenerator.generateNewId(IdType.OAUTH_CLIENT_ID).toString();
-		client.setClientId(id);
+		client.setClient_id(id);
 		DBOOAuthClient dbo = clientDtoToDbo(client);
 		try {
 			basicDao.createNew(dbo);
@@ -232,11 +232,11 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	@Override
 	public OAuthClient updateOAuthClient(OAuthClient updatedClient) {	
 		ValidateArgument.required(updatedClient, "OAuth client");
-		ValidateArgument.requiredNotEmpty(updatedClient.getClientId(), "Client ID");
+		ValidateArgument.requiredNotEmpty(updatedClient.getClient_id(), "Client ID");
 		ValidateArgument.required(updatedClient.getEtag(), "etag");
 
 		DBOOAuthClient dbo = clientDtoToDbo(updatedClient);
-		String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, updatedClient.getClientId());
+		String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, updatedClient.getClient_id());
 		dbo.setSecretHash(secretHash);
 		basicDao.update(dbo);
 		return updatedClient;
