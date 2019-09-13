@@ -5,7 +5,7 @@
 			"description": "A single page of results matching the request.",
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.form.StatusResult"
+				"$ref": "org.sagebionetworks.repo.model.form.FormData"
 			}
 		},
 		"nextPageToken": {

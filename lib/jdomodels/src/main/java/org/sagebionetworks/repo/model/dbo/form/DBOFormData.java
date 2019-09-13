@@ -81,7 +81,7 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 				dbo.setReviewedOn(rs.getTimestamp(COL_FORM_DATA_REVIEWED_ON));
 				dbo.setReviewedBy(rs.getLong(COL_FORM_DATA_REVIEWED_BY));
 				dbo.setStatus(rs.getString(COL_FORM_DATA_STATUS));
-				dbo.setRejectionMessage(COL_FORM_DATA_REJECTION_MESSAGE);
+				dbo.setRejectionMessage(rs.getString(COL_FORM_DATA_REJECTION_MESSAGE));
 				return dbo;
 			}
 

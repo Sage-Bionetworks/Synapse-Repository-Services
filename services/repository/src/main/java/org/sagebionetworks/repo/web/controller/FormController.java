@@ -3,12 +3,13 @@ package org.sagebionetworks.repo.web.controller;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.form.FormData;
-import org.sagebionetworks.repo.model.form.FormDataStatus;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +39,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class FormController {
 
+	@Autowired
+	ServiceProvider serviceProvider;
+
 	/**
 	 * Create a FormGroup with provided name. This method is idempotent. If a group
 	 * with the provided name already exists and the caller has
@@ -49,14 +53,15 @@ public class FormController {
 	 * List (ACL)</a> with the creator listed as an administrator.
 	 * 
 	 * @param userId
-	 * @param name   A globally unique name for the group. Required. Limit 256 characters or less.
+	 * @param name   A globally unique name for the group. Required. Limit 256
+	 *               characters or less.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP }, method = RequestMethod.POST)
 	public @ResponseBody FormGroup createGroup(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = "name", required = true) String name) {
-		return null;
+		return serviceProvider.getFormService().createGroup(userId, name);
 	}
 
 	/**
@@ -73,9 +78,10 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.GET)
-	public @ResponseBody AccessControlList getGroupAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody AccessControlList getGroupAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
-		return null;
+		return serviceProvider.getFormService().getGroupAcl(userId, id);
 	}
 
 	/**
@@ -115,9 +121,10 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.PUT)
-	public @ResponseBody AccessControlList updateGroupAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody AccessControlList updateGroupAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestBody AccessControlList acl) {
-		return null;
+		return serviceProvider.getFormService().updateGroupAcl(userId, id, acl);
 	}
 
 	/**
@@ -131,16 +138,19 @@ public class FormController {
 	 * @param userId
 	 * @param groupId          The identifier of the group that manages this data.
 	 *                         Required.
-	 * @param name             User provided name for this submission. Required. Limit 256 characters or less.
+	 * @param name             User provided name for this submission. Required.
+	 *                         Limit 256 characters or less.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
-	public @ResponseBody FormData createFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestParam(required = true) String groupId,
-			@RequestParam(required = true) String name, @RequestParam(required = true) String dataFileHandleId) {
-		return null;
+	public @ResponseBody FormData createFormData(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String groupId, @RequestParam(required = true) String name,
+			@RequestParam(required = true) String dataFileHandleId) {
+		return serviceProvider.getFormService().createFormData(userId, groupId, name, dataFileHandleId);
 	}
 
 	/**
@@ -163,9 +173,11 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.PUT)
-	public @ResponseBody FormData updateFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id,
-			@RequestParam String name, @RequestParam(required = true) String dataFileHandleId) {
-		return null;
+	public @ResponseBody FormData updateFormData(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id", required = true) String id, @RequestParam String name,
+			@RequestParam(required = true) String dataFileHandleId) {
+		return serviceProvider.getFormService().updateFormData(userId, id, name, dataFileHandleId);
 	}
 
 	/**
@@ -183,7 +195,9 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.DELETE)
-	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id) {
+	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id", required = true) String id) {
+		serviceProvider.getFormService().deleteFormData(userId, id);
 	}
 
 	/**
@@ -199,9 +213,10 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_SUBMIT }, method = RequestMethod.POST)
-	public @ResponseBody FormDataStatus submitFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody FormData submitFormData(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
-		return null;
+		return serviceProvider.getFormService().submitFormData(userId, id);
 	}
 
 	/**
@@ -215,15 +230,16 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST }, method = RequestMethod.POST)
-	public @ResponseBody ListResponse listFormStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
-		return null;
+	public @ResponseBody ListResponse listFormStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
+		return serviceProvider.getFormService().listFormStatus(userId, request);
 	}
 
 	/**
 	 * List FormData objects and their associated status that match the filters of
 	 * the provided request for the entire group. This is used by service accounts
-	 * to process submissions. Filtering by WAITING_FOR_SUBMISSION is not allowed
-	 * for this call.
+	 * to review submissions. Filtering by WAITING_FOR_SUBMISSION is not allowed for
+	 * this call.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
@@ -234,13 +250,14 @@ public class FormController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.FORM_LIST_ADMIN }, method = RequestMethod.POST)
-	public @ResponseBody ListResponse listFormStatusAdmin(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
-		return null;
+	@RequestMapping(value = { UrlHelpers.FORM_LIST_REVIEWER }, method = RequestMethod.POST)
+	public @ResponseBody ListResponse listFormStatusReviewer(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
+		return serviceProvider.getFormService().listFormStatusReviewer(userId, request);
 	}
 
 	/**
-	 * Called by the form processing service to accept a submitted data.
+	 * Called by the form reviewing service to accept a submitted data.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
@@ -252,13 +269,14 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ACCEPT }, method = RequestMethod.PUT)
-	public @ResponseBody FormDataStatus adminAcceptForm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody FormData reviewerAcceptForm(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
-		return null;
+		return serviceProvider.getFormService().reviewerAcceptForm(userId, id);
 	}
 
 	/**
-	 * Called by the form processing service to reject a submitted data.
+	 * Called by the form reviewing service to reject a submitted data.
 	 * <p>
 	 * Note: The caller must have the <a href=
 	 * "${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ_PRIVATE_SUBMISSION</a>
@@ -271,8 +289,9 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_REJECT }, method = RequestMethod.PUT)
-	public @ResponseBody FormDataStatus adminRejectForm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody FormData reviewerRejectForm(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestParam(required = true) String reason) {
-		return null;
+		return serviceProvider.getFormService().reviewerRejectForm(userId, id, reason);
 	}
 }

@@ -1,6 +1,6 @@
 {
-	"description": "The enumeration of possible FormData submission status.",
-	"name": "StatusEnum",
+	"description": "The enumeration of possible FormData submission states.",
+	"name": "StateEnum",
 	"type": "string",
 	"enum": [
 		{
