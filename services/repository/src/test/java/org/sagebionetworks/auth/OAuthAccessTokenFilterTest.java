@@ -67,6 +67,7 @@ public class OAuthAccessTokenFilterTest {
 		// method under test
 		oauthAccessTokenFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
+		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals(BEARER_TOKEN, requestCaptor.getValue().getParameter(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN));
@@ -80,6 +81,7 @@ public class OAuthAccessTokenFilterTest {
 		// method under test
 		oauthAccessTokenFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
+		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
@@ -93,6 +95,7 @@ public class OAuthAccessTokenFilterTest {
 		// method under test
 		oauthAccessTokenFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
+		verify(oidcTokenHelper, never()).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");

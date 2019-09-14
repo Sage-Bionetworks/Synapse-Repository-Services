@@ -242,6 +242,6 @@ public class ClientUtils {
 	
 	public static String createBasicAuthorizationHeader(String username, String password) {
 		return AuthorizationConstants.BASIC_PREFIX+ (new String(Base64.
-				encodeBase64((username + ":" + password).getBytes())));
+				encodeBase64((username + ":" + password).getBytes(Charset.forName("UTF-8")))));
 	}
 }
