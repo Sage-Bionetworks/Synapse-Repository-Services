@@ -53,8 +53,8 @@ public class FormController {
 	 * List (ACL)</a> with the creator listed as an administrator.
 	 * 
 	 * @param userId
-	 * @param name   A globally unique name for the group. Required. Limit 256
-	 *               characters or less.
+	 * @param name   A globally unique name for the group. Required. Between 3 and
+	 *               256 characters.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -78,8 +78,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.GET)
-	public @ResponseBody AccessControlList getGroupAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody AccessControlList getGroupAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().getGroupAcl(userId, id);
 	}
@@ -121,8 +120,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.PUT)
-	public @ResponseBody AccessControlList updateGroupAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody AccessControlList updateGroupAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestBody AccessControlList acl) {
 		return serviceProvider.getFormService().updateGroupAcl(userId, id, acl);
 	}
@@ -139,17 +137,15 @@ public class FormController {
 	 * @param groupId          The identifier of the group that manages this data.
 	 *                         Required.
 	 * @param name             User provided name for this submission. Required.
-	 *                         Limit 256 characters or less.
+	 *                         Between 3 and 256 characters.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
-	public @ResponseBody FormData createFormData(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String groupId, @RequestParam(required = true) String name,
-			@RequestParam(required = true) String dataFileHandleId) {
+	public @ResponseBody FormData createFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestParam(required = true) String groupId,
+			@RequestParam(required = true) String name, @RequestParam(required = true) String dataFileHandleId) {
 		return serviceProvider.getFormService().createFormData(userId, groupId, name, dataFileHandleId);
 	}
 
@@ -166,17 +162,16 @@ public class FormController {
 	 * 
 	 * @param userId
 	 * @param id
-	 * @param name             Rename this submission. Optional. Limit 256 chars.
+	 * @param name             Rename this submission. Optional. Between 3 and 256
+	 *                         characters.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.PUT)
-	public @ResponseBody FormData updateFormData(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id", required = true) String id, @RequestParam String name,
-			@RequestParam(required = true) String dataFileHandleId) {
+	public @ResponseBody FormData updateFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id,
+			@RequestParam String name, @RequestParam(required = true) String dataFileHandleId) {
 		return serviceProvider.getFormService().updateFormData(userId, id, name, dataFileHandleId);
 	}
 
@@ -195,8 +190,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.DELETE)
-	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id", required = true) String id) {
+	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id) {
 		serviceProvider.getFormService().deleteFormData(userId, id);
 	}
 
@@ -213,9 +207,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_SUBMIT }, method = RequestMethod.POST)
-	public @ResponseBody FormData submitFormData(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id", required = true) String id) {
+	public @ResponseBody FormData submitFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().submitFormData(userId, id);
 	}
 
@@ -230,8 +222,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST }, method = RequestMethod.POST)
-	public @ResponseBody ListResponse listFormStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
+	public @ResponseBody ListResponse listFormStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
 		return serviceProvider.getFormService().listFormStatus(userId, request);
 	}
 
@@ -251,8 +242,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST_REVIEWER }, method = RequestMethod.POST)
-	public @ResponseBody ListResponse listFormStatusReviewer(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
+	public @ResponseBody ListResponse listFormStatusReviewer(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
 		return serviceProvider.getFormService().listFormStatusReviewer(userId, request);
 	}
 
@@ -269,8 +259,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ACCEPT }, method = RequestMethod.PUT)
-	public @ResponseBody FormData reviewerAcceptForm(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody FormData reviewerAcceptForm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().reviewerAcceptForm(userId, id);
 	}
@@ -289,8 +278,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_REJECT }, method = RequestMethod.PUT)
-	public @ResponseBody FormData reviewerRejectForm(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody FormData reviewerRejectForm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestParam(required = true) String reason) {
 		return serviceProvider.getFormService().reviewerRejectForm(userId, id, reason);
 	}

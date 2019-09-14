@@ -16,12 +16,14 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
+import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -33,12 +35,14 @@ import com.google.common.collect.Sets;
 @Service
 public class FormManagerImpl implements FormManager {
 
+	public static final int MIN_NAME_CHARS = 3;
+	public static final int MAX_NAME_CHARS = 256;
+
 	/**
 	 * Administrator permission for FormGroups.
 	 * 
 	 */
-	public static final Set<ACCESS_TYPE> FORM_GROUP_ADMIN_PERMISSIONS = Sets.newHashSet(READ, CHANGE_PERMISSIONS,
-			SUBMIT, READ_PRIVATE_SUBMISSION);
+	public static final Set<ACCESS_TYPE> FORM_GROUP_ADMIN_PERMISSIONS = Sets.newHashSet(READ, CHANGE_PERMISSIONS, SUBMIT, READ_PRIVATE_SUBMISSION);
 
 	@Autowired
 	FormDao formDao;
@@ -54,26 +58,24 @@ public class FormManagerImpl implements FormManager {
 	public FormGroup createGroup(UserInfo user, String name) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(name, "name");
+		validateName(name);
 		// does a group exist for this name?
 		Optional<FormGroup> existingGroup = formDao.lookupGroupByName(name);
 		if (existingGroup.isPresent()) {
 			FormGroup group = existingGroup.get();
 			// Does the caller have access to the group?
-			AuthorizationStatus status = authManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP,
-					ACCESS_TYPE.READ);
+			AuthorizationStatus status = authManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
 			if (status.isAuthorized()) {
 				// return the existing group
 				return group;
 			} else {
-				throw new IllegalArgumentException(
-						"The group name: " + name + " is unavailable, please chooser another name.");
+				throw new IllegalArgumentException("The group name: " + name + " is unavailable, please chooser another name.");
 			}
 		}
 		// create the group.
 		FormGroup group = formDao.createFormGroup(user.getId(), name);
 		// Create an ACL for the
-		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS,
-				new Date());
+		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS, new Date());
 		aclDao.create(acl, ObjectType.FORM_GROUP);
 		return group;
 	}
@@ -99,16 +101,15 @@ public class FormManagerImpl implements FormManager {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid groupId: " + groupId);
 		}
-		
+
 		// unconditionally use the groupId from the URL path.
 		acl.setId(groupId);
-		
+
 		// Ensure the user does not revoke their own access to the ACL.
 		PermissionsManagerUtils.validateACLContent(acl, user, groupIdLong);
 
 		// Validate CHANGE_PERMISSIONS
-		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS)
-				.checkAuthorizationOrElseThrow();
+		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 
 		aclDao.update(acl, ObjectType.FORM_GROUP);
 		return getGroupAcl(user, groupId);
@@ -116,14 +117,71 @@ public class FormManagerImpl implements FormManager {
 
 	@Override
 	public FormData createFormData(UserInfo user, String groupId, String name, String dataFileHandleId) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(groupId, "groupId");
+		ValidateArgument.required(name, "name");
+		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
+		validateName(name);
+		// must have submit on the group.
+		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
+		// Must own the fileHandle
+		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
+		return formDao.createFormData(user.getId(), groupId, name, dataFileHandleId);
+	}
+
+	/**
+	 * Validate a name.
+	 * 
+	 * @param name
+	 */
+	public static void validateName(String name) {
+		ValidateArgument.required(name, "name");
+		if (name.length() > MAX_NAME_CHARS) {
+			throw new IllegalArgumentException("Name must be " + MAX_NAME_CHARS + " characters or less");
+		}
+		if (name.length() < MIN_NAME_CHARS) {
+			throw new IllegalArgumentException("Name must be at least " + MIN_NAME_CHARS + " characters");
+		}
 	}
 
 	@Override
 	public FormData updateFormData(UserInfo user, String id, String name, String dataFileHandleId) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(id, "groupId");
+		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
+		if(name != null) {
+			validateName(name);
+		}
+		// lookup the creator of this form.
+		long creator = formDao.getFormDataCreator(id);
+		if(user.getId().equals(creator)) {
+			throw new UnauthorizedException("Cannot update a form created by another user");
+		}
+		
+		StateEnum state = formDao.getFormDataState(id);
+		switch (state) {
+		case SUBMITTED_WAITING_FOR_REVIEW:
+			throw new IllegalArgumentException("Cannot update a form that has been submitted and is waiting for review.");
+		case ACCEPTED:
+			throw new IllegalArgumentException("Cannot update a form that has been submitted and accepted.");
+		case WAITING_FOR_SUBMISSION:
+		case REJECTED:
+			break;
+		default:
+			throw new IllegalArgumentException("Cannot update a form that has been submitted and accepted.");
+		}
+		
+		String groupId = formDao.getFormDataGroupId(id);
+		// must have submit on the group.
+		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT)
+		.checkAuthorizationOrElseThrow();
+		// Must own the fileHandle
+		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
+		if(name != null) {
+			return formDao.updateFormData(id, name, dataFileHandleId);
+		}else {
+			return formDao.updateFormData(id, dataFileHandleId);
+		}
 	}
 
 	@Override
