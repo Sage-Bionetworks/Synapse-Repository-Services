@@ -30,6 +30,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUpload" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadPartState" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.DBOMultipartUploadComposerPartState" />
+				<!-- Messages -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient" />
@@ -122,7 +123,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
-				
+				<!-- Forms -->
+				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
+				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
@@ -132,6 +136,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsProjectFiles" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -216,6 +221,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
+				<!-- Forms -->
+				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
+				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODataType" />

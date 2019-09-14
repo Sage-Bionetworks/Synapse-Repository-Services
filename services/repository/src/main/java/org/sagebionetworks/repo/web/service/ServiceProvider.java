@@ -67,6 +67,8 @@ public interface ServiceProvider {
 	public VerificationService getVerificationService();
 
 	public DiscussionService getDiscussionService();
+	
+	public FormService getFormService();
 
 	public SubscriptionService getSubscriptionService();
 	

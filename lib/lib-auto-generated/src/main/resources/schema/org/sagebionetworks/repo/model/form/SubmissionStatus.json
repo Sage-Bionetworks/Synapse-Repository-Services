@@ -1,0 +1,27 @@
+{
+	"description": "The status of a a submitted FormData object.",
+	"properties": {
+		"submittedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date when the object was submitted."
+		},
+		"reviewedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date when this submission was reviewed."
+		},
+		"reviewedBy": {
+			"type": "string",
+			"description": "The id of the service user that reviewed the submission."
+		},
+		"state": {
+			"description": "The current state of this submission.",
+			"$ref": "org.sagebionetworks.repo.model.form.StateEnum"
+		},
+		"rejectionMessage": {
+			"type": "string",
+			"description": "The message provided by the reviewer when a submission is rejected."
+		}
+	}
+}

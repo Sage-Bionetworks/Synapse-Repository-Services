@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.statistics.monthly;
 
 import java.time.YearMonth;
 
+import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 
 public interface StatisticsMonthlyProcessor {
@@ -14,8 +15,9 @@ public interface StatisticsMonthlyProcessor {
 	/**
 	 * Process the monthly statistics for the given month
 	 * 
-	 * @param  month The month to process
+	 * @param  month                         The month to process
+	 * @throws StatisticsProcessingException If something goes wrong during the processing
 	 */
-	void processMonth(YearMonth month);
+	void processMonth(YearMonth month) throws StatisticsProcessingException;
 
 }

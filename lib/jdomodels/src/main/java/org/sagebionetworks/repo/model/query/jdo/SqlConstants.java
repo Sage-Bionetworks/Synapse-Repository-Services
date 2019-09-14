@@ -76,6 +76,32 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
 	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
+	
+	// form processing
+	// FormGroup
+	public static final String TABLE_FORM_GROUP 			= "FORM_GROUP";
+	public static final String COL_FORM_GROUP_ID 			= "GROUP_ID";
+	public static final String COL_FORM_GROUP_NAME 			= "NAME";
+	public static final String COL_FORM_GROUP_CREATED_ON 	= "CREATED_ON";
+	public static final String COL_FORM_GROUP_CREATED_BY 	= "CREATED_BY";
+	public static final String DDL_FILE_FORM_GROUP 			= "schema/FormGroup-ddl.sql";
+	
+	// Form data
+	public static final String TABLE_FORM_DATA 					= "FORM_DATA";
+	public static final String COL_FORM_DATA_ID 				= "ID";
+	public static final String COL_FORM_DATA_ETAG				= "ETAG";
+	public static final String COL_FORM_DATA_NAME 				= "NAME";
+	public static final String COL_FORM_DATA_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_FORM_DATA_CREATED_BY 		= "CREATED_BY";
+	public static final String COL_FORM_DATA_MODIFIED_ON 		= "MODIFIED_ON";
+	public static final String COL_FORM_DATA_GROUP_ID 			= "GROUP_ID";
+	public static final String COL_FORM_DATA_FILE_ID 			= "FILE_HANDLE_ID";
+	public static final String COL_FORM_DATA_SUBMITTED_ON  		= "SUBMITTED_ON";
+	public static final String COL_FORM_DATA_REVIEWED_ON 		= "REVIEWED_ON";
+	public static final String COL_FORM_DATA_REVIEWED_BY		= "REVIEWED_BY";
+	public static final String COL_FORM_DATA_STATUS 			= "STATUS";
+	public static final String COL_FORM_DATA_REJECTION_MESSAGE 	= "REJECTION_MESSAGE";
+	public static final String DDL_FILE_FORM_DATA 				= "schema/FormData-ddl.sql";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
@@ -942,6 +968,16 @@ public class SqlConstants {
 	public static final String COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON =			"LAST_UPDATED_ON";
 	public static final String COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE	=			"ERROR_MESSAGE";
 	public static final String COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS = 			"ERROR_DETAILS";
+	
+	// Status table for monthly statistics
+	public static final String TABLE_STATISTICS_MONTHLY_PROJECT_FILES =					"STATISTICS_MONTHLY_PROJECT_FILES";
+	public static final String DDL_STATISTICS_MONTHLY_PROJECT_FILES =					"schema/statistics/StatisticsMonthlyProjectFiles-ddl.sql";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID =		"PROJECT_ID";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH =				"MONTH";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE =		"EVENT_TYPE";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT =		"FILES_COUNT";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT =		"USERS_COUNT";
+	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON =	"LAST_UPDATED_ON";
 
 
 	// This seems to be the name of the id column for all tables.
