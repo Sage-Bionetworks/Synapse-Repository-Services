@@ -11,14 +11,15 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 
-@Service
+@Repository
 public class FormDaoImpl implements FormDao {
 
 	@Autowired
@@ -30,6 +31,7 @@ public class FormDaoImpl implements FormDao {
 
 	private static RowMapper<DBOFormGroup> GROUP_MAPPER = new DBOFormGroup().getTableMapping();
 
+	@WriteTransaction
 	@Override
 	public FormGroup createFormGroup(Long creator, String name) {
 		ValidateArgument.required(creator, "creator");

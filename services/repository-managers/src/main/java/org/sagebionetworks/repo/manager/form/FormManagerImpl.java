@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class FormManagerImpl implements FormManager {
 	@Autowired
 	AuthorizationManager authManager;
 
+	@WriteTransaction
 	@Override
 	public FormGroup createGroup(UserInfo user, String name) {
 		ValidateArgument.required(user, "UserInfo");
@@ -85,6 +87,7 @@ public class FormManagerImpl implements FormManager {
 		return aclDao.get(groupId, ObjectType.FORM_GROUP);
 	}
 
+	@WriteTransaction
 	@Override
 	public AccessControlList updateGroupAcl(UserInfo user, String groupId, AccessControlList acl) {
 		ValidateArgument.required(user, "UserInfo");
