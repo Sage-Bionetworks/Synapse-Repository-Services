@@ -72,6 +72,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private DiscussionService discussionService;
 	@Autowired
+	private FormService formService;
+	@Autowired
 	private SubscriptionService subscriptionService;
 	@Autowired
 	private DockerService dockerService;
@@ -189,6 +191,12 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public DiscussionService getDiscussionService() {
 		return discussionService;
 	}
+	
+	@Override
+	public FormService getFormService() {
+		return formService;
+	}
+	
 	@Override
 	public SubscriptionService getSubscriptionService() {
 		return subscriptionService;

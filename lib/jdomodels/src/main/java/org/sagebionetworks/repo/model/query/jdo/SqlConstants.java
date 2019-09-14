@@ -76,6 +76,32 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
 	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
+	
+	// form processing
+	// FormGroup
+	public static final String TABLE_FORM_GROUP 			= "FORM_GROUP";
+	public static final String COL_FORM_GROUP_ID 			= "GROUP_ID";
+	public static final String COL_FORM_GROUP_NAME 			= "NAME";
+	public static final String COL_FORM_GROUP_CREATED_ON 	= "CREATED_ON";
+	public static final String COL_FORM_GROUP_CREATED_BY 	= "CREATED_BY";
+	public static final String DDL_FILE_FORM_GROUP 			= "schema/FormGroup-ddl.sql";
+	
+	// Form data
+	public static final String TABLE_FORM_DATA 					= "FORM_DATA";
+	public static final String COL_FORM_DATA_ID 				= "ID";
+	public static final String COL_FORM_DATA_ETAG				= "ETAG";
+	public static final String COL_FORM_DATA_NAME 				= "NAME";
+	public static final String COL_FORM_DATA_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_FORM_DATA_CREATED_BY 		= "CREATED_BY";
+	public static final String COL_FORM_DATA_MODIFIED_ON 		= "MODIFIED_ON";
+	public static final String COL_FORM_DATA_GROUP_ID 			= "GROUP_ID";
+	public static final String COL_FORM_DATA_FILE_ID 			= "FILE_HANDLE_ID";
+	public static final String COL_FORM_DATA_SUBMITTED_ON  		= "SUBMITTED_ON";
+	public static final String COL_FORM_DATA_REVIEWED_ON 		= "REVIEWED_ON";
+	public static final String COL_FORM_DATA_REVIEWED_BY		= "REVIEWED_BY";
+	public static final String COL_FORM_DATA_STATUS 			= "STATUS";
+	public static final String COL_FORM_DATA_REJECTION_MESSAGE 	= "REJECTION_MESSAGE";
+	public static final String DDL_FILE_FORM_DATA 				= "schema/FormData-ddl.sql";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

@@ -2,11 +2,11 @@
 	"description": "Request for a list of StatusResults matching the provided filters.",
 	"properties": {
 		"filterByStatus": {
-			"description": "Only return results with a status that matches elements from this set.  Exclude to return all.",
+			"description": "Only return results with a state that matches elements from this set.  Exclude to return all.",
 			"type": "array",
 			"uniqueItems": true,
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.form.StatusEnum"
+				"$ref": "org.sagebionetworks.repo.model.form.StateEnum"
 			}
 		},
 		"groupId": {

@@ -95,6 +95,10 @@
             "description": "TODO: Auto-generated description"
         },
         {
+            "name": "FORM_GROUP",
+            "description": "Grouping of from data."
+        },
+        {
             "name": "ENTITY_VIEW",
             "description": "TODO: Auto-generated description"
         },
