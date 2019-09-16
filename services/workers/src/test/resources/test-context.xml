@@ -23,5 +23,8 @@
 	
 	<!--  During integration tests we do not want to scan partitions -->
 	<bean id="athenaPartitionScannerWorker" class="org.sagebionetworks.athena.workers.AthenaPartitionScannerWorkerStub" />
+	
+	<!-- During the integration tests we do not want to run the status watcher worker -->
+	<bean id="statisticsMonthlyStatusWatcherWorker" class="org.sagebionetworks.statistics.workers.StatisticsMonthlyStatusWatcherWorkerStub"></bean>
 
 </beans>
