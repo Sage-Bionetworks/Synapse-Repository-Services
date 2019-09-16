@@ -36,9 +36,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -60,9 +60,9 @@ public class ITV2WikiPageTest {
 	
 	private List<WikiPageKey> toDelete = null;
 	private List<String> fileHandlesToDelete = null;
-	private S3FileHandle fileHandle;
-	private S3FileHandle fileHandleTwo;
-	private S3FileHandle markdownHandle;
+	private CloudProviderFileHandleInterface fileHandle;
+	private CloudProviderFileHandleInterface fileHandleTwo;
+	private CloudProviderFileHandleInterface markdownHandle;
 	private File imageFile;
 	private String imageFileMD5;
 	private File imageFileTwo;
@@ -111,9 +111,9 @@ public class ITV2WikiPageTest {
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		fileHandle = (S3FileHandle) synapse.multipartUpload(imageFile, null, true, false);
-		fileHandleTwo = (S3FileHandle) synapse.multipartUpload(imageFileTwo, null, true, false);
-		markdownHandle = (S3FileHandle) synapse.multipartUpload(markdownFile, null, false, false);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
+		fileHandleTwo = synapse.multipartUpload(imageFileTwo, null, true, false);
+		markdownHandle = synapse.multipartUpload(markdownFile, null, false, false);
 		
 		// create the access requirement
 		accessRequirement = new TermsOfUseAccessRequirement();
@@ -446,12 +446,12 @@ public class ITV2WikiPageTest {
 		// there should be two things on the list, the original file and its preview.
 		assertEquals(2, results.getList().size());
 		FileHandle one = results.getList().get(0);
-		assertTrue(one instanceof S3FileHandle);
-		S3FileHandle handle = (S3FileHandle) one;
+		assertTrue(one instanceof CloudProviderFileHandleInterface);
+		CloudProviderFileHandleInterface handle = (CloudProviderFileHandleInterface) one;
 		FileHandle two = results.getList().get(1);
-		assertTrue(two instanceof S3FileHandle);
-		assertTrue(((S3FileHandle) two).getIsPreview());
-		S3FileHandle preview = (S3FileHandle) two;
+		assertTrue(two instanceof CloudProviderFileHandleInterface);
+		assertTrue(((CloudProviderFileHandleInterface) two).getIsPreview());
+		CloudProviderFileHandleInterface preview = (CloudProviderFileHandleInterface) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
 		
 		URL url = synapse.getV2WikiAttachmentTemporaryUrl(key, handle.getFileName());
@@ -498,14 +498,14 @@ public class ITV2WikiPageTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private void waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private void waitForPreviewToBeCreated(CloudProviderFileHandleInterface fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
 			System.out.println("Waiting for a preview file to be created");
 			Thread.sleep(1000);
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
-			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
+			fileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getId());
 		}
 	}
 	
