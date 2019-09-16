@@ -313,6 +313,7 @@
 
 	<filter-mapping>
 		<filter-name>oauthAccessTokenFilter</filter-name>
+		<!-- Note:  The following will grow, as OAuth access tokens authorize additional services. -->
 		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
 	</filter-mapping>
 

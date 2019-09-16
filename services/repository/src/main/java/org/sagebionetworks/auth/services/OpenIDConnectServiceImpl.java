@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import io.jsonwebtoken.Claims;
@@ -86,6 +87,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
+		ValidateArgument.required(endpoint, "OAuth Endpoint");
 		String issuer = endpoint;
 		OIDConnectConfiguration result = new OIDConnectConfiguration();
 		result.setIssuer(issuer);
@@ -125,7 +127,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	@Override
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
 			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
-		if (grantType==OAuthGrantType.authorization_code) {
+		if (OAuthGrantType.authorization_code==grantType) {
 			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
 		} else {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);

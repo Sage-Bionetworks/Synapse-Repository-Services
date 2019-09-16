@@ -67,14 +67,14 @@ public class BaseClientImpl implements BaseClient {
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
-	private static final String APPLICATION_JSON = "application/json";
+	protected static final String APPLICATION_JSON = "application/json";
 	private static final String APPLICATION_JSON_CHARSET_UTF8 = APPLICATION_JSON+"; charset="+SYNAPSE_ENCODING_CHARSET;
 
 	protected static final String APPLICATION_JWT = "application/jwt";
 	
 	private static final String CONTENT_LENGTH = "Content-Length";
 	private static final String CONTENT_TYPE = "Content-Type";
-	private static final String ACCEPT = "Accept";
+	protected static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";

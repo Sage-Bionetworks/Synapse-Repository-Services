@@ -40,7 +40,9 @@ import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
@@ -676,5 +678,80 @@ public class OAuthClientManagerImplUnitTest {
 		}
 
 		verify(mockOauthClientDao, never()).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
+	}
+	
+	private static final String CLIENT_SECRET = "some secret";
+	
+	@Test
+	public void testValidateClientCredentials_HappyCase() {
+		String secretHash = PBKDF2Utils.hashPassword(CLIENT_SECRET, null);
+		byte[] clientSalt = PBKDF2Utils.extractSalt(secretHash);
+		when(mockOauthClientDao.getSecretSalt(OAUTH_CLIENT_ID)).thenReturn(clientSalt);
+		when(mockOauthClientDao.checkOAuthClientSecretHash(OAUTH_CLIENT_ID, secretHash)).thenReturn(true);
+		
+		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
+		clientIdAndSecret.setClient_id(OAUTH_CLIENT_ID);
+		clientIdAndSecret.setClient_secret(CLIENT_SECRET);
+		
+		// method under test
+		assertTrue(oauthClientManagerImpl.validateClientCredentials(clientIdAndSecret));
+		
+		verify(mockOauthClientDao).getSecretSalt(OAUTH_CLIENT_ID);
+		verify(mockOauthClientDao).checkOAuthClientSecretHash(OAUTH_CLIENT_ID, secretHash);
+	}
+	
+	@Test
+	public void testValidateClientCredentials_missingCredentials() {
+		String secretHash = PBKDF2Utils.hashPassword(CLIENT_SECRET, null);
+		byte[] clientSalt = PBKDF2Utils.extractSalt(secretHash);
+		when(mockOauthClientDao.getSecretSalt(OAUTH_CLIENT_ID)).thenReturn(clientSalt);
+		when(mockOauthClientDao.checkOAuthClientSecretHash(OAUTH_CLIENT_ID, secretHash)).thenReturn(true);
+		
+		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
+		clientIdAndSecret.setClient_id(null);
+		clientIdAndSecret.setClient_secret(null);
+		
+		// method under test
+		assertFalse(oauthClientManagerImpl.validateClientCredentials(clientIdAndSecret));
+		
+		verify(mockOauthClientDao, never()).getSecretSalt(anyString());
+		verify(mockOauthClientDao, never()).checkOAuthClientSecretHash(anyString(), anyString());
+	}
+	
+	@Test
+	public void testValidateClientCredentials_badClientId() {
+		String wrongClientId = "wrong id";
+		when(mockOauthClientDao.getSecretSalt(wrongClientId)).thenThrow(new NotFoundException());
+
+		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
+		clientIdAndSecret.setClient_id(wrongClientId);
+		clientIdAndSecret.setClient_secret(CLIENT_SECRET);
+		
+		// method under test
+		assertFalse(oauthClientManagerImpl.validateClientCredentials(clientIdAndSecret));
+		
+		verify(mockOauthClientDao).getSecretSalt(wrongClientId);
+		verify(mockOauthClientDao, never()).checkOAuthClientSecretHash(anyString(), anyString());
+	}
+	
+	@Test
+	public void testValidateClientCredentials_BadSecret() {
+		String secretHash = PBKDF2Utils.hashPassword(CLIENT_SECRET, null);
+		byte[] clientSalt = PBKDF2Utils.extractSalt(secretHash);
+		when(mockOauthClientDao.getSecretSalt(OAUTH_CLIENT_ID)).thenReturn(clientSalt);
+		
+		String wrongSecretHash = PBKDF2Utils.hashPassword("Wrong secret", clientSalt);
+
+		when(mockOauthClientDao.checkOAuthClientSecretHash(OAUTH_CLIENT_ID, wrongSecretHash)).thenReturn(false);
+		
+		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
+		clientIdAndSecret.setClient_id(OAUTH_CLIENT_ID);
+		clientIdAndSecret.setClient_secret("Wrong secret");
+		
+		// method under test
+		assertFalse(oauthClientManagerImpl.validateClientCredentials(clientIdAndSecret));
+		
+		verify(mockOauthClientDao).getSecretSalt(OAUTH_CLIENT_ID);
+		verify(mockOauthClientDao).checkOAuthClientSecretHash(OAUTH_CLIENT_ID, wrongSecretHash);
 	}
 }
