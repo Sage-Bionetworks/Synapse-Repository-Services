@@ -35,6 +35,9 @@ public class AthenaProjectFilesDAOImplTest {
 
 	@Mock
 	private AthenaSupport mockAthenaSupport;
+	
+	@Mock
+	private FileEventTableNameProvider mockTableNameProvider;
 
 	@Mock
 	private Database mockDatabase;
@@ -102,7 +105,7 @@ public class AthenaProjectFilesDAOImplTest {
 
 		assertEquals(expected, result);
 	}
-	
+
 	@Test
 	public void testRowMapperWithNullProject() {
 		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
@@ -112,17 +115,17 @@ public class AthenaProjectFilesDAOImplTest {
 		String usersCount = "100";
 
 		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
-		
+
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
-		
+
 		// Call under test
 		StatisticsMonthlyProjectFiles result = mapper.mapRow(row);
-		
+
 		assertNotNull(result);
 		assertNull(result.getProjectId());
 		assertEquals(Integer.valueOf(filesCount), result.getFilesCount());
 		assertEquals(Integer.valueOf(usersCount), result.getUsersCount());
-		
+
 	}
 
 	@Test
@@ -134,20 +137,19 @@ public class AthenaProjectFilesDAOImplTest {
 		String usersCount = null;
 
 		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
-		
+
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
-		
+
 		// Call under test
 		StatisticsMonthlyProjectFiles result = mapper.mapRow(row);
-		
+
 		assertNotNull(result);
 		assertEquals(Long.valueOf(projectId), result.getProjectId());
 		assertEquals(0, result.getFilesCount());
 		assertEquals(0, result.getUsersCount());
-		
+
 	}
 
-	
 	@Test
 	public void testRowMapperWithInvalidRow() {
 		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
@@ -172,7 +174,7 @@ public class AthenaProjectFilesDAOImplTest {
 		YearMonth month = YearMonth.of(2019, 1);
 		String tableName = getExpectedTableName(eventType);
 
-		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
+		when(mockTableNameProvider.getTableName(eventType)).thenReturn(tableName);
 
 		// Call under test
 		String result = dao.getAggregateQuery(eventType, month);
@@ -187,7 +189,7 @@ public class AthenaProjectFilesDAOImplTest {
 		YearMonth month = YearMonth.of(2019, 10);
 		String tableName = getExpectedTableName(eventType);
 
-		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
+		when(mockTableNameProvider.getTableName(eventType)).thenReturn(tableName);
 
 		// Call under test
 		String result = dao.getAggregateQuery(eventType, month);
@@ -206,7 +208,7 @@ public class AthenaProjectFilesDAOImplTest {
 		String tableName = getExpectedTableName(eventType);
 
 		when(mockAthenaSupport.getDatabase(AthenaProjectFilesDAOImpl.DATABASE_NAME)).thenReturn(mockDatabase);
-		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
+		when(mockTableNameProvider.getTableName(eventType)).thenReturn(tableName);
 
 		when(mockQueryResult.getQueryExecutionStatistics()).thenReturn(mockQueryStats);
 		when(mockQueryResult.getQueryResultsIterator()).thenReturn(mockResultsIterator);
@@ -221,6 +223,7 @@ public class AthenaProjectFilesDAOImplTest {
 		assertEquals(mockResultsIterator, result.getQueryResultsIterator());
 
 		verify(mockAthenaSupport).getDatabase(AthenaProjectFilesDAOImpl.DATABASE_NAME);
+		verify(mockTableNameProvider).getTableName(eventType);
 
 		ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -230,14 +233,7 @@ public class AthenaProjectFilesDAOImplTest {
 	}
 
 	private String getExpectedTableName(FileEvent eventType) {
-		switch (eventType) {
-		case FILE_DOWNLOAD:
-			return AthenaProjectFilesDAOImpl.TABLE_FILE_DOWNLOADS;
-		case FILE_UPLOAD:
-			return AthenaProjectFilesDAOImpl.TABLE_FILE_UPLOADS;
-		default:
-			throw new IllegalStateException("Unsupported");
-		}
+		return eventType.getGlueTableName();
 	}
 
 	private String getExpectedQuery(String tableName, YearMonth month) {

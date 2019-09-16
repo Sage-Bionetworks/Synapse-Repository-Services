@@ -7,6 +7,7 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Iterator;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
@@ -21,8 +22,16 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class AthenaProjectFilesDAOImplAutowireTest {
 	
+	
+	
 	@Autowired
 	private AthenaProjectFilesDAO dao;
+	
+	
+	@BeforeEach
+	public void before() {
+		
+	}
 
 	@Test
 	public void testAggregateForMonth() throws Exception {
