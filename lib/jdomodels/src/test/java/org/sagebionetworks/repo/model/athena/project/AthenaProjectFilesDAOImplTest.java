@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.athena.project;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -100,7 +102,52 @@ public class AthenaProjectFilesDAOImplTest {
 
 		assertEquals(expected, result);
 	}
+	
+	@Test
+	public void testRowMapperWithNullProject() {
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
 
+		String projectId = null;
+		String filesCount = "10000";
+		String usersCount = "100";
+
+		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		
+		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
+		
+		// Call under test
+		StatisticsMonthlyProjectFiles result = mapper.mapRow(row);
+		
+		assertNotNull(result);
+		assertNull(result.getProjectId());
+		assertEquals(Integer.valueOf(filesCount), result.getFilesCount());
+		assertEquals(Integer.valueOf(usersCount), result.getUsersCount());
+		
+	}
+
+	@Test
+	public void testRowMapperWithNullCounts() {
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+
+		String projectId = "123";
+		String filesCount = null;
+		String usersCount = null;
+
+		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		
+		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
+		
+		// Call under test
+		StatisticsMonthlyProjectFiles result = mapper.mapRow(row);
+		
+		assertNotNull(result);
+		assertEquals(Long.valueOf(projectId), result.getProjectId());
+		assertEquals(0, result.getFilesCount());
+		assertEquals(0, result.getUsersCount());
+		
+	}
+
+	
 	@Test
 	public void testRowMapperWithInvalidRow() {
 		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
