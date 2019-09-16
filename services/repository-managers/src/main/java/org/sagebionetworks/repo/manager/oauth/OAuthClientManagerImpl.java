@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
@@ -248,6 +249,21 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		result.setClient_id(clientId);
 		result.setClient_secret(secret);
 		return result;
+	}
+
+	@Override
+	public boolean validateClientCredentials(OAuthClientIdAndSecret clientIdAndSecret) {
+		ValidateArgument.required(clientIdAndSecret, "Client ID and Secret");
+		if (StringUtils.isEmpty(clientIdAndSecret.getClient_id()) || StringUtils.isEmpty(clientIdAndSecret.getClient_secret())) {
+			return false;
+		}
+		try {
+			byte[] secretSalt = oauthClientDao.getSecretSalt(clientIdAndSecret.getClient_id());
+			String hash = PBKDF2Utils.hashPassword(clientIdAndSecret.getClient_secret(), secretSalt);
+			return oauthClientDao.checkOAuthClientSecretHash(clientIdAndSecret.getClient_id(), hash);
+		} catch (NotFoundException e) {
+			return false;
+		}
 	}
 
 }

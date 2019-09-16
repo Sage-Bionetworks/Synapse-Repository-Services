@@ -32,10 +32,6 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		String bearerToken = HttpAuthUtil.getBearerToken(httpRequest);
 		
-		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-		// strip out access token request param so that the sender can't 'sneak it past us'
-		modParams.remove(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN);
-
 		boolean verified=false;
 		IllegalArgumentException validationException = null;
 		if (bearerToken!=null) {
@@ -50,6 +46,7 @@ public class OAuthAccessTokenFilter implements Filter {
 		
 		if (verified) {
 			// TODO add as header not param
+			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
 			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 			chain.doFilter(modRqst, response);
@@ -62,6 +59,7 @@ public class OAuthAccessTokenFilter implements Filter {
 				reason = validationException.getMessage();
 			}
 			httpResponse.getOutputStream().println("{\"reason\":\""+reason+"\"}");
+			httpResponse.getOutputStream().flush();
 		}
 	}
 
