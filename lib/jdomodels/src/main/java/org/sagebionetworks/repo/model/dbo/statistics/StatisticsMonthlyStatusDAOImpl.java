@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_MONTH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE;
@@ -12,9 +12,7 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;
@@ -52,7 +50,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + "=:" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS_MONTH + "=:"
 			+ PARAM_MONTH;
 
-	private static final RowMapper<DBOMonthlyStatisticsStatus> DBO_MAPPER = new DBOMonthlyStatisticsStatus().getTableMapping();
+	private static final RowMapper<DBOStatisticsMonthlyStatus> DBO_MAPPER = new DBOStatisticsMonthlyStatus().getTableMapping();
 
 	private static final RowMapper<StatisticsMonthlyStatus> ROW_MAPPER = new RowMapper<StatisticsMonthlyStatus>() {
 		@Override
@@ -136,13 +134,13 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
 
-		DBOMonthlyStatisticsStatus dbo;
+		DBOStatisticsMonthlyStatus dbo;
 
 		try {
 			if (forUpdate) {
-				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
+				dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params);
 			} else {
-				dbo = basicDao.getObjectByPrimaryKey(DBOMonthlyStatisticsStatus.class, params);
+				dbo = basicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, params);
 			}
 		} catch (NotFoundException e) {
 			return Optional.empty();
@@ -159,19 +157,19 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 
 		SqlParameterSource params = getPrimaryKeyParams(objectType, month);
 
-		DBOMonthlyStatisticsStatus dbo;
+		DBOStatisticsMonthlyStatus dbo;
 
 		try {
-			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMonthlyStatisticsStatus.class, params);
+			dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOStatisticsMonthlyStatus.class, params);
 		} catch (NotFoundException e) {
-			dbo = new DBOMonthlyStatisticsStatus();
+			dbo = new DBOStatisticsMonthlyStatus();
 		}
 
 		dbo.setObjectType(objectType.toString());
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));
 		dbo.setStatus(status.toString());
 		dbo.setLastUpdatedOn(System.currentTimeMillis());
-		dbo.setErrorMessage(StatisticsMonthlyUtils.encodeErrorMessage(errorMessage, DBOMonthlyStatisticsStatus.MAX_ERROR_MESSAGE_CHARS));
+		dbo.setErrorMessage(StatisticsMonthlyUtils.encodeErrorMessage(errorMessage, DBOStatisticsMonthlyStatus.MAX_ERROR_MESSAGE_CHARS));
 		dbo.setErrorDetails(StatisticsMonthlyUtils.encodeErrorDetails(errorDetails));
 
 		// Avoid overriding the previous timestamp
@@ -191,7 +189,7 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		return params;
 	}
 
-	private static StatisticsMonthlyStatus map(DBOMonthlyStatisticsStatus dbo) {
+	private static StatisticsMonthlyStatus map(DBOStatisticsMonthlyStatus dbo) {
 		StatisticsMonthlyStatus dto = new StatisticsMonthlyStatus();
 
 		dto.setObjectType(StatisticsObjectType.valueOf(dbo.getObjectType()));

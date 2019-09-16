@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
-import org.sagebionetworks.repo.model.statistics.monthly.notification.StatisticsMonthlyProcessNotification;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

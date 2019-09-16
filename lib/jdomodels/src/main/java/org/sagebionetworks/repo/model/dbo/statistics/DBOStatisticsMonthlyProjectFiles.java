@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT;
@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author Marco
  *
  */
-public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonthlyStatisticsProjectFiles> {
+public class DBOStatisticsMonthlyProjectFiles implements DatabaseObject<DBOStatisticsMonthlyProjectFiles> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("projectId", COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID, true),
@@ -34,11 +34,11 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 			new FieldColumn("usersCount", COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT),
 			new FieldColumn("lastUpdatedOn", COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON) };
 
-	private static final TableMapping<DBOMonthlyStatisticsProjectFiles> TABLE_MAPPING = new TableMapping<DBOMonthlyStatisticsProjectFiles>() {
+	private static final TableMapping<DBOStatisticsMonthlyProjectFiles> TABLE_MAPPING = new TableMapping<DBOStatisticsMonthlyProjectFiles>() {
 
 		@Override
-		public DBOMonthlyStatisticsProjectFiles mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBOMonthlyStatisticsProjectFiles dbo = new DBOMonthlyStatisticsProjectFiles();
+		public DBOStatisticsMonthlyProjectFiles mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOStatisticsMonthlyProjectFiles dbo = new DBOStatisticsMonthlyProjectFiles();
 
 			dbo.setProjectId(rs.getLong(COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID));
 			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH, LocalDate.class));
@@ -66,8 +66,8 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 		}
 
 		@Override
-		public Class<? extends DBOMonthlyStatisticsProjectFiles> getDBOClass() {
-			return DBOMonthlyStatisticsProjectFiles.class;
+		public Class<? extends DBOStatisticsMonthlyProjectFiles> getDBOClass() {
+			return DBOStatisticsMonthlyProjectFiles.class;
 		}
 
 	};
@@ -128,7 +128,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 	}
 
 	@Override
-	public TableMapping<DBOMonthlyStatisticsProjectFiles> getTableMapping() {
+	public TableMapping<DBOStatisticsMonthlyProjectFiles> getTableMapping() {
 		return TABLE_MAPPING;
 	}
 
@@ -148,7 +148,7 @@ public class DBOMonthlyStatisticsProjectFiles implements DatabaseObject<DBOMonth
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		DBOMonthlyStatisticsProjectFiles other = (DBOMonthlyStatisticsProjectFiles) obj;
+		DBOStatisticsMonthlyProjectFiles other = (DBOStatisticsMonthlyProjectFiles) obj;
 		return Objects.equals(eventType, other.eventType) && Objects.equals(filesCount, other.filesCount)
 				&& Objects.equals(lastUpdatedOn, other.lastUpdatedOn) && Objects.equals(month, other.month)
 				&& Objects.equals(projectId, other.projectId) && Objects.equals(usersCount, other.usersCount);

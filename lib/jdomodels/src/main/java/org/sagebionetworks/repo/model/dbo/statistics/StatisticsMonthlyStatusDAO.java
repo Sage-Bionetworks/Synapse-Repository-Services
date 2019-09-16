@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import java.time.YearMonth;
 import java.util.List;

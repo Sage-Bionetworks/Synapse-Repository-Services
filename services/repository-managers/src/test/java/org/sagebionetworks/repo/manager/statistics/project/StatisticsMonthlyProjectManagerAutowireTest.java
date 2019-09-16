@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.monthly.project;
+package org.sagebionetworks.repo.manager.statistics.project;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -9,7 +9,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
+import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectManager;
+import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,7 +21,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class StatisticsMonthlyProjectManagerAutowireTest {
 
 	@Autowired
-	private StatisticsMonthlyProjectDAO statisticsDao;
+	private StatisticsMonthlyProjectFilesDAO statisticsDao;
 
 	@Autowired
 	private StatisticsMonthlyProjectManager manager;

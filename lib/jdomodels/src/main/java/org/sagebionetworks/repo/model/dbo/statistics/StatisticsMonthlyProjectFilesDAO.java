@@ -1,13 +1,13 @@
-package org.sagebionetworks.repo.model.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 
-public interface StatisticsMonthlyProjectDAO {
+public interface StatisticsMonthlyProjectFilesDAO {
 
 	/**
 	 * Returns the count of distinct projects that have statistics in the given range

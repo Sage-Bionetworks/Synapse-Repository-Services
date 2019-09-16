@@ -8,8 +8,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProcessNotification;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
-import org.sagebionetworks.repo.model.statistics.monthly.notification.StatisticsMonthlyProcessNotification;
 
 public class StatisticsMonthlyUtilsTest {
 

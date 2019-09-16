@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -17,10 +17,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
+import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -32,7 +32,7 @@ public class StatisticsMonthlyProjectFilesDAOTest {
 	private static final Integer TEST_FILES_COUNT = 10000;
 	private static final Integer TEST_USERS_COUNT = 200;
 	@Autowired
-	private StatisticsMonthlyProjectDAO dao;
+	private StatisticsMonthlyProjectFilesDAO dao;
 
 	@BeforeEach
 	public void before() {

@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.athena.AthenaQueryStatistics;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.athena.RowMapper;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.athena.model.Datum;

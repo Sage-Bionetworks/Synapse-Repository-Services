@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.monthly.project;
+package org.sagebionetworks.repo.manager.statistics.project;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -8,10 +8,10 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.dao.project.AthenaProjectFilesDAO;
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
+import org.sagebionetworks.repo.model.athena.project.AthenaProjectFilesDAO;
+import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,10 +24,10 @@ public class StatisticsMonthlyProjectManagerImpl implements StatisticsMonthlyPro
 	static final int BATCH_SIZE = 5000;
 
 	private AthenaProjectFilesDAO athenaDao;
-	private StatisticsMonthlyProjectDAO statisticsDao;
+	private StatisticsMonthlyProjectFilesDAO statisticsDao;
 
 	@Autowired
-	public StatisticsMonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectDAO statisticsDao) {
+	public StatisticsMonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectFilesDAO statisticsDao) {
 		this.athenaDao = athenaDao;
 		this.statisticsDao = statisticsDao;
 	}

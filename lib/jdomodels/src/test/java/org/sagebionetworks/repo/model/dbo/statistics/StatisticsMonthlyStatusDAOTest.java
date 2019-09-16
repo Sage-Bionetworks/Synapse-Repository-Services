@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyStatusDAO;
+import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyStatusDAO;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyStatus;

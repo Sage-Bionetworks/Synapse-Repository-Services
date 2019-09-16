@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE;
@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author Marco
  *
  */
-public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStatisticsStatus> {
+public class DBOStatisticsMonthlyStatus implements DatabaseObject<DBOStatisticsMonthlyStatus> {
 	
 	public static int MAX_ERROR_MESSAGE_CHARS = 1000;
 
@@ -42,11 +42,11 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 			new FieldColumn("errorMessage", COL_TABLE_STATUS_ERROR_MESSAGE),
 			new FieldColumn("errorDetails", COL_TABLE_STATUS_ERROR_DETAILS) };
 
-	private static final TableMapping<DBOMonthlyStatisticsStatus> TABLE_MAPPING = new TableMapping<DBOMonthlyStatisticsStatus>() {
+	private static final TableMapping<DBOStatisticsMonthlyStatus> TABLE_MAPPING = new TableMapping<DBOStatisticsMonthlyStatus>() {
 
 		@Override
-		public DBOMonthlyStatisticsStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBOMonthlyStatisticsStatus dbo = new DBOMonthlyStatisticsStatus();
+		public DBOStatisticsMonthlyStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOStatisticsMonthlyStatus dbo = new DBOStatisticsMonthlyStatus();
 
 			dbo.setObjectType(rs.getString(COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE));
 			dbo.setMonth(rs.getObject(COL_STATISTICS_MONTHLY_STATUS_MONTH, LocalDate.class));
@@ -80,8 +80,8 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 		}
 
 		@Override
-		public Class<? extends DBOMonthlyStatisticsStatus> getDBOClass() {
-			return DBOMonthlyStatisticsStatus.class;
+		public Class<? extends DBOStatisticsMonthlyStatus> getDBOClass() {
+			return DBOStatisticsMonthlyStatus.class;
 		}
 	};
 
@@ -151,7 +151,7 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 	}
 
 	@Override
-	public TableMapping<DBOMonthlyStatisticsStatus> getTableMapping() {
+	public TableMapping<DBOStatisticsMonthlyStatus> getTableMapping() {
 		return TABLE_MAPPING;
 	}
 
@@ -172,7 +172,7 @@ public class DBOMonthlyStatisticsStatus implements DatabaseObject<DBOMonthlyStat
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOMonthlyStatisticsStatus other = (DBOMonthlyStatisticsStatus) obj;
+		DBOStatisticsMonthlyStatus other = (DBOStatisticsMonthlyStatus) obj;
 		return Arrays.equals(errorDetails, other.errorDetails) && Objects.equals(errorMessage, other.errorMessage)
 				&& Objects.equals(lastStartedOn, other.lastStartedOn) && Objects.equals(lastUpdatedOn, other.lastUpdatedOn)
 				&& Objects.equals(month, other.month) && Objects.equals(objectType, other.objectType)

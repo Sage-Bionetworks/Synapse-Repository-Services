@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.statistics.monthly.notification;
+package org.sagebionetworks.repo.model.statistics.monthly;
 
 import java.time.YearMonth;
 import java.util.Objects;

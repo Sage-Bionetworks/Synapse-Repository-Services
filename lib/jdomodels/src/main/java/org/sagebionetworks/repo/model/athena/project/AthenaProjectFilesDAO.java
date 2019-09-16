@@ -1,10 +1,10 @@
-package org.sagebionetworks.repo.model.dao.project;
+package org.sagebionetworks.repo.model.athena.project;
 
 import java.time.YearMonth;
 
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 
 /**
  * Data access layer on top of athena for project files

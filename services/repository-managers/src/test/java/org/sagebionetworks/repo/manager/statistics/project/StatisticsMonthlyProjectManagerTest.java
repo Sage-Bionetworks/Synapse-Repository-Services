@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.monthly.project;
+package org.sagebionetworks.repo.manager.statistics.project;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -17,11 +17,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectManagerImpl;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.dao.project.AthenaProjectFilesDAO;
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
+import org.sagebionetworks.repo.model.athena.project.AthenaProjectFilesDAO;
+import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 
 @ExtendWith(MockitoExtension.class)
 public class StatisticsMonthlyProjectManagerTest {
@@ -33,7 +34,7 @@ public class StatisticsMonthlyProjectManagerTest {
 	private AthenaQueryResult<StatisticsMonthlyProjectFiles> mockQueryResults;
 
 	@Mock
-	private StatisticsMonthlyProjectDAO mockStatsDao;
+	private StatisticsMonthlyProjectFilesDAO mockStatsDao;
 
 	@Mock
 	private Iterator<StatisticsMonthlyProjectFiles> mockResultsIterator;

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.statistics;
+package org.sagebionetworks.repo.model.dbo.statistics;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT;
@@ -15,12 +15,10 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.dao.statistics.StatisticsMonthlyProjectDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsProjectFiles;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
-import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
+import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +32,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyProjectDAO {
+public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyProjectFilesDAO {
 
 	private static final String PARAM_PROJECT_ID = "projectId";
 	private static final String PARAM_MONTH = "month";
@@ -73,7 +71,7 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 
 	// @formatter:on
 
-	private static final RowMapper<DBOMonthlyStatisticsProjectFiles> DBO_MAPPER = new DBOMonthlyStatisticsProjectFiles().getTableMapping();
+	private static final RowMapper<DBOStatisticsMonthlyProjectFiles> DBO_MAPPER = new DBOStatisticsMonthlyProjectFiles().getTableMapping();
 
 	private static final RowMapper<StatisticsMonthlyProjectFiles> ROW_MAPPER = new RowMapper<StatisticsMonthlyProjectFiles>() {
 		@Override
@@ -134,7 +132,7 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 
 		SqlParameterSource params = getPrimaryKeyParams(projectId, month, eventType);
 
-		DBOMonthlyStatisticsProjectFiles dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOMonthlyStatisticsProjectFiles.class, params);
+		DBOStatisticsMonthlyProjectFiles dbo = basicDao.getObjectByPrimaryKeyIfExists(DBOStatisticsMonthlyProjectFiles.class, params);
 
 		if (dbo == null) {
 			return Optional.empty();
@@ -205,7 +203,7 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 		return params;
 	}
 
-	private static StatisticsMonthlyProjectFiles map(DBOMonthlyStatisticsProjectFiles dbo) {
+	private static StatisticsMonthlyProjectFiles map(DBOStatisticsMonthlyProjectFiles dbo) {
 		StatisticsMonthlyProjectFiles dto = new StatisticsMonthlyProjectFiles();
 
 		dto.setProjectId(dbo.getProjectId());
