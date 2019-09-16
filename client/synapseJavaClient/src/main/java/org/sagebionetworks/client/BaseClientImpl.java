@@ -62,9 +62,9 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for REST APIs
  */
 public class BaseClientImpl implements BaseClient {
-	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth";
-	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo";
-	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file";
+	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
+	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 	protected static final String APPLICATION_JSON = "application/json";
@@ -141,7 +141,7 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
-		LoginResponse response = postJSONEntity(getAuthEndpoint(), "/login", request, LoginResponse.class);
+		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		return response;
@@ -152,7 +152,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	public void logout() throws SynapseException {
-		deleteUri(getAuthEndpoint(), "/session");
+		deleteUri(authEndpoint, "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 	}
@@ -219,12 +219,7 @@ public class BaseClientImpl implements BaseClient {
 	
 	@Override
 	public String getRepoEndpoint() {
-		return getRepoEndpoint(1);
-	}
-
-	@Override
-	public String getRepoEndpoint(int version){
-		return this.repoEndpoint + "/v" + version;
+		return this.repoEndpoint;
 	}
 
 	@Override
@@ -247,12 +242,7 @@ public class BaseClientImpl implements BaseClient {
 
 	@Override
 	public String getAuthEndpoint() {
-		return getAuthEndpoint(1);
-	}
-
-	@Override
-	public String getAuthEndpoint(int version) {
-		return authEndpoint + "/v" + version;
+		return authEndpoint;
 	}
 
 	@Override
@@ -261,13 +251,8 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	@Override
-	public String getFileEndpoint(int version) {
-		return fileEndpoint + "/v" + version;
-	}
-
-	@Override
 	public String getFileEndpoint() {
-		return getFileEndpoint(1);
+		return this.fileEndpoint;
 	}
 
 	@Override
@@ -296,7 +281,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	@Override
 	public void invalidateApiKey() throws SynapseException {
-		deleteUri(getAuthEndpoint(), "/secretKey");
+		deleteUri(authEndpoint, "/secretKey");
 		this.apiKey = null;
 	}
 
@@ -341,7 +326,7 @@ public class BaseClientImpl implements BaseClient {
 			SynapseClientException("You must log in before revalidating the session.");
 		session.setSessionToken(currentSessionToken);
 		try {
-			voidPut(getAuthEndpoint(), "/session", session);
+			voidPut(authEndpoint, "/session", session);
 		} catch (SynapseForbiddenException e) {
 			throw new SynapseTermsOfUseException(e.getMessage());
 		}

@@ -115,8 +115,8 @@ public class EntityServletTestHelper {
 	 */
 	public EntityBundleV2 getEntityBundle(String id, EntityBundleV2Request bundleV2Request, Long userId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
-				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE_V2,
 				userId, null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
 		request.setContentType("application/json");
@@ -134,9 +134,9 @@ public class EntityServletTestHelper {
 	 */
 	public EntityBundleV2 getEntityBundleForVersion(String id,
 												  Long versionNumber, EntityBundleV2Request bundleV2Request, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
 				null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
 		request.setContentType("application/json");
@@ -254,9 +254,9 @@ public class EntityServletTestHelper {
 	 */
 	public AnnotationsV2 getEntityAnnotationsV2(String id, Long userId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.ANNOTATIONS, userId, null);
+						+ UrlHelpers.ANNOTATIONS_V2, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -270,9 +270,9 @@ public class EntityServletTestHelper {
 	 */
 	public AnnotationsV2 updateAnnotationsV2(AnnotationsV2 annos, Long userId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequestV2(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
-						+ UrlHelpers.ANNOTATIONS, userId, annos);
+						+ UrlHelpers.ANNOTATIONS_V2, userId, annos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);

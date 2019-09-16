@@ -406,32 +406,8 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException;
 
-	@Deprecated
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
-			throws SynapseException;
-
-	@Deprecated
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
-			throws SynapseException;
-
-	@Deprecated
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
-			throws SynapseException;
-
-	@Deprecated
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
-			String activityId) throws SynapseException;
-
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
-
-	@Deprecated
-	public EntityBundle getEntityBundle(String entityId, int partsMask)
-			throws SynapseException;
-
-	@Deprecated
-	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
-			int partsMask) throws SynapseException;
 
 	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc)
 			throws SynapseException;
@@ -553,13 +529,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public UserEntityPermissions getUsersEntityPermissions(String entityId)
-			throws SynapseException;
-
-	@Deprecated
-	public Annotations getAnnotations(String entityId) throws SynapseException;
-
-	@Deprecated
-	public Annotations updateAnnotations(String entityId, Annotations updated)
 			throws SynapseException;
 
 	public AnnotationsV2 getAnnotationsV2(String entityId) throws SynapseException;

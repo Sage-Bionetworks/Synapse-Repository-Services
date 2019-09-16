@@ -486,19 +486,19 @@ public class SynapseTest {
 	@Test
 	public void testEndpointForTypeRepo(){
 		synapse.setRepositoryEndpoint("https://repo-endpoint.com");
-		assertEquals("https://repo-endpoint.com/v1", synapse.getEndpointForType(RestEndpointType.repo));
+		assertEquals("https://repo-endpoint.com", synapse.getEndpointForType(RestEndpointType.repo));
 	}
 	
 	@Test
 	public void testEndpointForTypeAuth(){
 		synapse.setAuthEndpoint("auth-endpoint");
-		assertEquals("auth-endpoint/v1", synapse.getEndpointForType(RestEndpointType.auth));
+		assertEquals("auth-endpoint", synapse.getEndpointForType(RestEndpointType.auth));
 	}
 	
 	@Test
 	public void testEndpointForTypeFile(){
 		synapse.setFileEndpoint("file-endpoint");
-		assertEquals("file-endpoint/v1", synapse.getEndpointForType(RestEndpointType.file));
+		assertEquals("file-endpoint", synapse.getEndpointForType(RestEndpointType.file));
 	}
 	
 	/*

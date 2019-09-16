@@ -88,12 +88,6 @@ public class ServletTestHelperUtils {
 		return initRequest(mode, "/repo/v1", requestURI, userId, entity);
 	}
 
-	public static MockHttpServletRequest initRequestV2(HTTPMODE mode,
-													 String requestURI, Long userId, JSONEntity entity)
-			throws Exception {
-		return initRequest(mode, "/repo/v2", requestURI, userId, entity);
-	}
-
 	/**
 	 * Sends off a Mock HTTP request and check for errors
 	 * 

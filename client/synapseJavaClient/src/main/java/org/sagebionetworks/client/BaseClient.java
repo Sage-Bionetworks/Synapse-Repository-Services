@@ -56,58 +56,37 @@ public interface BaseClient {
 	public String getCurrentSessionToken();
 
 	/**
-	 * Get the v1 endpoint of the repository service
+	 * Get the endpoint of the repository service
 	 */
 	public String getRepoEndpoint();
 
 	/**
-	 * Get the endpoint for specific version of the repository service
-	 * @param version version of the endpoint
-	 * @return endpoint with the version appended
-	 */
-	public String getRepoEndpoint(int version);
-
-	/**
 	 * The repository endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/repo"
+	 * "https://repo-prod.prod.sagebase.org/repo/v1"
 	 */
 	public void setRepositoryEndpoint(String repoEndpoint);
 
 	/**
 	 * The authorization endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/auth"
+	 * "https://repo-prod.prod.sagebase.org/auth/v1"
 	 */
 	public void setAuthEndpoint(String authEndpoint);
 
 	/**
-	 * Get the v1 endpoint of the authorization service
+	 * Get the endpoint of the authorization service
 	 */
 	public String getAuthEndpoint();
 
 	/**
-	 * Get the endpoint for specific version of the authorization service
-	 * @param version version of the endpoint
-	 * @return endpoint with the version appended
-	 */
-	public String getAuthEndpoint(int version);
-
-	/**
 	 * The file endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/file"
+	 * "https://repo-prod.prod.sagebase.org/file/v1"
 	 */
 	public void setFileEndpoint(String fileEndpoint);
 
 	/**
-	 * Get the v1 endpoint of the file service
+	 * Get the endpoint of the file service
 	 */
 	public String getFileEndpoint();
-
-	/**
-	 * Get the endpoint for specific version of the file service
-	 * @param version version of the endpoint
-	 * @return endpoint with the version appended
-	 */
-	public String getFileEndpoint(int version);
 
 	public String getUserName();
 

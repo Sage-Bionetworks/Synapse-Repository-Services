@@ -35,9 +35,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * single web service request.
  * </p>
  */
-@ControllerInfo(displayName="Entity Bundle Services V2", path="repo/v2")
+@ControllerInfo(displayName="Entity Bundle Services V2", path="repo/v1")
 @Controller
-@RequestMapping(UrlHelpers.REPO_PATH_V2)
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class EntityBundleV2Controller {
 
 	@Autowired
@@ -57,7 +57,7 @@ public class EntityBundleV2Controller {
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundleV2 getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -82,7 +82,7 @@ public class EntityBundleV2Controller {
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundleV2 getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -113,7 +113,7 @@ public class EntityBundleV2Controller {
 	 * @throws ParseException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE_CREATE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE_V2_CREATE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundleV2 createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -144,7 +144,7 @@ public class EntityBundleV2Controller {
 	 * @throws ACLInheritanceException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	EntityBundleV2 updateEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
