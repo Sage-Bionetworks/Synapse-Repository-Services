@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,7 +54,7 @@ public class OAuthClientAuthFilter implements Filter {
 		}
 		
 		if (validCredentials) {
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;

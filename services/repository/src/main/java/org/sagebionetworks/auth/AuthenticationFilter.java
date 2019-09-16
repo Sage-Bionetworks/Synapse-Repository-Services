@@ -1,9 +1,13 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -19,12 +23,14 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -52,6 +58,9 @@ public class AuthenticationFilter implements Filter {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	OIDCTokenHelper oidcTokenHelper;
 	
 	private boolean allowAnonymous = false;
 	
@@ -163,14 +172,27 @@ public class AuthenticationFilter implements Filter {
 		currentUserIdThreadLocal.set(userId);
 		try {
 			// Pass along, including the user ID
-			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
+			Map<String, String[]> modHeaders = new HashMap<String, String[]>(); 
+			// TODO add current headers, but not session token or HMAC
+			// TODO strip user id from param's
+			// TODO only add bearer header if not anonymous, otherwise strip
+			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+createAccessToken(userId) });
+			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, null);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
 		}
+	}
+	
+	public String createAccessToken(Long userId) {
+		String issuer = null; // doesn't matter -- it's only important to the client
+		String subject = userId.toString(); // we don't encrypt
+		String oauthClientId = "0"; // TODO define a constant
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
+		return oidcTokenHelper.createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+				tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 
 	/**

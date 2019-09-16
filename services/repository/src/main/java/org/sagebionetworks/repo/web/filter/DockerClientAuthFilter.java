@@ -17,7 +17,7 @@ import org.apache.http.HttpStatus;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -49,6 +49,7 @@ public class DockerClientAuthFilter implements Filter {
 				authenticationService.login(credential);
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
 				userId = alias.getPrincipalId();
+				// TODO allow access token
 			} catch (NotFoundException e) {
 				HttpServletResponse httpResponse = (HttpServletResponse)response;
 				httpResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
@@ -57,8 +58,9 @@ public class DockerClientAuthFilter implements Filter {
 		}
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
+		// TODO add as header, not param
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+		HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 		chain.doFilter(modRqst, response);
 	}
 

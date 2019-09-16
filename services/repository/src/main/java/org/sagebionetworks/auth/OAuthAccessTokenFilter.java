@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +49,9 @@ public class OAuthAccessTokenFilter implements Filter {
 		}
 		
 		if (verified) {
+			// TODO add as header not param
 			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
