@@ -11,6 +11,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -28,11 +29,13 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -55,7 +58,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
-	
+	@Autowired
+	private VerificationDAO verificationDao;
 
 	@Override
 	public UserProfile getUserProfile(String ownerId)
@@ -64,6 +68,18 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return getUserProfilePrivate(ownerId);
 	}
 
+	@Override
+	public VerificationSubmission getCurrentVerificationSubmission(Long userId) {
+		return verificationDao.getCurrentVerificationSubmissionForUser(userId);
+	}	
+	
+	@Override
+	public String getOrcid(Long userId) {
+		List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_ORCID);
+		if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
+		return(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+	}
+	
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);

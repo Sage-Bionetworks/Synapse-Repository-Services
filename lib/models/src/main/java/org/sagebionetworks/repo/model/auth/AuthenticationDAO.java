@@ -55,6 +55,13 @@ public interface AuthenticationDAO {
 	public Session getSessionTokenIfValid(long userId, Date now);
 	
 	/**
+	 * Find the time stamp when the session was validated
+	 * @param principalId
+	 * @return the validation time stamp or null, if there is no session
+	 */
+	public Date getSessionValidatedOn(long principalId) ;
+	
+	/**
 	 * Nullifies the session token
 	 */
 	public void deleteSessionToken(String sessionToken);

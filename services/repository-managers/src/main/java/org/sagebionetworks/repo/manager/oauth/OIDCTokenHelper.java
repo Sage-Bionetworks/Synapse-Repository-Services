@@ -27,7 +27,7 @@ public interface OIDCTokenHelper {
 	 * @return a serialized JSON Web Token
 	 */
 	String createOIDCIdToken(String issuer, String subject, String oauthClientId, long now, String nonce,
-			Long authTimeSeconds, String tokenId, Map<OIDCClaimName, String> userInfo);
+			Long authTimeSeconds, String tokenId, Map<OIDCClaimName, Object> userInfo);
 
 	/**
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The

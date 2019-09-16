@@ -311,6 +311,14 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "FORM_GROUP",
+			"description": "Grouping of form data."
+		},
+		{
+			"name": "FORM_DATA",
+			"description": "Form data."
+		},
+		{
 			"name": "DOWNLOAD_LIST",
 			"description": "The root object for a user's download list."
 		},

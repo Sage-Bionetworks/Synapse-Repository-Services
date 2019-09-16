@@ -25,7 +25,6 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecord;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsFileEventLogRecord;
@@ -41,6 +40,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
+import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -53,9 +53,9 @@ public class StatisticsEventsCollectorAutowireTest {
 
 	public static final long TEST_FILE_SIZE = 1234567l;
 	
-	private static final String STREAM_UPLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(StatisticsFileActionType.FILE_UPLOAD);
+	private static final String STREAM_UPLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(FileEvent.FILE_UPLOAD);
 
-	private static final String STREAM_DOWNLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(StatisticsFileActionType.FILE_DOWNLOAD);
+	private static final String STREAM_DOWNLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(FileEvent.FILE_DOWNLOAD);
 
 	
 	@Autowired
@@ -131,7 +131,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Test
 	public void testCollectFileDownloadEvent() {
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD, 
+				FileEvent.FILE_DOWNLOAD, 
 				creatorUserId, 
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
@@ -150,7 +150,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Test
 	public void testCollectFileUploadEvent() {
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_UPLOAD, 
+				FileEvent.FILE_UPLOAD, 
 				creatorUserId, 
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
@@ -170,14 +170,14 @@ public class StatisticsEventsCollectorAutowireTest {
 	public void testCollectEvents() {
 		
 		StatisticsFileEvent downloadEvent1 = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD,
+				FileEvent.FILE_DOWNLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
 				FileHandleAssociateType.FileEntity);
 
 		StatisticsFileEvent downloadEvent2 = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD,
+				FileEvent.FILE_DOWNLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
@@ -203,14 +203,14 @@ public class StatisticsEventsCollectorAutowireTest {
 	public void testCollectEventsWithDifferentStreams() {
 		
 		StatisticsFileEvent downloadEvent = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD,
+				FileEvent.FILE_DOWNLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
 				FileHandleAssociateType.FileEntity);
 
 		StatisticsFileEvent uploadEvent = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_UPLOAD,
+				FileEvent.FILE_UPLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
@@ -239,7 +239,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Test
 	public void testCollectEventWithoutSending() {
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD, 
+				FileEvent.FILE_DOWNLOAD, 
 				creatorUserId, 
 				"123", "123",
 				FileHandleAssociateType.TeamAttachment);
@@ -255,7 +255,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Test
 	public void testInvokationWithoutTransaction() {
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD,
+				FileEvent.FILE_DOWNLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
@@ -275,7 +275,7 @@ public class StatisticsEventsCollectorAutowireTest {
 	@Test
 	public void testInvokationWithTransaction() {
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				StatisticsFileActionType.FILE_DOWNLOAD,
+				FileEvent.FILE_DOWNLOAD,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 

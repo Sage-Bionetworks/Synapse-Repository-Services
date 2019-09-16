@@ -28,8 +28,6 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	AccessApprovalManager accessApprovalManager;
 	@Autowired
 	UserManager userManager;
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 
 	@WriteTransaction
 	@Override

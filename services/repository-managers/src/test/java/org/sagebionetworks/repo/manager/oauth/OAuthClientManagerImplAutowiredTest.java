@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
@@ -94,7 +95,7 @@ public class OAuthClientManagerImplAutowiredTest {
 		
 		// method under test
 		OAuthClient created = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
-		String id = created.getClientId();
+		String id = created.getClient_id();
 		assertNotNull(id);
 		oauthClientsToDelete.add(id);
 		
@@ -118,8 +119,11 @@ public class OAuthClientManagerImplAutowiredTest {
 		// method under test
 		OAuthClientIdAndSecret idAndSecret = oauthClientManager.createClientSecret(userInfo, id);
 		
-		assertEquals(id, idAndSecret.getClientId());
-		assertNotNull(idAndSecret.getClientSecret());
+		// method under test
+		assertTrue(oauthClientManager.validateClientCredentials(idAndSecret));
+		
+		assertEquals(id, idAndSecret.getClient_id());
+		assertNotNull(idAndSecret.getClient_secret());
 		
 		// method under test
 		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);

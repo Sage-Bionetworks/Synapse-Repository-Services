@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -79,9 +80,11 @@ public class IT049FileHandleTest {
 	
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
+	private static final String LARGE_IMAGE_FILE_NAME = "LargeImage.jpg";
 
 	private List<FileHandle> toDelete = null;
 	private File imageFile;
+	private File largeImageFile;
 	private Project project;
 
 	// Hard-coded dev test bucket
@@ -115,6 +118,8 @@ public class IT049FileHandleTest {
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
+		URL largeImageUrl = IT049FileHandleTest.class.getClassLoader().getResource("images/"+LARGE_IMAGE_FILE_NAME);
+		largeImageFile = new File(largeImageUrl.getFile().replaceAll("%20", " "));
 		project = new Project();
 		project = synapse.createEntity(project);
 	}
@@ -549,12 +554,13 @@ public class IT049FileHandleTest {
 	public void testMultipartUploadV2ToGoogleCloud() throws FileNotFoundException, SynapseException, IOException{
 		// Only run this test if Google Cloud is enabled.
 		Assume.assumeTrue(config.getGoogleCloudEnabled());
-		assertNotNull(imageFile);
-		assertTrue(imageFile.exists());
-		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+		// We use the large image file to force an upload with more than one part. required to test part deletion
+		assertNotNull(largeImageFile);
+		assertTrue(largeImageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(largeImageFile);
 
 		// Upload the owner.txt to Google Cloud so we can create the storage location
-		String baseKey = "IT049FileHandleTest-" + UUID.randomUUID().toString();
+		String baseKey = "integration-test/IT049FileHandleTest-" + UUID.randomUUID().toString();
 
 		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
 
@@ -567,11 +573,14 @@ public class IT049FileHandleTest {
 
 		Boolean generatePreview = false;
 		Boolean forceRestart = null;
-		GoogleCloudFileHandle result = (GoogleCloudFileHandle) synapse.multipartUpload(this.imageFile, storageLocationSetting.getStorageLocationId(), generatePreview, forceRestart);
+		GoogleCloudFileHandle result = (GoogleCloudFileHandle) synapse.multipartUpload(this.largeImageFile, storageLocationSetting.getStorageLocationId(), generatePreview, forceRestart);
 		assertNotNull(result);
 		toDelete.add(result);
 		assertNotNull(result.getFileName());
 		assertEquals(expectedMD5, result.getContentMd5());
+
+		// Verify that all parts have been deleted
+		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
 	}
 
 

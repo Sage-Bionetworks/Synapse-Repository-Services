@@ -1,5 +1,6 @@
 package org.sagebionetworks.statistics.workers;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -10,7 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.statistics.StatisticsProcessingException;
 import org.sagebionetworks.repo.manager.statistics.monthly.StatisticsMonthlyManager;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
@@ -25,6 +28,9 @@ public class StatisticsMonthlyWorkerTest {
 	private StatisticsMonthlyManager mockManager;
 	
 	@Mock
+	private WorkerLogger workerLogger;
+	
+	@Mock
 	private Message mockMessage;
 	
 	@Mock
@@ -34,7 +40,7 @@ public class StatisticsMonthlyWorkerTest {
 	private StatisticsMonthlyWorker worker;
 	
 	@Test
-	public void testProcessMessage() throws RecoverableMessageException, Exception {
+	public void testRun() throws RecoverableMessageException, Exception {
 		YearMonth month = YearMonth.of(2019, 8);
 		
 		String messageBody = StatisticsMonthlyUtils.buildNotificationBody(StatisticsObjectType.PROJECT, month);
@@ -45,5 +51,23 @@ public class StatisticsMonthlyWorkerTest {
 		worker.run(mockCallback, mockMessage);
 		
 		verify(mockManager).processMonth(StatisticsObjectType.PROJECT, month, mockCallback);
+	}
+	
+	@Test
+	public void testRunWithFailure() throws RecoverableMessageException, Exception {
+		YearMonth month = YearMonth.of(2019, 8);
+		
+		String messageBody = StatisticsMonthlyUtils.buildNotificationBody(StatisticsObjectType.PROJECT, month);
+		
+		when(mockMessage.getBody()).thenReturn(messageBody);
+		
+		StatisticsProcessingException ex = new StatisticsProcessingException();
+		doThrow(ex).when(mockManager).processMonth(StatisticsObjectType.PROJECT, month, mockCallback);
+		
+		// Call under test
+		worker.run(mockCallback, mockMessage);
+		
+		verify(mockManager).processMonth(StatisticsObjectType.PROJECT, month, mockCallback);
+		verify(workerLogger).logWorkerFailure(StatisticsMonthlyWorker.class.getName(), ex, false);
 	}
 }

@@ -340,6 +340,22 @@ public class UrlHelpers {
 	public static final String DOI_LOCATE = DOI + "/locate";
 	public static final String DOI_ASYNC_START = DOI + ASYNC_START_REQUEST;
 	public static final String DOI_ASYNC_GET = DOI + ASYNC_GET_REQUEST;
+	
+	/**
+	 * Form  API URIs
+	 * 
+	 */
+	public static final String FORM = "/form";
+	public static final String FORM_DATA = FORM+"/data";
+	public static final String FORM_GROUP = FORM+"/group";
+	public static final String FORM_GROUP_ACL = FORM_GROUP+"/{id}/acl";
+	public static final String FORM_DATA_ID = FORM_DATA+"/{id}";
+	public static final String FORM_DATA_SUBMIT = FORM_DATA+"/{id}/submit";
+	public static final String FORM_LIST = FORM_DATA+"/list";
+	public static final String FORM_LIST_REVIEWER = FORM_DATA+"/list/reviewer";
+	
+	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
+	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).
@@ -1037,6 +1053,21 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
+	public static final String WELL_KNOWN = "/.well-known";
+	public static final String WELL_KNOWN_OPENID_CONFIGURATION = WELL_KNOWN+"/openid-configuration";
+
+	/**
+	 * OpenID Connect URL constants
+	 */
+	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
+	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret/"+ID;
+	public static final String OAUTH_2_CONSENT = AUTH_OAUTH_2+"/consent";
+	public static final String OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
+	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
+	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
+	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	
 
 	public static final String AUTH_LOGIN = "/login";
 	
@@ -1055,7 +1086,13 @@ public class UrlHelpers {
 	 * API for updating a file
 	 * @see PLFM-4108
 	 */
-	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";;
+	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";
+	
+	/**
+	 * Request parameter to get the next page of a paginated query response.
+	 */
+	public static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken";
+
 
 	static {
 		@SuppressWarnings("rawtypes")

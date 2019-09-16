@@ -71,7 +71,7 @@ public class StatisticsMonthlyUtils {
 		}
 	}
 	
-	public static String createErrorDetails(Exception ex) {
+	public static String createErrorDetails(Throwable ex) {
 		StringWriter writer = new StringWriter();
 		ex.printStackTrace(new PrintWriter(writer));
 		return writer.toString();

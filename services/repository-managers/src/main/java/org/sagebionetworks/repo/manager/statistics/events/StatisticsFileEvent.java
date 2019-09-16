@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.statistics.events;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.statistics.FileEvent;
 
 /**
  * Implementation of a {@link StatisticsEvent} related to file events (E.g. download/upload)
@@ -12,14 +13,14 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
  */
 public class StatisticsFileEvent implements StatisticsEvent {
 
-	private StatisticsFileActionType actionType;
+	private FileEvent actionType;
 	private Long userId;
 	private Long timestamp;
 	private String fileHandleId;
 	private String associationId;
 	private FileHandleAssociateType associationType;
 
-	public StatisticsFileEvent(StatisticsFileActionType actionType, Long userId, String fileHandleId, String associationId,
+	public StatisticsFileEvent(FileEvent actionType, Long userId, String fileHandleId, String associationId,
 			FileHandleAssociateType associationType) {
 		this.timestamp = System.currentTimeMillis();
 		this.actionType = actionType;
@@ -39,7 +40,7 @@ public class StatisticsFileEvent implements StatisticsEvent {
 		return userId;
 	}
 
-	public StatisticsFileActionType getActionType() {
+	public FileEvent getActionType() {
 		return actionType;
 	}
 

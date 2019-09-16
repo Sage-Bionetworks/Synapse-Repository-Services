@@ -9,10 +9,8 @@
 		<artifactId>lib</artifactId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
-
-	<groupId>org.sagebionetworks</groupId>
+	
 	<artifactId>lib-models</artifactId>
-	<version>develop-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Platform Repository Model Objects</name>
 
@@ -52,7 +50,7 @@
 			<artifactId>schema-to-pojo-core</artifactId>
 		</dependency>
 		
-
+		
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
@@ -100,6 +98,12 @@
 			<artifactId>spring-aop</artifactId>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt</artifactId>
+		</dependency>
+		
 	</dependencies>
 
 	<build>

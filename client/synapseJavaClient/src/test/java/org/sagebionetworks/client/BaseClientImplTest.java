@@ -52,6 +52,9 @@ public class BaseClientImplTest {
 	@Mock
 	Header mockHeader;
 
+	private static final String CONTENT_TYPE = "Content-Type";
+	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
+	
 	BaseClientImpl baseClient;
 	private final String sessionIdVal = "mySessionIdValue";
 
@@ -61,6 +64,10 @@ public class BaseClientImplTest {
 		MockitoAnnotations.initMocks(this);
 		baseClient = new BaseClientImpl(USER_AGENT);
 		baseClient.setSimpleHttpClient(mockClient);
+		
+		when(mockHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
+		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
+
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -216,7 +223,7 @@ public class BaseClientImplTest {
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		when(mockResponse.getFirstHeader("Content-Type")).thenReturn(mockHeader);
+		when(mockResponse.getFirstHeader(CONTENT_TYPE)).thenReturn(mockHeader);
 		try {
 			baseClient.downloadZippedFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload");
 			fail("should throw a FileNotFoundException");
@@ -367,6 +374,7 @@ public class BaseClientImplTest {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("content");
+		when(mockHeader.getValue()).thenReturn("text/plain");
 		assertEquals("content",
 				baseClient.getStringDirect("https://repo-prod.prod.sagebase.org", "/entity"));
 	}

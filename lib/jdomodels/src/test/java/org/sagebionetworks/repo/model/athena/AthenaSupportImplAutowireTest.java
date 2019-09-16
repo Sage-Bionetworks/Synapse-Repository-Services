@@ -4,47 +4,49 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import java.util.List;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.GetQueryExecutionResult;
-import com.amazonaws.services.athena.model.GetQueryResultsResult;
-import com.amazonaws.services.athena.model.QueryExecution;
-import com.amazonaws.services.athena.model.QueryExecutionState;
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
-import com.amazonaws.services.athena.model.QueryExecutionStatus;
-import com.amazonaws.services.athena.model.ResultSet;
 import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.athena.model.StartQueryExecutionResult;
 import com.amazonaws.services.glue.AWSGlue;
+import com.amazonaws.services.glue.model.Column;
+import com.amazonaws.services.glue.model.CreateDatabaseRequest;
+import com.amazonaws.services.glue.model.CreateTableRequest;
 import com.amazonaws.services.glue.model.Database;
+import com.amazonaws.services.glue.model.DatabaseInput;
+import com.amazonaws.services.glue.model.DeleteDatabaseRequest;
+import com.amazonaws.services.glue.model.DeleteTableRequest;
+import com.amazonaws.services.glue.model.EntityNotFoundException;
+import com.amazonaws.services.glue.model.GetDatabaseRequest;
+import com.amazonaws.services.glue.model.GetTableRequest;
+import com.amazonaws.services.glue.model.SerDeInfo;
+import com.amazonaws.services.glue.model.StorageDescriptor;
 import com.amazonaws.services.glue.model.Table;
+import com.amazonaws.services.glue.model.TableInput;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class AthenaSupportImplAutowireTest {
-
-	private static final String DATABASE_NAME = "firehoseLogs";
-	private static final String TABLE_NAME = "fileDownloadsRecords";
 
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -53,163 +55,205 @@ public class AthenaSupportImplAutowireTest {
 	private AWSGlue glueClient;
 
 	@Autowired
-	private AmazonAthena athenaClient;
+	private SynapseS3Client s3Client;
 
-	// We do not want to run the repair during tests
-	@Mock
-	private AmazonAthena mockAthenaClient;
-
-	@Mock
-	private StartQueryExecutionResult mockStartQueryResult;
-
-	@Mock
-	private GetQueryExecutionResult mockQueryExecutionResult;
-
-	@Mock
-	private GetQueryResultsResult mockQueryResult;
-
+	@Autowired
 	private AthenaSupport athenaSupport;
 
+	private String columnName = "dataColumn";
+	private String partitionName = "partitioncolumn";
+	private int partitionValue = 123;
+	private String databaseName = "testDatabase";
+	private String tableName = "testTable";
+	private int recordsNumber = 10;
+
+	private class Record {
+		private String dataColumn;
+
+		public String getDataColumn() {
+			return dataColumn;
+		}
+
+		public void setDataColumn(String dataColumn) {
+			this.dataColumn = dataColumn;
+		}
+
+	}
+
 	@BeforeEach
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		athenaSupport = new AthenaSupportImpl(glueClient, mockAthenaClient, stackConfig);
+	public void before() throws IOException {
+		
+		String stackDatabaseName = athenaSupport.getDatabaseName(databaseName);
+		String stackTableName = athenaSupport.getTableName(tableName);
+		
+		deleteGlueTable(stackDatabaseName, stackTableName);
+		deleteGlueDatabase(stackDatabaseName);
+		deleteRecords(stackTableName);
+
+		createGlueDatabase(stackDatabaseName);
+		createGlueTable(stackDatabaseName, stackTableName);
+		createRecords(stackTableName, recordsNumber);
 	}
 
+	@AfterEach
+	public void after() {
+		String stackDatabaseName = athenaSupport.getDatabaseName(databaseName);
+		String stackTableName = athenaSupport.getTableName(tableName);
+
+		deleteGlueTable(stackDatabaseName, stackTableName);
+		deleteGlueDatabase(stackDatabaseName);
+		deleteRecords(stackTableName);
+	}
+
+	private void createRecords(String tableName, int recordsNumber) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		File file = File.createTempFile("s3File", ".json");
+		try (OutputStream out = new FileOutputStream(file)) {
+			for (int i = 0; i < recordsNumber; i++) {
+				Record record = new Record();
+				record.setDataColumn(String.valueOf(i));
+				String value = mapper.writeValueAsString(record);
+				out.write(value.getBytes(StandardCharsets.UTF_8));
+				out.write("\n".getBytes(StandardCharsets.UTF_8));
+				out.flush();
+			}
+		}
+		s3Client.putObject(getS3Bucket(), getS3Key(tableName), file);
+	}
+
+	private void deleteRecords(String tableName) {
+		s3Client.deleteObject(getS3Bucket(), getS3Key(tableName));
+	}
+
+	private String getS3Key(String tableName) {
+		return tableName + "/" + partitionName + "=" + partitionValue + "/records.json";
+	}
+
+	private String getS3Bucket() {
+		return stackConfig.getLogBucketName();
+	}
+
+	private void deleteGlueTable(String databaseName, String tableName) {
+		try {
+			glueClient.deleteTable(new DeleteTableRequest().withDatabaseName(databaseName).withName(tableName));
+		} catch (EntityNotFoundException e) {
+
+		}
+	}
+
+	private void deleteGlueDatabase(String databaseName) {
+		try {
+			glueClient.deleteDatabase(new DeleteDatabaseRequest().withName(databaseName));
+		} catch (EntityNotFoundException e) {
+
+		}
+	}
+
+	private void createGlueDatabase(String databaseName) {
+		try {
+			glueClient.getDatabase(new GetDatabaseRequest().withName(databaseName));
+		} catch (EntityNotFoundException e) {
+			// @formatter:off
+			glueClient.createDatabase(new CreateDatabaseRequest()
+					.withDatabaseInput(new DatabaseInput().withName(databaseName).withDescription("Testing database")));
+			// @formatter:on
+		}
+	}
+
+	private void createGlueTable(String databaseName, String tableName) {
+		try {
+			glueClient.getTable(new GetTableRequest().withDatabaseName(databaseName).withName(tableName));
+		} catch (EntityNotFoundException e) {
+			// @formatter:off
+						
+			StorageDescriptor storageDescriptor = new StorageDescriptor()
+					.withColumns(new Column().withName(columnName).withType("string"))
+					.withLocation("s3://" + getS3Bucket() +  "/" + tableName)
+					.withInputFormat("org.apache.hadoop.mapred.TextInputFormat")
+					.withOutputFormat("org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat")
+					.withSerdeInfo(new SerDeInfo()
+							.withSerializationLibrary("org.openx.data.jsonserde.JsonSerDe")
+							.withParameters(ImmutableMap.of("serialization.format", "1")));
+			
+			glueClient.createTable(new CreateTableRequest()
+					
+					.withDatabaseName(databaseName)
+					.withTableInput(new TableInput()
+							.withTableType("EXTERNAL_TABLE")
+							.withPartitionKeys(new Column().withName(partitionName).withType("int"))
+							.withName(tableName)
+							.withStorageDescriptor(storageDescriptor))
+					);
+			 
+			// @formatter:on
+
+		}
+	}
+
+
+	// Single big test so that we do not unnecessarily create and delete stuff from AWS
 	@Test
-	public void testGetParitionedTables() throws ServiceUnavailableException {
+	public void testAthenaSupportIntegration() {
 		// Call under test
-		List<Table> tables = athenaSupport.getPartitionedTables();
-		assertFalse(tables.isEmpty());
-	}
+		Iterator<Database> databases = athenaSupport.getDatabases();
+		
+		assertTrue(databases.hasNext());
+		
+		Database database = athenaSupport.getDatabase(databaseName);
 
-	@Test
-	public void testGetDatabase() throws ServiceUnavailableException {
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
-		assertNotNull(database);
-	}
-
-	@Test
-	public void testGetTable() throws ServiceUnavailableException {
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
 		// Call under test
-		Table table = athenaSupport.getTable(database, TABLE_NAME);
-		assertNotNull(table);
-	}
-
-	@Test
-	public void testGetTableNotFound() throws ServiceUnavailableException {
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
-
+		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
+		
+		assertTrue(tables.hasNext());
+		
+		boolean testTableFound = false;
+		
+		while(tables.hasNext()) {
+			if (tables.next().getName().equals(athenaSupport.getTableName(tableName) )) {
+				testTableFound = true;
+			}
+		}
+		
+		assertTrue(testTableFound);
+		
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			athenaSupport.getTable(database, TABLE_NAME + System.currentTimeMillis());
+			athenaSupport.getTable(database, tableName + System.currentTimeMillis());
 		});
-	}
 
-	@Test
-	public void testRepairTable() throws ServiceUnavailableException {
+		
+		String queryTemplate = "SELECT count(*) FROM %1$s WHERE %2$s=%3$s";
 
-		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
-
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn("abcd");
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
-				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
-
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
-
-		Table table = athenaSupport.getTable(database, TABLE_NAME);
-
-		// Call under test
-		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
-
-		assertEquals(expectedStats, queryStats);
-		verify(mockAthenaClient).startQueryExecution(any());
-		verify(mockAthenaClient).getQueryExecution(any());
-	}
-
-	@Test
-	public void testExecuteQuery() throws ServiceUnavailableException {
-		String queryId = "abcd";
-		String countQueryResult = "1000";
-
-		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
-
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
-				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
-
-		when(mockQueryResult.getResultSet()).thenReturn(new ResultSet().withRows(new Row().withData(new Datum().withVarCharValue("Count")),
-				new Row().withData(new Datum().withVarCharValue(countQueryResult))));
-
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
-
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
-
-		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
+		String query = String.format(queryTemplate, athenaSupport.getTableName(tableName), partitionName, partitionValue);
 
 		boolean excludeHeader = true;
-		
+
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
 		}, excludeHeader);
 
 		assertNotNull(result);
-		assertEquals(queryId, result.getQueryExecutionId());
-		assertEquals(expectedStats, result.getQueryExecutionStatistics());
-		assertTrue(result.iterator().hasNext());
-		assertEquals(Integer.valueOf(countQueryResult), result.iterator().next());
-		assertFalse(result.iterator().hasNext());
-	}
+		assertTrue(result.getQueryResultsIterator().hasNext());
+		assertEquals(0, result.getQueryResultsIterator().next());
+		assertFalse(result.getQueryResultsIterator().hasNext());
+		assertEquals(0, result.getQueryExecutionStatistics().getDataScanned());
 
-	// This can be useful to actually test queries
-	@Test
-	@Disabled("We do not want to run athena queries each time we run the tests")
-	public void testExecuteQueryIntegration() throws ServiceUnavailableException {
-		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
+		Table table = athenaSupport.getTable(database, tableName);
 
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
+		// Rapair the table so that paritions are discovered
+		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
 
-		String query = "SELECT count(*) FROM " + athenaSupport.getTableName(TABLE_NAME);
-
-		boolean excludeHeader = true;
-		
-		// Call under test
-		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
+		// Call under test, rerun the query
+		result = athenaSupport.executeQuery(database, query, (Row row) -> {
 			return Integer.valueOf(row.getData().get(0).getVarCharValue());
 		}, excludeHeader);
 
 		assertNotNull(result);
-		assertTrue(result.iterator().hasNext());
-		result.iterator().next();
-		assertFalse(result.iterator().hasNext());
-	}
-
-	// This can be useful to actually test that it works
-	@Test
-	@Disabled("We do not want to run athena repair each time we run the tests")
-	public void testRepairIntegration() throws ServiceUnavailableException {
-		athenaSupport = new AthenaSupportImpl(glueClient, athenaClient, stackConfig);
-
-		Database database = athenaSupport.getDatabase(DATABASE_NAME);
-
-		Table table = athenaSupport.getTable(database, TABLE_NAME);
-
-		// Call under test
-		QueryExecutionStatistics queryStats = athenaSupport.repairTable(table);
-
-		assertNotNull(queryStats);
-		assertNotNull(queryStats.getDataScannedInBytes());
-		assertNotNull(queryStats.getEngineExecutionTimeInMillis());
-
+		assertTrue(result.getQueryResultsIterator().hasNext());
+		assertEquals(recordsNumber, result.getQueryResultsIterator().next());
+		assertFalse(result.getQueryResultsIterator().hasNext());
+		assertNotEquals(0, result.getQueryExecutionStatistics().getDataScanned());
 	}
 
 }

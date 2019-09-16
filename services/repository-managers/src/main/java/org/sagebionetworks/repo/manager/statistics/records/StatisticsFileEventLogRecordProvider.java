@@ -6,9 +6,9 @@ import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileActionType;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +32,9 @@ public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogR
 		FileHandleAssociateType.TableEntity
 	);
 
-	public static final Map<StatisticsFileActionType, String> ASSOCIATED_STREAMS = ImmutableMap.of(
-		StatisticsFileActionType.FILE_DOWNLOAD, "fileDownloads", 
-		StatisticsFileActionType.FILE_UPLOAD, "fileUploads"
+	public static final Map<FileEvent, String> ASSOCIATED_STREAMS = ImmutableMap.of(
+		FileEvent.FILE_DOWNLOAD, "fileDownloads",
+		FileEvent.FILE_UPLOAD, "fileUploads"
 	);
 	
 	private ProjectResolver projectResolver;

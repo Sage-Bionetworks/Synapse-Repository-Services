@@ -1,0 +1,16 @@
+{
+	"description": "A single page of results from a ListRequest.",
+	"properties": {
+		"page": {
+			"description": "A single page of results matching the request.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.form.FormData"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The results are automatically paginated.  If another page of results exists then a nextPageToken will be provided.  Forward the provided nextPageTokens in a subsequent list request to get the next page."
+		}
+	}
+}

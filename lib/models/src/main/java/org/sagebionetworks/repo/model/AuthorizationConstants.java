@@ -193,5 +193,28 @@ public class AuthorizationConstants {
 	public static final String DOCKER_SCOPE_PARAM = "scope";
 	
 	
+	/**
+	 * Request parameters for the Synapse OAuth server, defined by
+	 * https://openid.net/specs/openid-connect-core-1_0.html#RefreshingAccessToken
+	 */
+	public static final String OAUTH2_SCOPE_PARAM = "scope";
+	public static final String OAUTH2_CLAIMS_PARAM = "claims";
+	public static final String OAUTH2_GRANT_TYPE_PARAM = "grant_type";
+	public static final String OAUTH2_CODE_PARAM = "code";
+	public static final String OAUTH2_REDIRECT_URI_PARAM = "redirect_uri";
+	public static final String OAUTH2_REFRESH_TOKEN_PARAM = "refresh_token";
+	public static final String OAUTH_VERIFIED_CLIENT_ID_PARAM = "verifiedOauthClientId";
+	public static final String OAUTH_VERIFIED_ACCESS_TOKEN = "verifiedOauthAccessToken";
 	
+	/**
+	 * The Oauth access token is passed as the 'bearer' request header
+	 */
+	public static final String BEARER_TOKEN_HEADER = "Bearer ";
+	
+	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	public static final String BASIC_PREFIX = "Basic ";
+
+
+
 }

@@ -1,0 +1,22 @@
+{
+	"description": "All form data belongs to a form group.  Access to the group is managed via the ACL of the group.",
+	"properties": {
+		"groupId": {
+			"type": "string",
+			"description": "Unique identifier provided by the system."
+		},
+		"name": {
+			"type": "string",
+			"description": "Unique name for the group provided by the caller."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "Id of the user that created this group"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date this object was originally created."
+		}
+	}
+}

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
@@ -71,11 +72,15 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private DiscussionService discussionService;
 	@Autowired
+	private FormService formService;
+	@Autowired
 	private SubscriptionService subscriptionService;
 	@Autowired
 	private DockerService dockerService;
 	@Autowired
 	private DataAccessService dataAccessService;
+	@Autowired
+	private OpenIDConnectService openIDConnectService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -186,6 +191,12 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public DiscussionService getDiscussionService() {
 		return discussionService;
 	}
+	
+	@Override
+	public FormService getFormService() {
+		return formService;
+	}
+	
 	@Override
 	public SubscriptionService getSubscriptionService() {
 		return subscriptionService;
@@ -197,5 +208,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DataAccessService getDataAccessService() {
 		return dataAccessService;
+	}
+	@Override
+	public OpenIDConnectService getOpenIDConnectService() {
+		return openIDConnectService;
 	}
 }
