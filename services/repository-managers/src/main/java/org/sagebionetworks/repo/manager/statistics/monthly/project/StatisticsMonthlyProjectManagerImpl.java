@@ -17,9 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class StatisticsmonthlyProjectManagerImpl implements StatisticsMonthlyProjectManager {
+public class StatisticsMonthlyProjectManagerImpl implements StatisticsMonthlyProjectManager {
 
-	private static final Logger LOG = LogManager.getLogger(StatisticsmonthlyProjectManagerImpl.class);
+	private static final Logger LOG = LogManager.getLogger(StatisticsMonthlyProjectManagerImpl.class);
 
 	static final int BATCH_SIZE = 5000;
 
@@ -27,7 +27,7 @@ public class StatisticsmonthlyProjectManagerImpl implements StatisticsMonthlyPro
 	private StatisticsMonthlyProjectDAO statisticsDao;
 
 	@Autowired
-	public StatisticsmonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectDAO statisticsDao) {
+	public StatisticsMonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectDAO statisticsDao) {
 		this.athenaDao = athenaDao;
 		this.statisticsDao = statisticsDao;
 	}
@@ -44,8 +44,12 @@ public class StatisticsmonthlyProjectManagerImpl implements StatisticsMonthlyPro
 		List<StatisticsMonthlyProjectFiles> batch = new ArrayList<>();
 
 		while (resultsIterator.hasNext()) {
-			batch.add(resultsIterator.next());
-			saveBatch(batch, BATCH_SIZE);
+			StatisticsMonthlyProjectFiles record = resultsIterator.next();
+			// The project id might be null if the data in S3 is not well formatted, skip this row
+			if (record.getProjectId() != null) {
+				batch.add(record);
+				saveBatch(batch, BATCH_SIZE);
+			}
 		}
 		// Makes sure to save the remaining records
 		saveBatch(batch, 0);

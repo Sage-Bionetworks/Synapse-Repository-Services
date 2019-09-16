@@ -43,7 +43,7 @@ public class StatisticsMonthlyProjectManagerTest {
 	private List<StatisticsMonthlyProjectFiles> mockBatch;
 
 	@InjectMocks
-	private StatisticsmonthlyProjectManagerImpl manager;
+	private StatisticsMonthlyProjectManagerImpl manager;
 
 	private Integer filesCount = 1000;
 	private Integer usersCount = 100;
@@ -100,7 +100,7 @@ public class StatisticsMonthlyProjectManagerTest {
 		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
 		YearMonth month = YearMonth.of(2019, 8);
 
-		int firstBatchSize = StatisticsmonthlyProjectManagerImpl.BATCH_SIZE;
+		int firstBatchSize = StatisticsMonthlyProjectManagerImpl.BATCH_SIZE;
 		int secondBatchSize = 10;
 
 		List<StatisticsMonthlyProjectFiles> results = getBatch(eventType, month, firstBatchSize + secondBatchSize);
