@@ -260,7 +260,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		AthenaQueryExecution queryExecution = getQueryExecutionStatus(queryExecutionId);
 
 		if (!AthenaQueryExecutionState.SUCCEEDED.equals(queryExecution.getState())) {
-			throw new IllegalArgumentException("The query with id " + queryExecutionId + " is not completed or did not succeed, state: "
+			throw new IllegalStateException("The query with id " + queryExecutionId + " is not completed or did not succeed, state: "
 					+ queryExecution.getState().toString());
 		}
 
