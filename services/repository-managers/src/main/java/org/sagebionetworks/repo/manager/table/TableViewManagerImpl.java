@@ -8,11 +8,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -176,7 +174,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		// Get the current annotations for this entity.
-		AnnotationsV2 userAnnotations =nodeManager.getUserAnnotations(user, entityId);
+		Annotations userAnnotations =nodeManager.getUserAnnotations(user, entityId);
 		userAnnotations.setEtag(etag);
 		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
 		if(updated){
@@ -209,7 +207,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param values
 	 * @return
 	 */
-	public static boolean updateAnnotationsFromValues(AnnotationsV2 additional, List<ColumnModel> tableSchema, Map<String, String> values){
+	public static boolean updateAnnotationsFromValues(Annotations additional, List<ColumnModel> tableSchema, Map<String, String> values){
 		boolean updated = false;
 		// process each column of the view
 		for(ColumnModel column: tableSchema){
@@ -223,11 +221,11 @@ public class TableViewManagerImpl implements TableViewManager {
 					AnnotationType type = SQLUtils.translateColumnTypeToAnnotationType(column.getColumnType());
 					String value = values.get(column.getId());
 					// Unconditionally remove a current annotation.
-					Map<String, AnnotationsV2Value> annotationsMap = additional.getAnnotations();
+					Map<String, AnnotationsValue> annotationsMap = additional.getAnnotations();
 					annotationsMap.remove(column.getName());
 					// Add back the annotation if the value is not null
 					if(value != null){
-						AnnotationsV2Value annotationsV2Value = new AnnotationsV2Value();
+						AnnotationsValue annotationsV2Value = new AnnotationsValue();
 						annotationsV2Value.setValue(Collections.singletonList(value));
 						annotationsV2Value.setType(type.getAnnotationsV2ValueType());
 						annotationsMap.put(column.getName(), annotationsV2Value);

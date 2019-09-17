@@ -19,16 +19,16 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
@@ -112,13 +112,13 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(s2.getId());
 
 		// Get/add/update annotations for this entity
-		AnnotationsV2 a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
-		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);
-		AnnotationsV2 a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
+		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAnnotations(true);
 		request.setIncludePermissions(true);
@@ -127,14 +127,14 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		request.setIncludeAccessControlList(true);
 
 
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
-		AnnotationsV2 a3 = eb.getAnnotations();
+		Annotations a3 = eb.getAnnotations();
 		assertFalse("Etag should have been updated, but was not", a3.getEtag().equals(a.getEtag()));
 		assertEquals("Retrieved Annotations in bundle do not match original ones", a2, a3);
 
@@ -170,10 +170,10 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(s1.getId());
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAccessControlList(true);
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
 		Folder s2 = (Folder) eb.getEntity();
 		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
@@ -192,22 +192,22 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(id);
 
 		// Get/add/update annotations for this entity
-		AnnotationsV2 a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
-		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
 		entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
-		AnnotationsV2 a3 = eb.getAnnotations();
+		Annotations a3 = eb.getAnnotations();
 		assertNull("Annotations were not requested, but were returned in bundle", a3);
 
 		UserEntityPermissions uep = eb.getPermissions();
@@ -256,9 +256,9 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(file.getId());
 
 		// Get the file handle in the bundle
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeFileHandles(true);
-		EntityBundleV2 bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);

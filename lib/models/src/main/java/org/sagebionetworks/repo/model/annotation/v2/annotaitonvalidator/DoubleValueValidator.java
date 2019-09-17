@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.util.doubles.DoubleUtils;
 
 class DoubleValueValidator implements AnnotationsV2ValueValidator {
 	@Override
-	public void validate(String key, String value, AnnotationsV2ValueType annotationType) {
+	public void validate(String key, String value, AnnotationsValueType annotationType) {
 		try {
 			DoubleUtils.fromString(value);
 		} catch (NumberFormatException e){

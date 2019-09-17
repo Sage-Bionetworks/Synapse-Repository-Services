@@ -5,7 +5,7 @@
 			"$ref":"org.sagebionetworks.repo.model.Entity"
 		},
 		"annotations": {
-			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2"
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
 		},
 		"accessControlList": {
 			"$ref": "org.sagebionetworks.repo.model.AccessControlList"

@@ -23,7 +23,6 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -34,17 +33,16 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -172,13 +170,13 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
 		// Updte them
-		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -196,13 +194,13 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(Double.NaN));
 		annos.addAnnotation("string", "A string");
 		// Update them
-		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -221,13 +219,13 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		AnnotationsV2 annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		Annotations annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
-		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsValueType.STRING);
 		// Updte them
-		AnnotationsV2 annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
+		Annotations annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -245,13 +243,13 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		AnnotationsV2 annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		Annotations annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
-		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "nan", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "nan", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsValueType.STRING);
 		// Update them
-		AnnotationsV2 annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
+		Annotations annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));

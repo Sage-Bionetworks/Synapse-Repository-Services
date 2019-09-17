@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator;
 
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 public interface AnnotationsV2ValueValidator {
 
@@ -11,5 +11,5 @@ public interface AnnotationsV2ValueValidator {
 	 * @param annotationType used to give more context in the exception message if an exception is thrown
 	 * @throws IllegalArgumentException if the value is not valid.
 	 */
-	public void validate(String key, String value, AnnotationsV2ValueType annotationType);
+	public void validate(String key, String value, AnnotationsValueType annotationType);
 }

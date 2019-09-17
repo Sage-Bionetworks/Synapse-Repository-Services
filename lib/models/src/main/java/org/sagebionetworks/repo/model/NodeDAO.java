@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -15,8 +15,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -117,7 +115,7 @@ public interface NodeDAO {
 	 * @param id
 	 * @param annotationsV2
 	 */
-	void updateUserAnnotations(String id, AnnotationsV2 annotationsV2);
+	void updateUserAnnotations(String id, Annotations annotationsV2);
 
 	/**
 	 * Update annotations for the node's additional entity properties
@@ -126,7 +124,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	void updateEntityPropertyAnnotations(String nodeId, Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+	void updateEntityPropertyAnnotations(String nodeId, org.sagebionetworks.repo.model.Annotations updatedAnnos) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get all of the version numbers for this node.
@@ -143,7 +141,7 @@ public interface NodeDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	AnnotationsV2 getUserAnnotations(String id);
+	Annotations getUserAnnotations(String id);
 
 	/**
 	 * Get user annotations for a specific version of the entity
@@ -152,14 +150,14 @@ public interface NodeDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	AnnotationsV2 getUserAnnotationsForVersion(String id, Long versionNumber);
+	Annotations getUserAnnotationsForVersion(String id, Long versionNumber);
 
 	/**
 	 * Get Entity properties that could not be stored as a Node
 	 * @param id
 	 * @return Annotations containing the extra properties for the Entity
 	 */
-	Annotations getEntityPropertyAnnotations(String id);
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(String id);
 
 	/**
 	 * Get Entity properties for a specific version that could not be stored as a Node
@@ -167,7 +165,7 @@ public interface NodeDAO {
 	 * @param versionNumber
 	 * @return Annotations containing the extra properties for the Entity
 	 */
-	Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber);
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber);
 
 	/**
 	 * Look at the current eTag without locking or changing anything.

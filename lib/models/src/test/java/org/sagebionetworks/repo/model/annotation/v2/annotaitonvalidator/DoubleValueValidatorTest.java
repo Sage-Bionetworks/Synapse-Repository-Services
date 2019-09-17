@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 class DoubleValueValidatorTest {
 
 	DoubleValueValidator valueValidator = new DoubleValueValidator();
 	String key = "myKey";
-	AnnotationsV2ValueType type = AnnotationsV2ValueType.DOUBLE;
+	AnnotationsValueType type = AnnotationsValueType.DOUBLE;
 
 	@Test
 	public void testValidate_Null(){
