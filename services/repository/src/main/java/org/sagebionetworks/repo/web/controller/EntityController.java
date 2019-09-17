@@ -86,9 +86,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <h6>Annotations</h6>
  * <p>
  * An Entity can be annotated using the <a
- * href="${PUT.entity.id.annotations2}">PUT /entity/{id}/annotations</a> method.
+ * href="${PUT.entity.id.annotations2}">PUT /entity/{id}/annotations2</a> method.
  * Each annotation is a key-value pair. The <a href="${GET.entity.id.annotations2}">GET
- * /entity/{id}/annotations</a> method can be used to get the current
+ * /entity/{id}/annotations2</a> method can be used to get the current
  * annotations of an entity.
  * </p>
  * <h6>Authorization</h6>
