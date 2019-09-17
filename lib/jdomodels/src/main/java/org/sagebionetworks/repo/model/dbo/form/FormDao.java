@@ -72,4 +72,16 @@ public interface FormDao {
 	 * @return
 	 */
 	public StateEnum getFormDataState(String id);
+	
+	/**
+	 * Get the FormData for the identified FormData
+	 * @param id
+	 * @return
+	 */
+	public FormData getFormData(String id);
+	
+	/**
+	 * Truncate all data.
+	 */
+	public void truncateAll();
 }

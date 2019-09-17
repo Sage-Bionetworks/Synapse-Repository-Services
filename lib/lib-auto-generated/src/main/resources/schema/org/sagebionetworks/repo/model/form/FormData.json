@@ -5,6 +5,10 @@
 			"type": "string",
 			"description": "The system issued identifier that uniquely identifies this object."
 		},
+		"etag": {
+			"type": "string",
+			"description": "Will change whenever there is a change to the this data or its status."
+		},
 		"groupId": {
 			"type": "string",
 			"description": "The identifier of the group that manages this data. Required."
