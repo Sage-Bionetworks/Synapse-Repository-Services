@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATIS
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -25,9 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
@@ -37,8 +36,6 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 	private static final String PARAM_PROJECT_ID = "projectId";
 	private static final String PARAM_MONTH = "month";
 	private static final String PARAM_EVENT_TYPE = "eventType";
-	private static final String PARAM_FROM = "from";
-	private static final String PARAM_TO = "to";
 
 	// @formatter:off
 
@@ -46,16 +43,16 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 
 	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " 
 			+ TABLE_STATISTICS_MONTHLY_PROJECT_FILES + " WHERE "
-			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID + " = :" + PARAM_PROJECT_ID + " AND "
-			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE + " =:" + PARAM_EVENT_TYPE + " AND " 
-			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO 
+			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID + " = ? AND "
+			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE + " = ? AND " 
+			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH + " BETWEEN ? AND ?"
 			+ " ORDER BY " + COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH;
 	
 	private static final String SQL_COUNT_PROJECTS_IN_RANGE = "SELECT COUNT(DISTINCT " + COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID + ") FROM " 
 			+ TABLE_STATISTICS_MONTHLY_PROJECT_FILES + " WHERE "
-			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE + " =:" + PARAM_EVENT_TYPE + " AND " 
-			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO 
-			+ " ORDER BY " + COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH;
+			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_EVENT_TYPE + " = ? AND " 
+			+ COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH + " BETWEEN ? AND ? " 
+			+ "ORDER BY " + COL_STATISTICS_MONTHLY_PROJECT_FILES_MONTH;
 
 	private static final String SQL_SAVE_BATCH = "INSERT INTO " + TABLE_STATISTICS_MONTHLY_PROJECT_FILES 
 			+ "(" + COL_STATISTICS_MONTHLY_PROJECT_FILES_PROJECT_ID + ", " 
@@ -81,10 +78,10 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 	};
 
 	private DBOBasicDao basicDao;
-	private NamedParameterJdbcTemplate jdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	public StatisticsMonthlyProjectFilesDAOImpl(DBOBasicDao basicDao, NamedParameterJdbcTemplate jdbcTemplate) {
+	public StatisticsMonthlyProjectFilesDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
 	}
@@ -97,15 +94,11 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 		ValidateArgument.required(from, "from");
 		ValidateArgument.required(to, "to");
 		ValidateArgument.requirement(from.equals(to) || from.isBefore(to), "The start of the range should be before the end");
-
-		MapSqlParameterSource params = new MapSqlParameterSource();
-
-		params.addValue(PARAM_PROJECT_ID, projectId);
-		params.addValue(PARAM_EVENT_TYPE, eventType.toString());
-		params.addValue(PARAM_FROM, StatisticsMonthlyUtils.toDate(from));
-		params.addValue(PARAM_TO, StatisticsMonthlyUtils.toDate(to));
-
-		return jdbcTemplate.query(SQL_SELECT_IN_RANGE, params, ROW_MAPPER);
+		
+		LocalDate fromDate = StatisticsMonthlyUtils.toDate(from);
+		LocalDate toDate = StatisticsMonthlyUtils.toDate(to);
+		
+		return jdbcTemplate.query(SQL_SELECT_IN_RANGE, ROW_MAPPER, projectId, eventType.toString(), fromDate, toDate);
 	}
 
 	@Override
@@ -115,13 +108,10 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 		ValidateArgument.required(to, "to");
 		ValidateArgument.requirement(from.equals(to) || from.isBefore(to), "The start of the range should be before the end");
 
-		MapSqlParameterSource params = new MapSqlParameterSource();
-
-		params.addValue(PARAM_EVENT_TYPE, eventType.toString());
-		params.addValue(PARAM_FROM, StatisticsMonthlyUtils.toDate(from));
-		params.addValue(PARAM_TO, StatisticsMonthlyUtils.toDate(to));
-
-		return jdbcTemplate.queryForObject(SQL_COUNT_PROJECTS_IN_RANGE, params, Long.class);
+		LocalDate fromDate = StatisticsMonthlyUtils.toDate(from);
+		LocalDate toDate = StatisticsMonthlyUtils.toDate(to);
+		
+		return jdbcTemplate.queryForObject(SQL_COUNT_PROJECTS_IN_RANGE, Long.class, eventType.toString(), fromDate, toDate);
 	}
 
 	@Override
@@ -150,11 +140,7 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 			return;
 		}
 
-		// Gets an instance of the underlying JdbcTemplate to perform batch operations
-
-		JdbcTemplate template = jdbcTemplate.getJdbcTemplate();
-
-		template.batchUpdate(SQL_SAVE_BATCH, new BatchPreparedStatementSetter() {
+		jdbcTemplate.batchUpdate(SQL_SAVE_BATCH, new BatchPreparedStatementSetter() {
 
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -190,7 +176,7 @@ public class StatisticsMonthlyProjectFilesDAOImpl implements StatisticsMonthlyPr
 	@Override
 	@WriteTransaction
 	public void clear() {
-		jdbcTemplate.update(SQL_DELETE_ALL, EmptySqlParameterSource.INSTANCE);
+		jdbcTemplate.update(SQL_DELETE_ALL);
 	}
 
 	private MapSqlParameterSource getPrimaryKeyParams(Long projectId, YearMonth month, FileEvent eventType) {
