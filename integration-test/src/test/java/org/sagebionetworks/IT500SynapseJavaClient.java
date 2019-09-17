@@ -45,9 +45,9 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Create;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -440,7 +440,7 @@ public class IT500SynapseJavaClient {
 		acl.setId(project.getId());
 		synapseOne.updateACL(acl);
 
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAnnotations(true);
 		request.setIncludePermissions(true);
@@ -451,7 +451,7 @@ public class IT500SynapseJavaClient {
 		request.setIncludeRestrictionInformation(true);
 		
 		long startTime = System.nanoTime();
-		EntityBundleV2 entityBundle = synapseOne.getEntityBundleV2(project.getId(), request);
+		EntityBundle entityBundle = synapseOne.getEntityBundleV2(project.getId(), request);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
@@ -504,12 +504,12 @@ public class IT500SynapseJavaClient {
 		acl1.setResourceAccess(resourceAccesses);
 		
 		// Create the bundle, verify contents
-		EntityBundleV2Create ebc = new EntityBundleV2Create();
+		EntityBundleCreate ebc = new EntityBundleCreate();
 		ebc.setEntity(s1);
 		ebc.setAnnotations(a1);
 		ebc.setAccessControlList(acl1);
 				
-		EntityBundleV2 response = synapseOne.createEntityBundleV2(ebc);
+		EntityBundle response = synapseOne.createEntityBundleV2(ebc);
 		
 		Folder s2 = (Folder) response.getEntity();
 		toDelete.add(s2.getId());
@@ -532,12 +532,12 @@ public class IT500SynapseJavaClient {
 		AnnotationsV2TestUtils.putAnnotations(a2, "string2", "Another string", AnnotationsValueType.STRING);
 		acl2.setModifiedBy("Update user");
 		
-		EntityBundleV2Create ebc2 = new EntityBundleV2Create();
+		EntityBundleCreate ebc2 = new EntityBundleCreate();
 		ebc2.setEntity(s2);
 		ebc2.setAnnotations(a2);
 		ebc2.setAccessControlList(acl2);
 				
-		EntityBundleV2 response2 = synapseOne.updateEntityBundleV2(s2.getId(), ebc2);
+		EntityBundle response2 = synapseOne.updateEntityBundleV2(s2.getId(), ebc2);
 		
 		Folder s3 = (Folder) response2.getEntity();
 		assertNotNull(s3);

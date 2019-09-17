@@ -39,9 +39,9 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Create;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -404,23 +404,23 @@ public interface SynapseClient extends BaseClient {
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc)
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc)
 			throws SynapseException;
 
-	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc, String activityId)
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc, String activityId)
 			throws SynapseException;
 
-	public EntityBundleV2 updateEntityBundleV2(String entityId, EntityBundleV2Create ebc)
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc)
 			throws SynapseException;
 
-	public EntityBundleV2 updateEntityBundleV2(String entityId, EntityBundleV2Create ebc,
-										   String activityId) throws SynapseException;
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc,
+											 String activityId) throws SynapseException;
 
-	public EntityBundleV2 getEntityBundleV2(String entityId, EntityBundleV2Request bundleV2Request)
+	public EntityBundle getEntityBundleV2(String entityId, EntityBundleRequest bundleV2Request)
 			throws SynapseException;
 
-	public EntityBundleV2 getEntityBundleV2(String entityId, Long versionNumber,
-										EntityBundleV2Request bundleV2Request) throws SynapseException;
+	public EntityBundle getEntityBundleV2(String entityId, Long versionNumber,
+										  EntityBundleRequest bundleV2Request) throws SynapseException;
 
 	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
 			int offset, int limit) throws SynapseException;

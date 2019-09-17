@@ -26,8 +26,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
@@ -296,7 +296,7 @@ public class SynapseTest {
 		synapse.updateAnnotationsV2(s.getId(), a);
 		
 		// Assemble the bundle
-		EntityBundleV2 eb = new EntityBundleV2();
+		EntityBundle eb = new EntityBundle();
 		eb.setEntity(s);
 		eb.setAnnotations(a);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -306,10 +306,10 @@ public class SynapseTest {
 		configureMockHttpResponse(200, adapter.toJSONString());
 		
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAnnotations(true);
-		EntityBundleV2 eb2 = synapse.getEntityBundleV2(s.getId(), request);
+		EntityBundle eb2 = synapse.getEntityBundleV2(s.getId(), request);
 		
 		Folder s2 = (Folder) eb2.getEntity();
 		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);

@@ -17,9 +17,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -112,7 +111,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity bundle using only the ID
 	 */
-	public EntityBundleV2 getEntityBundle(String id, EntityBundleV2Request bundleV2Request, Long userId)
+	public EntityBundle getEntityBundle(String id, EntityBundleRequest bundleV2Request, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE_V2,
@@ -123,7 +122,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundleV2(
+		return new EntityBundle(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
@@ -131,8 +130,8 @@ public class EntityServletTestHelper {
 	 * Get an entity bundle for a specific version using the ID and
 	 * versionNumber.
 	 */
-	public EntityBundleV2 getEntityBundleForVersion(String id,
-												  Long versionNumber, EntityBundleV2Request bundleV2Request, Long userId) throws Exception {
+	public EntityBundle getEntityBundleForVersion(String id,
+												  Long versionNumber, EntityBundleRequest bundleV2Request, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
 						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
@@ -143,7 +142,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundleV2(
+		return new EntityBundle(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
@@ -151,7 +150,7 @@ public class EntityServletTestHelper {
 	 * Get an entity bundle using only the ID
 	 */
 	@Deprecated
-	public EntityBundle getEntityBundle(String id, int mask, Long userId)
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
@@ -161,7 +160,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundle(
+		return new org.sagebionetworks.repo.model.EntityBundle(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
@@ -170,8 +169,8 @@ public class EntityServletTestHelper {
 	 * versionNumber.
 	 */
 	@Deprecated
-	public EntityBundle getEntityBundleForVersion(String id,
-			Long versionNumber, int mask, Long userId) throws Exception {
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundleForVersion(String id,
+																				 Long versionNumber, int mask, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
 						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
@@ -181,7 +180,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundle(
+		return new org.sagebionetworks.repo.model.EntityBundle(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 

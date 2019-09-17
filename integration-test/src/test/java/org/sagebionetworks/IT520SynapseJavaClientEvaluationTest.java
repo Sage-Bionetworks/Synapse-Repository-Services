@@ -53,9 +53,8 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -552,12 +551,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1 = synapseOne.getSubmission(sub1.getId());
 		
 		// verify EntityBundle
-		EntityBundleV2Request bundleV2Request = new EntityBundleV2Request();
+		EntityBundleRequest bundleV2Request = new EntityBundleRequest();
 		bundleV2Request.setIncludeEntity(true);
 		bundleV2Request.setIncludeAnnotations(true);
 		bundleV2Request.setIncludeFileHandles(true);
-		EntityBundleV2 bundle = synapseOne.getEntityBundleV2(entityId, bundleV2Request);
-		EntityBundle sumbissionJSONStringBundle = new EntityBundle();
+		EntityBundle bundle = synapseOne.getEntityBundleV2(entityId, bundleV2Request);
+		org.sagebionetworks.repo.model.EntityBundle sumbissionJSONStringBundle = new org.sagebionetworks.repo.model.EntityBundle();
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		sumbissionJSONStringBundle.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
 		// we don't care if etags have changed

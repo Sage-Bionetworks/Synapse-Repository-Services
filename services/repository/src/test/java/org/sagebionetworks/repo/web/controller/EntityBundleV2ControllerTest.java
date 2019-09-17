@@ -19,8 +19,8 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -118,7 +118,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAnnotations(true);
 		request.setIncludePermissions(true);
@@ -127,7 +127,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		request.setIncludeAccessControlList(true);
 
 
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -170,10 +170,10 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(s1.getId());
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAccessControlList(true);
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
 		Folder s2 = (Folder) eb.getEntity();
 		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
@@ -198,9 +198,9 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
-		EntityBundleV2 eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -256,9 +256,9 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(file.getId());
 
 		// Get the file handle in the bundle
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeFileHandles(true);
-		EntityBundleV2 bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);
