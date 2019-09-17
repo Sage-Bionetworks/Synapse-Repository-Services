@@ -8,7 +8,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.athena.project.AthenaProjectFilesDAO;
+import org.sagebionetworks.repo.model.athena.project.AthenaProjectFileStatisticsDAO;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
@@ -23,11 +23,11 @@ public class StatisticsMonthlyProjectManagerImpl implements StatisticsMonthlyPro
 
 	static final int BATCH_SIZE = 5000;
 
-	private AthenaProjectFilesDAO athenaDao;
+	private AthenaProjectFileStatisticsDAO athenaDao;
 	private StatisticsMonthlyProjectFilesDAO statisticsDao;
 
 	@Autowired
-	public StatisticsMonthlyProjectManagerImpl(AthenaProjectFilesDAO athenaDao, StatisticsMonthlyProjectFilesDAO statisticsDao) {
+	public StatisticsMonthlyProjectManagerImpl(AthenaProjectFileStatisticsDAO athenaDao, StatisticsMonthlyProjectFilesDAO statisticsDao) {
 		this.athenaDao = athenaDao;
 		this.statisticsDao = statisticsDao;
 	}

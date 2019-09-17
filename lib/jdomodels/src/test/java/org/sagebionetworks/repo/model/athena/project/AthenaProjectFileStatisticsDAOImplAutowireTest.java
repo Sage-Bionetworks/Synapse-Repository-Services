@@ -19,10 +19,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class AthenaProjectFilesDAOImplAutowireTest {
+public class AthenaProjectFileStatisticsDAOImplAutowireTest {
 	
 	@Autowired
-	private AthenaProjectFilesDAO dao;
+	private AthenaProjectFileStatisticsDAO dao;
 
 	@Test
 	public void testAggregateForMonth() throws Exception {

@@ -31,7 +31,7 @@ import com.amazonaws.services.athena.model.Row;
 import com.amazonaws.services.glue.model.Database;
 
 @ExtendWith(MockitoExtension.class)
-public class AthenaProjectFilesDAOImplTest {
+public class AthenaProjectFileStatisticsDAOImplTest {
 
 	@Mock
 	private AthenaSupport mockAthenaSupport;
@@ -49,7 +49,7 @@ public class AthenaProjectFilesDAOImplTest {
 	private Iterator<StatisticsMonthlyProjectFiles> mockResultsIterator;
 
 	@InjectMocks
-	private AthenaProjectFilesDAOImpl dao;
+	private AthenaProjectFileStatisticsDAOImpl dao;
 
 	private YearMonth month = YearMonth.of(2019, 8);
 
@@ -205,7 +205,7 @@ public class AthenaProjectFilesDAOImplTest {
 
 		String tableName = getExpectedTableName(eventType);
 
-		when(mockAthenaSupport.getDatabase(AthenaProjectFilesDAOImpl.DATABASE_NAME)).thenReturn(mockDatabase);
+		when(mockAthenaSupport.getDatabase(AthenaProjectFileStatisticsDAOImpl.DATABASE_NAME)).thenReturn(mockDatabase);
 		when(mockAthenaSupport.getTableName(tableName)).thenReturn(tableName);
 
 		when(mockQueryResult.getQueryExecutionStatistics()).thenReturn(mockQueryStats);
@@ -220,7 +220,7 @@ public class AthenaProjectFilesDAOImplTest {
 		assertEquals(mockQueryStats, result.getQueryExecutionStatistics());
 		assertEquals(mockResultsIterator, result.getQueryResultsIterator());
 
-		verify(mockAthenaSupport).getDatabase(AthenaProjectFilesDAOImpl.DATABASE_NAME);
+		verify(mockAthenaSupport).getDatabase(AthenaProjectFileStatisticsDAOImpl.DATABASE_NAME);
 
 		ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -232,9 +232,9 @@ public class AthenaProjectFilesDAOImplTest {
 	private String getExpectedTableName(FileEvent eventType) {
 		switch (eventType) {
 		case FILE_DOWNLOAD:
-			return AthenaProjectFilesDAOImpl.TABLE_FILE_DOWNLOADS;
+			return AthenaProjectFileStatisticsDAOImpl.TABLE_FILE_DOWNLOADS;
 		case FILE_UPLOAD:
-			return AthenaProjectFilesDAOImpl.TABLE_FILE_UPLOADS;
+			return AthenaProjectFileStatisticsDAOImpl.TABLE_FILE_UPLOADS;
 		default:
 			throw new IllegalStateException("Unsupported");
 		}

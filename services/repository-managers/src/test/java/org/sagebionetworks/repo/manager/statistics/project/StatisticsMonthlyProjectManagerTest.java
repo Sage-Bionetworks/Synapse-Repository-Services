@@ -19,7 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectManagerImpl;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
-import org.sagebionetworks.repo.model.athena.project.AthenaProjectFilesDAO;
+import org.sagebionetworks.repo.model.athena.project.AthenaProjectFileStatisticsDAO;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjec
 public class StatisticsMonthlyProjectManagerTest {
 
 	@Mock
-	private AthenaProjectFilesDAO mockAthenaDao;
+	private AthenaProjectFileStatisticsDAO mockAthenaDao;
 
 	@Mock
 	private AthenaQueryResult<StatisticsMonthlyProjectFiles> mockQueryResults;

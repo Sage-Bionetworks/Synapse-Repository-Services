@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjec
  * @author Marco
  *
  */
-public interface AthenaProjectFilesDAO {
+public interface AthenaProjectFileStatisticsDAO {
 
 	/**
 	 * Aggregates the count of files and users by project for the given month and {@link FileEvent type of event}

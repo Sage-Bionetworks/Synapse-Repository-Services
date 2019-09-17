@@ -19,7 +19,7 @@ import com.amazonaws.services.glue.model.Database;
 import com.google.common.collect.ImmutableMap;
 
 @Repository
-public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
+public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStatisticsDAO {
 
 	static final String DATABASE_NAME = "firehoseLogs";
 
@@ -54,7 +54,7 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 	private AthenaSupport athenaSupport;
 
 	@Autowired
-	public AthenaProjectFilesDAOImpl(AthenaSupport athenaSupport) {
+	public AthenaProjectFileStatisticsDAOImpl(AthenaSupport athenaSupport) {
 		this.athenaSupport = athenaSupport;
 	}
 
