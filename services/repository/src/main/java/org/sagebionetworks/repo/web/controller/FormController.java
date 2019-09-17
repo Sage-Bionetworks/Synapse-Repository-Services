@@ -53,8 +53,8 @@ public class FormController {
 	 * List (ACL)</a> with the creator listed as an administrator.
 	 * 
 	 * @param userId
-	 * @param name   A globally unique name for the group. Required. Limit 256
-	 *               characters or less.
+	 * @param name   A globally unique name for the group. Required. Between 3 and
+	 *               256 characters.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -139,7 +139,7 @@ public class FormController {
 	 * @param groupId          The identifier of the group that manages this data.
 	 *                         Required.
 	 * @param name             User provided name for this submission. Required.
-	 *                         Limit 256 characters or less.
+	 *                         Between 3 and 256 characters.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
@@ -165,14 +165,15 @@ public class FormController {
 	 * permission on the FormGrup to create/update/submit FormData.
 	 * 
 	 * @param userId
-	 * @param id
-	 * @param name             Rename this submission. Optional. Limit 256 chars.
+	 * @param id               The identifier of the FormData to update.
+	 * @param name             Rename this submission. Optional. Between 3 and 256
+	 *                         characters.
 	 * @param dataFileHandleId The identifier of the data FileHandle for this
 	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.PUT)
+	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.PUT)
 	public @ResponseBody FormData updateFormData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestParam String name,
@@ -190,11 +191,11 @@ public class FormController {
 	 * permission on the identified group to update the group's ACL.
 	 * 
 	 * @param userId
-	 * @param id     The system provided unique identifier of the FormData object.
+	 * @param id     Id of the FormData object to delete
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.DELETE)
+	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.DELETE)
 	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		serviceProvider.getFormService().deleteFormData(userId, id);

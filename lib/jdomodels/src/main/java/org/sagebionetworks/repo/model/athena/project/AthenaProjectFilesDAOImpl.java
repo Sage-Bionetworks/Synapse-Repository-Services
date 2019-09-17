@@ -87,9 +87,23 @@ public class AthenaProjectFilesDAOImpl implements AthenaProjectFilesDAO {
 
 				dto.setEventType(eventType);
 				dto.setMonth(month);
-				dto.setProjectId(Long.valueOf(projectId));
-				dto.setFilesCount(Integer.valueOf(filesCount));
-				dto.setUsersCount(Integer.valueOf(usersCount));
+				
+				// The S3 data might contain null values, still return a record but skip the parsing
+				if (projectId != null) {
+					dto.setProjectId(Long.valueOf(projectId));
+				}
+				
+				if (filesCount != null) {
+					dto.setFilesCount(Integer.valueOf(filesCount));
+				} else {
+					dto.setFilesCount(0);
+				}
+				
+				if (usersCount != null) {
+					dto.setUsersCount(Integer.valueOf(usersCount));
+				} else {
+					dto.setUsersCount(0);
+				}
 
 				return dto;
 			}

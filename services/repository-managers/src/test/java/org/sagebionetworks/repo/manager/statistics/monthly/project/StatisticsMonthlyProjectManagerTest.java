@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.statistics.monthly.project;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +42,7 @@ public class StatisticsMonthlyProjectManagerTest {
 	private List<StatisticsMonthlyProjectFiles> mockBatch;
 
 	@InjectMocks
-	private StatisticsmonthlyProjectManagerImpl manager;
+	private StatisticsMonthlyProjectManagerImpl manager;
 
 	private Integer filesCount = 1000;
 	private Integer usersCount = 100;
@@ -92,15 +91,49 @@ public class StatisticsMonthlyProjectManagerTest {
 
 		verify(mockAthenaDao).aggregateForMonth(eventType, month);
 		verify(mockQueryResults).getQueryResultsIterator();
-		verify(mockStatsDao).save(any());
+		verify(mockStatsDao).save(results);
 	}
+	
+	@Test
+	public void testComputeFileStatsForMonthWithNullProjectIds() throws Exception {
+
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		YearMonth month = YearMonth.of(2019, 8);
+
+		int resultsNumber = 10;
+
+		List<StatisticsMonthlyProjectFiles> results = getBatch(eventType, month, resultsNumber);
+		
+		// Set the project id to null for last result of the batch
+		results.get(results.size() - 1).setProjectId(null);
+
+		Iterator<StatisticsMonthlyProjectFiles> iterator = results.iterator();
+
+		when(mockResultsIterator.hasNext()).then(_i -> iterator.hasNext());
+		when(mockResultsIterator.next()).then(_i -> iterator.next());
+
+		when(mockQueryResults.getQueryResultsIterator()).thenReturn(mockResultsIterator);
+		when(mockAthenaDao.aggregateForMonth(eventType, month)).thenReturn(mockQueryResults);
+
+		// Call under test
+		manager.computeFileEventsStatistics(eventType, month);
+
+		verify(mockAthenaDao).aggregateForMonth(eventType, month);
+		verify(mockQueryResults).getQueryResultsIterator();
+		
+		// The last record should have been skipped 
+		List<StatisticsMonthlyProjectFiles> expectedResults = results.subList(0, results.size() - 1);
+		
+		verify(mockStatsDao).save(expectedResults);
+	}
+
 
 	@Test
 	public void testComputeFileStatsForMonthWithMultipleBatches() throws Exception {
 		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
 		YearMonth month = YearMonth.of(2019, 8);
 
-		int firstBatchSize = StatisticsmonthlyProjectManagerImpl.BATCH_SIZE;
+		int firstBatchSize = StatisticsMonthlyProjectManagerImpl.BATCH_SIZE;
 		int secondBatchSize = 10;
 
 		List<StatisticsMonthlyProjectFiles> results = getBatch(eventType, month, firstBatchSize + secondBatchSize);
@@ -118,7 +151,8 @@ public class StatisticsMonthlyProjectManagerTest {
 
 		verify(mockAthenaDao).aggregateForMonth(eventType, month);
 		verify(mockQueryResults).getQueryResultsIterator();
-		verify(mockStatsDao, times(2)).save(any());
+		verify(mockStatsDao).save(results.subList(0, firstBatchSize));
+		verify(mockStatsDao).save(results.subList(firstBatchSize, firstBatchSize + secondBatchSize));
 	}
 
 	@Test
@@ -132,7 +166,6 @@ public class StatisticsMonthlyProjectManagerTest {
 		manager.saveBatch(mockBatch, threshold);
 
 		verify(mockStatsDao, never()).save(any());
-		verify(mockBatch, never()).clear();
 	}
 
 	@Test
@@ -146,7 +179,6 @@ public class StatisticsMonthlyProjectManagerTest {
 		manager.saveBatch(mockBatch, threshold);
 
 		verify(mockStatsDao, never()).save(any());
-		verify(mockBatch, never()).clear();
 	}
 
 	@Test
@@ -160,7 +192,6 @@ public class StatisticsMonthlyProjectManagerTest {
 		manager.saveBatch(mockBatch, threshold);
 
 		verify(mockStatsDao).save(mockBatch);
-		verify(mockBatch).clear();
 	}
 
 	@Test
@@ -174,7 +205,6 @@ public class StatisticsMonthlyProjectManagerTest {
 		manager.saveBatch(mockBatch, threshold);
 
 		verify(mockStatsDao).save(mockBatch);
-		verify(mockBatch).clear();
 	}
 
 	private List<StatisticsMonthlyProjectFiles> getBatch(FileEvent eventType, YearMonth month, int size) {

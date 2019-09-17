@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.form;
 
-
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ETAG;
@@ -12,7 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REJECTION_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_SUBMITTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_FORM_DATA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_DATA;
@@ -30,22 +29,18 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFormData> {
-	
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_FORM_DATA_ID, true).withIsBackupId(true),
-			new FieldColumn("etag", COL_FORM_DATA_ETAG),
-			new FieldColumn("name", COL_FORM_DATA_NAME),
-			new FieldColumn("createdOn", COL_FORM_DATA_CREATED_ON), 
-			new FieldColumn("createdBy", COL_FORM_DATA_CREATED_BY), 
-			new FieldColumn("modifiedOn", COL_FORM_DATA_MODIFIED_ON), 
-			new FieldColumn("groupId", COL_FORM_DATA_GROUP_ID), 
-			new FieldColumn("fileHandleId", COL_FORM_DATA_FILE_ID), 
-			new FieldColumn("submittedOn", COL_FORM_DATA_SUBMITTED_ON), 
-			new FieldColumn("reviewedOn", COL_FORM_DATA_REVIEWED_ON), 
-			new FieldColumn("reviewedBy", COL_FORM_DATA_REVIEWED_BY), 
-			new FieldColumn("status", COL_FORM_DATA_STATUS), 
-			new FieldColumn("rejectionMessage", COL_FORM_DATA_REJECTION_MESSAGE), 
-	};
+			new FieldColumn("etag", COL_FORM_DATA_ETAG), new FieldColumn("name", COL_FORM_DATA_NAME),
+			new FieldColumn("createdOn", COL_FORM_DATA_CREATED_ON),
+			new FieldColumn("createdBy", COL_FORM_DATA_CREATED_BY),
+			new FieldColumn("modifiedOn", COL_FORM_DATA_MODIFIED_ON),
+			new FieldColumn("groupId", COL_FORM_DATA_GROUP_ID), new FieldColumn("fileHandleId", COL_FORM_DATA_FILE_ID),
+			new FieldColumn("submittedOn", COL_FORM_DATA_SUBMITTED_ON),
+			new FieldColumn("reviewedOn", COL_FORM_DATA_REVIEWED_ON),
+			new FieldColumn("reviewedBy", COL_FORM_DATA_REVIEWED_BY), new FieldColumn("state", COL_FORM_DATA_STATE),
+			new FieldColumn("rejectionMessage", COL_FORM_DATA_REJECTION_MESSAGE), };
 
 	private Long id;
 	private String etag;
@@ -53,14 +48,13 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 	private Timestamp createdOn;
 	private Long createdBy;
 	private Timestamp modifiedOn;
-	private long groupId;
-	private long fileHandleId;
+	private Long groupId;
+	private Long fileHandleId;
 	private Timestamp submittedOn;
 	private Timestamp reviewedOn;
 	private Long reviewedBy;
-	private String status;
+	private String state;
 	private String rejectionMessage;
-
 
 	@Override
 	public TableMapping<DBOFormData> getTableMapping() {
@@ -80,7 +74,10 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 				dbo.setSubmittedOn(rs.getTimestamp(COL_FORM_DATA_SUBMITTED_ON));
 				dbo.setReviewedOn(rs.getTimestamp(COL_FORM_DATA_REVIEWED_ON));
 				dbo.setReviewedBy(rs.getLong(COL_FORM_DATA_REVIEWED_BY));
-				dbo.setStatus(rs.getString(COL_FORM_DATA_STATUS));
+				if (rs.wasNull()) {
+					dbo.setReviewedBy(null);
+				}
+				dbo.setState(rs.getString(COL_FORM_DATA_STATE));
 				dbo.setRejectionMessage(rs.getString(COL_FORM_DATA_REJECTION_MESSAGE));
 				return dbo;
 			}
@@ -103,7 +100,8 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 			@Override
 			public Class<? extends DBOFormData> getDBOClass() {
 				return DBOFormData.class;
-			}};
+			}
+		};
 	}
 
 	@Override
@@ -130,7 +128,7 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
-	
+
 	public Long getId() {
 		return id;
 	}
@@ -179,20 +177,12 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 		this.modifiedOn = modifiedOn;
 	}
 
-	public long getGroupId() {
+	public Long getGroupId() {
 		return groupId;
 	}
 
-	public void setGroupId(long groupId) {
-		this.groupId = groupId;
-	}
-
-	public long getFileHandleId() {
+	public Long getFileHandleId() {
 		return fileHandleId;
-	}
-
-	public void setFileHandleId(long fileHandleId) {
-		this.fileHandleId = fileHandleId;
 	}
 
 	public Timestamp getSubmittedOn() {
@@ -211,14 +201,6 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 		this.reviewedBy = reviewedBy;
 	}
 
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
-	}
-
 	public String getRejectionMessage() {
 		return rejectionMessage;
 	}
@@ -235,6 +217,22 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 		this.reviewedOn = reviewedOn;
 	}
 
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public void setGroupId(Long groupId) {
+		this.groupId = groupId;
+	}
+
+	public void setFileHandleId(Long fileHandleId) {
+		this.fileHandleId = fileHandleId;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -242,15 +240,15 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + (int) (fileHandleId ^ (fileHandleId >>> 32));
-		result = prime * result + (int) (groupId ^ (groupId >>> 32));
+		result = prime * result + ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
+		result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((rejectionMessage == null) ? 0 : rejectionMessage.hashCode());
 		result = prime * result + ((reviewedBy == null) ? 0 : reviewedBy.hashCode());
 		result = prime * result + ((reviewedOn == null) ? 0 : reviewedOn.hashCode());
-		result = prime * result + ((status == null) ? 0 : status.hashCode());
+		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result + ((submittedOn == null) ? 0 : submittedOn.hashCode());
 		return result;
 	}
@@ -279,9 +277,15 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
-		if (fileHandleId != other.fileHandleId)
+		if (fileHandleId == null) {
+			if (other.fileHandleId != null)
+				return false;
+		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
-		if (groupId != other.groupId)
+		if (groupId == null) {
+			if (other.groupId != null)
+				return false;
+		} else if (!groupId.equals(other.groupId))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -313,10 +317,10 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 				return false;
 		} else if (!reviewedOn.equals(other.reviewedOn))
 			return false;
-		if (status == null) {
-			if (other.status != null)
+		if (state == null) {
+			if (other.state != null)
 				return false;
-		} else if (!status.equals(other.status))
+		} else if (!state.equals(other.state))
 			return false;
 		if (submittedOn == null) {
 			if (other.submittedOn != null)
@@ -331,8 +335,7 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 		return "DBOFormData [id=" + id + ", etag=" + etag + ", name=" + name + ", createdOn=" + createdOn
 				+ ", createdBy=" + createdBy + ", modifiedOn=" + modifiedOn + ", groupId=" + groupId + ", fileHandleId="
 				+ fileHandleId + ", submittedOn=" + submittedOn + ", reviewedOn=" + reviewedOn + ", reviewedBy="
-				+ reviewedBy + ", status=" + status + ", rejectionMessage=" + rejectionMessage + "]";
+				+ reviewedBy + ", state=" + state + ", rejectionMessage=" + rejectionMessage + "]";
 	}
-
 
 }

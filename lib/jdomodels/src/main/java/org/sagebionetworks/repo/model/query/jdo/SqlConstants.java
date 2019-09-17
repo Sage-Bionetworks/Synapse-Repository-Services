@@ -99,7 +99,7 @@ public class SqlConstants {
 	public static final String COL_FORM_DATA_SUBMITTED_ON  		= "SUBMITTED_ON";
 	public static final String COL_FORM_DATA_REVIEWED_ON 		= "REVIEWED_ON";
 	public static final String COL_FORM_DATA_REVIEWED_BY		= "REVIEWED_BY";
-	public static final String COL_FORM_DATA_STATUS 			= "STATUS";
+	public static final String COL_FORM_DATA_STATE	 			= "STATE";
 	public static final String COL_FORM_DATA_REJECTION_MESSAGE 	= "REJECTION_MESSAGE";
 	public static final String DDL_FILE_FORM_DATA 				= "schema/FormData-ddl.sql";
 
