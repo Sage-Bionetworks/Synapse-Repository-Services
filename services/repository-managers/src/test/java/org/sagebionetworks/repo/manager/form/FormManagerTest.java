@@ -486,42 +486,86 @@ public class FormManagerTest {
 			FormManagerImpl.validateCanUpdate(state);
 		});
 	}
+	
+	@Test
+	public void testValidateUserIsCreator() {
+		String formDataId = "123";
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		// call under test
+		manager.validateUserIsCreator(user, formDataId);
+		verify(mockFormDao).getFormDataCreator(formDataId);
+	}
 
+	
+	@Test
+	public void testValidateUserIsCreatorNotCreator() {
+		String formDataId = "123";
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId()+1);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateUserIsCreator(user, formDataId);
+		}).getMessage();
+		
+		assertEquals("Cannot update a form created by another user", message);
+	}
+	
 	@Test
 	public void testUpdateFormData() {
-		String id = "123";
+		String formDataId = "123";
 		String name = "someName";
 		String dataFileHandleId = "456";
 		String groupId = "333";
-		when(mockFormDao.getFormDataState(id)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataGroupId(id)).thenReturn(groupId);
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAuthManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
-		manager.updateFormData(user, id, name, dataFileHandleId);
-
+		manager.updateFormData(user, formDataId, name, dataFileHandleId);
+		verify(mockFormDao).getFormDataCreator(formDataId);
 		verify(mockAuthManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
-		verify(mockFormDao).updateFormData(id, name, dataFileHandleId);
+		verify(mockFormDao).updateFormData(formDataId, name, dataFileHandleId);
+	}
+	
+	@Test
+	public void testUpdateFormDataNotCreator() {
+		String formDataId = "123";
+		String name = "someName";
+		String dataFileHandleId = "456";
+		// caller is not the creator.
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId()+1);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
+		});
+		verify(mockFormDao).getFormDataCreator(formDataId);
+		verify(mockAuthManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+				any(ACCESS_TYPE.class));
+		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
+		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
 	}
 
 	@Test
 	public void testUpdateFormDataUnauthorizedSubmit() {
-		String id = "123";
+		String formDataId = "123";
 		String name = "someName";
 		String dataFileHandleId = "456";
 		String groupId = "333";
-		when(mockFormDao.getFormDataState(id)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataGroupId(id)).thenReturn(groupId);
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAuthManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, name, dataFileHandleId);
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
 		});
 
 		verify(mockAuthManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
@@ -531,12 +575,13 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateFormDataUnauthorizedFileHandle() {
-		String id = "123";
+		String formDataId = "123";
 		String name = "someName";
 		String dataFileHandleId = "456";
 		String groupId = "333";
-		when(mockFormDao.getFormDataState(id)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataGroupId(id)).thenReturn(groupId);
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAuthManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
@@ -544,7 +589,7 @@ public class FormManagerTest {
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, name, dataFileHandleId);
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
 		});
 
 		verify(mockAuthManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
@@ -554,15 +599,16 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateFormDataInvalidState() {
-		String id = "123";
+		String formDataId = "123";
 		String name = "someName";
 		String dataFileHandleId = "456";
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		// can update an accepted from.
-		when(mockFormDao.getFormDataState(id)).thenReturn(StateEnum.ACCEPTED);
+		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.ACCEPTED);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, name, dataFileHandleId);
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
 		});
 
 		verify(mockAuthManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
@@ -573,36 +619,37 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateFormDataNullName() {
-		String id = "123";
+		String formDataId = "123";
 		// Null name means the name is not updated
 		String name = null;
 		String dataFileHandleId = "456";
 		String groupId = "333";
-		when(mockFormDao.getFormDataState(id)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataGroupId(id)).thenReturn(groupId);
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAuthManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
-		manager.updateFormData(user, id, name, dataFileHandleId);
+		manager.updateFormData(user, formDataId, name, dataFileHandleId);
 
 		verify(mockAuthManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		// name should not be updated
-		verify(mockFormDao).updateFormData(id, dataFileHandleId);
+		verify(mockFormDao).updateFormData(formDataId, dataFileHandleId);
 	}
 
 	@Test
 	public void testUpdateFormDataInvalidName() {
-		String id = "123";
+		String formDataId = "123";
 		String invalidName = StringUtils.repeat('a', FormManagerImpl.MAX_NAME_CHARS + 1);
 		String dataFileHandleId = "456";
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, invalidName, dataFileHandleId);
+			manager.updateFormData(user, formDataId, invalidName, dataFileHandleId);
 		});
 
 		verify(mockAuthManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
@@ -613,13 +660,13 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateFormDataNullId() {
-		String id = null;
+		String formDataId = null;
 		String name = "aValidName";
 		String dataFileHandleId = "456";
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, name, dataFileHandleId);
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
 		});
 
 		verify(mockAuthManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
@@ -630,13 +677,13 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateFormDataDataFileHandle() {
-		String id = "123";
+		String formDataId = "123";
 		String name = "aValidName";
 		String dataFileHandleId = null;
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.updateFormData(user, id, name, dataFileHandleId);
+			manager.updateFormData(user, formDataId, name, dataFileHandleId);
 		});
 
 		verify(mockAuthManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),

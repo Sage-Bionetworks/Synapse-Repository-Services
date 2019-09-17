@@ -53,9 +53,6 @@ public class FormManagerImpl implements FormManager {
 	@Autowired
 	AccessControlListDAO aclDao;
 
-	@Autowired
-	AuthorizationManager authManager;
-
 	@WriteTransaction
 	@Override
 	public FormGroup createGroup(UserInfo user, String name) {
@@ -67,9 +64,7 @@ public class FormManagerImpl implements FormManager {
 		if (existingGroup.isPresent()) {
 			FormGroup group = existingGroup.get();
 			// Does the caller have access to the group?
-			AuthorizationStatus status = authManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP,
-					ACCESS_TYPE.READ);
-			if (status.isAuthorized()) {
+			if (aclDao.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ)) {
 				// return the existing group
 				return group;
 			} else {
@@ -179,11 +174,7 @@ public class FormManagerImpl implements FormManager {
 		if (name != null) {
 			validateName(name);
 		}
-		// lookup the creator of this form.
-		long creator = formDao.getFormDataCreator(id);
-		if (user.getId().equals(creator)) {
-			throw new UnauthorizedException("Cannot update a form created by another user");
-		}
+		validateUserIsCreator(user, id);
 
 		StateEnum state = formDao.getFormDataState(id);
 		validateCanUpdate(state);
@@ -200,10 +191,26 @@ public class FormManagerImpl implements FormManager {
 		}
 	}
 
-	@Override
-	public void deleteFormData(UserInfo user, String id) {
-		// TODO Auto-generated method stub
+	/**
+	 * Validate that the caller is the creator of the given formDataId.
+	 * 
+	 * @param user
+	 * @param formDataId
+	 */
+	void validateUserIsCreator(UserInfo user, String formDataId) {
+		// lookup the creator of this form.
+		long creator = formDao.getFormDataCreator(formDataId);
+		if (!user.getId().equals(creator)) {
+			throw new UnauthorizedException("Cannot update a form created by another user");
+		}
+	}
 
+	@Override
+	public void deleteFormData(UserInfo user, String formDataId) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(formDataId, "formDataId");
+		validateUserIsCreator(user, formDataId);
+		formDao.deleteFormData(formDataId);
 	}
 
 	@Override

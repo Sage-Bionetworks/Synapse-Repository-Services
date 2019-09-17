@@ -132,6 +132,7 @@ public class FormDaoImpl implements FormDao {
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData updateFormData(String id, String name, String dataFileHandleId) {
 		ValidateArgument.required(id, "id");
@@ -143,6 +144,7 @@ public class FormDaoImpl implements FormDao {
 		return getFormData(id);
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData updateFormData(String id, String dataFileHandleId) {
 		ValidateArgument.required(id, "id");
@@ -210,6 +212,13 @@ public class FormDaoImpl implements FormDao {
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " > 0");
 		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_GROUP + " WHERE " + COL_FORM_GROUP_ID + " > 0");
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteFormData(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID +" = ?", formDataId);
 	}
 
 }
