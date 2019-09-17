@@ -98,10 +98,10 @@ public class QueryDAOImplTest {
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
 		mockAclDAO = mock(AccessControlListDAO.class);
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
@@ -283,7 +283,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -313,7 +313,7 @@ public class QueryDAOImplTest {
 		assertFalse(noPrivateObjectIdIndex==-1);
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		QueryTableResults privateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(privateAccessResults);
@@ -355,7 +355,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
@@ -389,7 +389,7 @@ public class QueryDAOImplTest {
 		assertEquals(0, results.getRows().size());
 		
 		// if we have private read access we CAN see the results
-		when(mockAclDAO.canAccess(any(), eq(EVAL_ID2),
+		when(mockAclDAO.canAccess(any(Set.class), eq(EVAL_ID2),
 				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
