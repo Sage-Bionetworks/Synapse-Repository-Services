@@ -44,7 +44,8 @@ public class FormManagerImpl implements FormManager {
 	 * Administrator permission for FormGroups.
 	 * 
 	 */
-	public static final Set<ACCESS_TYPE> FORM_GROUP_ADMIN_PERMISSIONS = Sets.newHashSet(READ, CHANGE_PERMISSIONS, SUBMIT, READ_PRIVATE_SUBMISSION);
+	public static final Set<ACCESS_TYPE> FORM_GROUP_ADMIN_PERMISSIONS = Sets.newHashSet(READ, CHANGE_PERMISSIONS,
+			SUBMIT, READ_PRIVATE_SUBMISSION);
 
 	@Autowired
 	FormDao formDao;
@@ -66,18 +67,21 @@ public class FormManagerImpl implements FormManager {
 		if (existingGroup.isPresent()) {
 			FormGroup group = existingGroup.get();
 			// Does the caller have access to the group?
-			AuthorizationStatus status = authManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+			AuthorizationStatus status = authManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP,
+					ACCESS_TYPE.READ);
 			if (status.isAuthorized()) {
 				// return the existing group
 				return group;
 			} else {
-				throw new IllegalArgumentException("The group name: " + name + " is unavailable, please chooser another name.");
+				throw new IllegalArgumentException(
+						"The group name: " + name + " is unavailable, please chooser another name.");
 			}
 		}
 		// create the group.
 		FormGroup group = formDao.createFormGroup(user.getId(), name);
 		// Create an ACL for the
-		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS, new Date());
+		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS,
+				new Date());
 		aclDao.create(acl, ObjectType.FORM_GROUP);
 		return group;
 	}
@@ -111,7 +115,8 @@ public class FormManagerImpl implements FormManager {
 		PermissionsManagerUtils.validateACLContent(acl, user, groupIdLong);
 
 		// Validate CHANGE_PERMISSIONS
-		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
+		authManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS)
+				.checkAuthorizationOrElseThrow();
 
 		aclDao.update(acl, ObjectType.FORM_GROUP);
 		return getGroupAcl(user, groupId);
