@@ -324,6 +324,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String BUNDLE = "/bundle";
 	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
+	private static final String CREATE = "/create";
 															// org.sagebionetworks.repo.web.UrlHelpers
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
@@ -856,7 +857,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc,
 											 String activityId) throws SynapseException {
 		ValidateArgument.required(ebc, "EntityBundleV2Create");
-		String url = ENTITY_URI_PATH + BUNDLE_V2;
+		String url = ENTITY_URI_PATH + BUNDLE_V2 + CREATE;
 		if (activityId != null) {
 			url += "?" + PARAM_GENERATED_BY + "=" + activityId;
 		}
