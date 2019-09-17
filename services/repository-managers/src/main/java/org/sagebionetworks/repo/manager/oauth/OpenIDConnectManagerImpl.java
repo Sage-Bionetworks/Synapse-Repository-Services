@@ -204,11 +204,17 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String ppid(String userId, String clientId) {
+		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+			throw new IllegalArgumentException("Cannot create ppid for Synapse Oauth client");
+		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
 	}
 
 	public String getUserIdFromPPID(String ppid, String clientId) {
+		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+			return clientId;
+		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}

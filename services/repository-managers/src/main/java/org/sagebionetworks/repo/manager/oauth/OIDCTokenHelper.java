@@ -67,4 +67,15 @@ public interface OIDCTokenHelper {
 	 */
 	Jwt<JwsHeader,Claims> parseJWT(String token);
 
+	/**
+	 * This used to adapt the existing Synapse auth filter to the 
+	 * scoped access token-based system.  Given a Synapse principal
+	 * ID it creates a token having 'total access' to the user account,
+	 * duplicating the access provided by a Synapse session token.
+	 * 
+	 * @param principalId
+	 * @return
+	 */
+	String createTotalAccessToken(Long principalId);
+
 }

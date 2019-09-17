@@ -58,7 +58,7 @@ public class DockerClientAuthFilter implements Filter {
 		}
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-		// TODO add as header, not param
+		// TODO add a 'full access' bearer token header ane remove the following param
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 		HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 		chain.doFilter(modRqst, response);

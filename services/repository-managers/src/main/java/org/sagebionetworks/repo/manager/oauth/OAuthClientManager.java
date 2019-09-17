@@ -11,6 +11,11 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface OAuthClientManager {
 	
+	/*
+	 * The oauth 'client id' repeesenting Synapse itself
+	 */
+	public static final String SYNAPSE_OAUTH_CLIENT_ID = "0";
+	
 	/**
 	 * Create a new Open ID Connect client.
 	 * 

@@ -44,9 +44,9 @@ public class OAuthClientAuthFilter implements Filter {
 		}
 		
 		if (validCredentials) {
-			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;

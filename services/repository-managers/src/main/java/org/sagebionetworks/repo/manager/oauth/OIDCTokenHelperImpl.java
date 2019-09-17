@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
@@ -117,6 +120,18 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 
 		return createSignedJWT(claims);
 	}
+	
+	@Override
+	public String createTotalAccessToken(Long principalId) {
+		String issuer = null; // doesn't matter -- it's only important to the client
+		String subject = principalId.toString(); // we don't encrypt
+		String oauthClientId = ""+OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID; // TODO circular dependency?
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
+		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+				tokenId, allScopes, Collections.EMPTY_MAP);
+	}
+
 	
 	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {

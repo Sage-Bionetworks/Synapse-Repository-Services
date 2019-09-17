@@ -176,7 +176,7 @@ public class AuthenticationFilter implements Filter {
 			// TODO add current headers, but not session token or HMAC
 			// TODO strip user id from param's
 			// TODO only add bearer header if not anonymous, otherwise strip
-			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+createAccessToken(userId) });
+			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+createaTotalAccessToken(userId) });
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, null);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
@@ -185,7 +185,7 @@ public class AuthenticationFilter implements Filter {
 		}
 	}
 	
-	public String createAccessToken(Long userId) {
+	public String createaTotalAccessToken(Long userId) {
 		String issuer = null; // doesn't matter -- it's only important to the client
 		String subject = userId.toString(); // we don't encrypt
 		String oauthClientId = "0"; // TODO define a constant
