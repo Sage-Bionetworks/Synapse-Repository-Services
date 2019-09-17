@@ -46,9 +46,10 @@ public class StackEncrypterImpl implements StackEncrypter {
 				return new String(Base64.getEncoder().encode(plainText.getBytes(UTF_8)), UTF_8);
 			}
 			byte[] plainTextBytes = plainText.getBytes( UTF_8 );
-			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(
-					new EncryptRequest().withPlaintext(ByteBuffer.wrap(plainTextBytes))).
+			EncryptRequest  encryptRequest = new EncryptRequest().
+					withPlaintext(ByteBuffer.wrap(plainTextBytes)).
 					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
+			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(encryptRequest);
 			return new String(Base64.getEncoder().encode(encryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
@@ -99,9 +100,10 @@ public class StackEncrypterImpl implements StackEncrypter {
 			}
 			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
 			// KMS can decrypt the value without providing the encryption key.
-			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(new ReEncryptRequest().
-					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted))).
-					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
+			ReEncryptRequest reEncryptRequest = new ReEncryptRequest().
+					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)).
+					withDestinationKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
+			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(reEncryptRequest);
 			return new String(Base64.getEncoder().encode(reEncryptResult.getCiphertextBlob()).array(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
