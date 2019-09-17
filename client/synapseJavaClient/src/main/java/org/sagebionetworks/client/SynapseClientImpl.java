@@ -56,8 +56,9 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Create;
+import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -98,6 +99,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -197,7 +199,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -321,8 +322,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ENTITY_URI_PATH = "/entity";
 	private static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	private static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
-	private static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
 	private static final String BUNDLE = "/bundle";
+	private static final String BUNDLE_V2 = "/bundle2";
 	private static final String BENEFACTOR = "/benefactor"; // from
 															// org.sagebionetworks.repo.web.UrlHelpers
 	private static final String ACTIVITY_URI_PATH = "/activity";
@@ -591,6 +592,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 
 	public static final String STORAGE_REPORT = "/storageReport";
+	public static final String ANNOTATIONS_V2 = "/annotations2";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -827,22 +829,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return (T) postJSONEntity(getRepoEndpoint(), uri, entity, entity.getClass());
 	}
 
+
 	/**
 	 * Create an Entity, Annotations, and ACL with a single call.
-	 * 
+	 *
 	 * @param ebc
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
+	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc)
 			throws SynapseException {
-		return createEntityBundle(ebc, null);
+		return createEntityBundleV2(ebc, null);
 	}
 
 	/**
 	 * Create an Entity, Annotations, and ACL with a single call.
-	 * 
+	 *
 	 * @param ebc
 	 * @param activityId
 	 *            the activity to create a generatedBy relationship with the
@@ -851,32 +854,32 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc,
-			String activityId) throws SynapseException {
-		ValidateArgument.required(ebc, "EntityBundleCreate");
-		String url = ENTITY_URI_PATH + BUNDLE;
+	public EntityBundleV2 createEntityBundleV2(EntityBundleV2Create ebc,
+										   String activityId) throws SynapseException {
+		ValidateArgument.required(ebc, "EntityBundleV2Create");
+		String url = ENTITY_URI_PATH + BUNDLE_V2;
 		if (activityId != null) {
 			url += "?" + PARAM_GENERATED_BY + "=" + activityId;
 		}
-		return postJSONEntity(getRepoEndpoint(), url, ebc, EntityBundle.class);
+		return postJSONEntity(getRepoEndpoint(), url, ebc, EntityBundleV2.class);
 	}
 
 	/**
 	 * Update an Entity, Annotations, and ACL with a single call.
-	 * 
+	 *
 	 * @param ebc
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle updateEntityBundle(String entityId,
-			EntityBundleCreate ebc) throws SynapseException {
-		return updateEntityBundle(entityId, ebc, null);
+	public EntityBundleV2 updateEntityBundleV2(String entityId,
+										   EntityBundleV2Create ebc) throws SynapseException {
+		return updateEntityBundleV2(entityId, ebc, null);
 	}
 
 	/**
 	 * Update an Entity, Annotations, and ACL with a single call.
-	 * 
+	 *
 	 * @param ebc
 	 * @param activityId
 	 *            the activity to create a generatedBy relationship with the
@@ -885,11 +888,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle updateEntityBundle(String entityId,
-			EntityBundleCreate ebc, String activityId) throws SynapseException {
-		ValidateArgument.required(ebc, "EntityBundleCreate");
-		String url = ENTITY_URI_PATH + "/" + entityId + BUNDLE;
-		return putJSONEntity(getRepoEndpoint(), url, ebc, EntityBundle.class);
+	public EntityBundleV2 updateEntityBundleV2(String entityId,
+											 EntityBundleV2Create ebc, String activityId) throws SynapseException {
+		ValidateArgument.required(ebc, "EntityBundleV2Create");
+		String url = ENTITY_URI_PATH + "/" + entityId + BUNDLE_V2;
+		return putJSONEntity(getRepoEndpoint(), url, ebc, EntityBundleV2.class);
 	}
 
 	/**
@@ -927,16 +930,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Get a bundle of information about an entity in a single call.
 	 * 
 	 * @param entityId
-	 * @param partsMask
+	 * @param bundleV2Request
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle getEntityBundle(String entityId, int partsMask)
+	public EntityBundleV2 getEntityBundleV2(String entityId, EntityBundleV2Request bundleV2Request)
 			throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
-		String url = ENTITY_URI_PATH + "/" + entityId + ENTITY_BUNDLE_PATH + partsMask;
-		return getJSONEntity(getRepoEndpoint(), url, EntityBundle.class);
+		String url = ENTITY_URI_PATH + "/" + entityId + BUNDLE_V2;
+		return postJSONEntity(getRepoEndpoint(), url, bundleV2Request, EntityBundleV2.class);
 	}
 
 	/**
@@ -946,18 +949,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 *            - the entity id to retrieve
 	 * @param versionNumber
 	 *            - the specific version to retrieve
-	 * @param partsMask
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
-			int partsMask) throws SynapseException {
+	public EntityBundleV2 getEntityBundleV2(String entityId, Long versionNumber,
+											EntityBundleV2Request bundleV2Request) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(versionNumber, "versionNumber");
 		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION
-				+ "/" + versionNumber + ENTITY_BUNDLE_PATH + partsMask;
-		return getJSONEntity(getRepoEndpoint(), url, EntityBundle.class);
+				+ "/" + versionNumber + BUNDLE_V2;
+		return postJSONEntity(getRepoEndpoint(), url, bundleV2Request, EntityBundleV2.class);
 	}
 
 	/**
@@ -1201,30 +1203,31 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	/**
 	 * Get the annotations for an entity.
-	 * 
+	 *
 	 * @param entityId
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public Annotations getAnnotations(String entityId) throws SynapseException {
-		String url = ENTITY_URI_PATH + "/" + entityId + "/annotations";
-		return getJSONEntity(getRepoEndpoint(), url, Annotations.class);
+	public AnnotationsV2 getAnnotationsV2(String entityId) throws SynapseException {
+		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2;
+		return getJSONEntity(getRepoEndpoint(), url, AnnotationsV2.class);
 	}
 
 	/**
 	 * Update the annotations of an entity.
-	 * 
+	 *
 	 * @param entityId
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public Annotations updateAnnotations(String entityId, Annotations updated)
+	public AnnotationsV2 updateAnnotationsV2(String entityId, AnnotationsV2 updated)
 			throws SynapseException {
-		String url = ENTITY_URI_PATH + "/" + entityId + "/annotations";
-		return putJSONEntity(getRepoEndpoint(), url, updated, Annotations.class);
+		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2;
+		return putJSONEntity(getRepoEndpoint(), url, updated, AnnotationsV2.class);
 	}
+
 
 	@SuppressWarnings("unchecked")
 	@Override

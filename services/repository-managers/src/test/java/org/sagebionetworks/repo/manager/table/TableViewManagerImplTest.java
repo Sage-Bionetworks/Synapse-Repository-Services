@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -40,8 +39,10 @@ import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -152,8 +153,7 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(any());
 		
-		//TODO: replace translator code
-		annotationsV2= new AnnotationsV2();
+		annotationsV2= AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 
 		anno1 = new ColumnModel();
@@ -389,7 +389,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValues(){
-		Annotations annos = new Annotations();
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		values.put(EntityField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
@@ -397,17 +397,21 @@ public class TableViewManagerImplTest {
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		assertTrue(updated);
-		assertEquals("aString",annos.getSingleValue(anno1.getName()));
-		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
+		AnnotationsV2Value anno1Value = annos.getAnnotations().get(anno1.getName());
+		assertEquals("aString",AnnotationsV2Utils.getSingleValue(anno1Value));
+		assertEquals(AnnotationsV2ValueType.STRING, anno1Value.getType());
+		AnnotationsV2Value anno2Value = annos.getAnnotations().get(anno2.getName());
+		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
+		assertEquals(AnnotationsV2ValueType.LONG, anno2Value.getType());
 		// etag should not be included.
-		assertNull(annos.getSingleValue(EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesSameNameDifferntType(){
-		Annotations annos = new Annotations();
-		annos.addAnnotation(anno1.getName(), 456L);
-		annos.addAnnotation(anno2.getName(), "not a long");
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "456", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsV2ValueType.STRING);
 		// update the values.
 		Map<String, String> values = new HashMap<>();
 		values.put(EntityField.etag.name(), "anEtag");
@@ -416,13 +420,17 @@ public class TableViewManagerImplTest {
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
-		//TODO: replace translator code
-		AnnotationsV2Utils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
+		AnnotationsV2Utils.validateAnnotations(annos);
 		assertTrue(updated);
-		assertEquals("aString",annos.getSingleValue(anno1.getName()));
-		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
+		AnnotationsV2Value anno1Value = annos.getAnnotations().get(anno1.getName());
+		assertEquals("aString",AnnotationsV2Utils.getSingleValue(anno1Value));
+		assertEquals(AnnotationsV2ValueType.STRING, anno1Value.getType());
+		AnnotationsV2Value anno2Value = annos.getAnnotations().get(anno2.getName());
+		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
+		assertEquals(AnnotationsV2ValueType.LONG, anno2Value.getType());
+
 		// etag should not be included.
-		assertNull(annos.getSingleValue(EntityField.etag.name()));
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
 	}
 	
 	/**
@@ -431,35 +439,32 @@ public class TableViewManagerImplTest {
 	 */
 	@Test
 	public void testUpdateAnnotationsDate() throws IOException, JSONObjectAdapterException {
-		Date date = new Date(1509744902000L);
+		String date = "1509744902000";
 		viewSchema = Lists.newArrayList(dateColumn);
-		Annotations annos = new Annotations();
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		// update the values.
 		Map<String, String> values = new HashMap<>();
-		values.put(dateColumn.getId(), ""+date.getTime());
+		values.put(dateColumn.getId(), date);
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		// the resulting annotations must be valid.
-		//TODO: replace translator code
-		AnnotationsV2Utils.validateAnnotations(AnnotationsV2Translator.toAnnotationsV2(annos));
+		AnnotationsV2Utils.validateAnnotations(annos);
 		assertTrue(updated);
 		/*
-		 * Copy the annotations by writing to XML.
+		 * Copy the annotations
 		 * Note: With PLFM-4706 this is where the date gets 
 		 * converted to the same day at time 0.
 		 */
-		Annotations annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), Annotations.class);
+		AnnotationsV2 annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), AnnotationsV2.class);
 
-		Object value = annotationCopy.getSingleValue(dateColumn.getName());
-		assertNotNull(value);
-		assertTrue(value instanceof Date);
-		Date dateValue = (Date)value;
-		assertEquals(date.getTime(), dateValue.getTime());
+		AnnotationsV2Value annotationV2Value = annotationCopy.getAnnotations().get(dateColumn.getName());
+		assertEquals(date, AnnotationsV2Utils.getSingleValue(annotationV2Value));
+		assertEquals(AnnotationsV2ValueType.TIMESTAMP_MS, annotationV2Value.getType());
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyScheam(){
-		Annotations annos = new Annotations();
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, new LinkedList<ColumnModel>(), values);
@@ -468,7 +473,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyValues(){
-		Annotations annos = new Annotations();
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
@@ -477,16 +482,16 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesDelete(){
-		Annotations annos = new Annotations();
+		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		// start with an annotation.
-		annos.addAnnotation(anno1.getName(), "startValue");
+		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "startValue", AnnotationsV2ValueType.STRING);
 		Map<String, String> values = new HashMap<>();
 		values.put(anno1.getId(), null);
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		assertTrue(updated);
-		assertFalse(annos.getStringAnnotations().containsKey(anno1.getName()));
-		assertEquals(null, annos.getSingleValue(anno1.getName()));
+		assertFalse(annos.getAnnotations().containsKey(anno1.getName()));
+		assertEquals(null, AnnotationsV2Utils.getSingleValue(annos, anno1.getName()));
 	}
 	
 	@Test

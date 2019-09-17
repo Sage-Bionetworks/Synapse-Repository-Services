@@ -27,8 +27,10 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.search.Document;
@@ -101,10 +103,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
-		//TODO: replace useage of translation with actual V2 code
 
-		Annotations annos = AnnotationsV2Translator.toAnnotationsV1(nodeDao.getUserAnnotationsForVersion(node.getId(),
-				revId));
+		AnnotationsV2 annos = nodeDao.getUserAnnotationsForVersion(node.getId(),
+				revId);
 		// Get the wikipage text
 		String wikiPagesText = getAllWikiPageText(node.getId());
 
@@ -127,7 +128,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 
 	@Override
-	public Document formulateSearchDocument(Node node, Annotations annos,
+	public Document formulateSearchDocument(Node node, AnnotationsV2 annos,
 											AccessControlList acl, String wikiPagesText)
 			throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
@@ -210,7 +211,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
-	void addAnnotationsToSearchDocument(DocumentFields fields, Annotations annotations){
+	void addAnnotationsToSearchDocument(DocumentFields fields, AnnotationsV2 annotations){
 		// process a map of annotation keys to values
 		Map<String, String> firstAnnotationValues = getFirsAnnotationValues(annotations);
 
@@ -227,13 +228,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @param anno Annotation source from which the keys and values are retrieved.
 	 *             Annotation keys will be converted to lower case before they are added to this map
 	 */
-	Map<String, String> getFirsAnnotationValues(Annotations anno){
+	Map<String, String> getFirsAnnotationValues(AnnotationsV2 anno){
 		Map<String, String> firstAnnotationValues = new HashMap<>();
-		for(String key: anno.keySet()){
-			Object value = anno.getSingleValue(key);
-			if( value != null && !(value instanceof byte[])) {
-				firstAnnotationValues.putIfAbsent(key.toLowerCase(), value.toString());
-			}
+		for(Map.Entry<String, AnnotationsV2Value> entry: anno.getAnnotations().entrySet()){
+			firstAnnotationValues.putIfAbsent(entry.getKey().toLowerCase(), AnnotationsV2Utils.getSingleValue(entry.getValue()));
 		}
 		return firstAnnotationValues;
 	}

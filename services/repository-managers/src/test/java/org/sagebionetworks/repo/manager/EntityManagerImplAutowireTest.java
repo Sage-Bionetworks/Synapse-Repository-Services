@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,7 +22,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -35,6 +35,11 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -45,8 +50,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -188,15 +191,17 @@ public class EntityManagerImplAutowireTest {
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
 		// Now get the Annotations
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
+		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
+		AnnotationsV2TestUtils.putAnnotations(annos, "someNewTestAnnotation", "someStringValue", AnnotationsV2ValueType.STRING);
 		// Update
 		entityManager.updateAnnotations(adminUserInfo,id, annos);
 		// Now make sure it changed
 		annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
+		AnnotationsV2Value annoValue = annos.getAnnotations().get("someNewTestAnnotation");
+		assertEquals("someStringValue", AnnotationsV2Utils.getSingleValue(annoValue));
+		assertEquals(AnnotationsV2ValueType.STRING, annoValue.getType());
 		// Now update the dataset
 		fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		fetched.setName("myNewName");

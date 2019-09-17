@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import javax.servlet.http.HttpServlet;
@@ -18,6 +19,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
@@ -25,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -109,6 +113,45 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity bundle using only the ID
 	 */
+	public EntityBundleV2 getEntityBundle(String id, EntityBundleV2Request bundleV2Request, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE_V2,
+				userId, null);
+		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
+		request.setContentType("application/json");
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EntityBundleV2(
+				ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	/**
+	 * Get an entity bundle for a specific version using the ID and
+	 * versionNumber.
+	 */
+	public EntityBundleV2 getEntityBundleForVersion(String id,
+												  Long versionNumber, EntityBundleV2Request bundleV2Request, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
+				null);
+		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
+		request.setContentType("application/json");
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EntityBundleV2(
+				ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	/**
+	 * Get an entity bundle using only the ID
+	 */
+	@Deprecated
 	public EntityBundle getEntityBundle(String id, int mask, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -127,6 +170,7 @@ public class EntityServletTestHelper {
 	 * Get an entity bundle for a specific version using the ID and
 	 * versionNumber.
 	 */
+	@Deprecated
 	public EntityBundle getEntityBundleForVersion(String id,
 			Long versionNumber, int mask, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -203,6 +247,38 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), UserEntityPermissions.class);
+	}
+
+	/**
+	 * Get the annotations for an entity.
+	 */
+	public AnnotationsV2 getEntityAnnotationsV2(String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.ANNOTATIONS_V2, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AnnotationsV2.class);
+	}
+
+	/**
+	 * Update the annotations of an entity
+	 */
+	public AnnotationsV2 updateAnnotationsV2(AnnotationsV2 annos, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
+						+ UrlHelpers.ANNOTATIONS_V2, userId, annos);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AnnotationsV2.class);
 	}
 
 	/**

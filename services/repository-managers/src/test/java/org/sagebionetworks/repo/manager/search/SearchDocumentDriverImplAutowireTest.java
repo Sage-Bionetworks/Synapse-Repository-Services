@@ -39,6 +39,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
@@ -184,19 +187,16 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		Annotations additionalAnnos = new Annotations();
-		additionalAnnos
-				.addAnnotation("stringKey",
-						"a multi-word annotation gets underscores so we can exact-match find it");
-		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("tissue", "ear lobe");
-		additionalAnnos.addAnnotation("consortium", "C O N S O R T I U M");
+		AnnotationsV2 additionalAnnos = new AnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "stringKey",
+						"a multi-word annotation gets underscores so we can exact-match find it", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "longKey", "10", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "tissue", "ear lobe", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "consortium", "C O N S O R T I U M", AnnotationsV2ValueType.STRING);
 		// PLFM-4438
-		additionalAnnos.addAnnotation("diagnosis", 1L);
-		Date dateValue = new Date();
-		additionalAnnos.addAnnotation("dateKey", dateValue);
-		additionalAnnos
-				.addAnnotation("blobKey", new String("bytes").getBytes());
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "diagnosis", "1", AnnotationsV2ValueType.LONG);
+		String dateValue = Long.toString(System.currentTimeMillis());
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "dateKey", dateValue, AnnotationsV2ValueType.TIMESTAMP_MS);
 		
 		String wikiPageText = "title\nmarkdown";
 

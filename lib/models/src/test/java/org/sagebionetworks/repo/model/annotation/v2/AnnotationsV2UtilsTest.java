@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -344,5 +345,4 @@ class AnnotationsV2UtilsTest {
 			AnnotationsV2Utils.checkValue(key, annotationsV2Value);
 		});
 	}
-
 }

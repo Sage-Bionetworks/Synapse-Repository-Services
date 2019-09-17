@@ -41,6 +41,9 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -838,11 +841,11 @@ public class IT100TableControllerTest {
 		folder.setName(UUID.randomUUID().toString());
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
-		Annotations annos = synapse.getAnnotations(folder.getId());
-		annos.addAnnotation("keyA", "someValue");
-		annos.addAnnotation("keyB", "123456");
-		annos.addAnnotation("keyC", "45678");
-		synapse.updateAnnotations(folder.getId(), annos);
+		AnnotationsV2 annos = synapse.getAnnotationsV2(folder.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsV2ValueType.STRING);
+		synapse.updateAnnotationsV2(folder.getId(), annos);
 		
 		// Now find the columns for this scope with mask
 		ViewScope scope = new ViewScope();

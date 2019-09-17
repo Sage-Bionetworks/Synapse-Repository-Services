@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -240,50 +237,32 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public Annotations getAnnotations(UserInfo userInfo, String entityId)
+	public AnnotationsV2 getAnnotations(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if (entityId == null)
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
-		//TODO: replace translation code
-		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotations(userInfo, entityId));
+		return nodeManager.getUserAnnotations(userInfo, entityId);
 	}
 
 	@Override
-	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id,
+	public AnnotationsV2 getAnnotationsForVersion(UserInfo userInfo, String id,
 			Long versionNumber) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		// Get all of the annotations.
-		//TODO: replace translation code
-		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber));
+		return nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@WriteTransaction
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId,
-			Annotations updated) throws ConflictingUpdateException,
+			AnnotationsV2 updated) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
 		if (updated == null)
 			throw new IllegalArgumentException("Annoations cannot be null");
 		// The user has updated the additional annotations.
-		
-		Annotations updatedClone = new Annotations();
-		cloneAnnotations(updated, updatedClone);
-		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
-		//TODO: replace translation code
-
-		nodeManager.updateUserAnnotations(userInfo, entityId, AnnotationsV2Translator.toAnnotationsV2(updatedClone));
-	}
-	
-	public static void cloneAnnotations(Annotations src, Annotations dst) {
-		dst.setBlobAnnotations(src.getBlobAnnotations());
-		dst.setDateAnnotations(src.getDateAnnotations());
-		dst.setDoubleAnnotations(src.getDoubleAnnotations());
-		dst.setEtag(src.getEtag());
-		dst.setId(src.getId());
-		dst.setLongAnnotations(src.getLongAnnotations());
-		dst.setStringAnnotations(src.getStringAnnotations());
+		nodeManager.updateUserAnnotations(userInfo, entityId, updated);
 	}
 
 	@WriteTransaction

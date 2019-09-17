@@ -48,6 +48,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityBundleV2;
+import org.sagebionetworks.repo.model.EntityBundleV2Create;
+import org.sagebionetworks.repo.model.EntityBundleV2Request;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -69,6 +72,9 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
@@ -111,7 +117,7 @@ public class IT500SynapseJavaClient {
 		bootstrappedTeams.add("464532"); // Access and Compliance Team
 		bootstrappedTeams.add("4"); // Trusted message senders
 	}
-	
+
 	private long getBootstrapCountPlus(long number) {
 		return bootstrappedTeams.size() + number;
 	}
@@ -268,14 +274,13 @@ public class IT500SynapseJavaClient {
 		assertEquals(project.getId(), clone.getId());
 		
 		// Get the entity annotations
-		Annotations annos = synapseOne.getAnnotations(file.getId());
+		AnnotationsV2 annos = synapseOne.getAnnotationsV2(file.getId());
 		assertNotNull(annos);
 		assertEquals(file.getId(), annos.getId());
 		assertNotNull(annos.getEtag());
 		// Add some values
-		annos.addAnnotation("longKey", new Long(999999));
-		annos.addAnnotation("blob", "This will be converted to a blob!".getBytes("UTF-8"));
-		Annotations updatedAnnos = synapseOne.updateAnnotations(file.getId(), annos);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "999999", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2 updatedAnnos = synapseOne.updateAnnotationsV2(file.getId(), annos);
 		assertNotNull(updatedAnnos);
 		assertEquals(file.getId(), annos.getId());
 		assertNotNull(updatedAnnos.getEtag());
@@ -428,40 +433,37 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientGetEntityBundle() throws SynapseException {
-		Annotations annos = synapseOne.getAnnotations(project.getId());
-		annos.addAnnotation("doubleAnno", new Double(45.0001));
-		annos.addAnnotation("string", "A string");
-		annos = synapseOne.updateAnnotations(project.getId(), annos);
+		AnnotationsV2 annos = synapseOne.getAnnotationsV2(project.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, "doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos, "string", "A string", AnnotationsV2ValueType.STRING);
+		annos = synapseOne.updateAnnotationsV2(project.getId(), annos);
 
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
 		acl.setId(project.getId());
 		synapseOne.updateACL(acl);
 
-		int allPartsMask = EntityBundle.ENTITY |
-				EntityBundle.ANNOTATIONS |
-				EntityBundle.PERMISSIONS |
-				EntityBundle.ENTITY_PATH |
-				EntityBundle.HAS_CHILDREN |
-				EntityBundle.ACL |
-				EntityBundle.ACCESS_REQUIREMENTS |
-				EntityBundle.UNMET_ACCESS_REQUIREMENTS |
-				EntityBundle.FILE_NAME |
-				EntityBundle.RESTRICTION_INFORMATION;
+		EntityBundleV2Request request = new EntityBundleV2Request();
+		request.setIncludeEntity(true);
+		request.setIncludeAnnotations(true);
+		request.setIncludePermissions(true);
+		request.setIncludeEntityPath(true);
+		request.setIncludeHasChildren(true);
+		request.setIncludeAccessControlList(true);
+		request.setIncludeFileName(true);
+		request.setIncludeRestrictionInformation(true);
 		
 		long startTime = System.nanoTime();
-		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
+		EntityBundleV2 entityBundle = synapseOne.getEntityBundleV2(project.getId(), request);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
 
 		assertNotNull(entityBundle.getRestrictionInformation());
 		assertEquals(synapseOne.getEntityById(project.getId()), entityBundle.getEntity(),"Invalid fetched Entity in the EntityBundle");
-		assertEquals(synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations(), "Invalid fetched Annotations in the EntityBundle");
+		assertEquals(synapseOne.getAnnotationsV2(project.getId()), entityBundle.getAnnotations(), "Invalid fetched Annotations in the EntityBundle");
 		assertEquals(synapseOne.getEntityPath(project.getId()), entityBundle.getPath(), "Invalid fetched EntityPath in the EntityBundle");
 		assertEquals(synapseOne.getACL(project.getId()), entityBundle.getAccessControlList(), "Invalid fetched ACL in the EntityBundle");
-		assertEquals(0, entityBundle.getAccessRequirements().size(), "Unexpected ARs in the EntityBundle");
-		assertEquals(0, entityBundle.getUnmetAccessRequirements().size(), "Unexpected unmet-ARs in the EntityBundle");
 		assertNull(entityBundle.getFileName());
 	}
 	
@@ -494,9 +496,9 @@ public class IT500SynapseJavaClient {
 		s1.setParentId(project.getId());
 		
 		// Create annotations for this entity
-		Annotations a1 = new Annotations();		
-		a1.addAnnotation("doubleAnno", new Double(45.0001));
-		a1.addAnnotation("string", "A string");
+		AnnotationsV2 a1 = new AnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(a1, "doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a1, "string", "A string", AnnotationsV2ValueType.STRING);
 		
 		// Create ACL for this entity
 		AccessControlList acl1 = new AccessControlList();
@@ -505,12 +507,12 @@ public class IT500SynapseJavaClient {
 		acl1.setResourceAccess(resourceAccesses);
 		
 		// Create the bundle, verify contents
-		EntityBundleCreate ebc = new EntityBundleCreate();
+		EntityBundleV2Create ebc = new EntityBundleV2Create();
 		ebc.setEntity(s1);
 		ebc.setAnnotations(a1);
 		ebc.setAccessControlList(acl1);
 				
-		EntityBundle response = synapseOne.createEntityBundle(ebc);
+		EntityBundleV2 response = synapseOne.createEntityBundleV2(ebc);
 		
 		Folder s2 = (Folder) response.getEntity();
 		toDelete.add(s2.getId());
@@ -518,12 +520,11 @@ public class IT500SynapseJavaClient {
 		assertNotNull(s2.getEtag(), "Etag should have been generated, but was not");
 		assertEquals(s1.getName(), s2.getName());
 		
-		Annotations a2 = response.getAnnotations();
+		AnnotationsV2 a2 = response.getAnnotations();
 		assertNotNull(a2);
 		assertNotNull(a2.getEtag(), "Etag should have been generated, but was not");
-		assertEquals(a1.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		assertEquals(a1.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		
+		assertEquals(a1.getAnnotations(), a2.getAnnotations(), "Retrieved Annotations in bundle do not match original ones");
+
 		AccessControlList acl2 = response.getAccessControlList();
 		assertNotNull(acl2);
 		assertNotNull(acl2.getEtag(), "Etag should have been generated, but was not");
@@ -531,27 +532,26 @@ public class IT500SynapseJavaClient {
 	
 		// Update the bundle, verify contents
 		s2.setName("Dummy study 1 updated");
-		a2.addAnnotation("string2", "Another string");
+		AnnotationsV2TestUtils.putAnnotations(a2, "string2", "Another string", AnnotationsV2ValueType.STRING);
 		acl2.setModifiedBy("Update user");
 		
-		EntityBundleCreate ebc2 = new EntityBundleCreate();
+		EntityBundleV2Create ebc2 = new EntityBundleV2Create();
 		ebc2.setEntity(s2);
 		ebc2.setAnnotations(a2);
 		ebc2.setAccessControlList(acl2);
 				
-		EntityBundle response2 = synapseOne.updateEntityBundle(s2.getId(), ebc2);
+		EntityBundleV2 response2 = synapseOne.updateEntityBundleV2(s2.getId(), ebc2);
 		
 		Folder s3 = (Folder) response2.getEntity();
 		assertNotNull(s3);
 		assertNotEquals(s2.getEtag(), s3.getEtag(),"Etag should have been updated, but was not");
 		assertEquals(s2.getName(), s3.getName());
 		
-		Annotations a3 = response2.getAnnotations();
+		AnnotationsV2 a3 = response2.getAnnotations();
 		assertNotNull(a3);
 		assertNotEquals(a2.getEtag(), a3.getEtag(), "Etag should have been updated, but was not");
-		assertEquals(a2.getStringAnnotations(), a3.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		assertEquals(a2.getDoubleAnnotations(), a3.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
-		
+		assertEquals(a2.getAnnotations(), a3.getAnnotations(), "Retrieved Annotations in bundle do not match original ones");
+
 		AccessControlList acl3 = response2.getAccessControlList();
 		assertNotNull(acl3);
 		assertNotEquals(acl2.getEtag(), acl3.getEtag(), "Etag should have been updated, but was not");

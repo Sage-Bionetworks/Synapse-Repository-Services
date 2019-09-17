@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -19,6 +17,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -172,7 +171,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public AnnotationsV2 getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get the annotations of an entity for a given version.
@@ -184,7 +183,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public AnnotationsV2 getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * update a datasets annotations 
@@ -197,7 +196,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public void updateAnnotations(UserInfo userInfo, String entityId, AnnotationsV2 updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 	/**
 	 * Update a dataset.

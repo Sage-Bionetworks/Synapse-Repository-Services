@@ -36,7 +36,7 @@ public class UrlHelpers {
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
 	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
-	
+
 	/**
 	 * Used for batch requests
 	 */
@@ -49,10 +49,14 @@ public class UrlHelpers {
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
 	
 	public static final String BUNDLE				= "/bundle";
+
+	public static final String BUNDLE_V2			= "/bundle2";
 	
 	public static final String GENERATED_BY			= "/generatedBy";
 	
 	public static final String GENERATED			= "/generated";
+
+	public static final String CREATE				= "/create";
 
 	/**
 	 * All administration URLs must start with this URL or calls will be
@@ -102,6 +106,12 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String ANNOTATIONS = "/annotations";
+
+	/**
+	 * URL suffix for entity annotations
+	 *
+	 */
+	public static final String ANNOTATIONS_V2 = "/annotations2";
 
 	/**
 	 * URL suffix for locationable entity S3Token
@@ -199,6 +209,9 @@ public class UrlHelpers {
 	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
+	public static final String ENTITY_BUNDLE_V2 = ENTITY+BUNDLE_V2;
+	public static final String ENTITY_ID_BUNDLE_V2 = ENTITY_ID+BUNDLE_V2;
+	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE+CREATE+"2";
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 
@@ -288,6 +301,11 @@ public class UrlHelpers {
 	public static final String ENTITY_ANNOTATIONS 	= ENTITY_ID+ANNOTATIONS;
 
 	/**
+	 * All of the base URLs for Synapse objects's Annotations.
+	 */
+	public static final String ENTITY_ANNOTATIONS_V2 	= ENTITY_ID+ANNOTATIONS_V2;
+
+	/**
 	 * All of the base URLs for locationable entity s3Tokens
 	 */
 	public static final String ENTITY_S3TOKEN	= ENTITY_ID+S3TOKEN;
@@ -313,9 +331,19 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_ANNOTATIONS =		ENTITY_VERSION_NUMBER+ANNOTATIONS;
 
 	/**
+	 * Get the annotations of a specific version of an AnnotaitonV2
+	 */
+	public static final String ENTITY_VERSION_ANNOTATIONS_V2 =		ENTITY_VERSION_NUMBER+ANNOTATIONS_V2;
+
+	/**
 	 * Get the bundle for a specific version of an entity
 	 */
 	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
+
+	/**
+	 * Get the bundle for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_NUMBER_BUNDLE_V2 = ENTITY_VERSION_NUMBER+BUNDLE_V2;
 
 	/**
 	 * Get the generating activity for the current version of an entity

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -43,7 +44,7 @@ public interface SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Document formulateSearchDocument(Node node, Annotations annos,
+	public Document formulateSearchDocument(Node node, AnnotationsV2 annos,
 											AccessControlList acl, String wikiPagesText) throws DatastoreException, NotFoundException;
 	
 	/**

@@ -29,9 +29,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 
@@ -44,8 +46,7 @@ public class SearchDocumentDriverImplTest {
 
 	private SearchDocumentDriverImpl spySearchDocumentDriver;
 
-	@Mock
-	private Annotations mockAnnotations;
+	private AnnotationsV2 annotationsV2;
 
 	@Mock
 	private AccessControlList mockAcl;
@@ -69,6 +70,7 @@ public class SearchDocumentDriverImplTest {
 
 	@Before
 	public void setUp(){
+		annotationsV2 = new AnnotationsV2();
 
 		documentFields = new DocumentFields();
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());
@@ -91,45 +93,17 @@ public class SearchDocumentDriverImplTest {
 
 	}
 
-	@Test
-	public void getFirsAnnotationValues__skipByteArray(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
-		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(new byte[]{});
-
-		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(mockAnnotations);
-
-		verify(mockAnnotations, times(1)).keySet();
-		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
-		assertTrue(annoValuesMap.isEmpty());
-	}
-
 
 	@Test
 	public void getFirsAnnotationValues__multipleValues(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1, annoKey2));
-		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(annoValue1);
-		when(mockAnnotations.getSingleValue(annoKey2)).thenReturn(annoValue2);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey1, annoValue1, AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey2, annoValue2, AnnotationsV2ValueType.STRING);
 
-		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(mockAnnotations);
+		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(annotationsV2);
 
-		verify(mockAnnotations, times(1)).keySet();
-		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
-		verify(mockAnnotations, times(1)).getSingleValue(annoKey2);
 		assertEquals(2, annoValuesMap.size());
 		assertEquals(annoValue1, annoValuesMap.get(annoKey1.toLowerCase()));
 		assertEquals(annoValue2, annoValuesMap.get(annoKey2.toLowerCase()));
-	}
-
-	@Test
-	public void getFirsAnnotationValues__SkipNullValue(){
-		when(mockAnnotations.keySet()).thenReturn(Sets.newHashSet(annoKey1));
-		when(mockAnnotations.getSingleValue(annoKey1)).thenReturn(null);
-
-		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(mockAnnotations);
-
-		verify(mockAnnotations, times(1)).keySet();
-		verify(mockAnnotations, times(1)).getSingleValue(annoKey1);
-		assertTrue(annoValuesMap.isEmpty());
 	}
 
 	@Test
@@ -166,10 +140,10 @@ public class SearchDocumentDriverImplTest {
 
 	@Test
 	public void addAnnotationsToSearchDocument_AnnotationValueIsNull(){
-		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockAnnotations);
+		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(annotationsV2);
 		doReturn(null).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
 
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockAnnotations);
+		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, annotationsV2);
 
 		assertNull(documentFields.getOrgan());
 		assertNull(documentFields.getConsortium());
@@ -183,10 +157,10 @@ public class SearchDocumentDriverImplTest {
 
 	@Test
 	public void addAnnotationsToSearchDocument(){
-		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(mockAnnotations);
+		doReturn(annoValuesMap).when(spySearchDocumentDriver).getFirsAnnotationValues(annotationsV2);
 		doReturn(annoValue1).when(spySearchDocumentDriver).getSearchIndexFieldValue(eq(annoValuesMap), anyString());
 
-		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, mockAnnotations);
+		spySearchDocumentDriver.addAnnotationsToSearchDocument(documentFields, annotationsV2);
 
 		assertEquals(annoValue1, documentFields.getConsortium());
 		assertEquals(annoValue1, documentFields.getTissue());
@@ -205,7 +179,7 @@ public class SearchDocumentDriverImplTest {
 		String wikiPageText = null;
 
 		//method under test
-		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockAnnotations, mockAcl, wikiPageText);
+		Document result = spySearchDocumentDriver.formulateSearchDocument(node, annotationsV2, mockAcl, wikiPageText);
 
 		assertEquals("", result.getFields().getDescription());
 	}
@@ -215,7 +189,7 @@ public class SearchDocumentDriverImplTest {
 		doNothing().when(spySearchDocumentDriver).addAnnotationsToSearchDocument(any(), any());
 
 		//method under test
-		Document result = spySearchDocumentDriver.formulateSearchDocument(node, mockAnnotations, mockAcl, stringContainingControlCharacters);
+		Document result = spySearchDocumentDriver.formulateSearchDocument(node, annotationsV2, mockAcl, stringContainingControlCharacters);
 
 		assertEquals(sanitizedString, result.getFields().getDescription());
 	}

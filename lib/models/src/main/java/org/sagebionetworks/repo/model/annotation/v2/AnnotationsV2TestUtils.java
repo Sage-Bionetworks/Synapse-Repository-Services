@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,5 +58,16 @@ public class AnnotationsV2TestUtils {
 		v2Value.setType(type);
 		v2Value.setValue(value);
 		return v2Value;
+	}
+
+	public static AnnotationsV2 newEmptyAnnotationsV2(){
+		return newEmptyAnnotationsV2(null);
+	}
+
+	public static AnnotationsV2 newEmptyAnnotationsV2(String id){
+		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		annotationsV2.setId(id);
+		annotationsV2.setAnnotations(new HashMap<>());
+		return annotationsV2;
 	}
 }
