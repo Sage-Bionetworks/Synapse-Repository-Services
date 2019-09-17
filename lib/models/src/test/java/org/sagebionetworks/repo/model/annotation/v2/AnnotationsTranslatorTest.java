@@ -9,7 +9,7 @@ import java.util.Date;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class AnnotationsTranslatorTest {
+class AnnotationsV2TranslatorTest {
 
 	Annotations annotationsV2;
 	org.sagebionetworks.repo.model.Annotations annotationsV1;

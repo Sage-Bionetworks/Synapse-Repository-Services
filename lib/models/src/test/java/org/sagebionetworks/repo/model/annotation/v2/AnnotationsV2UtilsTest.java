@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-class AnnotationsUtilsTest {
+class AnnotationsV2UtilsTest {
 
 	private Annotations annotationsV2;
 	private AnnotationsValue annotationsV2Value;
