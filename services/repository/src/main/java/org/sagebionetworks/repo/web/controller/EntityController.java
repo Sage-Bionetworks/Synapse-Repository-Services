@@ -11,7 +11,6 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -31,7 +30,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
@@ -449,7 +448,7 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
 	@Deprecated
 	public @ResponseBody
-	Annotations getEntityAnnotations(
+	org.sagebionetworks.repo.model.Annotations getEntityAnnotations(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
@@ -494,10 +493,10 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
 	@Deprecated
 	public @ResponseBody
-	Annotations updateEntityAnnotations(
+	org.sagebionetworks.repo.model.Annotations updateEntityAnnotations(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Annotations updatedAnnotations,
+			@RequestBody org.sagebionetworks.repo.model.Annotations updatedAnnotations,
 			HttpServletRequest request) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
@@ -531,7 +530,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody
-	AnnotationsV2 getEntityAnnotationsV2(
+	Annotations getEntityAnnotationsV2(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
@@ -556,7 +555,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody
-	AnnotationsV2 getEntityAnnotationsV2ForVersion(
+	Annotations getEntityAnnotationsV2ForVersion(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long versionNumber)
@@ -599,10 +598,10 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.PUT)
 	public @ResponseBody
-	AnnotationsV2 updateEntityAnnotationsV2(
+	Annotations updateEntityAnnotationsV2(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AnnotationsV2 updatedAnnotations,
+			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
@@ -1198,7 +1197,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS }, method = RequestMethod.GET)
 	public @ResponseBody
-	Annotations getEntityAnnotationsForVersion(
+	org.sagebionetworks.repo.model.Annotations getEntityAnnotationsForVersion(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long versionNumber)

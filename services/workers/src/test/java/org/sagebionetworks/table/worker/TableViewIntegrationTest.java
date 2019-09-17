@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -45,10 +44,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -507,7 +506,7 @@ public class TableViewIntegrationTest {
 		assertNull(eur.getFailureMessage());
 		
 		// is the annotation changed?
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
 		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
@@ -558,7 +557,7 @@ public class TableViewIntegrationTest {
 		assertNull(eur.getFailureMessage());
 		
 		// is the annotation changed?
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
 		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
@@ -619,8 +618,8 @@ public class TableViewIntegrationTest {
 
 		// Add an annotation with the same name and a value larger than the size
 		// of the column.
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "too big", AnnotationsV2ValueType.STRING);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "too big", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		waitForEntityReplication(fileViewId, fileId);
 
@@ -658,8 +657,8 @@ public class TableViewIntegrationTest {
 				scope, fileViewId);
 
 		// Add an annotation with a duplicate name as a primary annotation.
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "this is a duplicate value", AnnotationsV2ValueType.STRING);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "this is a duplicate value", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// For PLFM-4371 the replication was failing due to the duplicate name
 		waitForEntityReplication(fileViewId, fileId);
@@ -848,19 +847,19 @@ public class TableViewIntegrationTest {
 		// Add 'boolean' annotations to each file
 		// one
 		String fileId = fileIds.get(0);
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsV2ValueType.STRING);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(),"", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(),"", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 
 		// Create the view
@@ -889,20 +888,20 @@ public class TableViewIntegrationTest {
 	public void testPLFM_4521FloatToString() throws Exception{
 		// one
 		String fileId = fileIds.get(0);
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.3", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.3", AnnotationsValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not a double", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not a double", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 
 		// Create the view
@@ -931,21 +930,21 @@ public class TableViewIntegrationTest {
 		// Add 'boolean' annotations to each file
 		// one
 		String fileId = fileIds.get(0);
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "syn123", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "syn123", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// a long can be used as an entity ID.
-		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "456", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "456", AnnotationsValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 
 		// Create the view
@@ -976,18 +975,18 @@ public class TableViewIntegrationTest {
 		// Add various types of annotations with the same name to the files in the view.
 		// one
 		String fileId = fileIds.get(0);
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.23", AnnotationsV2ValueType.DOUBLE);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.23", AnnotationsValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "456", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "456", AnnotationsValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "789", AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "789", AnnotationsValueType.TIMESTAMP_MS);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 
 		// Create the view
@@ -1021,8 +1020,8 @@ public class TableViewIntegrationTest {
 	public void testUpdateViewWithRowsetAndEtag() throws Exception{
 		// one
 		String fileId = fileIds.get(0);
-		AnnotationsV2 annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsV2ValueType.STRING);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		
 		// the view does not have an etag column

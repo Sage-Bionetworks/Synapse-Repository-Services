@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.Challenge;
@@ -99,7 +98,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -1209,9 +1208,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public AnnotationsV2 getAnnotationsV2(String entityId) throws SynapseException {
+	public Annotations getAnnotationsV2(String entityId) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2;
-		return getJSONEntity(getRepoEndpoint(), url, AnnotationsV2.class);
+		return getJSONEntity(getRepoEndpoint(), url, Annotations.class);
 	}
 
 	/**
@@ -1222,10 +1221,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@Override
-	public AnnotationsV2 updateAnnotationsV2(String entityId, AnnotationsV2 updated)
+	public Annotations updateAnnotationsV2(String entityId, Annotations updated)
 			throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + entityId + ANNOTATIONS_V2;
-		return putJSONEntity(getRepoEndpoint(), url, updated, AnnotationsV2.class);
+		return putJSONEntity(getRepoEndpoint(), url, updated, Annotations.class);
 	}
 
 

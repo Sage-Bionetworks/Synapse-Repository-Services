@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -235,7 +235,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		// Create the Annotations
 		if (ebc.getAnnotations() != null) {
 			fetchRequest.setIncludeAnnotations(true);
-			AnnotationsV2 annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
+			Annotations annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
 			annos.getAnnotations().putAll(ebc.getAnnotations().getAnnotations());
 			serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
@@ -254,7 +254,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 		Entity entity = ebc.getEntity();
 		AccessControlList acl = ebc.getAccessControlList();
-		AnnotationsV2 annos = ebc.getAnnotations();
+		Annotations annos = ebc.getAnnotations();
 
 		EntityBundleV2Request fetchRequest = new EntityBundleV2Request();
 
@@ -282,7 +282,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityId.equals(ebc.getAnnotations().getId()))
 				throw new IllegalArgumentException("Annotations do not match requested entity ID");
 			fetchRequest.setIncludeAnnotations(true);
-			AnnotationsV2 toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
+			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
 			toUpdate.getAnnotations().putAll(annos.getAnnotations());
 			serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}

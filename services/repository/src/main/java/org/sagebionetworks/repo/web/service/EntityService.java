@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -250,7 +250,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public AnnotationsV2 getEntityAnnotations(Long userId, String id) throws NotFoundException,
+	public Annotations getEntityAnnotations(Long userId, String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	/**
@@ -264,7 +264,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public AnnotationsV2 getEntityAnnotationsForVersion(Long userId, String id,
+	public Annotations getEntityAnnotationsForVersion(Long userId, String id,
 													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -278,11 +278,11 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public AnnotationsV2 getEntityAnnotations(UserInfo info, String id) throws NotFoundException,
+	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
-	public AnnotationsV2 updateEntityAnnotations(Long userId, String entityId,
-											   AnnotationsV2 updatedAnnotations)
+	public Annotations updateEntityAnnotations(Long userId, String entityId,
+											   Annotations updatedAnnotations)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
 

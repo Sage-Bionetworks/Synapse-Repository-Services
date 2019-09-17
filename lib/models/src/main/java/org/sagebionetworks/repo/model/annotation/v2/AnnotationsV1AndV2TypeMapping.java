@@ -9,25 +9,25 @@ import org.sagebionetworks.util.doubles.DoubleUtils;
 
 enum AnnotationsV1AndV2TypeMapping {
 
-	STRING(String.class, AnnotationsV2ValueType.STRING, Function.identity(), Function.identity(), Annotations::getStringAnnotations),
+	STRING(String.class, AnnotationsValueType.STRING, Function.identity(), Function.identity(), Annotations::getStringAnnotations),
 
 	//DoubleUtils.fromString handles other representations of Infinity and Nan, unlike Java's built in Double.valueOf
-	DOUBLE(Double.class, AnnotationsV2ValueType.DOUBLE, Object::toString, DoubleUtils::fromString, Annotations::getDoubleAnnotations),
-	LONG(Long.class, AnnotationsV2ValueType.LONG, Object::toString, Long::valueOf, Annotations::getLongAnnotations),
-	DATE(Date.class, AnnotationsV2ValueType.TIMESTAMP_MS,
+	DOUBLE(Double.class, AnnotationsValueType.DOUBLE, Object::toString, DoubleUtils::fromString, Annotations::getDoubleAnnotations),
+	LONG(Long.class, AnnotationsValueType.LONG, Object::toString, Long::valueOf, Annotations::getLongAnnotations),
+	DATE(Date.class, AnnotationsValueType.TIMESTAMP_MS,
 			(Date date) -> Long.toString(date.getTime()),
 			(String timestampMillis) -> new Date(Long.parseLong(timestampMillis)),
 			Annotations::getDateAnnotations);
 
 	private final Class<?> javaClass;
-	private final AnnotationsV2ValueType valueType;
+	private final AnnotationsValueType valueType;
 	private final Function<?, String> toAnnotationV2Function;
 	private final Function<String, ?> toAnnotationV1Function;
 	private final Function<Annotations, Map> annotationV1MapGetter;
 
 
 	<T> AnnotationsV1AndV2TypeMapping(Class<T> javaClass,
-									  AnnotationsV2ValueType valueType,
+									  AnnotationsValueType valueType,
 									  Function<T, String> toAnnotationV2Function,
 									  Function<String, T> toAnnotationV1Function,
 									  Function<Annotations, Map> annotationV1MapGetter) {
@@ -50,7 +50,7 @@ enum AnnotationsV1AndV2TypeMapping {
 		return annotationV1MapGetter;
 	}
 
-	public AnnotationsV2ValueType getValueType(){
+	public AnnotationsValueType getValueType(){
 		return valueType;
 	}
 
@@ -63,7 +63,7 @@ enum AnnotationsV1AndV2TypeMapping {
 		throw new IllegalArgumentException("No mapping for " + clazz + " to a AnnotationV1AndV2TypeMapping");
 	}
 
-	public static AnnotationsV1AndV2TypeMapping forValueType(AnnotationsV2ValueType valueType){
+	public static AnnotationsV1AndV2TypeMapping forValueType(AnnotationsValueType valueType){
 		for(AnnotationsV1AndV2TypeMapping annotationsV1AndV2TypeMapping : values()){
 			if(annotationsV1AndV2TypeMapping.valueType == valueType){
 				return annotationsV1AndV2TypeMapping;

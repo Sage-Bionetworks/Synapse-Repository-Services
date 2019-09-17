@@ -36,13 +36,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -97,8 +96,8 @@ public class TableViewManagerImplTest {
 	ColumnModel dateColumn;
 	SparseRowDto row;
 	
-	Annotations annotations;
-	AnnotationsV2 annotationsV2;
+	org.sagebionetworks.repo.model.Annotations annotations;
+	Annotations annotationsV2;
 
 	@Before
 	public void before(){
@@ -389,7 +388,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValues(){
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		values.put(EntityField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "aString");
@@ -397,21 +396,21 @@ public class TableViewManagerImplTest {
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		assertTrue(updated);
-		AnnotationsV2Value anno1Value = annos.getAnnotations().get(anno1.getName());
+		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
 		assertEquals("aString",AnnotationsV2Utils.getSingleValue(anno1Value));
-		assertEquals(AnnotationsV2ValueType.STRING, anno1Value.getType());
-		AnnotationsV2Value anno2Value = annos.getAnnotations().get(anno2.getName());
+		assertEquals(AnnotationsValueType.STRING, anno1Value.getType());
+		AnnotationsValue anno2Value = annos.getAnnotations().get(anno2.getName());
 		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
-		assertEquals(AnnotationsV2ValueType.LONG, anno2Value.getType());
+		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 		// etag should not be included.
 		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesSameNameDifferntType(){
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "456", AnnotationsV2ValueType.LONG);
-		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsV2ValueType.STRING);
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "456", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, anno2.getName(), "not a long", AnnotationsValueType.STRING);
 		// update the values.
 		Map<String, String> values = new HashMap<>();
 		values.put(EntityField.etag.name(), "anEtag");
@@ -422,12 +421,12 @@ public class TableViewManagerImplTest {
 		// the resulting annotations must be valid.
 		AnnotationsV2Utils.validateAnnotations(annos);
 		assertTrue(updated);
-		AnnotationsV2Value anno1Value = annos.getAnnotations().get(anno1.getName());
+		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
 		assertEquals("aString",AnnotationsV2Utils.getSingleValue(anno1Value));
-		assertEquals(AnnotationsV2ValueType.STRING, anno1Value.getType());
-		AnnotationsV2Value anno2Value = annos.getAnnotations().get(anno2.getName());
+		assertEquals(AnnotationsValueType.STRING, anno1Value.getType());
+		AnnotationsValue anno2Value = annos.getAnnotations().get(anno2.getName());
 		assertEquals("123",AnnotationsV2Utils.getSingleValue(anno2Value));
-		assertEquals(AnnotationsV2ValueType.LONG, anno2Value.getType());
+		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 
 		// etag should not be included.
 		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
@@ -441,7 +440,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateAnnotationsDate() throws IOException, JSONObjectAdapterException {
 		String date = "1509744902000";
 		viewSchema = Lists.newArrayList(dateColumn);
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		// update the values.
 		Map<String, String> values = new HashMap<>();
 		values.put(dateColumn.getId(), date);
@@ -455,16 +454,16 @@ public class TableViewManagerImplTest {
 		 * Note: With PLFM-4706 this is where the date gets 
 		 * converted to the same day at time 0.
 		 */
-		AnnotationsV2 annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), AnnotationsV2.class);
+		Annotations annotationCopy = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(annos), Annotations.class);
 
-		AnnotationsV2Value annotationV2Value = annotationCopy.getAnnotations().get(dateColumn.getName());
+		AnnotationsValue annotationV2Value = annotationCopy.getAnnotations().get(dateColumn.getName());
 		assertEquals(date, AnnotationsV2Utils.getSingleValue(annotationV2Value));
-		assertEquals(AnnotationsV2ValueType.TIMESTAMP_MS, annotationV2Value.getType());
+		assertEquals(AnnotationsValueType.TIMESTAMP_MS, annotationV2Value.getType());
 	}
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyScheam(){
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, new LinkedList<ColumnModel>(), values);
@@ -473,7 +472,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesEmptyValues(){
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		Map<String, String> values = new HashMap<>();
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
@@ -482,9 +481,9 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateAnnotationsFromValuesDelete(){
-		AnnotationsV2 annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		// start with an annotation.
-		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "startValue", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, anno1.getName(), "startValue", AnnotationsValueType.STRING);
 		Map<String, String> values = new HashMap<>();
 		values.put(anno1.getId(), null);
 		// call under test
@@ -515,7 +514,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
-		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(AnnotationsV2.class));
+		verify(mockNodeManager).updateUserAnnotations(eq(userInfo), eq("syn111"), any(Annotations.class));
 		verify(mockReplicationManager).replicate("syn111");
 	}
 	
@@ -539,7 +538,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	
@@ -549,7 +548,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	
@@ -560,7 +559,7 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
-		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(AnnotationsV2.class));
+		verify(mockNodeManager, never()).updateUserAnnotations(any(UserInfo.class), anyString(), any(Annotations.class));
 		verify(mockReplicationManager, never()).replicate(anyString());
 	}
 	

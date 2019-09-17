@@ -26,9 +26,9 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
@@ -112,10 +112,10 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(s2.getId());
 
 		// Get/add/update annotations for this entity
-		AnnotationsV2 a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
-		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);
-		AnnotationsV2 a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
+		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
 		EntityBundleV2Request request = new EntityBundleV2Request();
@@ -134,7 +134,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
-		AnnotationsV2 a3 = eb.getAnnotations();
+		Annotations a3 = eb.getAnnotations();
 		assertFalse("Etag should have been updated, but was not", a3.getEtag().equals(a.getEtag()));
 		assertEquals("Retrieved Annotations in bundle do not match original ones", a2, a3);
 
@@ -192,9 +192,9 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		toDelete.add(id);
 
 		// Get/add/update annotations for this entity
-		AnnotationsV2 a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
-		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
 		entityServletHelper.updateAnnotationsV2(a, adminUserId);
 
 		// Get the bundle, verify contents
@@ -207,7 +207,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 
-		AnnotationsV2 a3 = eb.getAnnotations();
+		Annotations a3 = eb.getAnnotations();
 		assertNull("Annotations were not requested, but were returned in bundle", a3);
 
 		UserEntityPermissions uep = eb.getPermissions();

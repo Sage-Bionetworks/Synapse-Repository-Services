@@ -36,7 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -57,7 +56,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -104,8 +103,8 @@ public class EntityBundleServiceImplTest {
 	private Folder study;
 	private Folder studyWithId;
 	private FileEntity file;
-	private Annotations annos;
-	private AnnotationsV2 annotationsV2;
+	private org.sagebionetworks.repo.model.Annotations annos;
+	private Annotations annotationsV2;
 	private AccessControlList acl;
 	private EntityThreadCounts threadCounts;
 
@@ -150,7 +149,7 @@ public class EntityBundleServiceImplTest {
 		file.setId(FILE_ID);
 
 		// Annotations
-		annos = new Annotations();
+		annos = new org.sagebionetworks.repo.model.Annotations();
 		annos.setId(STUDY_ID);
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
@@ -198,7 +197,7 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		
-		Annotations a2 = eb.getAnnotations();
+		org.sagebionetworks.repo.model.Annotations a2 = eb.getAnnotations();
 		assertNotNull(a2);
 		assertEquals(annos.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
 		assertEquals(annos.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
@@ -214,7 +213,7 @@ public class EntityBundleServiceImplTest {
 	
 	@Test
 	public void testUpdateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
-		AnnotationsV2 annosWithId = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Annotations annosWithId = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
 		annosWithId.setId(STUDY_ID);
 		String activityId = "1";
 			
@@ -241,7 +240,7 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
 		
-		Annotations a2 = eb.getAnnotations();
+		org.sagebionetworks.repo.model.Annotations a2 = eb.getAnnotations();
 		assertNotNull(a2);
 		assertEquals(annos.getStringAnnotations(), a2.getStringAnnotations(), "Retrieved Annotations in bundle do not match original ones");
 		assertEquals(annos.getDoubleAnnotations(), a2.getDoubleAnnotations(), "Retrieved Annotations in bundle do not match original ones");
@@ -557,7 +556,7 @@ public class EntityBundleServiceImplTest {
 	@Test
 	public void testTranslateEntityBundleCreate(){
 		EntityBundleCreate entityBundleCreate = new EntityBundleCreate();
-		entityBundleCreate.setAnnotations(new Annotations());
+		entityBundleCreate.setAnnotations(new org.sagebionetworks.repo.model.Annotations());
 		entityBundleCreate.setAccessControlList(new AccessControlList());
 		entityBundleCreate.setEntity(new FileEntity());
 

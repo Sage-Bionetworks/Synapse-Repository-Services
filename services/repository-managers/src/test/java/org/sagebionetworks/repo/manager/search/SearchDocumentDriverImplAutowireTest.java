@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -39,9 +38,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
@@ -187,16 +186,16 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		AnnotationsV2 additionalAnnos = new AnnotationsV2();
+		Annotations additionalAnnos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "stringKey",
-						"a multi-word annotation gets underscores so we can exact-match find it", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "longKey", "10", AnnotationsV2ValueType.LONG);
-		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "tissue", "ear lobe", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "consortium", "C O N S O R T I U M", AnnotationsV2ValueType.STRING);
+						"a multi-word annotation gets underscores so we can exact-match find it", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "longKey", "10", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "tissue", "ear lobe", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "consortium", "C O N S O R T I U M", AnnotationsValueType.STRING);
 		// PLFM-4438
-		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "diagnosis", "1", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "diagnosis", "1", AnnotationsValueType.LONG);
 		String dateValue = Long.toString(System.currentTimeMillis());
-		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "dateKey", dateValue, AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "dateKey", dateValue, AnnotationsValueType.TIMESTAMP_MS);
 		
 		String wikiPageText = "title\nmarkdown";
 

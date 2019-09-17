@@ -15,7 +15,7 @@
 				"type": "string"
 			},
 			"value": {
-				"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Value"
+				"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue"
 			},
 			"description": "Additional metadata associated with the Entity. The key is the name of your desired annotations. The value is an object containing a list of string values (use empty list to represent no values for key) and the value type associated with all values in the list"
 		}

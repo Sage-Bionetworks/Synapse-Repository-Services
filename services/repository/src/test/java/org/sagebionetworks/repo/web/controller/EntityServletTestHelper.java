@@ -15,7 +15,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -28,7 +27,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.VersionableEntity;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -204,7 +203,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public Annotations getEntityAnnotations(String id, Long userId)
+	public org.sagebionetworks.repo.model.Annotations getEntityAnnotations(String id, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
@@ -214,13 +213,13 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), Annotations.class);
+				response.getContentAsString(), org.sagebionetworks.repo.model.Annotations.class);
 	}
 
 	/**
 	 * Update the annotations of an entity
 	 */
-	public Annotations updateAnnotations(Annotations annos, Long userId)
+	public org.sagebionetworks.repo.model.Annotations updateAnnotations(org.sagebionetworks.repo.model.Annotations annos, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
@@ -230,7 +229,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), Annotations.class);
+				response.getContentAsString(), org.sagebionetworks.repo.model.Annotations.class);
 	}
 
 	/**
@@ -252,7 +251,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public AnnotationsV2 getEntityAnnotationsV2(String id, Long userId)
+	public Annotations getEntityAnnotationsV2(String id, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
@@ -262,13 +261,13 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), AnnotationsV2.class);
+				response.getContentAsString(), Annotations.class);
 	}
 
 	/**
 	 * Update the annotations of an entity
 	 */
-	public AnnotationsV2 updateAnnotationsV2(AnnotationsV2 annos, Long userId)
+	public Annotations updateAnnotationsV2(Annotations annos, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
@@ -278,7 +277,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), AnnotationsV2.class);
+				response.getContentAsString(), Annotations.class);
 	}
 
 	/**

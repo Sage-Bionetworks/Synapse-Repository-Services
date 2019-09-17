@@ -8,12 +8,11 @@ import java.util.Date;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.Annotations;
 
-class AnnotationsV2TranslatorTest {
+class AnnotationsTranslatorTest {
 
-	AnnotationsV2 annotationsV2;
-	Annotations annotationsV1;
+	Annotations annotationsV2;
+	org.sagebionetworks.repo.model.Annotations annotationsV1;
 
 	final String stringKey1 = "stringKey1";
 	final String stringKey2 = "stringKey2";
@@ -28,7 +27,7 @@ class AnnotationsV2TranslatorTest {
 	void setUp() {
 
 		//create an annotations v1 and v2 that are equivalent with all value types
-		annotationsV1 = new Annotations();
+		annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		annotationsV1.addAnnotation(stringKey1, Arrays.asList("val1", "val2"));
 		annotationsV1.addAnnotation(stringKey2, Arrays.asList("val3", "val4"));
 
@@ -43,25 +42,25 @@ class AnnotationsV2TranslatorTest {
 
 
 
-		annotationsV2 = new AnnotationsV2();
+		annotationsV2 = new Annotations();
 
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("val1", "val2"), AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey2, Arrays.asList("val3", "val4"), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey2, Arrays.asList("val3", "val4"), AnnotationsValueType.STRING);
 
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey1, Arrays.asList("1.2", "2.3"), AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey2, Arrays.asList("3.4", "4.5"), AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey1, Arrays.asList("1.2", "2.3"), AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, doubleKey2, Arrays.asList("3.4", "4.5"), AnnotationsValueType.DOUBLE);
 
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.TIMESTAMP_MS);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey1, Arrays.asList("123", "456"), AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, dateKey2, Arrays.asList("789", "890"), AnnotationsValueType.TIMESTAMP_MS);
 
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey1, Arrays.asList("123", "456"), AnnotationsV2ValueType.LONG);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey2, Arrays.asList("789", "890"), AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey1, Arrays.asList("123", "456"), AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, longKey2, Arrays.asList("789", "890"), AnnotationsValueType.LONG);
 	}
 
 	@Test
 	public void testToAnnotationsV1(){
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		assertEquals(annotationsV1, translated);
 	}
@@ -76,22 +75,22 @@ class AnnotationsV2TranslatorTest {
 		annotationsV2.setAnnotations(null);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
-		annotationsV1 = new Annotations();
+		annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		assertEquals(annotationsV1, translated);
 	}
 
 	@Test
 	public void testToAnnotationsV1_EmptyListValues(){
 		//replace stringKey1 's value with an empty list
-		AnnotationsV2Value emptyValue = new AnnotationsV2Value();
-		emptyValue.setType(AnnotationsV2ValueType.STRING);
+		AnnotationsValue emptyValue = new AnnotationsValue();
+		emptyValue.setType(AnnotationsValueType.STRING);
 		emptyValue.setValue(Collections.emptyList());
 		annotationsV2.getAnnotations().put(stringKey1, emptyValue);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should have an empty list
 		annotationsV1.getStringAnnotations().put(stringKey1, Collections.emptyList());
@@ -101,13 +100,13 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV1_ListWithNullValues(){
 		//replace stringKey1 's value with an empty list
-		AnnotationsV2Value emptyValue = new AnnotationsV2Value();
-		emptyValue.setType(AnnotationsV2ValueType.STRING);
+		AnnotationsValue emptyValue = new AnnotationsValue();
+		emptyValue.setType(AnnotationsValueType.STRING);
 		emptyValue.setValue(Arrays.asList("a", null, null, "b", null));
 		annotationsV2.getAnnotations().put(stringKey1, emptyValue);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should have an empty list
 		annotationsV1.getStringAnnotations().put(stringKey1, Arrays.asList("a", "b"));
@@ -119,14 +118,14 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV1_doubleNaN(){
 		String nanKey = "nanKey";
-		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsV2ValueType.DOUBLE);
+		annotationsV2 = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, nanKey, Arrays.asList("NaN","nan", "NAN", "nAn"), AnnotationsValueType.DOUBLE);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should not have stringkey1 value;
-		annotationsV1 = new Annotations();
+		annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		annotationsV1.addAnnotation(nanKey, Arrays.asList(Double.NaN, Double.NaN, Double.NaN, Double.NaN));
 
 		assertEquals(annotationsV1, translated);
@@ -135,14 +134,14 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV1_doublePositiveInf(){
 		String posInfKey = "posInf";
-		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, posInfKey, Arrays.asList("infinity","inf", "iNfiNity", "iNF", "+infinity", "+inf", "+iNfiNity", "+iNF"), AnnotationsV2ValueType.DOUBLE);
+		annotationsV2 = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, posInfKey, Arrays.asList("infinity","inf", "iNfiNity", "iNF", "+infinity", "+inf", "+iNfiNity", "+iNF"), AnnotationsValueType.DOUBLE);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should not have stringkey1 value;
-		annotationsV1 = new Annotations();
+		annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		Double[] posInfinities = new Double[8];
 		Arrays.fill(posInfinities, Double.POSITIVE_INFINITY);
 		annotationsV1.addAnnotation(posInfKey, Arrays.asList(posInfinities));
@@ -153,14 +152,14 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV1_doubleNegativeInf(){
 		String negInfKey = "negInf";
-		annotationsV2 = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, negInfKey, Arrays.asList("-infinity", "-inf", "-iNfiNity", "-iNF"), AnnotationsV2ValueType.DOUBLE);
+		annotationsV2 = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, negInfKey, Arrays.asList("-infinity", "-inf", "-iNfiNity", "-iNF"), AnnotationsValueType.DOUBLE);
 
 		//method under test
-		Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
+		org.sagebionetworks.repo.model.Annotations translated = AnnotationsV2Translator.toAnnotationsV1(annotationsV2);
 
 		//expected value should not have stringkey1 value;
-		annotationsV1 = new Annotations();
+		annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		Double[] negInfinities = new Double[4];
 		Arrays.fill(negInfinities, Double.NEGATIVE_INFINITY);
 		annotationsV1.addAnnotation(negInfKey, Arrays.asList(negInfinities));
@@ -171,7 +170,7 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV2(){
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		assertEquals(annotationsV2, translated);
 	}
@@ -179,7 +178,7 @@ class AnnotationsV2TranslatorTest {
 	@Test
 	public void testToAnnotationsV2_null(){
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(null);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(null);
 
 		assertEquals(null, translated);
 	}
@@ -189,10 +188,10 @@ class AnnotationsV2TranslatorTest {
 		//set list for stringkey1 to empty
 		annotationsV1.getStringAnnotations().put(stringKey1, Collections.emptyList());
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		//annotationsV2 should have an empty list mapping
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsValueType.STRING);
 		assertEquals(annotationsV2, translated);
 	}
 
@@ -201,10 +200,10 @@ class AnnotationsV2TranslatorTest {
 		//set list for stringkey1 to empty
 		annotationsV1.getStringAnnotations().put(stringKey1, null);
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		//annotationsV2 should have an empty list mapping
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Collections.emptyList(), AnnotationsValueType.STRING);
 		assertEquals(annotationsV2, translated);
 	}
 
@@ -213,10 +212,10 @@ class AnnotationsV2TranslatorTest {
 		//set list for stringkey1 to empty
 		annotationsV1.getStringAnnotations().put(stringKey1, Arrays.asList(null, null, null, "value", null, "val2"));
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		//annotationsV2 nulls should have been filtered out
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("value", "val2"), AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, stringKey1, Arrays.asList("value", "val2"), AnnotationsValueType.STRING);
 		assertEquals(annotationsV2, translated);
 	}
 
@@ -225,7 +224,7 @@ class AnnotationsV2TranslatorTest {
 		//set list for stringkey1 to empty
 		annotationsV1.setStringAnnotations(Collections.emptyMap());
 		//method under test
-		AnnotationsV2 translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+		Annotations translated = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 		//should stringKey and stringKey2 should no longer exist because the string annotations were empty
 		annotationsV2.getAnnotations().remove(stringKey1);
