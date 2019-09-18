@@ -86,7 +86,7 @@ public class PBKDF2Utils {
 	public static String generateClientSecret() {
 		byte[] randomBytes = new byte[32];
 		RANDOM.nextBytes(randomBytes);
-		return Base64.encodeBase64String(randomBytes);
+		return Base64.encodeBase64URLSafeString(randomBytes);
 	}
 
 
