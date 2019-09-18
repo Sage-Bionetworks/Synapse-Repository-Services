@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.statistics;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_MONTH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY_STATUS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -21,34 +22,32 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDAO {
 
-	private static final String PARAM_LAST_UPDATED_ON = "lastUpdatedOn";
 	private static final String PARAM_OBJECT_TYPE = "objectType";
 	private static final String PARAM_MONTH = "month";
-	private static final String PARAM_STATUS = "status";
-	private static final String PARAM_FROM = "from";
-	private static final String PARAM_TO = "to";
 
 	private static final String SQL_DELETE_ALL = "DELETE FROM " + TABLE_STATISTICS_MONTHLY_STATUS;
 
-	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " + TABLE_STATISTICS_MONTHLY_STATUS + " WHERE "
-			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + " = :" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS_STATUS
-			+ " =:" + PARAM_STATUS + " AND " + COL_STATISTICS_MONTHLY_STATUS_MONTH + " BETWEEN :" + PARAM_FROM + " AND :" + PARAM_TO
-			+ " ORDER BY " + COL_STATISTICS_MONTHLY_STATUS_MONTH;
+	private static final String SQL_SELECT_IN_RANGE = "SELECT * FROM " 
+			+ TABLE_STATISTICS_MONTHLY_STATUS + " WHERE "
+			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + " = ? AND " 
+			+ COL_STATISTICS_MONTHLY_STATUS_STATUS + " = ? AND " 
+			+ COL_STATISTICS_MONTHLY_STATUS_MONTH + " BETWEEN ? AND ? "
+			+ "ORDER BY " + COL_STATISTICS_MONTHLY_STATUS_MONTH;
 
-	private static final String SQL_TOUCH = "UPDATE " + TABLE_STATISTICS_MONTHLY_STATUS + " SET "
-			+ COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON + "=:" + PARAM_LAST_UPDATED_ON + " WHERE "
-			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + "=:" + PARAM_OBJECT_TYPE + " AND " + COL_STATISTICS_MONTHLY_STATUS_MONTH + "=:"
-			+ PARAM_MONTH;
+	private static final String SQL_TOUCH = "UPDATE " 
+			+ TABLE_STATISTICS_MONTHLY_STATUS + " SET "
+			+ COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON + " = ? WHERE "
+			+ COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE + " = ? AND " 
+			+ COL_STATISTICS_MONTHLY_STATUS_MONTH + " = ?";
 
 	private static final RowMapper<DBOStatisticsMonthlyStatus> DBO_MAPPER = new DBOStatisticsMonthlyStatus().getTableMapping();
 
@@ -60,10 +59,10 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	};
 
 	private DBOBasicDao basicDao;
-	private NamedParameterJdbcTemplate jdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	public StatisticsMonthlyStatusDAOImpl(DBOBasicDao basicDao, NamedParameterJdbcTemplate jdbcTemplate) {
+	public StatisticsMonthlyStatusDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
 	}
@@ -90,9 +89,10 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 	@Override
 	@WriteTransaction
 	public boolean touch(StatisticsObjectType objectType, YearMonth month) {
-		MapSqlParameterSource params = getPrimaryKeyParams(objectType, month);
-		params.addValue(PARAM_LAST_UPDATED_ON, System.currentTimeMillis());
-		return jdbcTemplate.update(SQL_TOUCH, params) > 0;
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(month, "month");
+		LocalDate monthDate = StatisticsMonthlyUtils.toDate(month);
+		return jdbcTemplate.update(SQL_TOUCH, System.currentTimeMillis(), objectType.toString(), monthDate) > 0;
 	}
 
 	@Override
@@ -112,20 +112,16 @@ public class StatisticsMonthlyStatusDAOImpl implements StatisticsMonthlyStatusDA
 		ValidateArgument.required(to, "to");
 		ValidateArgument.requirement(from.isBefore(to), "The start of the range should be before the end");
 
-		MapSqlParameterSource params = new MapSqlParameterSource();
+		LocalDate fromDate = StatisticsMonthlyUtils.toDate(from);
+		LocalDate toDate = StatisticsMonthlyUtils.toDate(to);
 
-		params.addValue(PARAM_OBJECT_TYPE, objectType.toString());
-		params.addValue(PARAM_STATUS, StatisticsStatus.AVAILABLE.toString());
-		params.addValue(PARAM_FROM, StatisticsMonthlyUtils.toDate(from));
-		params.addValue(PARAM_TO, StatisticsMonthlyUtils.toDate(to));
-
-		return jdbcTemplate.query(SQL_SELECT_IN_RANGE, params, ROW_MAPPER);
+		return jdbcTemplate.query(SQL_SELECT_IN_RANGE, ROW_MAPPER, objectType.toString(), StatisticsStatus.AVAILABLE.toString(), fromDate, toDate);
 	}
 
 	@Override
 	@WriteTransaction
 	public void clear() {
-		jdbcTemplate.update(SQL_DELETE_ALL, EmptySqlParameterSource.INSTANCE);
+		jdbcTemplate.update(SQL_DELETE_ALL);
 	}
 
 	private Optional<StatisticsMonthlyStatus> getStatus(StatisticsObjectType objectType, YearMonth month, boolean forUpdate) {

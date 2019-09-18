@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 
 @Service
 public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector, StatisticsEventsQueue {
-	
+
 	@FunctionalInterface
 	private static interface Action {
 		void proceed();
@@ -37,11 +37,10 @@ public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector,
 
 	@Autowired
 	public StatisticsEventsCollectorImpl(AwsKinesisFirehoseLogger firehoseLogger,
-			StatisticsLogRecordProviderFactory logRecordProviderFactory,
-			TransactionSynchronizationProxy transationSynchronization) {
+			StatisticsLogRecordProviderFactory logRecordProviderFactory, TransactionSynchronizationProxy transactionSynchronization) {
 		this.firehoseLogger = firehoseLogger;
 		this.logRecordProviderFactory = logRecordProviderFactory;
-		this.transactionSynchronization = transationSynchronization;
+		this.transactionSynchronization = transactionSynchronization;
 	}
 
 	@Override
@@ -90,7 +89,7 @@ public class StatisticsEventsCollectorImpl implements StatisticsEventsCollector,
 	}
 
 	private <E extends StatisticsEvent> void log(List<E> events) {
-		
+
 		Map<String, List<StatisticsEventLogRecord>> recordsMap = getRecordsMap(events);
 
 		recordsMap.forEach((streamName, records) -> {

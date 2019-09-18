@@ -28,7 +28,6 @@ import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecord;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsFileEventLogRecord;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsFileEventLogRecordProvider;
 import org.sagebionetworks.repo.manager.statistics.records.StatisticsLogRecordProviderFactory;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
@@ -52,12 +51,7 @@ import com.google.common.collect.ImmutableList;
 public class StatisticsEventsCollectorAutowireTest {
 
 	public static final long TEST_FILE_SIZE = 1234567l;
-	
-	private static final String STREAM_UPLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(FileEvent.FILE_UPLOAD);
-
-	private static final String STREAM_DOWNLOAD = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS.get(FileEvent.FILE_DOWNLOAD);
-
-	
+		
 	@Autowired
 	private StatisticsLogRecordProviderFactory logRecordProviderFactory;
 
@@ -130,8 +124,9 @@ public class StatisticsEventsCollectorAutowireTest {
 
 	@Test
 	public void testCollectFileDownloadEvent() {
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				FileEvent.FILE_DOWNLOAD, 
+				eventType, 
 				creatorUserId, 
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
@@ -143,14 +138,15 @@ public class StatisticsEventsCollectorAutowireTest {
 		// Simulates the background timer call
 		statsEventsCollector.flush();
 
-		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(Collections.singletonList(expectedRecord)));
+		verify(firehoseLogger, times(1)).logBatch(eq(eventType.getFirehoseStreamName()), eq(Collections.singletonList(expectedRecord)));
 
 	}
 
 	@Test
 	public void testCollectFileUploadEvent() {
+		FileEvent eventType = FileEvent.FILE_UPLOAD;
 		StatisticsFileEvent event = new StatisticsFileEvent(
-				FileEvent.FILE_UPLOAD, 
+				eventType, 
 				creatorUserId, 
 				fileHandle.getId(), file.getId(),
 				FileHandleAssociateType.FileEntity);
@@ -162,22 +158,24 @@ public class StatisticsEventsCollectorAutowireTest {
 		// Simulates the background timer call
 		statsEventsCollector.flush();
 
-		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_UPLOAD), eq(Collections.singletonList(expectedRecord)));
+		verify(firehoseLogger, times(1)).logBatch(eq(eventType.getFirehoseStreamName()), eq(Collections.singletonList(expectedRecord)));
 
 	}
 	
 	@Test
 	public void testCollectEvents() {
 		
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		
 		StatisticsFileEvent downloadEvent1 = new StatisticsFileEvent(
-				FileEvent.FILE_DOWNLOAD,
+				eventType,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
 				FileHandleAssociateType.FileEntity);
 
 		StatisticsFileEvent downloadEvent2 = new StatisticsFileEvent(
-				FileEvent.FILE_DOWNLOAD,
+				eventType,
 				creatorUserId, 
 				fileHandle.getId(), 
 				file.getId(), 
@@ -196,7 +194,7 @@ public class StatisticsEventsCollectorAutowireTest {
 		statsEventsCollector.flush();
 		
 		// Verifies that the logger is invoked only once
-		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords));
+		verify(firehoseLogger, times(1)).logBatch(eq(eventType.getFirehoseStreamName()), eq(expectedRecords));
 	}
 	
 	@Test
@@ -232,8 +230,8 @@ public class StatisticsEventsCollectorAutowireTest {
 		statsEventsCollector.flush();
 		
 		// Verifies that the logger is invoked once per stream type
-		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_DOWNLOAD), eq(expectedRecords1));
-		verify(firehoseLogger, times(1)).logBatch(eq(STREAM_UPLOAD), eq(expectedRecords2));
+		verify(firehoseLogger, times(1)).logBatch(eq(FileEvent.FILE_DOWNLOAD.getFirehoseStreamName()), eq(expectedRecords1));
+		verify(firehoseLogger, times(1)).logBatch(eq(FileEvent.FILE_UPLOAD.getFirehoseStreamName()), eq(expectedRecords2));
 	}
 
 	@Test

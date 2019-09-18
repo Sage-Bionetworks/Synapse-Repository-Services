@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.athena.project;
 
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
@@ -16,15 +15,11 @@ import org.springframework.stereotype.Repository;
 import com.amazonaws.services.athena.model.Datum;
 import com.amazonaws.services.athena.model.Row;
 import com.amazonaws.services.glue.model.Database;
-import com.google.common.collect.ImmutableMap;
 
 @Repository
 public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStatisticsDAO {
 
 	static final String DATABASE_NAME = "firehoseLogs";
-
-	static final String TABLE_FILE_DOWNLOADS = "fileDownloadsRecords";
-	static final String TABLE_FILE_UPLOADS = "fileUploadsRecords";
 
 	private static final String COL_YEAR = "year";
 	private static final String COL_MONTH = "month";
@@ -32,11 +27,6 @@ public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStat
 	private static final String COL_USER_ID = "userId";
 
 	// @formatter:off
-	
-	private static final Map<FileEvent, String> TABLE_NAME_MAP = ImmutableMap.of(
-			FileEvent.FILE_DOWNLOAD, TABLE_FILE_DOWNLOADS, 
-			FileEvent.FILE_UPLOAD, TABLE_FILE_UPLOADS
-	);
 
 	private static final String SQL_AGGREGATE_TEMPLATE = 
 			"SELECT " + COL_PROJECT_ID + " AS PROJECT_ID, "
@@ -52,10 +42,12 @@ public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStat
 	// @formatter:on
 
 	private AthenaSupport athenaSupport;
+	private FileEventTableNameProvider tableNameProvider;
 
 	@Autowired
-	public AthenaProjectFileStatisticsDAOImpl(AthenaSupport athenaSupport) {
+	public AthenaProjectFileStatisticsDAOImpl(AthenaSupport athenaSupport, FileEventTableNameProvider tableNameProvider) {
 		this.athenaSupport = athenaSupport;
+		this.tableNameProvider = tableNameProvider;
 	}
 
 	@Override
@@ -111,13 +103,8 @@ public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStat
 	}
 
 	String getAggregateQuery(FileEvent eventType, YearMonth month) {
-		String tableName = TABLE_NAME_MAP.get(eventType);
 
-		if (tableName == null) {
-			throw new IllegalStateException("Event type " + eventType + " not supported");
-		}
-
-		tableName = athenaSupport.getTableName(tableName);
+		String tableName = tableNameProvider.getTableName(eventType);
 		int yearValue = month.getYear();
 		int monthValue = month.getMonthValue();
 
