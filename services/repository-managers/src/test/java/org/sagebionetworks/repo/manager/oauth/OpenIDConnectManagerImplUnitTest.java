@@ -546,11 +546,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		String ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(NONCE), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 		
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// elsewhere we test that we correctly build up the requested user-info
 		// here we just spot check a few fields to make sure everything's wired up
@@ -647,13 +647,13 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		verify(oidcTokenHelper, never()).
-			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyString(), (Map)any());
+			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), (Map)any());
 		
 		assertNull(tokenResponse.getId_token());
 
@@ -665,12 +665,13 @@ public class OpenIDConnectManagerImplUnitTest {
 		Jwt<JwsHeader,Claims> accessToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
 		claims.setAudience(OAUTH_CLIENT_ID);
 		claims.setSubject(openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID));
-		claims.put(OIDCClaimName.auth_time.name(), now.getTime()/1000L);
+		claims.put(OIDCClaimName.auth_time.name(), now);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.userid, null);
 		oidcClaims.put(OIDCClaimName.email, null);
 		oidcClaims.put(OIDCClaimName.email_verified, null);
 		ClaimsJsonUtil.addAccessClaims(Collections.singletonList(OAuthScope.openid), oidcClaims, claims);
+		
 		return accessToken;
 	}
 	
@@ -695,7 +696,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(null), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				eq(null), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
 		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);
