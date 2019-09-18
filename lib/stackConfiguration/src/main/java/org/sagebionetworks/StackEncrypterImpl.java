@@ -5,7 +5,7 @@ import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_WITH_KEY_
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 import org.apache.logging.log4j.Logger;
 
@@ -43,14 +43,14 @@ public class StackEncrypterImpl implements StackEncrypter {
 	public String encryptAndBase64EncodeStringWithStackKey(String plainText) {
 		try {
 			if(!encryptionEnabled()) {
-				return new String(Base64.getEncoder().encode(plainText.getBytes(UTF_8)), UTF_8);
+				return Base64.encodeBase64URLSafeString(plainText.getBytes(UTF_8));
 			}
 			byte[] plainTextBytes = plainText.getBytes( UTF_8 );
 			EncryptRequest  encryptRequest = new EncryptRequest().
 					withPlaintext(ByteBuffer.wrap(plainTextBytes)).
 					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
 			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(encryptRequest);
-			return new String(Base64.getEncoder().encode(encryptResult.getCiphertextBlob()).array(), UTF_8);
+			return Base64.encodeBase64URLSafeString(encryptResult.getCiphertextBlob().array());
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -79,7 +79,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 	@Override
 	public String decryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
 		try {
-			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
+			byte[] rawEncrypted = Base64.decodeBase64(encryptedValueBase64);
 			if(!encryptionEnabled()) {
 				return new String(rawEncrypted, UTF_8);
 			}
@@ -94,20 +94,16 @@ public class StackEncrypterImpl implements StackEncrypter {
 	
 	@Override
 	public String reEncryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
-		try {
-			if(!encryptionEnabled()) {
-				return encryptedValueBase64;
-			}
-			byte[] rawEncrypted = Base64.getDecoder().decode(encryptedValueBase64.getBytes(UTF_8));
-			// KMS can decrypt the value without providing the encryption key.
-			ReEncryptRequest reEncryptRequest = new ReEncryptRequest().
-					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)).
-					withDestinationKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
-			ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(reEncryptRequest);
-			return new String(Base64.getEncoder().encode(reEncryptResult.getCiphertextBlob()).array(), UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+		if(!encryptionEnabled()) {
+			return encryptedValueBase64;
 		}
+		byte[] rawEncrypted = Base64.decodeBase64(encryptedValueBase64);
+		// KMS can decrypt the value without providing the encryption key.
+		ReEncryptRequest reEncryptRequest = new ReEncryptRequest().
+				withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)).
+				withDestinationKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
+		ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(reEncryptRequest);
+		return Base64.encodeBase64URLSafeString(reEncryptResult.getCiphertextBlob().array());
 	}
 
 	/**
