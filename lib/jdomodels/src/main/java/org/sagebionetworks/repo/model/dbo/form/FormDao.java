@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.StateEnum;
+import org.sagebionetworks.repo.model.form.SubmissionStatus;
 
 public interface FormDao {
 
@@ -71,7 +72,7 @@ public interface FormDao {
 	 * @param id
 	 * @return
 	 */
-	public StateEnum getFormDataState(String id);
+	public SubmissionStatus getFormDataState(String id);
 	
 	/**
 	 * Get the the identified FormData
@@ -89,5 +90,12 @@ public interface FormDao {
 	 * Delete the identified FormData
 	 * @param formDataId
 	 */
-	public void deleteFormData(String formDataId);
+	public boolean deleteFormData(String formDataId);
+
+	/**
+	 * Submit a FormData for submission.
+	 * @param formDataId
+	 * @return
+	 */
+	public FormData updateStatus(String formDataId, SubmissionStatus status);
 }

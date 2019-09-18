@@ -392,6 +392,19 @@ public class FormDaoImplTest {
 		}).getMessage();
 		assertEquals("FormData does not exist for: -1", message);
 	}
+	
+	@Test
+	public void testDeleteFormData() {
+		FormData toDelete = createFormData();
+		// call under test
+		assertTrue(formDao.deleteFormData(toDelete.getFormDataId()));
+	}
+	
+	@Test
+	public void testDeleteFormDataDoesNotExist() {
+		// call under test
+		assertFalse(formDao.deleteFormData("-1"));
+	}
 
 	/**
 	 * Helper to create a FormGroup.

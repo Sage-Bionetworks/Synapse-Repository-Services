@@ -1,16 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.form;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_FILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REJECTION_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_SUBMITTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_DATA;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Optional;
@@ -45,6 +53,16 @@ public class FormDaoImpl implements FormDao {
 	JdbcTemplate jdbcTemplate;
 
 	private static RowMapper<DBOFormGroup> GROUP_MAPPER = new DBOFormGroup().getTableMapping();
+	
+	private static RowMapper<SubmissionStatus> STATUS_MAPPER = (ResultSet rs, int rowNum) -> {
+		SubmissionStatus status = new SubmissionStatus();
+		status.setSubmittedOn(rs.getTimestamp(COL_FORM_DATA_SUBMITTED_ON));
+		status.setReviewedOn(rs.getTimestamp(COL_FORM_DATA_REVIEWED_ON));
+		status.setReviewedBy(rs.getString(COL_FORM_DATA_REVIEWED_BY));
+		status.setState(StateEnum.valueOf(rs.getString(COL_FORM_DATA_STATE)));
+		status.setRejectionMessage(rs.getString(COL_FORM_DATA_REJECTION_MESSAGE));
+		return status;
+	};
 
 	@WriteTransaction
 	@Override
@@ -157,13 +175,15 @@ public class FormDaoImpl implements FormDao {
 	}
 
 	@Override
-	public StateEnum getFormDataState(String id) {
-		ValidateArgument.required(id, "id");
+	public SubmissionStatus getFormDataState(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
 		try {
-			return StateEnum.valueOf(jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_STATE + " FROM "
-					+ TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, id));
+			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_SUBMITTED_ON + ", " + COL_FORM_DATA_REVIEWED_ON
+					+ "," + COL_FORM_DATA_REVIEWED_BY + "," + COL_FORM_DATA_STATE + ","
+					+ COL_FORM_DATA_REJECTION_MESSAGE + " FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID
+					+ " = ?", STATUS_MAPPER, formDataId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, id));
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
 		}
 	}
 
@@ -216,9 +236,27 @@ public class FormDaoImpl implements FormDao {
 
 	@WriteTransaction
 	@Override
-	public void deleteFormData(String formDataId) {
+	public boolean deleteFormData(String formDataId) {
 		ValidateArgument.required(formDataId, "formDataId");
-		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID +" = ?", formDataId);
+		int updateCount = jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?",
+				formDataId);
+		return updateCount > 0;
+	}
+
+	@WriteTransaction
+	@Override
+	public FormData updateStatus(String formDataId, SubmissionStatus status) {
+		ValidateArgument.required(formDataId, "formDataId");
+		ValidateArgument.required(status, "status");
+		ValidateArgument.required(status.getState(), "status.state");
+		jdbcTemplate.update(
+				"UPDATE " + TABLE_FORM_DATA + " SET " + COL_FORM_DATA_ETAG + " = UUID(), " + COL_FORM_DATA_SUBMITTED_ON
+						+ " = ?, " + COL_FORM_DATA_REVIEWED_ON + " = ?, " + COL_FORM_DATA_REVIEWED_BY + " = ?, "
+						+ COL_FORM_DATA_STATE + " = ?, " + COL_FORM_DATA_REJECTION_MESSAGE + " = ?" + " WHERE "
+						+ COL_FORM_DATA_ID + " = ?",
+				status.getSubmittedOn(), status.getReviewedOn(), status.getReviewedBy(), status.getState().name(),
+				status.getRejectionMessage(), formDataId);
+		return getFormData(formDataId);
 	}
 
 }
