@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public interface OIDCTokenHelper {
 	 * @return a serialized JSON Web Token
 	 */
 	String createOIDCIdToken(String issuer, String subject, String oauthClientId, long now, String nonce,
-			Long authTimeSeconds, String tokenId, Map<OIDCClaimName, Object> userInfo);
+			Date authTime, String tokenId, Map<OIDCClaimName, Object> userInfo);
 
 	/**
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The
@@ -43,7 +44,7 @@ public interface OIDCTokenHelper {
 	 * @param oidcClaims the fine-grained details about what user info can be accessed by this access token
 	 * @return a serialized JSON Web Token
 	 */
-	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, Long authTimeSeconds,
+	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, Date authTime,
 			String tokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**
