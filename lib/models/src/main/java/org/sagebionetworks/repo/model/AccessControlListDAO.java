@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessControlListDAO  {
@@ -12,6 +13,19 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException 
 	 */
 	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
+	
+	/**
+	 * Does the user have the permission to access the given resource.
+	 * 
+	 * @param user         User attempting access.
+	 * @param resourceId   Identifier of the resource to access.
+	 * @param resourceType Type of resource to access.
+	 * @param permission   The permission required for access.
+	 * @return 
+	 */
+	public AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
+			ACCESS_TYPE permission);
+
 
 	/**
 	 * Create a new ACL
