@@ -1,0 +1,11 @@
+{
+    "description": "The enumeration of objects that support statistics",
+    "name": "StatisticsObjectType",
+    "type": "string",
+    "enum": [
+        {
+            "name": "PROJECT",
+            "description": "Project Statistics"
+        }
+    ]
+}

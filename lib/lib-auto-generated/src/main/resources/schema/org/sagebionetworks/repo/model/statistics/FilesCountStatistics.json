@@ -1,0 +1,26 @@
+{
+    "title":"File Count Statistics",
+    "description":"Describes an aggregate of file actions (e.g. downloads/uploads) and users count for a specific time frame",
+    "properties":{
+    	"rangeStart": {
+    		"type": "integer",
+    		"title": "Range Start",
+    		"description": "The start timestamp of the time frame this bucket represents"
+    	},
+    	"rangeEnd": {
+    		"type": "integer",
+    		"title": "Range End",
+    		"description": "The end timestamp of the time frame this bucket represents"
+    	},
+    	"filesCount" : {
+    		"type": "integer",
+			"title": "Files Count",
+			"description": "The number of files uploaded or downloaded in this time frame"
+    	},
+    	"usersCount" : {
+    		"type": "integer",
+			"title": "Users Count",
+			"description": "The number of distinct users the performed a download or upload in this time frame"
+    	}
+    }
+}
