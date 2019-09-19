@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -112,7 +113,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private UserProfileManager userProfileManager;
 	
 	@Mock
-	private TeamDAO mockTeamDAO;
+	private GroupMembersDAO groupMembersDAO;
 
 	@Mock
 	private UserManager mockUserManager;
@@ -206,11 +207,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		mockClaimProviders.put(OIDCClaimName.validated_at, mockValidatedAtClaimProvider);
 		
-		ListWrapper<TeamMember> teamMembers = new ListWrapper<TeamMember>();
-		TeamMember teamMember = new TeamMember();
-		teamMember.setTeamId("101");
-		teamMembers.setList(Collections.singletonList(teamMember));
-		when(mockTeamDAO.listMembers((List<Long>)any(), (List<Long>)any())).thenReturn(teamMembers);
+		when(groupMembersDAO.queryGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
+
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
 		openIDConnectManagerImpl.setClaimProviders(mockClaimProviders);
@@ -513,8 +511,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfo_internal_missing_info() {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
-		ListWrapper<TeamMember> teamMembers = new ListWrapper<TeamMember>();
-		when(mockTeamDAO.listMembers((List<Long>)any(), (List<Long>)any())).thenReturn(teamMembers);
+		when(groupMembersDAO.queryGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
 
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.validated_at, null);
