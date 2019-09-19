@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.form;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dbo.form.FormDao;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.StateEnum;
+import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 
 import com.amazonaws.services.pinpointsmsvoice.model.NotFoundException;
@@ -56,6 +57,9 @@ public class FormManagerTest {
 
 	@Captor
 	ArgumentCaptor<AccessControlList> aclCaptor;
+	
+	@Captor
+	ArgumentCaptor<SubmissionStatus> statusCaptor;
 
 	@InjectMocks
 	FormManagerImpl manager;
@@ -71,6 +75,8 @@ public class FormManagerTest {
 	FormData formData;
 
 	UserInfo anonymousUser;
+	
+	SubmissionStatus submittedStatus;
 
 	@BeforeEach
 	public void before() {
@@ -89,6 +95,11 @@ public class FormManagerTest {
 		formData.setFormDataId(formDataId);
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
+		submittedStatus = new SubmissionStatus();
+		submittedStatus.setSubmittedOn(new Date(123));
+		submittedStatus.setState(StateEnum.SUBMITTED_WAITING_FOR_REVIEW);
+		
 	}
 
 	@Test
@@ -548,13 +559,23 @@ public class FormManagerTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
+		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
 
 		// call under test
-		manager.updateFormData(user, formDataId, name, dataFileHandleId);
+		FormData updated = manager.updateFormData(user, formDataId, name, dataFileHandleId);
+		assertEquals(formData, updated);
 		verify(mockFormDao).getFormDataCreator(formDataId);
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		verify(mockFormDao).updateFormData(formDataId, name, dataFileHandleId);
+		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
+		SubmissionStatus status = statusCaptor.getValue();
+		assertNotNull(status);
+		assertEquals(StateEnum.WAITING_FOR_SUBMISSION, status.getState());
+		assertNull(status.getRejectionMessage());
+		assertNull(status.getReviewedBy());
+		assertNull(status.getReviewedOn());
+		assertNull(status.getSubmittedOn());
 	}
 
 	@Test
@@ -808,11 +829,21 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
+		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
 		// call under test
-		manager.submitFormData(user, formDataId);
+		FormData update = manager.submitFormData(user, formDataId);
+		assertEquals(update, formData);
 
+		verify(mockFormDao).getFormDataCreator(formDataId);
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
-		verify(mockFormDao).submitFormData(user.getId(), formDataId);
+		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
+		SubmissionStatus status = statusCaptor.getValue();
+		assertNotNull(status);
+		assertEquals(StateEnum.SUBMITTED_WAITING_FOR_REVIEW, status.getState());
+		assertNull(status.getRejectionMessage());
+		assertNull(status.getReviewedBy());
+		assertNull(status.getReviewedOn());
+		assertNotNull(status.getSubmittedOn());
 	}
 
 	@Test
@@ -824,8 +855,8 @@ public class FormManagerTest {
 			// call under test
 			manager.submitFormData(user, formDataId);
 		});
-
-		verify(mockFormDao, never()).submitFormData(user.getId(), formDataId);
+		
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 	
 	@Test
@@ -838,7 +869,7 @@ public class FormManagerTest {
 			manager.submitFormData(user, formDataId);
 		});
 
-		verify(mockFormDao, never()).submitFormData(user.getId(), formDataId);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 	
 	@Test
@@ -855,6 +886,72 @@ public class FormManagerTest {
 		});
 
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
-		verify(mockFormDao, never()).submitFormData(user.getId(), formDataId);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+	
+	@Test
+	public void testReviewerAcceptForm() {
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		.thenReturn(AuthorizationStatus.authorized());
+		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
+		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
+		
+		// call under test
+		FormData updated = manager.reviewerAcceptForm(user, formDataId);
+		assertEquals(formData, updated);
+		
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
+		SubmissionStatus status = statusCaptor.getValue();
+		assertNotNull(status);
+		assertEquals(StateEnum.ACCEPTED, status.getState());
+		assertEquals(submittedStatus.getSubmittedOn(), status.getSubmittedOn());
+		assertNull(status.getRejectionMessage());
+		assertEquals(user.getId().toString(), status.getReviewedBy());
+		assertNotNull(status.getReviewedOn());
+	}
+	
+	@Test
+	public void testReviewerAcceptFormWrongStartingState() {	
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		.thenReturn(AuthorizationStatus.authorized());
+		// wrong starting state
+		SubmissionStatus status = new SubmissionStatus();
+		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(status);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.reviewerAcceptForm(user, formDataId);
+		});
+		
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+	
+	@Test
+	public void testReviewerRejectForm() {
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		.thenReturn(AuthorizationStatus.authorized());
+		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
+		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
+		String reason = "just because";
+		
+		// call under test
+		FormData updated = manager.reviewerRejectForm(user, formDataId, reason);
+		assertEquals(formData, updated);
+		
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
+		SubmissionStatus status = statusCaptor.getValue();
+		assertNotNull(status);
+		assertEquals(StateEnum.REJECTED, status.getState());
+		assertEquals(submittedStatus.getSubmittedOn(), status.getSubmittedOn());
+		assertEquals(reason, status.getRejectionMessage());
+		assertEquals(user.getId().toString(), status.getReviewedBy());
+		assertNotNull(status.getReviewedOn());
 	}
 }

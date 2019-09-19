@@ -82,7 +82,7 @@ public class FormServiceImpl implements FormService {
 	@Override
 	public FormData reviewerRejectForm(Long userId, String id, String reason) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.reviewerRejectForm(user, reason);
+		return formManager.reviewerRejectForm(user, id, reason);
 	}
 
 }

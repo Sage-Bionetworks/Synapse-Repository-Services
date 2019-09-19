@@ -41,14 +41,14 @@ public interface FormDao {
 	 * @param id
 	 * @return
 	 */
-	public long getFormDataCreator(String id);
+	public long getFormDataCreator(String formDataId);
 
 	/**
 	 * Get the groupId for the identified FormData
 	 * @param id
 	 * @return
 	 */
-	public String getFormDataGroupId(String id);
+	public String getFormDataGroupId(String formDataId);
 
 	/**
 	 * Update the name and dataFileHandleId for the identified FormData
@@ -57,7 +57,7 @@ public interface FormDao {
 	 * @param dataFileHandleId
 	 * @return
 	 */
-	public FormData updateFormData(String id, String name, String dataFileHandleId);
+	public FormData updateFormData(String formDataId, String name, String dataFileHandleId);
 
 	/**
 	 * Update the name and dataFileHandleId for the identified FormData
@@ -65,21 +65,28 @@ public interface FormDao {
 	 * @param dataFileHandleId
 	 * @return
 	 */
-	public FormData updateFormData(String id, String dataFileHandleId);
+	public FormData updateFormData(String formDataId, String dataFileHandleId);
 
 	/**
 	 * Get the current state for the identified FormData
 	 * @param id
 	 * @return
 	 */
-	public SubmissionStatus getFormDataState(String id);
+	public StateEnum getFormDataState(String formDataId);
+	
+	/**
+	 * Get the current status for the identified FormData
+	 * @param id
+	 * @return
+	 */
+	public SubmissionStatus getFormDataStatus(String formDataId);
 	
 	/**
 	 * Get the the identified FormData
 	 * @param id
 	 * @return
 	 */
-	public FormData getFormData(String id);
+	public FormData getFormData(String formDataId);
 	
 	/**
 	 * Truncate all data.

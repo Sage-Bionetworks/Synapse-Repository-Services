@@ -65,18 +65,18 @@ public interface FormManager {
 	 * Delete the given FormData.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 */
-	void deleteFormData(UserInfo user, String id);
+	void deleteFormData(UserInfo user, String formDataId);
 
 	/**
 	 * Submit the given FormData for review.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 * @return
 	 */
-	FormData submitFormData(UserInfo user, String id);
+	FormData submitFormData(UserInfo user, String formDataId);
 
 	/**
 	 * List FormData created by the caller matching the provied request.
@@ -100,17 +100,18 @@ public interface FormManager {
 	/**
 	 * Reviewer accepts the identified FormData submission.
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 * @return
 	 */
-	FormData reviewerAcceptForm(UserInfo user, String id);
+	FormData reviewerAcceptForm(UserInfo user, String formDataId);
 
 	/**
 	 * Reviewer rejects the identified FormData submission.
 	 * @param user
+	 * @param formDataId
 	 * @param reason
 	 * @return
 	 */
-	FormData reviewerRejectForm(UserInfo user, String reason);
+	FormData reviewerRejectForm(UserInfo user, String formDataId, String reason);
 
 }

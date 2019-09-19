@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
+import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -42,6 +43,7 @@ public class FormManagerImpl implements FormManager {
 	static final String CANNOT_UPDATE_ACCEPTED = "Cannot update a form that has been submitted and accepted.";
 	public static final int MIN_NAME_CHARS = 3;
 	public static final int MAX_NAME_CHARS = 256;
+	public static final int MAX_REASON_CHARS = 500;
 
 	/**
 	 * Administrator permission for FormGroups.
@@ -128,6 +130,7 @@ public class FormManagerImpl implements FormManager {
 		return getGroupAcl(user, groupId);
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData createFormData(UserInfo user, String groupId, String name, String dataFileHandleId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -201,6 +204,7 @@ public class FormManagerImpl implements FormManager {
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData updateFormData(UserInfo user, String formDataId, String name, String dataFileHandleId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -219,10 +223,14 @@ public class FormManagerImpl implements FormManager {
 		// Must own the fileHandle
 		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
 		if (name != null) {
-			return formDao.updateFormData(formDataId, name, dataFileHandleId);
+			formDao.updateFormData(formDataId, name, dataFileHandleId);
 		} else {
-			return formDao.updateFormData(formDataId, dataFileHandleId);
+			formDao.updateFormData(formDataId, dataFileHandleId);
 		}
+		// reset the submission status
+		SubmissionStatus status = new SubmissionStatus();
+		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
+		return formDao.updateStatus(formDataId, status);
 	}
 
 	/**
@@ -254,6 +262,7 @@ public class FormManagerImpl implements FormManager {
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public void deleteFormData(UserInfo user, String formDataId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -265,6 +274,7 @@ public class FormManagerImpl implements FormManager {
 		}
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData submitFormData(UserInfo user, String formDataId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -275,8 +285,11 @@ public class FormManagerImpl implements FormManager {
 		validateCanSubmitState(formDataId);
 		// must have the submit permission on the group.
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.SUBMIT);
-		
-		return formDao.submitFormData(formDataId);
+		// reset the submission status
+		SubmissionStatus status = new SubmissionStatus();
+		status.setState(StateEnum.SUBMITTED_WAITING_FOR_REVIEW);
+		status.setSubmittedOn(new Date(System.currentTimeMillis()));
+		return formDao.updateStatus(formDataId, status);
 	}
 
 	@Override
@@ -292,15 +305,47 @@ public class FormManagerImpl implements FormManager {
 	}
 
 	@Override
-	public FormData reviewerAcceptForm(UserInfo user, String id) {
-		// TODO Auto-generated method stub
-		return null;
+	public FormData reviewerAcceptForm(UserInfo user, String formDataId) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(formDataId, "formDataId");
+		
+		// must have the READ_PRIVATE_SUBMISSION permission on the group.
+		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		
+		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
+		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
+			throw new IllegalArgumentException(
+					"Cannot accept a submission that is currently: " + status.getState().name());
+		}
+		status.setReviewedBy(user.getId().toString());
+		status.setReviewedOn(new Date(System.currentTimeMillis()));
+		status.setState(StateEnum.ACCEPTED);
+		return formDao.updateStatus(formDataId, status);
 	}
 
 	@Override
-	public FormData reviewerRejectForm(UserInfo user, String reason) {
-		// TODO Auto-generated method stub
-		return null;
+	public FormData reviewerRejectForm(UserInfo user, String formDataId, String reason) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(formDataId, "formDataId");
+		ValidateArgument.required(reason, "reason");
+		
+		if(reason.length() > MAX_REASON_CHARS) {
+			throw new IllegalArgumentException("Reason must be "+MAX_REASON_CHARS+" or less");
+		}
+		
+		// must have the READ_PRIVATE_SUBMISSION permission on the group.
+		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		
+		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
+		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
+			throw new IllegalArgumentException(
+					"Cannot reject a submission that is currently: " + status.getState().name());
+		}
+		status.setReviewedBy(user.getId().toString());
+		status.setReviewedOn(new Date(System.currentTimeMillis()));
+		status.setState(StateEnum.REJECTED);
+		status.setRejectionMessage(reason);
+		return formDao.updateStatus(formDataId, status);
 	}
 
 }

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -404,6 +405,29 @@ public class FormDaoImplTest {
 	public void testDeleteFormDataDoesNotExist() {
 		// call under test
 		assertFalse(formDao.deleteFormData("-1"));
+	}
+	
+	@Test
+	public void testUpdateStatus() {
+		FormData toUpdate = createFormData();
+		FormData unchanged = createFormData();
+		
+		long now = System.currentTimeMillis();
+		SubmissionStatus status = new SubmissionStatus();
+		status.setSubmittedOn(new Date(now-1010));
+		status.setRejectionMessage("a new rejection message");
+		status.setReviewedBy(adminUserId.toString());
+		status.setReviewedOn(new Date(now));
+		status.setState(StateEnum.REJECTED);
+		// call under test
+		FormData updated = formDao.updateStatus(toUpdate.getFormDataId(), status);
+		// etag should change
+		assertFalse(toUpdate.getEtag().equals(updated.getEtag()));
+		assertEquals(status, updated.getSubmissionStatus());
+		
+		// should not have changed the other formdata
+		FormData shouldNotChange = formDao.getFormData(unchanged.getFormDataId());
+		assertEquals(unchanged, shouldNotChange);
 	}
 
 	/**
