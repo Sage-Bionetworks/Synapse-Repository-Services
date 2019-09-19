@@ -29,7 +29,11 @@ public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return JWTWrapper.class.equals(clazz) && APPLICATION_JWT_MEDIA_TYPE.isCompatibleWith(mediaType);	
+		if (!JWTWrapper.class.equals(clazz)) {
+			return false;
+		}
+		
+		return mediaType == null || mediaType.includes(APPLICATION_JWT_MEDIA_TYPE);
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +43,12 @@ public class ClaimsJsonUtil {
 		if (claims.containsKey(ACCESS)) {
 			Map<String,Object> scopeAndClaims = (Map<String,Object>)claims.get(ACCESS, Map.class);
 			if (scopeAndClaims.containsKey(SCOPE)) {
-				return (List<OAuthScope>)scopeAndClaims.get(SCOPE);
+				List<String> scopeNames = (List<String>)scopeAndClaims.get(SCOPE);
+				List<OAuthScope> result = new ArrayList<OAuthScope>();
+				for (String name : scopeNames) {
+					result.add(OAuthScope.valueOf(name));
+				}
+				return result;
 			}
 		}
 		return Collections.EMPTY_LIST;
@@ -55,7 +61,20 @@ public class ClaimsJsonUtil {
 		if (claims.containsKey(ACCESS)) {
 			Map<String,Object> scopeAndClaims = (Map<String,Object>)claims.get(ACCESS, Map.class);
 			if (scopeAndClaims.containsKey(USER_INFO_CLAIMS)) {
-				return (Map<OIDCClaimName, OIDCClaimsRequestDetails>)scopeAndClaims.get(USER_INFO_CLAIMS);
+				Map<String,Object> claimsMap = (Map<String,Object>)scopeAndClaims.get(USER_INFO_CLAIMS);
+				Map<OIDCClaimName, OIDCClaimsRequestDetails> result = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
+				for (String name : claimsMap.keySet()) {
+					Map value = (Map)claimsMap.get(name);
+					OIDCClaimsRequestDetails details = null;
+					if (value!=null) {
+						details = new OIDCClaimsRequestDetails();
+						details.setEssential((Boolean)value.get("essential"));
+						details.setValue((String)value.get("value"));
+						details.setValues((List)value.get("values"));
+					}
+					result.put(OIDCClaimName.valueOf(name), details);
+				}
+				return result;
 			}
 		}
 		return Collections.EMPTY_MAP;

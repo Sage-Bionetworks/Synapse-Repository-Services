@@ -17,7 +17,11 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 public class ClaimsJsonUtilTest {
 
@@ -104,9 +108,15 @@ public class ClaimsJsonUtilTest {
 		// method under test
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		
+		// we need to simulate the round trip to a serialized form and back
+		String token = Jwts.builder().setClaims(claims).compact();
+		Claims parsedClaims = Jwts.parser().parseClaimsJwt(token).getBody();
+		
 		// ... then we extract the results and show they match
-		assertEquals(scopes, ClaimsJsonUtil.getScopeFromClaims(claims));
-		assertEquals(oidcClaims, ClaimsJsonUtil.getOIDCClaimsFromClaimSet(claims));
+		// method under test
+		assertEquals(scopes, ClaimsJsonUtil.getScopeFromClaims(parsedClaims));
+		// method under test
+		assertEquals(oidcClaims, ClaimsJsonUtil.getOIDCClaimsFromClaimSet(parsedClaims));
 	}
 	
 

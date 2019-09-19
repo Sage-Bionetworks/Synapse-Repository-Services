@@ -67,14 +67,14 @@ public class BaseClientImpl implements BaseClient {
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
-	private static final String APPLICATION_JSON = "application/json";
+	protected static final String APPLICATION_JSON = "application/json";
 	private static final String APPLICATION_JSON_CHARSET_UTF8 = APPLICATION_JSON+"; charset="+SYNAPSE_ENCODING_CHARSET;
 
 	protected static final String APPLICATION_JWT = "application/jwt";
 	
 	private static final String CONTENT_LENGTH = "Content-Length";
 	private static final String CONTENT_TYPE = "Content-Type";
-	private static final String ACCEPT = "Accept";
+	protected static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
@@ -91,6 +91,8 @@ public class BaseClientImpl implements BaseClient {
 	private String authEndpoint;
 	private String fileEndpoint;
 
+	private String authorizationHeader;
+	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
 
@@ -191,6 +193,7 @@ public class BaseClientImpl implements BaseClient {
 	@Override
 	public void setBasicAuthorizationCredentials(String uname, String password) {
 		String basicAuthCredentials = ClientUtils.createBasicAuthorizationHeader(uname, password);
+		this.authorizationHeader=basicAuthCredentials;
 		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
 		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
 	}
@@ -204,15 +207,20 @@ public class BaseClientImpl implements BaseClient {
 	@Override
 	public void setBearerAuthorizationToken(String bearerToken) {
 		String bearerTokenHeader = AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken;
+		this.authorizationHeader=bearerTokenHeader;
 		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
 		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
 	}
 
+	protected String getAuthorizationHeader() {
+		return authorizationHeader;
+	}
 	/**
 	 * Remove the Authorization Header
 	 */
 	@Override
 	public void removeAuthorizationHeader() {
+		this.authorizationHeader=null;
 		defaultGETDELETEHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 		defaultPOSTPUTHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 	}
