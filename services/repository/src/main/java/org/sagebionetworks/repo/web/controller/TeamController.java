@@ -464,15 +464,14 @@ public class TeamController {
 	
 	/**
 	 * Returns the TeamMember info for a user and a given list of Team IDs.
-	 * 
-	 * Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the list of IDs passed in.
+	 * Not Found status is returned if the user ID is invalid, any of the Team IDs 
+	 * are invalid, or the user is not in any of the given teams.
 	 *
 	 * @param id user's ID
 	 * @param ids Team IDs
 	 * @return
 	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * @throws NotFoundException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_TEAM_MEMBER_LIST, method = RequestMethod.POST)

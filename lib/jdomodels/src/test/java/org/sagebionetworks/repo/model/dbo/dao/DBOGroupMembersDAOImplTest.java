@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,6 +86,14 @@ public class DBOGroupMembersDAOImplTest {
 		
 		List<UserGroup> groups = groupMembersDAO.getUsersGroups(testUserOne.getId());
 		assertEquals("No groups initially", 0, groups.size());
+		
+		List<String> groupList = new ArrayList<String>();
+		groupList.add(testGroup.getId());
+		List<String> groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		assertTrue(groupIds.isEmpty());
+		groupList.add("99999");
+		groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		assertTrue(groupIds.isEmpty());
 	}
 	
 	@Test
@@ -135,6 +144,15 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+		
+		
+		List<String> groupList = new ArrayList<String>();
+		groupList.add(testGroup.getId());
+		List<String> groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
+		groupList.add("99999");
+		groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

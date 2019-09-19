@@ -64,6 +64,12 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" AND ug."+SqlConstants.COL_USER_GROUP_ID+"="+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 	
+	private static final String SELECT_GROUPS_FOR_USER = 
+			"SELECT "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+
+			" FROM "+SqlConstants.TABLE_GROUP_MEMBERS+
+			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
+			" AND "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+" in (:"+GROUP_ID_PARAM_NAME+")";
+	
 	private static final String SELECT_DIRECT_PARENTS_OF_GROUP = 
 			"SELECT ug.* FROM "+SqlConstants.TABLE_USER_GROUP+" ug"+
 			" INNER JOIN "+SqlConstants.TABLE_GROUP_MEMBERS+
@@ -121,6 +127,14 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		UserGroupUtils.copyDboToDto(dbos, members);
 		return members;
+	}
+	
+	@Override
+	public List<String> queryGroups(String principalId, List<String> groupIds) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
+		param.addValue(GROUP_ID_PARAM_NAME, groupIds);
+		return namedJdbcTemplate.queryForList(SELECT_GROUPS_FOR_USER, param, String.class);
 	}
 
 	@WriteTransaction
