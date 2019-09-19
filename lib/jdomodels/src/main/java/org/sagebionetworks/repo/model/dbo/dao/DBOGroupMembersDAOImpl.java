@@ -130,7 +130,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	}
 	
 	@Override
-	public List<String> queryGroups(String principalId, List<String> groupIds) {
+	public List<String> filterUserGroups(String principalId, List<String> groupIds) {
+		ValidateArgument.required(principalId, "userId");
+		if (groupIds==null || groupIds.isEmpty()) return Collections.EMPTY_LIST;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
 		param.addValue(GROUP_ID_PARAM_NAME, groupIds);

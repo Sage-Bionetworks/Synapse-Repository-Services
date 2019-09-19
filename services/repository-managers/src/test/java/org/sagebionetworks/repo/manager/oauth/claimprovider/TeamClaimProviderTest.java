@@ -42,7 +42,7 @@ public class TeamClaimProviderTest {
 	@Test
 	public void testClaim() {
 		List<String> teams = Collections.singletonList(TEAM_ID); // the list of teams to which the user belongs
-		when(groupMembersDAO.queryGroups(USER_ID, ImmutableList.of("102",TEAM_ID))).thenReturn(teams);
+		when(groupMembersDAO.filterUserGroups(USER_ID, ImmutableList.of("102",TEAM_ID))).thenReturn(teams);
 		// method under test
 		assertEquals(OIDCClaimName.team, claimProvider.getName());
 		// method under test
@@ -55,7 +55,7 @@ public class TeamClaimProviderTest {
 	@Test
 	public void testClaimEmpty() {
 		// what if the user belongs to no teams?
-		when(groupMembersDAO.queryGroups(USER_ID, ImmutableList.of("102",TEAM_ID))).thenReturn(Collections.EMPTY_LIST);
+		when(groupMembersDAO.filterUserGroups(USER_ID, ImmutableList.of("102",TEAM_ID))).thenReturn(Collections.EMPTY_LIST);
 		// method under test
 		assertEquals(Collections.EMPTY_LIST, claimProvider.getClaim(USER_ID, teamRequest));
 	}

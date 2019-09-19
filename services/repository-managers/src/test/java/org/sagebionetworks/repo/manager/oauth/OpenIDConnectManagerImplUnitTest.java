@@ -113,7 +113,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private UserProfileManager userProfileManager;
 	
 	@Mock
-	private GroupMembersDAO groupMembersDAO;
+	private GroupMembersDAO mockGroupMembersDAO;
 
 	@Mock
 	private UserManager mockUserManager;
@@ -207,7 +207,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		mockClaimProviders.put(OIDCClaimName.validated_at, mockValidatedAtClaimProvider);
 		
-		when(groupMembersDAO.queryGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
 
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
@@ -511,7 +511,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfo_internal_missing_info() {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
-		when(groupMembersDAO.queryGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
 
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.validated_at, null);

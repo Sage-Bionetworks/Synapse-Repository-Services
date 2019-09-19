@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,14 +87,53 @@ public class DBOGroupMembersDAOImplTest {
 		
 		List<UserGroup> groups = groupMembersDAO.getUsersGroups(testUserOne.getId());
 		assertEquals("No groups initially", 0, groups.size());
-		
+	}
+	
+	@Test
+	public void testFilterUserGroups() {
 		List<String> groupList = new ArrayList<String>();
 		groupList.add(testGroup.getId());
-		List<String> groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		
+		// userId is required
+		try {
+			groupMembersDAO.filterUserGroups(null, groupList);
+			fail("Expected IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		
+		// a null group list is filtered to an empty list
+		List<String> groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), null);
 		assertTrue(groupIds.isEmpty());
+		
+		// an empty group list is filtered to an empty list
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), Collections.EMPTY_LIST);
+		assertTrue(groupIds.isEmpty());
+		
+		// if the user isn't in the group, an empty list is returned
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), groupList);
+		assertTrue(groupIds.isEmpty());
+
+		// if the user isn't in the group, an empty list is returned
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), groupList);
+		
+		// same for multiple groups, none of which the user is in
 		groupList.add("99999");
-		groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), groupList);
 		assertTrue(groupIds.isEmpty());
+		
+		// now we add a member
+		groupMembersDAO.addMembers(testGroup.getId(), Collections.singletonList(testUserOne.getId()));
+
+		// the group should now show up in the results
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), groupList);
+		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
+		
+		// if we add another group ID to the query, only the original group should be returned
+		groupList.add("99999");
+		groupIds = groupMembersDAO.filterUserGroups(testUserOne.getId(), groupList);
+		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
+		
 	}
 	
 	@Test
@@ -144,15 +184,6 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
-		
-		
-		List<String> groupList = new ArrayList<String>();
-		groupList.add(testGroup.getId());
-		List<String> groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
-		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
-		groupList.add("99999");
-		groupIds = groupMembersDAO.queryGroups(testUserOne.getId(), groupList);
-		assertEquals(Collections.singletonList(testGroup.getId()), groupIds);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

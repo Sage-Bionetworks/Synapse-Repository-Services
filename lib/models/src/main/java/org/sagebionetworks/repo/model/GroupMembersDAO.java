@@ -20,7 +20,7 @@ public interface GroupMembersDAO {
 	 * @param groupIds
 	 * @return
 	 */
-	public List<String> queryGroups(String principalId, List<String> groupIds);
+	public List<String> filterUserGroups(String principalId, List<String> groupIds);
 	
 	/**
 	 * Adds the list of principal IDs to the group
