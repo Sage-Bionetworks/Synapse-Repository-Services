@@ -218,7 +218,7 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTypeToLinkStringMapPrimitives() {
+	public void testTypeToLinkString_TupleArrayMapPrimitives() {
 		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.STRING));
 		schema.setValue(new ObjectSchema(TYPE.STRING));
@@ -231,9 +231,41 @@ public class SchemaUtilsTest {
 	}
 
 	@Test
-	public void testTypeToLinkStringMapObjects() {
+	public void testTypeToLinkString_TupleArrayMapObjects() {
 		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.OBJECT));
+		schema.setValue(new ObjectSchema(TYPE.OBJECT));
+		String name1 = "Example1";
+		String name2 = "Example2";
+		String id1 = "org.sagebionetworks.test." + name1;
+		String id2 = "org.sagebionetworks.test." + name2;
+		schema.getKey().setId(id1);
+		schema.getKey().setName(name1);
+		schema.getValue().setId(id2);
+		schema.getValue().setName(name2);
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { name1, name2 }, result.getDisplay());
+		assertArrayEquals(new String[] { "${" + id1 + "}", "${" + id2 + "}" }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
+	@Test
+	public void testTypeToLinkString_MapPrimitives() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		schema.setValue(new ObjectSchema(TYPE.STRING));
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { TYPE.STRING.name(), TYPE.STRING.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null, null }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
+	@Test
+	public void testTypeToLinkString_MapObjects() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
 		schema.setValue(new ObjectSchema(TYPE.OBJECT));
 		String name1 = "Example1";
 		String name2 = "Example2";

@@ -342,7 +342,7 @@ public class SchemaUtils {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
 			return new String[]{keyHref[0], valueHref[0]};
-		}else if (TYPE.MAP == type.getType()) { //TODO: test
+		}else if (TYPE.MAP == type.getType()) {
 			ObjectSchema valueSchema = type.getValue();
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
