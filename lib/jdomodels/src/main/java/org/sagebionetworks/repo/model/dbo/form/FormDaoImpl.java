@@ -334,4 +334,15 @@ public class FormDaoImpl implements FormDao {
 				paramSource, FORM_DATA_MAPPER));
 	}
 
+	@Override
+	public String getFormDataFileHandleId(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		try {
+			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_FILE_ID + " FROM "
+					+ TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, formDataId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
+		}
+	}
+
 }

@@ -379,4 +379,18 @@ public class FormManagerImpl implements FormManager {
 		return formDao.updateStatus(formDataId, status);
 	}
 
+	@Override
+	public AuthorizationStatus canUserDownloadFormData(UserInfo user, String formDataId) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(formDataId, "formDataId");
+		// The creator can download their own files.
+		long creator = formDao.getFormDataCreator(formDataId);
+		if (user.getId().equals(creator)) {
+			return AuthorizationStatus.authorized();
+		}
+		// Non creator must have the READ_PRIVATE_SUBMISSION on the group.
+		String groupId = formDao.getFormDataGroupId(formDataId);
+		return aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+	}
+
 }
