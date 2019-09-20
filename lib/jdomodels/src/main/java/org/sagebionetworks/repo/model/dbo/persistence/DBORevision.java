@@ -26,6 +26,7 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.TEMPORARYMigrationAnnotations;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * The DatabaseObject for Revision.
@@ -47,14 +49,21 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<DBORevision>() {
 		@Override
 		public DBORevision createDatabaseObjectFromBackup(DBORevision backup){
-			if (backup.getUserAnnotationsV1() != null){
+			if (backup.getUserAnnotationsJSON() != null){
 				try {
-					org.sagebionetworks.repo.model.Annotations annotationsV1 = AnnotationUtils.decompressedAnnotationsV1(backup.getUserAnnotationsV1());
-					Annotations annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+					TEMPORARYMigrationAnnotations migrationAnnotations;
+					try {
+						migrationAnnotations = EntityFactory.createEntityFromJSONString(backup.getUserAnnotationsJSON(), TEMPORARYMigrationAnnotations.class);
+					} catch (JSONObjectAdapterException e){
+						//already in a different format. Ignore.
+						return backup;
+					}
+
+					Annotations annotationsV2 = new Annotations();
+					annotationsV2.setAnnotations(migrationAnnotations.getAnnotations());
 
 					backup.setUserAnnotationsJSON(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
-					backup.setUserAnnotationsV1(null);
-				} catch (IOException | JSONObjectAdapterException e) {
+				} catch (JSONObjectAdapterException e) {
 					throw new RuntimeException(e);
 				}
 			}

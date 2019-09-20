@@ -303,7 +303,7 @@ public class SchemaUtils {
 		if(TYPE.ARRAY == type.getType()){
 			isArray = true;
 			isUnique = type.getUniqueItems();
-		} else if (TYPE.MAP == type.getType()) {
+		} else if (TYPE.MAP == type.getType() || TYPE.STR_KEY_MAP == type.getType()) {
 			isMap = true;
 		}
 		return new TypeReference(isArray, isUnique, isMap, display, href);
@@ -341,7 +341,17 @@ public class SchemaUtils {
 			if (valueHref.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
-			return new String[] { keyHref[0], valueHref[0] };
+			return new String[]{keyHref[0], valueHref[0]};
+		}else if (TYPE.STR_KEY_MAP == type.getType()) { //TODO: test
+			ObjectSchema valueSchema = type.getValue();
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+			}
+			String[] valueHref = getTypeHref(valueSchema);
+			if (valueHref.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			return new String[]{null, valueHref[0]};
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
 			String typeName = type.getId();
 			return new String[] { "${" + typeName + "}" };
@@ -375,7 +385,17 @@ public class SchemaUtils {
 			if (valueDisplay.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
-			return new String[] { keyDisplay[0], valueDisplay[0] };
+			return new String[]{keyDisplay[0], valueDisplay[0]};
+		} else if (TYPE.STR_KEY_MAP == type.getType()){
+			ObjectSchema valueSchema = type.getValue();
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+			}
+			String[] valueDisplay = getTypeDisplay(valueSchema);
+			if (valueDisplay.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.value not a single type");
+			}
+			return new String[]{TYPE.STRING.name(), valueDisplay[0]};
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
 			return new String[] { type.getName() };
 		}else{
