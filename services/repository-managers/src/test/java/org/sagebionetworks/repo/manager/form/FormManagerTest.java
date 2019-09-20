@@ -48,8 +48,8 @@ import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.pinpointsmsvoice.model.NotFoundException;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -909,7 +909,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
+		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
 
 		// call under test
@@ -950,7 +950,7 @@ public class FormManagerTest {
 		// wrong starting state
 		SubmissionStatus status = new SubmissionStatus();
 		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(status);
+		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(status);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -967,7 +967,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
+		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
 		String reason = StringUtils.repeat('a', FormManagerImpl.MAX_REASON_CHARS);
 
@@ -994,7 +994,7 @@ public class FormManagerTest {
 		// wrong starting state
 		SubmissionStatus status = new SubmissionStatus();
 		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
-		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(status);
+		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(status);
 
 		String reason = "just because";
 

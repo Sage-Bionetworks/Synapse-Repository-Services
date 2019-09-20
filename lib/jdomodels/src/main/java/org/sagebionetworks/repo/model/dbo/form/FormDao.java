@@ -88,7 +88,7 @@ public interface FormDao {
 	 * @param id
 	 * @return
 	 */
-	public SubmissionStatus getFormDataStatus(String formDataId);
+	public SubmissionStatus getFormDataStatusForUpdate(String formDataId);
 
 	/**
 	 * Get the the identified FormData
@@ -107,6 +107,7 @@ public interface FormDao {
 	 * Delete the identified FormData
 	 * 
 	 * @param formDataId
+	 * @return True if an update occurred.
 	 */
 	public boolean deleteFormData(String formDataId);
 

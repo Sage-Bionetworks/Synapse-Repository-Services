@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -45,7 +43,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -232,9 +229,7 @@ public class FormDaoImpl implements FormDao {
 	 * @return
 	 */
 	static List<FormData> dboToDbo(List<DBOFormData> dbos) {
-		return dbos.stream().map((DBOFormData t) -> {
-			return dtoToDbo(t);
-		}).collect(Collectors.toList());
+		return dbos.stream().map(FormDaoImpl::dtoToDbo).collect(Collectors.toList());
 	}
 
 	@Override
@@ -263,14 +258,15 @@ public class FormDaoImpl implements FormDao {
 		}
 	}
 
+	@WriteTransaction
 	@Override
-	public SubmissionStatus getFormDataStatus(String formDataId) {
+	public SubmissionStatus getFormDataStatusForUpdate(String formDataId) {
 		ValidateArgument.required(formDataId, "formDataId");
 		try {
 			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_SUBMITTED_ON + ", " + COL_FORM_DATA_REVIEWED_ON
 					+ ", " + COL_FORM_DATA_REVIEWED_BY + ", " + COL_FORM_DATA_STATE + ", "
 					+ COL_FORM_DATA_REJECTION_MESSAGE + " FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID
-					+ " = ?", STATUS_MAPPER, formDataId);
+					+ " = ? FOR UPDATE", STATUS_MAPPER, formDataId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
 		}
@@ -299,9 +295,7 @@ public class FormDaoImpl implements FormDao {
 	 * @return
 	 */
 	List<String> enumToString(Set<StateEnum> states) {
-		return states.stream().map((StateEnum t) -> {
-			return t.name();
-		}).collect(Collectors.toList());
+		return states.stream().map(StateEnum::name).collect(Collectors.toList());
 	}
 
 	@Override
@@ -315,8 +309,8 @@ public class FormDaoImpl implements FormDao {
 		paramSource.addValue("states", enumToString(request.getFilterByState()));
 		return dboToDbo(namedTemplate.query(
 				"SELECT * FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_CREATED_BY + " = :creatorId AND "
-						+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE
-						+ " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
+						+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE + " IN (:states) ORDER BY "
+						+ COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
 				paramSource, FORM_DATA_MAPPER));
 	}
 
@@ -328,10 +322,9 @@ public class FormDaoImpl implements FormDao {
 		paramSource.addValue("offset", offset);
 		// States are converted from enums to strings.
 		paramSource.addValue("states", enumToString(request.getFilterByState()));
-		return dboToDbo(namedTemplate.query(
-				"SELECT * FROM " + TABLE_FORM_DATA + " WHERE "+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE
-						+ " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
-				paramSource, FORM_DATA_MAPPER));
+		return dboToDbo(namedTemplate.query("SELECT * FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_GROUP_ID
+				+ " = :groupId AND " + COL_FORM_DATA_STATE + " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON
+				+ " DESC LIMIT :limit OFFSET :offset", paramSource, FORM_DATA_MAPPER));
 	}
 
 	@Override
