@@ -1,5 +1,5 @@
 {
-    "description": "The enumeration of objects that support statistics",
+    "description": "Object types that support statistics",
     "name": "StatisticsObjectType",
     "type": "string",
     "enum": [

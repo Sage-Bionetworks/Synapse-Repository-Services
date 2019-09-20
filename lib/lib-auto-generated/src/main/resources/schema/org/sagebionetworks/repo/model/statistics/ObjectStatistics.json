@@ -2,23 +2,18 @@
 	"description": "Container for statistics for a specific object type",
 	"type": "interface",
 	"properties": {
-		"lastUpdatedOn": {
-			"type": "integer",
-			"description": "The approximate timestamp the statistics for the object were updated",
-			"title": "Last Update Time"
-		},
 		"objectType": {
 			"description": "The type of object for which this statistics were computed",
 			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.statistics.StatisticsObjectType"
 		},
 		"objectId": {
-			"description": "The ID of the object for which this statistics were computed",
-			"type": "string"
+			"type": "string",
+			"description": "The id of the object for which this statistics were computed"
 		},
         "concreteType":{
             "type":"string",
-            "description":"Indicates which implementation of this object represents for deserialization purposes."
+            "description": "Implementation type"
         }
 	}
 }

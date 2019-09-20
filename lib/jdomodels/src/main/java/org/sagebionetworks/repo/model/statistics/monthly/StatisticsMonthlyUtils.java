@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,15 +23,15 @@ public class StatisticsMonthlyUtils {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
-	static { 
+	static {
 		OBJECT_MAPPER.registerModule(new JavaTimeModule());
 	}
 	
 	public final static int FIRST_DAY_OF_THE_MONTH = 1;
 
 	/**
-	 * @param  monthsNumber The number of past months
-	 * @return              A list of {@link YearMonth}s in the past for the given monthsNumber (excludes the current month)
+	 * @param monthsNumber The number of past months
+	 * @return A list of {@link YearMonth}s in the past for the given monthsNumber (excludes the current month)
 	 */
 	public static List<YearMonth> generatePastMonths(int monthsNumber) {
 		ValidateArgument.requirement(monthsNumber > 0, "The number of months should be greater than 0");
@@ -54,6 +55,22 @@ public class StatisticsMonthlyUtils {
 		return LocalDate.of(month.getYear(), month.getMonth(), FIRST_DAY_OF_THE_MONTH);
 	}
 
+	/**
+	 * Return a pair representing the start (inclusive) and end (exclusive) timestamps (ms, epoch time) that represent the
+	 * range of the given month
+	 * 
+	 * @param month
+	 * @return
+	 */
+	public static Pair<Long, Long> getTimestampRange(YearMonth month) {
+		LocalDate firstOfTheMonth = month.atDay(FIRST_DAY_OF_THE_MONTH);
+	
+		Long start = firstOfTheMonth.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+		Long end = firstOfTheMonth.plusMonths(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+	
+		return new Pair<>(start, end);
+	}
+	
 	public static String buildNotificationBody(StatisticsObjectType objectType, YearMonth month) {
 		try {
 			return OBJECT_MAPPER.writeValueAsString(new StatisticsMonthlyProcessNotification(objectType, month));
