@@ -60,8 +60,8 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -137,7 +137,7 @@ public class FileHandleManagerImplTest {
 	@Mock
 	ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
-	StatisticsEventsCollector mockStatisticsCollector;
+	EventsCollector mockStatisticsCollector;
 
 	@InjectMocks
 	FileHandleManagerImpl manager;

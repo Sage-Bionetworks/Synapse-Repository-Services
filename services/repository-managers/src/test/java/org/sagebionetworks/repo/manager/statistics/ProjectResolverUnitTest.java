@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.records;
+package org.sagebionetworks.repo.manager.statistics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.sagebionetworks.repo.manager.statistics.ProjectResolverImpl;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 

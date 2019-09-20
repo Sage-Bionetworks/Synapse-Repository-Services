@@ -1,17 +1,18 @@
-package org.sagebionetworks.repo.manager.statistics.events;
+package org.sagebionetworks.repo.manager.statistics;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.manager.events.SynapseEvent;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 
 /**
- * Implementation of a {@link StatisticsEvent} related to file events (E.g. download/upload)
+ * Implementation of a {@link SynapseEvent} related to file events (E.g. download/upload)
  * 
  * @author Marco
  *
  */
-public class StatisticsFileEvent implements StatisticsEvent {
+public class StatisticsFileEvent implements SynapseEvent {
 
 	private FileEvent actionType;
 	private Long userId;
