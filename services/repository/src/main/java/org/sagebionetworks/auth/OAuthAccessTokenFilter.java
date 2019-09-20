@@ -3,7 +3,6 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -20,11 +19,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.sun.istack.logging.Logger;
-
 public class OAuthAccessTokenFilter implements Filter {
-	
-	private static final Logger log = Logger.getLogger(OAuthAccessTokenFilter.class);
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;

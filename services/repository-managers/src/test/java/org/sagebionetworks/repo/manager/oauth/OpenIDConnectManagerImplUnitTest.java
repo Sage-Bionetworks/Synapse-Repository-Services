@@ -631,6 +631,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		}  catch (IllegalArgumentException e) {
 			// as expected
 		}
+		
 	}
 	
 	@Test

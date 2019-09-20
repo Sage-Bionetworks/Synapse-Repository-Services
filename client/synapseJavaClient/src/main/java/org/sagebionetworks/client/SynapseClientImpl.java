@@ -4396,7 +4396,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		requestHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, getAuthorizationHeader());
 		// do work:  application/jwt, application/octet-stream, application/foo, text/xml
 		// do not work: application/json and text/plain, omitting the header altogether
-		requestHeaders.put(ACCEPT, "text/xml");
+		requestHeaders.put(ACCEPT, "application/jwt");
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
 		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
