@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -110,9 +111,13 @@ public class ClaimsJsonUtilTest {
 		
 		// we need to simulate the round trip to a serialized form and back
 		String token = Jwts.builder().setClaims(claims).compact();
+		// while we're at it, let's check that the serialized representation is as expected
+		String expectedSerializedBody = "{\"access\":{\"scope\":[\"openid\"],\"oidc_claims\":{\"team\":{\"values\":[\"101\"],\"value\":null,\"essential\":null},\"given_name\":null,\"family_name\":{\"values\":null,\"value\":\"foo\",\"essential\":true}}}}";
+		String actualSerializedBody = new String(Base64.decodeBase64(token.split("\\.")[1]));
+		assertEquals(expectedSerializedBody, actualSerializedBody);
 		Claims parsedClaims = Jwts.parser().parseClaimsJwt(token).getBody();
 		
-		// ... then we extract the results and show they match
+		// ... Now we extract the results and show they match
 		// method under test
 		assertEquals(scopes, ClaimsJsonUtil.getScopeFromClaims(parsedClaims));
 		// method under test

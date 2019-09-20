@@ -393,4 +393,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 				+ "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
 	}
+	
+	@Override
+	public void deleteCertifiedUserTestResponse(String id)
+			throws SynapseException {
+		deleteUri(getRepoEndpoint(), ADMIN + CERTIFIED_USER_TEST_RESPONSE + "/" + id);
+	}
 }

@@ -539,7 +539,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
-	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 
 	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
@@ -4434,12 +4433,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE,
 				response, PassingRecord.class);
-	}
-
-	@Override
-	public void deleteCertifiedUserTestResponse(String id)
-			throws SynapseException {
-		deleteUri(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE + "/" + id);
 	}
 
 	@Override
