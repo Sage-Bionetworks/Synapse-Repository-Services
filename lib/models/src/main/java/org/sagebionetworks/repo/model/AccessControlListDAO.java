@@ -26,7 +26,6 @@ public interface AccessControlListDAO  {
 	public AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
 			ACCESS_TYPE permission);
 
-
 	/**
 	 * Create a new ACL
 	 * @param dto
