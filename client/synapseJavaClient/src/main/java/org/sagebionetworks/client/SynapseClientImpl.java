@@ -4394,7 +4394,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException {
 		Map<String,String> requestHeaders = new HashMap<String,String>();
 		requestHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, getAuthorizationHeader());
-		requestHeaders.put(ACCEPT, APPLICATION_JWT+","+APPLICATION_JSON);
+		// do work:  application/jwt, application/octet-stream, application/foo, text/xml
+		// do not work: application/json and text/plain, omitting the header altogether
+		requestHeaders.put(ACCEPT, "text/xml");
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
 		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {

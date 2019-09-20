@@ -69,10 +69,10 @@ public class ITOpenIDConnectTest {
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
-			adminSynapse.deleteUser(user1ToDelete);
+			if (user1ToDelete!=null) adminSynapse.deleteUser(user1ToDelete);
 		} catch (SynapseException e) { }
 		try {
-			adminSynapse.deleteUser(user2ToDelete);
+			if (user2ToDelete!=null) adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
 	}
 
@@ -121,7 +121,6 @@ public class ITOpenIDConnectTest {
 				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
 		);
 		
-		System.out.println(authorizationRequest.getClaims());
 		// Note, we get the authorization description anonymously
 		OIDCAuthorizationRequestDescription description = 
 				synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
