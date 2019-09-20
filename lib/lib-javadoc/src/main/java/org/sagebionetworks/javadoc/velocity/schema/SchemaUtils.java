@@ -303,7 +303,7 @@ public class SchemaUtils {
 		if(TYPE.ARRAY == type.getType()){
 			isArray = true;
 			isUnique = type.getUniqueItems();
-		} else if (TYPE.MAP == type.getType() || TYPE.STR_KEY_MAP == type.getType()) {
+		} else if (TYPE.TUPLE_ARRAY_MAP == type.getType() || TYPE.MAP == type.getType()) {
 			isMap = true;
 		}
 		return new TypeReference(isArray, isUnique, isMap, display, href);
@@ -324,14 +324,14 @@ public class SchemaUtils {
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeHref(type.getItems());
 		}
-		if (TYPE.MAP == type.getType()) {
+		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
 			ObjectSchema valueSchema = type.getValue();
 			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] keyHref = getTypeHref(keySchema);
 			String[] valueHref = getTypeHref(valueSchema);
@@ -342,10 +342,10 @@ public class SchemaUtils {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
 			return new String[]{keyHref[0], valueHref[0]};
-		}else if (TYPE.STR_KEY_MAP == type.getType()) { //TODO: test
+		}else if (TYPE.MAP == type.getType()) { //TODO: test
 			ObjectSchema valueSchema = type.getValue();
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] valueHref = getTypeHref(valueSchema);
 			if (valueHref.length != 1) {
@@ -368,14 +368,14 @@ public class SchemaUtils {
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeDisplay(type.getItems());
 		}
-		if (TYPE.MAP == type.getType()) {
+		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
 			ObjectSchema valueSchema = type.getValue();
 			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] keyDisplay = getTypeDisplay(keySchema);
 			String[] valueDisplay = getTypeDisplay(valueSchema);
@@ -386,10 +386,10 @@ public class SchemaUtils {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
 			return new String[]{keyDisplay[0], valueDisplay[0]};
-		} else if (TYPE.STR_KEY_MAP == type.getType()){
+		} else if (TYPE.MAP == type.getType()){
 			ObjectSchema valueSchema = type.getValue();
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] valueDisplay = getTypeDisplay(valueSchema);
 			if (valueDisplay.length != 1) {

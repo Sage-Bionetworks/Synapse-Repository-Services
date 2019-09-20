@@ -10,7 +10,7 @@
 			"description":  "Etag of the Entity to which this annotation belongs. To update an AnnotationV2, this field must match the current etag on the Entity."
 		},
 		"annotations": {
-			"type": "map",
+			"type":"tuplearraymap",
 			"key": {
 				"type": "string"
 			},

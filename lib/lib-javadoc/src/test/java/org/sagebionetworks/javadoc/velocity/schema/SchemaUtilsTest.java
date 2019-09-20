@@ -219,7 +219,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringMapPrimitives() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.STRING));
 		schema.setValue(new ObjectSchema(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
@@ -232,7 +232,7 @@ public class SchemaUtilsTest {
 
 	@Test
 	public void testTypeToLinkStringMapObjects() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.OBJECT));
 		schema.setValue(new ObjectSchema(TYPE.OBJECT));
 		String name1 = "Example1";
