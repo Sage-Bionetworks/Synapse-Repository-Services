@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.Challenge;
@@ -475,6 +476,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
 	public static final String AUTH_OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String AUTH_OAUTH_2_CLIENT_SECRET = AUTH_OAUTH_2_CLIENT+"/secret/";
 	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
 	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
@@ -537,7 +539,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
-	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 
 	private static final String PROJECT = "/project";
 	private static final String FORUM = "/forum";
@@ -4312,7 +4313,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public OAuthClientIdAndSecret createOAuthClientSecret(String clientId) throws SynapseException {
-		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT, null, OAuthClientIdAndSecret.class);
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT_SECRET+clientId, null, OAuthClientIdAndSecret.class);
 	}
 
 	@Override
@@ -4363,7 +4364,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri.setParameter(AUTH_OAUTH_2_CODE_PARAM, code);
 		}
 		if (redirectUri != null) {
-			uri.setParameter( AUTH_OAUTH_2_REDIRECT_URI_PARAM, urlEncode(redirectUri));
+			uri.setParameter( AUTH_OAUTH_2_REDIRECT_URI_PARAM, redirectUri);
 		}
 		if (refresh_token != null) {
 			uri.setParameter(AUTH_OAUTH_2_REfRESH_TOKEN_PARAM, refresh_token);
@@ -4374,7 +4375,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (claims != null) {
 			uri.setParameter(AUTH_OAUTH_2_CLAIMS_PARAM, urlEncode(claims));
 		}
-		return getJSONEntity(getAuthEndpoint(), uri.toString(), OIDCTokenResponse.class);
+		return postJSONEntity(getAuthEndpoint(), uri.toString(), null, OIDCTokenResponse.class);
 		
 	}
 
@@ -4391,6 +4392,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException {
 		Map<String,String> requestHeaders = new HashMap<String,String>();
+		requestHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, getAuthorizationHeader());
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
 		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
@@ -4428,12 +4430,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE,
 				response, PassingRecord.class);
-	}
-
-	@Override
-	public void deleteCertifiedUserTestResponse(String id)
-			throws SynapseException {
-		deleteUri(getRepoEndpoint(), CERTIFIED_USER_TEST_RESPONSE + "/" + id);
 	}
 
 	@Override
