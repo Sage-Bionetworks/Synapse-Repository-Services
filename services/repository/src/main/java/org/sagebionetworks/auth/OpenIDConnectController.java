@@ -148,7 +148,7 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OAuthClientList listOAuthClients(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM) String nextPageToken
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
 			) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
 				listOpenIDConnectClients(userId, nextPageToken);

@@ -45,7 +45,7 @@ public class OIDCTokenHelperImplTest {
 	private static final String SUBJECT_ID = "101";
 	private static final String CLIENT_ID = "client-01234";
 	private static final long NOW = System.currentTimeMillis();
-	private static final Long AUTH_TIME = (new Date()).getTime()/1000L;
+	private static final Date AUTH_TIME = new Date();
 	private static final String TOKEN_ID = UUID.randomUUID().toString();
 	private static final String NONCE = UUID.randomUUID().toString();
 	private static final List<String> TEAM_IDS = new ArrayList<String>();
@@ -198,7 +198,7 @@ public class OIDCTokenHelperImplTest {
 		// If the auth_time Claim was requested, either through a specific request for this Claim or by using the max_age parameter, 
 	    // the Client SHOULD check the auth_time Claim value and request re-authentication if it determines too much time has elapsed 
 	    // since the last End-User authentication.
-	    assertEquals(new Integer(AUTH_TIME.intValue()), claimsSet.get(OIDCClaimName.auth_time.name(), Integer.class));
+	    assertEquals(AUTH_TIME, claimsSet.get(OIDCClaimName.auth_time.name(), Date.class));
 	}
 		
 	@Test
@@ -240,6 +240,4 @@ public class OIDCTokenHelperImplTest {
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
 		oidcTokenHelper.validateJWT(oidcToken);
 	}
-		
-
 }

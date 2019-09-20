@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -112,7 +113,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private UserProfileManager userProfileManager;
 	
 	@Mock
-	private TeamDAO mockTeamDAO;
+	private GroupMembersDAO mockGroupMembersDAO;
 
 	@Mock
 	private UserManager mockUserManager;
@@ -206,11 +207,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		mockClaimProviders.put(OIDCClaimName.validated_at, mockValidatedAtClaimProvider);
 		
-		ListWrapper<TeamMember> teamMembers = new ListWrapper<TeamMember>();
-		TeamMember teamMember = new TeamMember();
-		teamMember.setTeamId("101");
-		teamMembers.setList(Collections.singletonList(teamMember));
-		when(mockTeamDAO.listMembers((List<Long>)any(), (List<Long>)any())).thenReturn(teamMembers);
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
+
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
 		openIDConnectManagerImpl.setClaimProviders(mockClaimProviders);
@@ -513,8 +511,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfo_internal_missing_info() {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
-		ListWrapper<TeamMember> teamMembers = new ListWrapper<TeamMember>();
-		when(mockTeamDAO.listMembers((List<Long>)any(), (List<Long>)any())).thenReturn(teamMembers);
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
 
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.validated_at, null);
@@ -546,11 +543,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		String ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(NONCE), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 		
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// elsewhere we test that we correctly build up the requested user-info
 		// here we just spot check a few fields to make sure everything's wired up
@@ -634,7 +631,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		}  catch (IllegalArgumentException e) {
 			// as expected
 		}
-
+		
 	}
 	
 	@Test
@@ -647,13 +644,13 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now.getTime()/1000L), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		verify(oidcTokenHelper, never()).
-			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyString(), (Map)any());
+			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), (Map)any());
 		
 		assertNull(tokenResponse.getId_token());
 
@@ -665,12 +662,13 @@ public class OpenIDConnectManagerImplUnitTest {
 		Jwt<JwsHeader,Claims> accessToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
 		claims.setAudience(OAUTH_CLIENT_ID);
 		claims.setSubject(openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID));
-		claims.put(OIDCClaimName.auth_time.name(), now.getTime()/1000L);
+		claims.put(OIDCClaimName.auth_time.name(), now);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.userid, null);
 		oidcClaims.put(OIDCClaimName.email, null);
 		oidcClaims.put(OIDCClaimName.email_verified, null);
 		ClaimsJsonUtil.addAccessClaims(Collections.singletonList(OAuthScope.openid), oidcClaims, claims);
+		
 		return accessToken;
 	}
 	
@@ -695,7 +693,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(null), eq(now.getTime()/1000L), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				eq(null), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
 		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getUserInfo(createAccessToken(), OAUTH_ENDPOINT);

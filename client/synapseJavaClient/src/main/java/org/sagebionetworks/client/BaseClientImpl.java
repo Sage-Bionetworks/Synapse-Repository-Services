@@ -91,6 +91,8 @@ public class BaseClientImpl implements BaseClient {
 	private String authEndpoint;
 	private String fileEndpoint;
 
+	private String authorizationHeader;
+	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
 
@@ -191,6 +193,7 @@ public class BaseClientImpl implements BaseClient {
 	@Override
 	public void setBasicAuthorizationCredentials(String uname, String password) {
 		String basicAuthCredentials = ClientUtils.createBasicAuthorizationHeader(uname, password);
+		this.authorizationHeader=basicAuthCredentials;
 		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
 		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, basicAuthCredentials);
 	}
@@ -204,15 +207,20 @@ public class BaseClientImpl implements BaseClient {
 	@Override
 	public void setBearerAuthorizationToken(String bearerToken) {
 		String bearerTokenHeader = AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken;
+		this.authorizationHeader=bearerTokenHeader;
 		defaultGETDELETEHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
 		defaultPOSTPUTHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, bearerTokenHeader);
 	}
 
+	protected String getAuthorizationHeader() {
+		return authorizationHeader;
+	}
 	/**
 	 * Remove the Authorization Header
 	 */
 	@Override
 	public void removeAuthorizationHeader() {
+		this.authorizationHeader=null;
 		defaultGETDELETEHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 		defaultPOSTPUTHeaders.remove(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 	}
