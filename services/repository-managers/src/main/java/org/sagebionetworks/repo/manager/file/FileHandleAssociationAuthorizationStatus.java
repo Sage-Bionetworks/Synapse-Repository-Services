@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
-import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 
 /**
