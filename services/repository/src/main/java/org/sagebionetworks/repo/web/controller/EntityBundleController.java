@@ -58,7 +58,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 0x1 + 0x2 = 0x3.
  * </p>
  */
-@ControllerInfo(displayName="Entity Bundle Services", path="repo/v1")
+@Deprecated
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class EntityBundleController {
@@ -80,6 +80,7 @@ public class EntityBundleController {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -106,6 +107,7 @@ public class EntityBundleController {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -138,6 +140,7 @@ public class EntityBundleController {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
@@ -170,6 +173,7 @@ public class EntityBundleController {
 	 * @throws ParseException 
 	 * @throws ACLInheritanceException 
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -182,5 +186,4 @@ public class EntityBundleController {
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
 	}
-
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.annotation.v2;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,14 +21,14 @@ public class AnnotationsV2TestUtils {
 	 * @param type
 	 * @return previous value if it was replaced. else null
 	 */
-	public static AnnotationsV2Value putAnnotations(AnnotationsV2 annotationsV2, String key, List<String> values, AnnotationsV2ValueType type){
+	public static AnnotationsValue putAnnotations(Annotations annotationsV2, String key, List<String> values, AnnotationsValueType type){
 		ValidateArgument.required(annotationsV2, "annotationsV2");
 		ValidateArgument.requiredNotEmpty(key, "key");
 		ValidateArgument.required(values, "value");
 		ValidateArgument.required(type, "type");
 
 		//ensure annotations map not null
-		Map<String, AnnotationsV2Value> annotationsMap = annotationsV2.getAnnotations();
+		Map<String, AnnotationsValue> annotationsMap = annotationsV2.getAnnotations();
 		if(annotationsMap == null){
 			annotationsMap = new LinkedHashMap<>();
 			annotationsV2.setAnnotations(annotationsMap);
@@ -44,18 +45,29 @@ public class AnnotationsV2TestUtils {
 	 * @param type
 	 * @return previous value if it was replaced. else null
 	 */
-	public static AnnotationsV2Value putAnnotations(AnnotationsV2 annotationsV2, String key, String value, AnnotationsV2ValueType type) {
+	public static AnnotationsValue putAnnotations(Annotations annotationsV2, String key, String value, AnnotationsValueType type) {
 		return putAnnotations(annotationsV2, key, Collections.singletonList(value), type);
 	}
 
-	public static AnnotationsV2Value createNewValue(AnnotationsV2ValueType type, String... value) {
+	public static AnnotationsValue createNewValue(AnnotationsValueType type, String... value) {
 		return createNewValue(type, Arrays.asList(value));
 	}
 
-	public static AnnotationsV2Value createNewValue(AnnotationsV2ValueType type, List<String> value) {
-		AnnotationsV2Value v2Value = new AnnotationsV2Value();
+	public static AnnotationsValue createNewValue(AnnotationsValueType type, List<String> value) {
+		AnnotationsValue v2Value = new AnnotationsValue();
 		v2Value.setType(type);
 		v2Value.setValue(value);
 		return v2Value;
+	}
+
+	public static Annotations newEmptyAnnotationsV2(){
+		return newEmptyAnnotationsV2(null);
+	}
+
+	public static Annotations newEmptyAnnotationsV2(String id){
+		Annotations annotationsV2 = new Annotations();
+		annotationsV2.setId(id);
+		annotationsV2.setAnnotations(new HashMap<>());
+		return annotationsV2;
 	}
 }

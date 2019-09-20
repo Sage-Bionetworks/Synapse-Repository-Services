@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus;
+import org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus;
 import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.StatisticsStatus;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
@@ -42,7 +42,7 @@ public class DBOMonthlyStatisticsStatusTest {
 	@AfterEach
 	private void after() {
 		toDelete.forEach(month -> {
-			dboBasicDao.deleteObjectByPrimaryKey(DBOMonthlyStatisticsStatus.class, getPrimaryKeyParams(month));
+			dboBasicDao.deleteObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, getPrimaryKeyParams(month));
 		});
 	}
 
@@ -53,10 +53,10 @@ public class DBOMonthlyStatisticsStatusTest {
 		
 		YearMonth yearMonth  = YearMonth.of(year, month);
 
-		DBOMonthlyStatisticsStatus dbo = newStatus(yearMonth);
+		DBOStatisticsMonthlyStatus dbo = newStatus(yearMonth);
 		
 		// Call under test
-		DBOMonthlyStatisticsStatus created = dboBasicDao.createNew(dbo);
+		DBOStatisticsMonthlyStatus created = dboBasicDao.createNew(dbo);
 
 		assertEquals(dbo, created);
 	}
@@ -68,7 +68,7 @@ public class DBOMonthlyStatisticsStatusTest {
 		
 		YearMonth yearMonth  = YearMonth.of(year, month);
 
-		DBOMonthlyStatisticsStatus dbo = newStatus(yearMonth);
+		DBOStatisticsMonthlyStatus dbo = newStatus(yearMonth);
 		
 		// A day different than the first day of the month
 		int dayOfTheMonth = 2;
@@ -78,7 +78,7 @@ public class DBOMonthlyStatisticsStatusTest {
 		// Makes sure that the DBO sets it back to the first day of the month
 		assertEquals(yearMonth.atDay(1), dbo.getMonth());
 		
-		DBOMonthlyStatisticsStatus created = dboBasicDao.createNew(dbo);
+		DBOStatisticsMonthlyStatus created = dboBasicDao.createNew(dbo);
 
 		assertEquals(dbo, created);
 		assertEquals(yearMonth.atDay(1), created.getMonth());
@@ -91,8 +91,8 @@ public class DBOMonthlyStatisticsStatusTest {
 		
 		YearMonth yearMonth  = YearMonth.of(year, month);
 
-		DBOMonthlyStatisticsStatus dbo = newStatus(yearMonth);
-		DBOMonthlyStatisticsStatus created = dboBasicDao.createNew(dbo);
+		DBOStatisticsMonthlyStatus dbo = newStatus(yearMonth);
+		DBOStatisticsMonthlyStatus created = dboBasicDao.createNew(dbo);
 
 		assertEquals(created, dbo);
 
@@ -103,7 +103,7 @@ public class DBOMonthlyStatisticsStatusTest {
 
 		assertTrue(updated);
 
-		DBOMonthlyStatisticsStatus updatedDbo = getStatus(yearMonth);
+		DBOStatisticsMonthlyStatus updatedDbo = getStatus(yearMonth);
 
 		assertEquals(created, updatedDbo);
 
@@ -116,21 +116,21 @@ public class DBOMonthlyStatisticsStatusTest {
 		
 		YearMonth yearMonth  = YearMonth.of(year, month);
 
-		DBOMonthlyStatisticsStatus dbo = newStatus(yearMonth);
-		DBOMonthlyStatisticsStatus created = dboBasicDao.createNew(dbo);
+		DBOStatisticsMonthlyStatus dbo = newStatus(yearMonth);
+		DBOStatisticsMonthlyStatus created = dboBasicDao.createNew(dbo);
 
 		assertEquals(created, dbo);
 
 		// Makes sure that a duplicate key cannot be inserted
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			DBOMonthlyStatisticsStatus duplicateDbo = newStatus(yearMonth);
+			DBOStatisticsMonthlyStatus duplicateDbo = newStatus(yearMonth);
 			// Call under test
 			dboBasicDao.createNew(duplicateDbo);
 		});
 	}
 
-	private DBOMonthlyStatisticsStatus getStatus(YearMonth month) {
-		return dboBasicDao.getObjectByPrimaryKey(DBOMonthlyStatisticsStatus.class, getPrimaryKeyParams(month));
+	private DBOStatisticsMonthlyStatus getStatus(YearMonth month) {
+		return dboBasicDao.getObjectByPrimaryKey(DBOStatisticsMonthlyStatus.class, getPrimaryKeyParams(month));
 	}
 
 	private SqlParameterSource getPrimaryKeyParams(YearMonth month) {
@@ -140,8 +140,8 @@ public class DBOMonthlyStatisticsStatusTest {
 		return params;
 	}
 
-	private DBOMonthlyStatisticsStatus newStatus(YearMonth month) {
-		DBOMonthlyStatisticsStatus dbo = new DBOMonthlyStatisticsStatus();
+	private DBOStatisticsMonthlyStatus newStatus(YearMonth month) {
+		DBOStatisticsMonthlyStatus dbo = new DBOStatisticsMonthlyStatus();
 
 		dbo.setObjectType(objectType);
 		dbo.setMonth(StatisticsMonthlyUtils.toDate(month));

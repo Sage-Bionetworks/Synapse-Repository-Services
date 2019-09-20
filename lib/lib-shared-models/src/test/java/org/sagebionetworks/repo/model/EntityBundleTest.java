@@ -1,16 +1,15 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -31,7 +30,7 @@ public class EntityBundleTest {
 	
 	private EntityBundle entityBundle;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
 		entityBundle = new EntityBundle();
 	}
@@ -51,9 +50,9 @@ public class EntityBundleTest {
 	private void testAddEntity(Entity original, Class clazz){
 		entityBundle.setEntity(original);
 		Entity retrieved = entityBundle.getEntity();
-		assertNotNull("Entity was set / should not be null.", retrieved);
-		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
-				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
+		assertNotNull(retrieved, "Entity was set / should not be null.");
+		assertEquals(retrieved.getClass().getName(), clazz.getName(), "Entity type was '" + retrieved.getClass().getName() + "'; Expected '"
+				+ clazz.getName());
 	}
 
 	@Test
@@ -61,8 +60,8 @@ public class EntityBundleTest {
 		DoiAssociation doi = new DoiAssociation();
 		entityBundle.setDoiAssociation(doi);
 		DoiAssociation retrieved = entityBundle.getDoiAssociation();
-		assertNotNull("Doi was set / should not be null", retrieved);
-		assertTrue("Set/Retrieved doi do not match original", retrieved.equals(doi));
+		assertNotNull(retrieved, "Doi was set / should not be null");
+		assertEquals(retrieved, doi, "Set/Retrieved doi do not match original");
 	}
 	
 	@Test
@@ -70,8 +69,8 @@ public class EntityBundleTest {
 		Annotations annotations = new Annotations();
 		entityBundle.setAnnotations(annotations);
 		Annotations retrieved = entityBundle.getAnnotations();
-		assertNotNull("Annotations were set / should not be null", retrieved);
-		assertTrue("Set/Retrieved annotations do not match original", retrieved.equals(annotations));
+		assertNotNull(retrieved, "Annotations were set / should not be null");
+		assertEquals(retrieved, annotations, "Set/Retrieved annotations do not match original");
 	}
 		
 	@Test
@@ -196,5 +195,15 @@ public class EntityBundleTest {
 		entityBundle.setFileName("foo.txt");
 		
 		return entityBundle;
+	}
+
+	@Test
+	public void testSetEntity_nullEntity(){
+		//first set a non-null Entity to give entityType a value
+		entityBundle.setEntity(new Project());
+		assertEquals("org.sagebionetworks.repo.model.Project", entityBundle.getEntityType());
+		//then set to entity null and check that entity type has also been set to null
+		entityBundle.setEntity(null);
+		assertNull(entityBundle.getEntityType());
 	}
 }

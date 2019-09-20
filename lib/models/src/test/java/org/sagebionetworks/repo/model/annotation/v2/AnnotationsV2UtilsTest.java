@@ -15,25 +15,24 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 class AnnotationsV2UtilsTest {
 
-	private AnnotationsV2 annotationsV2;
-	private AnnotationsV2Value annotationsV2Value;
+	private Annotations annotationsV2;
+	private AnnotationsValue annotationsV2Value;
 	private String key;
 
 	@BeforeEach
 	public void setUp(){
 		key = "myKey";
-		annotationsV2 = new AnnotationsV2();
+		annotationsV2 = new Annotations();
 		annotationsV2.setEtag("etag");
-		annotationsV2Value = new AnnotationsV2Value();
+		annotationsV2Value = new AnnotationsValue();
 		annotationsV2.setAnnotations(new HashMap<>());
-		annotationsV2Value.setType(AnnotationsV2ValueType.DOUBLE);
+		annotationsV2Value.setType(AnnotationsValueType.DOUBLE);
 		annotationsV2Value.setValue(new LinkedList<>());
 	}
 
@@ -45,7 +44,7 @@ class AnnotationsV2UtilsTest {
 	@Test
 	public void getSingleValue_AnnotationsV2Value_nullList(){
 		//Can't explicitly set list to null, but uninitialized AnnotationsV2Value will have null value.
-		annotationsV2Value = new AnnotationsV2Value();
+		annotationsV2Value = new AnnotationsValue();
 		assertNull(AnnotationsV2Utils.getSingleValue(annotationsV2Value));
 	}
 
@@ -80,7 +79,7 @@ class AnnotationsV2UtilsTest {
 	@Test
 	public void getSingleValue_AnnotationsV2_nullAnnotationsMap(){
 		//Can't explicitly set map to null, but uninitialized AnnotationsV2 will have null value.
-		annotationsV2 = new AnnotationsV2();
+		annotationsV2 = new Annotations();
 		assertNull(AnnotationsV2Utils.getSingleValue(annotationsV2, key));
 	}
 
@@ -108,23 +107,23 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void toJSONStringForStorage_nullAnnotationsMap() throws JSONObjectAdapterException {
-		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		Annotations annotationsV2 = new Annotations();
 		assertNull(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 	}
 
 	@Test
 	public void toJSONStringForStorage_EmptyAnnotationsMap() throws JSONObjectAdapterException {
-		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		Annotations annotationsV2 = new Annotations();
 		annotationsV2.setAnnotations(Collections.emptyMap());
 		assertNull(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 	}
 
 	@Test
 	public void toJSONStringForStorage_AnnotationsMapWithEntries() throws JSONObjectAdapterException {
-		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		Annotations annotationsV2 = new Annotations();
 		annotationsV2.setId("shouldNotBeInJSON");
 		annotationsV2.setEtag("shouldAlsoNotBeInJSON");
-		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2TestUtils.createNewValue(AnnotationsV2ValueType.STRING, "value1")));
+		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "value1")));
 
 		//id and etag should not be found in the final json
 		assertEquals("{\"annotations\":[{\"key\":\"key\",\"value\":{\"type\":\"STRING\",\"value\":[\"value1\"]}}]}", AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
@@ -183,7 +182,7 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testUpdateValidateAnnotations_nullMap(){
-		annotationsV2 = new AnnotationsV2();
+		annotationsV2 = new Annotations();
 		annotationsV2.setEtag("etag");
 		assertDoesNotThrow(() -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
@@ -193,7 +192,7 @@ class AnnotationsV2UtilsTest {
 	@Test
 	public void testUpdateValidateAnnotations_ExceedMaxKeys(){
 		for(int i = 0; i < AnnotationsV2Utils.MAX_ANNOTATION_KEYS + 1; i++){
-			annotationsV2.getAnnotations().put("" + i, new AnnotationsV2Value());
+			annotationsV2.getAnnotations().put("" + i, new AnnotationsValue());
 		}
 		assertThrows(IllegalArgumentException.class, () -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
@@ -202,9 +201,9 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testUpdateValidateAnnotations_MapInvalidKeys(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsValueType.STRING);
 		//oh no
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "ṯ͉͑̿͒͡h͙̜͚͎̗̥̒̊ͩ̐̿͛͡i̶̳̖̻̳͍̐̾ͬ́ͬͅs̢̖̦̓̂͌ ̥̯̐ͣͧk̛̪̬͙͊̇͗̾ͨͦ̚e͇̭͠y̵̩͒̓̌̎ͫ ̛̥̣̟͍̤͉ͦͪ̎̀͐́ïͭs̜̣̖̣ ͑ͥͯ͘i͇͖̝̮̹͞n͈̖̞͍̣͕̲͗ͩ̈́vͣ̒̐̾ͭ̃̍a͋͏l̸̩͙̭̮̗̯ͫ̈̇̅̿ͤí̲͛ͩd̮̞̐̓͂ͦ", "infinity", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "ṯ͉͑̿͒͡h͙̜͚͎̗̥̒̊ͩ̐̿͛͡i̶̳̖̻̳͍̐̾ͬ́ͬͅs̢̖̦̓̂͌ ̥̯̐ͣͧk̛̪̬͙͊̇͗̾ͨͦ̚e͇̭͠y̵̩͒̓̌̎ͫ ̛̥̣̟͍̤͉ͦͪ̎̀͐́ïͭs̜̣̖̣ ͑ͥͯ͘i͇͖̝̮̹͞n͈̖̞͍̣͕̲͗ͩ̈́vͣ̒̐̾ͭ̃̍a͋͏l̸̩͙̭̮̗̯ͫ̈̇̅̿ͤí̲͛ͩd̮̞̐̓͂ͦ", "infinity", AnnotationsValueType.DOUBLE);
 
 		assertThrows(InvalidModelException.class, () -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
@@ -213,8 +212,8 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testUpdateValidateAnnotations_MapInvalidValues(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey2", "NotADouble", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey2", "NotADouble", AnnotationsValueType.DOUBLE);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
@@ -223,8 +222,8 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testUpdateValidateAnnotations_MapValid(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey2", "infinity", AnnotationsV2ValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey1", "validValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "validKey2", "infinity", AnnotationsValueType.DOUBLE);
 
 		assertDoesNotThrow(() -> {
 			AnnotationsV2Utils.validateAnnotations(annotationsV2);
@@ -234,9 +233,9 @@ class AnnotationsV2UtilsTest {
 
 	@Test
 	public void testValidateAnnotations(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "one", "1", AnnotationsV2ValueType.TIMESTAMP_MS);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "two", "1.2", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "three", "1", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "one", "1", AnnotationsValueType.TIMESTAMP_MS);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "two", "1.2", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "three", "1", AnnotationsValueType.LONG);
 		annotationsV2.setEtag("etag");
 		AnnotationsV2Utils.validateAnnotations(annotationsV2);
 	}
@@ -247,11 +246,11 @@ class AnnotationsV2UtilsTest {
 	public void testTranslate(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annos, "aString", "someString", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annos, "aLong", "123", AnnotationsV2ValueType.LONG);
-		AnnotationsV2TestUtils.putAnnotations(annos, "aDouble", "1.22", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annos, "aDate", "444", AnnotationsV2ValueType.TIMESTAMP_MS);
+		Annotations annos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annos, "aString", "someString", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aLong", "123", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aDouble", "1.22", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos, "aDate", "444", AnnotationsValueType.TIMESTAMP_MS);
 
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
@@ -273,8 +272,8 @@ class AnnotationsV2UtilsTest {
 	public void testTranslateEmptyList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsV2ValueType.STRING);
+		Annotations annos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annos, "emptyList", Collections.emptyList(), AnnotationsValueType.STRING);
 		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -284,8 +283,8 @@ class AnnotationsV2UtilsTest {
 	public void testTranslateNullValueInList(){
 		long entityId = 123;
 		int maxAnnotationChars = 6;
-		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsV2ValueType.STRING);
+		Annotations annos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsValueType.STRING);
 		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		Assertions.assertEquals(0, results.size());
@@ -294,7 +293,7 @@ class AnnotationsV2UtilsTest {
 	@Test
 	public void testCheckValue_ValueListNull(){
 		assertThrows(IllegalArgumentException.class, ()-> {
-			AnnotationsV2Utils.checkValue(key, new AnnotationsV2Value());
+			AnnotationsV2Utils.checkValue(key, new AnnotationsValue());
 		});
 	}
 
@@ -344,5 +343,4 @@ class AnnotationsV2UtilsTest {
 			AnnotationsV2Utils.checkValue(key, annotationsV2Value);
 		});
 	}
-
 }

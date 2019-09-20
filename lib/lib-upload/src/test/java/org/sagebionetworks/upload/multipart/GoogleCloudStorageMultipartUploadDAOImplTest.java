@@ -61,7 +61,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 	Blob mockBlob;
 
 	@Mock
-	Blob mockBlob2;
+	Blob mockBlobPart;
 
 	private static final String UPLOAD_ID = "233";
 	private static final String KEY_NAME = "testKeyName";
@@ -359,9 +359,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 				.thenReturn(Collections.singletonList(entireFilePart));
 		doNothing().when(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, -1, Long.MAX_VALUE);
 		doNothing().when(mockStorageClient).rename(eq(BUCKET_NAME), any(String.class), eq(KEY_NAME));
-		when(mockStorageClient.getObjects(BUCKET_NAME, KEY_NAME)).thenReturn(Arrays.asList(mockBlob, mockBlob2));
-		when(mockBlob.getName()).thenReturn(KEY_NAME);
-		when(mockBlob2.getName()).thenReturn(KEY_NAME + "/1-5");
+		when(mockStorageClient.getObjects(BUCKET_NAME, KEY_NAME + "/")).thenReturn(Arrays.asList(mockBlobPart));
 		when(mockStorageClient.getObject(BUCKET_NAME, KEY_NAME)).thenReturn(mockBlob);
 		when(mockBlob.getSize()).thenReturn(1234L);
 
@@ -372,7 +370,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		verify(mockMultipartUploadComposerDAO).deletePartsInRange(UPLOAD_ID, -1, Long.MAX_VALUE);
 		verify(mockStorageClient).rename(eq(BUCKET_NAME), any(String.class), eq(KEY_NAME));
 		verify(mockStorageClient).getObject(BUCKET_NAME, KEY_NAME);
-		verify(mockBlob2).delete();
+		verify(mockBlobPart).delete();
 		verify(mockBlob, never()).delete();
 		verify(mockBlob).getSize();
 	}

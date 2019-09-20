@@ -113,11 +113,9 @@ public class GoogleCloudStorageMultipartUploadDAOImpl implements CloudServiceMul
 		multipartUploadComposerDAO.deletePartsInRange(request.getUploadId().toString(), -1, Long.MAX_VALUE);
 		googleCloudStorageClient.rename(request.getBucket(), MultipartUploadUtils.createPartKeyFromRange(request.getKey(), 1, request.getNumberOfParts().intValue()), request.getKey());
 
-		// Get all files that start with the key to delete all of the temporary part files.
-		for (Blob blob : googleCloudStorageClient.getObjects(request.getBucket(), request.getKey())) {
-			if (!blob.getName().equals(request.getKey())) { // If not an exact match (i.e. these will have part number junk at the end of the name)
-				blob.delete();
-			}
+		// Delete all of the temporary part files.
+		for (Blob blob : googleCloudStorageClient.getObjects(request.getBucket(), request.getKey() + "/")) {
+			blob.delete();
 		}
 		return googleCloudStorageClient.getObject(request.getBucket(), request.getKey()).getSize();
 	}

@@ -31,7 +31,6 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -44,9 +43,9 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -97,8 +96,8 @@ public class NodeManagerImplUnitTest {
 	Set<EntityType> entityTypesWithCountLimits;
 	String startEtag;
 	String newEtag;
-	Annotations entityPropertyAnnotations;
-	AnnotationsV2 userAnnotations;
+	org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations;
+	Annotations userAnnotations;
 	
 	@Before
 	public void before() throws Exception {
@@ -134,13 +133,13 @@ public class NodeManagerImplUnitTest {
 		
 
 		
-		entityPropertyAnnotations = new Annotations();
+		entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		entityPropertyAnnotations.addAnnotation("key", "value");
 
-		userAnnotations = new AnnotationsV2();
+		userAnnotations = new Annotations();
 		userAnnotations.setEtag("etag");
 		
-		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new Annotations());
+		when(mockNodeDao.getEntityPropertyAnnotations(any(String.class))).thenReturn(new org.sagebionetworks.repo.model.Annotations());
 		
 		when(mockNodeDao.isNodeAvailable(any(String.class))).thenReturn(true);
 	}
@@ -455,26 +454,26 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		AnnotationsV2 annos = new AnnotationsV2();
-		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "a", AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "12312", AnnotationsV2ValueType.LONG);
+		Annotations annos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "a", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "12312", AnnotationsValueType.LONG);
 		when(mockNodeDao.getUserAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		AnnotationsV2 copy = nodeManager.getUserAnnotations(userInfo, id);
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 
 	@Test
 	public void testGetEntityPropertyAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
 		when(mockNodeDao.getEntityPropertyAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		Annotations copy = nodeManager.getEntityPropertyAnnotations(userInfo, id);
+		org.sagebionetworks.repo.model.Annotations copy = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -974,14 +973,14 @@ public class NodeManagerImplUnitTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testUpdateAnnotations_nullEtag(){
-		AnnotationsV2 updated = new AnnotationsV2();
+		Annotations updated = new Annotations();
 		updated.setAnnotations(null);
 		nodeManager.updateUserAnnotations(mockUserInfo, nodeId, updated);
 	}
 
 	@Test
 	public void testUpdateAnnotations() {
-		AnnotationsV2 updated = new AnnotationsV2();
+		Annotations updated = new Annotations();
 		updated.setEtag(startEtag);
 		updated.setId(nodeId);
 		// call under test
@@ -992,7 +991,7 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testUpdateAnnotationsConflict() {
-		AnnotationsV2 updated = new AnnotationsV2();
+		Annotations updated = new Annotations();
 		updated.setEtag("wrongEtag");
 		updated.setId(nodeId);
 		try {

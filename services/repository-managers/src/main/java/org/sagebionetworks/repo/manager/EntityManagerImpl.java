@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -10,7 +7,6 @@ import com.google.common.collect.Lists;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -32,8 +28,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -92,7 +87,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Set the type for this object
 		node.setNodeType(EntityTypeUtils.getEntityTypeForClass(newEntity.getClass()));
 		node.setActivityId(activityId);
-		Annotations entityPropertyAnnotations = new Annotations();
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, entityPropertyAnnotations);
 		// We are ready to create this node
@@ -107,7 +102,7 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(entityId, "entityId");
 		// Get the annotations for this entity
-		Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo, entityId);
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
@@ -119,7 +114,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		// Get the annotations for this entity
-		Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(user, entityId);
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(user, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(user, entityId);
 		return populateEntityWithNodeAndAnnotations(EntityTypeUtils.getClassForType(node.getNodeType()), entityPropertyAnnotations, node);
@@ -161,7 +156,7 @@ public class EntityManagerImpl implements EntityManager {
 			Class<? extends T> entityClass) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
-		Annotations annos = nodeManager.getEntityPropertyForVersion(userInfo,
+		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyForVersion(userInfo,
 				entityId, versionNumber);
 		// Fetch the current node from the server
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId,
@@ -180,7 +175,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return
 	 */
 	private <T extends Entity> T populateEntityWithNodeAndAnnotations(
-			Class<? extends T> entityClass, Annotations entityProperties, Node node)
+			Class<? extends T> entityClass, org.sagebionetworks.repo.model.Annotations entityProperties, Node node)
 			throws DatastoreException, NotFoundException {
 		// Return the new object from the dataEntity
 		T newEntity = createNewEntity(entityClass);
@@ -245,17 +240,15 @@ public class EntityManagerImpl implements EntityManager {
 		if (entityId == null)
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
-		//TODO: replace translation code
-		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotations(userInfo, entityId));
+		return nodeManager.getUserAnnotations(userInfo, entityId);
 	}
 
 	@Override
 	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id,
-			Long versionNumber) throws NotFoundException, DatastoreException,
+												Long versionNumber) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		// Get all of the annotations.
-		//TODO: replace translation code
-		return AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber));
+		return nodeManager.getUserAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@WriteTransaction
@@ -267,23 +260,7 @@ public class EntityManagerImpl implements EntityManager {
 		if (updated == null)
 			throw new IllegalArgumentException("Annoations cannot be null");
 		// The user has updated the additional annotations.
-		
-		Annotations updatedClone = new Annotations();
-		cloneAnnotations(updated, updatedClone);
-		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
-		//TODO: replace translation code
-
-		nodeManager.updateUserAnnotations(userInfo, entityId, AnnotationsV2Translator.toAnnotationsV2(updatedClone));
-	}
-	
-	public static void cloneAnnotations(Annotations src, Annotations dst) {
-		dst.setBlobAnnotations(src.getBlobAnnotations());
-		dst.setDateAnnotations(src.getDateAnnotations());
-		dst.setDoubleAnnotations(src.getDoubleAnnotations());
-		dst.setEtag(src.getEtag());
-		dst.setId(src.getId());
-		dst.setLongAnnotations(src.getLongAnnotations());
-		dst.setStringAnnotations(src.getStringAnnotations());
+		nodeManager.updateUserAnnotations(userInfo, entityId, updated);
 	}
 
 	@WriteTransaction
@@ -301,7 +278,7 @@ public class EntityManagerImpl implements EntityManager {
 
 		Node node = nodeManager.get(userInfo, updated.getId());
 		// Now get the annotations for this node
-		Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo,
+		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager.getEntityPropertyAnnotations(userInfo,
 				updated.getId());
 		
 		// Auto-version FileEntity See PLFM-1744
@@ -349,7 +326,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param annos
 	 */
 	private <T extends Entity> void updateNodeAndAnnotationsFromEntity(
-			T entity, Node node, Annotations annos) {
+			T entity, Node node, org.sagebionetworks.repo.model.Annotations annos) {
 		// Update the annotations from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos);
 		// Update the node from the entity
