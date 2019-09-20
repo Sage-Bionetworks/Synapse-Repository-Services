@@ -364,61 +364,117 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithNonExistingProject() {
+		UserInfo user = new UserInfo(true);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+		
 		when(mockNodeManager.get(any(), any())).thenThrow(NotFoundException.class);
+		
 		Assertions.assertThrows(NotFoundException.class, () -> {
-			UserInfo user = new UserInfo(true);
-			String projectId = "123";
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
 			// Call under test
 			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
 
-			verify(mockNodeManager).get(user, projectId);
 		});
+
+		verify(mockNodeManager).get(user, projectId);
 	}
-	
+
 	@Test
 	public void testGetProjectStatisticsWithWrongProjectType() {
+		UserInfo user = new UserInfo(true);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+		
 		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.file);
-		Assertions.assertThrows(NotFoundException.class, () -> {
-			UserInfo user = new UserInfo(true);
-			String projectId = "123";
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
+		
+		Assertions.assertThrows(NotFoundException.class, () -> {	
 			// Call under test
 			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
-
-			verify(mockNodeManager).get(user, projectId);
-			verify(mockNode).getNodeType();
 		});
+
+		verify(mockNodeManager).get(user, projectId);
+		verify(mockNode).getNodeType();
 	}
 
 	@Test
 	public void testGetProjectStatisticsWithNoAccess() {
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
-			when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
-			when(mockNode.getNodeType()).thenReturn(EntityType.project);
-			when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
-			doThrow(UnauthorizedException.class).when(mockAuthStatus).checkAuthorizationOrElseThrow();
+		Long userId = 123L;
+		Long creator = 456L;
+		UserInfo user = new UserInfo(false, userId);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+		
+		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
+		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
+		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(false);
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
+		doThrow(UnauthorizedException.class).when(mockAuthStatus).checkAuthorizationOrElseThrow();
 
-			UserInfo user = new UserInfo(true);
-			String projectId = "123";
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
 			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
 
-			verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
 		});
+
+		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
+		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
+	}
+
+	@Test
+	public void testGetProjectStatisticsWithAsAdmin() {
+		Long userId = 123L;
+		Long creator = 456L;
+		boolean isAdmin = true;
+		
+		UserInfo user = new UserInfo(isAdmin, userId);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+
+		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
+		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
+		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(isAdmin);
+
+		// Call under test
+		manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+
+		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
+		verifyNoMoreInteractions(mockAuthManager);
+	}
+	
+	@Test
+	public void testGetProjectStatisticsWithAsCreator() {
+		Long userId = 123L;
+		Long creator = userId;
+		boolean isAdmin = false;
+		UserInfo user = new UserInfo(isAdmin, userId);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+
+		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
+		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
+		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
+
+		// Call under test
+		manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+
+		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
+		verifyNoMoreInteractions(mockAuthManager);
 	}
 
 	@Test
 	public void testGetProjectStatistics() {
 		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
-		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
+		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(MAX_MONTHS);
 

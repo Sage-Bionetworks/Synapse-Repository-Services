@@ -59,8 +59,12 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 			throw new NotFoundException("The id " + projectId + " does not refer to project");
 		}
 
+		String projectCreator = project.getCreatedByPrincipalId().toString();
+		
 		// Verify access to the project
-		authManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
+		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
+			authManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
+		}
 
 		Long parsedProjectId = KeyFactory.stringToKey(projectId);
 
@@ -106,8 +110,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 	Long getLastUpdatedOnMax(Collection<StatisticsMonthlyProjectFiles> statistics) {
 		Optional<Long> maxTimestamp = statistics.stream().map(StatisticsMonthlyProjectFiles::getLastUpdatedOn).max(Long::compare);
-		return maxTimestamp.isPresent() ? maxTimestamp.get() : -1;
-
+		return maxTimestamp.isPresent() ? maxTimestamp.get() : -1L;
 	}
 
 	FilesCountStatistics getFilesCountStatistics(YearMonth month, StatisticsMonthlyProjectFiles statistics) {
