@@ -47,8 +47,8 @@ import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.pinpointsmsvoice.model.NotFoundException;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
