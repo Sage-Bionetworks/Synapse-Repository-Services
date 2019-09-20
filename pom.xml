@@ -704,11 +704,6 @@
 				<version>${org.apache.pivot.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>org.json</groupId>
-				<artifactId>json</artifactId>
-				<version>${org.json.version}</version>
-			</dependency>
-			<dependency>
 				<groupId>com.sun.mail</groupId>
 				<artifactId>javax.mail</artifactId>
 				<version>1.6.1</version>
@@ -967,7 +962,6 @@
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
-		<org.json.version>20090211</org.json.version>
 		<jira.client.version>5.1.0-476bd700</jira.client.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
 		<junit.vintage.version>5.4.1</junit.vintage.version>
