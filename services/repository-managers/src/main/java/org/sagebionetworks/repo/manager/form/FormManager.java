@@ -123,4 +123,9 @@ public interface FormManager {
 	 */
 	AuthorizationStatus canUserDownloadFormData(UserInfo user, String formDataId);
 
+	/**
+	 * Truncate all from data.
+	 */
+	void truncateAll();
+
 }

@@ -395,4 +395,10 @@ public class FormManagerImpl implements FormManager {
 		return aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 	}
 
+	@Override
+	public void truncateAll() {
+		aclDao.deleteAllofType(ObjectType.FORM_GROUP);
+		formDao.truncateAll();
+	}
+
 }
