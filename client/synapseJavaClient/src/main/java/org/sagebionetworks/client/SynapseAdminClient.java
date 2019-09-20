@@ -256,6 +256,18 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Get all Passing Records on the Certified User test for the given user
 	 */
 	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
+	
+
+	/**
+	 * Delete the Test Response indicated by the given id
+	 * 
+	 * Must be a Synapse admin to make this request
+	 * 
+	 * @param id
+	 * @throws SynapseException 
+	 */
+	public void deleteCertifiedUserTestResponse(String id) throws SynapseException;
+
 
 	/**
 	 * Deletes a message.  Used for test cleanup only.  Admin only.
