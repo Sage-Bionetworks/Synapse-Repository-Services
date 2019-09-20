@@ -335,6 +335,7 @@ public class FormManagerImpl implements FormManager {
 		return response;
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData reviewerAcceptForm(UserInfo user, String formDataId) {
 		ValidateArgument.required(user, "UserInfo");
@@ -343,7 +344,7 @@ public class FormManagerImpl implements FormManager {
 		// must have the READ_PRIVATE_SUBMISSION permission on the group.
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 
-		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
+		SubmissionStatus status = formDao.getFormDataStatusForUpdate(formDataId);
 		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
 			throw new IllegalArgumentException(
 					"Cannot accept a submission that is currently: " + status.getState().name());
@@ -354,6 +355,7 @@ public class FormManagerImpl implements FormManager {
 		return formDao.updateStatus(formDataId, status);
 	}
 
+	@WriteTransaction
 	@Override
 	public FormData reviewerRejectForm(UserInfo user, String formDataId, String reason) {
 		ValidateArgument.required(user, "UserInfo");
@@ -367,7 +369,7 @@ public class FormManagerImpl implements FormManager {
 		// must have the READ_PRIVATE_SUBMISSION permission on the group.
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 
-		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
+		SubmissionStatus status = formDao.getFormDataStatusForUpdate(formDataId);
 		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
 			throw new IllegalArgumentException(
 					"Cannot reject a submission that is currently: " + status.getState().name());
