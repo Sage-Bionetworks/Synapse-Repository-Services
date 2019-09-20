@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.manager.form;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -11,7 +12,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
@@ -27,21 +31,25 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.ListRequest;
+import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 
 import com.amazonaws.services.pinpointsmsvoice.model.NotFoundException;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class FormManagerTest {
@@ -57,7 +65,7 @@ public class FormManagerTest {
 
 	@Captor
 	ArgumentCaptor<AccessControlList> aclCaptor;
-	
+
 	@Captor
 	ArgumentCaptor<SubmissionStatus> statusCaptor;
 
@@ -75,8 +83,10 @@ public class FormManagerTest {
 	FormData formData;
 
 	UserInfo anonymousUser;
-	
+
 	SubmissionStatus submittedStatus;
+
+	ListRequest listRequest;
 
 	@BeforeEach
 	public void before() {
@@ -95,11 +105,15 @@ public class FormManagerTest {
 		formData.setFormDataId(formDataId);
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		
+
 		submittedStatus = new SubmissionStatus();
 		submittedStatus.setSubmittedOn(new Date(123));
 		submittedStatus.setState(StateEnum.SUBMITTED_WAITING_FOR_REVIEW);
-		
+
+		listRequest = new ListRequest();
+		listRequest.setGroupId(groupId);
+		listRequest.setFilterByState(Sets.newHashSet(StateEnum.ACCEPTED));
+
 	}
 
 	@Test
@@ -855,10 +869,10 @@ public class FormManagerTest {
 			// call under test
 			manager.submitFormData(user, formDataId);
 		});
-		
+
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
-	
+
 	@Test
 	public void testSubmitFormAlreadyAccepted() {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
@@ -871,7 +885,7 @@ public class FormManagerTest {
 
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
-	
+
 	@Test
 	public void testSubmitFormCannotSubmitToGroup() {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
@@ -879,7 +893,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.accessDenied("No submit on group"));
-		
+
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.submitFormData(user, formDataId);
@@ -888,19 +902,19 @@ public class FormManagerTest {
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
-	
+
 	@Test
 	public void testReviewerAcceptForm() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		.thenReturn(AuthorizationStatus.authorized());
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
-		
+
 		// call under test
 		FormData updated = manager.reviewerAcceptForm(user, formDataId);
 		assertEquals(formData, updated);
-		
+
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
 		SubmissionStatus status = statusCaptor.getValue();
@@ -911,39 +925,55 @@ public class FormManagerTest {
 		assertEquals(user.getId().toString(), status.getReviewedBy());
 		assertNotNull(status.getReviewedOn());
 	}
-	
+
 	@Test
-	public void testReviewerAcceptFormWrongStartingState() {	
+	public void testReviewerAcceptFormNoPermission() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		.thenReturn(AuthorizationStatus.authorized());
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.reviewerAcceptForm(user, formDataId);
+		});
+
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+
+	@Test
+	public void testReviewerAcceptFormWrongStartingState() {
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.authorized());
 		// wrong starting state
 		SubmissionStatus status = new SubmissionStatus();
 		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(status);
-		
-		assertThrows(IllegalArgumentException.class, () -> {
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.reviewerAcceptForm(user, formDataId);
-		});
-		
+		}).getMessage();
+		assertEquals("Cannot accept a submission that is currently: WAITING_FOR_SUBMISSION", message);
+
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
-	
+
 	@Test
 	public void testReviewerRejectForm() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
 		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
-		.thenReturn(AuthorizationStatus.authorized());
+				.thenReturn(AuthorizationStatus.authorized());
 		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
-		String reason = "just because";
-		
+		String reason = StringUtils.repeat('a', FormManagerImpl.MAX_REASON_CHARS);
+
 		// call under test
 		FormData updated = manager.reviewerRejectForm(user, formDataId, reason);
 		assertEquals(formData, updated);
-		
+
 		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
 		SubmissionStatus status = statusCaptor.getValue();
@@ -953,5 +983,232 @@ public class FormManagerTest {
 		assertEquals(reason, status.getRejectionMessage());
 		assertEquals(user.getId().toString(), status.getReviewedBy());
 		assertNotNull(status.getReviewedOn());
+	}
+
+	@Test
+	public void testReviewerRejectFormWrongState() {
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.authorized());
+		// wrong starting state
+		SubmissionStatus status = new SubmissionStatus();
+		status.setState(StateEnum.WAITING_FOR_SUBMISSION);
+		when(mockFormDao.getFormDataStatus(formDataId)).thenReturn(status);
+
+		String reason = "just because";
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.reviewerRejectForm(user, formDataId, reason);
+		}).getMessage();
+		assertEquals("Cannot reject a submission that is currently: WAITING_FOR_SUBMISSION", message);
+
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+
+	@Test
+	public void testReviewerRejectFormNoPermission() {
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+		String reason = "just because";
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.reviewerRejectForm(user, formDataId, reason);
+		});
+
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+
+	@Test
+	public void testReviewerRejectFormMessagTooLong() {
+		String reason = StringUtils.repeat('a', FormManagerImpl.MAX_REASON_CHARS + 1);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.reviewerRejectForm(user, formDataId, reason);
+		});
+
+		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
+	}
+
+	@Test
+	public void testListFormStatusForCreator() {
+		NextPageToken expectedToken = new NextPageToken(null);
+		List<FormData> page = createPageOfSize((int) (expectedToken.getLimitForQuery()));
+		String expectedNextToken = expectedToken.getNextPageTokenForCurrentResults(new ArrayList<>(page));
+		when(mockFormDao.listFormDataByCreator(user.getId(), listRequest, expectedToken.getLimitForQuery(),
+				expectedToken.getOffset())).thenReturn(page);
+		// call under test
+		ListResponse response = manager.listFormStatusForCreator(user, listRequest);
+		assertNotNull(response);
+		assertEquals(page, response.getPage());
+		assertEquals(expectedNextToken, response.getNextPageToken());
+		verify(mockFormDao).listFormDataByCreator(user.getId(), listRequest, expectedToken.getLimitForQuery(),
+				expectedToken.getOffset());
+	}
+
+	@Test
+	public void testListFormStatusForCreatorNullUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForCreator(user, listRequest);
+		});
+
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormStatusForCreatorNullRequest() {
+		listRequest = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForCreator(user, listRequest);
+		});
+
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormStatusForCreatorNullGroupId() {
+		listRequest.setGroupId(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForCreator(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormStatusForCreatorNullStateFilter() {
+		listRequest.setFilterByState(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForCreator(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormStatusForCreatorEmptyStateFilter() {
+		listRequest.setFilterByState(new HashSet<>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForCreator(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewer() {
+		NextPageToken expectedToken = new NextPageToken(null);
+		List<FormData> page = createPageOfSize((int) (expectedToken.getLimitForQuery()));
+		String expectedNextToken = expectedToken.getNextPageTokenForCurrentResults(new ArrayList<>(page));
+		when(mockFormDao.listFormDataForReviewer(listRequest, expectedToken.getLimitForQuery(),
+				expectedToken.getOffset())).thenReturn(page);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		ListResponse response = manager.listFormStatusForReviewer(user, listRequest);
+		assertNotNull(response);
+		assertEquals(page, response.getPage());
+		assertEquals(expectedNextToken, response.getNextPageToken());
+		verify(mockFormDao).listFormDataForReviewer(listRequest, expectedToken.getLimitForQuery(),
+				expectedToken.getOffset());
+	}
+
+	@Test
+	public void testListFormDataForReviewerUnauthorized() {
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataForReviewer(any(ListRequest.class), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testListFormDataForReviewerFilterWaitingForSubmission() {
+		listRequest.setFilterByState(Sets.newHashSet(StateEnum.WAITING_FOR_SUBMISSION));
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewerNullUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewerNullRequest() {
+		listRequest = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewerNullGroupId() {
+		listRequest.setGroupId(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewerNullStateFilter() {
+		listRequest.setFilterByState(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListFormDataForReviewerEmptyStateFilter() {
+		listRequest.setFilterByState(new HashSet<>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listFormStatusForReviewer(user, listRequest);
+		});
+		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	/**
+	 * Helper to create a page of data of the given size.
+	 * 
+	 * @param size
+	 * @return
+	 */
+	public static List<FormData> createPageOfSize(int size) {
+		List<FormData> page = new ArrayList<>(size);
+		for (int i = 0; i < size; i++) {
+			FormData data = new FormData();
+			data.setFormDataId("" + i);
+			page.add(data);
+		}
+		return page;
 	}
 }

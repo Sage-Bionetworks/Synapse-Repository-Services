@@ -20,14 +20,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_G
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -38,6 +44,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -50,8 +58,11 @@ public class FormDaoImpl implements FormDao {
 	DBOBasicDao basicDao;
 	@Autowired
 	JdbcTemplate jdbcTemplate;
+	@Autowired
+	NamedParameterJdbcTemplate namedTemplate;
 
 	private static RowMapper<DBOFormGroup> GROUP_MAPPER = new DBOFormGroup().getTableMapping();
+	private static RowMapper<DBOFormData> FORM_DATA_MAPPER = new DBOFormData().getTableMapping();
 
 	private static RowMapper<SubmissionStatus> STATUS_MAPPER = (ResultSet rs, int rowNum) -> {
 		SubmissionStatus status = new SubmissionStatus();
@@ -214,6 +225,18 @@ public class FormDaoImpl implements FormDao {
 		return dto;
 	}
 
+	/**
+	 * Convert a list of DBOs to DTOs
+	 * 
+	 * @param dbos
+	 * @return
+	 */
+	static List<FormData> dboToDbo(List<DBOFormData> dbos) {
+		return dbos.stream().map((DBOFormData t) -> {
+			return dtoToDbo(t);
+		}).collect(Collectors.toList());
+	}
+
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " > 0");
@@ -267,6 +290,48 @@ public class FormDaoImpl implements FormDao {
 				status.getSubmittedOn(), status.getReviewedOn(), status.getReviewedBy(), status.getState().name(),
 				status.getRejectionMessage(), formDataId);
 		return getFormData(formDataId);
+	}
+
+	/**
+	 * Convert from list of enums to list of strings.
+	 * 
+	 * @param states
+	 * @return
+	 */
+	List<String> enumToString(Set<StateEnum> states) {
+		return states.stream().map((StateEnum t) -> {
+			return t.name();
+		}).collect(Collectors.toList());
+	}
+
+	@Override
+	public List<FormData> listFormDataByCreator(Long creatorId, ListRequest request, long limit, long offset) {
+		MapSqlParameterSource paramSource = new MapSqlParameterSource();
+		paramSource.addValue("creatorId", creatorId);
+		paramSource.addValue("groupId", request.getGroupId());
+		paramSource.addValue("limit", limit);
+		paramSource.addValue("offset", offset);
+		// States are converted from enums to strings.
+		paramSource.addValue("states", enumToString(request.getFilterByState()));
+		return dboToDbo(namedTemplate.query(
+				"SELECT * FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_CREATED_BY + " = :creatorId AND "
+						+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE
+						+ " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
+				paramSource, FORM_DATA_MAPPER));
+	}
+
+	@Override
+	public List<FormData> listFormDataForReviewer(ListRequest request, long limit, long offset) {
+		MapSqlParameterSource paramSource = new MapSqlParameterSource();
+		paramSource.addValue("groupId", request.getGroupId());
+		paramSource.addValue("limit", limit);
+		paramSource.addValue("offset", offset);
+		// States are converted from enums to strings.
+		paramSource.addValue("states", enumToString(request.getFilterByState()));
+		return dboToDbo(namedTemplate.query(
+				"SELECT * FROM " + TABLE_FORM_DATA + " WHERE "+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE
+						+ " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
+				paramSource, FORM_DATA_MAPPER));
 	}
 
 }

@@ -85,7 +85,7 @@ public interface FormManager {
 	 * @param request
 	 * @return
 	 */
-	ListResponse listFormStatusForCaller(UserInfo user, ListRequest request);
+	ListResponse listFormStatusForCreator(UserInfo user, ListRequest request);
 
 	/**
 	 * List FormData matching the provided request for a reviewer with the

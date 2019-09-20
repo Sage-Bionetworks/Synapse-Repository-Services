@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ_PRIVATE_SUBMISSION
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -217,9 +219,9 @@ public class FormManagerImpl implements FormManager {
 		validateUserIsCreator(user, formDataId);
 
 		validateCanUpdateState(formDataId);
-	
+
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.SUBMIT);
-		
+
 		// Must own the fileHandle
 		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
 		if (name != null) {
@@ -244,7 +246,7 @@ public class FormManagerImpl implements FormManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(formDataId, "formDataId");
 		String groupId = formDao.getFormDataGroupId(formDataId);
-		// must have submit on the group.
+		// must have the provided permission on the group.
 		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, permission).checkAuthorizationOrElseThrow();
 	}
 
@@ -293,25 +295,54 @@ public class FormManagerImpl implements FormManager {
 	}
 
 	@Override
-	public ListResponse listFormStatusForCaller(UserInfo user, ListRequest request) {
-		// TODO Auto-generated method stub
-		return null;
+	public ListResponse listFormStatusForCreator(UserInfo user, ListRequest request) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getGroupId(), "request.groupId");
+		ValidateArgument.required(request.getFilterByState(), "request.getFilterByState");
+		if(request.getFilterByState().isEmpty()) {
+			throw new IllegalArgumentException("Must include at least one filterByState");
+		}
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<FormData> page = formDao.listFormDataByCreator(user.getId(), request, token.getLimitForQuery(),
+				token.getOffset());
+		ListResponse response = new ListResponse();
+		response.setPage(page);
+		response.setNextPageToken(token.getNextPageTokenForCurrentResults(page));
+		return response;
 	}
 
 	@Override
 	public ListResponse listFormStatusForReviewer(UserInfo user, ListRequest request) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getGroupId(), "request.groupId");
+		ValidateArgument.required(request.getFilterByState(), "request.getFilterByState");
+		if(request.getFilterByState().isEmpty()) {
+			throw new IllegalArgumentException("Must include at least one filterByState");
+		}
+		if(request.getFilterByState().contains(StateEnum.WAITING_FOR_SUBMISSION)) {
+			throw new IllegalArgumentException("Reviewer cannot filter by: "+StateEnum.WAITING_FOR_SUBMISSION);
+		}
+		// must have the provided permission on the group.
+		aclDao.canAccess(user, request.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)
+				.checkAuthorizationOrElseThrow();
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<FormData> page = formDao.listFormDataForReviewer(request, token.getLimitForQuery(), token.getOffset());
+		ListResponse response = new ListResponse();
+		response.setPage(page);
+		response.setNextPageToken(token.getNextPageTokenForCurrentResults(page));
+		return response;
 	}
 
 	@Override
 	public FormData reviewerAcceptForm(UserInfo user, String formDataId) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(formDataId, "formDataId");
-		
+
 		// must have the READ_PRIVATE_SUBMISSION permission on the group.
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		
+
 		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
 		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
 			throw new IllegalArgumentException(
@@ -328,14 +359,14 @@ public class FormManagerImpl implements FormManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(formDataId, "formDataId");
 		ValidateArgument.required(reason, "reason");
-		
-		if(reason.length() > MAX_REASON_CHARS) {
-			throw new IllegalArgumentException("Reason must be "+MAX_REASON_CHARS+" or less");
+
+		if (reason.length() > MAX_REASON_CHARS) {
+			throw new IllegalArgumentException("Reason must be " + MAX_REASON_CHARS + " or less");
 		}
-		
+
 		// must have the READ_PRIVATE_SUBMISSION permission on the group.
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		
+
 		SubmissionStatus status = formDao.getFormDataStatus(formDataId);
 		if (!StateEnum.SUBMITTED_WAITING_FOR_REVIEW.equals(status.getState())) {
 			throw new IllegalArgumentException(
