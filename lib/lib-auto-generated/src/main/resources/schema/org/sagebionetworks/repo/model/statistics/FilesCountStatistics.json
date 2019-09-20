@@ -3,12 +3,14 @@
     "description":"Describes an aggregate of file actions (e.g. downloads/uploads) and (unique) users count for a specific time frame",
     "properties":{
     	"rangeStart": {
-    		"type": "integer",
+    		"type": "string",
+			"format":"date-time",
     		"title": "Range Start",
     		"description": "The start timestamp of the time frame this bucket represents"
     	},
     	"rangeEnd": {
-    		"type": "integer",
+    		"type": "string",
+			"format":"date-time",
     		"title": "Range End",
     		"description": "The end timestamp of the time frame this bucket represents (inclusive)"
     	},

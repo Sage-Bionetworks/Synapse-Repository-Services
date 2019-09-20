@@ -16,6 +16,7 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -120,8 +121,8 @@ public class ProjectStatisticsManagerTest {
 
 		expected.setFilesCount(filesCount.longValue());
 		expected.setUsersCount(usersCount.longValue());
-		expected.setRangeStart(range.getFirst());
-		expected.setRangeEnd(range.getSecond());
+		expected.setRangeStart(new Date(range.getFirst()));
+		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
 		FilesCountStatistics result = manager.getFilesCountStatistics(month, mockStatistics);
@@ -143,8 +144,8 @@ public class ProjectStatisticsManagerTest {
 
 		expected.setFilesCount(0L);
 		expected.setUsersCount(0L);
-		expected.setRangeStart(range.getFirst());
-		expected.setRangeEnd(range.getSecond());
+		expected.setRangeStart(new Date(range.getFirst()));
+		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
 		FilesCountStatistics result = manager.getFilesCountStatistics(month, null);
@@ -168,8 +169,8 @@ public class ProjectStatisticsManagerTest {
 
 		expected.setFilesCount(0L);
 		expected.setUsersCount(0L);
-		expected.setRangeStart(range.getFirst());
-		expected.setRangeEnd(range.getSecond());
+		expected.setRangeStart(new Date(range.getFirst()));
+		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
 		FilesCountStatistics result = manager.getFilesCountStatistics(month, mockStatistics);
@@ -182,12 +183,12 @@ public class ProjectStatisticsManagerTest {
 	public void testGetLastUpdatedOnMax() {
 		List<StatisticsMonthlyProjectFiles> stats = ImmutableList.of(mockStatistics, mockStatistics, mockStatistics);
 
-		Long expected = 3L;
+		Date expected = new Date();
 
-		when(mockStatistics.getLastUpdatedOn()).thenReturn(1L, 2L, expected);
+		when(mockStatistics.getLastUpdatedOn()).thenReturn(expected.getTime() - 2, expected.getTime() - 1, expected.getTime());
 
 		// Call under test
-		Long result = manager.getLastUpdatedOnMax(stats);
+		Date result = manager.getLastUpdatedOnMax(stats);
 
 		assertEquals(expected, result);
 	}
@@ -196,10 +197,10 @@ public class ProjectStatisticsManagerTest {
 	public void testGetLastUpdatedOnMaxWithEmptyList() {
 		List<StatisticsMonthlyProjectFiles> stats = Collections.emptyList();
 
-		Long expected = -1L;
+		Long expected = null;
 
 		// Call under test
-		Long result = manager.getLastUpdatedOnMax(stats);
+		Date result = manager.getLastUpdatedOnMax(stats);
 
 		assertEquals(expected, result);
 	}
@@ -214,14 +215,14 @@ public class ProjectStatisticsManagerTest {
 
 		MonthlyFilesStatistics expected = new MonthlyFilesStatistics();
 
-		expected.setLastUpdatedOn(-1L);
+		expected.setLastUpdatedOn(null);
 		expected.setMonths(new ArrayList<>(MAX_MONTHS));
 
 		months.forEach(month -> {
 			FilesCountStatistics stats = new FilesCountStatistics();
 			Pair<Long, Long> range = StatisticsMonthlyUtils.getTimestampRange(month);
-			stats.setRangeStart(range.getFirst());
-			stats.setRangeEnd(range.getSecond());
+			stats.setRangeStart(new Date(range.getFirst()));
+			stats.setRangeEnd(new Date(range.getSecond()));
 			stats.setFilesCount(0L);
 			stats.setUsersCount(0L);
 			expected.getMonths().add(stats);
@@ -262,7 +263,7 @@ public class ProjectStatisticsManagerTest {
 		MonthlyFilesStatistics expected = new MonthlyFilesStatistics();
 
 		expected.setMonths(statistics.stream().map(this::map).collect(Collectors.toList()));
-		expected.setLastUpdatedOn(statistics.get(statistics.size() - 1).getLastUpdatedOn());
+		expected.setLastUpdatedOn(new Date(statistics.get(statistics.size() - 1).getLastUpdatedOn()));
 
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), any(), any(), any())).thenReturn(statistics);
 
@@ -304,15 +305,15 @@ public class ProjectStatisticsManagerTest {
 
 		expected.setMonths(new ArrayList<>(MAX_MONTHS));
 		expected.getMonths().addAll(statistics.stream().map(this::map).collect(Collectors.toList()));
-		expected.setLastUpdatedOn(statistics.get(statistics.size() - 1).getLastUpdatedOn());
+		expected.setLastUpdatedOn(new Date(statistics.get(statistics.size() - 1).getLastUpdatedOn()));
 
 		for (int i = MAX_MONTHS / 2; i < MAX_MONTHS; i++) {
 			YearMonth month = months.get(i);
 
 			FilesCountStatistics mappedStats = new FilesCountStatistics();
 			Pair<Long, Long> range = StatisticsMonthlyUtils.getTimestampRange(month);
-			mappedStats.setRangeStart(range.getFirst());
-			mappedStats.setRangeEnd(range.getSecond());
+			mappedStats.setRangeStart(new Date(range.getFirst()));
+			mappedStats.setRangeEnd(new Date(range.getSecond()));
 			mappedStats.setFilesCount(0L);
 			mappedStats.setUsersCount(0L);
 
@@ -588,7 +589,7 @@ public class ProjectStatisticsManagerTest {
 
 	private MonthlyFilesStatistics map(List<StatisticsMonthlyProjectFiles> list, Long lastUpdatedOn) {
 		MonthlyFilesStatistics stats = new MonthlyFilesStatistics();
-		stats.setLastUpdatedOn(lastUpdatedOn);
+		stats.setLastUpdatedOn(new Date(lastUpdatedOn));
 		stats.setMonths(list.stream().map(this::map).collect(Collectors.toList()));
 		return stats;
 	}
@@ -596,8 +597,8 @@ public class ProjectStatisticsManagerTest {
 	private FilesCountStatistics map(StatisticsMonthlyProjectFiles in) {
 		FilesCountStatistics mappedStats = new FilesCountStatistics();
 		Pair<Long, Long> range = StatisticsMonthlyUtils.getTimestampRange(in.getMonth());
-		mappedStats.setRangeStart(range.getFirst());
-		mappedStats.setRangeEnd(range.getSecond());
+		mappedStats.setRangeStart(new Date(range.getFirst()));
+		mappedStats.setRangeEnd(new Date(range.getSecond()));
 		mappedStats.setFilesCount(in.getFilesCount().longValue());
 		mappedStats.setUsersCount(in.getUsersCount().longValue());
 		return mappedStats;

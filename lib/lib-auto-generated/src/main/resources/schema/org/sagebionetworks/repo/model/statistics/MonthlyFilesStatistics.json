@@ -3,8 +3,9 @@
     "description": "Container for the statistics relative to file downloads or uploads for the past 12 months (Excluding the current month).",
     "properties": {
     	"lastUpdatedOn" : {
-    		"type": "integer",
-			"description": "The approximate time the files statistics were refreshed. If the statistics were not yet computed this will be set to -1.",
+    		"type": "string",
+			"format":"date-time",
+			"description": "The approximate time the files statistics were refreshed. If the statistics were not yet computed the value will not be set",
 			"title": "Last Update Time"
     	},
         "months": {

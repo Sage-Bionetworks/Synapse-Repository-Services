@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.statistics.project;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -100,7 +101,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 			filesCountStats.add(monthStats);
 		}
 
-		Long lastUpdatedOn = getLastUpdatedOnMax(statsMap.values());
+		Date lastUpdatedOn = getLastUpdatedOnMax(statsMap.values());
 
 		statistics.setMonths(filesCountStats);
 		statistics.setLastUpdatedOn(lastUpdatedOn);
@@ -108,9 +109,9 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 		return statistics;
 	}
 
-	Long getLastUpdatedOnMax(Collection<StatisticsMonthlyProjectFiles> statistics) {
+	Date getLastUpdatedOnMax(Collection<StatisticsMonthlyProjectFiles> statistics) {
 		Optional<Long> maxTimestamp = statistics.stream().map(StatisticsMonthlyProjectFiles::getLastUpdatedOn).max(Long::compare);
-		return maxTimestamp.isPresent() ? maxTimestamp.get() : -1L;
+		return maxTimestamp.isPresent() ? new Date(maxTimestamp.get()) : null;
 	}
 
 	FilesCountStatistics getFilesCountStatistics(YearMonth month, StatisticsMonthlyProjectFiles statistics) {
@@ -118,8 +119,8 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 		FilesCountStatistics monthStats = new FilesCountStatistics();
 
-		monthStats.setRangeStart(monthRange.getFirst());
-		monthStats.setRangeEnd(monthRange.getSecond());
+		monthStats.setRangeStart(new Date(monthRange.getFirst()));
+		monthStats.setRangeEnd(new Date(monthRange.getSecond()));
 		monthStats.setFilesCount(0L);
 		monthStats.setUsersCount(0L);
 

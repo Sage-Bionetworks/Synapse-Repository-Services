@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.statistics.project;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -112,7 +111,7 @@ public class ProjectStatisticsManagerAutowireTest {
 		// Verify the 12 months are present
 		assertEquals(stackConfig.getMaximumMonthsForMonthlyStatistics(), stats.getMonths().size());
 		// Verify that the last updated on timestamp is set
-		assertNotEquals(-1L, stats.getLastUpdatedOn());
+		assertNotNull(stats.getLastUpdatedOn());
 		// Verify that for some (the delta) months the count will be 0
 		assertEquals(monthsDelta, stats.getMonths().stream().filter( count -> count.getFilesCount().equals(0L)).count());
 		assertEquals(monthsDelta, stats.getMonths().stream().filter( count -> count.getUsersCount().equals(0L)).count());
