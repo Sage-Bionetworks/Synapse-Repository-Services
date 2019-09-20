@@ -19,12 +19,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
@@ -122,7 +121,7 @@ public class DBORevisionTest {
 
 		DBORevision revision = new DBORevision();
 
-		Annotations userAnnotations = new Annotations();
+		org.sagebionetworks.repo.model.Annotations userAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		userAnnotations.addAnnotation("additionalKey", "additionalValue");
 
 		revision.setUserAnnotationsV1(AnnotationUtils.compressAnnotationsV1(userAnnotations));
@@ -135,7 +134,7 @@ public class DBORevisionTest {
 
 		assertNull(modified.getUserAnnotationsV1());
 		assertNotNull(modified.getUserAnnotationsJSON());
-		AnnotationsV2 expectedUserAnnotationV2 = AnnotationsV2Translator.toAnnotationsV2(userAnnotations);
-		assertEquals(expectedUserAnnotationV2, EntityFactory.createEntityFromJSONString(modified.getUserAnnotationsJSON(), AnnotationsV2.class));
+		Annotations expectedUserAnnotationV2 = AnnotationsV2Translator.toAnnotationsV2(userAnnotations);
+		assertEquals(expectedUserAnnotationV2, EntityFactory.createEntityFromJSONString(modified.getUserAnnotationsJSON(), Annotations.class));
 	}
 }

@@ -53,18 +53,19 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -550,17 +551,22 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1 = synapseOne.getSubmission(sub1.getId());
 		
 		// verify EntityBundle
-		int partsMask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
-		EntityBundle bundle = synapseOne.getEntityBundle(entityId, partsMask);
-		EntityBundle clone = new EntityBundle();
+		EntityBundleRequest bundleV2Request = new EntityBundleRequest();
+		bundleV2Request.setIncludeEntity(true);
+		bundleV2Request.setIncludeAnnotations(true);
+		bundleV2Request.setIncludeFileHandles(true);
+		EntityBundle bundle = synapseOne.getEntityBundleV2(entityId, bundleV2Request);
+		org.sagebionetworks.repo.model.EntityBundle sumbissionJSONStringBundle = new org.sagebionetworks.repo.model.EntityBundle();
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		clone.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
+		sumbissionJSONStringBundle.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
 		// we don't care if etags have changed
-		clone.getEntity().setEtag(null);
-		clone.getAnnotations().setEtag(null);
+		sumbissionJSONStringBundle.getEntity().setEtag(null);
+		sumbissionJSONStringBundle.getAnnotations().setEtag(null);
 		bundle.getEntity().setEtag(null);
 		bundle.getAnnotations().setEtag(null);
-		assertEquals(bundle, clone);
+		assertEquals(bundle.getEntity(), sumbissionJSONStringBundle.getEntity());
+		assertEquals(AnnotationsV2Translator.toAnnotationsV1(bundle.getAnnotations()), sumbissionJSONStringBundle.getAnnotations());
+		assertEquals(bundle.getFileHandles(), sumbissionJSONStringBundle.getFileHandles());
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());

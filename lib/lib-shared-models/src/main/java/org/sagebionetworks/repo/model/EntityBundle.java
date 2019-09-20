@@ -19,7 +19,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * Low-level bundle to transport an Entity and related data objects between the 
  * Synapse platform and external clients.
  */
-public class EntityBundle implements JSONEntity, Serializable {
+public class 	EntityBundle implements JSONEntity, Serializable {
 	
 	/**
 	 * Masks for requesting what should be included in the bundle.
@@ -350,9 +350,17 @@ public class EntityBundle implements JSONEntity, Serializable {
 	 */
 	public void setEntity(Entity entity) {
 		this.entity = entity;
-		String s = entity.getClass().toString();
-		// trim "Class " from the above String
-		entityType = s.substring(s.lastIndexOf(" ") + 1);
+		if(entity != null) {
+			String s = entity.getClass().toString();
+			// trim "Class " from the above String
+			this.entityType = s.substring(s.lastIndexOf(" ") + 1);
+		} else {
+			this.entityType = null;
+		}
+	}
+
+	public String getEntityType(){
+		return this.entityType;
 	}
 
 	/**

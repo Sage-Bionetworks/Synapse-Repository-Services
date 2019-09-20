@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.Challenge;
@@ -41,8 +39,9 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -78,6 +77,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -164,7 +164,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -402,26 +401,26 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException;
 
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
-			throws SynapseException;
-
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
-			throws SynapseException;
-
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
-			throws SynapseException;
-
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
-			String activityId) throws SynapseException;
-
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	public EntityBundle getEntityBundle(String entityId, int partsMask)
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc)
 			throws SynapseException;
 
-	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
-			int partsMask) throws SynapseException;
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc, String activityId)
+			throws SynapseException;
+
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc)
+			throws SynapseException;
+
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc,
+											 String activityId) throws SynapseException;
+
+	public EntityBundle getEntityBundleV2(String entityId, EntityBundleRequest bundleV2Request)
+			throws SynapseException;
+
+	public EntityBundle getEntityBundleV2(String entityId, Long versionNumber,
+										  EntityBundleRequest bundleV2Request) throws SynapseException;
 
 	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
 			int offset, int limit) throws SynapseException;
@@ -527,9 +526,9 @@ public interface SynapseClient extends BaseClient {
 	public UserEntityPermissions getUsersEntityPermissions(String entityId)
 			throws SynapseException;
 
-	public Annotations getAnnotations(String entityId) throws SynapseException;
+	public Annotations getAnnotationsV2(String entityId) throws SynapseException;
 
-	public Annotations updateAnnotations(String entityId, Annotations updated)
+	public Annotations updateAnnotationsV2(String entityId, Annotations updated)
 			throws SynapseException;
 
 	public <T extends AccessRequirement> T createAccessRequirement(T ar)
@@ -2017,16 +2016,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
-
-	/**
-	 * Delete the Test Response indicated by the given id
-	 * 
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param id
-	 * @throws SynapseException 
-	 */
-	public void deleteCertifiedUserTestResponse(String id) throws SynapseException;
 	
 	/**
 	 * Get the Passing Record on the Certified User test for the given user

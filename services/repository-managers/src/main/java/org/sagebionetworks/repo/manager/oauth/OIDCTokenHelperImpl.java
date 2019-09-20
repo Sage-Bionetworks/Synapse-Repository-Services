@@ -68,7 +68,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String oauthClientId,
 			long now, 
 			String nonce, 
-			Long authTimeSeconds,
+			Date authTime,
 			String tokenId,
 			Map<OIDCClaimName,Object> userInfo) {
 		
@@ -88,7 +88,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		
 		if (nonce!=null) claims.put(NONCE, nonce);
 		
-		if (authTimeSeconds!=null) claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
+		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 
 		return createSignedJWT(claims);
 	}
@@ -99,7 +99,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			String subject, 
 			String oauthClientId,
 			long now, 
-			Long authTimeSeconds,
+			Date authTime,
 			String tokenId,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
@@ -116,7 +116,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 			.setId(tokenId)
 			.setSubject(subject);
 		
-		if (authTimeSeconds!=null) claims.put(OIDCClaimName.auth_time.name(), authTimeSeconds);
+		if (authTime!=null) claims.put(OIDCClaimName.auth_time.name(), authTime);
 
 		return createSignedJWT(claims);
 	}

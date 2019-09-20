@@ -1,8 +1,8 @@
 {
-	"description": "Request for a list of StatusResults matching the provided filters.",
+	"description": "Request for a list of FormData matching the provided filters.",
 	"properties": {
-		"filterByStatus": {
-			"description": "Only return results with a state that matches elements from this set.  Exclude to return all.",
+		"filterByState": {
+			"description": "Only return results with a state that matches elements from this set.  Required. Must include at least one element.",
 			"type": "array",
 			"uniqueItems": true,
 			"items": {

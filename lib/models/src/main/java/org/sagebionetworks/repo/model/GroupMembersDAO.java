@@ -15,6 +15,14 @@ public interface GroupMembersDAO {
 			throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Return the subset of groups in which the given principal is a member
+	 * @param principalId
+	 * @param groupIds
+	 * @return
+	 */
+	public List<String> filterUserGroups(String principalId, List<String> groupIds);
+	
+	/**
 	 * Adds the list of principal IDs to the group
 	 */
 	public void addMembers(String groupId, List<String> memberIds) 

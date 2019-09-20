@@ -50,6 +50,7 @@ import com.amazonaws.services.glue.model.GetTableRequest;
 import com.amazonaws.services.glue.model.GetTableResult;
 import com.amazonaws.services.glue.model.GetTablesResult;
 import com.amazonaws.services.glue.model.Table;
+import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaSupportImplTest {
@@ -156,7 +157,10 @@ public class AthenaSupportImplTest {
 	public void testGetPartitionedTables() {
 		Database database = new Database().withName(TEST_DB);
 
-		Table table = new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB).withPartitionKeys(new Column().withName(TEST_COLUMN));
+		Table table = new Table()
+				.withName(TEST_TABLE)
+				.withDatabaseName(TEST_DB)
+				.withPartitionKeys(new Column().withName(TEST_COLUMN));
 
 		List<Table> mockTables = Collections.singletonList(table);
 
@@ -168,6 +172,36 @@ public class AthenaSupportImplTest {
 
 		assertTrue(tables.hasNext());
 		assertEquals(table, tables.next());
+		assertFalse(tables.hasNext());
+		verify(mockGlueClient).getTables(any());
+	}
+	
+	@Test
+	public void testGetPartitionedTablesSkipUnpartitionedTables() {
+		Database database = new Database().withName(TEST_DB);
+		
+		Table table1 = new Table()
+				.withName(TEST_TABLE)
+				.withDatabaseName(TEST_DB)
+				.withPartitionKeys(new Column().withName(TEST_COLUMN));
+
+		Table table2 = new Table().withName(TEST_TABLE)
+				.withDatabaseName(TEST_DB)
+				.withPartitionKeys(Collections.emptyList());
+		
+		Table table3 = new Table().withName(TEST_TABLE)
+				.withDatabaseName(TEST_DB);
+
+		List<Table> mockTables = ImmutableList.of(table1, table2, table3);
+
+		when(mockTablesResults.getTableList()).thenReturn(mockTables);
+		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
+
+		// Call under test
+		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
+
+		assertTrue(tables.hasNext());
+		assertEquals(table1, tables.next());
 		assertFalse(tables.hasNext());
 		verify(mockGlueClient).getTables(any());
 	}
@@ -379,6 +413,27 @@ public class AthenaSupportImplTest {
 		// Now the fetch is fired
 		verify(mockAthenaClient).getQueryResults(any());
 
+	}
+	
+	@Test
+	public void testGetQueryResultsWhenStateNotSucceeded() {
+		String queryId = "abcd";
+		boolean excludeHeader = true;
+		
+		GetQueryExecutionRequest queryExecutionRequest = getQueryExecutionRequest(queryId);
+		QueryExecution queryExecution = getQueryExecution(queryId);
+		queryExecution.getStatus().withState(QueryExecutionState.FAILED);
+
+		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(queryExecution);
+		when(mockAthenaClient.getQueryExecution(queryExecutionRequest)).thenReturn(mockQueryExecutionResult);
+		
+		Assertions.assertThrows(IllegalStateException.class, ()->{
+			// Call under test
+			athenaSupport.getQueryResults(queryId, rowMapper, excludeHeader);
+		});
+		
+		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
+		verify(mockAthenaClient, never()).getQueryResults(any());
 	}
 
 	@Test

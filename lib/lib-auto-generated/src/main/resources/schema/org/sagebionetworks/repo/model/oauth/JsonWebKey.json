@@ -13,6 +13,10 @@
   		"use":{
  			"type":"string",
  			"description":"The public key use, https://tools.ietf.org/html/rfc7517#section-4.2"
- 		}
+ 		},
+ 		"concreteType": {
+ 			"type": "string",
+ 			"description": "Indicates which kind of JSON Web Key the object is, following the Synapse standard."
+  		}
  	}
 }

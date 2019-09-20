@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
@@ -604,5 +606,17 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		Map<String, Object> namedParameters = new HashMap<String, Object>(1);
 		namedParameters.put(BIND_PARENT_ID, parentIds);
 		return namedParameterJdbcTemplate.queryForList(SQL_SELECT_CHILDREN_ENTITIES_WITH_ACLS, namedParameters, Long.class);
+	}
+
+	@Override
+	public AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
+			ACCESS_TYPE permission) {
+		ValidateArgument.required(user, "user");
+		if (canAccess(user.getGroups(), resourceId, resourceType, permission)) {
+			return AuthorizationStatus.authorized();
+		} else {
+			return AuthorizationStatus.accessDenied(
+					String.format("You do not have %s permission for %s : %s", permission, resourceType, resourceId));
+		}
 	}
 }

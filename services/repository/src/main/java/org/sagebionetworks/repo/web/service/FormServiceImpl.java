@@ -64,7 +64,7 @@ public class FormServiceImpl implements FormService {
 	@Override
 	public ListResponse listFormStatus(Long userId, ListRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.listFormStatusForCaller(user, request);
+		return formManager.listFormStatusForCreator(user, request);
 	}
 
 	@Override
@@ -82,7 +82,7 @@ public class FormServiceImpl implements FormService {
 	@Override
 	public FormData reviewerRejectForm(Long userId, String id, String reason) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.reviewerRejectForm(user, reason);
+		return formManager.reviewerRejectForm(user, id, reason);
 	}
 
 }

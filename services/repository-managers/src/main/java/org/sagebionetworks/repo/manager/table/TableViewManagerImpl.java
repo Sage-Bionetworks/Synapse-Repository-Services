@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -7,9 +8,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -173,13 +174,12 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		// Get the current annotations for this entity.
-		//TODO: replace translation code
-		Annotations userAnnotations = AnnotationsV2Translator.toAnnotationsV1(nodeManager.getUserAnnotations(user, entityId));
+		Annotations userAnnotations =nodeManager.getUserAnnotations(user, entityId);
 		userAnnotations.setEtag(etag);
 		boolean updated = updateAnnotationsFromValues(userAnnotations, tableSchema, values);
 		if(updated){
-			// save the changes.
-			nodeManager.updateUserAnnotations(user, entityId, AnnotationsV2Translator.toAnnotationsV2(userAnnotations));
+			// save the changes. validation of updated values will occur in this call
+			nodeManager.updateUserAnnotations(user, entityId, userAnnotations);
 			// Replicate the change
 			replicationManager.replicate(entityId);
 		}
@@ -221,11 +221,14 @@ public class TableViewManagerImpl implements TableViewManager {
 					AnnotationType type = SQLUtils.translateColumnTypeToAnnotationType(column.getColumnType());
 					String value = values.get(column.getId());
 					// Unconditionally remove a current annotation.
-					additional.deleteAnnotation(column.getName());
+					Map<String, AnnotationsValue> annotationsMap = additional.getAnnotations();
+					annotationsMap.remove(column.getName());
 					// Add back the annotation if the value is not null
 					if(value != null){
-						Object objectValue = type.parseValue(value);
-						additional.replaceAnnotation(column.getName(), objectValue);
+						AnnotationsValue annotationsV2Value = new AnnotationsValue();
+						annotationsV2Value.setValue(Collections.singletonList(value));
+						annotationsV2Value.setType(type.getAnnotationsV2ValueType());
+						annotationsMap.put(column.getName(), annotationsV2Value);
 					}
 				}
 			}

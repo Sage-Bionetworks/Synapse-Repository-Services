@@ -1,0 +1,58 @@
+{
+	"description": "Bundle to transport an Entity and related data objects",
+	"properties": {
+		"entity": {
+			"$ref":"org.sagebionetworks.repo.model.Entity"
+		},
+		"entityType": {
+			"$ref": "org.sagebionetworks.repo.model.EntityType"
+		},
+		"annotations": {
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
+		},
+		"permissions": {
+			"$ref": "org.sagebionetworks.repo.model.auth.UserEntityPermissions"
+		},
+		"path": {
+			"$ref": "org.sagebionetworks.repo.model.EntityPath"
+		},
+		"hasChildren": {
+			"type": "boolean",
+			"description": "Whether or not this Entity has children"
+		},
+		"accessControlList": {
+			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
+		},
+		"fileHandles":{
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.file.FileHandle"
+			},
+			"description": "FileHandles associated with this Entity"
+		},
+		"tableBundle": {
+			"$ref": "org.sagebionetworks.repo.model.table.TableBundle"
+		},
+		"rootWikiId": {
+			"type": "string",
+			"description": "Id of the root Wiki associated with this Entity"
+		},
+		"benefactorAcl": {
+			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
+		},
+		"doiAssociation": {
+			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiAssociation"
+		},
+		"fileName": {
+			"type": "string",
+			"description": "If this Entity is a FileEntity, this is its filename"
+		},
+		"threadCount": {
+			"type": "integer",
+			"description": "Number of disucssion threads that reference this Entity"
+		},
+		"restrictionInformation": {
+			"$ref": "org.sagebionetworks.repo.model.RestrictionInformationResponse"
+		}
+	}
+}
