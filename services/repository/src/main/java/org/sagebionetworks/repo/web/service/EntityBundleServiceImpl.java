@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import static org.apache.commons.lang3.BooleanUtils.isTrue;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,15 +12,16 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -28,6 +31,8 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -59,55 +64,53 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	public EntityBundleServiceImpl(ServiceProvider serviceProvider) {
 		this.serviceProvider = serviceProvider;
 	}
-	
+
 	@Override
-	public EntityBundle getEntityBundle(Long userId, String entityId, int mask)
+	public EntityBundle getEntityBundle(Long userId, String entityId, EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask);
+		return getEntityBundle(userId, entityId, null, request);
 	}
 
 	@Override
 	public EntityBundle getEntityBundle(Long userId, String entityId,
-			Long versionNumber, int mask)
+										Long versionNumber, EntityBundleRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
 		EntityBundle eb = new EntityBundle();
 		Entity entity = null;
 		IdAndVersion idAndVersion = KeyFactory.idAndVersion(entityId, versionNumber);
-		if ((mask & (EntityBundle.ENTITY | EntityBundle.FILE_NAME)) > 0) {
+		if (isTrue(request.getIncludeEntity()) || isTrue(request.getIncludeFileName())) {
 			if(versionNumber == null) {
 				entity = serviceProvider.getEntityService().getEntity(userId, entityId);
 			} else {
 				entity = serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber);
 			}
-			if ((mask & EntityBundle.ENTITY) > 0) {
+			if (isTrue(request.getIncludeEntity())) {
 				eb.setEntity(entity);
+				eb.setEntityType(EntityTypeUtils.getEntityTypeForClass(entity.getClass()));
 			}
 		}
-		if ((mask & EntityBundle.ANNOTATIONS) > 0) {
+		if (isTrue(request.getIncludeAnnotations())) {
 			if(versionNumber == null) {
 				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId));
 			} else {
 				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber));
 			}
 		}
-		if ((mask & EntityBundle.PERMISSIONS) > 0) {
+		if (isTrue(request.getIncludePermissions())) {
 			eb.setPermissions(serviceProvider.getEntityService().getUserEntityPermissions(userId, entityId));
 		}
-		if ((mask & EntityBundle.ENTITY_PATH) > 0) {
+		if (isTrue(request.getIncludeEntityPath())) {
 			List<EntityHeader> path = serviceProvider.getEntityService().getEntityPath(userId, entityId);
 			EntityPath ep = new EntityPath();
 			ep.setPath(path);
 			eb.setPath(ep);
 		}
-		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
-		}
-		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
+		if (isTrue(request.getIncludeHasChildren())) {
 			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId));
 		}
-		if ((mask & EntityBundle.ACL) > 0) {
+		if (isTrue(request.getIncludeAccessControlList())) {
 			try {
 				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId));
 			} catch (ACLInheritanceException e) {
@@ -115,7 +118,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setAccessControlList(null);
 			}
 		}
-		if ((mask & EntityBundle.BENEFACTOR_ACL) > 0) {
+		if (isTrue(request.getIncludeBenefactorACL())) {
 			try {
 				// If this entity is its own benefactor then we just get the ACL
 				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(entityId, userId));
@@ -124,19 +127,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setBenefactorAcl(serviceProvider.getEntityService().getEntityACL(e.getBenefactorId(), userId));
 			}
 		}
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			// This is deprecated.
-			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
-		}
-		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
-					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
-		}
 		List<FileHandle> fileHandles = null;
-		if ((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ) {
+		if (isTrue(request.getIncludeFileHandles()) || isTrue(request.getIncludeFileName())) {
 			try {
 				if (versionNumber == null) {
 					fileHandles = serviceProvider.getEntityService().
@@ -144,21 +136,21 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				} else{
 					fileHandles = serviceProvider.getEntityService().
 							getEntityFileHandlesForVersion(userId, entityId, versionNumber).getList();
-				} 
+				}
 			}catch (Exception e) {
 				// If the user does not have permission to see the handles then set them to be an empty list.
 				fileHandles = new LinkedList<FileHandle>();
 			}
-			if ((mask & EntityBundle.FILE_HANDLES)>0) {
+			if (isTrue(request.getIncludeFileHandles())) {
 				eb.setFileHandles(fileHandles);
 			}
 		}
-		if ((mask & EntityBundle.TABLE_DATA) > 0) {
+		if (isTrue(request.getIncludeTableBundle())) {
 			// This mask only has meaning for implementations of tables.
 			eb.setTableBundle(serviceProvider.getTableServices().getTableBundle(idAndVersion));
 		}
-		if((mask & EntityBundle.ROOT_WIKI_ID) > 0 ){
-			 try {
+		if(isTrue(request.getIncludeRootWikiId())){
+			try {
 				WikiPageKey rootKey = serviceProvider.getWikiService().getRootWikiKey(userId, entityId, ObjectType.ENTITY);
 				eb.setRootWikiId(rootKey.getWikiPageId());
 			} catch (NotFoundException e) {
@@ -166,7 +158,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setRootWikiId(null);
 			}
 		}
-		if((mask & EntityBundle.DOI) > 0 ){
+		if(isTrue(request.getIncludeDOIAssociation()) ){
 			try {
 				if (versionNumber == null && (entity instanceof VersionableEntity)) {
 					// DOIs on VersionableEntity cannot be versionless, so we want to get the DOI for the current version
@@ -180,7 +172,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setDoiAssociation(null);
 			}
 		}
-		if((mask & EntityBundle.FILE_NAME) > 0 && (entity instanceof FileEntity)){
+		if(isTrue(request.getIncludeFileName()) && (entity instanceof FileEntity)){
 			FileEntity fileEntity = (FileEntity)entity;
 			if (fileEntity.getFileNameOverride()==null) {
 				for (FileHandle fileHandle : fileHandles) {
@@ -193,7 +185,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setFileName(fileEntity.getFileNameOverride());
 			}
 		}
-		if ((mask & EntityBundle.THREAD_COUNT) > 0) {
+		if (isTrue(request.getIncludeThreadCount())) {
 			EntityIdList entityIdList = new EntityIdList();
 			entityIdList.setIdList(Arrays.asList(entityId));
 			EntityThreadCounts result = serviceProvider.getDiscussionService().getThreadCounts(userId, entityIdList );
@@ -205,7 +197,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalStateException("Unexpected EntityThreadCount list size: "+result.getList().size());
 			}
 		}
-		if ((mask & EntityBundle.RESTRICTION_INFORMATION) > 0) {
+		if (isTrue(request.getIncludeRestrictionInformation())) {
 			RestrictionInformationRequest restrictionInfoRequest = new RestrictionInformationRequest();
 			restrictionInfoRequest.setObjectId(entityId);
 			restrictionInfoRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
@@ -215,61 +207,63 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return eb;
 	}
 
+
 	@WriteTransaction
 	@Override
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
-		
-		int partsMask = 0;
-		
+
+		EntityBundleRequest fetchRequest = new EntityBundleRequest();
+
 		// Create the Entity
-		partsMask += EntityBundle.ENTITY;
+		fetchRequest.setIncludeEntity(true);
 		Entity toCreate = ebc.getEntity();
 		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId);
-		
+
 		// Create the ACL
 		if (ebc.getAccessControlList() != null) {
-			partsMask += EntityBundle.ACL;
+			fetchRequest.setIncludeAccessControlList(true);
 			AccessControlList acl = ebc.getAccessControlList();
 			acl.setId(entity.getId());
 			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
 		}
-		
+
 		// Create the Annotations
 		if (ebc.getAnnotations() != null) {
-			partsMask += EntityBundle.ANNOTATIONS;
-			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
-			annos.addAll(ebc.getAnnotations());
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
+			fetchRequest.setIncludeAnnotations(true);
+			Annotations annos =serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId());
+			annos.getAnnotations().putAll(ebc.getAnnotations().getAnnotations());
+			serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos);
 		}
-		
-		return getEntityBundle(userId, entity.getId(), partsMask);
+
+		return getEntityBundle(userId, entity.getId(), fetchRequest);
 	}
-	
+
 	@WriteTransaction
 	@Override
 	public EntityBundle updateEntityBundle(Long userId, String entityId,
-			EntityBundleCreate ebc, String activityId)
+										   EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,
 			ACLInheritanceException, ParseException {
-		
-		int partsMask = 0;
-		
+
+
 		Entity entity = ebc.getEntity();
 		AccessControlList acl = ebc.getAccessControlList();
 		Annotations annos = ebc.getAnnotations();
-		
+
+		EntityBundleRequest fetchRequest = new EntityBundleRequest();
+
 		// Update the Entity
 		if (ebc.getEntity() != null) {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
-			partsMask += EntityBundle.ENTITY;
+			fetchRequest.setIncludeEntity(true);
 			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId);
 		}
-			
+
 		// Update the ACL
 		if (ebc.getAccessControlList() != null) {
 			Long entityKey = KeyFactory.stringToKey(entityId);
@@ -277,21 +271,127 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityKey.equals(aclKey)) {
 				throw new IllegalArgumentException("ACL does not match requested entity ID");
 			}
-			partsMask += EntityBundle.ACL;
+			fetchRequest.setIncludeAccessControlList(true);
 			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null);
 		}
-		
+
 		// Update the Annotations
 		if (ebc.getAnnotations() != null) {
 			if (!entityId.equals(ebc.getAnnotations().getId()))
 				throw new IllegalArgumentException("Annotations do not match requested entity ID");
-			partsMask += EntityBundle.ANNOTATIONS;
+			fetchRequest.setIncludeAnnotations(true);
 			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId);
-			toUpdate.addAll(annos);
-			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
+			toUpdate.getAnnotations().putAll(annos.getAnnotations());
+			serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate);
 		}
-		
-		return getEntityBundle(userId, entityId, partsMask);
+
+		return getEntityBundle(userId, entityId, fetchRequest);
 	}
-	
+
+	@Deprecated
+	@Override
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
+		return getEntityBundle(userId, entityId, null, mask);
+	}
+
+	@Deprecated
+	@Override
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId,
+																	   Long versionNumber, int mask)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, ACLInheritanceException, ParseException {
+
+		//translate from V2 bundle
+		org.sagebionetworks.repo.model.EntityBundle eb = translateEntityBundle(getEntityBundle(userId,entityId,versionNumber, requestFromMask(mask)));
+
+		///additional deprecated flags not supported by V2 bundle
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_REFERENCEDBY) > 0) {
+			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
+		}
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.ACCESS_REQUIREMENTS) > 0) {
+			// This is deprecated.
+			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
+		}
+		if ((mask & org.sagebionetworks.repo.model.EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
+			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+			subjectId.setId(entityId);
+			subjectId.setType(RestrictableObjectType.ENTITY);
+			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
+					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
+		}
+		return eb;
+	}
+
+	@WriteTransaction
+	@Override
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(Long userId, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		if (ebc.getEntity() == null) {
+			throw new IllegalArgumentException("Invalid request: no entity to create");
+		}
+		return translateEntityBundle(createEntityBundle(userId, translateEntityBundleCreate(ebc), activityId));
+	}
+
+	@WriteTransaction
+	@Override
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(Long userId, String entityId,
+																		  org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException,
+			ACLInheritanceException, ParseException {
+		
+		return translateEntityBundle(updateEntityBundle(userId, entityId, translateEntityBundleCreate(ebc), activityId));
+	}
+
+	@Deprecated
+	static org.sagebionetworks.repo.model.EntityBundle translateEntityBundle(EntityBundle v2Bundle){
+		org.sagebionetworks.repo.model.EntityBundle entityBundle = new org.sagebionetworks.repo.model.EntityBundle();
+		entityBundle.setEntity(v2Bundle.getEntity());
+		entityBundle.setAnnotations(AnnotationsV2Translator.toAnnotationsV1(v2Bundle.getAnnotations()));
+		entityBundle.setPermissions(v2Bundle.getPermissions());
+		entityBundle.setPath(v2Bundle.getPath());
+		entityBundle.setHasChildren(v2Bundle.getHasChildren());
+		entityBundle.setAccessControlList(v2Bundle.getAccessControlList());
+		entityBundle.setFileHandles(v2Bundle.getFileHandles());
+		entityBundle.setTableBundle(v2Bundle.getTableBundle());
+		entityBundle.setRootWikiId(v2Bundle.getRootWikiId());
+		entityBundle.setBenefactorAcl(v2Bundle.getBenefactorAcl());
+		entityBundle.setDoiAssociation(v2Bundle.getDoiAssociation());
+		entityBundle.setFileName(v2Bundle.getFileName());
+		entityBundle.setThreadCount(v2Bundle.getThreadCount());
+		entityBundle.setRestrictionInformation(v2Bundle.getRestrictionInformation());
+		return entityBundle;
+	}
+
+	@Deprecated
+	static EntityBundleCreate translateEntityBundleCreate(org.sagebionetworks.repo.model.EntityBundleCreate entityBundleCreate){
+		EntityBundleCreate v2Create = new EntityBundleCreate();
+		v2Create.setEntity(entityBundleCreate.getEntity());
+		v2Create.setAnnotations(AnnotationsV2Translator.toAnnotationsV2(entityBundleCreate.getAnnotations()));
+		v2Create.setAccessControlList(entityBundleCreate.getAccessControlList());
+		return v2Create;
+	}
+
+	@Deprecated
+	static EntityBundleRequest requestFromMask(int mask){
+		EntityBundleRequest request = new EntityBundleRequest();
+		request.setIncludeEntity((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY) > 0);
+		request.setIncludeAnnotations((mask & org.sagebionetworks.repo.model.EntityBundle.ANNOTATIONS) > 0);
+		request.setIncludePermissions((mask & org.sagebionetworks.repo.model.EntityBundle.PERMISSIONS) > 0);
+		request.setIncludeEntityPath((mask & org.sagebionetworks.repo.model.EntityBundle.ENTITY_PATH) > 0);
+		request.setIncludeHasChildren((mask & org.sagebionetworks.repo.model.EntityBundle.HAS_CHILDREN) > 0);
+		request.setIncludeAccessControlList((mask & org.sagebionetworks.repo.model.EntityBundle.ACL) > 0);
+		request.setIncludeFileHandles((mask & org.sagebionetworks.repo.model.EntityBundle.FILE_HANDLES) > 0);
+		request.setIncludeTableBundle((mask & org.sagebionetworks.repo.model.EntityBundle.TABLE_DATA) > 0);
+		request.setIncludeRootWikiId((mask & org.sagebionetworks.repo.model.EntityBundle.ROOT_WIKI_ID) > 0);
+		request.setIncludeBenefactorACL((mask & org.sagebionetworks.repo.model.EntityBundle.BENEFACTOR_ACL) > 0);
+		request.setIncludeDOIAssociation((mask & org.sagebionetworks.repo.model.EntityBundle.DOI) > 0);
+		request.setIncludeFileName((mask & org.sagebionetworks.repo.model.EntityBundle.FILE_NAME) > 0);
+		request.setIncludeThreadCount((mask & org.sagebionetworks.repo.model.EntityBundle.THREAD_COUNT) > 0);
+		request.setIncludeRestrictionInformation((mask & org.sagebionetworks.repo.model.EntityBundle.RESTRICTION_INFORMATION) > 0);
+		return request;
+	}
+
 }

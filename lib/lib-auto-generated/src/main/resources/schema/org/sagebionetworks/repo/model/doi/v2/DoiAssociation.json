@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for all fields that associate a Synapse object with a DOI. The objectId and objectType are required to create or mint a DOI in all circumstances.",
+	"description": "All fields that associate a Synapse object with a DOI. The objectId and objectType are required to create or mint a DOI in all circumstances.",
 	"type":"object",
 	"properties": {
 		"associationId": {

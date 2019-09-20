@@ -63,5 +63,12 @@ public interface OAuthClientManager {
 	 * @return The new secret
 	 */
 	OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId);
+	
+	/**
+	 * Validate the client ID secret pair
+	 * @param idAndSecret
+	 * @return true iff the credentials are valid
+	 */
+	boolean validateClientCredentials(OAuthClientIdAndSecret idAndSecret);
 
 }

@@ -44,6 +44,8 @@ public class JWTTypeSerializerImplTest {
 		// method under test
 		assertTrue(jwtTypeSerializerImpl.canWrite(JWTWrapper.class, APPLICATON_JWT));
 		// method under test
+		assertFalse(jwtTypeSerializerImpl.canWrite(JWTWrapper.class,  new MediaType("application", "json")));
+		// method under test
 		assertFalse(jwtTypeSerializerImpl.canWrite(String.class, APPLICATON_JWT));
 		// method under test
 		assertFalse(jwtTypeSerializerImpl.canWrite(String.class,  new MediaType("application", "json")));

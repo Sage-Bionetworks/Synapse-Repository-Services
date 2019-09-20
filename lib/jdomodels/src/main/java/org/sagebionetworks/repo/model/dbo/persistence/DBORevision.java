@@ -23,8 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -35,7 +34,6 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * The DatabaseObject for Revision.
@@ -51,8 +49,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		public DBORevision createDatabaseObjectFromBackup(DBORevision backup){
 			if (backup.getUserAnnotationsV1() != null){
 				try {
-					Annotations annotationsV1 = AnnotationUtils.decompressedAnnotationsV1(backup.getUserAnnotationsV1());
-					AnnotationsV2 annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
+					org.sagebionetworks.repo.model.Annotations annotationsV1 = AnnotationUtils.decompressedAnnotationsV1(backup.getUserAnnotationsV1());
+					Annotations annotationsV2 = AnnotationsV2Translator.toAnnotationsV2(annotationsV1);
 
 					backup.setUserAnnotationsJSON(AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 					backup.setUserAnnotationsV1(null);

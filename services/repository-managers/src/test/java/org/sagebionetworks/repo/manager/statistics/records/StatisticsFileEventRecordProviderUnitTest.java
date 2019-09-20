@@ -53,18 +53,16 @@ public class StatisticsFileEventRecordProviderUnitTest {
 
 	@Test
 	public void testGetStreamNameForDownload() {
-		when(mockEvent.getActionType()).thenReturn(FileEvent.FILE_DOWNLOAD);
-		String expectedStreamName = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(FileEvent.FILE_DOWNLOAD);
-		assertEquals(expectedStreamName, provider.getStreamName(mockEvent));
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		when(mockEvent.getActionType()).thenReturn(eventType);
+		assertEquals(eventType.getFirehoseStreamName(), provider.getStreamName(mockEvent));
 	}
 
 	@Test
 	public void testGetStreamNameForUpload() {
-		when(mockEvent.getActionType()).thenReturn(FileEvent.FILE_UPLOAD);
-		String expectedStreamName = StatisticsFileEventLogRecordProvider.ASSOCIATED_STREAMS
-				.get(FileEvent.FILE_UPLOAD);
-		assertEquals(expectedStreamName, provider.getStreamName(mockEvent));
+		FileEvent eventType = FileEvent.FILE_DOWNLOAD;
+		when(mockEvent.getActionType()).thenReturn(eventType);
+		assertEquals(eventType.getFirehoseStreamName(), provider.getStreamName(mockEvent));
 	}
 
 	@Test

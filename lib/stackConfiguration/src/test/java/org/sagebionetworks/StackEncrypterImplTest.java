@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
@@ -203,8 +203,7 @@ public class StackEncrypterImplTest {
 	private static String base64Encode(String input) {
 		try {
 			byte[] bytes = input.getBytes(ConfigurationPropertiesImpl.UTF_8);
-			bytes = Base64.getEncoder().encode(bytes);
-			return new String(bytes, ConfigurationPropertiesImpl.UTF_8);
+			return Base64.encodeBase64URLSafeString(bytes);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

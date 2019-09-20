@@ -1,0 +1,14 @@
+{
+	"description": "Used to create Entity and associated metadata in a single transaction",
+	"properties": {
+		"entity":{
+			"$ref":"org.sagebionetworks.repo.model.Entity"
+		},
+		"annotations": {
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.Annotations"
+		},
+		"accessControlList": {
+			"$ref": "org.sagebionetworks.repo.model.AccessControlList"
+		}
+	}
+}

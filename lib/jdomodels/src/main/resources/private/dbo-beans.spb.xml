@@ -135,8 +135,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsStatus" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.statistics.monthly.DBOMonthlyStatisticsProjectFiles" />
+				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyProjectFiles" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
