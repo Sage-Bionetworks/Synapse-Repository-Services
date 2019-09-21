@@ -118,6 +118,10 @@ public class FormManagerAutoWireTest {
 				form.getFormDataId(), FileHandleAssociateType.FormData);
 		assertNotNull(statusList);
 		assertEquals(1, statusList.size());
+		FileHandleAuthorizationStatus fileStatus = statusList.get(0);
+		assertEquals(form.getDataFileHandleId(), fileStatus.getFileHandleId());
+		assertNotNull(fileStatus.getStatus());
+		assertTrue(fileStatus.getStatus().isAuthorized());
 	}
 
 	/**
