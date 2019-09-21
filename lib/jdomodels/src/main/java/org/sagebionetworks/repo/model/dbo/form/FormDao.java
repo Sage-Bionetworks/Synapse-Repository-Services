@@ -142,4 +142,11 @@ public interface FormDao {
 	 * @return
 	 */
 	public List<FormData> listFormDataForReviewer(ListRequest request, long limit, long offset);
+
+	/**
+	 * Get the fileHandleId for the identified FormData.
+	 * @param formDataId
+	 * @return
+	 */
+	public String getFormDataFileHandleId(String formDataId);
 }

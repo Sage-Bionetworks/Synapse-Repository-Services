@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.form;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -1132,7 +1133,7 @@ public class FormManagerTest {
 		});
 		verify(mockFormDao, never()).listFormDataForReviewer(any(ListRequest.class), anyLong(), anyLong());
 	}
-	
+
 	@Test
 	public void testListFormDataForReviewerFilterWaitingForSubmission() {
 		listRequest.setFilterByState(Sets.newHashSet(StateEnum.WAITING_FOR_SUBMISSION));
@@ -1194,6 +1195,50 @@ public class FormManagerTest {
 			manager.listFormStatusForReviewer(user, listRequest);
 		});
 		verify(mockFormDao, never()).listFormDataByCreator(anyLong(), any(ListRequest.class), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testCanUserDownloadFormDataCreator() {
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
+		// call under test
+		AuthorizationStatus status = manager.canUserDownloadFormData(user, formDataId);
+		assertTrue(status.isAuthorized());
+		verify(mockFormDao).getFormDataCreator(formDataId);
+		verify(mockFormDao, never()).getFormDataGroupId(anyString());
+		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+
+	@Test
+	public void testCanUserDownloadFormDataReviewer() {
+		// not the creator
+		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId() - 1);
+		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
+		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		AuthorizationStatus status = manager.canUserDownloadFormData(user, formDataId);
+		assertTrue(status.isAuthorized());
+		verify(mockFormDao).getFormDataCreator(formDataId);
+		verify(mockFormDao).getFormDataGroupId(formDataId);
+		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+	}
+	
+	@Test
+	public void testCanUserDownloadFormDataNulUser() {
+		user = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canUserDownloadFormData(user, formDataId);
+		});
+	}
+	
+	@Test
+	public void testCanUserDownloadFormDataNulFormId() {
+		formDataId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.canUserDownloadFormData(user, formDataId);
+		});
 	}
 
 	/**

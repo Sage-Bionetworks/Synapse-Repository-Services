@@ -619,4 +619,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 					String.format("You do not have %s permission for %s : %s", permission, resourceType, resourceId));
 		}
 	}
+
+	@Override
+	public void deleteAllofType(ObjectType objectType) {
+		ValidateArgument.required(objectType, "objectType");
+		jdbcTemplate.update("DELETE FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_OWNER_TYPE+" = ?", objectType.name());
+	}
 }
