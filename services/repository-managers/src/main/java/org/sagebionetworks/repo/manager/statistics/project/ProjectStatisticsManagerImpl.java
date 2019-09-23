@@ -12,10 +12,10 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
@@ -37,14 +37,14 @@ import org.springframework.stereotype.Service;
 public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 	private AuthorizationManager authManager;
-	private NodeManager nodeManager;
+	private NodeDAO nodeDao;
 	private StatisticsMonthlyProjectFilesDAO fileStatsDao;
 	private int maxMonths;
 
 	@Autowired
-	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeManager nodeManager, StatisticsMonthlyProjectFilesDAO fileStatsDao) {
+	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao, StatisticsMonthlyProjectFilesDAO fileStatsDao) {
 		this.authManager = authManager;
-		this.nodeManager = nodeManager;
+		this.nodeDao = nodeDao;
 		this.fileStatsDao = fileStatsDao;
 		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
 	}
@@ -54,7 +54,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 		ValidateArgument.required(user, "The user");
 		ValidateArgument.required(projectId, "The project id");
 
-		Node project = nodeManager.get(user, projectId);
+		Node project = nodeDao.getNode(projectId);
 
 		if (!EntityType.project.equals(project.getNodeType())) {
 			throw new NotFoundException("The id " + projectId + " does not refer to project");

@@ -30,10 +30,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -62,7 +62,7 @@ public class ProjectStatisticsManagerTest {
 	private AuthorizationManager mockAuthManager;
 
 	@Mock
-	private NodeManager mockNodeManager;
+	private NodeDAO mockNodeDAO;
 
 	@Mock
 	private StatisticsMonthlyProjectFilesDAO mockFileStatsDao;
@@ -81,7 +81,7 @@ public class ProjectStatisticsManagerTest {
 	@BeforeEach
 	public void before() {
 		when(mockStackConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS);
-		manager = new ProjectStatisticsManagerImpl(mockStackConfig, mockAuthManager, mockNodeManager, mockFileStatsDao);
+		manager = new ProjectStatisticsManagerImpl(mockStackConfig, mockAuthManager, mockNodeDAO, mockFileStatsDao);
 	}
 
 	@Test
@@ -352,7 +352,7 @@ public class ProjectStatisticsManagerTest {
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			when(mockNodeManager.get(any(), any())).thenThrow(IllegalArgumentException.class);
+			when(mockNodeDAO.getNode(any())).thenThrow(IllegalArgumentException.class);
 			UserInfo user = new UserInfo(true);
 			String projectId = "wrong_id";
 			boolean fileDownloads = true;
@@ -370,7 +370,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 		
-		when(mockNodeManager.get(any(), any())).thenThrow(NotFoundException.class);
+		when(mockNodeDAO.getNode(any())).thenThrow(NotFoundException.class);
 		
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
@@ -378,7 +378,7 @@ public class ProjectStatisticsManagerTest {
 
 		});
 
-		verify(mockNodeManager).get(user, projectId);
+		verify(mockNodeDAO).getNode(projectId);
 	}
 
 	@Test
@@ -388,7 +388,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 		
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.file);
 		
 		Assertions.assertThrows(NotFoundException.class, () -> {	
@@ -396,7 +396,7 @@ public class ProjectStatisticsManagerTest {
 			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
 		});
 
-		verify(mockNodeManager).get(user, projectId);
+		verify(mockNodeDAO).getNode(projectId);
 		verify(mockNode).getNodeType();
 	}
 
@@ -409,7 +409,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 		
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(false);
@@ -437,7 +437,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(isAdmin);
@@ -459,7 +459,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
@@ -473,7 +473,7 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatistics() {
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
 
@@ -525,7 +525,7 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithoutDownloads() {
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
 		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
@@ -557,7 +557,7 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithoutUploads() {
-		when(mockNodeManager.get(any(), any())).thenReturn(mockNode);
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
 		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
