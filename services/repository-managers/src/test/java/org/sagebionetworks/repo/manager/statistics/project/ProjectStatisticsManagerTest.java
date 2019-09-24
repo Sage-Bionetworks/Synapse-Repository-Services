@@ -41,8 +41,8 @@ import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFil
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
 import org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics;
-import org.sagebionetworks.repo.model.statistics.ProjectStatistics;
-import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -339,7 +339,7 @@ public class ProjectStatisticsManagerTest {
 			boolean fileDownloads = true;
 			boolean fileUploads = true;
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -348,7 +348,7 @@ public class ProjectStatisticsManagerTest {
 			boolean fileDownloads = true;
 			boolean fileUploads = true;
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -358,7 +358,7 @@ public class ProjectStatisticsManagerTest {
 			boolean fileDownloads = true;
 			boolean fileUploads = true;
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 		});
 
 	}
@@ -374,7 +374,7 @@ public class ProjectStatisticsManagerTest {
 		
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		});
 
@@ -393,7 +393,7 @@ public class ProjectStatisticsManagerTest {
 		
 		Assertions.assertThrows(NotFoundException.class, () -> {	
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 		});
 
 		verify(mockNodeDAO).getNode(projectId);
@@ -418,7 +418,7 @@ public class ProjectStatisticsManagerTest {
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		});
 
@@ -443,7 +443,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(isAdmin);
 
 		// Call under test
-		manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+		manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verifyNoMoreInteractions(mockAuthManager);
@@ -465,7 +465,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
 
 		// Call under test
-		manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+		manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verifyNoMoreInteractions(mockAuthManager);
@@ -506,15 +506,14 @@ public class ProjectStatisticsManagerTest {
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 
-		ProjectStatistics expected = new ProjectStatistics();
+		ProjectFilesStatisticsResponse expected = new ProjectFilesStatisticsResponse();
 
-		expected.setObjectType(StatisticsObjectType.PROJECT);
 		expected.setObjectId(projectId.toString());
 		expected.setFileDownloads(map(statistics, lastUpdatedOn));
 		expected.setFileUploads(map(statistics, lastUpdatedOn));
 
 		// Call under test
-		ProjectStatistics result = manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_DOWNLOAD, from, to);
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_UPLOAD, from, to);
@@ -545,7 +544,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileUploads = true;
 
 		// Call under test
-		ProjectStatistics result = manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_UPLOAD, from, to);
 		verifyNoMoreInteractions(mockFileStatsDao);
@@ -577,7 +576,7 @@ public class ProjectStatisticsManagerTest {
 		boolean fileUploads = false;
 
 		// Call under test
-		ProjectStatistics result = manager.getProjectStatistics(user, projectId, fileDownloads, fileUploads);
+		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_DOWNLOAD, from, to);
 		verifyNoMoreInteractions(mockFileStatsDao);
@@ -585,6 +584,14 @@ public class ProjectStatisticsManagerTest {
 		assertNotNull(result.getFileDownloads());
 		assertNull(result.getFileUploads());
 
+	}
+	
+	private ProjectFilesStatisticsRequest getRequest(String projectId, boolean fileDownloads, boolean fileUploads) {
+		ProjectFilesStatisticsRequest request = new ProjectFilesStatisticsRequest();
+		request.setObjectId(projectId);
+		request.setFileDownloads(fileDownloads);
+		request.setFileUploads(fileUploads);
+		return request;
 	}
 
 	private MonthlyFilesStatistics map(List<StatisticsMonthlyProjectFiles> list, Long lastUpdatedOn) {

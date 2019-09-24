@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -23,8 +24,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
 import org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics;
-import org.sagebionetworks.repo.model.statistics.ProjectStatistics;
-import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
+public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, StatisticsProvider<ProjectFilesStatisticsRequest> {
 
 	private AuthorizationManager authManager;
 	private NodeDAO nodeDao;
@@ -42,7 +44,8 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 	private int maxMonths;
 
 	@Autowired
-	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao, StatisticsMonthlyProjectFilesDAO fileStatsDao) {
+	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao,
+			StatisticsMonthlyProjectFilesDAO fileStatsDao) {
 		this.authManager = authManager;
 		this.nodeDao = nodeDao;
 		this.fileStatsDao = fileStatsDao;
@@ -50,9 +53,22 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 	}
 
 	@Override
-	public ProjectStatistics getProjectStatistics(UserInfo user, String projectId, boolean fileDownloads, boolean fileUploads) {
+	public Class<ProjectFilesStatisticsRequest> getSupportedType() {
+		return ProjectFilesStatisticsRequest.class;
+	}
+
+	@Override
+	public ObjectStatisticsResponse getObjectStatistics(UserInfo userInfo, ProjectFilesStatisticsRequest request) {
+		return getProjectFilesStatistics(userInfo, request);
+	}
+
+	@Override
+	public ProjectFilesStatisticsResponse getProjectFilesStatistics(UserInfo user, ProjectFilesStatisticsRequest request) {
 		ValidateArgument.required(user, "The user");
-		ValidateArgument.required(projectId, "The project id");
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getObjectId(), "The project id");
+
+		String projectId = request.getObjectId();
 
 		Node project = nodeDao.getNode(projectId);
 
@@ -61,7 +77,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 		}
 
 		String projectCreator = project.getCreatedByPrincipalId().toString();
-		
+
 		// Verify access to the project
 		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
 			authManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
@@ -69,17 +85,16 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 		Long parsedProjectId = KeyFactory.stringToKey(projectId);
 
-		ProjectStatistics statistics = new ProjectStatistics();
+		ProjectFilesStatisticsResponse statistics = new ProjectFilesStatisticsResponse();
 
-		statistics.setObjectType(StatisticsObjectType.PROJECT);
 		statistics.setObjectId(projectId);
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(maxMonths);
-		
-		if (fileDownloads) {
+
+		if (request.getFileDownloads()) {
 			statistics.setFileDownloads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_DOWNLOAD, months));
 		}
-		if (fileUploads) {
+		if (request.getFileUploads()) {
 			statistics.setFileUploads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_UPLOAD, months));
 		}
 
@@ -144,4 +159,5 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 				.stream()
 				.collect(Collectors.toMap(StatisticsMonthlyProjectFiles::getMonth, Function.identity()));
 	}
+
 }

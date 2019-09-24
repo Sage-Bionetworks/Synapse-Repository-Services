@@ -1046,7 +1046,6 @@ public class UrlHelpers {
 	
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";
-	public static final String STATISTICS_PROJECT = STATISTICS + "/project/{projectId}";
 
 	/**
 	 * APIs for DynamoDB related operations.
