@@ -1,0 +1,9 @@
+{
+	"description": "Form reviewer rejection data",
+	"properties": {
+		"reason": {
+			"type": "string",
+			"description": "The reason for the rejection. Limit 500 characters or less."
+		}
+	}
+}

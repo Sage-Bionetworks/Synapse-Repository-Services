@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 
@@ -43,7 +45,7 @@ public interface FormService {
 	 * @param dataFileHandleId
 	 * @return
 	 */
-	FormData createFormData(Long userId, String groupId, String name, String dataFileHandleId);
+	FormData createFormData(Long userId, String groupId, FormChangeRequest request);
 
 	/**
 	 * Update an existing FormData object.
@@ -53,7 +55,7 @@ public interface FormService {
 	 * @param dataFileHandleId
 	 * @return
 	 */
-	FormData updateFormData(Long userId, String id, String name, String dataFileHandleId);
+	FormData updateFormData(Long userId, String id, FormChangeRequest request);
 
 	/**
 	 * Delete a FormData object.
@@ -99,9 +101,9 @@ public interface FormService {
 	 * Reviewer rejects the identified FormData submission.
 	 * @param userId
 	 * @param id
-	 * @param reason
+	 * @param rejection
 	 * @return
 	 */
-	FormData reviewerRejectForm(Long userId, String id, String reason);
+	FormData reviewerRejectForm(Long userId, String id, FormRejection rejection);
 
 }
