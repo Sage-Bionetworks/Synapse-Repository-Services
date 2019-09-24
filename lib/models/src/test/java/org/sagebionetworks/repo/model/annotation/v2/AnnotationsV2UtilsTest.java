@@ -123,10 +123,10 @@ class AnnotationsV2UtilsTest {
 		Annotations annotationsV2 = new Annotations();
 		annotationsV2.setId("shouldNotBeInJSON");
 		annotationsV2.setEtag("shouldAlsoNotBeInJSON");
-		annotationsV2.setAnnotations(Collections.singletonMap("key", AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "value1")));
+		annotationsV2.setAnnotations(Collections.singletonMap("myKey", AnnotationsV2TestUtils.createNewValue(AnnotationsValueType.STRING, "value1")));
 
 		//id and etag should not be found in the final json
-		assertEquals("{\"annotations\":[{\"key\":\"key\",\"value\":{\"type\":\"STRING\",\"value\":[\"value1\"]}}]}", AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
+		assertEquals("{\"annotations\":{\"myKey\":{\"type\":\"STRING\",\"value\":[\"value1\"]}}}", AnnotationsV2Utils.toJSONStringForStorage(annotationsV2));
 	}
 
 	@Test

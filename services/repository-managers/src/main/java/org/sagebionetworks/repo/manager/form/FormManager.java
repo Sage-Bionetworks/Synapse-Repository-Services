@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.form;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
@@ -113,5 +114,18 @@ public interface FormManager {
 	 * @return
 	 */
 	FormData reviewerRejectForm(UserInfo user, String formDataId, String reason);
+	
+	/**
+	 * 
+	 * @param user
+	 * @param formDataId
+	 * @return
+	 */
+	AuthorizationStatus canUserDownloadFormData(UserInfo user, String formDataId);
+
+	/**
+	 * Truncate all from data.
+	 */
+	void truncateAll();
 
 }

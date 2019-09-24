@@ -17,7 +17,7 @@
 		},
 		"values": {
 			"description": "The values for columns of this row as a map. The key is the columnId and value is the cell value",
-			"type": "map",
+			"type":"tuplearraymap",
 			"key":{
 				"type": "string"
 			},

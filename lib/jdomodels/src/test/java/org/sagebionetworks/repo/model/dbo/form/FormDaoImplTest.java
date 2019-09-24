@@ -541,6 +541,31 @@ public class FormDaoImplTest {
 		List<FormData> expected = firstGroupAcceptedOrRejected.subList(1, 3);
 		assertEquals(expected, results);
 	}
+	
+	@Test
+	public void testGetFormDataFileHandleId() {
+		FormData data = createFormData();
+		// call under test
+		String fileHandleId = formDao.getFormDataFileHandleId(data.getFormDataId());
+		assertEquals(data.getDataFileHandleId(), fileHandleId);
+	}
+	
+	@Test
+	public void testGetFormDataFileHandleIdDoesNotExist() {
+		assertThrows(NotFoundException.class, () -> {
+			// call under test
+			formDao.getFormDataFileHandleId("-1");
+		});
+	}
+	
+	@Test
+	public void testGetFormDataFileHandleIdNullId() {
+		String formId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			formDao.getFormDataFileHandleId(formId);
+		});
+	}
 
 	/**
 	 * Helper to create a FormGroup.

@@ -161,4 +161,10 @@ public interface AccessControlListDAO  {
 	 */
 	public List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds);
 
+	/**
+	 * Delete all ACL data for the given type.
+	 * @param formGroup
+	 */
+	public void deleteAllofType(ObjectType formGroup);
+
 }
