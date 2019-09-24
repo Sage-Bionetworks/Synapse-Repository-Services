@@ -34,8 +34,8 @@
 			<artifactId>simple-http-client</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-org-json</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>xerces</groupId>

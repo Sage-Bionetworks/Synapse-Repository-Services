@@ -33,6 +33,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * List (ACL)</a> for administration. The ACL controls both who can submit data
  * to the group and who has access to the submitted data.</li>
  * </ul>
+ * <p>
+ * To download the data associated with a FormData object use:
+ * <a href="${POST.fileHandle.batch}">POST /fileHandle/batch</a> providing the
+ * formData.dataFileHandleId with <a href=
+ * "${org.sagebionetworks.repo.model.file.FileHandleAssociateType}">FileHandleAssociateType.FormData</a>
  */
 @ControllerInfo(displayName = "Form Services", path = "repo/v1")
 @Controller

@@ -24,21 +24,19 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -286,10 +284,10 @@ public class SynapseTest {
 		Folder s = EntityCreator.createNewFolder();
 		
 		// Get/add/update annotations for this entity
-		AnnotationsV2 a = new AnnotationsV2();
+		Annotations a = new Annotations();
 		a.setEtag(s.getEtag());
-		AnnotationsV2TestUtils.putAnnotations(a, "doubleAnno", "45.0001", AnnotationsV2ValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsV2ValueType.STRING);		
+		AnnotationsV2TestUtils.putAnnotations(a, "doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
 		JSONObjectAdapter adapter0 = new JSONObjectAdapterImpl();
 		a.writeToJSONObject(adapter0);
 		
@@ -298,7 +296,7 @@ public class SynapseTest {
 		synapse.updateAnnotationsV2(s.getId(), a);
 		
 		// Assemble the bundle
-		EntityBundleV2 eb = new EntityBundleV2();
+		EntityBundle eb = new EntityBundle();
 		eb.setEntity(s);
 		eb.setAnnotations(a);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -308,15 +306,15 @@ public class SynapseTest {
 		configureMockHttpResponse(200, adapter.toJSONString());
 		
 		// Get the bundle, verify contents
-		EntityBundleV2Request request = new EntityBundleV2Request();
+		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAnnotations(true);
-		EntityBundleV2 eb2 = synapse.getEntityBundleV2(s.getId(), request);
+		EntityBundle eb2 = synapse.getEntityBundleV2(s.getId(), request);
 		
 		Folder s2 = (Folder) eb2.getEntity();
 		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
 		
-		AnnotationsV2 a2 = eb2.getAnnotations();
+		Annotations a2 = eb2.getAnnotations();
 		assertEquals("Retrieved Annotations in bundle do not match original ones", a, a2);
 		
 		UserEntityPermissions uep = eb2.getPermissions();

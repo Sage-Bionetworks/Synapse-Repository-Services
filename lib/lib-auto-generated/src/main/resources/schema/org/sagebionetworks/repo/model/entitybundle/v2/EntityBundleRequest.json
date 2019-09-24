@@ -1,0 +1,62 @@
+
+{
+	"description": "Specifies what fields to include in an EntityBundle",
+	"properties": {
+		"includeEntity": {
+			"type": "boolean",
+			"description": "Include the Entity in the response."
+		},
+		"includeAnnotations":{
+			"type": "boolean",
+			"description": "Include Annotations associated with the Entity in the response."
+		},
+		"includePermissions":{
+			"type": "boolean",
+			"description": "Include permissions of the current user on the entity."
+		},
+		"includeEntityPath":{
+			"type": "boolean",
+			"description": "Include EntityHeaders for all Entities in this Entity's path"
+		},
+		"includeHasChildren":{
+			"type": "boolean",
+			"description": "Include boolean indicating whether this Entity has children"
+		},
+		"includeAccessControlList":{
+			"type": "boolean",
+			"description": "Include the AccessControlList for this Entity"
+		},
+		"includeFileHandles":{
+			"type": "boolean",
+			"description": "Include all FileHandles associated with this Entity."
+		},
+		"includeTableBundle":{
+			"type": "boolean",
+			"description": "If the Entity is a TableEntity, include Table specific metadata."
+		},
+		"includeRootWikiId":{
+			"type": "boolean",
+			"description": "Include the id of the root Wiki associated with this Entity"
+		},
+		"includeBenefactorACL":{
+			"type": "boolean",
+			"description": "Include the ACL of the Entity from which this Entity inherits its AccessControlList"
+		},
+		"includeDOIAssociation":{
+			"type": "boolean",
+			"description": "Include DOIs associated with this Entity"
+		},
+		"includeFileName":{
+			"type": "boolean",
+			"description": "If this Entity is a FileEntity, include its filename"
+		},
+		"includeThreadCount":{
+			"type": "boolean",
+			"description": "Include the number of discussion threads that mention this Entity"
+		},
+		"includeRestrictionInformation":{
+			"type": "boolean",
+			"description": "Include the RestrictionLevel of this Entity"
+		}
+	}
+}

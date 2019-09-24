@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,10 +29,10 @@ public class AnnotationsV2Utils {
 	 *
 	 * @return first value in the AnnotationV2 for the given key if it exists. null otherwise
 	 */
-	public static String getSingleValue(AnnotationsV2 annotationsV2, String key){
+	public static String getSingleValue(Annotations annotationsV2, String key){
 		ValidateArgument.required(annotationsV2, "annotationsV2");
 		ValidateArgument.required(key, "key");
-		Map<String, AnnotationsV2Value> map = annotationsV2.getAnnotations();
+		Map<String, AnnotationsValue> map = annotationsV2.getAnnotations();
 		if(map == null){
 			return null;
 		}
@@ -41,7 +40,7 @@ public class AnnotationsV2Utils {
 		return getSingleValue(map.get(key));
 	}
 
-	public static String getSingleValue(AnnotationsV2Value value){
+	public static String getSingleValue(AnnotationsValue value){
 		if(value == null){
 			return null;
 		}
@@ -59,13 +58,13 @@ public class AnnotationsV2Utils {
 	 * @return JSON String of annotationsV2 if any annotations exist. Null otherwise
 	 * @throws JSONObjectAdapterException
 	 */
-	public static String toJSONStringForStorage(AnnotationsV2 annotationsV2) throws JSONObjectAdapterException {
+	public static String toJSONStringForStorage(Annotations annotationsV2) throws JSONObjectAdapterException {
 		if(annotationsV2 == null || annotationsV2.getAnnotations() == null || annotationsV2.getAnnotations().isEmpty()){
 			return null;
 		}
 
 		//use a shallow copy which does not contain the id and etag info
-		AnnotationsV2 annotationsV2ShallowCopy = new AnnotationsV2();
+		Annotations annotationsV2ShallowCopy = new Annotations();
 		annotationsV2ShallowCopy.setAnnotations(annotationsV2.getAnnotations());
 
 		return EntityFactory.createJSONStringForEntity(annotationsV2ShallowCopy);
@@ -77,7 +76,7 @@ public class AnnotationsV2Utils {
 	 * @param maxAnnotationChars the maximum number of characters for any annotation value.
 	 * @return
 	 */
-	public static List<AnnotationDTO> translate(Long entityId, AnnotationsV2 annos, int maxAnnotationChars) {
+	public static List<AnnotationDTO> translate(Long entityId, Annotations annos, int maxAnnotationChars) {
 		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
@@ -92,13 +91,13 @@ public class AnnotationsV2Utils {
 	}
 
 	private static void addAnnotations(Long entityId, int maxAnnotationChars,
-									   LinkedHashMap<String, AnnotationDTO> map, AnnotationsV2 additional) {
+									   LinkedHashMap<String, AnnotationDTO> map, Annotations additional) {
 		if (additional.getAnnotations() == null){
 			return;
 		}
-		for(Map.Entry<String, AnnotationsV2Value> entry: additional.getAnnotations().entrySet()){
+		for(Map.Entry<String, AnnotationsValue> entry: additional.getAnnotations().entrySet()){
 			String key = entry.getKey();
-			AnnotationsV2Value annotationsV2Value = entry.getValue();
+			AnnotationsValue annotationsV2Value = entry.getValue();
 
 			String value = getSingleValue(annotationsV2Value);
 			if(value != null){
@@ -134,7 +133,7 @@ public class AnnotationsV2Utils {
 		}
 	}
 
-	static void checkValue(String key, AnnotationsV2Value annotationsV2Value){
+	static void checkValue(String key, AnnotationsValue annotationsV2Value){
 		List<String> valueList = annotationsV2Value.getValue();
 		if(valueList == null){
 			throw new IllegalArgumentException("value list for key=" + key + " can not be null");
@@ -143,7 +142,7 @@ public class AnnotationsV2Utils {
 			throw new IllegalArgumentException("key=" + key + " has exceeded the maximum number of values allowed: " + MAX_VALUES_PER_KEY);
 		}
 
-		AnnotationsV2ValueType type = annotationsV2Value.getType();
+		AnnotationsValueType type = annotationsV2Value.getType();
 		if(type == null){
 			throw new IllegalArgumentException("a value type must be set for values associated with key=" + key);
 		}
@@ -162,10 +161,10 @@ public class AnnotationsV2Utils {
 	 * @param annotation
 	 * @throws InvalidModelException
 	 */
-	public static void validateAnnotations(AnnotationsV2 annotation)	throws InvalidModelException {
+	public static void validateAnnotations(Annotations annotation)	throws InvalidModelException {
 		ValidateArgument.required(annotation, "annotation");
 
-		Map<String, AnnotationsV2Value> annotationsMap = annotation.getAnnotations();
+		Map<String, AnnotationsValue> annotationsMap = annotation.getAnnotations();
 
 		//no map being set is still valid for emptying the annotation.
 		if(annotationsMap == null){
@@ -176,7 +175,7 @@ public class AnnotationsV2Utils {
 			throw new IllegalArgumentException("Exceeded maximum number of annotation keys: " + MAX_ANNOTATION_KEYS);
 		}
 
-		for (Map.Entry<String, AnnotationsV2Value> entry: annotationsMap.entrySet()) {
+		for (Map.Entry<String, AnnotationsValue> entry: annotationsMap.entrySet()) {
 			String key = entry.getKey();
 			checkKeyName(key);
 			checkValue(key, entry.getValue());

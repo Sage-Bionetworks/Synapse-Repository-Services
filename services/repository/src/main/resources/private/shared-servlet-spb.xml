@@ -36,8 +36,8 @@
 		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
 		<property name="messageConverters">
 			<list>
-				<ref bean="objectTypeSerializer" />
 				<ref bean="jwtTypeSerializer" />
+				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
 	</bean>

@@ -9,9 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,17 +27,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -42,9 +54,12 @@ public class FormDaoImplTest {
 	FileHandleDao fileDao;
 	@Autowired
 	IdGenerator idGenerator;
+	@Autowired
+	UserGroupDAO userGroupDao;
 
 	List<S3FileHandle> files;
 	Long adminUserId;
+	List<Long> userIds;
 	String groupName;
 	String formName;
 
@@ -54,6 +69,13 @@ public class FormDaoImplTest {
 		files = new ArrayList<S3FileHandle>();
 		groupName = "some group";
 		formName = "some form";
+		userIds = new ArrayList<>(2);
+		// Create multiple users
+		for (int i = 0; i < 2; i++) {
+			UserGroup ug = new UserGroup();
+			ug.setIsIndividual(true);
+			userIds.add(userGroupDao.create(ug));
+		}
 	}
 
 	@AfterEach
@@ -61,6 +83,9 @@ public class FormDaoImplTest {
 		formDao.truncateAll();
 		for (S3FileHandle file : files) {
 			fileDao.delete(file.getId());
+		}
+		for (Long userId : userIds) {
+			userGroupDao.delete(userId.toString());
 		}
 	}
 
@@ -393,12 +418,171 @@ public class FormDaoImplTest {
 		assertEquals("FormData does not exist for: -1", message);
 	}
 
+	@Test
+	public void testDeleteFormData() {
+		FormData toDelete = createFormData();
+		// call under test
+		assertTrue(formDao.deleteFormData(toDelete.getFormDataId()));
+	}
+
+	@Test
+	public void testDeleteFormDataDoesNotExist() {
+		// call under test
+		assertFalse(formDao.deleteFormData("-1"));
+	}
+
+	@Test
+	public void testUpdateStatus() {
+		FormData toUpdate = createFormData();
+		FormData unchanged = createFormData();
+
+		long now = System.currentTimeMillis();
+		SubmissionStatus status = new SubmissionStatus();
+		status.setSubmittedOn(new Date(now - 1010));
+		status.setRejectionMessage("a new rejection message");
+		status.setReviewedBy(adminUserId.toString());
+		status.setReviewedOn(new Date(now));
+		status.setState(StateEnum.REJECTED);
+		// call under test
+		FormData updated = formDao.updateStatus(toUpdate.getFormDataId(), status);
+		// etag should change
+		assertFalse(toUpdate.getEtag().equals(updated.getEtag()));
+		assertEquals(status, updated.getSubmissionStatus());
+
+		// should not have changed the other formdata
+		FormData shouldNotChange = formDao.getFormData(unchanged.getFormDataId());
+		assertEquals(unchanged, shouldNotChange);
+	}
+
+	@Test
+	public void testListFormDataByCreator() {
+		List<FormData> allData = createMultipleForms();
+		long limit = 10;
+		long offset = 0;
+		// Should be able to find each form using its data
+		for (FormData form : allData) {
+			ListRequest request = new ListRequest();
+			request.setGroupId(form.getGroupId());
+			request.setFilterByState(Sets.newHashSet(form.getSubmissionStatus().getState()));
+			// call under test
+			List<FormData> list = formDao.listFormDataByCreator(Long.parseLong(form.getCreatedBy()), request, limit,
+					offset);
+			assertNotNull(list);
+			assertEquals(1, list.size());
+			assertEquals(form, list.get(0));
+		}
+	}
+
+	@Test
+	public void testListFormDataByCreatorLimitOffsetOrder() {
+		List<FormData> allData = createMultipleForms();
+		String firsTUserId = userIds.get(0).toString();
+		String firstGroupId = allData.get(0).getGroupId();
+		// filter by the first user
+		List<FormData> firsUsersFirstGroupForms = allData.stream().filter((FormData t) -> {
+			return t.getCreatedBy().equals(firsTUserId) && t.getGroupId().equals(firstGroupId);
+		}).collect(Collectors.toList());
+		// should have one value for each state.
+		assertEquals(StateEnum.values().length, firsUsersFirstGroupForms.size());
+
+		long limit = 2;
+		long offset = 1;
+		ListRequest request = new ListRequest();
+		request.setGroupId(firstGroupId);
+		request.setFilterByState(Sets.newHashSet(StateEnum.values()));
+		// call under test
+		List<FormData> results = formDao.listFormDataByCreator(Long.parseLong(firsTUserId), request, limit, offset);
+		assertNotNull(results);
+		assertEquals((int) limit, results.size());
+		// Results will be in reverse order as last created is first.
+		Collections.reverse(firsUsersFirstGroupForms);
+		List<FormData> expected = firsUsersFirstGroupForms.subList(1, 3);
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testListFormDataForReviewer() {
+		List<FormData> allData = createMultipleForms();
+		String firstGroupId = allData.get(0).getGroupId();
+		List<FormData> firstGroupAccepted = allData.stream().filter((FormData t) -> {
+			return t.getGroupId().equals(firstGroupId) && t.getSubmissionStatus().getState().equals(StateEnum.ACCEPTED);
+		}).collect(Collectors.toList());
+
+		long limit = 100;
+		long offset = 0;
+		ListRequest request = new ListRequest();
+		request.setGroupId(firstGroupId);
+		request.setFilterByState(Sets.newHashSet(StateEnum.ACCEPTED));
+		// call under test
+		List<FormData> results = formDao.listFormDataForReviewer(request, limit, offset);
+		// results will be in reverse order of creation
+		Collections.reverse(firstGroupAccepted);
+		assertEquals(firstGroupAccepted, results);
+	}
+
+	@Test
+	public void testListFormDataForReviewerLimitOffset() {
+		List<FormData> allData = createMultipleForms();
+		String firstGroupId = allData.get(0).getGroupId();
+		List<FormData> firstGroupAcceptedOrRejected = allData.stream().filter((FormData t) -> {
+			return t.getGroupId().equals(firstGroupId) && (t.getSubmissionStatus().getState().equals(StateEnum.ACCEPTED)
+					|| t.getSubmissionStatus().getState().equals(StateEnum.REJECTED));
+		}).collect(Collectors.toList());
+
+		long limit = 2;
+		long offset = 1;
+		ListRequest request = new ListRequest();
+		request.setGroupId(firstGroupId);
+		request.setFilterByState(Sets.newHashSet(StateEnum.ACCEPTED, StateEnum.REJECTED));
+		// call under test
+		List<FormData> results = formDao.listFormDataForReviewer(request, limit, offset);
+		// results will be in reverse order of creation
+		Collections.reverse(firstGroupAcceptedOrRejected);
+		List<FormData> expected = firstGroupAcceptedOrRejected.subList(1, 3);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetFormDataFileHandleId() {
+		FormData data = createFormData();
+		// call under test
+		String fileHandleId = formDao.getFormDataFileHandleId(data.getFormDataId());
+		assertEquals(data.getDataFileHandleId(), fileHandleId);
+	}
+	
+	@Test
+	public void testGetFormDataFileHandleIdDoesNotExist() {
+		assertThrows(NotFoundException.class, () -> {
+			// call under test
+			formDao.getFormDataFileHandleId("-1");
+		});
+	}
+	
+	@Test
+	public void testGetFormDataFileHandleIdNullId() {
+		String formId = null;
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			formDao.getFormDataFileHandleId(formId);
+		});
+	}
+
 	/**
 	 * Helper to create a FormGroup.
 	 * 
 	 * @return
 	 */
 	FormGroup createSampleGroup() {
+		return createSampleGroup(groupName);
+	}
+
+	/**
+	 * Create a FormGroup for a given name
+	 * 
+	 * @param groupName
+	 * @return
+	 */
+	FormGroup createSampleGroup(String groupName) {
 		Optional<FormGroup> optional = formDao.lookupGroupByName(groupName);
 		if (optional.isPresent()) {
 			return optional.get();
@@ -415,6 +599,35 @@ public class FormDaoImplTest {
 		FormGroup group = createSampleGroup();
 		S3FileHandle sampleFile = createFileHandle();
 		return formDao.createFormData(adminUserId, group.getGroupId(), formName, sampleFile.getId());
+	}
+
+	/**
+	 * Helper to create Form data using two FormGroups and two Users. Will create a
+	 * FormData for each group, user, state combination.
+	 * 
+	 * @return
+	 */
+	List<FormData> createMultipleForms() {
+		List<FormGroup> groups = new LinkedList<>();
+		groups.add(createSampleGroup("groupOne"));
+		groups.add(createSampleGroup("groupTwo"));
+		List<FormData> allData = new LinkedList<>();
+		// Create data for each group, user, and state combination.
+		int counter = 0;
+		for (FormGroup group : groups) {
+			for (Long userId : userIds) {
+				for (StateEnum state : StateEnum.values()) {
+					S3FileHandle sampleFile = createFileHandle();
+					FormData form = formDao.createFormData(userId, group.getGroupId(), "form-" + counter++,
+							sampleFile.getId());
+					SubmissionStatus status = new SubmissionStatus();
+					status.setState(state);
+					form = formDao.updateStatus(form.getFormDataId(), status);
+					allData.add(form);
+				}
+			}
+		}
+		return allData;
 	}
 
 	/**

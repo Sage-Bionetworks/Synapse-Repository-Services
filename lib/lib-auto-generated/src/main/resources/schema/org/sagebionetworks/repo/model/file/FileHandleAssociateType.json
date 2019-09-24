@@ -49,6 +49,10 @@
         {
             "name": "DataAccessSubmissionAttachment",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "FormData",
+            "description": "Used to access data assocaited with a FormData object."
         }
     ]
 }

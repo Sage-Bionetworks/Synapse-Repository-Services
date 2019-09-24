@@ -18,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,7 +29,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -51,9 +51,9 @@ public class NodeManagerAuthorizationTest {
 	@Mock
 	private Node mockNode;
 	@Mock
-	private AnnotationsV2 mockUserAnnotations;
+	private Annotations mockUserAnnotations;
 	@Mock
-	private Annotations mockEntityPropertyAnnotations;
+	private org.sagebionetworks.repo.model.Annotations mockEntityPropertyAnnotations;
 	@Mock
 	private UserGroup mockUserGroup;
 	@Mock

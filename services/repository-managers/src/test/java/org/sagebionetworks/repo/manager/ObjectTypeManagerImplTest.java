@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 
 @RunWith(MockitoJUnitRunner.class)

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
@@ -21,7 +20,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,9 +29,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 
@@ -46,7 +44,7 @@ public class SearchDocumentDriverImplTest {
 
 	private SearchDocumentDriverImpl spySearchDocumentDriver;
 
-	private AnnotationsV2 annotationsV2;
+	private Annotations annotationsV2;
 
 	@Mock
 	private AccessControlList mockAcl;
@@ -70,7 +68,7 @@ public class SearchDocumentDriverImplTest {
 
 	@Before
 	public void setUp(){
-		annotationsV2 = new AnnotationsV2();
+		annotationsV2 = new Annotations();
 
 		documentFields = new DocumentFields();
 		spySearchDocumentDriver = Mockito.spy(new SearchDocumentDriverImpl());
@@ -96,8 +94,8 @@ public class SearchDocumentDriverImplTest {
 
 	@Test
 	public void getFirsAnnotationValues__multipleValues(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey1, annoValue1, AnnotationsV2ValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey2, annoValue2, AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey1, annoValue1, AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annotationsV2, annoKey2, annoValue2, AnnotationsValueType.STRING);
 
 		annoValuesMap = spySearchDocumentDriver.getFirsAnnotationValues(annotationsV2);
 
