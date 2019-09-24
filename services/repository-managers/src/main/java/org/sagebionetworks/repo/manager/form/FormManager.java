@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.manager.form;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 
@@ -49,18 +51,17 @@ public interface FormManager {
 	 * @param dataFileHandleId
 	 * @return
 	 */
-	FormData createFormData(UserInfo user, String groupId, String name, String dataFileHandleId);
+	FormData createFormData(UserInfo user, String groupId, FormChangeRequest request);
 
 	/**
 	 * Update the given FormData.
 	 * 
 	 * @param user
-	 * @param id
-	 * @param name
-	 * @param dataFileHandleId
+	 * @param formDataId
+	 * @param request
 	 * @return
 	 */
-	FormData updateFormData(UserInfo user, String id, String name, String dataFileHandleId);
+	FormData updateFormData(UserInfo user, String formDataId, FormChangeRequest request);
 
 	/**
 	 * Delete the given FormData.
@@ -110,10 +111,10 @@ public interface FormManager {
 	 * Reviewer rejects the identified FormData submission.
 	 * @param user
 	 * @param formDataId
-	 * @param reason
+	 * @param rejection
 	 * @return
 	 */
-	FormData reviewerRejectForm(UserInfo user, String formDataId, String reason);
+	FormData reviewerRejectForm(UserInfo user, String formDataId, FormRejection rejection);
 	
 	/**
 	 * 

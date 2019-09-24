@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,8 +106,12 @@ public class FormManagerAutoWireTest {
 		formManager.updateGroupAcl(adminUserInfo, group.getGroupId(), acl);
 
 		S3FileHandle fileHandle = createFileHandle(userInfo);
+		FormChangeRequest request = new FormChangeRequest();
 		String formName = "formName";
-		FormData form = formManager.createFormData(userInfo, group.getGroupId(), formName, fileHandle.getId());
+		request.setName(formName);
+		request.setFileHandleId(fileHandle.getId());
+
+		FormData form = formManager.createFormData(userInfo, group.getGroupId(), request);
 		// call under test
 		AuthorizationStatus status = formManager.canUserDownloadFormData(userInfo, form.getFormDataId());
 		assertNotNull(status);
