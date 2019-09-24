@@ -20,8 +20,10 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
@@ -60,11 +62,15 @@ public class IT203FormControllerTest {
 		String fileHanleId = uploadTextAsFile("Sample text");
 
 		// Create the form Group
-		FormData form = synapse.createFormData(group.getGroupId(), "IT203.form.name", fileHanleId);
+		FormChangeRequest changeRequest = new FormChangeRequest();
+		changeRequest.setName("IT203 form name");
+		changeRequest.setFileHandleId(fileHanleId);
+		FormData form = synapse.createFormData(group.getGroupId(), changeRequest);
 		assertNotNull(form);
 		// update the form
-		String updatedName = "UpdatedName";
-		form = synapse.updateFormData(form.getFormDataId(), updatedName, fileHanleId);
+		String updatedName = "Updated Name";
+		changeRequest.setName(updatedName);
+		form = synapse.updateFormData(form.getFormDataId(), changeRequest);
 		assertEquals(updatedName, form.getName());
 
 		// List the forms for this user.
@@ -93,14 +99,15 @@ public class IT203FormControllerTest {
 		
 		// Reject the form
 		String reason = "because of one reason or another";
-		form = adminSynapse.reviewerRejectFormData(form.getFormDataId(), reason);
+		FormRejection rejection = new FormRejection();
+		rejection.setReason(reason);
+		form = adminSynapse.reviewerRejectFormData(form.getFormDataId(), rejection);
 		assertNotNull(form);
 		assertEquals(StateEnum.REJECTED, form.getSubmissionStatus().getState());
 		assertEquals(reason, form.getSubmissionStatus().getRejectionMessage());
 		
-		// update the form and submit again
-		form = synapse.updateFormData(form.getFormDataId(), "new new name", fileHanleId);
-		assertEquals(updatedName, form.getName());
+		// submit the form again
+		form = synapse.submitFormData(form.getFormDataId());
 		
 		// accept the new form
 		form = adminSynapse.reviewerAcceptFormData(form.getFormDataId());

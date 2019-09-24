@@ -144,8 +144,10 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -3327,16 +3329,14 @@ public interface SynapseClient extends BaseClient {
 	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
 	 * to create/update/submit FormData.
 	 * 
-	 * @param groupId      The identifier of the group that manages this data.
-	 *                     Required.
-	 * @param name         User provided name for this submission. Required. Between
-	 *                     3 and 256 characters.
-	 * @param fileHandleId The identifier of the data FileHandle for this object.
-	 *                     Required.
+	 * @param groupId The identifier of the group that manages this data. Required.
+	 * @param name    User provided name for this submission. Required. Between 3
+	 *                and 256 characters.
+	 * @param request
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
-	FormData createFormData(String groupId, String name, String fileHandleId) throws SynapseException;
+	FormData createFormData(String groupId, FormChangeRequest request) throws SynapseException;
 	
 	/**
 	 * Update an existing FormData object. The caller must be the creator of the
@@ -3348,15 +3348,14 @@ public interface SynapseClient extends BaseClient {
 	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
 	 * to create/update/submit FormData.
 	 * 
-	 * @param formId       The identifier of the FormData to update.
-	 * @param name         Rename this submission. Optional. Between 3 and 256
-	 *                     characters.
-	 * @param fileHandleId The identifier of the data FileHandle for this object.
-	 *                     Required.
+	 * @param formId  The identifier of the FormData to update.
+	 * @param name    Rename this submission. Optional. Between 3 and 256
+	 *                characters.
+	 * @param request
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
-	FormData updateFormData(String formId, String name, String fileHandleId) throws SynapseException;
+	FormData updateFormData(String formId, FormChangeRequest request) throws SynapseException;
 	
 	/**
 	 * Delete an existing FormData object. The caller must be the creator of the
@@ -3435,6 +3434,6 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	FormData reviewerRejectFormData(String formDataId, String reason) throws SynapseException;
+	FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException;
 		
 }

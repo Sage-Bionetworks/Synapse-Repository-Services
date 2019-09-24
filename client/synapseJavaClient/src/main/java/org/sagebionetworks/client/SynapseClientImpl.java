@@ -179,8 +179,10 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -5374,21 +5376,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public FormData createFormData(String groupId, String name, String dataFileHandleId) throws SynapseException {
+	public FormData createFormData(String groupId, FormChangeRequest request) throws SynapseException {
 		ValidateArgument.required(groupId, "groupId");
-		ValidateArgument.required(name, "name");
-		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
-		String url = "/form/data?groupId="+groupId+"&name="+name+"&dataFileHandleId="+dataFileHandleId;
-		return postJSONEntity(getRepoEndpoint(), url, null, FormData.class);
+		ValidateArgument.required(request, "request");
+		String url = "/form/data?groupId="+groupId;
+		return postJSONEntity(getRepoEndpoint(), url, request, FormData.class);
 	}
 
 	@Override
-	public FormData updateFormData(String formId, String name, String dataFileHandleId) throws SynapseException {
+	public FormData updateFormData(String formId, FormChangeRequest request) throws SynapseException {
 		ValidateArgument.required(formId, "formId");
-		ValidateArgument.required(name, "name");
-		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
-		String url = "/form/data/"+formId+"?name="+name+"&dataFileHandleId="+dataFileHandleId;
-		return putJSONEntity(getRepoEndpoint(), url, null, FormData.class);
+		ValidateArgument.required(request, "request");
+		String url = "/form/data/"+formId;
+		return putJSONEntity(getRepoEndpoint(), url, request, FormData.class);
 	}
 
 	@Override
@@ -5431,10 +5431,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public FormData reviewerRejectFormData(String formDataId, String reason) throws SynapseException {
+	public FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException {
 		ValidateArgument.required(formDataId, "formDataId");
-		String url = "/form/data/"+formDataId+"/reject?reason="+reason;
-		return putJSONEntity(getRepoEndpoint(), url, null, FormData.class);
+		String url = "/form/data/"+formDataId+"/reject";
+		return putJSONEntity(getRepoEndpoint(), url, rejection, FormData.class);
 	}
 
 }
