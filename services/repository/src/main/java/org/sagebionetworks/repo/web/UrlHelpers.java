@@ -211,7 +211,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_BUNDLE_V2 = ENTITY+BUNDLE_V2;
 	public static final String ENTITY_ID_BUNDLE_V2 = ENTITY_ID+BUNDLE_V2;
-	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE+CREATE+"2";
+	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE_V2+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 
@@ -1046,7 +1046,6 @@ public class UrlHelpers {
 	
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";
-	public static final String STATISTICS_PROJECT = STATISTICS + "/project/{projectId}";
 
 	/**
 	 * APIs for DynamoDB related operations.
@@ -1088,7 +1087,7 @@ public class UrlHelpers {
 	 */
 	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
 	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
-	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret/"+ID;
+	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;
 	public static final String OAUTH_2_CONSENT = AUTH_OAUTH_2+"/consent";
 	public static final String OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";

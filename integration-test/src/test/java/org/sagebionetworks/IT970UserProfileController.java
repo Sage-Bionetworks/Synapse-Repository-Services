@@ -23,9 +23,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Create;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -186,7 +184,7 @@ public class IT970UserProfileController {
 
 		// change order
 		folder.setName("folder1-renamed");
-		EntityBundleV2Create ebc = new EntityBundleV2Create();
+		EntityBundleCreate ebc = new EntityBundleCreate();
 		ebc.setEntity(folder);
 		synapse.updateEntityBundleV2(folder.getId(), ebc);
 

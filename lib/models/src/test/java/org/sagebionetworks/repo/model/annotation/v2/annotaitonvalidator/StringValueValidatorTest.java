@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.Strings;
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 class StringValueValidatorTest {
 
 	StringValueValidator valueValidator = new StringValueValidator();
 	String key = "myKey";
-	AnnotationsV2ValueType type = AnnotationsV2ValueType.STRING;
+	AnnotationsValueType type = AnnotationsValueType.STRING;
 
 	@Test
 	void testValidate_valid() {

@@ -260,6 +260,10 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
 				</entry>
+				<entry key="FormData">
+				<bean
+						class="org.sagebionetworks.repo.manager.form.FormFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>

@@ -26,6 +26,7 @@ public class JWTTypeSerializerImplTest {
 	JWTTypeSerializerImpl jwtTypeSerializerImpl = new JWTTypeSerializerImpl();
 
 	private static final MediaType APPLICATON_JWT = new MediaType("application", "jwt");
+	private static final MediaType APPLICATON_JSON = new MediaType("application", "json");
 
 	@Mock
 	HttpInputMessage mockHttpInputMessage;
@@ -43,18 +44,21 @@ public class JWTTypeSerializerImplTest {
 	public void testCanWrite() {
 		// method under test
 		assertTrue(jwtTypeSerializerImpl.canWrite(JWTWrapper.class, APPLICATON_JWT));
+					
 		// method under test
-		assertFalse(jwtTypeSerializerImpl.canWrite(JWTWrapper.class,  new MediaType("application", "json")));
+		assertTrue(jwtTypeSerializerImpl.canWrite(JWTWrapper.class, APPLICATON_JSON));
+
 		// method under test
 		assertFalse(jwtTypeSerializerImpl.canWrite(String.class, APPLICATON_JWT));
+		
 		// method under test
-		assertFalse(jwtTypeSerializerImpl.canWrite(String.class,  new MediaType("application", "json")));
+		assertFalse(jwtTypeSerializerImpl.canWrite(String.class, APPLICATON_JSON));
 	}
 
 	@Test
 	public void testGetSupportedMediaTypes() {
 		// method under test
-		assertEquals(Collections.singletonList(APPLICATON_JWT), jwtTypeSerializerImpl.getSupportedMediaTypes());
+		assertEquals(Collections.singletonList(MediaType.ALL), jwtTypeSerializerImpl.getSupportedMediaTypes());
 	}
 
 	@Test()

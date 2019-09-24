@@ -3,7 +3,7 @@
 	"properties": {
 		"type":{
 			"description": "Type of value",
-			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType",
+			"$ref": "org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType",
 			"required": true
 		},
 		"value": {

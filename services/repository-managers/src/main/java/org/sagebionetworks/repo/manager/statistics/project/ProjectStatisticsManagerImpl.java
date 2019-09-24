@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.statistics.project;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,10 +12,11 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
@@ -22,8 +24,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
 import org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics;
-import org.sagebionetworks.repo.model.statistics.ProjectStatistics;
-import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -33,34 +36,48 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
+public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, StatisticsProvider<ProjectFilesStatisticsRequest> {
 
 	private AuthorizationManager authManager;
-	private NodeManager nodeManager;
+	private NodeDAO nodeDao;
 	private StatisticsMonthlyProjectFilesDAO fileStatsDao;
 	private int maxMonths;
 
 	@Autowired
-	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeManager nodeManager, StatisticsMonthlyProjectFilesDAO fileStatsDao) {
+	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao,
+			StatisticsMonthlyProjectFilesDAO fileStatsDao) {
 		this.authManager = authManager;
-		this.nodeManager = nodeManager;
+		this.nodeDao = nodeDao;
 		this.fileStatsDao = fileStatsDao;
 		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
 	}
 
 	@Override
-	public ProjectStatistics getProjectStatistics(UserInfo user, String projectId, boolean fileDownloads, boolean fileUploads) {
-		ValidateArgument.required(user, "The user");
-		ValidateArgument.required(projectId, "The project id");
+	public Class<ProjectFilesStatisticsRequest> getSupportedType() {
+		return ProjectFilesStatisticsRequest.class;
+	}
 
-		Node project = nodeManager.get(user, projectId);
+	@Override
+	public ObjectStatisticsResponse getObjectStatistics(UserInfo userInfo, ProjectFilesStatisticsRequest request) {
+		return getProjectFilesStatistics(userInfo, request);
+	}
+
+	@Override
+	public ProjectFilesStatisticsResponse getProjectFilesStatistics(UserInfo user, ProjectFilesStatisticsRequest request) {
+		ValidateArgument.required(user, "The user");
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getObjectId(), "The project id");
+
+		String projectId = request.getObjectId();
+
+		Node project = nodeDao.getNode(projectId);
 
 		if (!EntityType.project.equals(project.getNodeType())) {
 			throw new NotFoundException("The id " + projectId + " does not refer to project");
 		}
 
 		String projectCreator = project.getCreatedByPrincipalId().toString();
-		
+
 		// Verify access to the project
 		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
 			authManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
@@ -68,17 +85,16 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 		Long parsedProjectId = KeyFactory.stringToKey(projectId);
 
-		ProjectStatistics statistics = new ProjectStatistics();
+		ProjectFilesStatisticsResponse statistics = new ProjectFilesStatisticsResponse();
 
-		statistics.setObjectType(StatisticsObjectType.PROJECT);
 		statistics.setObjectId(projectId);
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(maxMonths);
-		
-		if (fileDownloads) {
+
+		if (request.getFileDownloads()) {
 			statistics.setFileDownloads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_DOWNLOAD, months));
 		}
-		if (fileUploads) {
+		if (request.getFileUploads()) {
 			statistics.setFileUploads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_UPLOAD, months));
 		}
 
@@ -100,7 +116,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 			filesCountStats.add(monthStats);
 		}
 
-		Long lastUpdatedOn = getLastUpdatedOnMax(statsMap.values());
+		Date lastUpdatedOn = getLastUpdatedOnMax(statsMap.values());
 
 		statistics.setMonths(filesCountStats);
 		statistics.setLastUpdatedOn(lastUpdatedOn);
@@ -108,9 +124,9 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 		return statistics;
 	}
 
-	Long getLastUpdatedOnMax(Collection<StatisticsMonthlyProjectFiles> statistics) {
+	Date getLastUpdatedOnMax(Collection<StatisticsMonthlyProjectFiles> statistics) {
 		Optional<Long> maxTimestamp = statistics.stream().map(StatisticsMonthlyProjectFiles::getLastUpdatedOn).max(Long::compare);
-		return maxTimestamp.isPresent() ? maxTimestamp.get() : -1L;
+		return maxTimestamp.isPresent() ? new Date(maxTimestamp.get()) : null;
 	}
 
 	FilesCountStatistics getFilesCountStatistics(YearMonth month, StatisticsMonthlyProjectFiles statistics) {
@@ -118,8 +134,8 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 
 		FilesCountStatistics monthStats = new FilesCountStatistics();
 
-		monthStats.setRangeStart(monthRange.getFirst());
-		monthStats.setRangeEnd(monthRange.getSecond());
+		monthStats.setRangeStart(new Date(monthRange.getFirst()));
+		monthStats.setRangeEnd(new Date(monthRange.getSecond()));
 		monthStats.setFilesCount(0L);
 		monthStats.setUsersCount(0L);
 
@@ -143,4 +159,5 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager {
 				.stream()
 				.collect(Collectors.toMap(StatisticsMonthlyProjectFiles::getMonth, Function.identity()));
 	}
+
 }

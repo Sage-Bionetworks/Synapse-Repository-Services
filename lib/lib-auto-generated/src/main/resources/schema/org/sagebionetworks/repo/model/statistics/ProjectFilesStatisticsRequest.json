@@ -1,0 +1,19 @@
+{
+    "title":"Project File Statistics",
+    "description":"Request body for retrieving the statistics relative to files for a specific project. Allows to retrieve the monthly count of files downloaded and/or uploaded as well as the (unique) number of users that performed a download/upload for the past 12 months (excluding the current month). The response type for this request is <a href=\"${org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse}\">ProjectFilesStatisticsResponse</a>",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest"
+        }
+    ],
+    "properties":{
+        "fileDownloads": {
+        	"type": "boolean",
+        	"description": "Specifies if the statistics about file downloads should be included in the response"
+        },
+        "fileUploads": {
+        	"type": "boolean",
+        	"description": "Specifies if the statistics about file uploads should be included in the response"
+        }
+    }
+}

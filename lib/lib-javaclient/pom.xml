@@ -45,7 +45,7 @@
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
+			<artifactId>JSON-Java</artifactId>
 			<version>${org.json.version}</version>
 		</dependency>
 

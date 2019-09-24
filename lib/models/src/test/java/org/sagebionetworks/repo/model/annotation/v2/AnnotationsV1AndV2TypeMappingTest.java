@@ -22,9 +22,9 @@ class AnnotationsV1AndV2TypeMappingTest {
 
 	@Test
 	public void testForValueType(){
-		assertEquals(AnnotationsV1AndV2TypeMapping.STRING, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.STRING));
-		assertEquals(AnnotationsV1AndV2TypeMapping.LONG, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.LONG));
-		assertEquals(AnnotationsV1AndV2TypeMapping.DOUBLE, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.DOUBLE));
-		assertEquals(AnnotationsV1AndV2TypeMapping.DATE, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsV2ValueType.TIMESTAMP_MS));
+		assertEquals(AnnotationsV1AndV2TypeMapping.STRING, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsValueType.STRING));
+		assertEquals(AnnotationsV1AndV2TypeMapping.LONG, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsValueType.LONG));
+		assertEquals(AnnotationsV1AndV2TypeMapping.DOUBLE, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsValueType.DOUBLE));
+		assertEquals(AnnotationsV1AndV2TypeMapping.DATE, AnnotationsV1AndV2TypeMapping.forValueType(AnnotationsValueType.TIMESTAMP_MS));
 	}
 }

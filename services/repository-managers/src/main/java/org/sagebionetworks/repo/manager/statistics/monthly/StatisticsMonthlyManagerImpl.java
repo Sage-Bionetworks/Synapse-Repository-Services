@@ -76,7 +76,7 @@ public class StatisticsMonthlyManagerImpl implements StatisticsMonthlyManager {
 	@WriteTransaction
 	public boolean startProcessingMonth(StatisticsObjectType objectType, YearMonth month, long processingTimeout) {
 		ValidateArgument.required(objectType, "objectType");
-		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(month, "month");
 
 		long now = System.currentTimeMillis();
 

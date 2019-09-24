@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -72,6 +73,8 @@ public class DBOAccessControlListDAOImplTest {
 	private Long createdById;
 	private Long modifiedById;
 	
+	private UserInfo userInfo;
+	
 	@Before
 	public void setUp() throws Exception {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -95,16 +98,25 @@ public class DBOAccessControlListDAOImplTest {
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group).toString());
+		Long groupOneId = userGroupDAO.create(group);
+		group.setId(groupOneId.toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
 
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
-		group2.setId(userGroupDAO.create(group2).toString());
+		Long groupTwoId = userGroupDAO.create(group2);
+		group2.setId(groupTwoId.toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
+		
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(true);
+		Long userId = userGroupDAO.create(ug);
+		boolean isAdmin = false;
+		userInfo = new UserInfo(isAdmin, userId);
+		userInfo.setGroups(Sets.newHashSet(userId, groupOneId, groupTwoId));
 
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
@@ -204,6 +216,17 @@ public class DBOAccessControlListDAOImplTest {
 		gs.clear();
 		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testCanAccessStatus() throws Exception {
+		// call under test
+		AuthorizationStatus status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertTrue(status.isAuthorized());
+		// call under test
+		status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		assertFalse(status.isAuthorized());
+		assertEquals("You do not have UPDATE permission for ENTITY : "+node.getId(), status.getMessage());
 	}
 	
 	@Test

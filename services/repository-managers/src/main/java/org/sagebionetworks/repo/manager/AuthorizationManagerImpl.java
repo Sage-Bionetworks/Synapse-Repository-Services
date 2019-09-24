@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
+import org.sagebionetworks.repo.manager.form.FormManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -42,6 +43,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -111,6 +113,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
 	private TokenGenerator tokenGenerator;
+	@Autowired
+	private FormManager formManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -207,6 +211,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					} else {
 						return AuthorizationStatus.accessDenied("Download not allowed");
 					}
+				} else {
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
+				}
+			}
+			case FORM_DATA: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					return formManager.canUserDownloadFormData(userInfo, objectId);
 				} else {
 					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}

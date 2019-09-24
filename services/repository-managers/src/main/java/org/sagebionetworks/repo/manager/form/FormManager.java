@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.form;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.ListRequest;
@@ -65,18 +66,18 @@ public interface FormManager {
 	 * Delete the given FormData.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 */
-	void deleteFormData(UserInfo user, String id);
+	void deleteFormData(UserInfo user, String formDataId);
 
 	/**
 	 * Submit the given FormData for review.
 	 * 
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 * @return
 	 */
-	FormData submitFormData(UserInfo user, String id);
+	FormData submitFormData(UserInfo user, String formDataId);
 
 	/**
 	 * List FormData created by the caller matching the provied request.
@@ -85,7 +86,7 @@ public interface FormManager {
 	 * @param request
 	 * @return
 	 */
-	ListResponse listFormStatusForCaller(UserInfo user, ListRequest request);
+	ListResponse listFormStatusForCreator(UserInfo user, ListRequest request);
 
 	/**
 	 * List FormData matching the provided request for a reviewer with the
@@ -100,17 +101,31 @@ public interface FormManager {
 	/**
 	 * Reviewer accepts the identified FormData submission.
 	 * @param user
-	 * @param id
+	 * @param formDataId
 	 * @return
 	 */
-	FormData reviewerAcceptForm(UserInfo user, String id);
+	FormData reviewerAcceptForm(UserInfo user, String formDataId);
 
 	/**
 	 * Reviewer rejects the identified FormData submission.
 	 * @param user
+	 * @param formDataId
 	 * @param reason
 	 * @return
 	 */
-	FormData reviewerRejectForm(UserInfo user, String reason);
+	FormData reviewerRejectForm(UserInfo user, String formDataId, String reason);
+	
+	/**
+	 * 
+	 * @param user
+	 * @param formDataId
+	 * @return
+	 */
+	AuthorizationStatus canUserDownloadFormData(UserInfo user, String formDataId);
+
+	/**
+	 * Truncate all from data.
+	 */
+	void truncateAll();
 
 }

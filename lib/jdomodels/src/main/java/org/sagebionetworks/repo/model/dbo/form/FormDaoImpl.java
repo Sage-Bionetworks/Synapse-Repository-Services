@@ -1,26 +1,37 @@
 package org.sagebionetworks.repo.model.dbo.form;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_FILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REJECTION_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_REVIEWED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_DATA_SUBMITTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORM_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_DATA;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORM_GROUP;
 
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.StateEnum;
 import org.sagebionetworks.repo.model.form.SubmissionStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -31,6 +42,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -43,8 +55,21 @@ public class FormDaoImpl implements FormDao {
 	DBOBasicDao basicDao;
 	@Autowired
 	JdbcTemplate jdbcTemplate;
+	@Autowired
+	NamedParameterJdbcTemplate namedTemplate;
 
 	private static RowMapper<DBOFormGroup> GROUP_MAPPER = new DBOFormGroup().getTableMapping();
+	private static RowMapper<DBOFormData> FORM_DATA_MAPPER = new DBOFormData().getTableMapping();
+
+	private static RowMapper<SubmissionStatus> STATUS_MAPPER = (ResultSet rs, int rowNum) -> {
+		SubmissionStatus status = new SubmissionStatus();
+		status.setSubmittedOn(rs.getTimestamp(COL_FORM_DATA_SUBMITTED_ON));
+		status.setReviewedOn(rs.getTimestamp(COL_FORM_DATA_REVIEWED_ON));
+		status.setReviewedBy(rs.getString(COL_FORM_DATA_REVIEWED_BY));
+		status.setState(StateEnum.valueOf(rs.getString(COL_FORM_DATA_STATE)));
+		status.setRejectionMessage(rs.getString(COL_FORM_DATA_REJECTION_MESSAGE));
+		return status;
+	};
 
 	@WriteTransaction
 	@Override
@@ -111,65 +136,56 @@ public class FormDaoImpl implements FormDao {
 	}
 
 	@Override
-	public long getFormDataCreator(String id) {
-		ValidateArgument.required(id, "id");
+	public long getFormDataCreator(String formDataId) {
+		ValidateArgument.required(formDataId, "id");
 		try {
 			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_CREATED_BY + " FROM " + TABLE_FORM_DATA
-					+ " WHERE " + COL_FORM_DATA_ID + " = ?", Long.class, id);
+					+ " WHERE " + COL_FORM_DATA_ID + " = ?", Long.class, formDataId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, id));
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
 		}
 	}
 
 	@Override
-	public String getFormDataGroupId(String id) {
-		ValidateArgument.required(id, "id");
+	public String getFormDataGroupId(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
 		try {
 			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_GROUP_ID + " FROM " + TABLE_FORM_DATA
-					+ " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, id);
+					+ " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, formDataId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, id));
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
 		}
 	}
 
+	@WriteTransaction
 	@Override
-	public FormData updateFormData(String id, String name, String dataFileHandleId) {
-		ValidateArgument.required(id, "id");
+	public FormData updateFormData(String formDataId, String name, String dataFileHandleId) {
+		ValidateArgument.required(formDataId, "formDataId");
 		ValidateArgument.required(name, "name");
 		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
 		jdbcTemplate.update("UPDATE " + TABLE_FORM_DATA + " SET " + COL_FORM_DATA_NAME + " = ?, "
 				+ COL_FORM_DATA_FILE_ID + " = ?, " + COL_FORM_DATA_ETAG + " = UUID(), " + COL_FORM_DATA_MODIFIED_ON
-				+ " = NOW(3) WHERE " + COL_FORM_DATA_ID + " = ?", name, dataFileHandleId, id);
-		return getFormData(id);
+				+ " = NOW(3) WHERE " + COL_FORM_DATA_ID + " = ?", name, dataFileHandleId, formDataId);
+		return getFormData(formDataId);
 	}
 
+	@WriteTransaction
 	@Override
-	public FormData updateFormData(String id, String dataFileHandleId) {
-		ValidateArgument.required(id, "id");
+	public FormData updateFormData(String formDataId, String dataFileHandleId) {
+		ValidateArgument.required(formDataId, "formDataId");
 		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
 		jdbcTemplate.update(
 				"UPDATE " + TABLE_FORM_DATA + " SET " + COL_FORM_DATA_FILE_ID + " = ?, " + COL_FORM_DATA_ETAG
 						+ " = UUID(), " + COL_FORM_DATA_MODIFIED_ON + " = NOW(3) WHERE " + COL_FORM_DATA_ID + " = ?",
-				dataFileHandleId, id);
-		return getFormData(id);
+				dataFileHandleId, formDataId);
+		return getFormData(formDataId);
 	}
 
 	@Override
-	public StateEnum getFormDataState(String id) {
-		ValidateArgument.required(id, "id");
-		try {
-			return StateEnum.valueOf(jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_STATE + " FROM "
-					+ TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, id));
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, id));
-		}
-	}
-
-	@Override
-	public FormData getFormData(String id) {
-		ValidateArgument.required(id, "id");
+	public FormData getFormData(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue("id", id);
+		param.addValue("id", formDataId);
 		DBOFormData dto = basicDao.getObjectByPrimaryKey(DBOFormData.class, param);
 		return dtoToDbo(dto);
 	}
@@ -206,10 +222,120 @@ public class FormDaoImpl implements FormDao {
 		return dto;
 	}
 
+	/**
+	 * Convert a list of DBOs to DTOs
+	 * 
+	 * @param dbos
+	 * @return
+	 */
+	static List<FormData> dboToDbo(List<DBOFormData> dbos) {
+		return dbos.stream().map(FormDaoImpl::dtoToDbo).collect(Collectors.toList());
+	}
+
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " > 0");
 		jdbcTemplate.update("DELETE FROM " + TABLE_FORM_GROUP + " WHERE " + COL_FORM_GROUP_ID + " > 0");
+	}
+
+	@WriteTransaction
+	@Override
+	public boolean deleteFormData(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		int updateCount = jdbcTemplate.update("DELETE FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?",
+				formDataId);
+		return updateCount > 0;
+	}
+
+	@Override
+	public StateEnum getFormDataState(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		try {
+			return StateEnum.valueOf(jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_STATE + " FROM "
+					+ TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, formDataId));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
+		}
+	}
+
+	@WriteTransaction
+	@Override
+	public SubmissionStatus getFormDataStatusForUpdate(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		try {
+			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_SUBMITTED_ON + ", " + COL_FORM_DATA_REVIEWED_ON
+					+ ", " + COL_FORM_DATA_REVIEWED_BY + ", " + COL_FORM_DATA_STATE + ", "
+					+ COL_FORM_DATA_REJECTION_MESSAGE + " FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID
+					+ " = ? FOR UPDATE", STATUS_MAPPER, formDataId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
+		}
+	}
+
+	@WriteTransaction
+	@Override
+	public FormData updateStatus(String formDataId, SubmissionStatus status) {
+		ValidateArgument.required(formDataId, "formDataId");
+		ValidateArgument.required(status, "status");
+		ValidateArgument.required(status.getState(), "status.state");
+		jdbcTemplate.update(
+				"UPDATE " + TABLE_FORM_DATA + " SET " + COL_FORM_DATA_ETAG + " = UUID(), " + COL_FORM_DATA_SUBMITTED_ON
+						+ " = ?, " + COL_FORM_DATA_REVIEWED_ON + " = ?, " + COL_FORM_DATA_REVIEWED_BY + " = ?, "
+						+ COL_FORM_DATA_STATE + " = ?, " + COL_FORM_DATA_REJECTION_MESSAGE + " = ?" + " WHERE "
+						+ COL_FORM_DATA_ID + " = ?",
+				status.getSubmittedOn(), status.getReviewedOn(), status.getReviewedBy(), status.getState().name(),
+				status.getRejectionMessage(), formDataId);
+		return getFormData(formDataId);
+	}
+
+	/**
+	 * Convert from list of enums to list of strings.
+	 * 
+	 * @param states
+	 * @return
+	 */
+	List<String> enumToString(Set<StateEnum> states) {
+		return states.stream().map(StateEnum::name).collect(Collectors.toList());
+	}
+
+	@Override
+	public List<FormData> listFormDataByCreator(Long creatorId, ListRequest request, long limit, long offset) {
+		MapSqlParameterSource paramSource = new MapSqlParameterSource();
+		paramSource.addValue("creatorId", creatorId);
+		paramSource.addValue("groupId", request.getGroupId());
+		paramSource.addValue("limit", limit);
+		paramSource.addValue("offset", offset);
+		// States are converted from enums to strings.
+		paramSource.addValue("states", enumToString(request.getFilterByState()));
+		return dboToDbo(namedTemplate.query(
+				"SELECT * FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_CREATED_BY + " = :creatorId AND "
+						+ COL_FORM_GROUP_ID + " = :groupId AND " + COL_FORM_DATA_STATE + " IN (:states) ORDER BY "
+						+ COL_FORM_DATA_MODIFIED_ON + " DESC LIMIT :limit OFFSET :offset",
+				paramSource, FORM_DATA_MAPPER));
+	}
+
+	@Override
+	public List<FormData> listFormDataForReviewer(ListRequest request, long limit, long offset) {
+		MapSqlParameterSource paramSource = new MapSqlParameterSource();
+		paramSource.addValue("groupId", request.getGroupId());
+		paramSource.addValue("limit", limit);
+		paramSource.addValue("offset", offset);
+		// States are converted from enums to strings.
+		paramSource.addValue("states", enumToString(request.getFilterByState()));
+		return dboToDbo(namedTemplate.query("SELECT * FROM " + TABLE_FORM_DATA + " WHERE " + COL_FORM_GROUP_ID
+				+ " = :groupId AND " + COL_FORM_DATA_STATE + " IN (:states) ORDER BY " + COL_FORM_DATA_MODIFIED_ON
+				+ " DESC LIMIT :limit OFFSET :offset", paramSource, FORM_DATA_MAPPER));
+	}
+
+	@Override
+	public String getFormDataFileHandleId(String formDataId) {
+		ValidateArgument.required(formDataId, "formDataId");
+		try {
+			return jdbcTemplate.queryForObject("SELECT " + COL_FORM_DATA_FILE_ID + " FROM "
+					+ TABLE_FORM_DATA + " WHERE " + COL_FORM_DATA_ID + " = ?", String.class, formDataId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(FORM_DATA_DOES_NOT_EXIST_FOR_S, formDataId));
+		}
 	}
 
 }

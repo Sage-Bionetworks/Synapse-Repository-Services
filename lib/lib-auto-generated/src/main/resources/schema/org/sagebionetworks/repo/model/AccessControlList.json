@@ -1,6 +1,6 @@
 {
 	"title": "Access Control List",
-	"description": "JSON schema for a AccessControlList POJO",
+	"description": "Contains list of principals who can access the data with the allowed types of access for each.",
 	"properties": {
 		"id": {
 			"type": "string",

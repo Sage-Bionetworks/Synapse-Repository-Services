@@ -113,6 +113,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
 		authorizationRequest.setScope(OAuthScope.openid.name());
 		authorizationRequest.setResponseType(OAuthResponseType.code);
+		authorizationRequest.setClaims("{\"id_token\":{\"team\":{\"values\":[\"2\"]}},\"userinfo\":{\"team\":{\"values\":[\"2\"]}}}");
 				
 		// method under test
 		OIDCAuthorizationRequestDescription description = 

@@ -8,16 +8,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.Annotations;
-
 public class AnnotationsV2Translator {
 
-	public static Annotations toAnnotationsV1(AnnotationsV2 annotationsV2){
+	public static org.sagebionetworks.repo.model.Annotations toAnnotationsV1(Annotations annotationsV2){
 		if(annotationsV2 == null){
 			return null;
 		}
 
-		Annotations annotationsV1 = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annotationsV1 = new org.sagebionetworks.repo.model.Annotations();
 		annotationsV1.setId(annotationsV2.getId());
 		annotationsV1.setEtag(annotationsV2.getEtag());
 
@@ -25,9 +23,9 @@ public class AnnotationsV2Translator {
 			return annotationsV1;
 		}
 
-		for (Map.Entry<String, AnnotationsV2Value> valueEntry : annotationsV2.getAnnotations().entrySet()) {
+		for (Map.Entry<String, AnnotationsValue> valueEntry : annotationsV2.getAnnotations().entrySet()) {
 			String annotationKey = valueEntry.getKey();
-			AnnotationsV2Value annotationsV2Value = valueEntry.getValue();
+			AnnotationsValue annotationsV2Value = valueEntry.getValue();
 			AnnotationsV1AndV2TypeMapping typeMapping = AnnotationsV1AndV2TypeMapping.forValueType(annotationsV2Value.getType());
 
 			List<Object> convertedValues = annotationsV2Value.getValue().stream()
@@ -43,18 +41,18 @@ public class AnnotationsV2Translator {
 		return annotationsV1;
 	}
 
-	public static AnnotationsV2 toAnnotationsV2(Annotations annotations){
+	public static Annotations toAnnotationsV2(org.sagebionetworks.repo.model.Annotations annotations){
 		if(annotations == null){
 			return null;
 		}
 
-		Map<String, AnnotationsV2Value> v2AnnotationEntries = new HashMap<>();
+		Map<String, AnnotationsValue> v2AnnotationEntries = new HashMap<>();
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getStringAnnotations(), String.class));
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getDoubleAnnotations(), Double.class));
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getLongAnnotations(), Long.class));
 		v2AnnotationEntries.putAll(changeToAnnotationV2Values(annotations.getDateAnnotations(), Date.class));
 
-		AnnotationsV2 annotationsV2 = new AnnotationsV2();
+		Annotations annotationsV2 = new Annotations();
 		annotationsV2.setEtag(annotations.getEtag());
 		annotationsV2.setId(annotations.getId());
 		annotationsV2.setAnnotations(v2AnnotationEntries);
@@ -62,12 +60,12 @@ public class AnnotationsV2Translator {
 		return annotationsV2;
 	}
 
-	static <T> Map<String, AnnotationsV2Value> changeToAnnotationV2Values(Map<String, List<T>> originalMap, Class<T> clazz){
+	static <T> Map<String, AnnotationsValue> changeToAnnotationV2Values(Map<String, List<T>> originalMap, Class<T> clazz){
 		if(originalMap == null || originalMap.isEmpty()){
 			return Collections.emptyMap();
 		}
 
-		Map<String, AnnotationsV2Value> newMap = new HashMap<>(originalMap.size());
+		Map<String, AnnotationsValue> newMap = new HashMap<>(originalMap.size());
 
 		AnnotationsV1AndV2TypeMapping annotationsV1AndV2TypeMapping = AnnotationsV1AndV2TypeMapping.forClass(clazz);
 
@@ -84,7 +82,7 @@ public class AnnotationsV2Translator {
 					.collect(Collectors.toList());
 
 			//select correct value implementation class based on size of value list
-			AnnotationsV2Value annotationsV2Value = new AnnotationsV2Value();
+			AnnotationsValue annotationsV2Value = new AnnotationsValue();
 			annotationsV2Value.setValue(convertedValues);
 			annotationsV2Value.setType(annotationsV1AndV2TypeMapping.getValueType());
 

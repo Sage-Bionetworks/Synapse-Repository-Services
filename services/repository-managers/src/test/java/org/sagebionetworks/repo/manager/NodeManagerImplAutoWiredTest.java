@@ -18,7 +18,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -31,9 +30,9 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -182,7 +181,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithEntityPropertyAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
 		newNode.setNodeType(EntityType.project);
-		Annotations annos = new Annotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		annos.addAnnotation("stringKey", "stringValue");
 		annos.addAnnotation("longKey", new Long(120));
 		// We are not using the admin to create this node.
@@ -273,20 +272,20 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
-		AnnotationsV2 annos = nodeManager.getUserAnnotations(userInfo, id);
+		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		String eTagBeforeUpdate = annos.getEtag();
 		// Add some values
-		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "1", AnnotationsV2ValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "1", AnnotationsValueType.LONG);
 		// sleep to ensure modifiedOn changes.
 		Thread.sleep(10);
 		// Now update the node
-		AnnotationsV2 updated = nodeManager.updateUserAnnotations(adminUserInfo, id, annos);
+		Annotations updated = nodeManager.updateUserAnnotations(adminUserInfo, id, annos);
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
-		AnnotationsV2 copy = nodeManager.getUserAnnotations(userInfo, id);
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
 		assertEquals(updated,copy);
 		// Make sure the eTag has changed
 		assertEquals(updated.getEtag(), copy.getEtag());
@@ -313,13 +312,13 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
-		AnnotationsV2 annos = nodeManager.getUserAnnotations(userInfo, id);
-		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsV2ValueType.STRING);
+		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsValueType.STRING);
 		String startingEtag = annos.getEtag();
 		nodeManager.updateUserAnnotations(userInfo, id, annos);
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
-		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should not take", AnnotationsV2ValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should not take", AnnotationsValueType.STRING);
 		nodeManager.updateUserAnnotations(userInfo, id, annos);
 	}
 
@@ -338,7 +337,7 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete.add(id);
 
 		// Add some annotations to this version
-		Annotations annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
+		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		String firstVersionValue = "Value on the first version.";
 		annos.addAnnotation("stringKey", firstVersionValue);
 		nodeManager.update(userInfo, newNode, annos, false);
@@ -348,7 +347,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node updatedNode = nodeManager.get(userInfo, id);
 		// The current version for this node should be one
 		assertEquals(new Long(1), updatedNode.getVersionNumber());
-		Annotations annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
+		org.sagebionetworks.repo.model.Annotations annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals(firstVersionValue, annosToUpdate.getSingleValue("stringKey"));
 		// Now attempt to update both the node and the annotations without changing the
 		// the version label.  This should cause the update to fail
@@ -385,7 +384,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Now check that the update went through
 		Node currentNode = nodeManager.get(userInfo, id);
 		assertNotNull(currentNode);
-		Annotations currentAnnos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
+		org.sagebionetworks.repo.model.Annotations currentAnnos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertNotNull(currentAnnos);
 		// The version number should have incremented
 		assertEquals(new Long(2), currentNode.getVersionNumber());
@@ -399,7 +398,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(nodeZero.getModifiedOn());
 		assertEquals("This is the comment on the first version.", nodeZero.getVersionComment());
 		// Now get the annotations for the first version.
-		Annotations annosZero = nodeManager.getEntityPropertyForVersion(userInfo, id, new Long(1));
+		org.sagebionetworks.repo.model.Annotations annosZero = nodeManager.getEntityPropertyForVersion(userInfo, id, new Long(1));
 		assertNotNull(annosZero);
 		assertFalse(currentAnnos.equals(annosZero));
 		assertEquals(null, annosZero.getSingleValue("longKey"));
@@ -429,7 +428,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node updated = nodeManager.get(userInfo, node.getId());
 		updated.setName("nameChanged");
 		updated.setVersionLabel("v2");
-		AnnotationsV2 annos = nodeManager.getUserAnnotations(adminUserInfo, node.getId());
+		Annotations annos = nodeManager.getUserAnnotations(adminUserInfo, node.getId());
 		Thread.sleep(10);
 		boolean newVersion = true;
 		// create new version

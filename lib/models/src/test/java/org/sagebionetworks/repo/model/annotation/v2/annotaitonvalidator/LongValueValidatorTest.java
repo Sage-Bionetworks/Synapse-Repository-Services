@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2ValueType;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 class LongValueValidatorTest {
 
 	LongValueValidator valueValidator = new LongValueValidator();
 	String key = "myKey";
-	AnnotationsV2ValueType type = AnnotationsV2ValueType.LONG;
+	AnnotationsValueType type = AnnotationsValueType.LONG;
 
 	@Test
 	void testValidate_valid() {

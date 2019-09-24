@@ -28,4 +28,15 @@ public class AuthorizationUtils {
 		return userInfo.getGroups()!=null && userInfo.getGroups().contains(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
+	
+	/**
+	 * Throws UnauthorizedException if the passed user is anonymous.
+	 * @param user
+	 * @throws UnauthorizedException if the user is anonymous.
+	 */
+	public static void disallowAnonymous(UserInfo user) throws UnauthorizedException {
+		if(AuthorizationUtils.isUserAnonymous(user)) {
+			throw new UnauthorizedException("Must login to perform this action");
+		}
+	}
 }

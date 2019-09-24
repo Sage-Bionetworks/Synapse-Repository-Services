@@ -200,10 +200,10 @@
 		</dependency>
 
 		<!-- JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>org.sagebionetworks</groupId>
+            <artifactId>schema-to-pojo-org-json</artifactId>
+        </dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

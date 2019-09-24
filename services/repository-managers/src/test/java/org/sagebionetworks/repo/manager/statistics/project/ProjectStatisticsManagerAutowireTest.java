@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.statistics.project;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -25,8 +24,8 @@ import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFil
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics;
-import org.sagebionetworks.repo.model.statistics.ProjectStatistics;
-import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,11 +90,15 @@ public class ProjectStatisticsManagerAutowireTest {
 		boolean includeDownloads = true;
 		boolean includeUploads = true;
 		
+		ProjectFilesStatisticsRequest request = new ProjectFilesStatisticsRequest();
+		request.setObjectId(projectId);
+		request.setFileDownloads(includeDownloads);
+		request.setFileUploads(includeUploads);
+		
 		// Call under test
-		ProjectStatistics result = manager.getProjectStatistics(userInfo, projectId, includeDownloads, includeUploads);
+		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(userInfo, request);
 		
 		assertEquals(projectId, result.getObjectId());
-		assertEquals(StatisticsObjectType.PROJECT, result.getObjectType());
 		
 		MonthlyFilesStatistics fileDownloads = result.getFileDownloads();
 		MonthlyFilesStatistics fileUploads = result.getFileUploads();
@@ -112,7 +115,7 @@ public class ProjectStatisticsManagerAutowireTest {
 		// Verify the 12 months are present
 		assertEquals(stackConfig.getMaximumMonthsForMonthlyStatistics(), stats.getMonths().size());
 		// Verify that the last updated on timestamp is set
-		assertNotEquals(-1L, stats.getLastUpdatedOn());
+		assertNotNull(stats.getLastUpdatedOn());
 		// Verify that for some (the delta) months the count will be 0
 		assertEquals(monthsDelta, stats.getMonths().stream().filter( count -> count.getFilesCount().equals(0L)).count());
 		assertEquals(monthsDelta, stats.getMonths().stream().filter( count -> count.getUsersCount().equals(0L)).count());

@@ -4,11 +4,9 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityBundleV2;
-import org.sagebionetworks.repo.model.EntityBundleV2Create;
-import org.sagebionetworks.repo.model.EntityBundleV2Request;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -59,10 +57,10 @@ public class EntityBundleV2Controller {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	EntityBundleV2 getEntityBundle(
+	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
-			@RequestBody EntityBundleV2Request request)
+			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, request);
 	}
@@ -84,11 +82,11 @@ public class EntityBundleV2Controller {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
-	EntityBundleV2 getEntityBundle(
+	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
-			@RequestBody EntityBundleV2Request request)
+			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, request);
 	}
@@ -115,10 +113,10 @@ public class EntityBundleV2Controller {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE_V2_CREATE, method = RequestMethod.POST)
 	public @ResponseBody
-	EntityBundleV2 createEntityBundle(
+	EntityBundle createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
-			@RequestBody EntityBundleV2Create ebc)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
@@ -146,11 +144,11 @@ public class EntityBundleV2Controller {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
-	EntityBundleV2 updateEntityBundle(
+	EntityBundle updateEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
-			@RequestBody EntityBundleV2Create ebc)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
