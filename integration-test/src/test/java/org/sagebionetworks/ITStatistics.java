@@ -36,16 +36,17 @@ public class ITStatistics {
 	@BeforeAll
 	public static void beforeClass() throws Exception {
 		adminClient = new SynapseAdminClientImpl();
+		client = new SynapseClientImpl();
+		anonymousClient = new SynapseClientImpl();
+		
 		SynapseClientHelper.setEndpoints(adminClient);
+		SynapseClientHelper.setEndpoints(client);
+		SynapseClientHelper.setEndpoints(anonymousClient);
+
 		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
 		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminClient.clearAllLocks();
-
-		client = new SynapseClientImpl();
-		anonymousClient = new SynapseClientImpl();
-
-		SynapseClientHelper.setEndpoints(client);
-
+		
 		// Associate the client with the user session
 		userId = SynapseClientHelper.createUser(adminClient, client);
 	}
