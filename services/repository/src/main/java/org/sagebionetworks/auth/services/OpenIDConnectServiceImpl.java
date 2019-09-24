@@ -4,13 +4,12 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -30,10 +29,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	
@@ -136,13 +131,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
-		Jwt<JwsHeader,Claims> accessToken = null;
-		try {
-			accessToken = oidcTokenHelper.parseJWT(accessTokenParam);
-		} catch (IllegalArgumentException e) {
-			throw new UnauthenticatedException("Could not interpret access token.", e);
-		}
-
-		return oidcManager.getUserInfo(accessToken, oauthEndpoint);
+		UserAuthorization userAuthorization = oidcManager.getUserAuthorization(accessTokenParam);
+		return oidcManager.getOIDCUserInfo(userAuthorization, oauthEndpoint);
 	}
 }

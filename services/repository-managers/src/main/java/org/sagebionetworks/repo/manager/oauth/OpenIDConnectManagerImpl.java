@@ -15,8 +15,11 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.UserAuthorization;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -34,7 +37,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +63,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+	
+	@Autowired
+	private OIDCPairedIDManager oidcPairedIDManager;
+	
+	@Autowired
+	private UserManager userManager;
 	
 	@Autowired
 	Clock clock;
@@ -202,23 +210,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return result;
 	}
 
-	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public String ppid(String userId, String clientId) {
-		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
-			throw new IllegalArgumentException("Cannot create ppid for Synapse Oauth client");
-		}
-		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
-	}
-
-	public String getUserIdFromPPID(String ppid, String clientId) {
-		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
-			return clientId;
-		}
-		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
-		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
-	}
-	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
@@ -285,7 +276,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
+		String ppid = oidcPairedIDManager.getPPIDFromUserId(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
@@ -310,26 +301,40 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	@Override
-	public Object getUserInfo(Jwt<JwsHeader,Claims> accessToken, String oauthEndpoint) {
+	public UserAuthorization getUserAuthorization(String oauthToken) {
+		Jwt<JwsHeader,Claims> accessToken = null;
+		try {
+			accessToken = oidcTokenHelper.parseJWT(oauthToken);
+		} catch (IllegalArgumentException e) {
+			throw new UnauthenticatedException("Could not interpret access token.", e);
+		}
 		Claims accessTokenClaims = accessToken.getBody();
-		// We set exactly one Audience when creating the token
 		String oauthClientId = accessTokenClaims.getAudience();
 		if (oauthClientId==null) {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
-		OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
-
-		String ppid = accessTokenClaims.getSubject();
-		
-		// userId is used to retrieve the user info
-		String userId = getUserIdFromPPID(ppid, oauthClientId);
-
-		Date authTime = authDao.getSessionValidatedOn(Long.parseLong(userId));
-
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
-		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId, scopes, oidcClaims);
+		String ppid = accessTokenClaims.getSubject();
+
+		// userId is used to retrieve the user info
+		String userId = oidcPairedIDManager.getUserIdFromPPID(ppid, oauthClientId);
+
+		UserAuthorization result = new UserAuthorization();
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
+		result.setOauthClientId(oauthClientId);
+		result.setOidcClaims(oidcClaims);
+		result.setScopes(scopes);
+		return result;
+	}	
+	
+	@Override
+	public Object getOIDCUserInfo(UserAuthorization userAuthorization, String oauthEndpoint) {
+		Long userId = userAuthorization.getUserInfo().getId();
+		Date authTime = authDao.getSessionValidatedOn(userId);
+
+		Map<OIDCClaimName,Object> oidcUserInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());
 
 		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 		// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
@@ -339,15 +344,24 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
 		// and then sends a request with Accept: application/json or vice versa (registers with no 
 		// algorithm and then sends a request with Accept: application/jwt).
-		boolean returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
-
+		boolean returnJson = false;
+		String ppid = null;
+		String oauthClientId = userAuthorization.getOauthClientId();
+		if (oauthClientId.equals(OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID)) {
+			returnJson=true;
+			ppid = userId.toString();
+		} else {
+			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
+			returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
+			ppid = oidcPairedIDManager.getPPIDFromUserId(userId.toString(), oauthClientId);
+		}
 		if (returnJson) {
 			// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-			userInfo.put(OIDCClaimName.sub, ppid);
-			return userInfo;
+			oidcUserInfo.put(OIDCClaimName.sub, ppid);
+			return oidcUserInfo;
 		} else {
-			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
-					authTime, UUID.randomUUID().toString(), userInfo);
+			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, userAuthorization.getOauthClientId(), clock.currentTimeMillis(), null,
+					authTime, UUID.randomUUID().toString(), oidcUserInfo);
 
 			return new JWTWrapper(jwtIdToken);
 		}
