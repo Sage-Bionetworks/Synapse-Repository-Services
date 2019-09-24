@@ -89,7 +89,7 @@ public class ITStatistics {
 		
 		assertNotNull(response);
 		assertEquals(project.getId(), response.getObjectId());
-		assertTrue(response instanceof ProjectFilesStatisticsRequest);
+		assertTrue(response instanceof ProjectFilesStatisticsResponse);
 		
 		ProjectFilesStatisticsResponse projectFilesStatistics = (ProjectFilesStatisticsResponse) response;
 		
