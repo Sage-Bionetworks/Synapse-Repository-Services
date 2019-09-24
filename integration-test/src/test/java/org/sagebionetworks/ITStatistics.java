@@ -16,8 +16,8 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
@@ -81,7 +81,7 @@ public class ITStatistics {
 		request.setFileDownloads(true);
 		request.setFileUploads(true);
 
-		Assertions.assertThrows(SynapseUnauthorizedException.class, () -> {
+		Assertions.assertThrows(SynapseForbiddenException.class, () -> {
 			anonymousClient.getStatistics(request);
 		});
 
