@@ -4,8 +4,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.form.FormManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,15 +40,15 @@ public class FormServiceImpl implements FormService {
 	}
 
 	@Override
-	public FormData createFormData(Long userId, String groupId, String name, String dataFileHandleId) {
+	public FormData createFormData(Long userId, String groupId, FormChangeRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.createFormData(user, groupId, name, dataFileHandleId);
+		return formManager.createFormData(user, groupId, request);
 	}
 
 	@Override
-	public FormData updateFormData(Long userId, String id, String name, String dataFileHandleId) {
+	public FormData updateFormData(Long userId, String id, FormChangeRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.updateFormData(user, id, name, dataFileHandleId);
+		return formManager.updateFormData(user, id, request);
 	}
 
 	@Override
@@ -80,9 +82,9 @@ public class FormServiceImpl implements FormService {
 	}
 
 	@Override
-	public FormData reviewerRejectForm(Long userId, String id, String reason) {
+	public FormData reviewerRejectForm(Long userId, String id, FormRejection rejection) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return formManager.reviewerRejectForm(user, id, reason);
+		return formManager.reviewerRejectForm(user, id, rejection);
 	}
 
 }

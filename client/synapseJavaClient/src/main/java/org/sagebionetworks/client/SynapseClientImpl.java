@@ -179,6 +179,12 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
+import org.sagebionetworks.repo.model.form.FormData;
+import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
+import org.sagebionetworks.repo.model.form.ListRequest;
+import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -5354,6 +5360,90 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public ObjectStatisticsResponse getStatistics(ObjectStatisticsRequest request) throws SynapseException {
 		ValidateArgument.required(request, "The request body");
 		return postJSONEntity(getRepoEndpoint(), STATISTICS, request, ObjectStatisticsResponse.class);
+	}
+
+	@Override
+	public FormGroup createFormGroup(String name) throws SynapseException {
+		ValidateArgument.required(name, "name");
+		String url = "/form/group?name="+name;
+		return postJSONEntity(getRepoEndpoint(), url, null, FormGroup.class);
+	}
+
+	@Override
+	public AccessControlList getFormGroupAcl(String formGroupId) throws SynapseException {
+		ValidateArgument.required(formGroupId, "formGroupId");
+		String url = "/form/group/"+formGroupId+"/acl";
+		return getJSONEntity(getRepoEndpoint(), url, AccessControlList.class);
+	}
+
+	@Override
+	public AccessControlList updateFormGroupAcl(AccessControlList acl) throws SynapseException {
+		ValidateArgument.required(acl, "acl");
+		ValidateArgument.required(acl.getId(), "acl.id");
+		String url = "/form/group/"+acl.getId()+"/acl";
+		return putJSONEntity(getRepoEndpoint(), url, acl, AccessControlList.class);
+	}
+
+	@Override
+	public FormData createFormData(String groupId, FormChangeRequest request) throws SynapseException {
+		ValidateArgument.required(groupId, "groupId");
+		ValidateArgument.required(request, "request");
+		String url = "/form/data?groupId="+groupId;
+		return postJSONEntity(getRepoEndpoint(), url, request, FormData.class);
+	}
+
+	@Override
+	public FormData updateFormData(String formId, FormChangeRequest request) throws SynapseException {
+		ValidateArgument.required(formId, "formId");
+		ValidateArgument.required(request, "request");
+		String url = "/form/data/"+formId;
+		return putJSONEntity(getRepoEndpoint(), url, request, FormData.class);
+	}
+
+	@Override
+	public void deleteFormData(String formId) throws SynapseException {
+		ValidateArgument.required(formId, "formId");
+		String url = "/form/data/"+formId;
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
+	public FormData submitFormData(String formId) throws SynapseException {
+		ValidateArgument.required(formId, "formId");
+		String url = "/form/data/"+formId+"/submit";
+		return postJSONEntity(getRepoEndpoint(), url, null, FormData.class);
+	}
+
+	@Override
+	public ListResponse listFormStatusForCreator(ListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getGroupId(), "request.groupId");
+		ValidateArgument.required(request.getFilterByState(), "request.filterByState");
+		String url = "/form/data/list";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListResponse.class);
+	}
+
+	@Override
+	public ListResponse listFormStatusForReviewer(ListRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getGroupId(), "request.groupId");
+		ValidateArgument.required(request.getFilterByState(), "request.filterByState");
+		String url = "/form/data/list/reviewer";
+		return postJSONEntity(getRepoEndpoint(), url, request, ListResponse.class);
+	}
+
+	@Override
+	public FormData reviewerAcceptFormData(String formDataId) throws SynapseException {
+		ValidateArgument.required(formDataId, "formDataId");
+		String url = "/form/data/"+formDataId+"/accept";
+		return putJSONEntity(getRepoEndpoint(), url, null, FormData.class);
+	}
+
+	@Override
+	public FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException {
+		ValidateArgument.required(formDataId, "formDataId");
+		String url = "/form/data/"+formDataId+"/reject";
+		return putJSONEntity(getRepoEndpoint(), url, rejection, FormData.class);
 	}
 
 }
