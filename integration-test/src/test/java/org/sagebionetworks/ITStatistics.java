@@ -16,8 +16,8 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
@@ -36,16 +36,17 @@ public class ITStatistics {
 	@BeforeAll
 	public static void beforeClass() throws Exception {
 		adminClient = new SynapseAdminClientImpl();
+		client = new SynapseClientImpl();
+		anonymousClient = new SynapseClientImpl();
+		
 		SynapseClientHelper.setEndpoints(adminClient);
+		SynapseClientHelper.setEndpoints(client);
+		SynapseClientHelper.setEndpoints(anonymousClient);
+
 		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
 		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminClient.clearAllLocks();
-
-		client = new SynapseClientImpl();
-		anonymousClient = new SynapseClientImpl();
-
-		SynapseClientHelper.setEndpoints(client);
-
+		
 		// Associate the client with the user session
 		userId = SynapseClientHelper.createUser(adminClient, client);
 	}
@@ -80,7 +81,7 @@ public class ITStatistics {
 		request.setFileDownloads(true);
 		request.setFileUploads(true);
 
-		Assertions.assertThrows(SynapseUnauthorizedException.class, () -> {
+		Assertions.assertThrows(SynapseForbiddenException.class, () -> {
 			anonymousClient.getStatistics(request);
 		});
 

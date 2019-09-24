@@ -29,6 +29,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 	public <T extends ObjectStatisticsRequest> ObjectStatisticsResponse getStatistics(Long userId, T request) {
 		ValidateArgument.required(userId, "The id of the user");
 		ValidateArgument.required(request, "The request body");
+		ValidateArgument.required(request.getObjectId(), "The object id");
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
