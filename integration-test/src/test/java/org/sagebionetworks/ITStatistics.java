@@ -25,12 +25,13 @@ import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 
 public class ITStatistics {
 
+	private static final int MONTHS_COUNT = 12;
 	private static SynapseAdminClient adminClient;
 	private static SynapseClient anonymousClient;
 	private static SynapseClient client;
 
 	private static Long userId;
-
+	
 	private Project project;
 
 	@BeforeAll
@@ -96,8 +97,8 @@ public class ITStatistics {
 		assertNotNull(projectFilesStatistics.getFileDownloads());
 		assertNotNull(projectFilesStatistics.getFileUploads());
 		
-		assertEquals(12, projectFilesStatistics.getFileDownloads().getMonths());
-		assertEquals(12, projectFilesStatistics.getFileUploads().getMonths()); 
+		assertEquals(MONTHS_COUNT, projectFilesStatistics.getFileDownloads().getMonths().size());
+		assertEquals(MONTHS_COUNT, projectFilesStatistics.getFileUploads().getMonths().size()); 
 		
 		assertNull(projectFilesStatistics.getFileDownloads().getLastUpdatedOn());
 		assertNull(projectFilesStatistics.getFileUploads().getLastUpdatedOn());
