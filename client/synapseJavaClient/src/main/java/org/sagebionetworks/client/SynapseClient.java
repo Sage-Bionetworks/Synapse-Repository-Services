@@ -191,6 +191,8 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -3271,4 +3273,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public SnapshotResponse createTableSnapshot(String tableId, SnapshotRequest request) throws SynapseException;
+	
+	/**
+	 * Request to retrieve statistics about specific objects. The user should have
+	 * {@link ACCESS_TYPE#VIEW_STATISTICS} access on the {@link ObjectStatisticsRequest#getObjectId()
+	 * objectId} referenced by the request.
+	 * 
+	 * @param request The request body
+	 * @return The statistics according to the given request
+	 * @throws SynapseException
+	 */
+	public ObjectStatisticsResponse getStatistics(ObjectStatisticsRequest request) throws SynapseException;
 }

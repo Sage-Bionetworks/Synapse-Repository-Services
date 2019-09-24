@@ -225,6 +225,8 @@ import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
@@ -555,6 +557,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String UNPIN = "/unpin";
 	private static final String RESTORE = "/restore";
 	private static final String MODERATORS = "/moderators";
+	private static final String STATISTICS = "/statistics";
 	
 
 	private static final String THREAD_COUNTS = "/threadcounts";
@@ -5351,6 +5354,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(tableId, "tableId");
 		String url = "/entity/"+tableId+"/table/snapshot";
 		return postJSONEntity(getRepoEndpoint(), url, request, SnapshotResponse.class);
+	}
+	
+	@Override
+	public ObjectStatisticsResponse getStatistics(ObjectStatisticsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "The request body");
+		return postJSONEntity(getRepoEndpoint(), STATISTICS, request, ObjectStatisticsResponse.class);
 	}
 
 }
