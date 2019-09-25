@@ -1,0 +1,20 @@
+{
+    "title": "Monthly File Statistics",
+    "description": "Container for the statistics relative to file downloads or uploads for the past 12 months (Excluding the current month).",
+    "properties": {
+    	"lastUpdatedOn" : {
+    		"type": "string",
+			"format":"date-time",
+			"description": "The approximate time the files statistics were refreshed. If the statistics were not yet computed the value will not be set",
+			"title": "Last Update Time"
+    	},
+        "months": {
+        	"type": "array",
+        	"description": "The file count buckets ordered by month, always contains the past 12 months (No matter if statistics are computed or not)",
+        	"items": {
+        		"type": "object",
+        		"$ref": "org.sagebionetworks.repo.model.statistics.FilesCountStatistics"
+        	}
+        }
+    }
+}

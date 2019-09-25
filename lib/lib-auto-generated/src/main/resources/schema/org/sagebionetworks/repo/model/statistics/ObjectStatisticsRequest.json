@@ -1,0 +1,14 @@
+{
+	"description": "Common request type containing the specifications of the request in order to retrieve statistics about specific objects",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "The type identifying the concrete request"
+		},
+		"objectId": {
+			"type": "string",
+			"description": "The id of the object for which this request is targeted on"
+		}
+	}
+}
