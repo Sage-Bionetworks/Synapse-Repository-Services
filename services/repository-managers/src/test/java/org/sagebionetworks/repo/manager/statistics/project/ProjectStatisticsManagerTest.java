@@ -10,6 +10,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.YearMonth;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
@@ -343,7 +345,8 @@ public class ProjectStatisticsManagerTest {
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			UserInfo user = new UserInfo(true);
+			Long userId = 123L;
+			UserInfo user = new UserInfo(true, userId);
 			String projectId = null;
 			boolean fileDownloads = true;
 			boolean fileUploads = true;
@@ -353,7 +356,8 @@ public class ProjectStatisticsManagerTest {
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			when(mockNodeDAO.getNode(any())).thenThrow(IllegalArgumentException.class);
-			UserInfo user = new UserInfo(true);
+			Long userId = 123L;
+			UserInfo user = new UserInfo(true, userId);
 			String projectId = "wrong_id";
 			boolean fileDownloads = true;
 			boolean fileUploads = true;
@@ -365,7 +369,8 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithNonExistingProject() {
-		UserInfo user = new UserInfo(true);
+		Long userId = 123L;
+		UserInfo user = new UserInfo(true, userId);
 		String projectId = "123";
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
@@ -383,7 +388,8 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithWrongProjectType() {
-		UserInfo user = new UserInfo(true);
+		Long userId = 123L;
+		UserInfo user = new UserInfo(true, userId);
 		String projectId = "123";
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
@@ -424,6 +430,26 @@ public class ProjectStatisticsManagerTest {
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
+	}
+	
+	@Test
+	public void testGetProjectStatisticsWithAsAnonymous() {
+		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		boolean isAdmin = false;
+		
+		UserInfo user = new UserInfo(isAdmin, userId);
+		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
+
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			// Call under test
+			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		});
+
+		verifyZeroInteractions(mockAuthManager);
+		verifyZeroInteractions(mockNodeDAO);
+		verifyZeroInteractions(mockFileStatsDao);
 	}
 
 	@Test
@@ -502,7 +528,8 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_DOWNLOAD), any(), any())).thenReturn(statistics);
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_UPLOAD), any(), any())).thenReturn(statistics);
 
-		UserInfo user = new UserInfo(true);
+		Long userId = 123L;
+		UserInfo user = new UserInfo(true, userId);
 		boolean fileDownloads = true;
 		boolean fileUploads = true;
 
@@ -539,7 +566,8 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_UPLOAD), any(), any())).thenReturn(statistics);
 
 		String projectId = "123";
-		UserInfo user = new UserInfo(true);
+		Long userId = 123L;
+		UserInfo user = new UserInfo(true, userId);
 		boolean fileDownloads = false;
 		boolean fileUploads = true;
 
@@ -571,7 +599,8 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_DOWNLOAD), any(), any())).thenReturn(statistics);
 
 		String projectId = "123";
-		UserInfo user = new UserInfo(true);
+		Long userId = 123L;
+		UserInfo user = new UserInfo(true, userId);
 		boolean fileDownloads = true;
 		boolean fileUploads = false;
 

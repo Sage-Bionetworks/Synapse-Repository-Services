@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
@@ -27,7 +25,6 @@ public class ITStatistics {
 
 	private static final int MONTHS_COUNT = 12;
 	private static SynapseAdminClient adminClient;
-	private static SynapseClient anonymousClient;
 	private static SynapseClient client;
 
 	private static Long userId;
@@ -38,11 +35,9 @@ public class ITStatistics {
 	public static void beforeClass() throws Exception {
 		adminClient = new SynapseAdminClientImpl();
 		client = new SynapseClientImpl();
-		anonymousClient = new SynapseClientImpl();
 		
 		SynapseClientHelper.setEndpoints(adminClient);
 		SynapseClientHelper.setEndpoints(client);
-		SynapseClientHelper.setEndpoints(anonymousClient);
 
 		adminClient.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
 		adminClient.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
@@ -81,10 +76,6 @@ public class ITStatistics {
 		request.setObjectId(project.getId());
 		request.setFileDownloads(true);
 		request.setFileUploads(true);
-
-		Assertions.assertThrows(SynapseForbiddenException.class, () -> {
-			anonymousClient.getStatistics(request);
-		});
 
 		ObjectStatisticsResponse response = client.getStatistics(request);
 		

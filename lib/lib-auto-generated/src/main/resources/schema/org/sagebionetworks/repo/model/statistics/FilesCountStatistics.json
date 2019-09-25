@@ -6,23 +6,23 @@
     		"type": "string",
 			"format":"date-time",
     		"title": "Range Start",
-    		"description": "The start timestamp of the time frame this bucket represents"
+    		"description": "The start timestamp of the time frame this bucket represents (inclusive)"
     	},
     	"rangeEnd": {
     		"type": "string",
 			"format":"date-time",
     		"title": "Range End",
-    		"description": "The end timestamp of the time frame this bucket represents (inclusive)"
+    		"description": "The end timestamp of the time frame this bucket represents (exclusive)"
     	},
     	"filesCount" : {
     		"type": "integer",
 			"title": "Files Count",
-			"description": "The number of files uploaded or downloaded in this time frame (exclusive)"
+			"description": "The number of files uploaded or downloaded in this time frame"
     	},
     	"usersCount" : {
     		"type": "integer",
 			"title": "Users Count",
-			"description": "The number of distinct users the performed a download or upload in this time frame"
+			"description": "The number of distinct users that performed a download or upload in this time frame"
     	}
     }
 }

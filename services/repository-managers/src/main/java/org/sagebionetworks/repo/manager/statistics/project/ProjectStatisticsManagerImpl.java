@@ -14,10 +14,12 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -67,6 +69,11 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, S
 		ValidateArgument.required(user, "The user");
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getObjectId(), "The project id");
+		
+		// Anonymous pre-check
+		if (AuthorizationUtils.isUserAnonymous(user)) {
+			throw new UnauthorizedException("Anonymous users may not access statistics");
+		}
 
 		String projectId = request.getObjectId();
 

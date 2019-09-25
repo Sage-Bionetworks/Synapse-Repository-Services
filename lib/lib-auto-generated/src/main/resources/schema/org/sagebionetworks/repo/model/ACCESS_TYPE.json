@@ -69,7 +69,7 @@
         },
         {
             "name": "VIEW_STATISTICS",
-            "description": "TODO: Auto-generated description"
+            "description": "Allows access to view the statistics on specific objects"
         }
     ]
 }
