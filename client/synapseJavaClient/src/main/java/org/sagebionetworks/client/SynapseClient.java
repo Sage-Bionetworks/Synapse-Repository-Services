@@ -39,9 +39,6 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -117,6 +114,9 @@ import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
 import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
@@ -144,6 +144,12 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
+import org.sagebionetworks.repo.model.form.FormData;
+import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
+import org.sagebionetworks.repo.model.form.ListRequest;
+import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -3269,4 +3275,178 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public ObjectStatisticsResponse getStatistics(ObjectStatisticsRequest request) throws SynapseException;
+
+	/**
+	 * Create a FormGroup with provided name. This method is idempotent. If a group
+	 * with the provided name already exists and the caller has ACCESS_TYPE.READ
+	 * permission the existing FormGroup will be returned.
+	 * </p>
+	 * The created FormGroup will have an Access Control
+	 * List (ACL) with the creator listed as an administrator.
+	 * 
+	 * @param userId
+	 * @param name   A globally unique name for the group. Required. Between 3 and
+	 *               256 characters.
+	 * @param name
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormGroup createFormGroup(String name) throws SynapseException;
+	
+	/**
+	 * Get the Access Control List (ACL) for a FormGroup.
+	 * </p>
+	 * Note: The caller must have the ACCESS_TYPE.READ permission on the identified group.
+	 * @param formGroupId The identifier of the group.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList getFormGroupAcl(String formGroupId) throws SynapseException;
+	
+	/**
+	 * Update the Access Control List (ACL) for a FormGroup.
+	 * <p>
+	 * The following define the permissions in this context:
+	 * <ul>
+	 * <li>ACCESS_TYPE.READ - Grants read access to the group. READ does <b>not</b>
+	 * grant access to FormData of the group.</li>
+	 * <li>ACCESS_TYPE.CHANGE_PERMISSIONS - Grants access to update the group's
+	 * ACL.</li>
+	 * <li>ACCESS_TYPE.SUBMIT - Grants access to both create and submit FormData to
+	 * the group.</li>
+	 * <li>ACCESS_TYPE.READ_PRIVATE_SUBMISSION - Grants administrator's access to
+	 * the submitted FormData, including both FormData reads and status updates.
+	 * This permission should be reserved for the service account that evaluates
+	 * submissions.</li>
+	 * </ul>
+	 * 
+	 * Users automatically have read/update access to FormData that they create.
+	 * </p>
+	 * 
+	 * 
+	 * Note: The caller must have the ACCESS_TYPE.CHANGE_PERMISSIONS permission on
+	 * the identified group to update the group's ACL.
+	 * 
+	 * @param userId
+	 * @param id     The identifier of the FormGroup.
+	 * @param acl    The updated ACL.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList updateFormGroupAcl(AccessControlList acl) throws SynapseException;
+
+	/**
+	 * Create a new FormData object. The caller will own the resulting object and
+	 * will have access to read, update, and delete the FormData object.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
+	 * to create/update/submit FormData.
+	 * 
+	 * @param groupId The identifier of the group that manages this data. Required.
+	 * @param name    User provided name for this submission. Required. Between 3
+	 *                and 256 characters.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormData createFormData(String groupId, FormChangeRequest request) throws SynapseException;
+	
+	/**
+	 * Update an existing FormData object. The caller must be the creator of the
+	 * FormData object. Once a FormData object has been submitted, it cannot be
+	 * updated until it has been processed. If the submission is accepted it becomes
+	 * immutable. Rejected submission are editable. Updating a rejected submission
+	 * will change its status back to waiting_for_submission.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
+	 * to create/update/submit FormData.
+	 * 
+	 * @param formId  The identifier of the FormData to update.
+	 * @param name    Rename this submission. Optional. Between 3 and 256
+	 *                characters.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormData updateFormData(String formId, FormChangeRequest request) throws SynapseException;
+	
+	/**
+	 * Delete an existing FormData object. The caller must be the creator of the
+	 * FormData object.
+	 * <p>
+	 * Note: Cannot delete a FormData object once it has been submitted and caller
+	 * must have the ACCESS_TYPE.SUBMIT permission on the identified group to update
+	 * the group's ACL.
+	 * 
+	 * @param formId Id of the FormData object to delete
+	 * @return
+	 * @throws SynapseException 
+	 */
+	void deleteFormData(String formId) throws SynapseException;
+	
+	/**
+	 * Submit the identified FormData from review.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the
+	 * identified group to update the group's ACL.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData submitFormData(String formId) throws SynapseException;
+	
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request that are owned by the caller. Note: Only objects owned
+	 * by the caller will be returned.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ListResponse listFormStatusForCreator(ListRequest request) throws SynapseException;
+	
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request for the entire group. This is used by service accounts
+	 * to review submissions. Filtering by WAITING_FOR_SUBMISSION is not allowed for
+	 * this call.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission
+	 * on the identified group to update the group's ACL.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ListResponse listFormStatusForReviewer(ListRequest request) throws SynapseException;
+	
+	/**
+	 * Called by the form reviewing service to accept a submitted data.
+	 * <p>
+	 * ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission on the identified group to
+	 * update the group's ACL.
+	 * 
+	 * @param formDataId Identifier of the FormData to accept.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData reviewerAcceptFormData(String formDataId) throws SynapseException;
+	
+	/**
+	 * Called by the form reviewing service to reject a submitted data.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission
+	 * on the identified group to update the group's ACL.
+	 * 
+	 * @param formDataId Identifier of the FormData to accept.
+	 * @param reason     The reason for the rejection. Limit 500 characters or less.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException;
+	
 }

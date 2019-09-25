@@ -18,13 +18,13 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
 import org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics;
-import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ProjectFilesStatisticsResponse;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
@@ -36,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, StatisticsProvider<ProjectFilesStatisticsRequest> {
+public class ProjectFilesStatisticsProvider implements StatisticsProvider<ProjectFilesStatisticsRequest, ProjectFilesStatisticsResponse> {
 
 	private AuthorizationManager authManager;
 	private NodeDAO nodeDao;
@@ -44,7 +44,7 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, S
 	private int maxMonths;
 
 	@Autowired
-	public ProjectStatisticsManagerImpl(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao,
+	public ProjectFilesStatisticsProvider(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao,
 			StatisticsMonthlyProjectFilesDAO fileStatsDao) {
 		this.authManager = authManager;
 		this.nodeDao = nodeDao;
@@ -53,49 +53,48 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, S
 	}
 
 	@Override
-	public Class<ProjectFilesStatisticsRequest> getSupportedType() {
-		return ProjectFilesStatisticsRequest.class;
-	}
-
-	@Override
-	public ObjectStatisticsResponse getObjectStatistics(UserInfo userInfo, ProjectFilesStatisticsRequest request) {
-		return getProjectFilesStatistics(userInfo, request);
-	}
-
-	@Override
-	public ProjectFilesStatisticsResponse getProjectFilesStatistics(UserInfo user, ProjectFilesStatisticsRequest request) {
+	public void verifyViewStatisticsAccess(UserInfo user, String objectId) throws UnauthorizedException {
 		ValidateArgument.required(user, "The user");
-		ValidateArgument.required(request, "The request");
-		ValidateArgument.required(request.getObjectId(), "The project id");
+		ValidateArgument.required(objectId, "The object id");
 
-		String projectId = request.getObjectId();
-
-		Node project = nodeDao.getNode(projectId);
+		Node project = nodeDao.getNode(objectId);
 
 		if (!EntityType.project.equals(project.getNodeType())) {
-			throw new NotFoundException("The id " + projectId + " does not refer to project");
+			throw new NotFoundException("The id " + objectId + " does not refer to project");
 		}
 
 		String projectCreator = project.getCreatedByPrincipalId().toString();
 
 		// Verify access to the project
 		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
-			authManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
+			authManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
 		}
 
-		Long parsedProjectId = KeyFactory.stringToKey(projectId);
+	}
+
+	@Override
+	public Class<ProjectFilesStatisticsRequest> getSupportedType() {
+		return ProjectFilesStatisticsRequest.class;
+	}
+
+	@Override
+	public ProjectFilesStatisticsResponse getObjectStatistics(ProjectFilesStatisticsRequest request) {
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.required(request.getObjectId(), "The project id");
+
+		Long projectId = KeyFactory.stringToKey(request.getObjectId());
 
 		ProjectFilesStatisticsResponse statistics = new ProjectFilesStatisticsResponse();
 
-		statistics.setObjectId(projectId);
+		statistics.setObjectId(request.getObjectId());
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(maxMonths);
 
 		if (request.getFileDownloads()) {
-			statistics.setFileDownloads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_DOWNLOAD, months));
+			statistics.setFileDownloads(getProjectFilesStatistics(projectId, FileEvent.FILE_DOWNLOAD, months));
 		}
 		if (request.getFileUploads()) {
-			statistics.setFileUploads(getProjectFilesStatistics(parsedProjectId, FileEvent.FILE_UPLOAD, months));
+			statistics.setFileUploads(getProjectFilesStatistics(projectId, FileEvent.FILE_UPLOAD, months));
 		}
 
 		return statistics;
@@ -153,10 +152,9 @@ public class ProjectStatisticsManagerImpl implements ProjectStatisticsManager, S
 		return monthStats;
 	}
 
-	Map<YearMonth, StatisticsMonthlyProjectFiles> getMonthlyProjectFilesMap(Long projectId, FileEvent eventType, YearMonth from, YearMonth to) {
-		return fileStatsDao
-				.getProjectFilesStatisticsInRange(projectId, eventType, from, to)
-				.stream()
+	Map<YearMonth, StatisticsMonthlyProjectFiles> getMonthlyProjectFilesMap(Long projectId, FileEvent eventType, YearMonth from,
+			YearMonth to) {
+		return fileStatsDao.getProjectFilesStatisticsInRange(projectId, eventType, from, to).stream()
 				.collect(Collectors.toMap(StatisticsMonthlyProjectFiles::getMonth, Function.identity()));
 	}
 
