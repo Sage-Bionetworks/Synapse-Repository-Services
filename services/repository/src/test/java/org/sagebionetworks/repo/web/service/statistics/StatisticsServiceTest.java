@@ -5,16 +5,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
+import org.sagebionetworks.repo.manager.statistics.StatisticsManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
@@ -33,19 +31,12 @@ public class StatisticsServiceTest {
 	
 	@Mock
 	private UserManager mockUserManager;
-
-	@Mock
-	private StatisticsProvider<ObjectStatisticsRequest> mockProvider;
 	
 	@Mock
-	private StatisticsService service;
-
-	@SuppressWarnings("unchecked")
-	@BeforeEach
-	public void before() {
-		when(mockProvider.getSupportedType()).thenReturn((Class<ObjectStatisticsRequest>) mockRequest.getClass());
-		service = new StatisticsServiceImpl(mockUserManager, Collections.singletonList(mockProvider));
-	}
+	private StatisticsManager mockStatisticsManager;
+	
+	@InjectMocks
+	private StatisticsServiceImpl service;
 	
 	@Test
 	public void testGetStatisticsWithInvalidInput() {
@@ -76,7 +67,7 @@ public class StatisticsServiceTest {
 		Long userId = 123L;
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(mockUserInfo);
-		when(mockProvider.getObjectStatistics(any(), any())).thenReturn(mockResponse);
+		when(mockStatisticsManager.getStatistics(any(), any())).thenReturn(mockResponse);
 		when(mockRequest.getObjectId()).thenReturn(projectId);
 		
 		// Call under test
@@ -85,7 +76,7 @@ public class StatisticsServiceTest {
 		assertEquals(mockResponse, response);
 		
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mockProvider).getObjectStatistics(mockUserInfo, mockRequest);
+		verify(mockStatisticsManager).getStatistics(mockUserInfo, mockRequest);
 	}
 
 }

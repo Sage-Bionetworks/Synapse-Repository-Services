@@ -10,7 +10,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.YearMonth;
@@ -30,7 +29,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -38,7 +36,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.FilesCountStatistics;
@@ -53,7 +51,7 @@ import org.sagebionetworks.util.Pair;
 import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
-public class ProjectStatisticsManagerTest {
+public class ProjectFilesStatisticsProviderTest {
 
 	private static final int MAX_MONTHS = 12;
 
@@ -78,12 +76,12 @@ public class ProjectStatisticsManagerTest {
 	@Mock
 	private AuthorizationStatus mockAuthStatus;
 
-	private ProjectStatisticsManagerImpl manager;
+	private ProjectFilesStatisticsProvider provider;
 
 	@BeforeEach
 	public void before() {
 		when(mockStackConfig.getMaximumMonthsForMonthlyStatistics()).thenReturn(MAX_MONTHS);
-		manager = new ProjectStatisticsManagerImpl(mockStackConfig, mockAuthManager, mockNodeDAO, mockFileStatsDao);
+		provider = new ProjectFilesStatisticsProvider(mockStackConfig, mockAuthManager, mockNodeDAO, mockFileStatsDao);
 	}
 
 	@Test
@@ -99,7 +97,7 @@ public class ProjectStatisticsManagerTest {
 				.thenReturn(Collections.singletonList(mockStatistics));
 
 		// Call under test
-		Map<YearMonth, StatisticsMonthlyProjectFiles> result = manager.getMonthlyProjectFilesMap(projectId, eventType, from, to);
+		Map<YearMonth, StatisticsMonthlyProjectFiles> result = provider.getMonthlyProjectFilesMap(projectId, eventType, from, to);
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(projectId, eventType, from, to);
 		verify(mockStatistics).getMonth();
@@ -127,7 +125,7 @@ public class ProjectStatisticsManagerTest {
 		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
-		FilesCountStatistics result = manager.getFilesCountStatistics(month, mockStatistics);
+		FilesCountStatistics result = provider.getFilesCountStatistics(month, mockStatistics);
 
 		verify(mockStatistics).getFilesCount();
 		verify(mockStatistics).getUsersCount();
@@ -150,7 +148,7 @@ public class ProjectStatisticsManagerTest {
 		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
-		FilesCountStatistics result = manager.getFilesCountStatistics(month, null);
+		FilesCountStatistics result = provider.getFilesCountStatistics(month, null);
 
 		assertEquals(expected, result);
 
@@ -175,7 +173,7 @@ public class ProjectStatisticsManagerTest {
 		expected.setRangeEnd(new Date(range.getSecond()));
 
 		// Call under test
-		FilesCountStatistics result = manager.getFilesCountStatistics(month, mockStatistics);
+		FilesCountStatistics result = provider.getFilesCountStatistics(month, mockStatistics);
 
 		assertEquals(expected, result);
 
@@ -190,7 +188,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockStatistics.getLastUpdatedOn()).thenReturn(expected.getTime() - 2, expected.getTime() - 1, expected.getTime());
 
 		// Call under test
-		Date result = manager.getLastUpdatedOnMax(stats);
+		Date result = provider.getLastUpdatedOnMax(stats);
 
 		assertEquals(expected, result);
 	}
@@ -202,7 +200,7 @@ public class ProjectStatisticsManagerTest {
 		Long expected = null;
 
 		// Call under test
-		Date result = manager.getLastUpdatedOnMax(stats);
+		Date result = provider.getLastUpdatedOnMax(stats);
 
 		assertEquals(expected, result);
 	}
@@ -231,7 +229,7 @@ public class ProjectStatisticsManagerTest {
 		});
 
 		// Call under test
-		MonthlyFilesStatistics result = manager.getProjectFilesStatistics(projectId, eventType, months);
+		MonthlyFilesStatistics result = provider.getProjectFilesStatistics(projectId, eventType, months);
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(projectId, eventType, months.get(0), months.get(months.size() - 1));
 
@@ -270,7 +268,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), any(), any(), any())).thenReturn(statistics);
 
 		// Call under test
-		MonthlyFilesStatistics result = manager.getProjectFilesStatistics(projectId, eventType, months);
+		MonthlyFilesStatistics result = provider.getProjectFilesStatistics(projectId, eventType, months);
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(projectId, eventType, months.get(0), months.get(months.size() - 1));
 
@@ -325,7 +323,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), any(), any(), any())).thenReturn(statistics);
 
 		// Call under test
-		MonthlyFilesStatistics result = manager.getProjectFilesStatistics(projectId, eventType, months);
+		MonthlyFilesStatistics result = provider.getProjectFilesStatistics(projectId, eventType, months);
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(projectId, eventType, months.get(0), months.get(months.size() - 1));
 
@@ -336,50 +334,27 @@ public class ProjectStatisticsManagerTest {
 	@Test
 	public void testGetProjectStatisticsWithInvalidInput() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			UserInfo user = null;
-			String projectId = "123";
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
 			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+			provider.getObjectStatistics(null);
 		});
-
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			Long userId = 123L;
-			UserInfo user = new UserInfo(true, userId);
 			String projectId = null;
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
 			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+			provider.getObjectStatistics(getRequest(projectId, true, true));
 		});
-
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			when(mockNodeDAO.getNode(any())).thenThrow(IllegalArgumentException.class);
-			Long userId = 123L;
-			UserInfo user = new UserInfo(true, userId);
-			String projectId = "wrong_id";
-			boolean fileDownloads = true;
-			boolean fileUploads = true;
-			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
-		});
-
 	}
 
 	@Test
-	public void testGetProjectStatisticsWithNonExistingProject() {
+	public void testVerifyViewStatisticsAccessWithNonExistingProject() {
 		Long userId = 123L;
 		UserInfo user = new UserInfo(true, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
-		
+
 		when(mockNodeDAO.getNode(any())).thenThrow(NotFoundException.class);
-		
+
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+			provider.verifyViewStatisticsAccess(user, projectId);
 
 		});
 
@@ -387,19 +362,17 @@ public class ProjectStatisticsManagerTest {
 	}
 
 	@Test
-	public void testGetProjectStatisticsWithWrongProjectType() {
+	public void testVerifyViewStatisticsAccessWithWrongProjectType() {
 		Long userId = 123L;
 		UserInfo user = new UserInfo(true, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
-		
+
 		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.file);
-		
-		Assertions.assertThrows(NotFoundException.class, () -> {	
+
+		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+			provider.verifyViewStatisticsAccess(user, projectId);
 		});
 
 		verify(mockNodeDAO).getNode(projectId);
@@ -407,14 +380,12 @@ public class ProjectStatisticsManagerTest {
 	}
 
 	@Test
-	public void testGetProjectStatisticsWithNoAccess() {
+	public void testVerifyViewStatisticsAccessWithNoAccess() {
 		Long userId = 123L;
 		Long creator = 456L;
 		UserInfo user = new UserInfo(false, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
-		
+
 		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
@@ -424,44 +395,44 @@ public class ProjectStatisticsManagerTest {
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+			provider.verifyViewStatisticsAccess(user, projectId);
 
 		});
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
 	}
-	
+
 	@Test
-	public void testGetProjectStatisticsWithAsAnonymous() {
-		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		boolean isAdmin = false;
-		
-		UserInfo user = new UserInfo(isAdmin, userId);
+	public void testVerifyViewStatisticsAccessWithAccess() {
+		Long userId = 123L;
+		Long creator = 456L;
+		UserInfo user = new UserInfo(false, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
 
-		Assertions.assertThrows(UnauthorizedException.class, () -> {
-			// Call under test
-			manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
-		});
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
+		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
+		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(false);
+		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
+		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
 
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockNodeDAO);
-		verifyZeroInteractions(mockFileStatsDao);
+		// Call under test
+		provider.verifyViewStatisticsAccess(user, projectId);
+
+		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
+		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
-	public void testGetProjectStatisticsWithAsAdmin() {
+	public void testVerifyViewStatisticsAccessWithAsAdmin() {
 		Long userId = 123L;
 		Long creator = 456L;
 		boolean isAdmin = true;
-		
+
 		UserInfo user = new UserInfo(isAdmin, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
 
 		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
@@ -469,21 +440,19 @@ public class ProjectStatisticsManagerTest {
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(isAdmin);
 
 		// Call under test
-		manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		provider.verifyViewStatisticsAccess(user, projectId);
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verifyNoMoreInteractions(mockAuthManager);
 	}
-	
+
 	@Test
-	public void testGetProjectStatisticsWithAsCreator() {
+	public void testVerifyViewStatisticsAccessAsCreator() {
 		Long userId = 123L;
 		Long creator = userId;
 		boolean isAdmin = false;
 		UserInfo user = new UserInfo(isAdmin, userId);
 		String projectId = "123";
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
 
 		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
@@ -491,7 +460,7 @@ public class ProjectStatisticsManagerTest {
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
 
 		// Call under test
-		manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		provider.verifyViewStatisticsAccess(user, projectId);
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
 		verifyNoMoreInteractions(mockAuthManager);
@@ -499,15 +468,13 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatistics() {
-		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
-		when(mockNode.getNodeType()).thenReturn(EntityType.project);
-		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(true);
-
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(MAX_MONTHS);
 
 		YearMonth from = months.get(0);
 		YearMonth to = months.get(months.size() - 1);
 		String projectId = "123";
+		boolean fileDownloads = true;
+		boolean fileUploads = true;
 		Integer filesCount = 100;
 		Integer usersCount = 2;
 
@@ -528,11 +495,6 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_DOWNLOAD), any(), any())).thenReturn(statistics);
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_UPLOAD), any(), any())).thenReturn(statistics);
 
-		Long userId = 123L;
-		UserInfo user = new UserInfo(true, userId);
-		boolean fileDownloads = true;
-		boolean fileUploads = true;
-
 		ProjectFilesStatisticsResponse expected = new ProjectFilesStatisticsResponse();
 
 		expected.setObjectId(projectId.toString());
@@ -540,7 +502,7 @@ public class ProjectStatisticsManagerTest {
 		expected.setFileUploads(map(statistics, lastUpdatedOn));
 
 		// Call under test
-		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		ProjectFilesStatisticsResponse result = provider.getObjectStatistics(getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_DOWNLOAD, from, to);
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_UPLOAD, from, to);
@@ -551,11 +513,6 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithoutDownloads() {
-		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
-		when(mockNode.getNodeType()).thenReturn(EntityType.project);
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
-		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
-
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(MAX_MONTHS);
 
 		YearMonth from = months.get(0);
@@ -566,13 +523,11 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_UPLOAD), any(), any())).thenReturn(statistics);
 
 		String projectId = "123";
-		Long userId = 123L;
-		UserInfo user = new UserInfo(true, userId);
 		boolean fileDownloads = false;
 		boolean fileUploads = true;
 
 		// Call under test
-		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		ProjectFilesStatisticsResponse result = provider.getObjectStatistics(getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_UPLOAD, from, to);
 		verifyNoMoreInteractions(mockFileStatsDao);
@@ -584,10 +539,6 @@ public class ProjectStatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsWithoutUploads() {
-		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
-		when(mockNode.getNodeType()).thenReturn(EntityType.project);
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
-		doNothing().when(mockAuthStatus).checkAuthorizationOrElseThrow();
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(MAX_MONTHS);
 
@@ -599,13 +550,11 @@ public class ProjectStatisticsManagerTest {
 		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), eq(FileEvent.FILE_DOWNLOAD), any(), any())).thenReturn(statistics);
 
 		String projectId = "123";
-		Long userId = 123L;
-		UserInfo user = new UserInfo(true, userId);
 		boolean fileDownloads = true;
 		boolean fileUploads = false;
 
 		// Call under test
-		ProjectFilesStatisticsResponse result = manager.getProjectFilesStatistics(user, getRequest(projectId, fileDownloads, fileUploads));
+		ProjectFilesStatisticsResponse result = provider.getObjectStatistics(getRequest(projectId, fileDownloads, fileUploads));
 
 		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_DOWNLOAD, from, to);
 		verifyNoMoreInteractions(mockFileStatsDao);
@@ -614,7 +563,7 @@ public class ProjectStatisticsManagerTest {
 		assertNull(result.getFileUploads());
 
 	}
-	
+
 	private ProjectFilesStatisticsRequest getRequest(String projectId, boolean fileDownloads, boolean fileUploads) {
 		ProjectFilesStatisticsRequest request = new ProjectFilesStatisticsRequest();
 		request.setObjectId(projectId);
