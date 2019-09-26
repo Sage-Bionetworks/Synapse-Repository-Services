@@ -978,7 +978,18 @@ public class SqlConstants {
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT =		"FILES_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT =		"USERS_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON =	"LAST_UPDATED_ON";
-
+	
+	// Table constants related to notification related to SES
+	public static final String TABLE_SES_NOTIFICATIONS = 								"SES_NOTIFICATIONS";
+	public static final String DDL_SES_NOTIFICATIONS = 									"schema/ses/SESNotifications-ddl.sql";
+	public static final String COL_SES_NOTIFICATIONS_ID = 								"ID";
+	public static final String COL_SES_NOTIFICATIONS_CREATED_ON = 						"CREATED_ON";
+	public static final String COL_SES_NOTIFICATIONS_SES_EMAIL_ID = 					"SES_MESSAGE_ID";
+	public static final String COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID = 					"SES_FEEDBACK_ID";
+	public static final String COL_SES_NOTIFICATIONS_ISP_TIMESTAMP = 					"ISP_TIMESTAMP";
+	public static final String COL_SES_NOTIFICATIONS_TYPE = 							"NOTIFICATION_TYPE";
+	public static final String COL_SES_NOTIFICATIONS_BODY = 							"NOTIFICATION_BODY";
+	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

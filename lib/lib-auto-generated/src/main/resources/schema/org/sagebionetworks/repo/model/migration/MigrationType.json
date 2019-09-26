@@ -343,6 +343,10 @@
 			"description": "Metadata for an Oauth client"
 		},
 		{
+			"name": "SES_NOTIFICATIONS",
+			"description": "Bounce and Complaint notifications received from SES"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

@@ -7,8 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_MONTH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STATISTICS_MONTHLY_STATUS_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATISTICS_MONTHLY_STATUS;
 import static org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils.FIRST_DAY_OF_THE_MONTH;
@@ -39,8 +37,8 @@ public class DBOStatisticsMonthlyStatus implements DatabaseObject<DBOStatisticsM
 			new FieldColumn("status", COL_STATISTICS_MONTHLY_STATUS_STATUS),
 			new FieldColumn("lastStartedOn", COL_STATISTICS_MONTHLY_STATUS_LAST_STARTED_ON),
 			new FieldColumn("lastUpdatedOn", COL_STATISTICS_MONTHLY_STATUS_LAST_UPDATED_ON),
-			new FieldColumn("errorMessage", COL_TABLE_STATUS_ERROR_MESSAGE),
-			new FieldColumn("errorDetails", COL_TABLE_STATUS_ERROR_DETAILS) };
+			new FieldColumn("errorMessage", COL_STATISTICS_MONTHLY_STATUS_ERROR_MESSAGE),
+			new FieldColumn("errorDetails", COL_STATISTICS_MONTHLY_STATUS_ERROR_DETAILS) };
 
 	private static final TableMapping<DBOStatisticsMonthlyStatus> TABLE_MAPPING = new TableMapping<DBOStatisticsMonthlyStatus>() {
 
