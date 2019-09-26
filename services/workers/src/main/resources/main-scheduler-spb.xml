@@ -61,6 +61,7 @@
     <import resource="classpath:semaphore-garbage-collection-spb.xml" />
     <import resource="classpath:athena-spb.xml" />
     <import resource="classpath:statistics-spb.xml" />
+    <import resource="classpath:ses-notification-spb.xml" />
 
 	<util:list id="workersList">
 		<!-- workers -->
@@ -105,6 +106,7 @@
 		<ref bean="athenaPartitionScannerTrigger" />
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
 		<ref bean="statisticsMonthlyWorkerTrigger" />
+		<ref bean="sesNotificationWorkerTrigger" />
 	</util:list>
 
 	<bean id="mainScheduler"
