@@ -19,6 +19,10 @@ public class Predicate extends SimpleBranch {
 		super(inPredicate);
 	}
 
+	public Predicate(ArrayHasPredicate inPredicate) {
+		super(inPredicate);
+	}
+
 	public Predicate(LikePredicate likePredicate) {
 		super(likePredicate);
 	}
