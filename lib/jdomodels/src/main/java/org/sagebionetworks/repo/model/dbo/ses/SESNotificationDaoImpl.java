@@ -38,10 +38,8 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		DBOSESNotification dbo = new DBOSESNotification();
 
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		dbo.setSesEmailId(notification.getSesEmailId());
+		dbo.setSesMessageId(notification.getSesMessageId());
 		dbo.setSesFeedbackId(notification.getSesFeedbackId());
-		dbo.setMessageTimestamp(Timestamp.from(notification.getMessageTimestamp()));
-		dbo.setIspTimestamp(Timestamp.from(notification.getIspTimestamp()));
 		dbo.setNotificationType(notification.getNotificationType().toString());
 		dbo.setNotificationBody(SESNotificationUtils.encodeBody(notification.getNotificationBody()));
 		dbo.setId(idGenerator.generateNewId(IdType.SES_NOTIFICATION_ID));
@@ -53,10 +51,6 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 
 	private void validateDTO(SESNotification notification) {
 		ValidateArgument.required(notification, "notification");
-		ValidateArgument.required(notification.getSesEmailId(), "The SES Email Id");
-		ValidateArgument.required(notification.getSesFeedbackId(), "The SES Feedback Id");
-		ValidateArgument.required(notification.getMessageTimestamp(), "The message timestamp");
-		ValidateArgument.required(notification.getIspTimestamp(), "The isp timestamp");
 		ValidateArgument.required(notification.getNotificationType(), "The notification type");
 		ValidateArgument.required(notification.getNotificationBody(), "The notification body");
 	}
@@ -66,9 +60,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 
 		dto.setId(dbo.getId());
 		dto.setCreatedOn(dbo.getCreatedOn().toInstant());
-		dto.setIspTimestamp(dbo.getIspTimestamp().toInstant());
-		dto.setMessageTimestamp(dbo.getMessageTimestamp().toInstant());
-		dto.setSesEmailId(dbo.getSesEmailId());
+		dto.setSesMessageId(dbo.getSesMessageId());
 		dto.setSesFeedbackId(dbo.getSesFeedbackId());
 		dto.setNotificationType(SESNotificationType.valueOf(dbo.getNotificationType()));
 		dto.setNotificationBody(SESNotificationUtils.decodeBody(dbo.getNotificationBody()));

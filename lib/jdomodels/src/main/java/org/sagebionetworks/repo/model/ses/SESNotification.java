@@ -15,10 +15,8 @@ public class SESNotification {
 	private Instant createdOn;
 	private SESNotificationType notificationType;
 	private String notificationBody;
-	private String sesEmailId;
+	private String sesMessageId;
 	private String sesFeedbackId;
-	private Instant messageTimestamp;
-	private Instant ispTimestamp;
 
 	public Long getId() {
 		return id;
@@ -52,12 +50,12 @@ public class SESNotification {
 		this.notificationBody = notificationBody;
 	}
 
-	public String getSesEmailId() {
-		return sesEmailId;
+	public String getSesMessageId() {
+		return sesMessageId;
 	}
 
-	public void setSesEmailId(String sesEmailId) {
-		this.sesEmailId = sesEmailId;
+	public void setSesMessageId(String sesMessageId) {
+		this.sesMessageId = sesMessageId;
 	}
 
 	public String getSesFeedbackId() {
@@ -68,25 +66,9 @@ public class SESNotification {
 		this.sesFeedbackId = sesFeedbackId;
 	}
 
-	public Instant getMessageTimestamp() {
-		return messageTimestamp;
-	}
-
-	public void setMessageTimestamp(Instant messageTimestamp) {
-		this.messageTimestamp = messageTimestamp;
-	}
-
-	public Instant getIspTimestamp() {
-		return ispTimestamp;
-	}
-
-	public void setIspTimestamp(Instant ispTimestamp) {
-		this.ispTimestamp = ispTimestamp;
-	}
-
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, id, ispTimestamp, messageTimestamp, notificationBody, notificationType, sesEmailId, sesFeedbackId);
+		return Objects.hash(createdOn, id, notificationBody, notificationType, sesMessageId, sesFeedbackId);
 	}
 
 	@Override
@@ -99,16 +81,14 @@ public class SESNotification {
 			return false;
 		SESNotification other = (SESNotification) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
-				&& Objects.equals(ispTimestamp, other.ispTimestamp) && Objects.equals(messageTimestamp, other.messageTimestamp)
 				&& Objects.equals(notificationBody, other.notificationBody) && notificationType == other.notificationType
-				&& Objects.equals(sesEmailId, other.sesEmailId) && Objects.equals(sesFeedbackId, other.sesFeedbackId);
+				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(sesFeedbackId, other.sesFeedbackId);
 	}
 
 	@Override
 	public String toString() {
 		return "SESNotification [id=" + id + ", createdOn=" + createdOn + ", notificationType=" + notificationType + ", notificationBody="
-				+ notificationBody + ", sesEmailId=" + sesEmailId + ", sesFeedbackId=" + sesFeedbackId + ", messageTimestamp="
-				+ messageTimestamp + ", ispTimestamp=" + ispTimestamp + "]";
+				+ notificationBody + ", sesMessageId=" + sesMessageId + ", sesFeedbackId=" + sesFeedbackId + "]";
 	}
 
 }

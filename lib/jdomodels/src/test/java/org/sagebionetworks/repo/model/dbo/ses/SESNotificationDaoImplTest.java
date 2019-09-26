@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.ses;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -20,6 +19,38 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SESNotificationDaoImplTest {
+	
+	private static String notificationBody = "{ \r\n" + 
+			"  \"notificationType\":\"bounce\",\r\n" + 
+			"  \"mail\":{ \r\n" + 
+			"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
+			"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
+			"    \"source\":\"sender@example.com\",\r\n" + 
+			"    \"destination\":[ \r\n" + 
+			"      \"recipient@example.com\"\r\n" + 
+			"    ],\r\n" + 
+			"    \"headersTruncated\":true\r\n" + 
+			"  },\r\n" + 
+			"  \"bounce\":{ \r\n" + 
+			"    \"bounceType\":\"Permanent\",\r\n" + 
+			"    \"bounceSubType\":\"General\",\r\n" + 
+			"    \"bouncedRecipients\":[ \r\n" + 
+			"      { \r\n" + 
+			"        \"status\":\"5.0.0\",\r\n" + 
+			"        \"action\":\"failed\",\r\n" + 
+			"        \"diagnosticCode\":\"smtp; 550 user unknown\",\r\n" + 
+			"        \"emailAddress\":\"recipient1@example.com\"\r\n" + 
+			"      },\r\n" + 
+			"      { \r\n" + 
+			"        \"status\":\"4.0.0\",\r\n" + 
+			"        \"action\":\"delayed\",\r\n" + 
+			"        \"emailAddress\":\"recipient2@example.com\"\r\n" + 
+			"      }\r\n" + 
+			"    ],\r\n" + 
+			"    \"timestamp\":\"2012-05-25T14:59:38.605Z\",\r\n" + 
+			"    \"feedbackId\":\"000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000\"\r\n" + 
+			"  }\r\n" + 
+			"}";
 	
 	@Autowired
 	private SESNotificationDao dao;
@@ -41,27 +72,6 @@ public class SESNotificationDaoImplTest {
 			SESNotification notification = null;
 			dao.create(notification);
 		});
-		
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESNotification notification = getRandomNotification();
-			notification.setIspTimestamp(null);
-			dao.create(notification);
-		});
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESNotification notification = getRandomNotification();
-			notification.setMessageTimestamp(null);
-			dao.create(notification);
-		});
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESNotification notification = getRandomNotification();
-			notification.setSesEmailId(null);
-			dao.create(notification);
-		});
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESNotification notification = getRandomNotification();
-			notification.setSesFeedbackId(null);
-			dao.create(notification);
-		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationType(null);
@@ -72,6 +82,32 @@ public class SESNotificationDaoImplTest {
 			notification.setNotificationBody(null);
 			dao.create(notification);
 		});
+	}
+	
+	@Test
+	public void testCreateWithEmptyEmailId() {
+		SESNotification notification = getRandomNotification();
+		notification.setSesMessageId(null);
+		
+		SESNotification result = dao.create(notification);
+		
+		notification.setId(result.getId());
+		notification.setCreatedOn(result.getCreatedOn());
+		
+		assertEquals(notification, result);
+	}
+	
+	@Test
+	public void testCreateWithEmptyFeedbackId() {
+		SESNotification notification = getRandomNotification();
+		notification.setSesFeedbackId(null);
+		
+		SESNotification result = dao.create(notification);
+		
+		notification.setId(result.getId());
+		notification.setCreatedOn(result.getCreatedOn());
+		
+		assertEquals(notification, result);
 	}
 	
 	@Test
@@ -91,12 +127,10 @@ public class SESNotificationDaoImplTest {
 	
 	private SESNotification getRandomNotification() {
 		SESNotification notification = new SESNotification();
-		notification.setIspTimestamp(Instant.now());
-		notification.setMessageTimestamp(Instant.now());
 		notification.setNotificationType(SESNotificationType.Bounce);
 		notification.setSesFeedbackId(UUID.randomUUID().toString());
-		notification.setSesEmailId(UUID.randomUUID().toString());
-		notification.setNotificationBody("Some notification body in JSON");
+		notification.setSesMessageId(UUID.randomUUID().toString());
+		notification.setNotificationBody(notificationBody);
 		return notification;
 	}
 	
