@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.model.ses;
 
 public enum SESNotificationType {
-	BOUNCE, COMPLAINT
+	Bounce, Complaint, Delivery
 }

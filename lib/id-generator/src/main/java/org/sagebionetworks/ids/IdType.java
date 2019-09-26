@@ -51,7 +51,8 @@ public enum IdType {
 	DATA_TYPE_ID(null),
 	TABLE_TRANSACTION_ID(null),
 	OAUTH_SECTOR_IDENTIFIER_ID(null),
-	OAUTH_CLIENT_ID(100000L)
+	OAUTH_CLIENT_ID(100000L),
+	SES_NOTIFICATION_ID(null)
 	;
 	
 	Long startingId;
