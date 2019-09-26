@@ -1,9 +1,23 @@
 package org.sagebionetworks.repo.model.ses;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 public class SESNotificationUtils {
-	
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+			// Does not fail for properties that are not mapped
+			.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+			.registerModule(new JavaTimeModule());
+
+	public static SESJsonNotification parseNotification(String notificationBody) throws IOException {
+		return OBJECT_MAPPER.readValue(notificationBody, SESJsonNotification.class);
+	}
+
 	public static byte[] encodeBody(String body) {
 		try {
 			return body.getBytes("UTF-8");
@@ -11,7 +25,7 @@ public class SESNotificationUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public static String decodeBody(byte[] bytes) {
 		try {
 			return new String(bytes, "UTF-8");
