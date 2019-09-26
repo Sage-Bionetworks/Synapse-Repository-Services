@@ -21,7 +21,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class SESNotificationDaoImplTest {
 	
 	private static String notificationBody = "{ \r\n" + 
-			"  \"notificationType\":\"bounce\",\r\n" + 
+			"  \"notificationType\":\"Bounce\",\r\n" + 
 			"  \"mail\":{ \r\n" + 
 			"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
 			"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
@@ -70,16 +70,19 @@ public class SESNotificationDaoImplTest {
 	public void testCreateWithInvalidInput() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = null;
+			// Call under test
 			dao.create(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationType(null);
+			// Call under test
 			dao.create(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationBody(null);
+			// Call under test
 			dao.create(notification);
 		});
 	}
@@ -88,7 +91,8 @@ public class SESNotificationDaoImplTest {
 	public void testCreateWithEmptyEmailId() {
 		SESNotification notification = getRandomNotification();
 		notification.setSesMessageId(null);
-		
+
+		// Call under test
 		SESNotification result = dao.create(notification);
 		
 		notification.setId(result.getId());
@@ -102,6 +106,7 @@ public class SESNotificationDaoImplTest {
 		SESNotification notification = getRandomNotification();
 		notification.setSesFeedbackId(null);
 		
+		// Call under test
 		SESNotification result = dao.create(notification);
 		
 		notification.setId(result.getId());
@@ -114,6 +119,7 @@ public class SESNotificationDaoImplTest {
 	public void testCreateNotification() {
 		SESNotification notification = getRandomNotification();
 		
+		// Call under test
 		SESNotification result = dao.create(notification);
 		
 		assertNotNull(result.getId());
@@ -125,9 +131,20 @@ public class SESNotificationDaoImplTest {
 		assertEquals(notification, result);
 	}
 	
+	@Test
+	public void testCountBySesMessageId() {
+		SESNotification notification = getRandomNotification();
+		
+		dao.create(notification);
+		
+		Long result = dao.countBySesMessageId(notification.getSesMessageId());
+		
+		assertEquals(1L, result);
+	}
+	
 	private SESNotification getRandomNotification() {
 		SESNotification notification = new SESNotification();
-		notification.setNotificationType(SESNotificationType.Bounce);
+		notification.setNotificationType(SESNotificationType.BOUNCE);
 		notification.setSesFeedbackId(UUID.randomUUID().toString());
 		notification.setSesMessageId(UUID.randomUUID().toString());
 		notification.setNotificationBody(notificationBody);

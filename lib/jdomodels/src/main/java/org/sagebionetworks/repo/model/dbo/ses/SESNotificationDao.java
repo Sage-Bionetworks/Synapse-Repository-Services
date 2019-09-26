@@ -16,6 +16,12 @@ public interface SESNotificationDao {
 	 * @return
 	 */
 	SESNotification create(SESNotification notification);
+	
+	/**
+	 * @param sesMessageId An id returned by SES when sending an email
+	 * @return The count of notifications received for the given message id
+	 */
+	Long countBySesMessageId(String sesMessageId);
 
 	/**
 	 * Clear all the SES notifications from the database

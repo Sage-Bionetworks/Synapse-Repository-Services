@@ -52,7 +52,7 @@ public class SESNotificationManagerTest {
 
 		SESNotification expected = new SESNotification();
 
-		expected.setNotificationType(SESNotificationType.Unknown);
+		expected.setNotificationType(SESNotificationType.UNKNOWN);
 
 		// Call under test
 		SESNotification result = manager.map(mockNotification);
@@ -71,7 +71,7 @@ public class SESNotificationManagerTest {
 
 		SESNotification expected = new SESNotification();
 
-		expected.setNotificationType(SESNotificationType.Unknown);
+		expected.setNotificationType(SESNotificationType.UNKNOWN);
 
 		// Call under test
 		SESNotification result = manager.map(mockNotification);
@@ -90,7 +90,26 @@ public class SESNotificationManagerTest {
 
 		SESNotification expected = new SESNotification();
 
-		expected.setNotificationType(SESNotificationType.Unknown);
+		expected.setNotificationType(SESNotificationType.UNKNOWN);
+
+		// Call under test
+		SESNotification result = manager.map(mockNotification);
+
+		assertEquals(expected, result);
+
+		verify(mockNotification).getNotificationType();
+	}
+	
+	@Test
+	public void testMapJsonNotificationWithCasedType() {
+
+		String notificationType = "BounCe";
+
+		when(mockNotification.getNotificationType()).thenReturn(notificationType);
+
+		SESNotification expected = new SESNotification();
+
+		expected.setNotificationType(SESNotificationType.BOUNCE);
 
 		// Call under test
 		SESNotification result = manager.map(mockNotification);
@@ -103,7 +122,7 @@ public class SESNotificationManagerTest {
 	@Test
 	public void testMapJsonNotificationWithMessageId() {
 
-		SESNotificationType notificationType = SESNotificationType.Bounce;
+		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 		String messageId = UUID.randomUUID().toString();
 
 		when(mockMail.getMessageId()).thenReturn(messageId);
@@ -126,7 +145,7 @@ public class SESNotificationManagerTest {
 	@Test
 	public void testMapJsonNotificationWithBounceFeedbackId() {
 
-		SESNotificationType notificationType = SESNotificationType.Bounce;
+		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 		String feedbackId = UUID.randomUUID().toString();
 
 		when(mockBounce.getFeedbackId()).thenReturn(feedbackId);
@@ -150,7 +169,7 @@ public class SESNotificationManagerTest {
 	@Test
 	public void testMapJsonNotificationWithComplaintFeedbackId() {
 
-		SESNotificationType notificationType = SESNotificationType.Complaint;
+		SESNotificationType notificationType = SESNotificationType.COMPLAINT;
 		String feedbackId = UUID.randomUUID().toString();
 
 		when(mockComplaint.getFeedbackId()).thenReturn(feedbackId);
@@ -193,7 +212,7 @@ public class SESNotificationManagerTest {
 	@Test
 	public void testProcessNotification() {
 		String notificationBody = "Some notification";
-		SESNotificationType notificationType = SESNotificationType.Bounce;
+		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
 		when(mockNotification.getNotificationBody()).thenReturn(notificationBody);
 		when(mockNotification.getNotificationType()).thenReturn(notificationType.toString());

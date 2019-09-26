@@ -15,7 +15,7 @@ public class SESNotificationUtilsTest {
 	public void testParseBounceNotification() throws IOException {
 
 		String notificationBody = "{ \r\n" + 
-				"  \"notificationType\":\"bounce\",\r\n" + 
+				"  \"notificationType\":\"Bounce\",\r\n" + 
 				"  \"mail\":{ \r\n" + 
 				"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
 				"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
@@ -48,7 +48,7 @@ public class SESNotificationUtilsTest {
 		
 		SESJsonNotification expected = new SESJsonNotification();
 		
-		expected.setNotificationType("bounce");
+		expected.setNotificationType("Bounce");
 		expected.setMail(new SESJsonMail());
 		expected.setBounce(new SESJsonBounce());
 		
@@ -77,7 +77,7 @@ public class SESNotificationUtilsTest {
 	public void testParseComplaintNotification() throws IOException {
 
 		String notificationBody = "{ \r\n" + 
-				"  \"notificationType\":\"complaint\",\r\n" + 
+				"  \"notificationType\":\"Complaint\",\r\n" + 
 				"  \"mail\":{ \r\n" + 
 				"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
 				"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
@@ -103,7 +103,7 @@ public class SESNotificationUtilsTest {
 		
 		SESJsonNotification expected = new SESJsonNotification();
 		
-		expected.setNotificationType("complaint");
+		expected.setNotificationType("Complaint");
 		expected.setMail(new SESJsonMail());
 		expected.setComplaint(new SESJsonComplaint());
 		
@@ -132,7 +132,7 @@ public class SESNotificationUtilsTest {
 	public void testParseWithMissingMappedProperty() throws IOException {
 
 		String notificationBody = "{ \r\n" + 
-				"  \"notificationType\":\"complaint\",\r\n" + 
+				"  \"notificationType\":\"Complaint\",\r\n" + 
 				"  \"mail\":{ \r\n" + 
 				"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
 				"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
@@ -151,7 +151,7 @@ public class SESNotificationUtilsTest {
 		
 		SESJsonNotification expected = new SESJsonNotification();
 		
-		expected.setNotificationType("complaint");
+		expected.setNotificationType("Complaint");
 		expected.setMail(new SESJsonMail());
 		expected.setComplaint(new SESJsonComplaint());
 		
@@ -174,7 +174,7 @@ public class SESNotificationUtilsTest {
 	@Test
 	public void testEncodeDecodeRoundTrip() {
 		String notificationBody = "{ \r\n" + 
-				"  \"notificationType\":\"bounce\",\r\n" + 
+				"  \"notificationType\":\"Bounce\",\r\n" + 
 				"  \"mail\":{ \r\n" + 
 				"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
 				"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 

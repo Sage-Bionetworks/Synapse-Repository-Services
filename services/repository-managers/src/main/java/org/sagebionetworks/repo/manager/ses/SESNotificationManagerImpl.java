@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.repo.model.ses.SESJsonWithFeedbackId;
 import org.sagebionetworks.repo.model.ses.SESNotification;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 	}
 
 	@Override
+	@WriteTransaction
 	public void processNotification(SESJsonNotification notification) {
 		ValidateArgument.required(notification, "The notification");
 		ValidateArgument.required(notification.getNotificationBody(), "The notificaiton body");
@@ -39,12 +41,13 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 
 	SESNotification map(SESJsonNotification json) {
 		SESNotification dto = new SESNotification();
-		SESNotificationType type = SESNotificationType.Unknown;
+		SESNotificationType type = SESNotificationType.UNKNOWN;
 
 		String notificationTypeString = json.getNotificationType();
 		
-		if (!StringUtils.isEmpty(notificationTypeString)) {
+		if (!StringUtils.isBlank(notificationTypeString)) {
 			try {
+				notificationTypeString = notificationTypeString.toUpperCase();
 				type = SESNotificationType.valueOf(notificationTypeString);
 			} catch (Exception e) {
 				LOG.error(e.getMessage(), e);
@@ -61,10 +64,10 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		Optional<SESJsonWithFeedbackId> feedback = Optional.empty();
 
 		switch (type) {
-		case Bounce:
+		case BOUNCE:
 			feedback = Optional.ofNullable(json.getBounce());
 			break;
-		case Complaint:
+		case COMPLAINT:
 			feedback = Optional.ofNullable(json.getComplaint());
 		default:
 			break;

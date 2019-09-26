@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SES_NOTIFICATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.Timestamp;
 
@@ -47,6 +47,16 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		dbo = basicDao.createNew(dbo);
 
 		return map(dbo);
+	}
+
+	@Override
+	public Long countBySesMessageId(String sesMessageId) {
+		ValidateArgument.required(sesMessageId, "The SES Message Id");
+
+		String sql = "SELECT COUNT(" + COL_SES_NOTIFICATIONS_ID + ") FROM " + TABLE_SES_NOTIFICATIONS + " WHERE "
+				+ COL_SES_NOTIFICATIONS_SES_MESSAGE_ID + " = ?";
+
+		return jdbcTemplate.queryForObject(sql, Long.class, sesMessageId);
 	}
 
 	private void validateDTO(SESNotification notification) {
