@@ -1244,7 +1244,23 @@ public class SQLUtils {
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
-		builder.append(") SELECT ");
+		builder.append(") ");
+		builder.append(createSelectFromEntityReplication(viewId, viewTypeMask, currentSchema));
+		return builder.toString();
+	}
+	
+	/**
+	 * Generate the SQL to get all of the data for a view table from the entity replication tables.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param currentSchema
+	 * @return
+	 */
+	public static String createSelectFromEntityReplication(Long viewId, Long viewTypeMask,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
 		buildSelect(builder, metadata);
 		builder.append(" FROM ");
 		builder.append(ENTITY_REPLICATION_TABLE);

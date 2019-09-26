@@ -69,6 +69,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -767,6 +768,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()){
+			// nothing to do if the scope is empty.
+			return;
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema);
+		namedTemplate.update(sql, param);
+	}
+	
+	@Override
+	public void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, CSVWriterStream outStream) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()){
