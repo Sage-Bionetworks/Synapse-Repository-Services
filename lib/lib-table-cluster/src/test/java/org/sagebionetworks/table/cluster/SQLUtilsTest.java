@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
 
 import java.sql.PreparedStatement;
@@ -15,13 +16,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -39,11 +40,12 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.Lists;
 
-
+@ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
 	
 	@Mock
@@ -62,9 +64,8 @@ public class SQLUtilsTest {
 	IdAndVersion tableId;
 	Long viewId;
 	
-	@Before
+	@BeforeEach
 	public void before(){
-		MockitoAnnotations.initMocks(this);
 		simpleSchema = new LinkedList<ColumnModel>();
 		ColumnModel col = new ColumnModel();
 		col.setColumnType(ColumnType.INTEGER);
@@ -245,7 +246,7 @@ public class SQLUtilsTest {
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
-		assertEquals("There should be one mapping for each row in the batch",2, results.length);
+		assertEquals(2, results.length,"There should be one mapping for each row in the batch");
 		// First row
 		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
@@ -276,7 +277,7 @@ public class SQLUtilsTest {
 		// bind!
 		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(grouping);
 		assertNotNull(results);
-		assertEquals("There should be one mapping for each row in the batch",3, results.length);
+		assertEquals(3, results.length,"There should be one mapping for each row in the batch");
 		// First row
 		assertEquals(new Long(100), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
@@ -498,7 +499,7 @@ public class SQLUtilsTest {
 		assertEquals(", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testAppendUpdateColumnNullInfo(){
 		StringBuilder builder = new StringBuilder();
 		// old column.
@@ -512,11 +513,13 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
-		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testAppendUpdateColumnWithNullIndexName(){
 		StringBuilder builder = new StringBuilder();
 		// old column.
@@ -533,8 +536,10 @@ public class SQLUtilsTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
-		// call under test
-		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
+		});
 	}
 	
 	@Test
@@ -850,7 +855,7 @@ public class SQLUtilsTest {
 		
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
-		assertEquals("when there are no changes the sql should be null",null, results);
+		assertEquals(null, results, "when there are no changes the sql should be null");
 	}
 	
 	/**
@@ -1207,9 +1212,9 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
-		assertEquals("Higher cardinality should be added","_C1_", changes.getToAdd().get(0).getColumnName());
+		assertEquals("_C1_", changes.getToAdd().get(0).getColumnName(), "Higher cardinality should be added");
 		assertEquals(1, changes.getToRemove().size());
-		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnName());
+		assertEquals("_C0_", changes.getToRemove().get(0).getColumnName(),"Lower cardinality should be dropped.");
 		assertEquals(0, changes.getToRename().size());
 	}
 	
@@ -1238,11 +1243,11 @@ public class SQLUtilsTest {
 		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
 
 		assertEquals(1, changes.getToAdd().size());	
-		assertEquals("Higher cardinality should be added","_C2_", changes.getToAdd().get(0).getColumnName());
+		assertEquals("_C2_", changes.getToAdd().get(0).getColumnName(), "Higher cardinality should be added");
 		assertEquals(1, changes.getToRemove().size());
-		assertEquals("Lower cardinality should be dropped.","_C0_", changes.getToRemove().get(0).getColumnName());
+		assertEquals("_C0_", changes.getToRemove().get(0).getColumnName(), "Lower cardinality should be dropped.");
 		assertEquals(1, changes.getToRename().size());
-		assertEquals("High cardinality should be renamed.","_C1_", changes.getToRename().get(0).getColumnName());
+		assertEquals("_C1_", changes.getToRename().get(0).getColumnName(), "High cardinality should be renamed.");
 	}
 	
 	@Test
@@ -1379,13 +1384,15 @@ public class SQLUtilsTest {
 		assertEquals(123L, columnId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetColumnIdNotAnId(){
 		String columnName = SQLUtils.getColumnNameForId("foo");
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(columnName);
-		// call under test.
-		SQLUtils.getColumnId(info);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test.
+			SQLUtils.getColumnId(info);
+		});
 	}
 	
 	@Test
@@ -1649,8 +1656,9 @@ public class SQLUtilsTest {
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		boolean isDoubleAbstract = true;
 		// call under test
-		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C123_", builder.toString());
+		assertEquals("_DBL_C123_", header);
 	}
 	
 	@Test
@@ -1664,8 +1672,9 @@ public class SQLUtilsTest {
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		boolean isDoubleAbstract = false;
 		// call under test
-		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
+		String header = SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals("_C123_", header);
 	}
 	
 	@Test
@@ -1676,8 +1685,9 @@ public class SQLUtilsTest {
 		int index = 2;
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test
-		SQLUtils.buildSelectMetadata(builder, meta);
+		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
+		assertEquals(Lists.newArrayList("CREATED_ON"), headers);
 	}
 	
 	@Test
@@ -1691,8 +1701,9 @@ public class SQLUtilsTest {
 		int index = 4;
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test
-		SQLUtils.buildSelectMetadata(builder, meta);
+		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals(Lists.newArrayList("_C123_"), headers);
 	}
 	
 	@Test
@@ -1705,11 +1716,12 @@ public class SQLUtilsTest {
 		int index = 4;
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test
-		SQLUtils.buildSelectMetadata(builder, meta);
+		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
 		assertEquals(
 				", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
 				+ ", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
+		assertEquals(Lists.newArrayList("_DBL_C456_","_C456_"), headers);
 	}
 	
 	@Test
@@ -1717,19 +1729,49 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		String columnName = TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
-		SQLUtils.buildEntityReplicationSelect(builder, columnName);
+		List<String> headers = SQLUtils.buildEntityReplicationSelect(builder, columnName);
 		assertEquals(", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+		assertEquals(Lists.newArrayList(columnName), headers);
 	}
 	
 	@Test
 	public void testBuildEntityReplicationSelectStandardColumns() {
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		SQLUtils.buildEntityReplicationSelectStandardColumns(builder);
+		List<String> headers = SQLUtils.buildEntityReplicationSelectStandardColumns(builder);
 		assertEquals("R.ID"
 				+ ", MAX(R.CURRENT_VERSION) AS CURRENT_VERSION"
 				+ ", MAX(R.ETAG) AS ETAG"
 				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
+		assertEquals(Lists.newArrayList("ID", "CURRENT_VERSION","ETAG","BENEFACTOR_ID"), headers);
+	}
+	
+	@Test
+	public void testCreateSelectFromEntityReplication(){
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema);
+		String sql = builder.toString();
+		assertEquals("SELECT"
+				+ " R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(R.ID) AS ID"
+				+ " FROM"
+				+ " ENTITY_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE"
+				+ " R.PARENT_ID IN (:parentIds)"
+				+ " AND TYPE IN ('file')"
+				+ " GROUP BY R.ID", sql);
+		assertEquals(Lists.newArrayList("ID", "CURRENT_VERSION","ETAG","BENEFACTOR_ID","_C1_","ID"), headers);
 	}
 	
 	
@@ -1857,7 +1899,7 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildSelectRowIdsNullRefts(){
 		RowReference ref1 = new RowReference();
 		ref1.setRowId(222L);
@@ -1867,38 +1909,50 @@ public class SQLUtilsTest {
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 		
-		SQLUtils.buildSelectRowIds("syn123", null, Lists.newArrayList(c1,  c2));
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.buildSelectRowIds("syn123", null, Lists.newArrayList(c1,  c2));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildSelectRowIdsNullColumns(){
 		RowReference ref1 = new RowReference();
 		ref1.setRowId(222L);
 		RowReference ref2 = new RowReference();
 		ref2.setRowId(333L);
-		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), null);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), null);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildSelectRowIdsEmptyRefs(){
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
-		
-		String sql = SQLUtils.buildSelectRowIds("syn123", new LinkedList<RowReference>(), Lists.newArrayList(c1,  c2));
-		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
-		assertEquals(expected, sql);
+	
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.buildSelectRowIds("syn123", new LinkedList<RowReference>(), Lists.newArrayList(c1,  c2));
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildSelectRowIdsEmptyColumns(){
 		RowReference ref1 = new RowReference();
 		ref1.setRowId(222L);
 		RowReference ref2 = new RowReference();
 		ref2.setRowId(333L);
-		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), new LinkedList<ColumnModel>());
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), new LinkedList<ColumnModel>());
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBuildSelectRowIdsNullRefRowId(){
 		RowReference ref1 = new RowReference();
 		ref1.setRowId(null);
@@ -1908,7 +1962,10 @@ public class SQLUtilsTest {
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 		
-		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+		});
 	}
 	
 	@Test
