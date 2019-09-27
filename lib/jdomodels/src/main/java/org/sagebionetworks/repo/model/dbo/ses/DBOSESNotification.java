@@ -75,6 +75,8 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 		}
 	};
 
+	private static final MigratableTableTranslation<DBOSESNotification, DBOSESNotification> TABLE_TRANSLATOR = new BasicMigratableTableTranslation<>();
+
 	private Long id;
 	private Timestamp createdOn;
 	private String sesMessageId;
@@ -142,7 +144,7 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 
 	@Override
 	public MigratableTableTranslation<DBOSESNotification, DBOSESNotification> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOSESNotification>();
+		return TABLE_TRANSLATOR;
 	}
 
 	@Override

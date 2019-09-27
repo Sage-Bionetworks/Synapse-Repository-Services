@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.model.dbo.ses;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -20,6 +23,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SESNotificationDaoImplTest {
 	
+	// @formatter:off
+
 	private static String notificationBody = "{ \r\n" + 
 			"  \"notificationType\":\"Bounce\",\r\n" + 
 			"  \"mail\":{ \r\n" + 
@@ -52,6 +57,8 @@ public class SESNotificationDaoImplTest {
 			"  }\r\n" + 
 			"}";
 	
+	// @formatter:on
+	
 	@Autowired
 	private SESNotificationDao dao;
 
@@ -82,6 +89,18 @@ public class SESNotificationDaoImplTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationBody(null);
+			// Call under test
+			dao.create(notification);
+		});
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			SESNotification notification = getRandomNotification();
+			notification.setNotificationBody("");
+			// Call under test
+			dao.create(notification);
+		});
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			SESNotification notification = getRandomNotification();
+			notification.setNotificationBody("    ");
 			// Call under test
 			dao.create(notification);
 		});
@@ -133,13 +152,24 @@ public class SESNotificationDaoImplTest {
 	
 	@Test
 	public void testCountBySesMessageId() {
-		SESNotification notification = getRandomNotification();
+		int notificationsCount = 10;
+		List<SESNotification> notifications = getRandomNotifications(notificationsCount);
+
+		notifications.forEach(dao::create);
 		
-		dao.create(notification);
+		String sesMessageId = notifications.iterator().next().getSesMessageId();
 		
-		Long result = dao.countBySesMessageId(notification.getSesMessageId());
+		Long result = dao.countBySesMessageId(sesMessageId);
 		
 		assertEquals(1L, result);
+	}
+	
+	private List<SESNotification> getRandomNotifications(int count) {
+		List<SESNotification> list = new ArrayList<>(count);
+		IntStream.range(0, count).forEach( _index -> {
+			list.add(getRandomNotification());
+		});
+		return list;
 	}
 	
 	private SESNotification getRandomNotification() {

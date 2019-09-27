@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_SES_MESSAGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SES_NOTIFICATIONS;
 
 import java.sql.Timestamp;
 
@@ -62,7 +64,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	private void validateDTO(SESNotification notification) {
 		ValidateArgument.required(notification, "notification");
 		ValidateArgument.required(notification.getNotificationType(), "The notification type");
-		ValidateArgument.required(notification.getNotificationBody(), "The notification body");
+		ValidateArgument.requiredNotBlank(notification.getNotificationBody(), "The notification body");
 	}
 
 	private SESNotification map(DBOSESNotification dbo) {
@@ -80,7 +82,8 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 
 	@Override
 	public void clearAll() {
-		jdbcTemplate.update("DELETE FROM " + TABLE_SES_NOTIFICATIONS);
+		String sql = "DELETE FROM " + TABLE_SES_NOTIFICATIONS;
+		jdbcTemplate.update(sql);
 	}
 
 }
