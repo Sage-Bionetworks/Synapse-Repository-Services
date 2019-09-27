@@ -37,14 +37,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	public SESNotification create(SESNotification notification) {
 		validateDTO(notification);
 
-		DBOSESNotification dbo = new DBOSESNotification();
-
-		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		dbo.setSesMessageId(notification.getSesMessageId());
-		dbo.setSesFeedbackId(notification.getSesFeedbackId());
-		dbo.setNotificationType(notification.getNotificationType().toString());
-		dbo.setNotificationBody(SESNotificationUtils.encodeBody(notification.getNotificationBody()));
-		dbo.setId(idGenerator.generateNewId(IdType.SES_NOTIFICATION_ID));
+		DBOSESNotification dbo = map(notification);
 
 		dbo = basicDao.createNew(dbo);
 
@@ -67,6 +60,21 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		ValidateArgument.requiredNotBlank(notification.getNotificationBody(), "The notification body");
 	}
 
+	private DBOSESNotification map(SESNotification dto) {
+		DBOSESNotification dbo = new DBOSESNotification();
+
+		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+		dbo.setSesMessageId(dto.getSesMessageId());
+		dbo.setSesFeedbackId(dto.getSesFeedbackId());
+		dbo.setNotificationType(dto.getNotificationType().toString());
+		dbo.setNotificationSubType(dto.getNotificationSubType());
+		dbo.setNotificationReason(dto.getNotificationReason());
+		dbo.setNotificationBody(SESNotificationUtils.encodeBody(dto.getNotificationBody()));
+		dbo.setId(idGenerator.generateNewId(IdType.SES_NOTIFICATION_ID));
+
+		return dbo;
+	}
+
 	private SESNotification map(DBOSESNotification dbo) {
 		SESNotification dto = new SESNotification();
 
@@ -75,6 +83,8 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		dto.setSesMessageId(dbo.getSesMessageId());
 		dto.setSesFeedbackId(dbo.getSesFeedbackId());
 		dto.setNotificationType(SESNotificationType.valueOf(dbo.getNotificationType()));
+		dto.setNotificationSubType(dbo.getNotificationSubType());
+		dto.setNotificationReason(dbo.getNotificationReason());
 		dto.setNotificationBody(SESNotificationUtils.decodeBody(dbo.getNotificationBody()));
 
 		return dto;

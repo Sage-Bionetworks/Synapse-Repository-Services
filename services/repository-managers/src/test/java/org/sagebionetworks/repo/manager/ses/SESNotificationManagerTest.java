@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -143,12 +144,17 @@ public class SESNotificationManagerTest {
 	}
 
 	@Test
-	public void testMapJsonNotificationWithBounceFeedbackId() {
+	public void testMapJsonNotificationWithNotificationDetails() {
 
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 		String feedbackId = UUID.randomUUID().toString();
+		String subType = "Permanent";
+		String reason = "General";
 
+		when(mockBounce.getSubType()).thenReturn(Optional.of(subType));
+		when(mockBounce.getReason()).thenReturn(Optional.of(reason));
 		when(mockBounce.getFeedbackId()).thenReturn(feedbackId);
+		
 		when(mockNotification.getNotificationType()).thenReturn(notificationType.toString());
 		when(mockNotification.getBounce()).thenReturn(mockBounce);
 
@@ -156,6 +162,8 @@ public class SESNotificationManagerTest {
 
 		expected.setNotificationType(notificationType);
 		expected.setSesFeedbackId(feedbackId);
+		expected.setNotificationSubType(subType);
+		expected.setNotificationReason(reason);
 
 		// Call under test
 		SESNotification result = manager.map(mockNotification);
@@ -163,33 +171,12 @@ public class SESNotificationManagerTest {
 		assertEquals(expected, result);
 
 		verify(mockBounce).getFeedbackId();
+		verify(mockBounce).getSubType();
+		verify(mockBounce).getReason();
+		
 		verifyZeroInteractions(mockComplaint);
 	}
-
-	@Test
-	public void testMapJsonNotificationWithComplaintFeedbackId() {
-
-		SESNotificationType notificationType = SESNotificationType.COMPLAINT;
-		String feedbackId = UUID.randomUUID().toString();
-
-		when(mockComplaint.getFeedbackId()).thenReturn(feedbackId);
-		when(mockNotification.getNotificationType()).thenReturn(notificationType.toString());
-		when(mockNotification.getComplaint()).thenReturn(mockComplaint);
-
-		SESNotification expected = new SESNotification();
-
-		expected.setNotificationType(notificationType);
-		expected.setSesFeedbackId(feedbackId);
-
-		// Call under test
-		SESNotification result = manager.map(mockNotification);
-
-		assertEquals(expected, result);
-
-		verify(mockComplaint).getFeedbackId();
-		verifyZeroInteractions(mockBounce);
-	}
-
+		
 	@Test
 	public void testProcessNotificationWithInvalidInput() {
 

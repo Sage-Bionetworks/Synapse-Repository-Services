@@ -107,23 +107,12 @@ public class SESNotificationDaoImplTest {
 	}
 	
 	@Test
-	public void testCreateWithEmptyEmailId() {
-		SESNotification notification = getRandomNotification();
-		notification.setSesMessageId(null);
-
-		// Call under test
-		SESNotification result = dao.create(notification);
-		
-		notification.setId(result.getId());
-		notification.setCreatedOn(result.getCreatedOn());
-		
-		assertEquals(notification, result);
-	}
-	
-	@Test
-	public void testCreateWithEmptyFeedbackId() {
+	public void testCreateWithNullableFields() {
 		SESNotification notification = getRandomNotification();
 		notification.setSesFeedbackId(null);
+		notification.setNotificationSubType(null);
+		notification.setNotificationReason(null);
+		notification.setSesMessageId(null);
 		
 		// Call under test
 		SESNotification result = dao.create(notification);
@@ -178,6 +167,8 @@ public class SESNotificationDaoImplTest {
 		notification.setSesFeedbackId(UUID.randomUUID().toString());
 		notification.setSesMessageId(UUID.randomUUID().toString());
 		notification.setNotificationBody(notificationBody);
+		notification.setNotificationSubType("Permanent");
+		notification.setNotificationReason("General");
 		return notification;
 	}
 	

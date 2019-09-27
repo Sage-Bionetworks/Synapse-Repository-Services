@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.ses;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Class used to parse the complaint property of the SES Notification from its json representation. See
@@ -11,7 +12,7 @@ import java.util.Objects;
  * @author Marco
  *
  */
-public class SESJsonComplaint extends SESJsonObject implements SESJsonWithFeedbackId, SESJsonWithRecipients {
+public class SESJsonComplaint extends SESJsonObject implements SESJsonNotificationDetails {
 
 	private String userAgent;
 	private String feedbackId;
@@ -26,6 +27,7 @@ public class SESJsonComplaint extends SESJsonObject implements SESJsonWithFeedba
 		this.userAgent = userAgent;
 	}
 
+	@Override
 	public String getFeedbackId() {
 		return feedbackId;
 	}
@@ -53,6 +55,16 @@ public class SESJsonComplaint extends SESJsonObject implements SESJsonWithFeedba
 	@Override
 	public List<SESJsonRecipient> getRecipients() {
 		return complainedRecipients;
+	}
+	
+	@Override
+	public Optional<String> getSubType() {
+		return Optional.empty();
+	}
+	
+	@Override
+	public Optional<String> getReason() {
+		return Optional.ofNullable(complaintFeedbackType);
 	}
 
 	@Override
