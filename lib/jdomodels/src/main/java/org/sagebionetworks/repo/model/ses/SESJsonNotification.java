@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.ses;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.json.CatchAllJsonObject;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
@@ -10,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * 
  * @author Marco
  */
-public class SESJsonNotification extends SESJsonObject {
+public class SESJsonNotification extends CatchAllJsonObject {
 
 	private String notificationType;
 	private SESJsonMail mail;

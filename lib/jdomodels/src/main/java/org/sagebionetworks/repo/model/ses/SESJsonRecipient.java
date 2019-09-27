@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.model.ses;
 
 import java.util.Objects;
 
-public class SESJsonRecipient extends SESJsonObject {
+import org.sagebionetworks.repo.model.json.CatchAllJsonObject;
+
+public class SESJsonRecipient extends CatchAllJsonObject {
 
 	private String status;
 	private String action;

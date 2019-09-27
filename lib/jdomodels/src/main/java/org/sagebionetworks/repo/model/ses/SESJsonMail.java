@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.ses;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.json.CatchAllJsonObject;
+
 /**
  * Class used to parse the email property of the SES Notification from its json representation. See
  * <a href="https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#mail-object">Mail
@@ -9,7 +11,7 @@ import java.util.Objects;
  * 
  * @author Marco
  */
-public class SESJsonMail extends SESJsonObject {
+public class SESJsonMail extends CatchAllJsonObject {
 
 	private String messageId;
 
