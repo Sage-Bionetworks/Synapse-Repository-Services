@@ -1,0 +1,14 @@
+{
+	"description": "Common response type containing the statistics computed for a specific object",
+	"type": "interface",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The id of the object for which this statistics were computed"
+		},
+        "concreteType":{
+            "type":"string",
+            "description": "The type of response mapped to the statistics request"
+        }
+	}
+}

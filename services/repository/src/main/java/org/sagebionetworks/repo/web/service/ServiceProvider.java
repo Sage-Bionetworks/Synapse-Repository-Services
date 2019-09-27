@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 
@@ -77,5 +78,7 @@ public interface ServiceProvider {
 	public DataAccessService getDataAccessService();
 	
 	public OpenIDConnectService getOpenIDConnectService();
+	
+	public StatisticsService getStatisticsService();
 	
 }

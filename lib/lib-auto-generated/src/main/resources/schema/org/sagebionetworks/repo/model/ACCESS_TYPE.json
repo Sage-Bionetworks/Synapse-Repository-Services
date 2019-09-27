@@ -66,6 +66,10 @@
         {
             "name": "MODERATE",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "VIEW_STATISTICS",
+            "description": "Allows access to view the statistics on specific objects"
         }
     ]
 }

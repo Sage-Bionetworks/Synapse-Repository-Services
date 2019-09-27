@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,6 +82,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DataAccessService dataAccessService;
 	@Autowired
 	private OpenIDConnectService openIDConnectService;
+	@Autowired
+	private StatisticsService statisticsService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -212,5 +215,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public OpenIDConnectService getOpenIDConnectService() {
 		return openIDConnectService;
+	}
+	@Override
+	public StatisticsService getStatisticsService() {
+		return statisticsService;
 	}
 }

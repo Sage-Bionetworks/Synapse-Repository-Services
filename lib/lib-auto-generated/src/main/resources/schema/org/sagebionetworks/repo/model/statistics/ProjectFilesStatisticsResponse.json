@@ -1,0 +1,21 @@
+{
+    "title":"Project File Statistics",
+    "description":"Container for statistics related to project files. Exposes the monthly aggregates of files and (unique) users that downloaded/uploaded for the past 12 months (excluding the current month).",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse"
+        }
+    ],
+    "properties":{
+        "fileDownloads": {
+        	"type": "object",
+        	"$ref": "org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics",
+        	"description": "Contains the project file downloads statistics over the last 12 months. Excluded if the \"fileDownloads\" property in the request was set to false."
+        },
+        "fileUploads": {
+        	"type": "object",
+        	"$ref": "org.sagebionetworks.repo.model.statistics.MonthlyFilesStatistics",
+        	"description": "Contains the project file uplodas statistics over the last 12 months. Excluded if the \"fileUploads\" property in the request was set to false."
+        }
+    }
+}

@@ -45,9 +45,9 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -147,7 +147,7 @@ public class TableEntityManagerTest {
 	@Mock
 	NodeManager mockNodeManager;
 	@Mock
-	StatisticsEventsCollector mockStatisticsCollector;
+	EventsCollector mockStatisticsCollector;
 	@InjectMocks
 	TableEntityManagerImpl manager;
 	

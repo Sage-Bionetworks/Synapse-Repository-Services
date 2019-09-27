@@ -17,8 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class FileEntityMetadataProviderTest {
 
 	@Mock
-	StatisticsEventsCollector mockStatisticsCollector;
+	EventsCollector mockStatisticsCollector;
 
 	@InjectMocks
 	FileEntityMetadataProvider provider;

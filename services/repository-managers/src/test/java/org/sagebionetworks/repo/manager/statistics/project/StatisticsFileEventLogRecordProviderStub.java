@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager.statistics.project;
 
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.records.ProjectResolver;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsFileEventLogRecordProvider;
+import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventLogRecordProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
