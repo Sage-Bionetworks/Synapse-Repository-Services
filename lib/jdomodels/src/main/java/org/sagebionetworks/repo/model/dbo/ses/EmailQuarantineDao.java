@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.ses;
 
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 
 /**
  * DAO layer to work with quarantined email addresses
@@ -12,14 +12,14 @@ import org.sagebionetworks.repo.model.ses.QuarantineReason;
 public interface EmailQuarantineDao {
 
 	/**
-	 * Adds the given email address to the quarantine with the given reason and optional sesMessageId. If the email is
-	 * already quarantined updates the reason and the sesMessageId
+	 * Adds the email address in the given DTO to the quarantine. If the email is already quarantined
+	 * updates the reason and the sesMessageId
 	 * 
 	 * @param email        The email to be quarantined
 	 * @param reason       The reason for the quarantine
 	 * @param sesMessageId The optional id of the SES message that lead to the quarantine
 	 */
-	void addToQuarantine(String email, QuarantineReason reason, String sesMessageId);
+	QuarantinedEmail addToQuarantine(QuarantinedEmail quarantinedEmail);
 
 	/**
 	 * Removes the given email address from the quarantine
@@ -30,16 +30,12 @@ public interface EmailQuarantineDao {
 	boolean removeFromQuarantine(String email);
 
 	/**
-	 * @param email The email address to check, the check is case insensitive
-	 * @return True if the email address is quarantined, false otherwise
+	 * Retrieves the details about the quarantined email if any
+	 * 
+	 * @param email The email to lookup
+	 * @return An optional containing the details about the quarantined email
 	 */
-	boolean isQuarantined(String email);
-
-	/**
-	 * @param email The email address to get the reason for
-	 * @return An optional containing the {@link QuarantineReason} for the given email address if present, empty otherwise
-	 */
-	Optional<QuarantineReason> getQuarantineReason(String email);
+	Optional<QuarantinedEmail> getQuarantinedEmail(String email);
 
 	/**
 	 * Clear the quarantine

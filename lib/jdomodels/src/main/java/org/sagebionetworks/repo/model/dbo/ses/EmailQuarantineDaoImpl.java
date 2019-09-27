@@ -4,21 +4,49 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_TIMEOUT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_QUARANTINED_EMAILS;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
+
+	private static final RowMapper<DBOQuarantinedEmail> DBO_MAPPER = new DBOQuarantinedEmail().getTableMapping();
+
+	private static final RowMapper<QuarantinedEmail> ROW_MAPPER = new RowMapper<QuarantinedEmail>() {
+
+		@Override
+		public QuarantinedEmail mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return map(DBO_MAPPER.mapRow(rs, rowNum));
+		}
+	};
+
+	private static QuarantinedEmail map(DBOQuarantinedEmail dbo) {
+		QuarantinedEmail dto = new QuarantinedEmail();
+
+		dto.setEmail(dbo.getEmail());
+		dto.setCreatedOn(dbo.getCreatedOn().toInstant());
+		dto.setUpdatedOn(dbo.getCreatedOn().toInstant());
+		dto.setReason(QuarantineReason.valueOf(dbo.getReason()));
+		dto.setSesMessageId(dbo.getSesMessageId());
+		dto.setTimeout(dbo.getTimeout());
+
+		return dto;
+	}
 
 	private JdbcTemplate jdbcTemplate;
 
@@ -29,45 +57,59 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	@Override
 	@WriteTransaction
-	public void addToQuarantine(String email, QuarantineReason reason, String sesMessageId) {
-		validateInputEmail(email);
-		ValidateArgument.required(reason, "The quarantine reason");
+	public QuarantinedEmail addToQuarantine(QuarantinedEmail quarantinedEmail) {
+		ValidateArgument.required(quarantinedEmail, "The quarantineEmail");
+		ValidateArgument.requiredNotBlank(quarantinedEmail.getEmail(), "The email address");
+		ValidateArgument.required(quarantinedEmail.getReason(), "The quarantine reason");
+
+		// @formatter:off
 
 		String sql = "INSERT INTO " + TABLE_QUARANTINED_EMAILS
 				+ "(" + COL_QUARANTINED_EMAILS_EMAIL + ", "
 				+ COL_QUARANTINED_EMAILS_CREATED_ON + ", "
 				+ COL_QUARANTINED_EMAILS_UPDATED_ON + ", " 
 				+ COL_QUARANTINED_EMAILS_REASON + ", "
-				+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + ") "
-				+ "VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+				+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + ", "
+				+ COL_QUARANTINED_EMAILS_TIMEOUT + ") "
+				+ "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
 				+ COL_QUARANTINED_EMAILS_UPDATED_ON + " = ?, " 
 				+ COL_QUARANTINED_EMAILS_REASON + " = ?, "
-				+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + " = ?";
+				+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + " = ?, "
+				+ COL_QUARANTINED_EMAILS_TIMEOUT + " = ?";
+		 
+		// @formatter:on
 
-		String reasonString = reason.toString();
 		Timestamp now = new Timestamp(System.currentTimeMillis());
+
+		String email = quarantinedEmail.getEmail().toLowerCase();
+		String reason = quarantinedEmail.getReason().toString();
+		String messageId = quarantinedEmail.getSesMessageId();
+		Long timeout = quarantinedEmail.getTimeout();
 
 		jdbcTemplate.update(sql, ps -> {
 			int index = 1;
 
 			// On create fields
-			ps.setString(index++, email.toLowerCase());
+			ps.setString(index++, email);
 			ps.setTimestamp(index++, now);
 			ps.setTimestamp(index++, now);
-			ps.setString(index++, reasonString);
-			ps.setString(index++, sesMessageId);
+			ps.setString(index++, reason);
+			ps.setString(index++, messageId);
+			ps.setLong(index++, timeout);
 			// On update fields
 			ps.setTimestamp(index++, now);
-			ps.setString(index++, reasonString);
-			ps.setString(index, sesMessageId);
+			ps.setString(index++, reason);
+			ps.setString(index++, messageId);
+			ps.setLong(index, timeout);
 		});
 
+		return getQuarantinedEmail(email).get();
 	}
 
 	@Override
 	@WriteTransaction
 	public boolean removeFromQuarantine(String email) {
-		validateInputEmail(email);
+		ValidateArgument.requiredNotBlank(email, "The email");
 
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
 
@@ -77,41 +119,23 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	}
 
 	@Override
-	public boolean isQuarantined(String email) {
-		validateInputEmail(email);
+	public Optional<QuarantinedEmail> getQuarantinedEmail(String email) {
+		ValidateArgument.requiredNotBlank(email, "The email");
 
-		String sql = "SELECT EXISTS (SELECT 1 FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?)";
+		String sql = "SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
 
-		return jdbcTemplate.queryForObject(sql, Boolean.class, email);
-	}
-
-	@Override
-	public Optional<QuarantineReason> getQuarantineReason(String email) {
-		validateInputEmail(email);
-
-		String sql = "SELECT " + COL_QUARANTINED_EMAILS_REASON + " FROM " + TABLE_QUARANTINED_EMAILS + " WHERE "
-				+ COL_QUARANTINED_EMAILS_EMAIL + " = ?";
-
-		Optional<QuarantineReason> reason = jdbcTemplate.query(sql, rs -> {
+		return jdbcTemplate.query(sql, rs -> {
 			if (rs.next()) {
-				String reasonString = rs.getString(COL_QUARANTINED_EMAILS_REASON);
-				return Optional.of(QuarantineReason.valueOf(reasonString));
+				return Optional.of(ROW_MAPPER.mapRow(rs, rs.getRow()));
 			}
 			return Optional.empty();
 		}, email);
-
-		return reason;
-
 	}
 
 	@Override
 	public void clearAll() {
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS;
 		jdbcTemplate.update(sql);
-	}
-
-	private void validateInputEmail(String email) {
-		ValidateArgument.requiredNotBlank(email, "The email");
 	}
 
 }
