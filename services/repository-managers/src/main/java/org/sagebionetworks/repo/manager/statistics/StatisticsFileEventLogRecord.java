@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.records;
+package org.sagebionetworks.repo.manager.statistics;
 
 import java.util.Objects;
 

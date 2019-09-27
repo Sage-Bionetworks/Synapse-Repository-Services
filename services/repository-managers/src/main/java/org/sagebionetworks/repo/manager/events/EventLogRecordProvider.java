@@ -1,17 +1,18 @@
-package org.sagebionetworks.repo.manager.statistics.records;
+package org.sagebionetworks.repo.manager.events;
 
 import java.util.Optional;
 
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsEvent;
+import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventLogRecord;
 
 /**
- * Provider that is used to translate a {@link StatisticsEvent} into a {@link StatisticsEventLogRecord} to be sent out
+ * Provider that is used to translate a {@link SynapseEvent} into a {@link AwsKinesisLogRecord} to be sent out
  * to a AWS firehose stream.
  * 
  * @author Marco
  *
  */
-public interface StatisticsEventLogRecordProvider<E extends StatisticsEvent> {
+public interface EventLogRecordProvider<E extends SynapseEvent> {
 
 	/**
 	 * @return The type of event
@@ -29,6 +30,6 @@ public interface StatisticsEventLogRecordProvider<E extends StatisticsEvent> {
 	 * @return An optional containing a {@link StatisticsEventLogRecord} representing the given event if the event can
 	 *         be sent to the stream, an empty optional otherwise
 	 */
-	Optional<StatisticsEventLogRecord> getRecordForEvent(E event);
+	Optional<AwsKinesisLogRecord> getRecordForEvent(E event);
 
 }

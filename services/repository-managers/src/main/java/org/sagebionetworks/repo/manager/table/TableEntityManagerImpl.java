@@ -17,9 +17,9 @@ import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -124,7 +124,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	StatisticsEventsCollector statisticsCollector;
+	EventsCollector statisticsCollector;
 	
 	/**
 	 * Injected via spring

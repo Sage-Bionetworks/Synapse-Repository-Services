@@ -1,12 +1,12 @@
-package org.sagebionetworks.repo.manager.statistics.events;
+package org.sagebionetworks.repo.manager.events;
 
 /**
- * Marker interface for an event for collecting statistics
+ * Marker interface for an event to be sent to a firehose stream
  * 
  * @author Marco
  *
  */
-public interface StatisticsEvent {
+public interface SynapseEvent {
 	
 	/**
 	 * @return The timestamp when the event occurred

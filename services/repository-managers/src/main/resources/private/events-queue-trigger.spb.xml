@@ -11,12 +11,12 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- This trigger pushes the statistics events to kinesis -->
-	<bean id="statisticsQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+	<!-- This trigger pushes the collected synapse events to kinesis -->
+	<bean id="eventsQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="statisticsEventsCollectorImpl" />
+				<property name="targetObject" ref="eventsCollectorImpl" />
 				<property name="targetMethod" value="flush" />
 				<property name="concurrent" value="false" />
 			</bean>

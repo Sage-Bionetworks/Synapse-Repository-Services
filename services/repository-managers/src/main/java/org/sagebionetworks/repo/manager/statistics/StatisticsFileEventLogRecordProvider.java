@@ -1,11 +1,12 @@
-package org.sagebionetworks.repo.manager.statistics.records;
+package org.sagebionetworks.repo.manager.statistics;
 
 import java.util.Optional;
 import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
+import org.sagebionetworks.repo.manager.events.EventLogRecordProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -22,7 +23,7 @@ import com.google.common.collect.ImmutableSet;
  * @param <E>
  */
 @Service
-public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogRecordProvider<StatisticsFileEvent> {
+public class StatisticsFileEventLogRecordProvider implements EventLogRecordProvider<StatisticsFileEvent> {
 
 	private static final Set<FileHandleAssociateType> ACCEPTED = ImmutableSet.of(
 		FileHandleAssociateType.FileEntity,
@@ -49,7 +50,7 @@ public class StatisticsFileEventLogRecordProvider implements StatisticsEventLogR
 	}
 
 	@Override
-	public Optional<StatisticsEventLogRecord> getRecordForEvent(StatisticsFileEvent event) {
+	public Optional<AwsKinesisLogRecord> getRecordForEvent(StatisticsFileEvent event) {
 		ValidateArgument.required(event, "event");
 		
 		if (!ACCEPTED.contains(event.getAssociationType())) {

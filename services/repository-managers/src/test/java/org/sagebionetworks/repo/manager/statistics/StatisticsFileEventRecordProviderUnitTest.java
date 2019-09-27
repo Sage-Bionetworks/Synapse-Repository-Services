@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.records;
+package org.sagebionetworks.repo.manager.statistics;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,7 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
+import org.sagebionetworks.kinesis.AwsKinesisLogRecord;
+import org.sagebionetworks.repo.manager.statistics.ProjectResolver;
+import org.sagebionetworks.repo.manager.statistics.StatisticsEventLogRecord;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventLogRecord;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventLogRecordProvider;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -86,7 +91,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		when(mockProjectResolver.resolveProject(associateType, associateId)).thenReturn(projectId);
 
 		// Call under test
-		Optional<StatisticsEventLogRecord> record = provider.getRecordForEvent(event);
+		Optional<AwsKinesisLogRecord> record = provider.getRecordForEvent(event);
 		
 		assertEquals(expectedRecord, record.get());
 	}
@@ -102,7 +107,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 				fileHandleId, associateId, associateType);
 
 		// Call under test
-		Optional<StatisticsEventLogRecord> record = provider.getRecordForEvent(event);
+		Optional<AwsKinesisLogRecord> record = provider.getRecordForEvent(event);
 
 		assertFalse(record.isPresent());
 	}
@@ -122,7 +127,7 @@ public class StatisticsFileEventRecordProviderUnitTest {
 		when(mockProjectResolver.resolveProject(associateType, associateId)).thenThrow(ex);
 
 		// Call under test
-		Optional<StatisticsEventLogRecord> record = provider.getRecordForEvent(event);
+		Optional<AwsKinesisLogRecord> record = provider.getRecordForEvent(event);
 
 		assertFalse(record.isPresent());
 		

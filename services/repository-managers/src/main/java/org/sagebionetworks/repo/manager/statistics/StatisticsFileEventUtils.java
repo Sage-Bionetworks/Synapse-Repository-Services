@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.statistics.events;
+package org.sagebionetworks.repo.manager.statistics;
 
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;

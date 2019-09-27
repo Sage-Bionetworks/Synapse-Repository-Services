@@ -26,7 +26,7 @@
 				<ref bean="throttleRulesCacheTrigger" />
 				<ref bean="objectRecordQueueTrigger" />
 				<ref bean="memoryLoggerTrigger" />
-				<ref bean="statisticsQueueTrigger" />
+				<ref bean="eventsQueueTrigger" />
 			</list>
 		</property>
 	</bean>
