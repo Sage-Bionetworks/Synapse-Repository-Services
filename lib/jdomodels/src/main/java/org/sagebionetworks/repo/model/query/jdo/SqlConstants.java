@@ -987,6 +987,8 @@ public class SqlConstants {
 	public static final String COL_SES_NOTIFICATIONS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	public static final String COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID = 					"SES_FEEDBACK_ID";
 	public static final String COL_SES_NOTIFICATIONS_TYPE = 							"NOTIFICATION_TYPE";
+	public static final String COL_SES_NOTIFICATIONS_SUBTYPE = 							"NOTIFICATION_SUBTYPE";
+	public static final String COL_SES_NOTIFICATIONS_REASON = 							"NOTIFICATION_REASON";
 	public static final String COL_SES_NOTIFICATIONS_BODY = 							"NOTIFICATION_BODY";
 	
 

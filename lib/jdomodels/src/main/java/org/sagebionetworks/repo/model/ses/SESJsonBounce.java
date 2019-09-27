@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.ses;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Class used to parse the bounce property of the SES Notification from its json representation. See
@@ -11,7 +12,7 @@ import java.util.Objects;
  * @author Marco
  *
  */
-public class SESJsonBounce extends SESJsonObject implements SESJsonWithFeedbackId, SESJsonWithRecipients {
+public class SESJsonBounce extends SESJsonObject implements SESJsonNotificationDetails {
 
 	private String bounceType;
 	private String bounceSubType;
@@ -34,6 +35,7 @@ public class SESJsonBounce extends SESJsonObject implements SESJsonWithFeedbackI
 		this.bounceSubType = bounceSubType;
 	}
 
+	@Override
 	public String getFeedbackId() {
 		return feedbackId;
 	}
@@ -53,6 +55,16 @@ public class SESJsonBounce extends SESJsonObject implements SESJsonWithFeedbackI
 	@Override
 	public List<SESJsonRecipient> getRecipients() {
 		return bouncedRecipients;
+	}
+	
+	@Override
+	public Optional<String> getSubType() {
+		return Optional.ofNullable(bounceType);
+	}
+	
+	@Override
+	public Optional<String> getReason() {
+		return Optional.ofNullable(bounceSubType);
 	}
 
 	@Override

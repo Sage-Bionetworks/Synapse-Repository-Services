@@ -7,7 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dbo.ses.SESNotificationDao;
 import org.sagebionetworks.repo.model.ses.SESJsonNotification;
-import org.sagebionetworks.repo.model.ses.SESJsonWithFeedbackId;
+import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESNotification;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -61,20 +61,22 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 			dto.setSesMessageId(json.getMail().getMessageId());
 		}
 
-		Optional<SESJsonWithFeedbackId> feedback = Optional.empty();
+		Optional<SESJsonNotificationDetails> details = Optional.empty();
 
 		switch (type) {
 		case BOUNCE:
-			feedback = Optional.ofNullable(json.getBounce());
+			details = Optional.ofNullable(json.getBounce());
 			break;
 		case COMPLAINT:
-			feedback = Optional.ofNullable(json.getComplaint());
+			details = Optional.ofNullable(json.getComplaint());
 		default:
 			break;
 		}
 
-		feedback.ifPresent(feedbackId -> {
-			dto.setSesFeedbackId(feedbackId.getFeedbackId());
+		details.ifPresent(info -> {
+			dto.setSesFeedbackId(info.getFeedbackId());
+			dto.setNotificationSubType(info.getSubType().orElse(null));
+			dto.setNotificationReason(info.getReason().orElse(null));
 		});
 
 		return dto;

@@ -14,6 +14,8 @@ public class SESNotification {
 	private Long id;
 	private Instant createdOn;
 	private SESNotificationType notificationType;
+	private String notificationSubType;
+	private String notificationReason;
 	private String notificationBody;
 	private String sesMessageId;
 	private String sesFeedbackId;
@@ -42,6 +44,22 @@ public class SESNotification {
 		this.notificationType = notificationType;
 	}
 
+	public String getNotificationSubType() {
+		return notificationSubType;
+	}
+
+	public void setNotificationSubType(String notificationSubType) {
+		this.notificationSubType = notificationSubType;
+	}
+
+	public String getNotificationReason() {
+		return notificationReason;
+	}
+
+	public void setNotificationReason(String notificationReason) {
+		this.notificationReason = notificationReason;
+	}
+
 	public String getNotificationBody() {
 		return notificationBody;
 	}
@@ -68,26 +86,32 @@ public class SESNotification {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, id, notificationBody, notificationType, sesMessageId, sesFeedbackId);
+		return Objects.hash(createdOn, id, notificationBody, notificationReason, notificationSubType, notificationType, sesFeedbackId,
+				sesMessageId);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		SESNotification other = (SESNotification) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
-				&& Objects.equals(notificationBody, other.notificationBody) && notificationType == other.notificationType
-				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(sesFeedbackId, other.sesFeedbackId);
+				&& Objects.equals(notificationBody, other.notificationBody) && Objects.equals(notificationReason, other.notificationReason)
+				&& Objects.equals(notificationSubType, other.notificationSubType) && notificationType == other.notificationType
+				&& Objects.equals(sesFeedbackId, other.sesFeedbackId) && Objects.equals(sesMessageId, other.sesMessageId);
 	}
 
 	@Override
 	public String toString() {
-		return "SESNotification [id=" + id + ", createdOn=" + createdOn + ", notificationType=" + notificationType + ", notificationBody="
+		return "SESNotification [id=" + id + ", createdOn=" + createdOn + ", notificationType=" + notificationType
+				+ ", notificationSubType=" + notificationSubType + ", notificationReason=" + notificationReason + ", notificationBody="
 				+ notificationBody + ", sesMessageId=" + sesMessageId + ", sesFeedbackId=" + sesFeedbackId + "]";
 	}
 
