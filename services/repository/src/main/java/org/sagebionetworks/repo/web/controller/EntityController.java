@@ -567,7 +567,7 @@ public class EntityController {
 
 
 	/**
-	 * Update an entities annotations.
+	 * Update an Entity's annotations.
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
