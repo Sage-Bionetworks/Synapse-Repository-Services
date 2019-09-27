@@ -35,7 +35,7 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" ");
-		if (this.not != null) {
+		if (this.not != null && this.not) {
 			builder.append("NOT ");
 		}
 		builder.append("IN ( ");

@@ -10,6 +10,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
@@ -34,6 +35,15 @@ public class InPredicateTest {
 		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
 		assertEquals("bar NOT IN ( 1, 2 )", element.toString());
 	}
+
+	@Test
+	public void testInPredicateToSQL_NotSetToFalse() throws ParseException{
+		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("bar");
+		Boolean not = Boolean.FALSE;
+		InPredicateValue inPredicateValue =  SqlElementUntils.createInPredicateValue("(1, 2)");
+		InPredicate element = new InPredicate(columnReferenceLHS, not, inPredicateValue);
+		assertEquals("bar IN ( 1, 2 )", element.toString());
+	}
 	
 	@Test
 	public void testHasPredicate() throws ParseException{
@@ -46,5 +56,16 @@ public class InPredicateTest {
 		assertEquals("1", values.get(0).toSqlWithoutQuotes());
 		assertEquals("2", values.get(1).toSqlWithoutQuotes());
 		assertEquals("3", values.get(2).toSqlWithoutQuotes());
+	}
+
+	@Test
+	public void testHasSubQuery() throws ParseException {
+		QuerySpecification subQuery = new TableQueryParser("SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value in (\"asdf\", \"qwerty\")").querySpecification();
+		ColumnReference columnReferenceLHS = SqlElementUntils.createColumnReference("row_id");
+
+		boolean not = false;
+		InPredicate predicate = new InPredicate(columnReferenceLHS, false, new InPredicateValue(subQuery));
+
+		assertEquals("row_id IN ( SELECT DISTINCT row_id FROM syn123_index WHERE expanded_value IN ( \"asdf\", \"qwerty\" ) )", predicate.toSql());
 	}
 }

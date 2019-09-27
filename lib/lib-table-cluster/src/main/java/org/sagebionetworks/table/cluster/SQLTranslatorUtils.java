@@ -23,6 +23,7 @@ import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
@@ -526,6 +527,10 @@ public class SQLTranslatorUtils {
 				}
 			}
 		}
+	}
+
+	public static void replaceArrayHasPredicate(ArrayHasPredicate arrayHasPredicate,  Map<String, ColumnModel> columnNameToModelMap){
+
 	}
 
 	/**
