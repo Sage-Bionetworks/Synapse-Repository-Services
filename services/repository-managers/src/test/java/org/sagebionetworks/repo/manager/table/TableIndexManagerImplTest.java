@@ -481,16 +481,6 @@ public class TableIndexManagerImplTest {
 		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testPopulateViewFromEntityReplicationCallbackNull(){
-		viewType = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		mockCallback = null;
-		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
-	}
-	
 	@Test
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
 		viewType = ViewTypeMask.File.getMask();
