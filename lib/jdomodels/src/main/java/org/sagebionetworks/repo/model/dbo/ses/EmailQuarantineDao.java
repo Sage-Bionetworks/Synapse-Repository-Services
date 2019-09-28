@@ -13,7 +13,7 @@ public interface EmailQuarantineDao {
 
 	/**
 	 * Adds the email address in the given DTO to the quarantine. If the email is already quarantined
-	 * updates the reason and the sesMessageId
+	 * updates the reason, the sesMessageId and the timeout
 	 * 
 	 * @param email        The email to be quarantined
 	 * @param reason       The reason for the quarantine

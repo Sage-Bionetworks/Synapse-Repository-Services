@@ -4,6 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,30 +41,48 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	@Test
-	public void testAddToQuarantineWithInvalidInput() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
-			quarantinedEmail.setEmail(null);
+	public void testAddToQuarantineWithNullEmail() {
+		QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
+		quarantinedEmail.setEmail(null);
 
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			dao.addToQuarantine(quarantinedEmail);
 		});
+	}
+
+	@Test
+	public void testAddToQuarantineWithEmptyEmail() {
+		QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
+		quarantinedEmail.setEmail("    ");
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
-			quarantinedEmail.setEmail("    ");
-
 			// Call under test
 			dao.addToQuarantine(quarantinedEmail);
 		});
+	}
+
+	@Test
+	public void testAddToQuarantineWithNullReason() {
+
+		QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
+		quarantinedEmail.setReason(null);
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
-			quarantinedEmail.setReason(null);
-
 			// Call under test
 			dao.addToQuarantine(quarantinedEmail);
+		});
+	}
 
+	@Test
+	public void testAddToQuarantineWithPastTimeout() {
+
+		QuarantinedEmail quarantinedEmail = getTestQuarantinedEmail();
+		quarantinedEmail.setTimeout(Instant.now().minusMillis(defaultTimeout));
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			dao.addToQuarantine(quarantinedEmail);
 		});
 	}
 
@@ -87,8 +106,9 @@ public class EmailQuarantineDaoImplTest {
 
 		dao.addToQuarantine(expected);
 
-		QuarantineReason updatedReason = QuarantineReason.HARD_BOUNCE;
+		QuarantineReason updatedReason = QuarantineReason.OTHER;
 		expected.setReason(updatedReason);
+		expected.setTimeout(null);
 
 		// Call under test
 		QuarantinedEmail result = dao.addToQuarantine(expected);
@@ -130,15 +150,15 @@ public class EmailQuarantineDaoImplTest {
 
 	@Test
 	public void testRemoveFromQuarantineWithExisting() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();		
+		QuarantinedEmail expected = getTestQuarantinedEmail();
 
 		dao.addToQuarantine(expected);
 
 		String toKeepEmail = System.currentTimeMillis() + testEmail;
-		
+
 		QuarantinedEmail toKeep = getTestQuarantinedEmail();
 		toKeep.setEmail(toKeepEmail);
-		
+
 		dao.addToQuarantine(toKeep);
 
 		// Call under test
@@ -172,7 +192,7 @@ public class EmailQuarantineDaoImplTest {
 	public void testGetQuarantineEmailWithNonExisting() {
 
 		QuarantinedEmail other = getTestQuarantinedEmail();
-		other.setEmail(System.currentTimeMillis() + testEmail);		
+		other.setEmail(System.currentTimeMillis() + testEmail);
 
 		dao.addToQuarantine(other);
 
@@ -191,7 +211,7 @@ public class EmailQuarantineDaoImplTest {
 		other.setEmail(System.currentTimeMillis() + testEmail);
 
 		dao.addToQuarantine(other);
-		
+
 		expected = dao.addToQuarantine(expected);
 
 		// Call under test
@@ -207,7 +227,7 @@ public class EmailQuarantineDaoImplTest {
 		quarantinedEmail.setEmail(testEmail);
 		quarantinedEmail.setReason(QuarantineReason.HARD_BOUNCE);
 		quarantinedEmail.setSesMessageId(sesMessageId);
-		quarantinedEmail.setTimeout(defaultTimeout);
+		quarantinedEmail.setTimeout(Instant.now().plusMillis(defaultTimeout));
 
 		return quarantinedEmail;
 	}

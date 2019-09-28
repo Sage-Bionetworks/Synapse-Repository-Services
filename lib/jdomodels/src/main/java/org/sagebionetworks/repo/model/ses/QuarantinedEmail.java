@@ -14,9 +14,9 @@ public class QuarantinedEmail {
 	private String email;
 	private Instant createdOn;
 	private Instant updatedOn;
+	private Instant timeout;
 	private QuarantineReason reason;
 	private String sesMessageId;
-	private Long timeout;
 
 	public String getEmail() {
 		return email;
@@ -58,11 +58,11 @@ public class QuarantinedEmail {
 		this.sesMessageId = sesMessageId;
 	}
 
-	public Long getTimeout() {
+	public Instant getTimeout() {
 		return timeout;
 	}
 
-	public void setTimeout(Long timeout) {
+	public void setTimeout(Instant timeout) {
 		this.timeout = timeout;
 	}
 
@@ -73,15 +73,12 @@ public class QuarantinedEmail {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		QuarantinedEmail other = (QuarantinedEmail) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && reason == other.reason
 				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(timeout, other.timeout)
@@ -90,8 +87,8 @@ public class QuarantinedEmail {
 
 	@Override
 	public String toString() {
-		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", reason=" + reason
-				+ ", sesMessageId=" + sesMessageId + ", timeout=" + timeout + "]";
+		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", timeout=" + timeout
+				+ ", reason=" + reason + ", sesMessageId=" + sesMessageId + "]";
 	}
 
 }
