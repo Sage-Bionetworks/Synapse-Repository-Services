@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
@@ -51,12 +52,14 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	private static String SQL_INSERT = "INSERT INTO " + TABLE_QUARANTINED_EMAILS
 			+ "(" + COL_QUARANTINED_EMAILS_EMAIL + ", "
+			+ COL_QUARANTINED_EMAILS_ETAG + ", "
 			+ COL_QUARANTINED_EMAILS_CREATED_ON + ", "
 			+ COL_QUARANTINED_EMAILS_UPDATED_ON + ", " 
 			+ COL_QUARANTINED_EMAILS_EXPIRES_ON + ", "
 			+ COL_QUARANTINED_EMAILS_REASON + ", "
 			+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + ") "
-			+ "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+ "VALUES (?, UUID(), ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+ COL_QUARANTINED_EMAILS_ETAG + " = UUID() "
 			+ COL_QUARANTINED_EMAILS_UPDATED_ON + " = ?, " 
 			+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " = ?, "
 			+ COL_QUARANTINED_EMAILS_REASON + " = ?, "
