@@ -39,7 +39,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	@Override
 	@WriteTransaction
 	public SESNotification saveNotification(SESNotification notification) {
-		validateDTO(notification);
+		ValidateArgument.required(notification, "The notification");
 
 		DBOSESNotification dbo = map(notification);
 
@@ -56,12 +56,6 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 				+ COL_SES_NOTIFICATIONS_SES_MESSAGE_ID + " = ?";
 
 		return jdbcTemplate.queryForObject(sql, Long.class, sesMessageId);
-	}
-
-	private void validateDTO(SESNotification notification) {
-		ValidateArgument.required(notification, "notification");
-		ValidateArgument.required(notification.getNotificationType(), "The notification type");
-		ValidateArgument.requiredNotBlank(notification.getNotificationBody(), "The notification body");
 	}
 
 	private DBOSESNotification map(SESNotification dto) {
@@ -81,19 +75,17 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	}
 
 	private SESNotification map(DBOSESNotification dbo) {
-		SESNotification dto = new SESNotification();
-
-		dto.setId(dbo.getId());
-		dto.setInstanceNumber(dbo.getInstanceNumber());
-		dto.setCreatedOn(dbo.getCreatedOn().toInstant());
-		dto.setSesMessageId(dbo.getSesMessageId());
-		dto.setSesFeedbackId(dbo.getSesFeedbackId());
-		dto.setNotificationType(SESNotificationType.valueOf(dbo.getNotificationType()));
-		dto.setNotificationSubType(dbo.getNotificationSubType());
-		dto.setNotificationReason(dbo.getNotificationReason());
-		dto.setNotificationBody(SESNotificationUtils.decodeBody(dbo.getNotificationBody()));
-
-		return dto;
+		SESNotificationType notificationType = SESNotificationType.valueOf(dbo.getNotificationType());
+		String notificationBody = SESNotificationUtils.decodeBody(dbo.getNotificationBody());
+		
+		return new SESNotification(notificationType,notificationBody)
+				.withId(dbo.getId())
+				.withInstanceNumber(dbo.getInstanceNumber())
+				.withCreatedOn(dbo.getCreatedOn().toInstant())
+				.withSesMessageId(dbo.getSesMessageId())
+				.withSesFeedbackId(dbo.getSesFeedbackId())
+				.withNotificationSubType(dbo.getNotificationSubType())
+				.withNotificationReason(dbo.getNotificationReason());
 	}
 
 	@Override

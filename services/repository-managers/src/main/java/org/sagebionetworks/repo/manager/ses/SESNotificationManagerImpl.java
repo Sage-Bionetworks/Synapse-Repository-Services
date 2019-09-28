@@ -40,7 +40,8 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 	private Map<SESNotificationType, EmailQuarantineProvider> quarantineProviderMap;
 
 	@Autowired
-	public SESNotificationManagerImpl(SESNotificationDao notificationDao, EmailQuarantineDao quarantineDao, List<EmailQuarantineProvider> quarantineProviders) {
+	public SESNotificationManagerImpl(SESNotificationDao notificationDao, EmailQuarantineDao quarantineDao,
+			List<EmailQuarantineProvider> quarantineProviders) {
 		this.notificationDao = notificationDao;
 		this.quarantineDao = quarantineDao;
 		this.quarantineProviderMap = initProviders(quarantineProviders);
@@ -48,8 +49,8 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 
 	private Map<SESNotificationType, EmailQuarantineProvider> initProviders(List<EmailQuarantineProvider> quarantineProviders) {
 		Map<SESNotificationType, EmailQuarantineProvider> providerMap = new HashMap<>(quarantineProviders.size());
-		
-		quarantineProviders.forEach( provider -> {
+
+		quarantineProviders.forEach(provider -> {
 			providerMap.put(provider.getSupportedType(), provider);
 		});
 
@@ -69,23 +70,22 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 
-		SESNotification dto = new SESNotification();
-		
-		dto.setNotificationType(parseNotificationType(notification.getNotificationType()));
+		SESNotificationType notificationType = parseNotificationType(notification.getNotificationType());
+
 		// Makes sure we pass in the original notification body
-		dto.setNotificationBody(notificationBody);
-		
+		SESNotification dto = new SESNotification(notificationType, notificationBody);
+
 		if (notification.getMail() != null) {
-			dto.setSesMessageId(notification.getMail().getMessageId());
+			dto.withSesMessageId(notification.getMail().getMessageId());
 		}
 
 		Optional<SESJsonNotificationDetails> details = getNotificationDetails(dto.getNotificationType(), notification);
 
 		// Fill in additional details about the notification
 		details.ifPresent(info -> {
-			dto.setSesFeedbackId(info.getFeedbackId());
-			dto.setNotificationSubType(info.getSubType().orElse(null));
-			dto.setNotificationReason(info.getReason().orElse(null));
+			dto.withSesFeedbackId(info.getFeedbackId());
+			dto.withNotificationSubType(info.getSubType().orElse(null));
+			dto.withNotificationReason(info.getReason().orElse(null));
 		});
 
 		// Save the notification to the database

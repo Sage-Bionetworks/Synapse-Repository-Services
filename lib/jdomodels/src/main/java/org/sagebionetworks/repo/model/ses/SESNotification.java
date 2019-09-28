@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.ses;
 import java.time.Instant;
 import java.util.Objects;
 
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
  * DTO object to save a SES notification to the DB
  * 
@@ -21,76 +23,82 @@ public class SESNotification {
 	private String sesMessageId;
 	private String sesFeedbackId;
 
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public int getInstanceNumber() {
-		return instanceNumber;
-	}
-
-	public void setInstanceNumber(int instanceNumber) {
-		this.instanceNumber = instanceNumber;
-	}
-
-	public Instant getCreatedOn() {
-		return createdOn;
-	}
-
-	public void setCreatedOn(Instant createdOn) {
-		this.createdOn = createdOn;
+	public SESNotification(SESNotificationType notificationType, String notificationBody) {
+		ValidateArgument.required(notificationType, "The notification type");
+		ValidateArgument.requiredNotBlank(notificationBody, "The notification body");
+		this.notificationType = notificationType;
+		this.notificationBody = notificationBody;
 	}
 
 	public SESNotificationType getNotificationType() {
 		return notificationType;
 	}
 
-	public void setNotificationType(SESNotificationType notificationType) {
-		this.notificationType = notificationType;
+	public String getNotificationBody() {
+		return notificationBody;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public SESNotification withId(Long id) {
+		this.id = id;
+		return this;
+	}
+
+	public int getInstanceNumber() {
+		return instanceNumber;
+	}
+
+	public SESNotification withInstanceNumber(int instanceNumber) {
+		this.instanceNumber = instanceNumber;
+		return this;
+	}
+
+	public Instant getCreatedOn() {
+		return createdOn;
+	}
+
+	public SESNotification withCreatedOn(Instant createdOn) {
+		this.createdOn = createdOn;
+		return this;
 	}
 
 	public String getNotificationSubType() {
 		return notificationSubType;
 	}
 
-	public void setNotificationSubType(String notificationSubType) {
+	public SESNotification withNotificationSubType(String notificationSubType) {
 		this.notificationSubType = notificationSubType;
+		return this;
 	}
 
 	public String getNotificationReason() {
 		return notificationReason;
 	}
 
-	public void setNotificationReason(String notificationReason) {
+	public SESNotification withNotificationReason(String notificationReason) {
 		this.notificationReason = notificationReason;
-	}
-
-	public String getNotificationBody() {
-		return notificationBody;
-	}
-
-	public void setNotificationBody(String notificationBody) {
-		this.notificationBody = notificationBody;
+		return this;
 	}
 
 	public String getSesMessageId() {
 		return sesMessageId;
 	}
 
-	public void setSesMessageId(String sesMessageId) {
+	public SESNotification withSesMessageId(String sesMessageId) {
 		this.sesMessageId = sesMessageId;
+		return this;
 	}
 
 	public String getSesFeedbackId() {
 		return sesFeedbackId;
 	}
 
-	public void setSesFeedbackId(String sesFeedbackId) {
+	public SESNotification withSesFeedbackId(String sesFeedbackId) {
 		this.sesFeedbackId = sesFeedbackId;
+		return this;
 	}
 
 	@Override

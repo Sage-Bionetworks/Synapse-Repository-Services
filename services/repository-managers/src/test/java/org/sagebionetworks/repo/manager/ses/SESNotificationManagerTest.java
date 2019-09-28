@@ -2,11 +2,11 @@ package org.sagebionetworks.repo.manager.ses;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.*;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -231,13 +231,10 @@ public class SESNotificationManagerTest {
 
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
-		SESNotification expected = new SESNotification();
-
-		expected.setNotificationType(notificationType);
-		expected.setNotificationBody(notificationBody);
-		expected.setNotificationSubType("Permanent");
-		expected.setNotificationReason("General");
-		expected.setSesMessageId(messageId);
+		SESNotification expected = new SESNotification(notificationType, notificationBody)
+				.withNotificationSubType("Permanent")
+				.withNotificationReason("General")
+				.withSesMessageId(messageId);
 		
 		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(false);
