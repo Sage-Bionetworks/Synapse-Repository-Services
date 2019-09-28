@@ -10,12 +10,12 @@ import org.sagebionetworks.repo.model.ses.SESNotification;
 public interface SESNotificationDao {
 
 	/**
-	 * Saves the given notification to the database
+	 * Saves the given notification to the database, the id, instanceNumber and createOn will be set automatically
 	 * 
 	 * @param notification The SES notification DTO
-	 * @return
+	 * @return The saved notification
 	 */
-	SESNotification create(SESNotification notification);
+	SESNotification saveNotification(SESNotification notification);
 
 	/**
 	 * @param sesMessageId The id returned by SES when sending an email

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.ses;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_BODY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_INSTANCE_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTIFICATIONS_SES_MESSAGE_ID;
@@ -34,6 +35,7 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_SES_NOTIFICATIONS_ID, true).withIsBackupId(true),
+			new FieldColumn("instanceNumber", COL_SES_NOTIFICATIONS_INSTANCE_NUMBER),
 			new FieldColumn("createdOn", COL_SES_NOTIFICATIONS_CREATED_ON),
 			new FieldColumn("sesMessageId", COL_SES_NOTIFICATIONS_SES_MESSAGE_ID),
 			new FieldColumn("sesFeedbackId", COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID),
@@ -49,6 +51,7 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 			DBOSESNotification dbo = new DBOSESNotification();
 
 			dbo.setId(rs.getLong(COL_SES_NOTIFICATIONS_ID));
+			dbo.setInstanceNumber(rs.getInt(COL_SES_NOTIFICATIONS_INSTANCE_NUMBER));
 			dbo.setCreatedOn(rs.getTimestamp(COL_SES_NOTIFICATIONS_CREATED_ON));
 			dbo.setSesMessageId(rs.getString(COL_SES_NOTIFICATIONS_SES_MESSAGE_ID));
 			dbo.setSesFeedbackId(rs.getString(COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID));
@@ -84,6 +87,7 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 	private static final MigratableTableTranslation<DBOSESNotification, DBOSESNotification> TABLE_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	private Long id;
+	private int instanceNumber;
 	private Timestamp createdOn;
 	private String sesMessageId;
 	private String sesFeedbackId;
@@ -98,6 +102,14 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public int getInstanceNumber() {
+		return instanceNumber;
+	}
+
+	public void setInstanceNumber(int instanceNumber) {
+		this.instanceNumber = instanceNumber;
 	}
 
 	public Timestamp getCreatedOn() {
@@ -191,24 +203,21 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(notificationBody);
-		result = prime * result
-				+ Objects.hash(createdOn, id, notificationReason, notificationSubType, notificationType, sesFeedbackId, sesMessageId);
+		result = prime * result + Objects.hash(createdOn, id, instanceNumber, notificationReason, notificationSubType, notificationType,
+				sesFeedbackId, sesMessageId);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		DBOSESNotification other = (DBOSESNotification) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id) && instanceNumber == other.instanceNumber
 				&& Arrays.equals(notificationBody, other.notificationBody) && Objects.equals(notificationReason, other.notificationReason)
 				&& Objects.equals(notificationSubType, other.notificationSubType)
 				&& Objects.equals(notificationType, other.notificationType) && Objects.equals(sesFeedbackId, other.sesFeedbackId)
@@ -217,9 +226,10 @@ public class DBOSESNotification implements MigratableDatabaseObject<DBOSESNotifi
 
 	@Override
 	public String toString() {
-		return "DBOSESNotification [id=" + id + ", createdOn=" + createdOn + ", sesMessageId=" + sesMessageId + ", sesFeedbackId="
-				+ sesFeedbackId + ", notificationType=" + notificationType + ", notificationSubType=" + notificationSubType
-				+ ", notificationReason=" + notificationReason + ", notificationBody=" + Arrays.toString(notificationBody) + "]";
+		return "DBOSESNotification [id=" + id + ", instanceNumber=" + instanceNumber + ", createdOn=" + createdOn + ", sesMessageId="
+				+ sesMessageId + ", sesFeedbackId=" + sesFeedbackId + ", notificationType=" + notificationType + ", notificationSubType="
+				+ notificationSubType + ", notificationReason=" + notificationReason + ", notificationBody="
+				+ Arrays.toString(notificationBody) + "]";
 	}
 
 }

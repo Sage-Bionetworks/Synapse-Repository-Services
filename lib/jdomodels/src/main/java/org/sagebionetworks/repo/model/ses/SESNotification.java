@@ -12,6 +12,7 @@ import java.util.Objects;
 public class SESNotification {
 
 	private Long id;
+	private int instanceNumber;
 	private Instant createdOn;
 	private SESNotificationType notificationType;
 	private String notificationSubType;
@@ -26,6 +27,14 @@ public class SESNotification {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public int getInstanceNumber() {
+		return instanceNumber;
+	}
+
+	public void setInstanceNumber(int instanceNumber) {
+		this.instanceNumber = instanceNumber;
 	}
 
 	public Instant getCreatedOn() {
@@ -86,23 +95,20 @@ public class SESNotification {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, id, notificationBody, notificationReason, notificationSubType, notificationType, sesFeedbackId,
-				sesMessageId);
+		return Objects.hash(createdOn, id, instanceNumber, notificationBody, notificationReason, notificationSubType, notificationType,
+				sesFeedbackId, sesMessageId);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		SESNotification other = (SESNotification) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id) && instanceNumber == other.instanceNumber
 				&& Objects.equals(notificationBody, other.notificationBody) && Objects.equals(notificationReason, other.notificationReason)
 				&& Objects.equals(notificationSubType, other.notificationSubType) && notificationType == other.notificationType
 				&& Objects.equals(sesFeedbackId, other.sesFeedbackId) && Objects.equals(sesMessageId, other.sesMessageId);
@@ -110,9 +116,9 @@ public class SESNotification {
 
 	@Override
 	public String toString() {
-		return "SESNotification [id=" + id + ", createdOn=" + createdOn + ", notificationType=" + notificationType
-				+ ", notificationSubType=" + notificationSubType + ", notificationReason=" + notificationReason + ", notificationBody="
-				+ notificationBody + ", sesMessageId=" + sesMessageId + ", sesFeedbackId=" + sesFeedbackId + "]";
+		return "SESNotification [id=" + id + ", instanceNumber=" + instanceNumber + ", createdOn=" + createdOn + ", notificationType="
+				+ notificationType + ", notificationSubType=" + notificationSubType + ", notificationReason=" + notificationReason
+				+ ", notificationBody=" + notificationBody + ", sesMessageId=" + sesMessageId + ", sesFeedbackId=" + sesFeedbackId + "]";
 	}
 
 }

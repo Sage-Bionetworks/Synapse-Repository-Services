@@ -225,7 +225,7 @@ public class SESNotificationManagerTest {
 		// Call under test
 		manager.processNotification(notificationBody);
 
-		verify(mockNotificationDao).create(expected);
+		verify(mockNotificationDao).saveNotification(expected);
 
 	}
 

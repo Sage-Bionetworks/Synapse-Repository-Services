@@ -42,31 +42,31 @@ public class SESNotificationDaoImplTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = null;
 			// Call under test
-			dao.create(notification);
+			dao.saveNotification(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationType(null);
 			// Call under test
-			dao.create(notification);
+			dao.saveNotification(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationBody(null);
 			// Call under test
-			dao.create(notification);
+			dao.saveNotification(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationBody("");
 			// Call under test
-			dao.create(notification);
+			dao.saveNotification(notification);
 		});
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			SESNotification notification = getRandomNotification();
 			notification.setNotificationBody("    ");
 			// Call under test
-			dao.create(notification);
+			dao.saveNotification(notification);
 		});
 	}
 
@@ -79,10 +79,11 @@ public class SESNotificationDaoImplTest {
 		notification.setSesMessageId(null);
 
 		// Call under test
-		SESNotification result = dao.create(notification);
+		SESNotification result = dao.saveNotification(notification);
 
 		notification.setId(result.getId());
 		notification.setCreatedOn(result.getCreatedOn());
+		notification.setInstanceNumber(result.getInstanceNumber());
 
 		assertEquals(notification, result);
 	}
@@ -92,13 +93,14 @@ public class SESNotificationDaoImplTest {
 		SESNotification notification = getRandomNotification();
 
 		// Call under test
-		SESNotification result = dao.create(notification);
+		SESNotification result = dao.saveNotification(notification);
 
 		assertNotNull(result.getId());
 		assertNotNull(result.getCreatedOn());
 
 		notification.setId(result.getId());
 		notification.setCreatedOn(result.getCreatedOn());
+		notification.setInstanceNumber(result.getInstanceNumber());
 
 		assertEquals(notification, result);
 	}
@@ -108,7 +110,7 @@ public class SESNotificationDaoImplTest {
 		int notificationsCount = 10;
 		List<SESNotification> notifications = getRandomNotifications(notificationsCount);
 
-		notifications.forEach(dao::create);
+		notifications.forEach(dao::saveNotification);
 
 		String sesMessageId = notifications.iterator().next().getSesMessageId();
 

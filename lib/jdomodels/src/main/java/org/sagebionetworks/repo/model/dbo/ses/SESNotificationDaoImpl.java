@@ -5,7 +5,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SES_NOTIFICATIONS;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -24,17 +26,19 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	private IdGenerator idGenerator;
 	private DBOBasicDao basicDao;
 	private JdbcTemplate jdbcTemplate;
+	private int instanceNumber;
 
 	@Autowired
-	public SESNotificationDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
+	public SESNotificationDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, StackConfiguration config) {
 		this.idGenerator = idGenerator;
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
+		this.instanceNumber = config.getStackInstanceNumber();
 	}
 
 	@Override
 	@WriteTransaction
-	public SESNotification create(SESNotification notification) {
+	public SESNotification saveNotification(SESNotification notification) {
 		validateDTO(notification);
 
 		DBOSESNotification dbo = map(notification);
@@ -63,7 +67,8 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	private DBOSESNotification map(SESNotification dto) {
 		DBOSESNotification dbo = new DBOSESNotification();
 
-		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+		dbo.setInstanceNumber(instanceNumber);
+		dbo.setCreatedOn(Timestamp.from(Instant.now()));
 		dbo.setSesMessageId(dto.getSesMessageId());
 		dbo.setSesFeedbackId(dto.getSesFeedbackId());
 		dbo.setNotificationType(dto.getNotificationType().toString());
@@ -79,6 +84,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		SESNotification dto = new SESNotification();
 
 		dto.setId(dbo.getId());
+		dto.setInstanceNumber(dbo.getInstanceNumber());
 		dto.setCreatedOn(dbo.getCreatedOn().toInstant());
 		dto.setSesMessageId(dbo.getSesMessageId());
 		dto.setSesFeedbackId(dbo.getSesFeedbackId());

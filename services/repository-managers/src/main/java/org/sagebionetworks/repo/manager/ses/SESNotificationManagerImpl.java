@@ -47,7 +47,7 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		// Makes sure we pass in the original notification body
 		dto.setNotificationBody(notificationBody);
 		
-		notificationDao.create(dto);
+		notificationDao.saveNotification(dto);
 
 	}
 

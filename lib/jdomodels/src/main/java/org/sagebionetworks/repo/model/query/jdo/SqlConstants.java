@@ -983,6 +983,7 @@ public class SqlConstants {
 	public static final String TABLE_SES_NOTIFICATIONS = 								"SES_NOTIFICATIONS";
 	public static final String DDL_SES_NOTIFICATIONS = 									"schema/ses/SESNotifications-ddl.sql";
 	public static final String COL_SES_NOTIFICATIONS_ID = 								"ID";
+	public static final String COL_SES_NOTIFICATIONS_INSTANCE_NUMBER = 					"INSTANCE_NUMBER";
 	public static final String COL_SES_NOTIFICATIONS_CREATED_ON = 						"CREATED_ON";
 	public static final String COL_SES_NOTIFICATIONS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	public static final String COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID = 					"SES_FEEDBACK_ID";
