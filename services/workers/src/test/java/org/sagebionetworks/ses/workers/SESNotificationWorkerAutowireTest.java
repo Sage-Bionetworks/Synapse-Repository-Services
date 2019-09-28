@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.ses.SESNotificationDao;
+import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -31,50 +32,15 @@ public class SESNotificationWorkerAutowireTest {
 	@Autowired
 	private AmazonSQS sqsClient;
 
-	String sesMessageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
-
-	// @formatter:off
-
-	String notificationBody = "{ \r\n" + 
-			"  \"notificationType\":\"Bounce\",\r\n" + 
-			"  \"mail\":{ \r\n" + 
-			"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
-			"    \"messageId\":\"" + sesMessageId + "\",\r\n" + 
-			"    \"source\":\"sender@example.com\",\r\n" + 
-			"    \"destination\":[ \r\n" + 
-			"      \"recipient@example.com\"\r\n" + 
-			"    ],\r\n" + 
-			"    \"headersTruncated\":true\r\n" + 
-			"  },\r\n" + 
-			"  \"bounce\":{ \r\n" + 
-			"    \"bounceType\":\"Permanent\",\r\n" + 
-			"    \"bounceSubType\":\"General\",\r\n" + 
-			"    \"bouncedRecipients\":[ \r\n" + 
-			"      { \r\n" + 
-			"        \"status\":\"5.0.0\",\r\n" + 
-			"        \"action\":\"failed\",\r\n" + 
-			"        \"diagnosticCode\":\"smtp; 550 user unknown\",\r\n" + 
-			"        \"emailAddress\":\"recipient1@example.com\"\r\n" + 
-			"      },\r\n" + 
-			"      { \r\n" + 
-			"        \"status\":\"4.0.0\",\r\n" + 
-			"        \"action\":\"delayed\",\r\n" + 
-			"        \"emailAddress\":\"recipient2@example.com\"\r\n" + 
-			"      }\r\n" + 
-			"    ],\r\n" + 
-			"    \"timestamp\":\"2012-05-25T14:59:38.605Z\",\r\n" + 
-			"    \"feedbackId\":\"000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000\"\r\n" + 
-			"  }\r\n" + 
-			"}";
-	
-	// @formatter:on
-
+	private String sesMessageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
 	private String queueUrl;
+	private String notificationBody;
 
 	@BeforeEach
 	public void before() throws Exception {
 		dao.clearAll();
 		queueUrl = sqsClient.getQueueUrl(stackConfig.getQueueName(QUEUE_NAME)).getQueueUrl();
+		notificationBody = SESNotificationUtils.loadNotificationFromClasspath(sesMessageId);
 	}
 
 	@AfterEach

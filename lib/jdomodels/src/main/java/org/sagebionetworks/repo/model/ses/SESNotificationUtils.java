@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.ses;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +35,13 @@ public class SESNotificationUtils {
 			return new String(bytes, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	public static String loadNotificationFromClasspath(String messageId) throws IOException {
+		String fileName = "ses/" + messageId + ".json";
+		try (InputStream is = SESNotificationUtils.class.getClassLoader().getResourceAsStream(fileName)) {
+			return IOUtils.toString(is, StandardCharsets.UTF_8);
 		}
 	}
 

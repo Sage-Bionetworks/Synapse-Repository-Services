@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.ses.SESJsonMail;
 import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.repo.model.ses.SESNotification;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
+import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class SESNotificationManagerTest {
@@ -205,15 +207,11 @@ public class SESNotificationManagerTest {
 	}
 
 	@Test
-	public void testProcessNotification() {
+	public void testProcessNotification() throws IOException {
 		
-		String notificationBody = "{" + 
-				"  \"notificationType\":\"Bounce\"," + 
-				"  \"bounce\":{" + 
-				"    \"bounceType\":\"Permanent\"," + 
-				"    \"bounceSubType\":\"General\"" + 
-				"  }" + 
-				"}";
+		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
+		
+		String notificationBody = SESNotificationUtils.loadNotificationFromClasspath(messageId);
 		
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 

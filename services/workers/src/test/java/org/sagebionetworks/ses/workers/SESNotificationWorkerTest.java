@@ -43,6 +43,7 @@ public class SESNotificationWorkerTest {
 		// Call under test
 		worker.run(null, mockMessage);
 
+		verify(mockMessage).getBody();
 		verify(mockLogger).logWorkerFailure(eq(SESNotificationWorker.class.getName()), any(IllegalArgumentException.class), eq(false));
 		verifyZeroInteractions(mockManager);
 	}
@@ -50,48 +51,16 @@ public class SESNotificationWorkerTest {
 	@Test
 	public void testRun() throws Exception {
 
-		// @formatter:off
-
-		String notificationBody = "{ \r\n" + 
-				"  \"notificationType\":\"Bounce\",\r\n" + 
-				"  \"mail\":{ \r\n" + 
-				"    \"timestamp\":\"2018-10-08T14:05:45 +0000\",\r\n" + 
-				"    \"messageId\":\"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000\",\r\n" + 
-				"    \"source\":\"sender@example.com\",\r\n" + 
-				"    \"destination\":[ \r\n" + 
-				"      \"recipient@example.com\"\r\n" + 
-				"    ],\r\n" + 
-				"    \"headersTruncated\":true\r\n" + 
-				"  },\r\n" + 
-				"  \"bounce\":{ \r\n" + 
-				"    \"bounceType\":\"Permanent\",\r\n" + 
-				"    \"bounceSubType\":\"General\",\r\n" + 
-				"    \"bouncedRecipients\":[ \r\n" + 
-				"      { \r\n" + 
-				"        \"status\":\"5.0.0\",\r\n" + 
-				"        \"action\":\"failed\",\r\n" + 
-				"        \"diagnosticCode\":\"smtp; 550 user unknown\",\r\n" + 
-				"        \"emailAddress\":\"recipient1@example.com\"\r\n" + 
-				"      },\r\n" + 
-				"      { \r\n" + 
-				"        \"status\":\"4.0.0\",\r\n" + 
-				"        \"action\":\"delayed\",\r\n" + 
-				"        \"emailAddress\":\"recipient2@example.com\"\r\n" + 
-				"      }\r\n" + 
-				"    ],\r\n" + 
-				"    \"timestamp\":\"2012-05-25T14:59:38.605Z\",\r\n" + 
-				"    \"feedbackId\":\"000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000\"\r\n" + 
-				"  }\r\n" + 
-				"}";
-		
-		// @formatter:on
+		String notificationBody = "Some notification";
 
 		when(mockMessage.getBody()).thenReturn(notificationBody);
 		
 		// Call under test
 		worker.run(null, mockMessage);
 
+		verify(mockMessage).getBody();
 		verify(mockManager).processNotification(notificationBody);
+		verifyZeroInteractions(mockLogger);
 
 	}
 

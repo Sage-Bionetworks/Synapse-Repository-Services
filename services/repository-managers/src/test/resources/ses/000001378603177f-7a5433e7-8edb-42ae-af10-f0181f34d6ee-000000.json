@@ -1,0 +1,12 @@
+{ 
+  "notificationType":"Bounce",
+  "bounce":{ 
+    "bounceType":"Permanent",
+    "bounceSubType":"General",
+    "bouncedRecipients":[ 
+      { 
+        "emailAddress":"recipient1@example.com"
+      }
+    ]
+  }
+}
