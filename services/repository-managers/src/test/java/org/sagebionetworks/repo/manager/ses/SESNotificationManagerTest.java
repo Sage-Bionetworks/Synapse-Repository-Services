@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.ses;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -181,40 +180,54 @@ public class SESNotificationManagerTest {
 	public void testProcessNotificationWithInvalidInput() {
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESJsonNotification notification = null;
-			// Call under test
-			manager.processNotification(notification);
-		});
-
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			String notificationBody = null;
-			when(mockNotification.getNotificationBody()).thenReturn(notificationBody);
 			// Call under test
-			manager.processNotification(mockNotification);
-			verify(mockNotification).getNotificationBody();
+			manager.processNotification(notificationBody);
 		});
-
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			String notificationBody = "";
+			manager.processNotification(notificationBody);
+		});
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			String notificationBody = "   ";
+			manager.processNotification(notificationBody);
+		});
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			String notificationBody = "Malformed json";
+			manager.processNotification(notificationBody);
+		});
 	}
 
 	@Test
 	public void testProcessNotification() {
-		String notificationBody = "Some notification";
+		
+		String notificationBody = "{" + 
+				"  \"notificationType\":\"Bounce\"," + 
+				"  \"bounce\":{" + 
+				"    \"bounceType\":\"Permanent\"," + 
+				"    \"bounceSubType\":\"General\"" + 
+				"  }" + 
+				"}";
+		
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
-		when(mockNotification.getNotificationBody()).thenReturn(notificationBody);
-		when(mockNotification.getNotificationType()).thenReturn(notificationType.toString());
+		SESNotification expected = new SESNotification();
 
-		SESNotification dto = new SESNotification();
-
-		dto.setNotificationType(notificationType);
-		dto.setNotificationBody(notificationBody);
+		expected.setNotificationType(notificationType);
+		expected.setNotificationBody(notificationBody);
+		expected.setNotificationSubType("Permanent");
+		expected.setNotificationReason("General");
 
 		// Call under test
-		manager.processNotification(mockNotification);
+		manager.processNotification(notificationBody);
 
-		verify(mockNotification).getNotificationType();
-		verify(mockNotification, times(2)).getNotificationBody();
-		verify(mockNotificationDao).create(dto);
+		verify(mockNotificationDao).create(expected);
 
 	}
 

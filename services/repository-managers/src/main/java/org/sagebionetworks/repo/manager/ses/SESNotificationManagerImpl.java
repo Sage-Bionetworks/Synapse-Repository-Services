@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.ses;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESNotification;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
+import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +31,21 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 
 	@Override
 	@WriteTransaction
-	public void processNotification(SESJsonNotification notification) {
-		ValidateArgument.required(notification, "The notification");
-		ValidateArgument.required(notification.getNotificationBody(), "The notificaiton body");
+	public void processNotification(String notificationBody) {
+		ValidateArgument.requiredNotBlank(notificationBody, "The notification body");
+		
+		SESJsonNotification notification;
+		
+		try {
+			notification = SESNotificationUtils.parseNotification(notificationBody);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 
 		SESNotification dto = map(notification);
+		
+		// Makes sure we pass in the original notification body
+		dto.setNotificationBody(notificationBody);
 		
 		notificationDao.create(dto);
 
@@ -55,7 +67,6 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		}
 
 		dto.setNotificationType(type);
-		dto.setNotificationBody(json.getNotificationBody());
 
 		if (json.getMail() != null) {
 			dto.setSesMessageId(json.getMail().getMessageId());

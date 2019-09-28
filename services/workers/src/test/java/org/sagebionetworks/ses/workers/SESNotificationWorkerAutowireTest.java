@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.ses.SESNotificationDao;
-import org.sagebionetworks.repo.model.ses.SESJsonNotification;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -72,14 +70,11 @@ public class SESNotificationWorkerAutowireTest {
 	// @formatter:on
 
 	private String queueUrl;
-	private SESJsonNotification notification;
 
 	@BeforeEach
 	public void before() throws Exception {
 		dao.clearAll();
 		queueUrl = sqsClient.getQueueUrl(stackConfig.getQueueName(QUEUE_NAME)).getQueueUrl();
-		notification = SESNotificationUtils.parseNotification(notificationBody);
-		notification.setNotificationBody(notificationBody);
 	}
 
 	@AfterEach

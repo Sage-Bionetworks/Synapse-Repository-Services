@@ -2,6 +2,7 @@ package org.sagebionetworks.ses.workers;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -13,11 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.ses.SESNotificationManager;
-import org.sagebionetworks.repo.model.ses.SESJsonNotification;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.fasterxml.jackson.core.JsonParseException;
 
 @ExtendWith(MockitoExtension.class)
 public class SESNotificationWorkerTest {
@@ -35,16 +33,17 @@ public class SESNotificationWorkerTest {
 	private SESNotificationWorker worker;
 	
 	@Test
-	public void testRunWithParsingError() throws Exception {
+	public void testRunWithException() throws Exception {
 		
 		String notificationBody = "Some wrong body";
 		
 		when(mockMessage.getBody()).thenReturn(notificationBody);
+		doThrow(IllegalArgumentException.class).when(mockManager).processNotification(notificationBody);
 		
 		// Call under test
 		worker.run(null, mockMessage);
 
-		verify(mockLogger).logWorkerFailure(eq(SESNotificationWorker.class.getName()), any(JsonParseException.class), eq(false));
+		verify(mockLogger).logWorkerFailure(eq(SESNotificationWorker.class.getName()), any(IllegalArgumentException.class), eq(false));
 		verifyZeroInteractions(mockManager);
 	}
 
@@ -88,14 +87,11 @@ public class SESNotificationWorkerTest {
 		// @formatter:on
 
 		when(mockMessage.getBody()).thenReturn(notificationBody);
-
-		SESJsonNotification notification = SESNotificationUtils.parseNotification(notificationBody);
-		notification.setNotificationBody(notificationBody);
-
+		
 		// Call under test
 		worker.run(null, mockMessage);
 
-		verify(mockManager).processNotification(notification);
+		verify(mockManager).processNotification(notificationBody);
 
 	}
 
