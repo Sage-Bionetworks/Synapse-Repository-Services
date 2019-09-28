@@ -9,11 +9,11 @@ public enum QuarantineReason {
 	/**
 	 * An hard bounce always leads to a quarantine
 	 */
-	HARD_BOUNCE, 
+	PERMANENT_BOUNCE,
 	/**
-	 * Too many messages were bounced for this address
+	 * Some bounce that might be temporary
 	 */
-	TOO_MANY_BOUNCES, 
+	TRANSIENT_BOUNCE, 
 	/**
 	 * Some complaints leads to quarantine
 	 */

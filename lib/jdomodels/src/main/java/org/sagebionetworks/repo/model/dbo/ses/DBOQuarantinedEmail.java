@@ -4,7 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_TIMEOUT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_QUARANTINED_EMAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_QUARANTINED_EMAILS;
@@ -34,7 +34,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 			new FieldColumn("email", COL_QUARANTINED_EMAILS_EMAIL, true).withIsBackupId(true),
 			new FieldColumn("createdOn", COL_QUARANTINED_EMAILS_CREATED_ON),
 			new FieldColumn("updatedOn", COL_QUARANTINED_EMAILS_UPDATED_ON),
-			new FieldColumn("timeout", COL_QUARANTINED_EMAILS_TIMEOUT),
+			new FieldColumn("expiresOn", COL_QUARANTINED_EMAILS_EXPIRES_ON),
 			new FieldColumn("reason", COL_QUARANTINED_EMAILS_REASON),
 			new FieldColumn("sesMessageId", COL_QUARANTINED_EMAILS_SES_MESSAGE_ID) };
 
@@ -47,7 +47,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 			dbo.setEmail(rs.getString(COL_QUARANTINED_EMAILS_EMAIL));
 			dbo.setCreatedOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_CREATED_ON));
 			dbo.setUpdatedOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_UPDATED_ON));
-			dbo.setTimeout(rs.getTimestamp(COL_QUARANTINED_EMAILS_TIMEOUT));
+			dbo.setExpiresOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_EXPIRES_ON));
 			dbo.setReason(rs.getString(COL_QUARANTINED_EMAILS_REASON));
 			dbo.setSesMessageId(rs.getString(COL_QUARANTINED_EMAILS_SES_MESSAGE_ID));
 
@@ -81,7 +81,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 	private String email;
 	private Timestamp createdOn;
 	private Timestamp updatedOn;
-	private Timestamp timeout;
+	private Timestamp expiresOn;
 	private String reason;
 	// This is the optional SES generated id that lead to the quarantine
 	private String sesMessageId;
@@ -110,12 +110,12 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 		this.updatedOn = updatedOn;
 	}
 
-	public Timestamp getTimeout() {
-		return timeout;
+	public Timestamp getExpiresOn() {
+		return expiresOn;
 	}
 
-	public void setTimeout(Timestamp timeout) {
-		this.timeout = timeout;
+	public void setExpiresOn(Timestamp expiresOn) {
+		this.expiresOn = expiresOn;
 	}
 
 	public String getReason() {
@@ -166,7 +166,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, reason, sesMessageId, timeout, updatedOn);
+		return Objects.hash(createdOn, email, reason, sesMessageId, expiresOn, updatedOn);
 	}
 
 	@Override
@@ -179,13 +179,13 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 			return false;
 		DBOQuarantinedEmail other = (DBOQuarantinedEmail) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && Objects.equals(reason, other.reason)
-				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(timeout, other.timeout)
+				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(expiresOn, other.expiresOn)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOQuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", timeout=" + timeout
+		return "DBOQuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", expiresOn=" + expiresOn
 				+ ", reason=" + reason + ", sesMessageId=" + sesMessageId + "]";
 	}
 

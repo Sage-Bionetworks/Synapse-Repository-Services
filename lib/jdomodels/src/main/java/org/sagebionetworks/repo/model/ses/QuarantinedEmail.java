@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.ses;
 import java.time.Instant;
 import java.util.Objects;
 
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
  * DTO object for a quarantined email address
  * 
@@ -14,61 +16,64 @@ public class QuarantinedEmail {
 	private String email;
 	private Instant createdOn;
 	private Instant updatedOn;
-	private Instant timeout;
+	private Instant expiresOn;
 	private QuarantineReason reason;
 	private String sesMessageId;
 
-	public String getEmail() {
-		return email;
+	public QuarantinedEmail(String email, QuarantineReason reason) {
+		ValidateArgument.requiredNotBlank(email, "The email");
+		ValidateArgument.required(reason, "The reason");
+		this.email = email;
+		this.reason = reason;
 	}
 
-	public void setEmail(String email) {
-		this.email = email;
+	public String getEmail() {
+		return email;
 	}
 
 	public Instant getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Instant createdOn) {
+	public QuarantinedEmail withCreatedOn(Instant createdOn) {
 		this.createdOn = createdOn;
+		return this;
 	}
 
 	public Instant getUpdatedOn() {
 		return updatedOn;
 	}
 
-	public void setUpdatedOn(Instant updatedOn) {
+	public QuarantinedEmail withUpdatedOn(Instant updatedOn) {
 		this.updatedOn = updatedOn;
+		return this;
 	}
 
 	public QuarantineReason getReason() {
 		return reason;
 	}
 
-	public void setReason(QuarantineReason reason) {
-		this.reason = reason;
-	}
-
 	public String getSesMessageId() {
 		return sesMessageId;
 	}
 
-	public void setSesMessageId(String sesMessageId) {
+	public QuarantinedEmail withSesMessageId(String sesMessageId) {
 		this.sesMessageId = sesMessageId;
+		return this;
 	}
 
-	public Instant getTimeout() {
-		return timeout;
+	public Instant getExpiresOn() {
+		return expiresOn;
 	}
 
-	public void setTimeout(Instant timeout) {
-		this.timeout = timeout;
+	public QuarantinedEmail withExpiresOn(Instant expiresOn) {
+		this.expiresOn = expiresOn;
+		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, reason, sesMessageId, timeout, updatedOn);
+		return Objects.hash(createdOn, email, reason, sesMessageId, expiresOn, updatedOn);
 	}
 
 	@Override
@@ -81,13 +86,13 @@ public class QuarantinedEmail {
 			return false;
 		QuarantinedEmail other = (QuarantinedEmail) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && reason == other.reason
-				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(timeout, other.timeout)
+				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(expiresOn, other.expiresOn)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override
 	public String toString() {
-		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", timeout=" + timeout
+		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", expiresOn=" + expiresOn
 				+ ", reason=" + reason + ", sesMessageId=" + sesMessageId + "]";
 	}
 
