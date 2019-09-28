@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,6 +33,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
+	public static final String DEFAULT_ETAG = "DEFAULT";
+	/**
+	 * See: PLFM-5456
+	 */
+	public static int TIMEOUT_SECONDS = 60*10;
+	
 	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '"+EntityField.etag.name()+"' column.";
 	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
@@ -53,6 +60,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	NodeManager nodeManager;
 	@Autowired
 	ReplicationManager replicationManager;
+	@Autowired
+	TableIndexConnectionFactory connectionFactory;
 	
 	/*
 	 * (non-Javadoc)
@@ -237,8 +246,69 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
+	public void deleteViewIndex(IdAndVersion idAndVersion) {
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+		indexManager.deleteTableIndex(idAndVersion);
+	}
+
+	@Override
+	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
+		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
+				(ProgressCallback innerCallback) -> {
+					createOrUpdateViewIndexHoldingLock(idAndVersion);
+					return null;
+				});
+
+	}
+
+	/**
+	 * Create the index table for the given view and version.
+	 * @param idAndVersion
+	 */
+	void createOrUpdateViewIndexHoldingLock(IdAndVersion idAndVersion) {
+		// Is the index out-of-synch?
+		if(!tableManagerSupport.isIndexWorkRequired(idAndVersion)){
+			// nothing to do
+			return;
+		}
+		// Start the worker
+		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
+		try{
+			// Look-up the type for this table.
+			Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+			// Since this worker re-builds the index, start by deleting it.
+			indexManager.deleteTableIndex(idAndVersion);
+			// Need the MD5 for the original schema.
+			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
+			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
+			List<ColumnModel> expandedSchema = getViewSchema(idAndVersion);
+			
+			// Get the containers for this view.
+			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+
+			// create the table in the index.
+			boolean isTableView = true;
+			indexManager.setIndexSchema(idAndVersion, isTableView, expandedSchema);
+			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
+			// populate the view by coping data from the entity replication tables.
+			Long viewCRC = indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, allContainersInScope, expandedSchema);
+			// now that table is created and populated the indices on the table can be optimized.
+			indexManager.optimizeTableIndices(idAndVersion);
+			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
+			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+			// Attempt to set the table to complete.
+			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+		}catch (Exception e){
+			// failed.
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, token, e);
+			throw e;
+		}
+	}
+	
+	@Override
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
-		// TODO Auto-generated method stub
+
 		return 0;
 	}
 }
