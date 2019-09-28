@@ -210,12 +210,32 @@ public class SQLUtils {
 		if (id == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
+		StringBuilder builder = new StringBuilder();
+		appendTableNameForId(id, type, builder);
+		return builder.toString();
+	}
+
+	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
+		builder.append(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion().isPresent()) {
 			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
+	}
+
+	//TODO: better name?
+	//TODO: TEST
+	public static String getTableNameForMultiValueColumnMaterlization(IdAndVersion id, ColumnModel columnModel){
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(columnModel, "columnModel");
+		ValidateArgument.required(columnModel.getId(), "columnModel.id");
+
+		StringBuilder builder = new StringBuilder();
+		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
+		appendTableNameForId(id, TableType.INDEX, builder);
+		builder.append("_");
+		builder.append(getColumnNameForId(columnModel.getId()));
 		return builder.toString();
 	}
 

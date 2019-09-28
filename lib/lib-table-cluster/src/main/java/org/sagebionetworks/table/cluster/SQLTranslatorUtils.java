@@ -529,8 +529,13 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-	public static void replaceArrayHasPredicate(ArrayHasPredicate arrayHasPredicate,  Map<String, ColumnModel> columnNameToModelMap){
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
+		if(booleanPrimary.getPredicate() != null) {
+			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
+			if (arrayHasPredicate != null) {
 
+			}
+		}
 	}
 
 	/**
