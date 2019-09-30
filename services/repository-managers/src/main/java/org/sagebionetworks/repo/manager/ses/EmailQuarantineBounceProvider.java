@@ -19,9 +19,9 @@ import com.google.common.collect.ImmutableSet;
 public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 
 	// By default adds to the quarantine transient types for one day
-	private static final Long RETRY_TIMEOUT = 24 * 60 * 60 * 1000L;
+	static final Long RETRY_TIMEOUT = 24 * 60 * 60 * 1000L;
 
-	private static final String UNKNOWN_TYPE = "UNKNOWN";
+	static final String UNKNOWN_TYPE = "UNKNOWN";
 
 	// See https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#bounce-types
 	private static final Set<String> PERMANENT_QUARANTINE_TYPES = ImmutableSet.of("PERMANENT");
