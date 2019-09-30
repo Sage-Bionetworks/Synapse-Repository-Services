@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 /**
- * A batch of quarantined emails all with the same timeout. Using the {@link #add(String)} method it is possible to set
- * the same sesMessageId and reason for the entire or partial batch, the {@link #withReason(QuarantineReason)} must be
- * invoked before invoking {@link #add(String)}, to set the sesMessageId for the entire batch invoke the
- * {@link #withSesMessageId(String)} before any {@link #add(String)}.
+ * A batch of quarantined emails all with the same timeout. Using the {@link #add(String)} method it
+ * is possible to set the same sesMessageId and reason for the entire or partial batch, the
+ * {@link #withReason(QuarantineReason)} must be invoked before invoking {@link #add(String)}, to
+ * set the sesMessageId for the entire batch invoke the {@link #withSesMessageId(String)} before any
+ * {@link #add(String)}.
  * 
  * @author Marco
  *
@@ -20,6 +21,8 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 
 	private QuarantineReason reason;
 	private String sesMessageId;
+	
+	// The expiration timeout is global to the batch
 	private Long expirationTimeout;
 
 	public QuarantinedEmailBatch withReason(QuarantineReason reason) {
@@ -38,8 +41,9 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 	}
 
 	/**
-	 * Adds the given email to the batch, the {@link #withReason(QuarantineReason)} should be invoked before this method. A
-	 * {@link QuarantinedEmail} will be added to the batch with the current sesMessageId and {@link QuarantineReason}.
+	 * Adds the given email to the batch, the {@link #withReason(QuarantineReason)} should be invoked
+	 * before this method. A {@link QuarantinedEmail} will be added to the batch with the current
+	 * sesMessageId and {@link QuarantineReason}.
 	 * 
 	 * @param email
 	 */
