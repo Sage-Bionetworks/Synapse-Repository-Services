@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_QUARANTINED_EMAILS;
@@ -24,7 +25,8 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
- * DBO object used to store the email addresses that are in quarantine and should not be used as recipients
+ * DBO object used to store the email addresses that are in quarantine and should not be used as
+ * recipients
  * 
  * @author Marco
  *
@@ -38,6 +40,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 			new FieldColumn("updatedOn", COL_QUARANTINED_EMAILS_UPDATED_ON),
 			new FieldColumn("expiresOn", COL_QUARANTINED_EMAILS_EXPIRES_ON),
 			new FieldColumn("reason", COL_QUARANTINED_EMAILS_REASON),
+			new FieldColumn("reasonDetails", COL_QUARANTINED_EMAILS_REASON_DETAILS),
 			new FieldColumn("sesMessageId", COL_QUARANTINED_EMAILS_SES_MESSAGE_ID) };
 
 	private static final TableMapping<DBOQuarantinedEmail> TABLE_MAPPING = new TableMapping<DBOQuarantinedEmail>() {
@@ -52,6 +55,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 			dbo.setUpdatedOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_UPDATED_ON));
 			dbo.setExpiresOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_EXPIRES_ON));
 			dbo.setReason(rs.getString(COL_QUARANTINED_EMAILS_REASON));
+			dbo.setReasonDetails(rs.getString(COL_QUARANTINED_EMAILS_REASON_DETAILS));
 			dbo.setSesMessageId(rs.getString(COL_QUARANTINED_EMAILS_SES_MESSAGE_ID));
 
 			return dbo;
@@ -87,6 +91,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 	private Timestamp updatedOn;
 	private Timestamp expiresOn;
 	private String reason;
+	private String reasonDetails;
 	// This is the optional SES generated id that lead to the quarantine
 	private String sesMessageId;
 
@@ -138,6 +143,14 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 		this.reason = reason;
 	}
 
+	public String getReasonDetails() {
+		return reasonDetails;
+	}
+
+	public void setReasonDetails(String reasonDetails) {
+		this.reasonDetails = reasonDetails;
+	}
+
 	public String getSesMessageId() {
 		return sesMessageId;
 	}
@@ -178,27 +191,32 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, etag, expiresOn, reason, sesMessageId, updatedOn);
+		return Objects.hash(createdOn, email, etag, expiresOn, reason, reasonDetails, sesMessageId, updatedOn);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBOQuarantinedEmail other = (DBOQuarantinedEmail) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && Objects.equals(etag, other.etag)
 				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(reason, other.reason)
-				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(updatedOn, other.updatedOn);
+				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId)
+				&& Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOQuarantinedEmail [email=" + email + ", etag=" + etag + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn
-				+ ", expiresOn=" + expiresOn + ", reason=" + reason + ", sesMessageId=" + sesMessageId + "]";
+				+ ", expiresOn=" + expiresOn + ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId
+				+ "]";
 	}
 
 }

@@ -1001,6 +1001,7 @@ public class SqlConstants {
 	public static final String COL_QUARANTINED_EMAILS_UPDATED_ON = 						"UPDATED_ON";
 	public static final String COL_QUARANTINED_EMAILS_EXPIRES_ON = 						"EXPIRES_ON";
 	public static final String COL_QUARANTINED_EMAILS_REASON = 							"REASON";
+	public static final String COL_QUARANTINED_EMAILS_REASON_DETAILS =					"REASON_DETAILS";
 	public static final String COL_QUARANTINED_EMAILS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
 	
 	

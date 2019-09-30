@@ -21,7 +21,7 @@ public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 	// By default adds to the quarantine transient types for one day
 	static final Long RETRY_TIMEOUT = 24 * 60 * 60 * 1000L;
 
-	static final String UNKNOWN_TYPE = "UNKNOWN";
+	private static final String UNKNOWN_TYPE = "UNKNOWN";
 
 	// See https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#bounce-types
 	private static final Set<String> PERMANENT_QUARANTINE_TYPES = ImmutableSet.of("PERMANENT");
@@ -47,12 +47,15 @@ public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 		} else {
 			return batch;
 		}
+		
+		notificationDetails.getReason().ifPresent( reasonDetails -> {
+			batch.withReasonDetails(reasonDetails.toUpperCase());
+		});
 
 		notificationDetails.getRecipients().forEach(recipient -> {
 			if (recipient.getEmailAddress() == null) {
 				return;
 			}
-
 			batch.add(recipient.getEmailAddress());
 		});
 

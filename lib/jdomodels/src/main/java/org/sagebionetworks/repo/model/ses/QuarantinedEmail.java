@@ -18,6 +18,7 @@ public class QuarantinedEmail {
 	private Instant updatedOn;
 	private Instant expiresOn;
 	private QuarantineReason reason;
+	private String reasonDetails;
 	private String sesMessageId;
 
 	public QuarantinedEmail(String email, QuarantineReason reason) {
@@ -53,6 +54,15 @@ public class QuarantinedEmail {
 		return reason;
 	}
 
+	public String getReasonDetails() {
+		return reasonDetails;
+	}
+
+	public QuarantinedEmail withReasonDetails(String reasonDetails) {
+		this.reasonDetails = reasonDetails;
+		return this;
+	}
+
 	public String getSesMessageId() {
 		return sesMessageId;
 	}
@@ -73,27 +83,31 @@ public class QuarantinedEmail {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, reason, sesMessageId, expiresOn, updatedOn);
+		return Objects.hash(createdOn, email, expiresOn, reason, reasonDetails, sesMessageId, updatedOn);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		QuarantinedEmail other = (QuarantinedEmail) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && reason == other.reason
-				&& Objects.equals(sesMessageId, other.sesMessageId) && Objects.equals(expiresOn, other.expiresOn)
+		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email)
+				&& Objects.equals(expiresOn, other.expiresOn) && reason == other.reason
+				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override
 	public String toString() {
 		return "QuarantinedEmail [email=" + email + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn + ", expiresOn=" + expiresOn
-				+ ", reason=" + reason + ", sesMessageId=" + sesMessageId + "]";
+				+ ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId + "]";
 	}
 
 }

@@ -20,13 +20,19 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 	}
 
 	private QuarantineReason reason;
+	private String reasonDetails;
 	private String sesMessageId;
-	
+
 	// The expiration timeout is global to the batch
 	private Long expirationTimeout;
 
 	public QuarantinedEmailBatch withReason(QuarantineReason reason) {
 		this.reason = reason;
+		return this;
+	}
+
+	public QuarantinedEmailBatch withReasonDetails(String reasonDetails) {
+		this.reasonDetails = reasonDetails;
 		return this;
 	}
 
@@ -51,7 +57,7 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 		if (this.reason == null) {
 			throw new IllegalStateException("The reason for the batch must be set first");
 		}
-		add(new QuarantinedEmail(email, reason).withSesMessageId(sesMessageId));
+		add(new QuarantinedEmail(email, reason).withReasonDetails(reasonDetails).withSesMessageId(sesMessageId));
 	}
 
 	public Long getExpirationTimeout() {
@@ -62,26 +68,30 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + Objects.hash(reason, sesMessageId, expirationTimeout);
+		result = prime * result + Objects.hash(expirationTimeout, reason, reasonDetails, sesMessageId);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (!super.equals(obj))
+		}
+		if (!super.equals(obj)) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		QuarantinedEmailBatch other = (QuarantinedEmailBatch) obj;
-		return reason == other.reason && Objects.equals(sesMessageId, other.sesMessageId)
-				&& Objects.equals(expirationTimeout, other.expirationTimeout);
+		return Objects.equals(expirationTimeout, other.expirationTimeout) && reason == other.reason
+				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId);
 	}
 
 	@Override
 	public String toString() {
-		return "QuarantinedEmailBatch [reason=" + reason + ", sesMessageId=" + sesMessageId + ", timeout=" + expirationTimeout + "]";
+		return "QuarantinedEmailBatch [reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId
+				+ ", expirationTimeout=" + expirationTimeout + "]";
 	}
 
 }

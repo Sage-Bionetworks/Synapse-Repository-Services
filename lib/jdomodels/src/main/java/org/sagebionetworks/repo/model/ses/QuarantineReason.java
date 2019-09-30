@@ -13,7 +13,7 @@ public enum QuarantineReason {
 	/**
 	 * Some bounce that might be temporary
 	 */
-	TRANSIENT_BOUNCE, 
+	TRANSIENT_BOUNCE,
 	/**
 	 * Some complaints leads to quarantine
 	 */
