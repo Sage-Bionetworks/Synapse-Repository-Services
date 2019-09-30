@@ -2,18 +2,24 @@ package org.sagebionetworks.ses.workers;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.dbo.ses.SESNotificationDao;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.google.common.collect.ImmutableSet;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -25,6 +31,9 @@ public class SESNotificationWorkerAutowireTest {
 
 	@Autowired
 	private SESNotificationDao dao;
+	
+	@Autowired
+	private EmailQuarantineDao emailQuarantine;
 
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -54,6 +63,13 @@ public class SESNotificationWorkerAutowireTest {
 		sqsClient.sendMessage(queueUrl, notificationBody);
 
 		waitForMessage(sesMessageId);
+		
+		Set<String> expedctedEmails = ImmutableSet.of("recipient1@example.com", "recipient2@example.com");
+		
+		for (String expected : expedctedEmails) {
+			Optional<QuarantinedEmail> quarantinedEmail = emailQuarantine.getQuarantinedEmail(expected);
+			assertTrue(quarantinedEmail.isPresent());
+		}
 
 	}
 

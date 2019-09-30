@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.ses.QuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -14,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
  * 
  * @author Marco
  */
+@Service
 public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 
 	// By default adds to the quarantine transient types for one day
@@ -36,7 +38,7 @@ public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withSesMessageId(sesMessageId);
 
 		// We only care about the bounce type
-		String notificationSubtype = notificationDetails.getSubType().orElse(UNKNOWN_TYPE).toUpperCase();
+		String notificationSubtype = notificationDetails.getSubType().orElse(UNKNOWN_TYPE).trim().toUpperCase();
 
 		if (PERMANENT_QUARANTINE_TYPES.contains(notificationSubtype)) {
 			batch.withReason(QuarantineReason.PERMANENT_BOUNCE);

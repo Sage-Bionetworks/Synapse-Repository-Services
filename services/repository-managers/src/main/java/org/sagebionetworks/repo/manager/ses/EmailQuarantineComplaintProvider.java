@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.manager.ses;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
+import org.springframework.stereotype.Service;
 
+@Service
 public class EmailQuarantineComplaintProvider implements EmailQuarantineProvider {
 
 	@Override

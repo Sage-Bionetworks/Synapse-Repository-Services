@@ -155,7 +155,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	private void setPreparedStatementForInsert(PreparedStatement ps, QuarantinedEmail quarantinedEmail, Instant now, Long timeout)
 			throws SQLException {
-		String email = quarantinedEmail.getEmail().toLowerCase();
+		String email = quarantinedEmail.getEmail().trim().toLowerCase();
 		String reason = quarantinedEmail.getReason().toString();
 		String messageId = quarantinedEmail.getSesMessageId();
 
