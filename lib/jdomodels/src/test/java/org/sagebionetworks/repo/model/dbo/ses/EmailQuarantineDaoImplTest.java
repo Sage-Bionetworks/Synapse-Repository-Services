@@ -151,7 +151,7 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	@Test
-	public void testAddToQuarantineRefreshUpdateOn() throws Exception {
+	public void testAddToQuarantineRefreshUpdatedOn() throws Exception {
 		QuarantinedEmail expected = getTestQuarantinedEmail();
 
 		// Call under test

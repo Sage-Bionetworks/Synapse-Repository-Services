@@ -59,7 +59,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 			+ COL_QUARANTINED_EMAILS_REASON + ", "
 			+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + ") "
 			+ "VALUES (?, UUID(), ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
-			+ COL_QUARANTINED_EMAILS_ETAG + " = UUID() "
+			+ COL_QUARANTINED_EMAILS_ETAG + " = UUID(), "
 			+ COL_QUARANTINED_EMAILS_UPDATED_ON + " = ?, " 
 			+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " = ?, "
 			+ COL_QUARANTINED_EMAILS_REASON + " = ?, "
