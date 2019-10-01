@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESJsonRecipient;
@@ -41,7 +42,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithEmptySubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.TRANSIENT_BOUNCE;
+		QuarantineReason reason = QuarantineReason.OTHER;
 		Optional<String> subType = Optional.empty();
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -49,11 +50,10 @@ public class EmailQuarantineBounceProviderTest {
 		when(mockDetails.getSubType()).thenReturn(subType);
 		
 		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId)
 				.withExpirationTimeout(EmailQuarantineBounceProvider.RETRY_TIMEOUT);
-			
-		expected.add(recipientEmail);
+		
+		expected.add(new QuarantinedEmail(recipientEmail, reason)
+				.withSesMessageId(messageId));
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
@@ -65,7 +65,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithUnknownSubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.TRANSIENT_BOUNCE;
+		QuarantineReason reason = QuarantineReason.OTHER;
 		Optional<String> subType = Optional.of("Unknown");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -73,11 +73,10 @@ public class EmailQuarantineBounceProviderTest {
 		when(mockDetails.getSubType()).thenReturn(subType);
 		
 		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId)
 				.withExpirationTimeout(EmailQuarantineBounceProvider.RETRY_TIMEOUT);
 		
-		expected.add(recipientEmail);
+		expected.add(new QuarantinedEmail(recipientEmail, reason)
+				.withSesMessageId(messageId));
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
@@ -89,7 +88,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithUndeterminedSubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.TRANSIENT_BOUNCE;
+		QuarantineReason reason = QuarantineReason.OTHER;
 		Optional<String> subType = Optional.of("Undetermined");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -97,11 +96,10 @@ public class EmailQuarantineBounceProviderTest {
 		when(mockDetails.getSubType()).thenReturn(subType);
 		
 		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId)
 				.withExpirationTimeout(EmailQuarantineBounceProvider.RETRY_TIMEOUT);
 		
-		expected.add(recipientEmail);
+		expected.add(new QuarantinedEmail(recipientEmail, reason)
+				.withSesMessageId(messageId));
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
@@ -120,11 +118,10 @@ public class EmailQuarantineBounceProviderTest {
 		when(mockDetails.getRecipients()).thenReturn(ImmutableList.of(mockRecipient));
 		when(mockDetails.getSubType()).thenReturn(subType);
 		
-		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId);
+		QuarantinedEmailBatch expected = new QuarantinedEmailBatch();
 		
-		expected.add(recipientEmail);
+		expected.add(new QuarantinedEmail(recipientEmail, reason)
+				.withSesMessageId(messageId));
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
@@ -135,24 +132,13 @@ public class EmailQuarantineBounceProviderTest {
 	@Test
 	public void getQuarantinedEmailsWithTransientSubtype() {
 		
-		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.TRANSIENT_BOUNCE;
 		Optional<String> subType = Optional.of("Transient");
 		
-		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
-		when(mockDetails.getRecipients()).thenReturn(ImmutableList.of(mockRecipient));
 		when(mockDetails.getSubType()).thenReturn(subType);
-		
-		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId)
-				.withExpirationTimeout(EmailQuarantineBounceProvider.RETRY_TIMEOUT);
-		
-		expected.add(recipientEmail);
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
-		assertEquals(expected, result);
+		assertEquals(QuarantinedEmailBatch.EMPTY_BATCH, result);
 		
 	}
 	
@@ -160,22 +146,20 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithReasonDetails() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.TRANSIENT_BOUNCE;
-		Optional<String> subType = Optional.of("Transient");
-		Optional<String> reasonDetails = Optional.of("MailboxFull");
+		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		Optional<String> subType = Optional.of("Permanent");
+		Optional<String> reasonDetails = Optional.of("General");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
 		when(mockDetails.getRecipients()).thenReturn(ImmutableList.of(mockRecipient));
 		when(mockDetails.getSubType()).thenReturn(subType);
 		when(mockDetails.getReason()).thenReturn(reasonDetails);
 		
-		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withReasonDetails(reasonDetails.get().toUpperCase())
-				.withSesMessageId(messageId)
-				.withExpirationTimeout(EmailQuarantineBounceProvider.RETRY_TIMEOUT);
+		QuarantinedEmailBatch expected = new QuarantinedEmailBatch();
 		
-		expected.add(recipientEmail);
+		expected.add(new QuarantinedEmail(recipientEmail, reason)
+				.withSesMessageId(messageId)
+				.withReasonDetails(reasonDetails.get().toUpperCase()));
 		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
@@ -187,20 +171,15 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithEmptyEmailAddress() {
 		
 		String recipientEmail = null;
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
 		Optional<String> subType = Optional.of("Permanent");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
 		when(mockDetails.getRecipients()).thenReturn(ImmutableList.of(mockRecipient));
 		when(mockDetails.getSubType()).thenReturn(subType);
 		
-		QuarantinedEmailBatch expected = new QuarantinedEmailBatch()
-				.withReason(reason)
-				.withSesMessageId(messageId);
-		
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 		
-		assertEquals(expected, result);
+		assertEquals(QuarantinedEmailBatch.EMPTY_BATCH, result);
 		
 	}
 	

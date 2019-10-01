@@ -36,7 +36,7 @@ public class EmailQuarantineComplaintProviderTest {
 
 		QuarantinedEmailBatch result = provider.getQuarantinedEmails(mockDetails, messageId);
 
-		assertEquals(QuarantinedEmailBatch.emptyBatch(), result);
+		assertEquals(QuarantinedEmailBatch.EMPTY_BATCH, result);
 
 	}
 

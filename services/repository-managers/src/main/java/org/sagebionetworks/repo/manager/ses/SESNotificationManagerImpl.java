@@ -65,12 +65,12 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		SESJsonNotification notification;
 
 		try {
-			// Extract the "Message" property value from the SQS message. SES sends the notification body 
+			// Extract the "Message" property value from the SQS message. SES sends the notification body
 			// within the message itself as a string value.
 			String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
-			
+
 			notification = SESNotificationUtils.parseNotification(notificationBody);
-			
+
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
@@ -110,13 +110,13 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 			String sesMessageId) {
 
 		if (NO_QUARANTINE_SET.contains(notificationType)) {
-			return QuarantinedEmailBatch.emptyBatch();
+			return QuarantinedEmailBatch.EMPTY_BATCH;
 		}
 
 		List<SESJsonRecipient> recipients = details.getRecipients();
 
 		if (recipients == null || recipients.isEmpty()) {
-			return QuarantinedEmailBatch.emptyBatch();
+			return QuarantinedEmailBatch.EMPTY_BATCH;
 		}
 
 		EmailQuarantineProvider provider = quarantineProviderMap.get(notificationType);

@@ -301,7 +301,7 @@ public class SESNotificationManagerTest {
 		// Call under test
 		QuarantinedEmailBatch result = manager.getEmailQuarantineBatch(notificationType, mockBounce, messageId);
 		
-		assertEquals(QuarantinedEmailBatch.emptyBatch(), result);
+		assertEquals(QuarantinedEmailBatch.EMPTY_BATCH, result);
 		
 		verifyZeroInteractions(mockBounce);
 		verifyZeroInteractions(mockProvider);
@@ -318,7 +318,7 @@ public class SESNotificationManagerTest {
 		// Call under test
 		QuarantinedEmailBatch result = manager.getEmailQuarantineBatch(notificationType, mockBounce, messageId);
 		
-		assertEquals(QuarantinedEmailBatch.emptyBatch(), result);
+		assertEquals(QuarantinedEmailBatch.EMPTY_BATCH, result);
 		
 		verify(mockBounce).getRecipients();
 		verifyZeroInteractions(mockProvider);	

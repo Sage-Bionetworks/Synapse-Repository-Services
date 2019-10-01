@@ -1,44 +1,37 @@
 package org.sagebionetworks.repo.model.ses;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * A batch of quarantined emails all with the same timeout. Using the {@link #add(String)} method it
- * is possible to set the same sesMessageId and reason for the entire or partial batch, the
- * {@link #withReason(QuarantineReason)} must be invoked before invoking {@link #add(String)}, to
- * set the sesMessageId for the entire batch invoke the {@link #withSesMessageId(String)} before any
- * {@link #add(String)}.
+ * Containter for a batch of {@link QuarantinedEmail}s that all share the same expiration timeout
  * 
  * @author Marco
  *
  */
-public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
+public class QuarantinedEmailBatch {
 
-	public static QuarantinedEmailBatch emptyBatch() {
-		return new QuarantinedEmailBatch();
-	}
+	public static final QuarantinedEmailBatch EMPTY_BATCH = new QuarantinedEmailBatch(Collections.emptyList());
 
-	private QuarantineReason reason;
-	private String reasonDetails;
-	private String sesMessageId;
-
-	// The expiration timeout is global to the batch
+	private List<QuarantinedEmail> batch;
 	private Long expirationTimeout;
 
-	public QuarantinedEmailBatch withReason(QuarantineReason reason) {
-		this.reason = reason;
-		return this;
+	public QuarantinedEmailBatch() {
+		this(new ArrayList<>());
 	}
 
-	public QuarantinedEmailBatch withReasonDetails(String reasonDetails) {
-		this.reasonDetails = reasonDetails;
-		return this;
+	private QuarantinedEmailBatch(List<QuarantinedEmail> batch) {
+		this.batch = batch;
 	}
 
-	public QuarantinedEmailBatch withSesMessageId(String sesMessageId) {
-		this.sesMessageId = sesMessageId;
-		return this;
+	public List<QuarantinedEmail> getBatch() {
+		return batch;
+	}
+
+	public Long getExpirationTimeout() {
+		return expirationTimeout;
 	}
 
 	public QuarantinedEmailBatch withExpirationTimeout(Long expirationTimeout) {
@@ -46,52 +39,42 @@ public class QuarantinedEmailBatch extends ArrayList<QuarantinedEmail> {
 		return this;
 	}
 
-	/**
-	 * Adds the given email to the batch, the {@link #withReason(QuarantineReason)} should be invoked
-	 * before this method. A {@link QuarantinedEmail} will be added to the batch with the current
-	 * sesMessageId and {@link QuarantineReason}.
-	 * 
-	 * @param email
-	 */
-	public void add(String email) {
-		if (this.reason == null) {
-			throw new IllegalStateException("The reason for the batch must be set first");
-		}
-		add(new QuarantinedEmail(email, reason).withReasonDetails(reasonDetails).withSesMessageId(sesMessageId));
+	public void add(QuarantinedEmail quarantinedEmail) {
+		batch.add(quarantinedEmail);
+	}
+	
+	public QuarantinedEmail get(int index) {
+		return batch.get(index);
 	}
 
-	public Long getExpirationTimeout() {
-		return expirationTimeout;
+	public boolean isEmpty() {
+		return batch.isEmpty();
+	}
+
+	public int size() {
+		return batch.size();
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + Objects.hash(expirationTimeout, reason, reasonDetails, sesMessageId);
-		return result;
+		return Objects.hash(batch, expirationTimeout);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!super.equals(obj)) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		QuarantinedEmailBatch other = (QuarantinedEmailBatch) obj;
-		return Objects.equals(expirationTimeout, other.expirationTimeout) && reason == other.reason
-				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId);
+		return Objects.equals(batch, other.batch) && Objects.equals(expirationTimeout, other.expirationTimeout);
 	}
 
 	@Override
 	public String toString() {
-		return "QuarantinedEmailBatch [reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId
-				+ ", expirationTimeout=" + expirationTimeout + "]";
+		return "QuarantinedEmailBatch [batch=" + batch + ", expirationTimeout=" + expirationTimeout + "]";
 	}
 
 }
