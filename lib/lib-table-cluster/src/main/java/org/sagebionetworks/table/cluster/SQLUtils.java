@@ -234,7 +234,7 @@ public class SQLUtils {
 		StringBuilder builder = new StringBuilder();
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
 		appendTableNameForId(id, TableType.INDEX, builder);
-		builder.append("_");
+		builder.append("_INDEX");
 		builder.append(getColumnNameForId(columnModel.getId()));
 		return builder.toString();
 	}

@@ -190,27 +190,35 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetTableNameForMultiValueColumnMaterlization_nullId(){
-		SQLUtils.getTableNameForMultiValueColumnMaterlization(null,simpleSchema.get(0));
+		assertThrows(IllegalArgumentException.class, ()-> {
+			SQLUtils.getTableNameForMultiValueColumnMaterlization(null, simpleSchema.get(0));
+		});
 	}
 
 	@Test
 	public void testGetTableNameForMultiValueColumnMaterlization_nullColumnModel(){
-		"\uD83D\uDD24❗️";
-	}
+		assertThrows(IllegalArgumentException.class, ()-> {
+			SQLUtils.getTableNameForMultiValueColumnMaterlization(tableId, null);
+		});	}
 
 	@Test
 	public void testGetTableNameForMultiValueColumnMaterlization_nullColumnModelId(){
-
+		simpleSchema.get(0).setId(null);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			SQLUtils.getTableNameForMultiValueColumnMaterlization(tableId, simpleSchema.get(0) );
+		});
 	}
 
 	@Test
 	public void testGetTableNameForMultiValueColumnMaterlization_Id_NoVersion(){
-
+		String tableName = SQLUtils.getTableNameForMultiValueColumnMaterlization(IdAndVersion.parse("syn123"), simpleSchema.get(0));
+		assertEquals("T123_INDEX_C456_", tableName);
 	}
 
 	@Test
 	public void testGetTableNameForMultiValueColumnMaterlization_Id_WithVersion(){
-
+		String tableName = SQLUtils.getTableNameForMultiValueColumnMaterlization(IdAndVersion.parse("syn123.456"), simpleSchema.get(0));
+		assertEquals("T123_456_INDEX_C456_", tableName);
 	}
 
 	@Test
