@@ -93,17 +93,6 @@ public class SESNotificationUtilsTest {
 		assertEquals(expected, result);
 	}
 
-	@Test
-	public void testEncodeDecodeRoundTrip() throws IOException {
-		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000003";
-		String notificationBody = loadNotificationFromClasspath(messageId);
-
-		byte[] encoded = SESNotificationUtils.encodeBody(notificationBody);
-		String decoded = SESNotificationUtils.decodeBody(encoded);
-
-		assertEquals(notificationBody, decoded);
-	}
-
 	SESJsonRecipient getRecipient(String emailAddress) {
 		return getRecipient(emailAddress, null, null, null);
 	}

@@ -30,10 +30,10 @@ public class SESNotificationWorkerAutowireTest {
 	private static final int WAIT_INTERVAL = 2000;
 
 	@Autowired
-	private SESNotificationDao dao;
+	private SESNotificationDao notificationDao;
 	
 	@Autowired
-	private EmailQuarantineDao emailQuarantine;
+	private EmailQuarantineDao emailQuarantineDao;
 
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -47,14 +47,16 @@ public class SESNotificationWorkerAutowireTest {
 
 	@BeforeEach
 	public void before() throws Exception {
-		dao.clearAll();
+		emailQuarantineDao.clearAll();
+		notificationDao.clearAll();
 		queueUrl = sqsClient.getQueueUrl(stackConfig.getQueueName(QUEUE_NAME)).getQueueUrl();
 		notificationBody = SESNotificationUtils.loadNotificationFromClasspath(sesMessageId);
 	}
 
 	@AfterEach
 	public void after() {
-		dao.clearAll();
+		notificationDao.clearAll();
+		emailQuarantineDao.clearAll(); 
 	}
 
 	@Test
@@ -67,7 +69,7 @@ public class SESNotificationWorkerAutowireTest {
 		Set<String> expedctedEmails = ImmutableSet.of("recipient1@example.com", "recipient2@example.com");
 		
 		for (String expected : expedctedEmails) {
-			Optional<QuarantinedEmail> quarantinedEmail = emailQuarantine.getQuarantinedEmail(expected);
+			Optional<QuarantinedEmail> quarantinedEmail = emailQuarantineDao.getQuarantinedEmail(expected);
 			assertTrue(quarantinedEmail.isPresent());
 		}
 
@@ -82,7 +84,7 @@ public class SESNotificationWorkerAutowireTest {
 
 			Thread.sleep(WAIT_INTERVAL);
 
-			count = dao.countBySesMessageId(sesMessageId);
+			count = notificationDao.countBySesMessageId(sesMessageId);
 		}
 	}
 

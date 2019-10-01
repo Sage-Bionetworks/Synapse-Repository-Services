@@ -13,7 +13,6 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.ses.SESNotification;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +67,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		dbo.setNotificationType(dto.getNotificationType().toString());
 		dbo.setNotificationSubType(dto.getNotificationSubType());
 		dbo.setNotificationReason(dto.getNotificationReason());
-		dbo.setNotificationBody(SESNotificationUtils.encodeBody(dto.getNotificationBody()));
+		dbo.setNotificationBody(dto.getNotificationBody());
 		dbo.setId(idGenerator.generateNewId(IdType.SES_NOTIFICATION_ID));
 
 		return dbo;
@@ -76,9 +75,8 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 
 	private SESNotification map(DBOSESNotification dbo) {
 		SESNotificationType notificationType = SESNotificationType.valueOf(dbo.getNotificationType());
-		String notificationBody = SESNotificationUtils.decodeBody(dbo.getNotificationBody());
 		
-		return new SESNotification(notificationType,notificationBody)
+		return new SESNotification(notificationType, dbo.getNotificationBody())
 				.withId(dbo.getId())
 				.withInstanceNumber(dbo.getInstanceNumber())
 				.withCreatedOn(dbo.getCreatedOn().toInstant())
