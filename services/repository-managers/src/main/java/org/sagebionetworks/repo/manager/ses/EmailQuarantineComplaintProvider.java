@@ -1,22 +1,20 @@
 package org.sagebionetworks.repo.manager.ses;
 
-import java.util.Set;
-
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.ImmutableSet;
-
+/**
+ * Complaints are tricky, we should restrict the sender, not the recipient in this case. For
+ * example: fraud@fakecompany.com sends fake email to user@syanpse.org and that message gets marked
+ * as fraud. Under the current system user@syanpse.org would no longer receive emails even though
+ * this is a completely valid email address.
+ * 
+ * @author Marco
+ */
 @Service
 public class EmailQuarantineComplaintProvider implements EmailQuarantineProvider {
-
-	static final String UNKNOWN_REASON = "UNKNOWN";
-	// A complaint does not have a subtype, but a reason (See
-	// https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#complaint-object)
-	private Set<String> COMPLAINT_REASONS = ImmutableSet.of("ABUSE", "AUTH-FAILURE", "FRAUD", "VIRUS", "OTHER");
 
 	@Override
 	public SESNotificationType getSupportedType() {
@@ -25,27 +23,7 @@ public class EmailQuarantineComplaintProvider implements EmailQuarantineProvider
 
 	@Override
 	public QuarantinedEmailBatch getQuarantinedEmails(SESJsonNotificationDetails notificationDetails, String sesMessageId) {
-		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
-				.withReason(QuarantineReason.COMPLAINT)
-				.withSesMessageId(sesMessageId);
-
-		String complaintReason = notificationDetails.getReason().orElse(UNKNOWN_REASON).toUpperCase();
-		
-		// We do not process other complaint types
-		if (!COMPLAINT_REASONS.contains(complaintReason)) {
-			return batch;
-		}
-
-		batch.withReasonDetails(complaintReason);
-
-		notificationDetails.getRecipients().forEach(recipient -> {
-			if (recipient.getEmailAddress() == null) {
-				return;
-			}
-			batch.add(recipient.getEmailAddress());
-		});
-
-		return batch;
+		return QuarantinedEmailBatch.emptyBatch();
 	}
 
 }
