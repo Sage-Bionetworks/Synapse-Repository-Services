@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -101,9 +100,11 @@ public class SESNotificationDaoImplTest {
 
 	private List<SESNotificationRecord> getRandomNotifications(int count) {
 		List<SESNotificationRecord> list = new ArrayList<>(count);
-		IntStream.range(0, count).forEach(_index -> {
+		
+		for (int i=0; i< count; i++) {
 			list.add(getRandomNotification());
-		});
+		}
+		
 		return list;
 	}
 

@@ -44,7 +44,7 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	@Test
-	public void testAddToQuarantineWithPastTimeout() {
+	public void testAddToQuarantineWithInvalidTimeout() {
 		String email = testEmail;
 		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
 		Long timeout = 0L;

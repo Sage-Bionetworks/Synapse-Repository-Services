@@ -5,6 +5,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ses.QuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
+import org.sagebionetworks.repo.model.ses.SESJsonRecipient;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.springframework.stereotype.Service;
 
@@ -51,13 +52,12 @@ public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 		notificationDetails.getReason().ifPresent( reasonDetails -> {
 			batch.withReasonDetails(reasonDetails.toUpperCase());
 		});
-
-		notificationDetails.getRecipients().forEach(recipient -> {
-			if (recipient.getEmailAddress() == null) {
-				return;
+		
+		for (SESJsonRecipient recipient : notificationDetails.getRecipients()) {
+			if (recipient.getEmailAddress() != null) {
+				batch.add(recipient.getEmailAddress());	
 			}
-			batch.add(recipient.getEmailAddress());
-		});
+		}
 
 		return batch;
 
