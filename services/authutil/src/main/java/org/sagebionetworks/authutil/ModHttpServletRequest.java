@@ -13,7 +13,7 @@ import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Creates a copy of an HttpServelt request with a new set of parameters
+ * Creates a copy of an HttpServelt request with a new set of headers and/or parameters
  * 
  * @author bhoff
  *
@@ -25,7 +25,8 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 	/**
 	 * 
 	 * @param request the request to be 'cloned'
-	 * @param params the parameters for the new request
+	 * @param headers the headers for the new request, or null to use the existing ones
+	 * @param params the parameters for the new request, or null to use the existing ones
 	 */
 	public ModHttpServletRequest(HttpServletRequest request, 
 			Map<String,String[]> headers,

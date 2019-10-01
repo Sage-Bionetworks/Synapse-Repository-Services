@@ -67,30 +67,6 @@ public class AuthenticationFilter implements Filter {
 	@Override
 	public void destroy() { }
 	
-	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason) throws IOException {
-		reject(req, resp, reason, HttpStatus.UNAUTHORIZED);
-	}
-	
-	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason, HttpStatus status) throws IOException {
-		resp.setStatus(status.value());
-
-		// This header is required according to RFC-2612
-		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
-		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
-		//      http://www.ietf.org/rfc/rfc2617.txt
-		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
-		ErrorResponse er = new ErrorResponse();
-		er.setReason(reason);
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		try {
-			er.writeToJSONObject(joa);
-			resp.getWriter().println(joa.toJSONString());
-		} catch (JSONObjectAdapterException e) {
-			// give up here, use old method, so we at least send something back
-			resp.getWriter().println("{\"reason\": \"" + reason + "\"}");
-		}
-	}
-
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
@@ -111,11 +87,11 @@ public class AuthenticationFilter implements Filter {
 			try {
 				userId = authenticationService.revalidate(sessionToken, false);
 			} catch (UnauthenticatedException e) {
-				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
-				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
 				return;
 			}
@@ -129,11 +105,11 @@ public class AuthenticationFilter implements Filter {
 				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthenticatedException e) {
-				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
 				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
-				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
 				log.warn(failureReason, e);
 				return;
 			}
@@ -141,7 +117,7 @@ public class AuthenticationFilter implements Filter {
 		
 		if (userId == null && !allowAnonymous) {
 			String reason = "The session token provided was missing, invalid or expired.";
-			reject(req, (HttpServletResponse) servletResponse, reason);
+			HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason);
 			log.warn("Anonymous not allowed");
 			return;
 		}
@@ -153,13 +129,13 @@ public class AuthenticationFilter implements Filter {
 				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId);
 			} catch (NotFoundException e) {
 				String reason = "User " + userId + " does not exist";
-				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
 				log.error("This should be unreachable", e);
 				return;
 			}
 			if (!toUCheck) {
 				String reason = "Terms of use have not been signed";
-				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
 				return;
 			}	
 		}

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -141,5 +142,16 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	@Override
 	public void validateJWT(String token) {
 		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+	}
+
+	@Override
+	public String createAnonymousAccessToken() {
+		String issuer = null; // doesn't matter -- it's only important to the client
+		String subject = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(); // we don't encrypt
+		String oauthClientId = ""+OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID; // TODO circular dependency?
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> allScopes = Collections.EMPTY_LIST;
+		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+				tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 }

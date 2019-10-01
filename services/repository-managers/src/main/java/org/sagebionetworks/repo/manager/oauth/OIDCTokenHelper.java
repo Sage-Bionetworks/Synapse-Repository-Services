@@ -78,5 +78,11 @@ public interface OIDCTokenHelper {
 	 * @return
 	 */
 	String createTotalAccessToken(Long principalId);
+	
+	/**
+	 * Create an access token representing the anonymous user
+	 * @return
+	 */
+	String createAnonymousAccessToken();
 
 }

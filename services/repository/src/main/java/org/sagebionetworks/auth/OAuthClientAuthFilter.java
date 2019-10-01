@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -44,16 +43,13 @@ public class OAuthClientAuthFilter implements Filter {
 		}
 		
 		if (validCredentials) {
-			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
-			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
+			modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] {oauthClientId});
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
-			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			httpResponse.setContentType("application/json");
-			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
-			httpResponse.getOutputStream().flush();
+			HttpAuthUtil.reject(httpResponse, "OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
 		}
 	}
 

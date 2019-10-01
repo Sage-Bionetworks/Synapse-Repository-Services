@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -17,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class OAuthAccessTokenFilter implements Filter {
@@ -32,37 +32,56 @@ public class OAuthAccessTokenFilter implements Filter {
 
 		String bearerToken = HttpAuthUtil.getBearerToken(httpRequest);
 		
-		boolean verified=false;
-		IllegalArgumentException validationException = null;
-		if (bearerToken!=null) {
-			try {
-				oidcTokenHelper.validateJWT(bearerToken);
-				verified=true;
-			} catch (IllegalArgumentException e) {
-				verified=false;
-				validationException = e;
-			}
+		if (StringUtils.isEmpty(bearerToken)) {
+			// Check for session token.  If present then it becomes the bearer token.
+			// Once clients stop using session token then we can remove this temporary logic.
+			bearerToken = httpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		}
 		
-		if (verified) {
-			// TODO add as header not param
-			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
-			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
+		boolean reject=true;
+		Exception validationException = null;
+		String reason = "Unauthenticated";
+		if (!StringUtils.isEmpty(bearerToken)) {
+			try {
+				oidcTokenHelper.validateJWT(bearerToken);
+				reject=false;
+			} catch (IllegalArgumentException e) {
+				reject=true;
+				validationException = e;
+				reason = "Invalid access token";
+			}
+		} else if (HttpAuthUtil.isDigitalSignaturePresent(httpRequest)){
+			try {
+				// if valid, then create total access bearer token
+				long principalId = HttpAuthUtil.getDigitalSignaturePrincipalId(httpRequest);
+				bearerToken = oidcTokenHelper.createTotalAccessToken(principalId);
+				reject=false;
+			} catch (UnauthenticatedException e) {
+				// otherwise reject
+				reject=true;
+				validationException = e;
+				reason = "Invalid digital signature";
+			}
+		} else {
+			// there is no bearer token (as an Auth or sessionToken header) or digital signature
+			// so create an 'anonymous' bearer token
+			bearerToken = oidcTokenHelper.createAnonymousAccessToken();
+			reject=false;
+		}
+		
+		if (!reject) {
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, bearerToken);
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 			chain.doFilter(modRqst, response);
 		} else {
-			HttpServletResponse httpResponse = (HttpServletResponse)response;
-			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			httpResponse.setContentType("application/json");
-			String reason = "Missing or invalid access token";
 			if (validationException!=null && StringUtils.isNotEmpty(validationException.getMessage())) {
 				reason = validationException.getMessage();
 			}
-			httpResponse.getOutputStream().println("{\"reason\":\""+reason+"\"}");
-			httpResponse.getOutputStream().flush();
+			HttpAuthUtil.reject((HttpServletResponse)response, reason);
 		}
 	}
-
+	
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		// Nothing to do
