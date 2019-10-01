@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.json.CatchAllJsonObject;
+
 /**
  * Class used to parse the bounce property of the SES Notification from its json representation. See
  * <a href="https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#bounce-object">Mail
@@ -12,7 +14,7 @@ import java.util.Optional;
  * @author Marco
  *
  */
-public class SESJsonBounce extends SESJsonObject implements SESJsonNotificationDetails {
+public class SESJsonBounce extends CatchAllJsonObject implements SESJsonNotificationDetails {
 
 	private String bounceType;
 	private String bounceSubType;

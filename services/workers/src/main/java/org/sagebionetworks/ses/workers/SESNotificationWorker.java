@@ -5,8 +5,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.ses.SESNotificationManager;
-import org.sagebionetworks.repo.model.ses.SESJsonNotification;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,19 +26,16 @@ public class SESNotificationWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		String notificationBody = message.getBody();
-		
+		String notification = message.getBody();
+
 		try {
-			SESJsonNotification notification = SESNotificationUtils.parseNotification(notificationBody);
-			notification.setNotificationBody(notificationBody);
-			
 			notificationManager.processNotification(notification);
-			
 		} catch (Throwable e) {
-			LOG.error(e.getMessage(), e);
+
+			LOG.error("Cannot process notification: " + System.lineSeparator() + notification + System.lineSeparator() + e.getMessage(), e);
 
 			boolean willRetry = false;
-			
+
 			// Sends a fail metric for cloud watch
 			workerLogger.logWorkerFailure(SESNotificationWorker.class.getName(), e, willRetry);
 		}

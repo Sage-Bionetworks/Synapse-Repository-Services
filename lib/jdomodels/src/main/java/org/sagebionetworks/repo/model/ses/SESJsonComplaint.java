@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.json.CatchAllJsonObject;
+
 /**
  * Class used to parse the complaint property of the SES Notification from its json representation. See
  * <a href="https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html#complaint-object">Mail
@@ -12,7 +14,7 @@ import java.util.Optional;
  * @author Marco
  *
  */
-public class SESJsonComplaint extends SESJsonObject implements SESJsonNotificationDetails {
+public class SESJsonComplaint extends CatchAllJsonObject implements SESJsonNotificationDetails {
 
 	private String userAgent;
 	private String feedbackId;

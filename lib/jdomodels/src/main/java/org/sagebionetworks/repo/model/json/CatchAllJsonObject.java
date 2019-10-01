@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.ses;
+package org.sagebionetworks.repo.model.json;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -6,7 +6,14 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 
-public class SESJsonObject {
+/**
+ * Generic object that catches all unmapped fields from a json object into a dedicated otherProperties map. The
+ * {@link #setOtherProperty(String, Object)} will be invoked by the jackson deserializer when a field is not mapped to
+ * any property in the object. Extend this object only when using jackson.
+ * 
+ * @author Marco
+ */
+public class CatchAllJsonObject {
 
 	private Map<String, Object> otherProperties;
 
@@ -21,7 +28,7 @@ public class SESJsonObject {
 	public Map<String, Object> getOtherProperties() {
 		return otherProperties;
 	}
-	
+
 	public void setOtherProperties(Map<String, Object> otherProperties) {
 		this.otherProperties = otherProperties;
 	}
@@ -39,7 +46,7 @@ public class SESJsonObject {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		SESJsonObject other = (SESJsonObject) obj;
+		CatchAllJsonObject other = (CatchAllJsonObject) obj;
 		return Objects.equals(otherProperties, other.otherProperties);
 	}
 

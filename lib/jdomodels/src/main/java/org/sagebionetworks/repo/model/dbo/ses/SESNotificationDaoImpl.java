@@ -5,13 +5,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SES_NOTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SES_NOTIFICATIONS;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
-import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,18 +25,20 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 	private IdGenerator idGenerator;
 	private DBOBasicDao basicDao;
 	private JdbcTemplate jdbcTemplate;
+	private int instanceNumber;
 
 	@Autowired
-	public SESNotificationDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
+	public SESNotificationDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, StackConfiguration config) {
 		this.idGenerator = idGenerator;
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
+		this.instanceNumber = config.getStackInstanceNumber();
 	}
 
 	@Override
 	@WriteTransaction
-	public SESNotification create(SESNotification notification) {
-		validateDTO(notification);
+	public SESNotificationRecord saveNotification(SESNotificationRecord notification) {
+		ValidateArgument.required(notification, "The notification");
 
 		DBOSESNotification dbo = map(notification);
 
@@ -54,45 +57,39 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		return jdbcTemplate.queryForObject(sql, Long.class, sesMessageId);
 	}
 
-	private void validateDTO(SESNotification notification) {
-		ValidateArgument.required(notification, "notification");
-		ValidateArgument.required(notification.getNotificationType(), "The notification type");
-		ValidateArgument.required(notification.getNotificationBody(), "The notification body");
-	}
-
-	private DBOSESNotification map(SESNotification dto) {
+	private DBOSESNotification map(SESNotificationRecord dto) {
 		DBOSESNotification dbo = new DBOSESNotification();
 
-		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+		dbo.setInstanceNumber(instanceNumber);
+		dbo.setCreatedOn(Timestamp.from(Instant.now()));
 		dbo.setSesMessageId(dto.getSesMessageId());
 		dbo.setSesFeedbackId(dto.getSesFeedbackId());
 		dbo.setNotificationType(dto.getNotificationType().toString());
 		dbo.setNotificationSubType(dto.getNotificationSubType());
 		dbo.setNotificationReason(dto.getNotificationReason());
-		dbo.setNotificationBody(SESNotificationUtils.encodeBody(dto.getNotificationBody()));
+		dbo.setNotificationBody(dto.getNotificationBody());
 		dbo.setId(idGenerator.generateNewId(IdType.SES_NOTIFICATION_ID));
 
 		return dbo;
 	}
 
-	private SESNotification map(DBOSESNotification dbo) {
-		SESNotification dto = new SESNotification();
-
-		dto.setId(dbo.getId());
-		dto.setCreatedOn(dbo.getCreatedOn().toInstant());
-		dto.setSesMessageId(dbo.getSesMessageId());
-		dto.setSesFeedbackId(dbo.getSesFeedbackId());
-		dto.setNotificationType(SESNotificationType.valueOf(dbo.getNotificationType()));
-		dto.setNotificationSubType(dbo.getNotificationSubType());
-		dto.setNotificationReason(dbo.getNotificationReason());
-		dto.setNotificationBody(SESNotificationUtils.decodeBody(dbo.getNotificationBody()));
-
-		return dto;
+	private SESNotificationRecord map(DBOSESNotification dbo) {
+		SESNotificationType notificationType = SESNotificationType.valueOf(dbo.getNotificationType());
+		
+		return new SESNotificationRecord(notificationType, dbo.getNotificationBody())
+				.withId(dbo.getId())
+				.withInstanceNumber(dbo.getInstanceNumber())
+				.withCreatedOn(dbo.getCreatedOn().toInstant())
+				.withSesMessageId(dbo.getSesMessageId())
+				.withSesFeedbackId(dbo.getSesFeedbackId())
+				.withNotificationSubType(dbo.getNotificationSubType())
+				.withNotificationReason(dbo.getNotificationReason());
 	}
 
 	@Override
 	public void clearAll() {
-		jdbcTemplate.update("DELETE FROM " + TABLE_SES_NOTIFICATIONS);
+		String sql = "DELETE FROM " + TABLE_SES_NOTIFICATIONS;
+		jdbcTemplate.update(sql);
 	}
 
 }

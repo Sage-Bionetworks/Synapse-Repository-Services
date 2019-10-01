@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.ses;
 
-import org.sagebionetworks.repo.model.ses.SESJsonNotification;
-
 /**
  * Manager layer for the bounce and complaint notifications received from SES
  * 
@@ -13,9 +11,9 @@ public interface SESNotificationManager {
 	 * Process the given notification received from SES and saves a record to the database. If the notification is an hard
 	 * bounce adds the recipients to the list of quarantined addresses
 	 * 
-	 * @param notification The parsed notification, should contain the original untouched notification body
-	 * @throws IllegalArgumentException If the given notification is null or the body is not present
+	 * @param notificationBody The body of the notification received from SES
+	 * @throws IllegalArgumentException If the given notification is null or if it cannot be parsed
 	 */
-	void processNotification(SESJsonNotification notification);
+	void processNotification(String notificationBody);
 
 }
