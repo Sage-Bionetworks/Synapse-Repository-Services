@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +46,7 @@ public class EmailQuarantineDaoImplTest {
 	@Test
 	public void testAddToQuarantineWithInvalidTimeout() {
 		String email = testEmail;
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		EmailQuarantineReason reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		Long timeout = 0L;
 
 		QuarantinedEmail quarantinedEmail = new QuarantinedEmail(email, reason);
@@ -178,7 +178,7 @@ public class EmailQuarantineDaoImplTest {
 	public void addToQuarantineBatchWithNoExpiration() {
 		QuarantinedEmailBatch batch = new QuarantinedEmailBatch();
 
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
+		batch.add(new QuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE));
 
 		// Call under test
 		dao.addToQuarantine(batch);
@@ -197,7 +197,7 @@ public class EmailQuarantineDaoImplTest {
 	public void addToQuarantineBatchWithExpiration() {
 		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withExpirationTimeout(defaultTimeout);
 
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
+		batch.add(new QuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE));
 
 		// Call under test
 		dao.addToQuarantine(batch);
@@ -220,7 +220,7 @@ public class EmailQuarantineDaoImplTest {
 
 		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withExpirationTimeout(null);
 
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
+		batch.add(new QuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE));
 
 		// Call under test
 		dao.addToQuarantine(batch);
@@ -266,7 +266,7 @@ public class EmailQuarantineDaoImplTest {
 		
 		String email1 = testEmail;
 		String email2 = UUID.randomUUID() + testEmail;
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		EmailQuarantineReason reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 
 		batch.add(getTestQuarantinedEmail(email1, reason));
 		batch.add(getTestQuarantinedEmail(email2, reason));
@@ -315,7 +315,7 @@ public class EmailQuarantineDaoImplTest {
 
 		String toKeepEmail = System.currentTimeMillis() + testEmail;
 
-		QuarantinedEmail toKeep = getTestQuarantinedEmail(toKeepEmail, QuarantineReason.OTHER);
+		QuarantinedEmail toKeep = getTestQuarantinedEmail(toKeepEmail, EmailQuarantineReason.OTHER);
 
 		dao.addToQuarantine(toKeep, defaultTimeout);
 
@@ -349,7 +349,7 @@ public class EmailQuarantineDaoImplTest {
 	@Test
 	public void testGetQuarantineEmailWithNonExisting() {
 
-		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, QuarantineReason.OTHER);
+		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, EmailQuarantineReason.OTHER);
 
 		dao.addToQuarantine(other, defaultTimeout);
 
@@ -364,7 +364,7 @@ public class EmailQuarantineDaoImplTest {
 	public void testGetQuarantineEmailWithExisting() {
 
 		QuarantinedEmail expected = getTestQuarantinedEmail();
-		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, QuarantineReason.OTHER);
+		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, EmailQuarantineReason.OTHER);
 
 		dao.addToQuarantine(other, defaultTimeout);
 
@@ -378,10 +378,10 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	private QuarantinedEmail getTestQuarantinedEmail() {
-		return getTestQuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE);
+		return getTestQuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE);
 	}
 
-	private QuarantinedEmail getTestQuarantinedEmail(String email, QuarantineReason reason) {
+	private QuarantinedEmail getTestQuarantinedEmail(String email, EmailQuarantineReason reason) {
 		return new QuarantinedEmail(email, reason).withSesMessageId(sesMessageId);
 	}
 

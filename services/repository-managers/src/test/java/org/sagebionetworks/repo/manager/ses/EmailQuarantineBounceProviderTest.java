@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
@@ -42,7 +42,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithEmptySubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.OTHER;
+		EmailQuarantineReason reason = EmailQuarantineReason.OTHER;
 		Optional<String> subType = Optional.empty();
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -65,7 +65,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithUnknownSubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.OTHER;
+		EmailQuarantineReason reason = EmailQuarantineReason.OTHER;
 		Optional<String> subType = Optional.of("Unknown");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -88,7 +88,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithUndeterminedSubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.OTHER;
+		EmailQuarantineReason reason = EmailQuarantineReason.OTHER;
 		Optional<String> subType = Optional.of("Undetermined");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -111,7 +111,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithPermanentSubtype() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		EmailQuarantineReason reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		Optional<String> subType = Optional.of("Permanent");
 		
 		when(mockRecipient.getEmailAddress()).thenReturn(recipientEmail);
@@ -146,7 +146,7 @@ public class EmailQuarantineBounceProviderTest {
 	public void getQuarantinedEmailsWithReasonDetails() {
 		
 		String recipientEmail = "recipient1@test.com";
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		EmailQuarantineReason reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		Optional<String> subType = Optional.of("Permanent");
 		Optional<String> reasonDetails = Optional.of("General");
 		

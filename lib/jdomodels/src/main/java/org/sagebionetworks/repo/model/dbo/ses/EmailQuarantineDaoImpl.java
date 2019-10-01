@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -44,7 +44,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	// @formatter:off
 
 	private static QuarantinedEmail map(DBOQuarantinedEmail dbo) {
-		return new QuarantinedEmail(dbo.getEmail(), QuarantineReason.valueOf(dbo.getReason()))
+		return new QuarantinedEmail(dbo.getEmail(), EmailQuarantineReason.valueOf(dbo.getReason()))
 				.withCreatedOn(dbo.getCreatedOn().toInstant())
 				.withUpdatedOn(dbo.getUpdatedOn().toInstant())
 				.withExpiresOn(dbo.getExpiresOn() == null ? null : dbo.getExpiresOn().toInstant())
