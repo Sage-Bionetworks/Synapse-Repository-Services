@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.Callback;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -317,6 +318,17 @@ public interface TableIndexDAO {
 	 */
 	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+	
+	/**
+	 * Copy the data from the entity replication tables to the given view's table.
+	 * 
+	 * @param viewId
+	 * @param viewType
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 */
+	public void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema, CSVWriterStream outStream);
 
 	/**
 	 * Calculate the Cyclic-Redundancy-Check (CRC) of a table view's concatenation

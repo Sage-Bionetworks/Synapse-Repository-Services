@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -21,10 +23,10 @@ import java.util.StringJoiner;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -57,12 +59,12 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
 public class TableIndexDAOImplTest {
 
@@ -78,7 +80,7 @@ public class TableIndexDAOImplTest {
 	IdAndVersion tableId;
 	boolean isView;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		tableId = IdAndVersion.parse("syn123");
@@ -89,7 +91,7 @@ public class TableIndexDAOImplTest {
 		isView = false;
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		// Drop the table
 		if (tableId != null && tableIndexDAO != null) {
@@ -159,13 +161,11 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
 		boolean updated = createOrUpdateTable(allTypes, tableId, isView);
-		assertTrue(
-				"The table should not have existed so update should be true",
-				updated);
+		assertTrue(updated,
+				"The table should not have existed so update should be true");
 		updated = createOrUpdateTable(allTypes, tableId, isView);
-		assertFalse(
-				"The table already existed in that state so it should not have been updated",
-				updated);
+		assertFalse(updated,
+				"The table already existed in that state so it should not have been updated");
 		// Now we should be able to see the columns that were created
 		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
@@ -183,8 +183,9 @@ public class TableIndexDAOImplTest {
 			if (removed.getColumnType() == ColumnType.DOUBLE) {
 				extraColumns = 0;
 			}
-			assertEquals("removed " + removed, allTypes.size() + 2
-					+ extraColumns, columns.size());
+			// removed
+			assertEquals(allTypes.size() + 2
+					+ extraColumns, columns.size(),"removed " + removed);
 			// Now add a column
 			allTypes.add(removed);
 			createOrUpdateTable(allTypes, tableId, isView);
@@ -192,8 +193,8 @@ public class TableIndexDAOImplTest {
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID and one ROW_VERSION.
-			assertEquals("read " + removed, allTypes.size() + 2 + 1,
-					columns.size());
+			assertEquals(allTypes.size() + 2 + 1,
+					columns.size(), "read " + removed);
 		}
 	}
 
@@ -266,16 +267,15 @@ public class TableIndexDAOImplTest {
 	public void testGetRowCountForTable() {
 		// Before the table exists the max version should be null
 		Long count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(
-				"The row count should be null when the table does not exist",
-				null, count);
+		assertEquals(null, count,
+				"The row count should be null when the table does not exist");
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		createOrUpdateTable(allTypes, tableId, isView);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals("The row count should be 0 when the table is empty",
-				new Long(0), count);
+		assertEquals(new Long(0), count,
+				"The row count should be 0 when the table is empty");
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
@@ -570,10 +570,10 @@ public class TableIndexDAOImplTest {
 		// first and only row.
 		Row row = results.getRows().get(0);
 		assertNotNull(row);
-		assertEquals("RowId should be null for an aggregate function.", null,
-				row.getRowId());
-		assertEquals("RowVersion should be null for an aggregate function",
-				null, row.getVersionNumber());
+		assertEquals(null,	row.getRowId(),
+				"RowId should be null for an aggregate function.");
+		assertEquals(null, row.getVersionNumber(),
+				"RowVersion should be null for an aggregate function");
 		List<String> expectedValues = Arrays.asList("2");
 		assertEquals(expectedValues, row.getValues());
 	}
@@ -903,7 +903,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, schema.size());
 		DatabaseColumnInfo cd = schema.get(0);
 		assertEquals(ROW_ID, cd.getColumnName());
-		assertTrue("ROW_ID is the primary key so it should have an index.",cd.hasIndex());
+		assertTrue(cd.hasIndex(), "ROW_ID is the primary key so it should have an index.");
 		
 		cd = schema.get(1);
 		assertEquals(ROW_VERSION, cd.getColumnName());
@@ -1330,18 +1330,22 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(-1), crc);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateCRC32ofEntityReplicationNullType(){
 		Set<Long> scope = new HashSet<Long>();
-		// call under test
-		tableIndexDAO.calculateCRC32ofEntityReplicationScope(null, scope);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.calculateCRC32ofEntityReplicationScope(null, scope);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateCRC32ofEntityReplicationNullScope(){
 		Set<Long> scope = null;
-		// call under test
-		tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
+		});
 	}
 	
 	@Test
@@ -1414,6 +1418,62 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
+	}
+	
+	@Test
+	public void testCreateViewSnapshotFromEntityReplicationWithDoubleAnnotation(){
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		AnnotationDTO double1 = new AnnotationDTO();
+		double1.setKey("foo");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		double1.setEntityId(2L);
+		file1.setAnnotations(Arrays.asList(double1));
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		AnnotationDTO double2 = new AnnotationDTO();
+		double2.setKey("foo");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		double2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(double2));
+		
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "foo", ColumnType.DOUBLE));
+		// capture the results of the stream
+		SimpleCSVWriterStream stream = new SimpleCSVWriterStream();
+		// call under test
+		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, stream);
+		List<String[]> rows = stream.getRows();
+		assertNotNull(rows);
+		assertEquals(3, rows.size());
+		assertArrayEquals(new String[] {"ID", "CURRENT_VERSION", "ETAG", "BENEFACTOR_ID", "_DBL_C1_", "_C1_"}, rows.get(0));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "NaN", null}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "Infinity", "1.7976931348623157E308"}, rows.get(2));
+	}
+	
+	@Test
+	public void testCreateViewSnapshotFromEntityReplicationEmptyScope() {
+		// empty scope
+		Set<Long> scope = new HashSet<>();
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE));
+		// capture the results of the stream
+		SimpleCSVWriterStream stream = new SimpleCSVWriterStream();
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), ViewTypeMask.File.getMask(), scope,
+					schema, stream);
+		});
 	}
 
 	@Test
@@ -1782,12 +1842,14 @@ public class TableIndexDAOImplTest {
 		assertEquals(0, fileSizes);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetSumOfFileSizesNull(){
 		List<Long> list = null;
-		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
-		assertEquals(0, fileSizes);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			 tableIndexDAO.getSumOfFileSizes(list);;
+		});
 	}
 	
 	@Test
