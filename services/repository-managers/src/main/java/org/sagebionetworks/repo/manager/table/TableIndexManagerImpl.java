@@ -267,9 +267,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final Long tableId, final ProgressCallback callback, final Long viewTypeMask,
+	public Long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
-		ValidateArgument.required(callback, "callback");
 		try {
 			return populateViewFromEntityReplicationWithProgress(tableId,
 					viewTypeMask, allContainersInScope, currentSchema);
@@ -492,7 +491,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	/**
-	 * Apply the provided row change set to the provied table's index.
+	 * Apply the provided row change set to the provide table's index.
 	 * @param idAndVersion
 	 * @param rowChange
 	 */

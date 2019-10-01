@@ -417,7 +417,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);
+		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
@@ -436,7 +436,7 @@ public class TableIndexManagerImplTest {
 		// remove the etag column
 		schema.remove(etagColumn);
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);
+		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 	}
 	
 	/**
@@ -451,7 +451,7 @@ public class TableIndexManagerImplTest {
 		// remove the benefactor column
 		schema.remove(benefactorColumn);
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);
+		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -460,7 +460,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);;
+		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -469,7 +469,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = null;
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);;
+		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -478,17 +478,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = null;
 		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);;
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testPopulateViewFromEntityReplicationCallbackNull(){
-		viewType = ViewTypeMask.File.getMask();
-		Set<Long> scope = Sets.newHashSet(1L,2L);
-		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		mockCallback = null;
-		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), mockCallback, viewType, scope, schema);;
+		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
 	}
 	
 	@Test
