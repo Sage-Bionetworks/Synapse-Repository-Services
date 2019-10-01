@@ -1,0 +1,11 @@
+{
+  "Type" : "Notification",
+  "MessageId" : "edb5b81e-e48a-5fa2-9cb0-ee16f03d03bb",
+  "TopicArn" : "arn:aws:sns:us-east-1:3222221231312:Some-Topic",
+  "Message" : "{\"notificationType\":\"Bounce\",\"bounce\":{\"bounceType\":\"Transient\",\"bounceSubType\":\"General\",\"bouncedRecipients\":[{\"emailAddress\":\"recipient@example.com\"}],\"timestamp\":\"2019-09-27T13:45:27.000Z\",\"feedbackId\":\"0100016d72f82416-229fa1ac-ef6a-4663-93c2-eb415c2445b4-000000\"},\"mail\":{\"timestamp\":\"2019-09-27T13:45:25.000Z\",\"source\":\"noreply@synapse.org\",\"messageId\":\"0100016d72f81bce-08ed611d-aa8c-418a-875e-8e2570141035-000000\",\"destination\":[\"recipient@example.com\"]}}",
+  "Timestamp" : "2019-09-27T13:45:27.934Z",
+  "SignatureVersion" : "1",
+  "Signature" : "fEoDCf0knV2NP2R5YrkGDBMgmLJhPTo1AXIJQJOyFFcz/Dw8NNVZeIDI7kezqMymtuIKijzVTGxJHD3Ql3BcwJSkem8pWzXVCpZNU2kTOsDptOu42N4ETgAk2jHNu1JZI1y2FXAiElBnVUIQGMWKreGbSNV6VOE6CS0ISoP8/cCDVh4jMU36eJIFOyt/RcQ4HVZ/NL5FtTOJE2nQic88WOhU+SKNiBcrmc1oNKGZe0Ce8zXezsfUecYHRgaMS07hOYxUjMqL8tMXI3Ct9fg6Zd+kzRdy5G1/52/yTIenH7rmra4MQiI7OwaeNycX5XZ6zTL+f2xKo0/UTzmNoVwFrg==",
+  "SigningCertURL" : "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-6aad65c2f.pem",
+  "UnsubscribeURL" : "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:3222221231312:Some-Topic:a0be3a9c-1387-4e5f-b9b1-4d0120bc4a9f"
+}

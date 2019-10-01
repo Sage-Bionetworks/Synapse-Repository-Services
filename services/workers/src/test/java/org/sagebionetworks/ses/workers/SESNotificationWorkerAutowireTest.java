@@ -43,14 +43,14 @@ public class SESNotificationWorkerAutowireTest {
 
 	private String sesMessageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
 	private String queueUrl;
-	private String notificationBody;
+	private String messageBody;
 
 	@BeforeEach
 	public void before() throws Exception {
 		emailQuarantineDao.clearAll();
 		notificationDao.clearAll();
 		queueUrl = sqsClient.getQueueUrl(stackConfig.getQueueName(QUEUE_NAME)).getQueueUrl();
-		notificationBody = SESNotificationUtils.loadNotificationFromClasspath(sesMessageId);
+		messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
 	}
 
 	@AfterEach
@@ -62,7 +62,7 @@ public class SESNotificationWorkerAutowireTest {
 	@Test
 	public void testMessageProcessed() throws Exception {
 		// Send the notification to the queue
-		sqsClient.sendMessage(queueUrl, notificationBody);
+		sqsClient.sendMessage(queueUrl, messageBody);
 
 		waitForMessage(sesMessageId);
 		

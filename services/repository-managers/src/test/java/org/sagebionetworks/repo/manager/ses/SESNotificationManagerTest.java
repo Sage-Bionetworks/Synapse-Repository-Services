@@ -122,25 +122,25 @@ public class SESNotificationManagerTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			String notificationBody = null;
 			// Call under test
-			manager.processNotification(notificationBody);
+			manager.processMessage(notificationBody);
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			String notificationBody = "";
-			manager.processNotification(notificationBody);
+			manager.processMessage(notificationBody);
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			String notificationBody = "   ";
-			manager.processNotification(notificationBody);
+			manager.processMessage(notificationBody);
 		});
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			String notificationBody = "Malformed json";
-			manager.processNotification(notificationBody);
+			manager.processMessage(notificationBody);
 		});
 	}
 
@@ -225,22 +225,26 @@ public class SESNotificationManagerTest {
 	public void testProcessNotification() throws IOException {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
+		String feedbackId = "000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000";
 
-		String notificationBody = SESNotificationUtils.loadNotificationFromClasspath(messageId);
+		String messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
+		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		
 		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
 
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
-		SESNotificationRecord expected = new SESNotificationRecord(notificationType, notificationBody)
+		SESNotificationRecord expected = new SESNotificationRecord(notificationType, messageBody)
 				.withNotificationSubType("Permanent")
 				.withNotificationReason("General")
+				.withSesFeedbackId(feedbackId)
 				.withSesMessageId(messageId);
 		
 		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(false);
 
 		// Call under test
-		manager.processNotification(notificationBody);
+		manager.processMessage(messageBody);
 
 		verify(mockNotificationDao).saveNotification(expected);
 		verify(mockProvider).getQuarantinedEmails(json.getBounce(), messageId);
@@ -252,14 +256,16 @@ public class SESNotificationManagerTest {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
 
-		String notificationBody = SESNotificationUtils.loadNotificationFromClasspath(messageId);
+		String messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
+		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		
 		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
 
 		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(true);
 
 		// Call under test
-		manager.processNotification(notificationBody);
+		manager.processMessage(messageBody);
 
 		verify(mockNotificationDao).saveNotification(any(SESNotificationRecord.class));
 		verify(mockProvider).getQuarantinedEmails(json.getBounce(), messageId);
@@ -269,19 +275,21 @@ public class SESNotificationManagerTest {
 	@Test
 	public void testProcessNotificationWithNoMail() throws IOException {
 
-		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000001";
+		String messageId = null;
 
-		String notificationBody = SESNotificationUtils.loadNotificationFromClasspath(messageId);
+		String messageBody = SESNotificationUtils.loadMessageFromClasspath("no_mail");
+		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		
 		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
 
-		when(mockProvider.getQuarantinedEmails(json.getBounce(), null)).thenReturn(mockBatch);
+		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(false);
 
 		// Call under test
-		manager.processNotification(notificationBody);
+		manager.processMessage(messageBody);
 
 		verify(mockNotificationDao).saveNotification(any(SESNotificationRecord.class));
-		verify(mockProvider).getQuarantinedEmails(json.getBounce(), null);
+		verify(mockProvider).getQuarantinedEmails(json.getBounce(), messageId);
 		verify(mockEmailQuaranineDao).addToQuarantine(mockBatch);
 	}
 	
