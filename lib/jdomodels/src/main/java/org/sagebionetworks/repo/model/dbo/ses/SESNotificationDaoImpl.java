@@ -11,7 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -37,7 +37,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 
 	@Override
 	@WriteTransaction
-	public SESNotification saveNotification(SESNotification notification) {
+	public SESNotificationRecord saveNotification(SESNotificationRecord notification) {
 		ValidateArgument.required(notification, "The notification");
 
 		DBOSESNotification dbo = map(notification);
@@ -57,7 +57,7 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		return jdbcTemplate.queryForObject(sql, Long.class, sesMessageId);
 	}
 
-	private DBOSESNotification map(SESNotification dto) {
+	private DBOSESNotification map(SESNotificationRecord dto) {
 		DBOSESNotification dbo = new DBOSESNotification();
 
 		dbo.setInstanceNumber(instanceNumber);
@@ -73,10 +73,10 @@ public class SESNotificationDaoImpl implements SESNotificationDao {
 		return dbo;
 	}
 
-	private SESNotification map(DBOSESNotification dbo) {
+	private SESNotificationRecord map(DBOSESNotification dbo) {
 		SESNotificationType notificationType = SESNotificationType.valueOf(dbo.getNotificationType());
 		
-		return new SESNotification(notificationType, dbo.getNotificationBody())
+		return new SESNotificationRecord(notificationType, dbo.getNotificationBody())
 				.withId(dbo.getId())
 				.withInstanceNumber(dbo.getInstanceNumber())
 				.withCreatedOn(dbo.getCreatedOn().toInstant())

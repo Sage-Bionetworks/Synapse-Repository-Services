@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESJsonRecipient;
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -73,7 +73,7 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		SESNotificationType notificationType = parseNotificationType(notification.getNotificationType());
 
 		// Makes sure we pass in the original notification body
-		SESNotification dto = new SESNotification(notificationType, notificationBody);
+		SESNotificationRecord dto = new SESNotificationRecord(notificationType, notificationBody);
 
 		if (notification.getMail() != null) {
 			dto.withSesMessageId(notification.getMail().getMessageId());

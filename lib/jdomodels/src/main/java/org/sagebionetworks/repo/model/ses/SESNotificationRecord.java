@@ -11,7 +11,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * @author Marco
  *
  */
-public class SESNotification {
+public class SESNotificationRecord {
 
 	private Long id;
 	private int instanceNumber;
@@ -23,7 +23,7 @@ public class SESNotification {
 	private String sesMessageId;
 	private String sesFeedbackId;
 
-	public SESNotification(SESNotificationType notificationType, String notificationBody) {
+	public SESNotificationRecord(SESNotificationType notificationType, String notificationBody) {
 		ValidateArgument.required(notificationType, "The notification type");
 		ValidateArgument.requiredNotBlank(notificationBody, "The notification body");
 		this.notificationType = notificationType;
@@ -42,7 +42,7 @@ public class SESNotification {
 		return id;
 	}
 
-	public SESNotification withId(Long id) {
+	public SESNotificationRecord withId(Long id) {
 		this.id = id;
 		return this;
 	}
@@ -51,7 +51,7 @@ public class SESNotification {
 		return instanceNumber;
 	}
 
-	public SESNotification withInstanceNumber(int instanceNumber) {
+	public SESNotificationRecord withInstanceNumber(int instanceNumber) {
 		this.instanceNumber = instanceNumber;
 		return this;
 	}
@@ -60,7 +60,7 @@ public class SESNotification {
 		return createdOn;
 	}
 
-	public SESNotification withCreatedOn(Instant createdOn) {
+	public SESNotificationRecord withCreatedOn(Instant createdOn) {
 		this.createdOn = createdOn;
 		return this;
 	}
@@ -69,7 +69,7 @@ public class SESNotification {
 		return notificationSubType;
 	}
 
-	public SESNotification withNotificationSubType(String notificationSubType) {
+	public SESNotificationRecord withNotificationSubType(String notificationSubType) {
 		this.notificationSubType = notificationSubType;
 		return this;
 	}
@@ -78,7 +78,7 @@ public class SESNotification {
 		return notificationReason;
 	}
 
-	public SESNotification withNotificationReason(String notificationReason) {
+	public SESNotificationRecord withNotificationReason(String notificationReason) {
 		this.notificationReason = notificationReason;
 		return this;
 	}
@@ -87,7 +87,7 @@ public class SESNotification {
 		return sesMessageId;
 	}
 
-	public SESNotification withSesMessageId(String sesMessageId) {
+	public SESNotificationRecord withSesMessageId(String sesMessageId) {
 		this.sesMessageId = sesMessageId;
 		return this;
 	}
@@ -96,7 +96,7 @@ public class SESNotification {
 		return sesFeedbackId;
 	}
 
-	public SESNotification withSesFeedbackId(String sesFeedbackId) {
+	public SESNotificationRecord withSesFeedbackId(String sesFeedbackId) {
 		this.sesFeedbackId = sesFeedbackId;
 		return this;
 	}
@@ -115,7 +115,7 @@ public class SESNotification {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		SESNotification other = (SESNotification) obj;
+		SESNotificationRecord other = (SESNotificationRecord) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id) && instanceNumber == other.instanceNumber
 				&& Objects.equals(notificationBody, other.notificationBody) && Objects.equals(notificationReason, other.notificationReason)
 				&& Objects.equals(notificationSubType, other.notificationSubType) && notificationType == other.notificationType
@@ -124,7 +124,7 @@ public class SESNotification {
 
 	@Override
 	public String toString() {
-		return "SESNotification [id=" + id + ", instanceNumber=" + instanceNumber + ", createdOn=" + createdOn + ", notificationType="
+		return "SESNotificationRecord [id=" + id + ", instanceNumber=" + instanceNumber + ", createdOn=" + createdOn + ", notificationType="
 				+ notificationType + ", notificationSubType=" + notificationSubType + ", notificationReason=" + notificationReason
 				+ ", notificationBody=" + notificationBody + ", sesMessageId=" + sesMessageId + ", sesFeedbackId=" + sesFeedbackId + "]";
 	}

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 
 /**
  * DAO layer for the SES notifications
@@ -15,7 +15,7 @@ public interface SESNotificationDao {
 	 * @param notification The SES notification DTO
 	 * @return The saved notification
 	 */
-	SESNotification saveNotification(SESNotification notification);
+	SESNotificationRecord saveNotification(SESNotificationRecord notification);
 
 	/**
 	 * @param sesMessageId The id returned by SES when sending an email

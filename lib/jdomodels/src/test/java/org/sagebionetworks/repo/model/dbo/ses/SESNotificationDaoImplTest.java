@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -44,7 +44,7 @@ public class SESNotificationDaoImplTest {
 	@Test
 	public void testCreateWithInvalidInput() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			SESNotification notification = null;
+			SESNotificationRecord notification = null;
 			// Call under test
 			dao.saveNotification(notification);
 		});
@@ -52,14 +52,14 @@ public class SESNotificationDaoImplTest {
 
 	@Test
 	public void testCreateWithNullableFields() {
-		SESNotification notification = getRandomNotification()
+		SESNotificationRecord notification = getRandomNotification()
 				.withSesFeedbackId(null)
 				.withNotificationSubType(null)
 				.withNotificationReason(null)
 				.withSesMessageId(null);
 
 		// Call under test
-		SESNotification result = dao.saveNotification(notification);
+		SESNotificationRecord result = dao.saveNotification(notification);
 
 		notification.withId(result.getId());
 		notification.withCreatedOn(result.getCreatedOn());
@@ -70,10 +70,10 @@ public class SESNotificationDaoImplTest {
 
 	@Test
 	public void testCreateNotification() {
-		SESNotification notification = getRandomNotification();
+		SESNotificationRecord notification = getRandomNotification();
 
 		// Call under test
-		SESNotification result = dao.saveNotification(notification);
+		SESNotificationRecord result = dao.saveNotification(notification);
 
 		assertNotNull(result.getId());
 		assertNotNull(result.getCreatedOn());
@@ -88,7 +88,7 @@ public class SESNotificationDaoImplTest {
 	@Test
 	public void testCountBySesMessageId() {
 		int notificationsCount = 10;
-		List<SESNotification> notifications = getRandomNotifications(notificationsCount);
+		List<SESNotificationRecord> notifications = getRandomNotifications(notificationsCount);
 
 		notifications.forEach(dao::saveNotification);
 
@@ -99,16 +99,16 @@ public class SESNotificationDaoImplTest {
 		assertEquals(1L, result);
 	}
 
-	private List<SESNotification> getRandomNotifications(int count) {
-		List<SESNotification> list = new ArrayList<>(count);
+	private List<SESNotificationRecord> getRandomNotifications(int count) {
+		List<SESNotificationRecord> list = new ArrayList<>(count);
 		IntStream.range(0, count).forEach(_index -> {
 			list.add(getRandomNotification());
 		});
 		return list;
 	}
 
-	private SESNotification getRandomNotification() {
-		return new SESNotification(SESNotificationType.BOUNCE, notificationBody)
+	private SESNotificationRecord getRandomNotification() {
+		return new SESNotificationRecord(SESNotificationType.BOUNCE, notificationBody)
 				.withSesMessageId(UUID.randomUUID().toString())
 				.withSesFeedbackId(UUID.randomUUID().toString())
 				.withNotificationSubType("Permanent")

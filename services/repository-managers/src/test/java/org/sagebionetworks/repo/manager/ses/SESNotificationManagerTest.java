@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.ses.SESJsonMail;
 import org.sagebionetworks.repo.model.ses.SESJsonNotification;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
 import org.sagebionetworks.repo.model.ses.SESJsonRecipient;
-import org.sagebionetworks.repo.model.ses.SESNotification;
+import org.sagebionetworks.repo.model.ses.SESNotificationRecord;
 import org.sagebionetworks.repo.model.ses.SESNotificationType;
 import org.sagebionetworks.repo.model.ses.SESNotificationUtils;
 
@@ -231,7 +231,7 @@ public class SESNotificationManagerTest {
 
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
-		SESNotification expected = new SESNotification(notificationType, notificationBody)
+		SESNotificationRecord expected = new SESNotificationRecord(notificationType, notificationBody)
 				.withNotificationSubType("Permanent")
 				.withNotificationReason("General")
 				.withSesMessageId(messageId);
@@ -261,7 +261,7 @@ public class SESNotificationManagerTest {
 		// Call under test
 		manager.processNotification(notificationBody);
 
-		verify(mockNotificationDao).saveNotification(any(SESNotification.class));
+		verify(mockNotificationDao).saveNotification(any(SESNotificationRecord.class));
 		verify(mockProvider).getQuarantinedEmails(json.getBounce(), messageId);
 		verifyZeroInteractions(mockEmailQuaranineDao);
 	}
@@ -280,7 +280,7 @@ public class SESNotificationManagerTest {
 		// Call under test
 		manager.processNotification(notificationBody);
 
-		verify(mockNotificationDao).saveNotification(any(SESNotification.class));
+		verify(mockNotificationDao).saveNotification(any(SESNotificationRecord.class));
 		verify(mockProvider).getQuarantinedEmails(json.getBounce(), null);
 		verify(mockEmailQuaranineDao).addToQuarantine(mockBatch);
 	}
