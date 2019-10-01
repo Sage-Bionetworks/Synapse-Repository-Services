@@ -173,7 +173,7 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 * @return The new CRC23 for the view.
 	 */
-	public Long populateViewFromEntityReplication(Long tableId, ProgressCallback callback, Long viewTypeMask,
+	public Long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**

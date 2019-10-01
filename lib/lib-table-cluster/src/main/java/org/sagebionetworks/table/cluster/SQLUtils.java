@@ -1244,8 +1244,23 @@ public class SQLUtils {
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
-		builder.append(") SELECT ");
-		buildSelect(builder, metadata);
+		builder.append(") ");
+		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		return builder.toString();
+	}
+	
+	/**
+	 * Generate the SQL to get all of the data for a view table from the entity replication tables.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param currentSchema
+	 * @return
+	 */
+	public static List<String> createSelectFromEntityReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		builder.append("SELECT ");
+		List<String> headers = buildSelect(builder, metadata);
 		builder.append(" FROM ");
 		builder.append(ENTITY_REPLICATION_TABLE);
 		builder.append(" ");
@@ -1267,7 +1282,7 @@ public class SQLUtils {
 		builder.append(") AND ");
 		builder.append(createViewTypeFilter(viewTypeMask));
 		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
-		return builder.toString();
+		return headers;
 	}
 	
 	/**
@@ -1302,13 +1317,14 @@ public class SQLUtils {
 	 * @param builder
 	 * @param metadata
 	 */
-	public static void buildSelect(StringBuilder builder,
+	public static List<String> buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
 		// select the standard entity columns.
-		buildEntityReplicationSelectStandardColumns(builder);
+		List<String> headers = buildEntityReplicationSelectStandardColumns(builder);
 		for(ColumnMetadata meta: metadata){
-			buildSelectMetadata(builder, meta);
+			headers.addAll(buildSelectMetadata(builder, meta));
 		}
+		return headers;
 	}
 	
 	/**
@@ -1317,45 +1333,53 @@ public class SQLUtils {
 	 * @param builder
 	 * @param meta
 	 */
-	public static void buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
-		if(meta.getEntityField() != null) {
+	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
+		if (meta.getEntityField() != null) {
 			// entity field select
-			buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
-		}else {
-			// annotation select
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
-				// For doubles, the double-meta columns is also selected.
-				boolean isDoubleAbstract = true;
-				buildAnnotationSelect(builder, meta, isDoubleAbstract);
-			}
-			// select the annotation
-			boolean isDoubleAbstract = false;
-			buildAnnotationSelect(builder, meta, isDoubleAbstract);
+			return buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
 		}
+		List<String> headers = new LinkedList<>();
+		// annotation select
+		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			// For doubles, the double-meta columns is also selected.
+			boolean isDoubleAbstract = true;
+			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		}
+		// select the annotation
+		boolean isDoubleAbstract = false;
+		headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		return headers;
+
 	}
 	
 	/**
 	 * Build the select including the standard entity columns of, id, version, etag, and benefactor..
 	 * @param builder
 	 */
-	public static void buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+	public static List<String> buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+		List<String> headers = new LinkedList<>();
 		builder.append(ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(ENTITY_REPLICATION_COL_ID);
-		buildEntityReplicationSelect(builder,
+		headers.add(ENTITY_REPLICATION_COL_ID);
+		headers.addAll(buildEntityReplicationSelect(builder,
 				ENTITY_REPLICATION_COL_VERSION,
 				ENTITY_REPLICATION_COL_ETAG,
-				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+				ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+		return headers;
 	}
 	/**
 	 * For each provided name: ', MAX(R.name) AS name'
 	 * @param builder
 	 * @param names
 	 */
-	public static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
+	public static List<String> buildEntityReplicationSelect(StringBuilder builder, String...names) {
+		List<String> headers = new LinkedList<>();
 		for(String name: names) {
 			builder.append(String.format(TEMPLATE_MAX_ENTITY_SELECT, ENTITY_REPLICATION_ALIAS, name));
+			headers.add(name);
 		}
+		return headers;
 	}
 	/**
 	 * If isDoubleAbstract = false then builds: ', MAX(IF(A.ANNO_KEY='keyValue', A.valueColumnName, NULL)) as _columnId_'
@@ -1365,7 +1389,7 @@ public class SQLUtils {
 	 * @param valueName
 	 * @param alias
 	 */
-	public static void buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
+	public static String buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
 		String aliasPrefix =  isDoubleAbstract ? ABSTRACT_DOUBLE_ALIAS_PREFIX: EMPTY_STRING;
 		String valueColumnName = isDoubleAbstract ? ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT : meta.getSelectColumnName();
 		builder.append(String.format(TEMPLATE_MAX_ANNOTATION_SELECT,
@@ -1376,6 +1400,7 @@ public class SQLUtils {
 				aliasPrefix,
 				meta.getColumnNameForId()
 		));
+		return aliasPrefix+meta.getColumnNameForId();
 	}
 
 	/**
