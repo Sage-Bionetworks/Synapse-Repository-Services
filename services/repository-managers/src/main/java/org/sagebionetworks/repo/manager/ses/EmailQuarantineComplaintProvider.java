@@ -23,7 +23,7 @@ public class EmailQuarantineComplaintProvider implements EmailQuarantineProvider
 
 	@Override
 	public QuarantinedEmailBatch getQuarantinedEmails(SESJsonNotificationDetails notificationDetails, String sesMessageId) {
-		return QuarantinedEmailBatch.emptyBatch();
+		return QuarantinedEmailBatch.EMPTY_BATCH;
 	}
 
 }

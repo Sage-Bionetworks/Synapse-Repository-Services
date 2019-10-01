@@ -59,21 +59,26 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 
 	@Override
 	@WriteTransaction
-	public void processNotification(String notificationBody) {
-		ValidateArgument.requiredNotBlank(notificationBody, "The notification body");
+	public void processMessage(String messageBody) {
+		ValidateArgument.requiredNotBlank(messageBody, "The message body");
 
 		SESJsonNotification notification;
 
 		try {
+			// Extract the "Message" property value from the SQS message. SES sends the notification body
+			// within the message itself as a string value.
+			String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+
 			notification = SESNotificationUtils.parseNotification(notificationBody);
+
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 
 		SESNotificationType notificationType = parseNotificationType(notification.getNotificationType());
 
-		// Makes sure we pass in the original notification body
-		SESNotificationRecord dto = new SESNotificationRecord(notificationType, notificationBody);
+		// Makes sure we pass in the original message body
+		SESNotificationRecord dto = new SESNotificationRecord(notificationType, messageBody);
 
 		if (notification.getMail() != null) {
 			dto.withSesMessageId(notification.getMail().getMessageId());
@@ -105,13 +110,13 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 			String sesMessageId) {
 
 		if (NO_QUARANTINE_SET.contains(notificationType)) {
-			return QuarantinedEmailBatch.emptyBatch();
+			return QuarantinedEmailBatch.EMPTY_BATCH;
 		}
 
 		List<SESJsonRecipient> recipients = details.getRecipients();
 
 		if (recipients == null || recipients.isEmpty()) {
-			return QuarantinedEmailBatch.emptyBatch();
+			return QuarantinedEmailBatch.EMPTY_BATCH;
 		}
 
 		EmailQuarantineProvider provider = quarantineProviderMap.get(notificationType);

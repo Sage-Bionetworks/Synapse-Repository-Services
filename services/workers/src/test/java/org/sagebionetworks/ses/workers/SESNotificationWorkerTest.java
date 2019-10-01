@@ -38,7 +38,7 @@ public class SESNotificationWorkerTest {
 		String notificationBody = "Some wrong body";
 		
 		when(mockMessage.getBody()).thenReturn(notificationBody);
-		doThrow(IllegalArgumentException.class).when(mockManager).processNotification(notificationBody);
+		doThrow(IllegalArgumentException.class).when(mockManager).processMessage(notificationBody);
 		
 		// Call under test
 		worker.run(null, mockMessage);
@@ -59,7 +59,7 @@ public class SESNotificationWorkerTest {
 		worker.run(null, mockMessage);
 
 		verify(mockMessage).getBody();
-		verify(mockManager).processNotification(notificationBody);
+		verify(mockManager).processMessage(notificationBody);
 		verifyZeroInteractions(mockLogger);
 
 	}

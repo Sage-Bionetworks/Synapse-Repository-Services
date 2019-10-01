@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sagebionetworks.repo.model.ses.SESNotificationUtils.loadNotificationFromClasspath;
+import static org.sagebionetworks.repo.model.ses.SESNotificationUtils.loadMessageFromClasspath;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,11 +27,11 @@ public class SESNotificationDaoImplTest {
 	@Autowired
 	private SESNotificationDao dao;
 	
-	private String notificationBody;
+	private String messageBody;
 
 	@BeforeEach
 	public void before() throws IOException {
-		notificationBody = loadNotificationFromClasspath("000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000");
+		messageBody = loadMessageFromClasspath("permanent_general");
 		dao.clearAll();
 	}
 
@@ -109,7 +109,7 @@ public class SESNotificationDaoImplTest {
 	}
 
 	private SESNotificationRecord getRandomNotification() {
-		return new SESNotificationRecord(SESNotificationType.BOUNCE, notificationBody)
+		return new SESNotificationRecord(SESNotificationType.BOUNCE, messageBody)
 				.withSesMessageId(UUID.randomUUID().toString())
 				.withSesFeedbackId(UUID.randomUUID().toString())
 				.withNotificationSubType("Permanent")

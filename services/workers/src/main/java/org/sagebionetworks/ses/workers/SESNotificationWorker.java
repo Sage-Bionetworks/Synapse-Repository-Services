@@ -26,13 +26,13 @@ public class SESNotificationWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		String notification = message.getBody();
+		String messageBody = message.getBody();
 
 		try {
-			notificationManager.processNotification(notification);
+			notificationManager.processMessage(messageBody);
 		} catch (Throwable e) {
 
-			LOG.error("Cannot process notification: " + System.lineSeparator() + notification + System.lineSeparator() + e.getMessage(), e);
+			LOG.error("Cannot process message \n" + messageBody + ": \n" + e.getMessage(), e);
 
 			boolean willRetry = false;
 
