@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -310,6 +311,7 @@ public class SQLTranslatorUtils {
 			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
 			for(BooleanPrimary booleanPrimary: booleanPrimaries){
 				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
+				replaceArrayHasPredicate(booleanPrimary, columnNameToModelMap);
 			}
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
@@ -529,10 +531,19 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap, String Id){
 		if(booleanPrimary.getPredicate() != null) {
 			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
 			if (arrayHasPredicate != null) {
+				String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
+				ColumnModel columnModel = columnNameToModelMap.get(columnName);
+				if(BooleanUtils.isNotTrue(columnModel.getIsList())){ //false or null
+					throw new IllegalArgumentException("The HAS keyword only works for list columns");
+				}
+
+				//build up subquery against the flattened index table
+				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnMaterlization()
+				QuerySpecification subquery = TableQueryParser.parserQuery("SELECT ")
 
 			}
 		}
