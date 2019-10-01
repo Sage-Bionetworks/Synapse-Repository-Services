@@ -90,7 +90,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 			setPreparedStatementForInsert(ps, quarantinedEmail, now, expirationTimeout);
 		});
 
-		return getQuarantinedEmail(quarantinedEmail.getEmail()).get();
+		return getQuarantinedEmail(quarantinedEmail.getEmail(), false).get();
 	}
 
 	@Override
@@ -132,11 +132,20 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	@Override
 	public Optional<QuarantinedEmail> getQuarantinedEmail(String email) {
+		return getQuarantinedEmail(email, true);
+	}
+	
+	@Override
+	public Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck) {
 		ValidateArgument.requiredNotBlank(email, "The email");
 
-		String sql = "SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
+		StringBuilder sql = new StringBuilder("SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
+		
+		if (expirationCheck) {
+			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON +" IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())");
+		}
 
-		return jdbcTemplate.query(sql, rs -> {
+		return jdbcTemplate.query(sql.toString(), rs -> {
 			if (rs.next()) {
 				return Optional.of(ROW_MAPPER.mapRow(rs, rs.getRow()));
 			}

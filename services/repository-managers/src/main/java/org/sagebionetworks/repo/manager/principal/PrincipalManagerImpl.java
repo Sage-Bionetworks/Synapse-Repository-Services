@@ -205,7 +205,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		NotificationEmail dto = new NotificationEmail();
 		dto.setEmail(email);
 		
-		// Includes the quarantine status if the email is in quarantine
+		// Includes the quarantine status if the email is in quarantine (and the quarantine is not expired)
 		emailQuarantineDao.getQuarantinedEmail(email).ifPresent( quarantinedEmail -> {
 			dto.setQuarantineStatus(getQuarantineStatus(quarantinedEmail));
 		});

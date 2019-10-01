@@ -39,12 +39,22 @@ public interface EmailQuarantineDao {
 	boolean removeFromQuarantine(String email);
 
 	/**
-	 * Retrieves the details about the quarantined email if any
+	 * Retrieves the details about the quarantined email if any iif the quarantine is not expired (See
+	 * {@link #getQuarantinedEmail(String, boolean) getQuarantinedEmail(String, true)}).
 	 * 
 	 * @param email The email to lookup
 	 * @return An optional containing the details about the quarantined email
 	 */
 	Optional<QuarantinedEmail> getQuarantinedEmail(String email);
+
+	/**
+	 * Retrieves the details about the quarantined email if any
+	 * 
+	 * @param email           The email to lookup
+	 * @param expirationCheck True if a value should be returned only for not expired quarantine, false otherwise
+	 * @return An optional containing the details about the quarantined email
+	 */
+	Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck);
 
 	/**
 	 * Clear the quarantine

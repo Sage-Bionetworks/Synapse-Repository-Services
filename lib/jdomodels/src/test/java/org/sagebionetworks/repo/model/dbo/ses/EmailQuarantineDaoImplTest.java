@@ -376,6 +376,38 @@ public class EmailQuarantineDaoImplTest {
 		assertEquals(expected, result.get());
 
 	}
+	
+	@Test
+	public void testGetQuarantineEmailWithExpired() throws Exception {
+		QuarantinedEmail expected = getTestQuarantinedEmail();
+		
+		Long timeout = 50L;
+		
+		dao.addToQuarantine(expected, timeout);
+		
+		Thread.sleep(1000);
+		
+		// Call under test
+		Optional<QuarantinedEmail> result = dao.getQuarantinedEmail(testEmail);
+
+		assertFalse(result.isPresent());
+	}
+	
+	@Test
+	public void testGetQuarantineEmailWithoutExpirationCheck() throws Exception {
+		QuarantinedEmail expected = getTestQuarantinedEmail();
+		
+		Long timeout = 50L;
+		
+		dao.addToQuarantine(expected, timeout);
+		
+		Thread.sleep(timeout * 2);
+		
+		// Call under test
+		Optional<QuarantinedEmail> result = dao.getQuarantinedEmail(testEmail, false);
+
+		assertTrue(result.isPresent());
+	}
 
 	private QuarantinedEmail getTestQuarantinedEmail() {
 		return getTestQuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE);
