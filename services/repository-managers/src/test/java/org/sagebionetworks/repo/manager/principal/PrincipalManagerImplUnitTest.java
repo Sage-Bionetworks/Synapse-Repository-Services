@@ -233,6 +233,16 @@ public class PrincipalManagerImplUnitTest {
 			manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
 		});
 	}
+	
+	@Test
+	public void testNewAccountEmailValidationWithQuarantinedAddress() throws Exception {
+		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
+		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.of(mockQuarantinedEmail));
+		
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
+
+		verifyZeroInteractions(mockSynapseEmailService);
+	}
 
 	@Test
 	public void testCreateNewAccount() throws Exception {
@@ -308,6 +318,22 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(body.contains(PORTAL_ENDPOINT));
 		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator))));
 	}
+	
+	@Test
+	public void testAdditionalEmailWithQuarantinedAddress() throws Exception {
+		UserInfo userInfo = new UserInfo(false, USER_ID);
+		Username email = new Username();
+		email.setEmail(EMAIL);
+		
+		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
+		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.of(mockQuarantinedEmail));
+		
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
+	
+		verifyZeroInteractions(mockUserProfileDAO);
+		verifyZeroInteractions(mockSynapseEmailService);
+		
+	}
 
 	@Test
 	public void testAdditionalEmailEmailAlreadyUsed() throws Exception {
@@ -359,16 +385,20 @@ public class PrincipalManagerImplUnitTest {
 
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
+		PrincipalAlias expectedAlias = new PrincipalAlias();
+		
+		expectedAlias.setAlias(EMAIL);
+		expectedAlias.setPrincipalId(USER_ID);
+		expectedAlias.setType(AliasType.USER_EMAIL);
+		
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(expectedAlias)).thenReturn(expectedAlias);
+		
 		Boolean setAsNotificationEmail = true;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 
-		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
-		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
-		PrincipalAlias alias = aliasCaptor.getValue();
-		assertEquals(USER_ID, alias.getPrincipalId());
-		assertEquals(AliasType.USER_EMAIL, alias.getType());
-		assertEquals(EMAIL, alias.getAlias());
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedAlias);
 		verify(mockNotificationEmailDao).update((PrincipalAlias)any());
+		verify(mockEmailQuarantineDao).removeFromQuarantine(EMAIL);
 	}
 	
 	@Test
@@ -377,21 +407,27 @@ public class PrincipalManagerImplUnitTest {
 		
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
+		PrincipalAlias expectedAlias = new PrincipalAlias();
+		
+		expectedAlias.setAlias(EMAIL);
+		expectedAlias.setPrincipalId(USER_ID);
+		expectedAlias.setType(AliasType.USER_EMAIL);
+		
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(expectedAlias)).thenReturn(expectedAlias);
+		
 		Boolean setAsNotificationEmail = null;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		
-		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
-		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
-		PrincipalAlias alias = aliasCaptor.getValue();
-		assertEquals(USER_ID, alias.getPrincipalId());
-		assertEquals(AliasType.USER_EMAIL, alias.getType());
-		assertEquals(EMAIL, alias.getAlias());
-		verify(mockNotificationEmailDao, times(0)).update((PrincipalAlias)any());
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedAlias);
+		verifyZeroInteractions(mockNotificationEmailDao);
+		verify(mockEmailQuarantineDao).removeFromQuarantine(EMAIL);
 		
 		// null and false are equivalent for this param
 		setAsNotificationEmail = false;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
-		verify(mockNotificationEmailDao, times(0)).update((PrincipalAlias)any());
+		
+		verifyZeroInteractions(mockNotificationEmailDao);
+		verify(mockEmailQuarantineDao, times(2)).removeFromQuarantine(EMAIL);
 	}
 	
 	@Test

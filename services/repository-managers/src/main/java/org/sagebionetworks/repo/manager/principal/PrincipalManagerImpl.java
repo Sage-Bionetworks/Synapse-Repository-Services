@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -49,6 +51,8 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
  *
  */
 public class PrincipalManagerImpl implements PrincipalManager {
+	
+	private static final Logger LOG = LogManager.getLogger(PrincipalManagerImpl.class);
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -101,6 +105,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
+		if (emailQuarantineDao.getQuarantinedEmail(user.getEmail()).isPresent()) {
+			LOG.warn("Cannot send account validation to quarantined email address {}", user.getEmail());
+			return;
+		}
 		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
@@ -144,6 +152,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
+		if (emailQuarantineDao.getQuarantinedEmail(email.getEmail()).isPresent()) {
+			LOG.warn("Cannot send validation email to quarantined email address {}", email.getEmail());
+			return;
+		}
 		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
@@ -178,7 +190,11 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		alias.setPrincipalId(userInfo.getId());
 		alias.setType(AliasType.USER_EMAIL);
 		alias = principalAliasDAO.bindAliasToPrincipal(alias);
-		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) notificationEmailDao.update(alias);
+		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) {
+			notificationEmailDao.update(alias);
+		}
+		// If we got here the email was validated, we can remove it from the quarantine if any
+		emailQuarantineDao.removeFromQuarantine(alias.getAlias());
 	}
 
 	@WriteTransaction
