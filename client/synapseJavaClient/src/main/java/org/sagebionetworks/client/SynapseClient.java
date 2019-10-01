@@ -176,6 +176,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
@@ -322,10 +323,12 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * This gets the email used for user notifications, i.e. when a Synapse message is
 	 * sent and if the user has elected to receive messages by email, then this is the email
-	 * address at which the user will receive the message.
+	 * address at which the user will receive the message. If the email if currently in quarantine it will include
+	 * the quarantine status
+	 * 
 	 * @throws SynapseException
 	 */
-	public String getNotificationEmail() throws SynapseException;
+	public NotificationEmail getNotificationEmail() throws SynapseException;
 
 	public Entity getEntityById(String entityId) throws SynapseException;
 
