@@ -1355,7 +1355,7 @@ public class EntityController {
 	}
 
 	/**
-	 * Sets the genratedBy relationship for the current version of an Entity.
+	 * Sets the generatedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
 	 *            The ID of the entity to update.
@@ -1390,7 +1390,7 @@ public class EntityController {
 	}
 
 	/**
-	 * Deletes the genratedBy relationship for the current version of an Entity.
+	 * Deletes the generatedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
 	 *            - The ID of the activity to fetch.
