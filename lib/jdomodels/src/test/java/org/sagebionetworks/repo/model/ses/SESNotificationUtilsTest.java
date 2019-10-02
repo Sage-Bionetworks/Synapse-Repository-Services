@@ -1,14 +1,11 @@
 package org.sagebionetworks.repo.model.ses;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.sagebionetworks.repo.model.ses.SESNotificationUtils.loadMessageFromClasspath;
+import static org.sagebionetworks.repo.model.ses.SESNotificationUtils.loadNotificationFromClasspath;
 
 import java.io.IOException;
 
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -17,31 +14,22 @@ import com.google.common.collect.ImmutableMap;
 public class SESNotificationUtilsTest {
 
 	@Test
-	public void testExtractNotificationBodyMissingMessage() throws IOException {
-		String messageBody = loadMessageFromClasspath("missing_message");
-
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			SESNotificationUtils.extractNotificationBody(messageBody);
-		});
-
+	public void testParseNotificationFromMessage() throws IOException {
+		String messageBody = loadMessageFromClasspath("permanent_general");
+		SESNotificationUtils.parseSQSMessage(messageBody);
 	}
-
+	
 	@Test
-	public void testExtractNotificationBody() throws IOException {
-		String messageBody = loadMessageFromClasspath("bounce_transient");
-
-		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
-
-		assertNotNull(notificationBody);
-		assertFalse(StringUtils.isBlank(notificationBody));
+	public void testParseNotification() throws IOException {
+		String notificationBody = loadNotificationFromClasspath("permanent_general");
+		SESNotificationUtils.parseSQSMessage(notificationBody);
 	}
 
 	@Test
 	public void testParseBounceNotification() throws IOException {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
-		String notificationBody = loadNotificationBody("permanent_general");
+		String notificationBody = loadNotificationFromClasspath("permanent_general");
 
 		SESJsonNotification expected = new SESJsonNotification();
 
@@ -67,7 +55,7 @@ public class SESNotificationUtilsTest {
 						getRecipient("recipient2@example.com", "4.0.0", "delayed", null)
 				));
 
-		SESJsonNotification result = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification result = SESNotificationUtils.parseSQSMessage(notificationBody);
 
 		assertEquals(expected, result);
 	}
@@ -76,7 +64,7 @@ public class SESNotificationUtilsTest {
 	public void testParseComplaintNotification() throws IOException {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000001";
-		String notificationBody = loadNotificationBody("complaint");
+		String notificationBody = loadNotificationFromClasspath("complaint");
 		
 		SESJsonNotification expected = new SESJsonNotification();
 
@@ -97,7 +85,7 @@ public class SESNotificationUtilsTest {
 		expected.getComplaint().setOtherProperty("arrivalDate", "2009-12-03T04:24:21.000-05:00");
 		expected.getComplaint().setOtherProperty("timestamp", "2012-05-25T14:59:38.623Z");
 
-		SESJsonNotification result = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification result = SESNotificationUtils.parseSQSMessage(notificationBody);
 
 		assertEquals(expected, result);
 	}
@@ -106,7 +94,7 @@ public class SESNotificationUtilsTest {
 	public void testParseWithMissingMappedProperty() throws IOException {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000002";
-		String notificationBody = loadNotificationBody("missing_property");
+		String notificationBody = loadNotificationFromClasspath("missing_property");
 
 		SESJsonNotification expected = new SESJsonNotification();
 
@@ -125,14 +113,9 @@ public class SESNotificationUtilsTest {
 		expected.getComplaint().setOtherProperty("arrivalDate", "2009-12-03T04:24:21.000-05:00");
 		expected.getComplaint().setOtherProperty("timestamp", "2012-05-25T14:59:38.623Z");
 
-		SESJsonNotification result = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification result = SESNotificationUtils.parseSQSMessage(notificationBody);
 
 		assertEquals(expected, result);
-	}
-	
-	private String loadNotificationBody(String useCase) throws IOException {
-		String messageBody = loadMessageFromClasspath(useCase);
-		return SESNotificationUtils.extractNotificationBody(messageBody);
 	}
 
 	private SESJsonRecipient getRecipient(String emailAddress) {
