@@ -39,9 +39,12 @@ import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
@@ -302,6 +305,9 @@ public class SQLTranslatorUtils {
 		}
 		// First change the table name
 		TableReference tableReference = tableExpression.getFromClause().getTableReference();
+
+		//save the original syn### id since we will need it for any HAS predicates
+		IdAndVersion originalSynId = IdAndVersion.parse(tableReference.getTableName());
 		translate(tableReference);
 		
 		// Translate where
@@ -311,7 +317,7 @@ public class SQLTranslatorUtils {
 			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
 			for(BooleanPrimary booleanPrimary: booleanPrimaries){
 				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
-				replaceArrayHasPredicate(booleanPrimary, columnNameToModelMap);
+				replaceArrayHasPredicate(booleanPrimary, columnNameToModelMap, originalSynId);
 			}
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
@@ -531,20 +537,37 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap, String Id){
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap, IdAndVersion idAndVersion){
 		if(booleanPrimary.getPredicate() != null) {
 			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
 			if (arrayHasPredicate != null) {
 				String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
 				ColumnModel columnModel = columnNameToModelMap.get(columnName);
+				if(columnModel == null){
+					throw new IllegalArgumentException("Unknown column reference: " + columnName);
+				}
 				if(BooleanUtils.isNotTrue(columnModel.getIsList())){ //false or null
 					throw new IllegalArgumentException("The HAS keyword only works for list columns");
 				}
 
 				//build up subquery against the flattened index table
-				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnMaterlization()
-				QuerySpecification subquery = TableQueryParser.parserQuery("SELECT ")
+				String translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
+				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnMaterlization(idAndVersion, columnModel);
+				try {
+					QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
+							" FROM " + columnFlattenedIndexTable +
+							" WHERE " + translatedColumnName +
+							" IN (" + arrayHasPredicate.getInPredicateValue().toSql() + ")");
+					//replace with "IN" predicate containing the subquery
+					Predicate replacementPredicate = new Predicate(new InPredicate(
+							SqlElementUntils.createColumnReference(ROW_ID),
+							arrayHasPredicate.getNot(),
+							new InPredicateValue(subquery)));
 
+					booleanPrimary.replacePredicate(replacementPredicate);
+				}catch (ParseException e){
+					throw new IllegalArgumentException(e);
+				}
 			}
 		}
 	}
