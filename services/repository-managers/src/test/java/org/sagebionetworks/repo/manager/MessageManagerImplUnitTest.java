@@ -6,9 +6,11 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -23,11 +25,16 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -46,6 +53,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -57,13 +65,14 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.SerializationUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import com.google.common.collect.ImmutableList;
 
-
+@ExtendWith(MockitoExtension.class)
+// This test is too complicated to refactor for the time being
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class MessageManagerImplUnitTest {
-	private MessageManagerImpl messageManager;
 	@Mock
 	private UserManager userManager;
 	@Mock
@@ -90,6 +99,11 @@ public class MessageManagerImplUnitTest {
 	private SynapseEmailService sesClient;
 	@Mock
 	private FileHandleManager fileHandleManager;
+	@Mock
+	private EmailQuarantineDao mockEmailQuarantineDao;
+	
+	@InjectMocks
+	private MessageManagerImpl messageManager;
 	
 	private MessageToUser mtu;
 	private FileHandle fileHandle;
@@ -107,25 +121,8 @@ public class MessageManagerImplUnitTest {
 	private PrincipalAlias recipientUsernameAlias = null;
 	private PrincipalAlias recipientEmailAlias = null;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		
-		messageManager = new MessageManagerImpl();
-		ReflectionTestUtils.setField(messageManager, "messageDAO", messageDAO);
-		ReflectionTestUtils.setField(messageManager, "userGroupDAO", userGroupDAO);
-		ReflectionTestUtils.setField(messageManager, "groupMembersDAO", groupMembersDao);
-		ReflectionTestUtils.setField(messageManager, "userManager", userManager);
-		ReflectionTestUtils.setField(messageManager, "userProfileManager", userProfileManager);
-		ReflectionTestUtils.setField(messageManager, "notificationEmailDao", notificationEmailDao);
-		ReflectionTestUtils.setField(messageManager, "principalAliasDAO", principalAliasDAO);
-		ReflectionTestUtils.setField(messageManager, "authorizationManager", authorizationManager);
-		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileHandleDAO);
-		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
-		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
-		ReflectionTestUtils.setField(messageManager, "sesClient", sesClient);
-		ReflectionTestUtils.setField(messageManager, "fileHandleManager", fileHandleManager);
-		
 		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
 		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
 		
@@ -145,7 +142,7 @@ public class MessageManagerImplUnitTest {
 		
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(creatorUserInfo);
 		
-		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn(CREATOR_EMAIL);
+		lenient().when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn(CREATOR_EMAIL);
 		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
 		
 		{
@@ -200,26 +197,34 @@ public class MessageManagerImplUnitTest {
 
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateMessageWithoutUser() {
-		messageManager.createMessage(null, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
+			messageManager.createMessage(null, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateMessageWithoutMessage() {
-		messageManager.createMessage(creatorUserInfo, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			messageManager.createMessage(creatorUserInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateMessageWithoutRecipients() {
-		messageManager.createMessage(creatorUserInfo, new MessageToUser());
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
+			messageManager.createMessage(creatorUserInfo, new MessageToUser());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateMessageWithEmptyRecipients() {
 		MessageToUser messageToUser = new MessageToUser();
 		messageToUser.setRecipients(new HashSet<String>());
-		messageManager.createMessage(creatorUserInfo, messageToUser);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			messageManager.createMessage(creatorUserInfo, messageToUser);
+		});		
 	}
 	
 	@Test
@@ -400,6 +405,22 @@ public class MessageManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testSendNewPasswordResetEmailWithQuarantinedAddress() throws Exception {
+		
+		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
+		
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		
+		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
+		verifyZeroInteractions(sesClient);
+	}
+	
+	@Test
 	public void testSendNewPasswordResetEmailWithEmailAlias() throws Exception {
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(RECIPIENT_ID));
@@ -420,7 +441,7 @@ public class MessageManagerImplUnitTest {
 		assertTrue(body.contains("Please follow the link below to set your password."));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testSendNewPassowrdResetEmailWithMismatchedEmailAlias() throws Exception {
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(RECIPIENT_ID));
@@ -432,17 +453,20 @@ public class MessageManagerImplUnitTest {
 		recipientEmailAlias.setPrincipalId(RECIPIENT_ID + 1);
 		recipientEmailAlias.setType(AliasType.USER_EMAIL);
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
+		});
 	}
 
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testSendNewPasswordResetEmail_DisallowedSnapsePrefix() throws Exception{
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(RECIPIENT_ID));
 		String synapsePrefix = "https://NOTsynapse.org/";
-
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		});
 	}
 	
 	@Test
@@ -477,12 +501,14 @@ public class MessageManagerImplUnitTest {
 		assertEquals(expectedUrl, resetUrl);
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPasswordResetUrlWithMalformedUrl() {
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(RECIPIENT_ID));
 		String synapsePrefix = "https://malformedSynapse.org/";
-		messageManager.getPasswordResetUrl(synapsePrefix, token);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
+			messageManager.getPasswordResetUrl(synapsePrefix, token);
+		});
 	}
 	
 	@Test
@@ -498,6 +524,17 @@ public class MessageManagerImplUnitTest {
 				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.contains("Your password for your Synapse account has been changed."));
+	}
+	
+	@Test
+	public void testSendPasswordChangeConfirmationEmailWithQuarantinedAddress() throws Exception {
+		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
+		
+		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		
+		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
+		verifyZeroInteractions(sesClient);
+
 	}
 
 
@@ -516,6 +553,19 @@ public class MessageManagerImplUnitTest {
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.indexOf("The following errors were experienced while delivering message")>=0);
 		assertTrue(body.indexOf(mtu.getSubject())>=0);
+	}
+	
+	@Test
+	public void testSendDeliveryFailureEmailWithQuarantinedAddress() throws Exception {
+		
+		when(mockEmailQuarantineDao.isQuarantined(CREATOR_EMAIL)).thenReturn(true);
+		
+		List<String> errors = new ArrayList<String>();
+		
+		messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
+		
+		verify(mockEmailQuarantineDao).isQuarantined(CREATOR_EMAIL);
+		verifyZeroInteractions(sesClient);
 	}
 	
 	@Test
@@ -551,6 +601,23 @@ public class MessageManagerImplUnitTest {
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
+	}
+	
+	@Test
+	public void testSendMessageWithQuarantinedAddress() throws Exception {
+		fileHandle.setContentType("text/plain");
+		
+		String messageBody = "message body";
+		
+		when(fileHandleManager.downloadFileToString(FILE_HANDLE_ID)).thenReturn(messageBody);
+		when(fileHandleDAO.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
+		
+		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
+		
+		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
+		assertEquals(ImmutableList.of("Cannot send message to quarantined address: " + RECIPIENT_EMAIL), errors);
+		verifyZeroInteractions(sesClient);
 	}
 
 	@Test
