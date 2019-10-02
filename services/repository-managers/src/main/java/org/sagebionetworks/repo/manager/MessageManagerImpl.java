@@ -58,12 +58,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
-@Service
 public class MessageManagerImpl implements MessageManager {
 
 	private static final Logger LOG = LogManager.getLogger(MessageManagerImpl.class);
