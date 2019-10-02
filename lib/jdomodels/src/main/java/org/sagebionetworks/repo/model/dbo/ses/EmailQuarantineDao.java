@@ -57,6 +57,15 @@ public interface EmailQuarantineDao {
 	Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck);
 
 	/**
+	 * Checks whether the given email address is currently quarantined, if the email is in quarantine but the quarantine is
+	 * expired returns false
+	 * 
+	 * @param email The email to lookup
+	 * @return True if the email is currently quarantined and the quarantine is not expired
+	 */
+	boolean isQuarantined(String email);
+
+	/**
 	 * Clear the quarantine
 	 */
 	void clearAll();

@@ -121,7 +121,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	@Override
 	@WriteTransaction
 	public boolean removeFromQuarantine(String email) {
-		ValidateArgument.requiredNotBlank(email, "The email");
+		validateInputEmail(email);
 
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
 
@@ -134,15 +134,16 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	public Optional<QuarantinedEmail> getQuarantinedEmail(String email) {
 		return getQuarantinedEmail(email, true);
 	}
-	
+
 	@Override
 	public Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck) {
-		ValidateArgument.requiredNotBlank(email, "The email");
+		validateInputEmail(email);
 
-		StringBuilder sql = new StringBuilder("SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
-		
+		StringBuilder sql = new StringBuilder(
+				"SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
+
 		if (expirationCheck) {
-			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON +" IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())");
+			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())");
 		}
 
 		return jdbcTemplate.query(sql.toString(), rs -> {
@@ -154,9 +155,23 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	}
 
 	@Override
+	public boolean isQuarantined(String email) {
+		validateInputEmail(email);
+
+		String sql = "SELECT COUNT(*) FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ? AND ("
+				+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())";
+
+		return jdbcTemplate.queryForObject(sql, Long.class, email) > 0;
+	}
+
+	@Override
 	public void clearAll() {
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS;
 		jdbcTemplate.update(sql);
+	}
+
+	private void validateInputEmail(String email) {
+		ValidateArgument.requiredNotBlank(email, "The email address");
 	}
 
 	private void validateExpirationTimeout(Long expirationTimeout) {
