@@ -13,17 +13,6 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 public interface EmailQuarantineDao {
 
 	/**
-	 * Adds the email address in the given DTO to the quarantine. If the email is already quarantined updates the reason,
-	 * the sesMessageId and the expiration
-	 * 
-	 * @param quarantinedEmail  The quarantined email to save to the database
-	 * @param expirationTimeout The optional expiration timeout (ms) for the quarantine, if null and the quarantine exists
-	 *                          removes the expiration
-	 * @return The created or updated quarantined record
-	 */
-	QuarantinedEmail addToQuarantine(QuarantinedEmail quarantinedEmail, Long expirationTimeout);
-
-	/**
 	 * Save the given batch to the database
 	 * 
 	 * @param batch The batch to be saved to the database
