@@ -1451,7 +1451,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// capture the results of the stream
-		SimpleCSVWriterStream stream = new SimpleCSVWriterStream();
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
 		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, stream);
 		List<String[]> rows = stream.getRows();
@@ -1468,7 +1468,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = new HashSet<>();
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// capture the results of the stream
-		SimpleCSVWriterStream stream = new SimpleCSVWriterStream();
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), ViewTypeMask.File.getMask(), scope,

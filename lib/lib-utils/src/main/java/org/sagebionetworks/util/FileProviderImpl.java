@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 
 /**
  * Simple wrapper for static file calls.
@@ -37,6 +40,11 @@ public class FileProviderImpl implements FileProvider {
 	@Override
 	public FileInputStream createFileInputStream(File file) throws FileNotFoundException {
 		return new FileInputStream(file);
+	}
+
+	@Override
+	public Writer createFileWriter(File file, String charsetName) throws FileNotFoundException, UnsupportedEncodingException {
+		return new OutputStreamWriter(new FileOutputStream(file), charsetName);
 	}
 
 }

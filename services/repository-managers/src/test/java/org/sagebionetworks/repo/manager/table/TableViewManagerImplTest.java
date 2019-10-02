@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -7,15 +8,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -26,9 +32,13 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -41,6 +51,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -48,12 +60,16 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -78,6 +94,20 @@ public class TableViewManagerImplTest {
 	TableIndexConnectionFactory mockConnectionFactory;
 	@Mock
 	TableIndexManager mockIndexManager;
+	@Mock
+	FileProvider mockFileProvider;
+	@Mock
+	SynapseS3Client mockS3Client;
+	@Mock
+	StackConfiguration mockConfig;
+	@Mock
+	ViewSnapshotDao mockViewSnapshotDao;
+	@Mock
+	File mockFile;
+	@Captor
+	ArgumentCaptor<PutObjectRequest> putRequestCaptor;
+	@Captor
+	ArgumentCaptor<ViewSnapshot> snapshotCaptor;
 	
 	@InjectMocks
 	TableViewManagerImpl manager;
@@ -101,6 +131,7 @@ public class TableViewManagerImplTest {
 	ColumnModel anno2;
 	ColumnModel dateColumn;
 	SparseRowDto row;
+	SnapshotRequest snapshotOptions;
 	
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
@@ -162,6 +193,9 @@ public class TableViewManagerImplTest {
 		row = new SparseRowDto();
 		row.setRowId(111L);
 		row.setValues(values);
+		
+		snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("a comment");
 	}
 	
 	@Test
@@ -637,5 +671,121 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3() throws IOException {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
+		String bucket = "snapshot.bucket";
+		when(mockConfig.getViewSnapshotBucket()).thenReturn(bucket);
+		
+		// call under test
+		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		
+		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
+		verify(mockFileProvider).createFileWriter(mockFile, "UTF-8");
+		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
+		assertNotNull(bucketAndKey);
+		verify(mockS3Client).putObject(putRequestCaptor.capture());
+		PutObjectRequest putRequest = putRequestCaptor.getValue();
+		assertNotNull(putRequest);
+		assertEquals(bucket, putRequest.getBucketName());
+		assertNotNull(putRequest.getKey());
+		assertTrue(putRequest.getKey().startsWith(""+idAndVersion.getId()));
+		assertEquals(mockFile, putRequest.getFile());
+		verify(mockFile).delete();
+		assertEquals(bucket, bucketAndKey.getBucket());
+		assertEquals(putRequest.getKey(), bucketAndKey.getKey());
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3Error() throws IOException {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		UnsupportedEncodingException exception = new UnsupportedEncodingException("no");
+		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, "UTF-8");
+	
+		Throwable cause = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		}).getCause();
+		assertEquals(exception, cause);
+		
+		verify(mockIndexManager, never()).createViewSnapshot(anyLong(), anyLong(), any(), any(), any(CSVWriterStream.class));
+		// the temp file must be deleted even if there is an error
+		verify(mockFile).delete();	
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullId() throws IOException {
+		idAndVersion = null;
+		assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullViewType() throws IOException {
+		viewType = null;
+		assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullSchema() throws IOException {
+		viewSchema = null;
+		assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullScope() throws IOException {
+		scopeIds = null;
+		assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateSnapshot() throws IOException {
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewType);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
+		String bucket = "snapshot.bucket";
+		when(mockConfig.getViewSnapshotBucket()).thenReturn(bucket);
+		long snapshotVersion = 12L;
+		when(mockNodeManager.createSnapshotAndVersion(userInfo, viewId, snapshotOptions)).thenReturn(snapshotVersion);
+		
+		// call under test
+		long result = manager.createSnapshot(userInfo, viewId, snapshotOptions);
+		assertEquals(snapshotVersion, result);
+		
+		IdAndVersion expectedIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
+				.setVersion(snapshotVersion).build();
+		verify(mockColumnModelManager).bindDefaultColumnsToObjectVersion(expectedIdAndVersion);
+		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
+		ViewSnapshot snapshot = snapshotCaptor.getValue();
+		assertNotNull(snapshot);
+		assertEquals(bucket, snapshot.getBucket());
+		assertNotNull(snapshot.getKey());
+		assertTrue(snapshot.getKey().startsWith(""+idAndVersion.getId()));
+		assertEquals(userInfo.getId(), snapshot.getCreatedBy());
+		assertNotNull(snapshot.getCreatedOn());
+		assertEquals(snapshotVersion, snapshot.getVersion());
+		assertEquals(idAndVersion.getId(), snapshot.getViewId());
+		
 	}
 }

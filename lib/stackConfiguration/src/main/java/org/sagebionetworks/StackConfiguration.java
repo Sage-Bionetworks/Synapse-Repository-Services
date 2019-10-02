@@ -802,4 +802,10 @@ public interface StackConfiguration {
 	 */
 	public int getMaximumMonthsForMonthlyStatistics();
 
+	/**
+	 * S3 bucket for view snapshots.
+	 * @return
+	 */
+	public String getViewSnapshotBucket();
+
 }

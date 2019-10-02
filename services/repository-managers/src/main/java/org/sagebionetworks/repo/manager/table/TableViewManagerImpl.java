@@ -1,11 +1,19 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
@@ -14,6 +22,8 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -28,8 +38,14 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
@@ -62,6 +78,14 @@ public class TableViewManagerImpl implements TableViewManager {
 	ReplicationManager replicationManager;
 	@Autowired
 	TableIndexConnectionFactory connectionFactory;
+	@Autowired
+	FileProvider fileProvider;
+	@Autowired
+	SynapseS3Client s3Client;
+	@Autowired
+	StackConfiguration config;
+	@Autowired
+	ViewSnapshotDao viewSnapshotDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -281,18 +305,17 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.deleteTableIndex(idAndVersion);
 			// Need the MD5 for the original schema.
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
-			List<ColumnModel> expandedSchema = getViewSchema(idAndVersion);
+			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 			
 			// Get the containers for this view.
 			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
 
 			// create the table in the index.
 			boolean isTableView = true;
-			indexManager.setIndexSchema(idAndVersion, isTableView, expandedSchema);
+			indexManager.setIndexSchema(idAndVersion, isTableView, viewSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
-			Long viewCRC = indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, allContainersInScope, expandedSchema);
+			Long viewCRC = indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, allContainersInScope, viewSchema);
 			// now that table is created and populated the indices on the table can be optimized.
 			indexManager.optimizeTableIndices(idAndVersion);
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
@@ -306,9 +329,70 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 	}
 	
+	/**
+	 * Create a view snapshot file and upload it to S3.
+	 * @param idAndVersion
+	 * @param viewTypeMask
+	 * @param viewSchema
+	 * @param allContainersInScope
+	 * @return
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 * @throws UnsupportedEncodingException
+	 */
+	BucketAndKey createViewSnapshotAndUploadToS3(IdAndVersion idAndVersion, Long viewTypeMask,
+			List<ColumnModel> viewSchema, Set<Long> allContainersInScope) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(viewSchema, "viewSchema");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+		try {
+			File tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
+			try {
+				// Stream view data from the replication database to a local CSV file.
+				try (CSVWriter writer = new CSVWriter(fileProvider.createFileWriter(tempFile, "UTF-8"))) {
+					// write the snapshot to the temp file.
+					indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope,
+							viewSchema, (String[] nextLine) -> {
+								writer.writeNext(nextLine);
+							});
+				}
+				// upload the resulting CSV to S3.
+				String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString();
+				String bucket = config.getViewSnapshotBucket();
+				s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
+				return new BucketAndKey().withBucket(bucket).withtKey(key);
+			} finally {
+				// unconditionally delete the temporary file.
+				tempFile.delete();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@WriteTransaction
 	@Override
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions) {
-
-		return 0;
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+		BucketAndKey bucketAndKey = createViewSnapshotAndUploadToS3(idAndVersion, viewTypeMask, viewSchema,
+				allContainersInScope);
+		// create a new version
+		long snapshotVersion = nodeManager.createSnapshotAndVersion(userInfo, tableId, snapshotOptions);
+		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
+				.setVersion(snapshotVersion).build();
+		// bind the current schema to the version
+		columModelManager.bindDefaultColumnsToObjectVersion(resultingIdAndVersion);
+		// save the snapshot data.
+		viewSnapshotDao.createSnapshot(new ViewSnapshot().withBucket(bucketAndKey.getBucket())
+				.withKey(bucketAndKey.getKey()).withCreatedBy(userInfo.getId()).withCreatedOn(new Date())
+				.withVersion(snapshotVersion).withViewId(idAndVersion.getId()));
+		return snapshotVersion;
 	}
+
 }

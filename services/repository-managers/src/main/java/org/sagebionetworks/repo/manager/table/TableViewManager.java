@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -90,6 +91,7 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @param snapshotOptions
 	 * @return
+	 * @throws IOException 
 	 */
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
 
