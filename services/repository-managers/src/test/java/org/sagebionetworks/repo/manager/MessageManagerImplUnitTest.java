@@ -379,21 +379,6 @@ public class MessageManagerImplUnitTest {
 	}
 
 	@Test
-	public void testWelcomeEmail() throws Exception{
-		messageManager.sendWelcomeEmail(RECIPIENT_ID, UNSUBSCRIBE_ENDPOINT);
-		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
-		verify(sesClient).sendRawEmail(argument.capture());
-		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
-		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
-		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
-		assertTrue(body.indexOf("Welcome to Synapse!")>=0);
-	}
-
-	@Test
 	public void testSendNewPasswordResetEmail() throws Exception{
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		token.setUserId(Long.toString(RECIPIENT_ID));

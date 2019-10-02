@@ -124,11 +124,6 @@ public interface MessageManager {
 	 * @param userId
 	 */
 	public void sendPasswordChangeConfirmationEmail(long userId);
-
-	/**
-	 * Sends a welcome email based on a template via Amazon SES
-	 */
-	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException;
 	
 	/**
 	 * Sends a delivery failure notification based on a template

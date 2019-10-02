@@ -86,8 +86,6 @@ public class MessageManagerImpl implements MessageManager {
 	// Message templates
 	private static final String MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION = "message/PasswordChangeConfirmationTemplate.txt";
 
-	private static final String MESSAGE_TEMPLATE_WELCOME = "message/WelcomeTemplate.txt";
-
 	private static final String MESSAGE_TEMPLATE_DELIVERY_FAILURE = "message/DeliveryFailureTemplate.txt";
 
 	private static final String MESSAGE_TEMPLATE_PASSWORD_RESET = "message/PasswordResetTemplate.txt";
@@ -680,30 +678,6 @@ public class MessageManagerImpl implements MessageManager {
 				.withSenderUserName(alias)
 				.withSenderDisplayName(displayName)
 				.withUserId(Long.toString(userId))
-				.withIsNotificationMessage(true)
-				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException {
-		String subject = "Welcome to Synapse!";
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
-		
-		String alias = principalAliasDAO.getUserName(recipientId);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
-		
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_WELCOME, fieldValues);
-		String email = getEmailForUser(recipientId);
-		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-				.withRecipientEmail(email)
-				.withSubject(subject)
-				.withBody(messageBody, BodyType.PLAIN_TEXT)
-				.withUserId(recipientId.toString())
-				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
 				.withIsNotificationMessage(true)
 				.build();
 		sesClient.sendRawEmail(sendEmailRequest);
