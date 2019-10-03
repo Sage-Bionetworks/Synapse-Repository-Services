@@ -744,7 +744,9 @@ public class TableModelUtils {
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
-	
+//TODO: for lists String: counts as 4 * 100 * maxSize
+	//TODO: for double 23 * 100, where 23 is double.max.tostring.getbytes
+	//TODO: 100 is max size of list
 	
 	/**
 	 * Calculate the amount of memory needed load the given row.

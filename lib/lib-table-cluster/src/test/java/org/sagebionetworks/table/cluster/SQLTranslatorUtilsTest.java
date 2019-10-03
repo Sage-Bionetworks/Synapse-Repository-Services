@@ -1329,6 +1329,33 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( `one`, `two` )",element.toSql());
 	}
+
+	@Test
+	public void testTranslateValueInNoQuotes() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in(1, 2)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( 1, 2)",element.toSql());
+	}
+
+	@Test
+	public void testTranslateValueInSingleQuotes() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( 1, 2)",element.toSql());
+	}
+
+	@Test
+	public void testTranslateModel_HASKeyword() throws ParseException {
+		columnFoo.setIsList(true);
+		columnBar.setIsList(true);
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where foo has (1,2,3) and ( bar has ('yeet') or id = 42)").querySpecification();
+		Map<String, Object> parameters = new HashMap<>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		//TODO: fix bind variables for subquery
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( 1, 2, 3 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C333_ WHERE _C333_ IN ( `yeet` ) ) OR _C444_ = :b0 )",element.toSql());
+	}
 	
 	@Test
 	public void testGetColumnTypeInfoArray(){
