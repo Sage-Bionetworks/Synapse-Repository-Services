@@ -467,7 +467,8 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// TODO don't allow OTHER_USER_PROJECTS or TEAM_PROJECTS
+		if (type==ProjectListType.OTHER_USER_PROJECTS) throw new IllegalArgumentException(ProjectListType.OTHER_USER_PROJECTS+" is not allowed.");
+		if (type==ProjectListType.TEAM_PROJECTS) throw new IllegalArgumentException(ProjectListType.TEAM_PROJECTS+" is not allowed.");
 		return serviceProvider.getUserProfileService().getProjects(userId, null, null, type, sortColumn, sortDirection, limit, offset);
 	}
 
