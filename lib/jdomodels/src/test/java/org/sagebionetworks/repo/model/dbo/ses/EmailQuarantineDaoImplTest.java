@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,7 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,131 +42,6 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	@Test
-	public void testAddToQuarantineWithInvalidTimeout() {
-		String email = testEmail;
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
-		Long timeout = 0L;
-
-		QuarantinedEmail quarantinedEmail = new QuarantinedEmail(email, reason);
-
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			dao.addToQuarantine(quarantinedEmail, timeout);
-		});
-
-		Long negativeTimeout = -1L;
-
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			dao.addToQuarantine(quarantinedEmail, negativeTimeout);
-		});
-	}
-
-	@Test
-	public void testAddToQuarantineWithNoMessageId() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-		expected.withSesMessageId(null);
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, defaultTimeout);
-
-		expected.withCreatedOn(result.getCreatedOn());
-		expected.withUpdatedOn(result.getUpdatedOn());
-		expected.withExpiresOn(result.getExpiresOn());
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testAddToQuarantineWithExpiration() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, defaultTimeout);
-
-		expected.withCreatedOn(result.getCreatedOn());
-		expected.withUpdatedOn(result.getUpdatedOn());
-		expected.withExpiresOn(result.getUpdatedOn().plusMillis(defaultTimeout));
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testAddToQuarantineWithNoExpiration() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, null);
-
-		expected.withCreatedOn(result.getCreatedOn());
-		expected.withUpdatedOn(result.getUpdatedOn());
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testAddToQuarantineRemovingExpiration() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		QuarantinedEmail result = dao.addToQuarantine(expected, defaultTimeout);
-
-		assertNotNull(result.getExpiresOn());
-
-		// Call under test
-		result = dao.addToQuarantine(expected, null);
-
-		assertNull(result.getExpiresOn());
-	}
-
-	@Test
-	public void testAddToQuarantineAddingExpiration() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, null);
-
-		assertNull(result.getExpiresOn());
-
-		result = dao.addToQuarantine(expected, defaultTimeout);
-
-		assertNotNull(result.getExpiresOn());
-	}
-
-	@Test
-	public void testAddToQuarantineUpdatingExpiration() throws Exception {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, defaultTimeout);
-
-		Instant expiresOn = result.getExpiresOn();
-
-		Thread.sleep(100);
-
-		result = dao.addToQuarantine(expected, defaultTimeout);
-
-		assertTrue(result.getExpiresOn().isAfter(expiresOn));
-	}
-
-	@Test
-	public void testAddToQuarantineRefreshUpdatedOn() throws Exception {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		// Call under test
-		QuarantinedEmail result = dao.addToQuarantine(expected, defaultTimeout);
-
-		Instant createdOn = result.getCreatedOn();
-		Instant updatedOn = result.getUpdatedOn();
-
-		Thread.sleep(100);
-
-		result = dao.addToQuarantine(expected, defaultTimeout);
-
-		assertEquals(createdOn, result.getCreatedOn());
-		assertTrue(result.getUpdatedOn().isAfter(updatedOn));
-	}
-
-	@Test
 	public void addToQuarantineBatchEmpty() {
 		// Call under test
 		dao.addToQuarantine(QuarantinedEmailBatch.EMPTY_BATCH);
@@ -176,9 +49,8 @@ public class EmailQuarantineDaoImplTest {
 
 	@Test
 	public void addToQuarantineBatchWithNoExpiration() {
-		QuarantinedEmailBatch batch = new QuarantinedEmailBatch();
-
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.add(new QuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE));
 
 		// Call under test
 		dao.addToQuarantine(batch);
@@ -192,12 +64,50 @@ public class EmailQuarantineDaoImplTest {
 
 		assertEquals(expected, result);
 	}
+	
+	@Test
+	public void addToQuarantineWithReasonDetails() {
+		QuarantinedEmail expected = getTestQuarantinedEmail()
+				.withReasonDetails("Some details");
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.add(expected);
+
+		// Call under test
+		dao.addToQuarantine(batch);
+
+		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail).get();
+
+		expected.withCreatedOn(result.getCreatedOn());
+		expected.withUpdatedOn(result.getUpdatedOn());
+
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void addToQuarantineWithoutMessageId() {
+		QuarantinedEmail expected = getTestQuarantinedEmail()
+				.withSesMessageId(null);
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.add(expected);
+
+		// Call under test
+		dao.addToQuarantine(batch);
+
+		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail).get();
+
+		expected.withCreatedOn(result.getCreatedOn());
+		expected.withUpdatedOn(result.getUpdatedOn());
+
+		assertEquals(expected, result);
+	}
 
 	@Test
 	public void addToQuarantineBatchWithExpiration() {
-		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withExpirationTimeout(defaultTimeout);
-
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout)
+				.add(new QuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE));
 
 		// Call under test
 		dao.addToQuarantine(batch);
@@ -215,13 +125,15 @@ public class EmailQuarantineDaoImplTest {
 
 	@Test
 	public void addToQuarantineBatchRemovingExpiration() {
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout)
+				.add(getTestQuarantinedEmail());
 
-		dao.addToQuarantine(getTestQuarantinedEmail(), defaultTimeout);
-
-		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withExpirationTimeout(null);
-
-		batch.add(new QuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE));
-
+		dao.addToQuarantine(batch);
+		
+		batch.withExpirationTimeout(null);
+		
 		// Call under test
 		dao.addToQuarantine(batch);
 
@@ -239,15 +151,16 @@ public class EmailQuarantineDaoImplTest {
 	@Test
 	public void addToQuarantineBatchRefreshingUpdatedOn() throws Exception {
 
-		QuarantinedEmail quarantinedEmail = dao.addToQuarantine(getTestQuarantinedEmail(), defaultTimeout);
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout)
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		QuarantinedEmail quarantinedEmail = dao.getQuarantinedEmail(testEmail).get();
 		
 		Instant createdOn = quarantinedEmail.getCreatedOn();
 		Instant updatedOn = quarantinedEmail.getUpdatedOn();
-
-		
-		QuarantinedEmailBatch batch = new QuarantinedEmailBatch().withExpirationTimeout(null);
-
-		batch.add(getTestQuarantinedEmail());
 		
 		Thread.sleep(100);
 
@@ -266,7 +179,7 @@ public class EmailQuarantineDaoImplTest {
 		
 		String email1 = testEmail;
 		String email2 = UUID.randomUUID() + testEmail;
-		QuarantineReason reason = QuarantineReason.PERMANENT_BOUNCE;
+		EmailQuarantineReason reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 
 		batch.add(getTestQuarantinedEmail(email1, reason));
 		batch.add(getTestQuarantinedEmail(email2, reason));
@@ -309,15 +222,14 @@ public class EmailQuarantineDaoImplTest {
 
 	@Test
 	public void testRemoveFromQuarantineWithExisting() {
-		QuarantinedEmail expected = getTestQuarantinedEmail();
-
-		dao.addToQuarantine(expected, defaultTimeout);
-
 		String toKeepEmail = System.currentTimeMillis() + testEmail;
-
-		QuarantinedEmail toKeep = getTestQuarantinedEmail(toKeepEmail, QuarantineReason.OTHER);
-
-		dao.addToQuarantine(toKeep, defaultTimeout);
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout)
+				.add(getTestQuarantinedEmail())
+				.add(getTestQuarantinedEmail(toKeepEmail, EmailQuarantineReason.OTHER));
+		
+		dao.addToQuarantine(batch);
 
 		// Call under test
 		boolean result = dao.removeFromQuarantine(testEmail);
@@ -347,42 +259,139 @@ public class EmailQuarantineDaoImplTest {
 	}
 
 	@Test
-	public void testGetQuarantineEmailWithNonExisting() {
+	public void testGetQuarantineEmailWithExisting() {
 
-		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, QuarantineReason.OTHER);
+		QuarantinedEmail expected = getTestQuarantinedEmail();
+		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, EmailQuarantineReason.OTHER);
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout);
 
-		dao.addToQuarantine(other, defaultTimeout);
+		batch.add(expected);
+		batch.add(other);
 
+		dao.addToQuarantine(batch);
+
+		// Call under test
+		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail).get();
+		
+		expected.withCreatedOn(result.getCreatedOn());
+		expected.withUpdatedOn(result.getUpdatedOn());
+		expected.withExpiresOn(result.getExpiresOn());
+
+		assertEquals(expected, result);
+
+	}
+	
+	@Test
+	public void testGetQuarantineEmailWithExpired() throws Exception {
+		Long timeout = 50L;
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(timeout)
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		Thread.sleep(1000);
+		
 		// Call under test
 		Optional<QuarantinedEmail> result = dao.getQuarantinedEmail(testEmail);
 
 		assertFalse(result.isPresent());
-
 	}
-
+	
 	@Test
-	public void testGetQuarantineEmailWithExisting() {
-
+	public void testGetQuarantineEmailWithNoExpiration() throws Exception {
 		QuarantinedEmail expected = getTestQuarantinedEmail();
-		QuarantinedEmail other = getTestQuarantinedEmail(System.currentTimeMillis() + testEmail, QuarantineReason.OTHER);
-
-		dao.addToQuarantine(other, defaultTimeout);
-
-		expected = dao.addToQuarantine(expected, defaultTimeout);
-
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
 		// Call under test
-		Optional<QuarantinedEmail> result = dao.getQuarantinedEmail(testEmail);
+		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail).get();
 
-		assertEquals(expected, result.get());
-
+		expected.withCreatedOn(result.getCreatedOn());
+		expected.withUpdatedOn(result.getUpdatedOn());
+		expected.withExpiresOn(result.getExpiresOn());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetQuarantineEmailWithoutExpirationCheck() throws Exception {
+		QuarantinedEmail expected = getTestQuarantinedEmail();
+		Long timeout = 50L;
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(timeout)
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		Thread.sleep(1000);
+		
+		// Call under test
+		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail, false).get();
+		
+		expected.withCreatedOn(result.getCreatedOn());
+		expected.withUpdatedOn(result.getUpdatedOn());
+		expected.withExpiresOn(result.getExpiresOn());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testIsQuarantinedWithoutExpiration() {
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		// Call under test
+		
+		assertTrue(dao.isQuarantined(testEmail));
+	}
+	
+	@Test
+	public void testIsQuarantinedWithExpiration() {
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(defaultTimeout)
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		// Call under test
+		
+		assertTrue(dao.isQuarantined(testEmail));
+	}
+	
+	@Test
+	public void testIsQuarantinedWithExpirationExpired() throws Exception {
+		Long timeout = 50L;
+		
+		QuarantinedEmailBatch batch = new QuarantinedEmailBatch()
+				.withExpirationTimeout(timeout)
+				.add(getTestQuarantinedEmail());
+		
+		dao.addToQuarantine(batch);
+		
+		Thread.sleep(1000);
+		
+		// Call under test
+		
+		assertFalse(dao.isQuarantined(testEmail));
 	}
 
 	private QuarantinedEmail getTestQuarantinedEmail() {
-		return getTestQuarantinedEmail(testEmail, QuarantineReason.PERMANENT_BOUNCE);
+		return getTestQuarantinedEmail(testEmail, EmailQuarantineReason.PERMANENT_BOUNCE);
 	}
 
-	private QuarantinedEmail getTestQuarantinedEmail(String email, QuarantineReason reason) {
-		return new QuarantinedEmail(email, reason).withSesMessageId(sesMessageId);
+	private QuarantinedEmail getTestQuarantinedEmail(String email, EmailQuarantineReason reason) {
+		return new QuarantinedEmail(email, reason)
+				.withSesMessageId(sesMessageId);
 	}
 
 }

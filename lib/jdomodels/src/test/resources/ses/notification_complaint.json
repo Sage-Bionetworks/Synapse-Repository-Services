@@ -1,0 +1,23 @@
+{ 
+  "notificationType":"Complaint",
+  "mail":{ 
+    "timestamp":"2018-10-08T14:05:45 +0000",
+    "messageId":"000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000001",
+    "source":"sender@example.com",
+    "destination":[ 
+      "recipient@example.com"
+    ]
+  },
+  "complaint":{ 
+    "userAgent":"AnyCompany Feedback Loop (V0.01)",
+    "complainedRecipients":[ 
+      { 
+        "emailAddress":"recipient1@example.com"
+      }
+    ],
+    "complaintFeedbackType":"abuse",
+    "arrivalDate":"2009-12-03T04:24:21.000-05:00",
+    "timestamp":"2012-05-25T14:59:38.623Z",
+    "feedbackId":"000001378603177f-18c07c78-fa81-4a58-9dd1-fedc3cb8f49a-000000"
+  }
+}

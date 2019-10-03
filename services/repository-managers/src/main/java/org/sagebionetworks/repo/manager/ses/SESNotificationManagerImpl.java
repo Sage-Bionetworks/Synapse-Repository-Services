@@ -65,12 +65,7 @@ public class SESNotificationManagerImpl implements SESNotificationManager {
 		SESJsonNotification notification;
 
 		try {
-			// Extract the "Message" property value from the SQS message. SES sends the notification body
-			// within the message itself as a string value.
-			String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
-
-			notification = SESNotificationUtils.parseNotification(notificationBody);
-
+			notification = SESNotificationUtils.parseSQSMessage(messageBody);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}

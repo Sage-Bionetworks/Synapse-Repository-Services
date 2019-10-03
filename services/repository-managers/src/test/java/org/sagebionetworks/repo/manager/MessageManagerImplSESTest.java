@@ -3,18 +3,19 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
@@ -35,7 +37,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * Checks how the message manager handles sending emails to Amazon SES
@@ -44,7 +46,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * 
  * Note: This test, or something similar, may be used to test the automation of bound/complaint message processing
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageManagerImplSESTest {
 	
@@ -60,24 +62,52 @@ public class MessageManagerImplSESTest {
 	private static final String FILE_HANDLE_ID_PLAIN_TEXT = "10101";
 	private static final String FILE_HANDLE_ID_HTML = "20202";
 
-	private MessageManager messageManager;
-
+	@Mock
 	private MessageDAO mockMessageDAO;
+	
+	@Mock
 	private UserGroupDAO mockUserGroupDAO;
+	
+	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
+	
+	@Mock
 	private UserManager mockUserManager;
+	
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	
+	@Mock
 	private NotificationEmailDAO mockNotificationEmailDao;
+	
+	@Mock
+	private EmailQuarantineDao mockEmailQuarantineDao;
+	
+	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
+	
+	@Mock
 	private FileHandleManager mockFileHandleManager;
+	
+	@Mock
 	private NodeDAO mockNodeDAO;
+	
+	@Mock
 	private EntityPermissionsManager mockEntityPermissionsManager;
+	
+	@Mock
 	private FileHandleDao mockFileHandleDao;
+	
+	@Mock
 	private ProgressCallback mockProgressCallback;
 	
 	@Autowired
 	private SynapseEmailService synapseEmailService;
+	
+	private MessageManager messageManager;
 	
 	private MessageToUser mockMessageToUser;
 	private UserInfo mockUserInfo;
@@ -99,27 +129,16 @@ public class MessageManagerImplSESTest {
 	 */
 	private PrincipalAlias mockRecipientPrincipalAlias;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		mockMessageDAO = mock(MessageDAO.class);
-		mockUserGroupDAO  = mock(UserGroupDAO.class);
-		mockGroupMembersDAO = mock(GroupMembersDAO.class);
-		mockUserManager = mock(UserManager.class);
-		mockUserProfileManager = mock(UserProfileManager.class);
-		mockNotificationEmailDao = mock(NotificationEmailDAO.class);
-		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
-		mockAuthorizationManager = mock(AuthorizationManager.class);
-		mockFileHandleManager = mock(FileHandleManager.class);
-		mockNodeDAO = mock(NodeDAO.class);
-		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
-		mockFileHandleDao = mock(FileHandleDao.class);
+		MockitoAnnotations.initMocks(this);
 		
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileManager, mockNotificationEmailDao, mockPrincipalAliasDAO, 
 				mockAuthorizationManager, synapseEmailService,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
-				mockFileHandleDao);
+				mockFileHandleDao, mockEmailQuarantineDao);
 		
 		// The end goal of this mocking is to pass a single recipient through the authorization 
 		// and individual-ization checks within the MessageManager's sendMessage method.
@@ -188,7 +207,7 @@ public class MessageManagerImplSESTest {
 	/**
 	 * Use this test to visually check if messages are properly transmitted
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void testPlainTextToDeveloper() throws Exception {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
@@ -198,7 +217,7 @@ public class MessageManagerImplSESTest {
 	/**
 	 * Use this test to visually check if HTML messages are properly transmitted
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void testHTMLToDeveloper() throws Exception {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML, mockProgressCallback);

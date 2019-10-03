@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -81,13 +82,13 @@ public interface PrincipalService {
 	void setNotificationEmail(Long userId, String email) throws NotFoundException;
 
 	/**
-	 * Get the email address used for notification.  The address must already be
+	 * Get the email address used for notification along with its quarantine status if present.  The address must already be
 	 * registered as an alias for the given user.
 	 * 
 	 * @param userId
 	 * @return the email address
 	 */
-	Username getNotificationEmail(Long userId) throws NotFoundException;
+	NotificationEmail getNotificationEmail(Long userId) throws NotFoundException;
 
 	/**
 	 * Get the principal ID for a given alias and alias type

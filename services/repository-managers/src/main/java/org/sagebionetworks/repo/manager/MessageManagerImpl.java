@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -61,10 +62,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
-
 public class MessageManagerImpl implements MessageManager {
 
-	static private Logger log = LogManager.getLogger(MessageManagerImpl.class);
+	private static final Logger LOG = LogManager.getLogger(MessageManagerImpl.class);
 	
 	/**
 	 * The maximum number of messages a user can create within a given interval
@@ -86,58 +86,42 @@ public class MessageManagerImpl implements MessageManager {
 	// Message templates
 	private static final String MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION = "message/PasswordChangeConfirmationTemplate.txt";
 
-	private static final String MESSAGE_TEMPLATE_WELCOME = "message/WelcomeTemplate.txt";
-
 	private static final String MESSAGE_TEMPLATE_DELIVERY_FAILURE = "message/DeliveryFailureTemplate.txt";
 
 	private static final String MESSAGE_TEMPLATE_PASSWORD_RESET = "message/PasswordResetTemplate.txt";
 
 	private static final String MESSAGE_VALUE_ORIGIN_CLIENT = "Synapse";
 	
-	@Autowired
 	private MessageDAO messageDAO;
 	
-	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	@Autowired
 	private GroupMembersDAO groupMembersDAO;
 	
-	@Autowired
 	private UserManager userManager;
 	
-	@Autowired
 	private UserProfileManager userProfileManager;
 	
-	@Autowired
 	private NotificationEmailDAO notificationEmailDao;
 	
-	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
-	@Autowired
 	private AuthorizationManager authorizationManager;
 	
-	@Autowired
 	private SynapseEmailService sesClient;
 	
-	@Autowired
 	private FileHandleManager fileHandleManager;
 	
-	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
-	@Autowired
 	private NodeDAO nodeDAO;
 	
-	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
-	public MessageManagerImpl() { };
+	private EmailQuarantineDao emailQuarantineDao;
 	
-	/**
-	 * Used for testing
-	 */
+	// Note: This class has 14 dependencies, needs refactoring
+	@Autowired
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
 			UserProfileManager userProfileManager,
@@ -147,7 +131,8 @@ public class MessageManagerImpl implements MessageManager {
 			SynapseEmailService sesClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
 			EntityPermissionsManager entityPermissionsManager,
-			FileHandleDao fileHandleDao) {
+			FileHandleDao fileHandleDao,
+			EmailQuarantineDao emailQuarantineDao) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -161,6 +146,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.nodeDAO = nodeDAO;
 		this.entityPermissionsManager = entityPermissionsManager;
 		this.fileHandleDao = fileHandleDao;
+		this.emailQuarantineDao = emailQuarantineDao;
 	}
 	
 	@Override
@@ -479,6 +465,12 @@ public class MessageManagerImpl implements MessageManager {
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
 					String email = getEmailForUser(Long.parseLong(userId));
+					
+					if (emailQuarantineDao.isQuarantined(email)) {
+						errors.add("Cannot send message to quarantined address: " + email);
+						continue;
+					}
+					
 					SendRawEmailRequestBuilder.BodyType bodyType;
 					if (ContentType.APPLICATION_JSON.getMimeType().equals(mimeType)) {
 						bodyType = SendRawEmailRequestBuilder.BodyType.JSON;
@@ -523,7 +515,7 @@ public class MessageManagerImpl implements MessageManager {
 					}
 				}
 			} catch (Exception e) {
-				log.info("Error caught while processing message", e);
+				LOG.info("Error caught while processing message", e);
 				errors.add("Failed while processing message for recipient (" + userId + "): " + e.getMessage());
 			}
 		}
@@ -630,6 +622,11 @@ public class MessageManagerImpl implements MessageManager {
 
 		String resetUrl = getPasswordResetUrl(passwordResetUrlPrefix, passwordResetToken);
 		String email = getEmailForAlias(alias);
+		
+		if (emailQuarantineDao.isQuarantined(email)) {
+			logQuarantinedAddress("password reset email", email);
+			return;
+		}
 
 		String subject = "Reset Synapse Password";
 		Map<String, String> fieldValues = new HashMap<String, String>();
@@ -673,6 +670,12 @@ public class MessageManagerImpl implements MessageManager {
 
 		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION, fieldValues);
 		String email = getEmailForUser(userId);
+		
+		if (emailQuarantineDao.isQuarantined(email)) {
+			logQuarantinedAddress("password change confirmation", email);
+			return;
+		}
+		
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
@@ -682,30 +685,7 @@ public class MessageManagerImpl implements MessageManager {
 				.withUserId(Long.toString(userId))
 				.withIsNotificationMessage(true)
 				.build();
-		sesClient.sendRawEmail(sendEmailRequest);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException {
-		String subject = "Welcome to Synapse!";
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
 		
-		String alias = principalAliasDAO.getUserName(recipientId);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
-		
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_WELCOME, fieldValues);
-		String email = getEmailForUser(recipientId);
-		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-				.withRecipientEmail(email)
-				.withSubject(subject)
-				.withBody(messageBody, BodyType.PLAIN_TEXT)
-				.withUserId(recipientId.toString())
-				.withNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint)
-				.withIsNotificationMessage(true)
-				.build();
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
@@ -725,6 +705,12 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_MESSAGE_SUBJECT, dto.getSubject());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		String email = getEmailForUser(senderId);
+		
+		if (emailQuarantineDao.isQuarantined(email)) {
+			logQuarantinedAddress("delivery failure email", email);
+			return;
+		}
+		
 		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_DELIVERY_FAILURE, fieldValues);
 		
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -753,6 +739,10 @@ public class MessageManagerImpl implements MessageManager {
 		String resetUrl = passwordResetUrlPrefix + SerializationUtils.serializeAndHexEncode(passwordResetToken);
 		EmailUtils.validateSynapsePortalHost(resetUrl);
 		return resetUrl;
+	}
+	
+	private void logQuarantinedAddress(String messageType, String email) {
+		LOG.warn("Cannot send {} to quarantined address: {}", messageType, email);
 	}
 
 }

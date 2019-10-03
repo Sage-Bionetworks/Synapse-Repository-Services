@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -44,7 +44,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	// @formatter:off
 
 	private static QuarantinedEmail map(DBOQuarantinedEmail dbo) {
-		return new QuarantinedEmail(dbo.getEmail(), QuarantineReason.valueOf(dbo.getReason()))
+		return new QuarantinedEmail(dbo.getEmail(), EmailQuarantineReason.valueOf(dbo.getReason()))
 				.withCreatedOn(dbo.getCreatedOn().toInstant())
 				.withUpdatedOn(dbo.getUpdatedOn().toInstant())
 				.withExpiresOn(dbo.getExpiresOn() == null ? null : dbo.getExpiresOn().toInstant())
@@ -80,24 +80,8 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	@Override
 	@WriteTransaction
-	public QuarantinedEmail addToQuarantine(QuarantinedEmail quarantinedEmail, Long expirationTimeout) {
-		ValidateArgument.required(quarantinedEmail, "The quarantineEmail");
-		validateExpirationTimeout(expirationTimeout);
-
-		Instant now = Instant.now();
-
-		jdbcTemplate.update(SQL_INSERT, ps -> {
-			setPreparedStatementForInsert(ps, quarantinedEmail, now, expirationTimeout);
-		});
-
-		return getQuarantinedEmail(quarantinedEmail.getEmail()).get();
-	}
-
-	@Override
-	@WriteTransaction
 	public void addToQuarantine(QuarantinedEmailBatch batch) {
 		ValidateArgument.required(batch, "The batch");
-		validateExpirationTimeout(batch.getExpirationTimeout());
 
 		if (batch.isEmpty()) {
 			return;
@@ -107,7 +91,32 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				setPreparedStatementForInsert(ps, batch.get(i), Instant.now(), batch.getExpirationTimeout());
+				QuarantinedEmail dto = batch.get(i);
+				
+				String email = dto.getEmail().trim().toLowerCase();
+				String reason = dto.getReason().toString();
+				String reasonDetails = dto.getReasonDetails();
+				String messageId = dto.getSesMessageId();
+
+				Timestamp updatedOn = Timestamp.from(Instant.now());
+				Timestamp expiresOn = batch.getExpiration().map(Timestamp::from).orElse(null);
+
+				int index = 1;
+
+				// On create fields
+				ps.setString(index++, email);
+				ps.setTimestamp(index++, updatedOn);
+				ps.setTimestamp(index++, updatedOn);
+				ps.setTimestamp(index++, expiresOn);
+				ps.setString(index++, reason);
+				ps.setString(index++, reasonDetails);
+				ps.setString(index++, messageId);
+				// On update fields
+				ps.setTimestamp(index++, updatedOn);
+				ps.setTimestamp(index++, expiresOn);
+				ps.setString(index++, reason);
+				ps.setString(index++, reasonDetails);
+				ps.setString(index++, messageId);
 			}
 
 			@Override
@@ -121,7 +130,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	@Override
 	@WriteTransaction
 	public boolean removeFromQuarantine(String email) {
-		ValidateArgument.requiredNotBlank(email, "The email");
+		validateInputEmail(email);
 
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
 
@@ -132,11 +141,21 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	@Override
 	public Optional<QuarantinedEmail> getQuarantinedEmail(String email) {
-		ValidateArgument.requiredNotBlank(email, "The email");
+		return getQuarantinedEmail(email, true);
+	}
 
-		String sql = "SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?";
+	@Override
+	public Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck) {
+		validateInputEmail(email);
 
-		return jdbcTemplate.query(sql, rs -> {
+		StringBuilder sql = new StringBuilder(
+				"SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
+
+		if (expirationCheck) {
+			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())");
+		}
+
+		return jdbcTemplate.query(sql.toString(), rs -> {
 			if (rs.next()) {
 				return Optional.of(ROW_MAPPER.mapRow(rs, rs.getRow()));
 			}
@@ -145,44 +164,23 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	}
 
 	@Override
+	public boolean isQuarantined(String email) {
+		validateInputEmail(email);
+
+		String sql = "SELECT COUNT(*) FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ? AND ("
+				+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())";
+
+		return jdbcTemplate.queryForObject(sql, Long.class, email) > 0;
+	}
+
+	@Override
 	public void clearAll() {
 		String sql = "DELETE FROM " + TABLE_QUARANTINED_EMAILS;
 		jdbcTemplate.update(sql);
 	}
 
-	private void validateExpirationTimeout(Long expirationTimeout) {
-		if (expirationTimeout == null) {
-			return;
-		}
-		ValidateArgument.requirement(expirationTimeout > 0, "The expiration timeout must be greater than zero");
-	}
-
-	private void setPreparedStatementForInsert(PreparedStatement ps, QuarantinedEmail quarantinedEmail, Instant now, Long timeout)
-			throws SQLException {
-		String email = quarantinedEmail.getEmail().trim().toLowerCase();
-		String reason = quarantinedEmail.getReason().toString();
-		String reasonDetails = quarantinedEmail.getReasonDetails();
-		String messageId = quarantinedEmail.getSesMessageId();
-
-		Timestamp updatedOn = Timestamp.from(now);
-		Timestamp expiresOn = timeout == null ? null : Timestamp.from(now.plusMillis(timeout));
-
-		int index = 1;
-
-		// On create fields
-		ps.setString(index++, email);
-		ps.setTimestamp(index++, updatedOn);
-		ps.setTimestamp(index++, updatedOn);
-		ps.setTimestamp(index++, expiresOn);
-		ps.setString(index++, reason);
-		ps.setString(index++, reasonDetails);
-		ps.setString(index++, messageId);
-		// On update fields
-		ps.setTimestamp(index++, updatedOn);
-		ps.setTimestamp(index++, expiresOn);
-		ps.setString(index++, reason);
-		ps.setString(index++, reasonDetails);
-		ps.setString(index++, messageId);
+	private void validateInputEmail(String email) {
+		ValidateArgument.requiredNotBlank(email, "The email address");
 	}
 
 }
