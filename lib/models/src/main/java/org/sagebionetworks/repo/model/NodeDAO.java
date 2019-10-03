@@ -392,23 +392,33 @@ public interface NodeDAO {
 	 */
 	public String lockNode(String nodeId);
 
+	
 	/**
-	 * get a list of projects
 	 * 
-	 * @param userInfo
-	 * @param userToGetInfoFor user to get listing for
-	 * @param teamToFetch optional team to get the listing for
-	 * @param type type of list
-	 * @param sortColumn sort column
+	 * Return one page of ProjectHeader information, based on a (long) list of project IDs,
+	 * sorted according to the sortColumn and sortDirection param's.  The project metadata
+	 * includes when it was last accessed.
+	 * 
+	 * if type is MY_CREATED_PROJECTS then return only projects created by the given user.
+	 * if type is MY_PARTICIPATED_PROJECTS then return only projects NOT created by the given user.
+	 * 
+	 * @param userId user whose activity is to be returned
+	 * @param projectIds list of IDs to filter
+	 * @param type filter criterion
+	 * @param sortColumn sort criterion (last activity time or project name)
 	 * @param sortDirection sort direction
-	 * @param limit
-	 * @param offset
+	 * @param limit (>=0)
+	 * @param offset (>=0)
 	 * @return
 	 */
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
 			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
 
 
+	/**
+	 * Return the number of entities in Synapse
+	 * @return
+	 */
 	long getCount();
 
 	/**

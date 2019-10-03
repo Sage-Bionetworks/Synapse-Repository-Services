@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.PrefixConst;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 
@@ -944,8 +945,8 @@ public class UrlHelpers {
 	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
 
 	public static final String PROJECTS = "/projects/{type}";
-	public static final String PROJECTS_USER = PROJECTS + USER + "/{principalId}";
-	public static final String PROJECTS_TEAM = PROJECTS + TEAM + "/{teamId}";
+	public static final String PROJECTS_USER = "/projects/OTHER_USER_PROJECTS" + USER + "/{principalId}"; // TODO change to /projects/user/{principalId}
+	public static final String PROJECTS_TEAM = "/projects/TEAM_PROJECTS" + TEAM + "/{teamId}"; // TODO change to /projects/team/{teamId}
 	public static final String PROJECTS_SORT_PARAM = "sort";
 	public static final String PROJECTS_SORT_DIRECTION_PARAM = "sortDirection";
 

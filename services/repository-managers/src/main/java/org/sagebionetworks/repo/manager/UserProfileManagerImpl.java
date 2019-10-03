@@ -237,11 +237,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throw new NotImplementedException("project list type " + type
 					+ " not yet implemented");
 		}
-		// Find the projectIds accessible to the user-to-get-for.
+		// Find the projectIds accessible (READ access is granted) to the user-to-get-for.
 		Set<Long> userToGetAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(userToGetPrincipalIds);
 		Set<Long> projectIdsToFilterBy = null;
 		if (!caller.isAdmin()
-				&& !caller.getId().equals(userToGetInfoFor.getId())) {
+				&& !caller.getId().equals(userToGetInfoFor.getId())) { // Note, when type==TEAM_PROJECTS, then userToGetInfoFor=caller 
 			/*
 			 * The caller is not an administrator and the caller is not the same
 			 * as the user-to-get-for. Therefore, the return projects must only
@@ -259,6 +259,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			projectIdsToFilterBy = userToGetAccessibleProjectIds;
 		}
 		// run the query.
+		// TODO:  Should the following be caller.getId() or userToGetInfoFor.getId()?
 		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
 				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
 				offset);

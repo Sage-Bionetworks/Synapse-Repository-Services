@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -238,14 +239,18 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userToGetInfoFor = userInfo;
 
 		ValidateArgument.required(type, "type");
-
+		
 		// validate for different types of lists
 		switch (type) {
 		case OTHER_USER_PROJECTS:
 			ValidateArgument.required(otherUserId, "user");
+			if (teamId!=null) throw new IllegalArgumentException(
+					"Cannot specify team when type is 'OTHER_USER_PROJECTS'");
 			break;
 		case TEAM_PROJECTS:
 			ValidateArgument.required(teamId, "team");
+			if (otherUserId!=null) throw new IllegalArgumentException(
+						"Cannot specify user when type is 'TEAM_PROJECTS'");
 			break;
 		default:
 			break;

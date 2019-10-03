@@ -1470,7 +1470,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be at least 0");
 		if(projectIds.isEmpty()){
 			return new LinkedList<>();
 		}
@@ -1483,7 +1483,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
 		sqlBuilder.append(additionalCondition);
 		// order and paging
-		String orgerAndPaging = getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		String orgerAndPaging = getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
 		sqlBuilder.append(orgerAndPaging);
 		return getProjectHeaders(parameters, sqlBuilder.toString());
 	}
@@ -1520,7 +1520,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param offset
 	 * @return
 	 */
-	public static String getProjectStatsOderByAndPaging(Map<String, Object> parameters, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset){
+	public static String getProjectStatsOrderByAndPaging(Map<String, Object> parameters, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset){
 		StringBuilder builder = new StringBuilder();
 		switch (sortColumn) {
 		case LAST_ACTIVITY:

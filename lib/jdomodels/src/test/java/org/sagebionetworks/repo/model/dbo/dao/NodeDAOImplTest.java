@@ -2263,7 +2263,7 @@ public class NodeDAOImplTest {
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 10L;
 		Long offset = 1L;
-		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		String result = NodeDAOImpl.getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
 		assertEquals(" ORDER BY coalesce(ps.LAST_ACCESSED, n.CREATED_ON) ASC limit :limitVal offset :offsetVal", result);
 		assertEquals(limit, parameters.get("limitVal"));
 		assertEquals(offset, parameters.get("offsetVal"));
@@ -2276,7 +2276,7 @@ public class NodeDAOImplTest {
 		SortDirection sortDirection = SortDirection.DESC;
 		Long limit = 10L;
 		Long offset = 1L;
-		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		String result = NodeDAOImpl.getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
 		assertEquals(" ORDER BY n.NAME DESC limit :limitVal offset :offsetVal", result);
 		assertEquals(limit, parameters.get("limitVal"));
 		assertEquals(offset, parameters.get("offsetVal"));
@@ -2289,7 +2289,7 @@ public class NodeDAOImplTest {
 		Long limit = 10L;
 		Long offset = 1L;
 		for(ProjectListSortColumn sortColumn: ProjectListSortColumn.values()){
-			String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+			String result = NodeDAOImpl.getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
 			assertNotNull(result);
 		}
 	}
