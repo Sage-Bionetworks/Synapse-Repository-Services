@@ -397,7 +397,7 @@ public interface NodeDAO {
 	 * 
 	 * Return one page of ProjectHeader information, based on a (long) list of project IDs,
 	 * sorted according to the sortColumn and sortDirection param's.  The project metadata
-	 * includes when it was last accessed.
+	 * includes when it was last accessed by the given user.
 	 * 
 	 * if type is MY_CREATED_PROJECTS then return only projects created by the given user.
 	 * if type is MY_PARTICIPATED_PROJECTS then return only projects NOT created by the given user.
