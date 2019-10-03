@@ -314,8 +314,7 @@ public class SQLTranslatorUtils {
 		WhereClause whereClause = tableExpression.getWhereClause();
 		if(whereClause != null){
 			// First we need to replace any boolean functions.
-			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
-			for(BooleanPrimary booleanPrimary: booleanPrimaries){
+			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
 				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
 				replaceArrayHasPredicate(booleanPrimary, columnNameToModelMap, originalSynId);
 			}
@@ -324,6 +323,13 @@ public class SQLTranslatorUtils {
 			for(HasPredicate predicate: hasPredicates){
 				translate(predicate, parameters, columnNameToModelMap);
 			}
+//
+//			// now that predicate Right Hand Side values are replaced with bind variables,
+//			// we can finally substitute out the HAS (...) keywords.
+//			// myCol HAS ( 'asdf' ) gets translated to ROW_ID IN (<subquery on myCol index table>)
+//			// so the Left Hand Side of predicate becomes ROW_ID, which does not have a columnModel, causing the bind variable to
+//			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
+//			}
 		}
 		// translate the group by
 		GroupByClause groupByClause = tableExpression.getGroupByClause();
@@ -448,8 +454,8 @@ public class SQLTranslatorUtils {
 			}
 		}
 		
-		// replace all column references in the predicate
-		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
+		// replace all column names in the left hand side of the predicate
+		Iterable<ColumnName> rightHandReferences = predicate.getLeftHandSide().createIterable(ColumnName.class);
 		for (ColumnName columnName : rightHandReferences) {
 			// is this a reference to a column?
 			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
@@ -551,12 +557,11 @@ public class SQLTranslatorUtils {
 				}
 
 				//build up subquery against the flattened index table
-				String translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
-				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnMaterlization(idAndVersion, columnModel);
+				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnMaterlization(idAndVersion, columnModel.getId());
 				try {
 					QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
 							" FROM " + columnFlattenedIndexTable +
-							" WHERE " + translatedColumnName +
+							" WHERE " + columnName +
 							" IN (" + arrayHasPredicate.getInPredicateValue().toSql() + ")");
 					//replace with "IN" predicate containing the subquery
 					Predicate replacementPredicate = new Predicate(new InPredicate(

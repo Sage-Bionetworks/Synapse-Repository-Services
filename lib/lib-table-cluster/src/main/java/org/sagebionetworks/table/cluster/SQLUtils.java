@@ -225,16 +225,14 @@ public class SQLUtils {
 	}
 
 	//TODO: better name?
-	public static String getTableNameForMultiValueColumnMaterlization(IdAndVersion idAndVersion, ColumnModel columnModel){
+	public static String getTableNameForMultiValueColumnMaterlization(IdAndVersion idAndVersion, String columnId){
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(columnModel, "columnModel");
-		ValidateArgument.required(columnModel.getId(), "columnModel.id");
 
 		StringBuilder builder = new StringBuilder();
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
 		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
 		builder.append("_INDEX");
-		builder.append(getColumnNameForId(columnModel.getId()));
+		builder.append(getColumnNameForId(columnId));
 		return builder.toString();
 	}
 

@@ -747,7 +747,7 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
 		columnFoo.setIsList(false);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has (\"asdf\", \"qwerty\", \"yeet\")");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -758,7 +758,7 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_nullIsList() throws ParseException {
 		columnFoo.setIsList(null);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has (\"asdf\", \"qwerty\", \"yeet\")");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -768,7 +768,7 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
 		columnFoo.setIsList(null);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has (\"asdf\", \"qwerty\", \"yeet\")");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -778,22 +778,22 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_Has() throws ParseException {
 		columnFoo.setIsList(true);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has (\"asdf\", \"qwerty\", \"yeet\")");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( \"asdf\", \"qwerty\", \"yeet\" ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
 		columnFoo.setIsList(true);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo not has (\"asdf\", \"qwerty\", \"yeet\")");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo not has ('asdf', 'qwerty', 'yeet')");
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( \"asdf\", \"qwerty\", \"yeet\" ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
@@ -883,6 +883,15 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("1454075733999").unsignedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals(":b0", element.toSqlWithoutQuotes());
+		assertEquals(new Long(1454075733999L), parameters.get("b0"));
+	}
+
+	@Test
+	public void testTranslateRightHand_HAS_clause() throws ParseException{
+		Predicate element = new TableQueryParser("foo IN ('asdf', 'qwerty')").predicate();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -1331,30 +1340,38 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testTranslateValueInNoQuotes() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in(1, 2)").querySpecification();
+	public void testTranslateModel_InPredicate_ValueNoQuotes() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where id in(1, 2)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( 1, 2)",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE _C444_ IN ( :b0, :b1 )",element.toSql());
+		assertEquals(1L, parameters.get("b0"));
+		assertEquals(2L, parameters.get("b1"));
 	}
 
 	@Test
-	public void testTranslateValueInSingleQuotes() throws ParseException{
+	public void testTranslateModel_InPredicate_ValueSingleQuotes() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo in('asdf', 'qwerty')").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( 1, 2)",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE _C111_ IN ( :b0, :b1 )",element.toSql());
+		assertEquals("asdf", parameters.get("b0"));
+		assertEquals("qwerty", parameters.get("b1"));
 	}
 
 	@Test
 	public void testTranslateModel_HASKeyword() throws ParseException {
+		columnDouble.setIsList(true);
 		columnFoo.setIsList(true);
-		columnBar.setIsList(true);
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where foo has (1,2,3) and ( bar has ('yeet') or id = 42)").querySpecification();
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1.1,2.2,3.3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		//TODO: fix bind variables for subquery
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( 1, 2, 3 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C333_ WHERE _C333_ IN ( `yeet` ) ) OR _C444_ = :b0 )",element.toSql());
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C777_ WHERE _C777_ IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals(1.1, parameters.get("b0"));
+		assertEquals(2.2, parameters.get("b1"));
+		assertEquals(3.3, parameters.get("b2"));
+		assertEquals("yah", parameters.get("b3"));
+		assertEquals("yeet", parameters.get("b4"));
 	}
 	
 	@Test
