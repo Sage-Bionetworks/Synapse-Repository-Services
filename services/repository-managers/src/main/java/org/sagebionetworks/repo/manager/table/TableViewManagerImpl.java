@@ -361,7 +361,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				}
 				// upload the resulting CSV to S3.
 				String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString();
-				String bucket = config.getViewSnapshotBucket();
+				String bucket = config.getViewSnapshotBucketName();
 				s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
 				return new BucketAndKey().withBucket(bucket).withtKey(key);
 			} finally {

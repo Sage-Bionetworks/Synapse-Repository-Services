@@ -474,6 +474,12 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	public String getTableRowChangeBucketName();
+	
+	/**
+	 * S3 bucket for view snapshots.
+	 * @return
+	 */
+	public String getViewSnapshotBucketName();
 
 	/**
 	 * 
@@ -801,11 +807,5 @@ public interface StackConfiguration {
 	 * @return The maximum number of months to process for monthly statistics
 	 */
 	public int getMaximumMonthsForMonthlyStatistics();
-
-	/**
-	 * S3 bucket for view snapshots.
-	 * @return
-	 */
-	public String getViewSnapshotBucket();
 
 }

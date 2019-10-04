@@ -49,7 +49,6 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 	 * 
 	 */
 	public void initialize() {
-		s3Client.createBucket(bucketName);
 		CORSRule cors = new CORSRule();
 		cors.setAllowedHeaders("Authorization");
 		cors.setAllowedMethods(AllowedMethods.GET);

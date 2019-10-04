@@ -680,7 +680,7 @@ public class TableViewManagerImplTest {
 		StringWriter writer = new StringWriter();
 		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
 		String bucket = "snapshot.bucket";
-		when(mockConfig.getViewSnapshotBucket()).thenReturn(bucket);
+		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
 		// call under test
 		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
@@ -765,7 +765,7 @@ public class TableViewManagerImplTest {
 		StringWriter writer = new StringWriter();
 		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
 		String bucket = "snapshot.bucket";
-		when(mockConfig.getViewSnapshotBucket()).thenReturn(bucket);
+		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		long snapshotVersion = 12L;
 		when(mockNodeManager.createSnapshotAndVersion(userInfo, viewId, snapshotOptions)).thenReturn(snapshotVersion);
 		

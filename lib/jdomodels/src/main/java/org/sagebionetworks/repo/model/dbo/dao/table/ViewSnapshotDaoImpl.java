@@ -7,9 +7,9 @@ import org.springframework.stereotype.Repository;
 public class ViewSnapshotDaoImpl implements ViewSnapshotDao {
 
 	@Override
-	public void createSnapshot(Long userId, IdAndVersion resultingIdAndVersion, String bucket, String key) {
+	public ViewSnapshot createSnapshot(ViewSnapshot snapshot) {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 }

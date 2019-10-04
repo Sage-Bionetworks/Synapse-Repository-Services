@@ -52,7 +52,6 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadThreadMessage() throws Exception {
 		dao.initialize();
-		verify(mockS3Client).createBucket(Mockito.anyString());
 		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";
@@ -70,7 +69,6 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadReplyMessage() throws Exception {
 		dao.initialize();
-		verify(mockS3Client).createBucket(Mockito.anyString());
 		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";
