@@ -3378,6 +3378,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException {
+		if (type==ProjectListType.OTHER_USER_PROJECTS) throw new IllegalArgumentException(ProjectListType.OTHER_USER_PROJECTS+" is not allowed.");
+		if (type==ProjectListType.TEAM_PROJECTS) throw new IllegalArgumentException(ProjectListType.TEAM_PROJECTS+" is not allowed.");
 		return getProjects(type, null, null, sortColumn, sortDirection, limit, offset);
 	}
 
