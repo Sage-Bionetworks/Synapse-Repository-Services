@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -237,10 +236,13 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testNewAccountEmailValidationWithQuarantinedAddress() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
-		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.of(mockQuarantinedEmail));
+		when(mockEmailQuarantineDao.isQuarantined(EMAIL)).thenReturn(true);
 		
-		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
+		Assertions.assertThrows(IllegalStateException.class, ()-> {
+			manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
+		});
 
+		verify(mockEmailQuarantineDao).isQuarantined(EMAIL);
 		verifyZeroInteractions(mockSynapseEmailService);
 	}
 
@@ -326,10 +328,13 @@ public class PrincipalManagerImplUnitTest {
 		email.setEmail(EMAIL);
 		
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
-		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.of(mockQuarantinedEmail));
+		when(mockEmailQuarantineDao.isQuarantined(EMAIL)).thenReturn(true);
 		
-		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
+		Assertions.assertThrows(IllegalStateException.class, ()-> {			
+			manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
+		});
 	
+		verify(mockEmailQuarantineDao).isQuarantined(EMAIL);
 		verifyZeroInteractions(mockUserProfileDAO);
 		verifyZeroInteractions(mockSynapseEmailService);
 		
@@ -398,7 +403,6 @@ public class PrincipalManagerImplUnitTest {
 
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedAlias);
 		verify(mockNotificationEmailDao).update((PrincipalAlias)any());
-		verify(mockEmailQuarantineDao).removeFromQuarantine(EMAIL);
 	}
 	
 	@Test
@@ -420,14 +424,12 @@ public class PrincipalManagerImplUnitTest {
 		
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedAlias);
 		verifyZeroInteractions(mockNotificationEmailDao);
-		verify(mockEmailQuarantineDao).removeFromQuarantine(EMAIL);
 		
 		// null and false are equivalent for this param
 		setAsNotificationEmail = false;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		
 		verifyZeroInteractions(mockNotificationEmailDao);
-		verify(mockEmailQuarantineDao, times(2)).removeFromQuarantine(EMAIL);
 	}
 	
 	@Test
@@ -564,7 +566,6 @@ public class PrincipalManagerImplUnitTest {
 		manager.setNotificationEmail(userInfo, EMAIL);
 
 		verify(mockNotificationEmailDao).update(currentNotificationAlias);
-		verify(mockEmailQuarantineDao).removeFromQuarantine(EMAIL);
 	}
 
 	@Test

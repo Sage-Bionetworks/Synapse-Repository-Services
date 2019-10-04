@@ -49,12 +49,14 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 							change.getObjectId(), errors);
 				}
 
+			} catch (IllegalStateException e) {
+				log.error("The message will be returned as processed and removed from the queue: " + e.getMessage(), e);
+				workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 			} catch (NotFoundException e) {
 				log.info("NotFound: "
 						+ e.getMessage()
 						+ ". The message will be returned as processed and removed from the queue");
-				workerLogger
-						.logWorkerFailure(this.getClass(), change, e, false);
+				workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 			} catch (Throwable e) {
 				// Something went wrong and we did not process the message
 				log.error("Failed to process message", e);
