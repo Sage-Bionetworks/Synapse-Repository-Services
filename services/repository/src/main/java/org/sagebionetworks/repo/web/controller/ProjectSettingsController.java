@@ -26,14 +26,26 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Project settings services provide configuration options that can be applied to projects, including
- * <a href="${POST.projectSettings}">POST /projectSettings</a>. Note that multiple project settings can be applied to
- * an individual project, each with its own <a href="${org.sagebionetworks.repo.model.project.ProjectSettingsType}">ProjectSettingsType</a>.
- *
- * Services for setting a custom storage location for a project are also included. By setting a custom storage location,
- * users can store their data in their own S3 or Google Cloud bucket. For a guide on setting a custom storage location,
+ * Project settings services provide configuration options that can be applied to projects.
+ * </p>
+ * In particular through the <a href="${POST.projectSettings}">POST /projectSettings</a> and <a href="${PUT.projectSettings}">PUT /projectSettings</a> services
+ * a user can create or update the setting of a specific <a href="${org.sagebionetworks.repo.model.project.ProjectSettingsType}">ProjectSettingsType</a> (type which is specified within the body of the request).
+ * </p>
+ * Currently the service supports as request body a <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a> which can be used
+ * to configure the storage location of the files in a project, the settingType property must be set to <b>upload</b>.
+ * </p>
+ * In order to set a custom storage location the user must first create a <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> 
+ * using the <a href="${POST.storageLocation}">POST /storageLocation</a> service in order to define the destination configuration. The id of a
+ * <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> can then be set in the <b>locations</b> property of 
+ * the <a href="${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}">UploadDestinationListSetting</a>.
+ * </p>
+ * When uploading a file the id of the default <a href="${org.sagebionetworks.repo.model.project.StorageLocationSetting}">StorageLocationSetting</a> can be retrieved
+ * using the <a href="${GET.entity.id.uploadDestination}">GET /entity/{id}/uploadDestination</a> service using the id of the parent entity (e.g. a folder or a project).
+ * </p>
+ * By setting a custom storage location, users can store the data in their own S3 or Google Cloud bucket. For a guide on setting a custom storage location,
  * see the <a href="http://docs.synapse.org/articles/custom_storage_location.html">Custom Storage Location</a> documentation
  * article.
+ * </p>
  */
 @ControllerInfo(displayName = "Project Settings Services", path = "repo/v1")
 @Controller
