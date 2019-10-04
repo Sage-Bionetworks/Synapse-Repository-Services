@@ -36,10 +36,6 @@ public class ArrayHasPredicate extends SQLElement implements HasPredicate {
 		return inPredicateValue;
 	}
 
-	public ColumnReference getColumnReferenceLHS() {
-		return columnReferenceLHS;
-	}
-
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		columnReferenceLHS.toSql(builder, parameters);

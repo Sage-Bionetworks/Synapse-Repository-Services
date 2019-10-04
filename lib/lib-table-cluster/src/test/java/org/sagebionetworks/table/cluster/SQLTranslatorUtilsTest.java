@@ -782,7 +782,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE foo IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
@@ -793,7 +793,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE foo IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
@@ -888,16 +888,6 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals(new Long(1454075733999L), parameters.get("b0"));
 	}
-
-	@Test
-	public void testTranslateRightHand_HAS_clause() throws ParseException{
-		Predicate element = new TableQueryParser("foo IN ('asdf', 'qwerty')").predicate();
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
-		assertEquals(":b0", element.toSqlWithoutQuotes());
-		assertEquals(new Long(1454075733999L), parameters.get("b0"));
-	}
-	
 	@Test
 	public void testTranslateRightHandeSideInterval() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("INTERVAL 3 MONTH").unsignedLiteral();
@@ -1262,6 +1252,18 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_",element.toSql());
+	}
+
+	/**
+	 * Column reference on the right-hand-side should be replaced with a valid reference to that column.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelDelimitedIdentiferRightHandSideMultipleColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"bar\" + \"foo\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_+_C111_",element.toSql());
 	}
 	
 	/**

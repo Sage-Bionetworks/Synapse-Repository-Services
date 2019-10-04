@@ -224,8 +224,7 @@ public class SQLUtils {
 		builder.append(type.getTablePostFix());
 	}
 
-	//TODO: better name?
-	public static String getTableNameForMultiValueColumnMaterlization(IdAndVersion idAndVersion, String columnId){
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 
 		StringBuilder builder = new StringBuilder();
@@ -1102,14 +1101,18 @@ public class SQLUtils {
 	public static long getColumnId(DatabaseColumnInfo info){
 		ValidateArgument.required(info, "DatabaseColumnInfo");
 		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
-		String columnName = info.getColumnName();
+		return getColumnId(info.getColumnName());
+	}
+
+	public static long getColumnId(String columnName) {
+		ValidateArgument.requiredNotEmpty(columnName, "columnName");
 		try {
 			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+			throw new IllegalArgumentException("Unexpected columnName: "+columnName);
 		}
 	}
-	
+
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 
