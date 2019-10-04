@@ -76,7 +76,7 @@
             "$ref": "org.sagebionetworks.repo.model.table.FacetType"
         },
         "isList": {
-            "description": "Whether or not this column will have multiple values",
+            "description": "!!!!HAS NO EFFECT YET!!SUPPORT WILL BE ADDED IN THE FUTURE!! Whether or not this column will have multiple values",
             "type": "boolean"
         }
     }
