@@ -293,7 +293,7 @@ public class EmailQuarantineDaoImplTest {
 		
 		dao.addToQuarantine(batch);
 		
-		Thread.sleep(1000);
+		Thread.sleep(timeout * 2);
 		
 		// Call under test
 		Optional<QuarantinedEmail> result = dao.getQuarantinedEmail(testEmail);
@@ -331,7 +331,7 @@ public class EmailQuarantineDaoImplTest {
 		
 		dao.addToQuarantine(batch);
 		
-		Thread.sleep(1000);
+		Thread.sleep(timeout * 2);
 		
 		// Call under test
 		QuarantinedEmail result = dao.getQuarantinedEmail(testEmail, false).get();
@@ -378,7 +378,7 @@ public class EmailQuarantineDaoImplTest {
 		
 		dao.addToQuarantine(batch);
 		
-		Thread.sleep(1000);
+		Thread.sleep(timeout * 2);
 		
 		// Call under test
 		

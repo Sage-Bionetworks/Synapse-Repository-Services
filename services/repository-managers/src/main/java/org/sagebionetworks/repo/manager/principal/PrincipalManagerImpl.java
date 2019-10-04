@@ -105,10 +105,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		if (emailQuarantineDao.getQuarantinedEmail(user.getEmail()).isPresent()) {
-			LOG.warn("Cannot send account validation to quarantined email address {}", user.getEmail());
-			return;
-		}
+		assertNotQuarantinedEmail(user.getEmail(), "account validation");
 		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
@@ -152,10 +149,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		if (emailQuarantineDao.getQuarantinedEmail(email.getEmail()).isPresent()) {
-			LOG.warn("Cannot send validation email to quarantined email address {}", email.getEmail());
-			return;
-		}
+		assertNotQuarantinedEmail(email.getEmail(), "validation email");
 		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
@@ -193,8 +187,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) {
 			notificationEmailDao.update(alias);
 		}
-		// If we got here the email was validated, we can remove it from the quarantine if any
-		emailQuarantineDao.removeFromQuarantine(alias.getAlias());
 	}
 
 	@WriteTransaction
@@ -211,8 +203,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	public void setNotificationEmail(UserInfo userInfo, String email) throws NotFoundException {
 		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);
 		notificationEmailDao.update(emailAlias);
-		// If the user got here it means the email was potentially validated, we can remove it from the quarantine
-		emailQuarantineDao.removeFromQuarantine(emailAlias.getAlias());
 	}
 
 	@Override
@@ -223,7 +213,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		
 		// Includes the quarantine status if the email is in quarantine (and the quarantine is not expired)
 		emailQuarantineDao.getQuarantinedEmail(email).ifPresent( quarantinedEmail -> {
-			dto.setQuarantineStatus(getQuarantineStatus(quarantinedEmail));
+			dto.setQuarantineStatus(mapQuarantineStatus(quarantinedEmail));
 		});
 		
 		return dto;
@@ -241,7 +231,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return response;
 	}
 	
-	private EmailQuarantineStatus getQuarantineStatus(QuarantinedEmail quarantinedEmail) {
+	private void assertNotQuarantinedEmail(String email, String messageType) {
+		if (emailQuarantineDao.isQuarantined(email)) {
+			LOG.warn("Cannot send {} to quarantined email address: {}", messageType, email);
+			throw new IllegalStateException("There was a problem with the provided email address, please contact support");
+		}
+	}
+	
+	private static EmailQuarantineStatus mapQuarantineStatus(QuarantinedEmail quarantinedEmail) {
 		EmailQuarantineStatus quarantineStatus = new EmailQuarantineStatus();
 		
 		quarantineStatus.setReason(quarantinedEmail.getReason());

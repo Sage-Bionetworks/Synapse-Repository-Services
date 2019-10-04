@@ -414,7 +414,9 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		Assertions.assertThrows(IllegalStateException.class, ()-> {
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		});
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
 		verifyZeroInteractions(sesClient);
@@ -530,7 +532,9 @@ public class MessageManagerImplUnitTest {
 	public void testSendPasswordChangeConfirmationEmailWithQuarantinedAddress() throws Exception {
 		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
 		
-		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		Assertions.assertThrows(IllegalStateException.class, ()-> {
+			messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
+		});
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
 		verifyZeroInteractions(sesClient);
@@ -562,7 +566,9 @@ public class MessageManagerImplUnitTest {
 		
 		List<String> errors = new ArrayList<String>();
 		
-		messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
+		Assertions.assertThrows(IllegalStateException.class, ()-> {
+			messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
+		});
 		
 		verify(mockEmailQuarantineDao).isQuarantined(CREATOR_EMAIL);
 		verifyZeroInteractions(sesClient);
@@ -616,7 +622,7 @@ public class MessageManagerImplUnitTest {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
-		assertEquals(ImmutableList.of("Cannot send message to quarantined address: " + RECIPIENT_EMAIL), errors);
+		assertEquals(ImmutableList.of("Cannot send message to quarantined recipient: " + RECIPIENT_ID), errors);
 		verifyZeroInteractions(sesClient);
 	}
 

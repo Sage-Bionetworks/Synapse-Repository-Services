@@ -25,6 +25,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
@@ -32,13 +33,12 @@ import org.springframework.stereotype.Repository;
 public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	private static final RowMapper<DBOQuarantinedEmail> DBO_MAPPER = new DBOQuarantinedEmail().getTableMapping();
-
-	private static final RowMapper<QuarantinedEmail> ROW_MAPPER = new RowMapper<QuarantinedEmail>() {
-
-		@Override
-		public QuarantinedEmail mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return map(DBO_MAPPER.mapRow(rs, rowNum));
+	
+	private static final ResultSetExtractor<Optional<QuarantinedEmail>> RS_EXTRACTOR = (ResultSet rs) -> {
+		if (rs.next()) {
+			return Optional.of(map(DBO_MAPPER.mapRow(rs, rs.getRow())));
 		}
+		return Optional.empty();
 	};
 
 	// @formatter:off
@@ -148,19 +148,14 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	public Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck) {
 		validateInputEmail(email);
 
-		StringBuilder sql = new StringBuilder(
-				"SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
+		StringBuilder sql = new StringBuilder("SELECT * FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ?");
 
 		if (expirationCheck) {
-			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())");
+			sql.append(" AND (" + COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > ?)");
+			return jdbcTemplate.query(sql.toString(), RS_EXTRACTOR, email, Timestamp.from(Instant.now()));
+		} else {
+			return jdbcTemplate.query(sql.toString(), RS_EXTRACTOR, email);
 		}
-
-		return jdbcTemplate.query(sql.toString(), rs -> {
-			if (rs.next()) {
-				return Optional.of(ROW_MAPPER.mapRow(rs, rs.getRow()));
-			}
-			return Optional.empty();
-		}, email);
 	}
 
 	@Override
@@ -168,9 +163,9 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 		validateInputEmail(email);
 
 		String sql = "SELECT COUNT(*) FROM " + TABLE_QUARANTINED_EMAILS + " WHERE " + COL_QUARANTINED_EMAILS_EMAIL + " = ? AND ("
-				+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > NOW())";
+				+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " IS NULL OR " + COL_QUARANTINED_EMAILS_EXPIRES_ON + " > ?)";
 
-		return jdbcTemplate.queryForObject(sql, Long.class, email) > 0;
+		return jdbcTemplate.queryForObject(sql, Long.class, email, Timestamp.from(Instant.now())) > 0;
 	}
 
 	@Override

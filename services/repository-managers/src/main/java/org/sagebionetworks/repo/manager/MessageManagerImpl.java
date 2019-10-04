@@ -467,7 +467,7 @@ public class MessageManagerImpl implements MessageManager {
 					String email = getEmailForUser(Long.parseLong(userId));
 					
 					if (emailQuarantineDao.isQuarantined(email)) {
-						errors.add("Cannot send message to quarantined address: " + email);
+						errors.add("Cannot send message to quarantined recipient: " + userId);
 						continue;
 					}
 					
@@ -625,7 +625,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("password reset email", email);
-			return;
+			throw new IllegalStateException("There was a problem with the provided account, please contact support.");
 		}
 
 		String subject = "Reset Synapse Password";
@@ -673,7 +673,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("password change confirmation", email);
-			return;
+			throw new IllegalStateException("There was a problem with your account, please contact support.");
 		}
 		
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -708,7 +708,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("delivery failure email", email);
-			return;
+			throw new IllegalStateException("Cannot send delivery failure email to quarantined address");
 		}
 		
 		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_DELIVERY_FAILURE, fieldValues);
