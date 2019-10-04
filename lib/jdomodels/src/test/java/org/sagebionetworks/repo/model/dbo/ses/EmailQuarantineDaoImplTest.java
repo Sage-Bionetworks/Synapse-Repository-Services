@@ -38,7 +38,7 @@ public class EmailQuarantineDaoImplTest {
 
 	@AfterEach
 	public void after() {
-		//dao.clearAll();
+		dao.clearAll();
 	}
 
 	@Test
