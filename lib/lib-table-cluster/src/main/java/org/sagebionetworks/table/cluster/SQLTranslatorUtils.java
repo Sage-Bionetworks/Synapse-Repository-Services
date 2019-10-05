@@ -450,7 +450,7 @@ public class SQLTranslatorUtils {
 		// lookup the column name from the left-hand-side
 		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
 		ColumnModel model = columnNameToModelMap.get(columnName);
-		if(model == null){ //TODO: test
+		if(model == null){
 			throw new IllegalArgumentException("Column does not exist: " + columnName);
 		}
 		// handle the right-hand-side values
