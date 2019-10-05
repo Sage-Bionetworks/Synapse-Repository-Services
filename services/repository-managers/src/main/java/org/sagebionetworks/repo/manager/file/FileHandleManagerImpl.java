@@ -40,10 +40,10 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -201,7 +201,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private StatisticsEventsCollector statisticsCollector;
+	private EventsCollector statisticsCollector;
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take

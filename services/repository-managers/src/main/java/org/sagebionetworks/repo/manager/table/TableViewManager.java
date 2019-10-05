@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -91,5 +92,19 @@ public interface TableViewManager {
 	 * @return
 	 */
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
+
+	/**
+	 * Delete the index associated with this view.
+	 * @param idAndVersion
+	 */
+	public void deleteViewIndex(IdAndVersion idAndVersion);
+
+	/**
+	 * Create or update the index for the given view.
+	 * @param idAndVersion
+	 * @param progressCallback
+	 * @throws Exception
+	 */
+	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
 
 }

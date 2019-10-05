@@ -134,9 +134,13 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
-
+				<!-- Statistics -->
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOStatisticsMonthlyProjectFiles" />
+				<!-- SES Notifications -->
+				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOSESNotification" />
+				<!-- Email Quarantine -->
+				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -231,6 +235,12 @@
 			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
+				
+				<!-- SES Notifications -->
+				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOSESNotification" />
+		
+				<!-- Email Quarantine -->
+				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOQuarantinedEmail" />
 		
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

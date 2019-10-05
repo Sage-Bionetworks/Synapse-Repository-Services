@@ -14,11 +14,11 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
@@ -69,7 +69,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	FileHandleSupport fileHandleSupport; 
 	@Autowired
-	StatisticsEventsCollector statisticsCollector;
+	EventsCollector statisticsCollector;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)

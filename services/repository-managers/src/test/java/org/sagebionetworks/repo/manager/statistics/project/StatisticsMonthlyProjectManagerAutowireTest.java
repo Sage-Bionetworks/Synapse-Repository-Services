@@ -20,12 +20,12 @@ import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollectorImpl;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsEventLogRecordProvider;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsLogRecordProviderFactory;
-import org.sagebionetworks.repo.manager.statistics.records.StatisticsLogRecordProviderFactoryImpl;
+import org.sagebionetworks.repo.manager.events.EventLogRecordProvider;
+import org.sagebionetworks.repo.manager.events.EventsCollectorImpl;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.events.EventLogRecordProviderFactory;
+import org.sagebionetworks.repo.manager.events.EventLogRecordProviderFactoryImpl;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 import org.sagebionetworks.repo.model.athena.project.AthenaProjectFileStatisticsDAO;
 import org.sagebionetworks.repo.model.athena.project.AthenaProjectFileStatisticsDAOImpl;
@@ -77,7 +77,7 @@ public class StatisticsMonthlyProjectManagerAutowireTest {
 	private AthenaProjectFileStatisticsDAO athenaProjectDao;
 
 	private StatisticsMonthlyProjectManager manager;
-	private StatisticsEventsCollectorImpl eventsCollector;
+	private EventsCollectorImpl eventsCollector;
 
 	private String testDatabaseName = "firehoseLogs";
 	private String testTableName = "fileDownloadsRecordsTest";
@@ -95,14 +95,14 @@ public class StatisticsMonthlyProjectManagerAutowireTest {
 	@BeforeEach
 	public void before() throws Exception {
 
-		List<StatisticsEventLogRecordProvider<?>> providers = Collections.singletonList(
+		List<EventLogRecordProvider<?>> providers = Collections.singletonList(
 				// Builds an event record provider that uses the test stream and a fixed project id
 				new StatisticsFileEventLogRecordProviderStub(testStreamName, projectId, logProvider));
 
 		// Use our own factory with the single stub file event provider
-		StatisticsLogRecordProviderFactory providerFactory = new StatisticsLogRecordProviderFactoryImpl(providers);
+		EventLogRecordProviderFactory providerFactory = new EventLogRecordProviderFactoryImpl(providers);
 
-		eventsCollector = new StatisticsEventsCollectorImpl(firehoseLogger, providerFactory, transactionSynchronization);
+		eventsCollector = new EventsCollectorImpl(firehoseLogger, providerFactory, transactionSynchronization);
 
 		// Replace the table name provider with our own so that the dao will query the test table
 		athenaProjectDao = new AthenaProjectFileStatisticsDAOImpl(athenaSupport,

@@ -343,6 +343,14 @@
 			"description": "Metadata for an Oauth client"
 		},
 		{
+			"name": "SES_NOTIFICATIONS",
+			"description": "Bounce and Complaint notifications received from SES"
+		},
+		{
+			"name": "QUARANTINED_EMAILS",
+			"description": "Email addresses that are quarantined and emails are not sent to"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

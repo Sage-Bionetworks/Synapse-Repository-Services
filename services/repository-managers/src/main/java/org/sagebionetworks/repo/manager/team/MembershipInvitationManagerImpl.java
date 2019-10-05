@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -64,6 +65,8 @@ public class MembershipInvitationManagerImpl implements
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
 	private TokenGenerator tokenGenerator;
+	@Autowired
+	private EmailQuarantineDao emailQuarantineDao;
 
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
@@ -135,6 +138,9 @@ public class MembershipInvitationManagerImpl implements
 	public void sendInvitationToEmail(MembershipInvitation mi, String acceptInvitationEndpoint) {
 		if (acceptInvitationEndpoint == null) {
 			acceptInvitationEndpoint = ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT;
+		}
+		if (emailQuarantineDao.isQuarantined(mi.getInviteeEmail())) {
+			throw new IllegalArgumentException("Cannot send membership invitation email to quarantined address: " + mi.getInviteeEmail());
 		}
 		String teamName = teamDAO.get(mi.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -123,7 +124,7 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * 
 	 * @param userId
 	 */
-	public Username getNotificationEmail(Long userId) throws NotFoundException {
+	public NotificationEmail getNotificationEmail(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return principalManager.getNotificationEmail(userInfo);
 	}

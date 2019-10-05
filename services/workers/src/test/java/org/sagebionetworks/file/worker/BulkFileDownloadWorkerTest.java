@@ -34,9 +34,9 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -66,7 +66,7 @@ public class BulkFileDownloadWorkerTest {
 	@Mock
 	ProgressCallback mockProgress;
 	@Mock
-	StatisticsEventsCollector mockStatisticsCollector;
+	EventsCollector mockStatisticsCollector;
 
 	@InjectMocks
 	BulkFileDownloadWorker worker;

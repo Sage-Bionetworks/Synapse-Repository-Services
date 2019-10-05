@@ -1,0 +1,20 @@
+{
+	"title": "Quarantine status", 
+	"name": "EmailQuarantineStatus",
+	"description": "Information about the quarantine status of a notification email",
+    "properties": {
+		"reason": {
+			"$ref": "org.sagebionetworks.repo.model.principal.EmailQuarantineReason",
+			"description": "The reason for the quarantine"
+		},
+		"reasonDetails": {
+			"type": "string",
+			"description": "Additional detaul about the reason for the quarantine"
+		},
+		"expiration": {
+			"type": "string",
+			"format":"date-time",
+			"description": "If an expiration is set for the quarantine will hold the date till which the user will not receive messages"
+		}
+	}
+}

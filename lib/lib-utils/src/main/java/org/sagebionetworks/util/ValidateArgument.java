@@ -14,14 +14,24 @@ public class ValidateArgument {
 		}
 	}
 
-	public static void requiredNotEmpty(String fieldValue, String fieldName){
-		if(fieldValue == null || "".equals(fieldValue) ){
+	public static void requiredNotEmpty(String fieldValue, String fieldName) {
+		if (fieldValue == null || fieldValue.isEmpty()) {
 			throw new IllegalArgumentException(fieldName + " is required and must not be the empty string.");
 		}
 	}
 
-	public static void requiredNotEmpty(Collection fieldValue, String fieldName){
-		if(fieldValue == null || fieldValue.isEmpty()){
+	public static void requiredNotBlank(String fieldValue, String fieldName) {
+		requiredNotEmpty(fieldValue, fieldName);
+		for (int i = 0; i < fieldValue.length(); i++) {
+			if (!Character.isWhitespace(fieldValue.charAt(i))) {
+				return;
+			}
+		}
+		throw new IllegalArgumentException(fieldName + " is required and must not be a blank string.");
+	}
+
+	public static void requiredNotEmpty(Collection<?> fieldValue, String fieldName) {
+		if (fieldValue == null || fieldValue.isEmpty()) {
 			throw new IllegalArgumentException(fieldName + " is required and must not be empty.");
 		}
 	}
@@ -49,9 +59,10 @@ public class ValidateArgument {
 
 	public static void validUrl(String url, String fieldDescriptor) {
 		if (!urlValidator.isValid(url)) {
-			throw new IllegalArgumentException(fieldDescriptor+" is not a valid url: " + url);
+			throw new IllegalArgumentException(fieldDescriptor + " is not a valid url: " + url);
 		}
 	}
+
 	public static void validExternalUrl(String url) {
 		validUrl(url, "The External URL");
 	}
