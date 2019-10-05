@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.ids.IdGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class ViewSnapshotDaoImpl implements ViewSnapshotDao {
+	
+	@Autowired
+	IdGenerator idGenerator;
 
 	@Override
 	public ViewSnapshot createSnapshot(ViewSnapshot snapshot) {

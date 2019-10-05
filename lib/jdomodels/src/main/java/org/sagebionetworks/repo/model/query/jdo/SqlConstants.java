@@ -471,6 +471,10 @@ public class SqlConstants {
 	public static final String COL_VIEW_SCOPE_VIEW_ID		= "VIEW_ID";
 	public static final String COL_VIEW_SCOPE_CONTAINER_ID	= "CONTAINER_ID";
 	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
+	
+	// Metadata about view snapshots.
+	public static final String TABLE_VIEW_SNAPSHOT 			="";
+	public static final String DDL_VIEW_SNAPSHOT = "schema/ViewSnapshot-ddl.sql";
 		
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
