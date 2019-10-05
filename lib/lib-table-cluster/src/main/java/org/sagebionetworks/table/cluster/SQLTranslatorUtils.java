@@ -11,6 +11,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -312,24 +315,25 @@ public class SQLTranslatorUtils {
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
 		if(whereClause != null){
-			// First we need to replace any boolean functions.
-			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
-				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
-//				replaceArrayHasPredicate(booleanPrimary, columnNameToModelMap, originalSynId);
-			}
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
 			for(HasPredicate predicate: hasPredicates){
 				translate(predicate, parameters, columnNameToModelMap);
 			}
 
+			// Instead of key being user defined column (e.g. "foo" -> ColumnModel)
+			// , the key in this map is the actual translated column name (e.g. "_C123_" -> ColumnModel)
+			Map<String, ColumnModel> translatedColumnNameToColumnModel = columnNameToModelMap.values().stream()
+					.collect(Collectors.toMap(
+							(ColumnModel cm) -> SQLUtils.getColumnNameForId(cm.getId()),
+							Function.identity()
+					));
 
-			// now that predicate Right Hand Side values are replaced with bind variables,
-			// we can finally substitute out the HAS (...) keywords.
-			// myCol HAS ( 'asdf' ) gets translated to ROW_ID IN (<subquery on myCol index table>)
-			// so the Left Hand Side of predicate becomes ROW_ID, which does not have a ColumnModel, causing the bind variable replacement to be skipped.
+			//once all row names are translated and predicate values are replaced with bind variables
+			//transform Synapse-specific predicate into MySQL
 			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
-				replaceArrayHasPredicate(booleanPrimary, originalSynId);
+				replaceBooleanFunction(booleanPrimary, translatedColumnNameToColumnModel);
+				replaceArrayHasPredicate(booleanPrimary, translatedColumnNameToColumnModel, originalSynId);
 			}
 		}
 		// translate the group by
@@ -444,25 +448,27 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(parameters, "parameters");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
 		// lookup the column name from the left-hand-side
-		ColumnModel model = columnNameToModelMap.get(predicate.getLeftHandSide().toSqlWithoutQuotes());
-		if(model != null){
-			// handle the right-hand-side values
-			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
-			if(rightHandSide != null){
-				for(UnsignedLiteral element: rightHandSide){
-					translateRightHandeSide(element, model, parameters);
-				}
+		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
+		ColumnModel model = columnNameToModelMap.get(columnName);
+		if(model == null){ //TODO: test
+			throw new IllegalArgumentException("Column does not exist: " + columnName);
+		}
+		// handle the right-hand-side values
+		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
+		if(rightHandSide != null){
+			for(UnsignedLiteral element: rightHandSide){
+				translateRightHandeSide(element, model, parameters);
 			}
 		}
 		
-		// replace all column names in the left hand side of the predicate
+		// replace all column names in the predicate
 		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
-		for (ColumnName columnName : rightHandReferences) {
+		for (ColumnName columnNameRef : rightHandReferences) {
 			// is this a reference to a column?
-			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+			ColumnModel referencedColumn = columnNameToModelMap.get(columnNameRef.toSqlWithoutQuotes());
 			if (referencedColumn != null) {
 				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
-				columnName.replaceChildren(new RegularIdentifier(replacementName));
+				columnNameRef.replaceChildren(new RegularIdentifier(replacementName));
 			}
 		}
 	}
@@ -549,6 +555,7 @@ public class SQLTranslatorUtils {
 			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
 			if (arrayHasPredicate != null) {
 				String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
+
 				ColumnModel columnModel = columnNameToModelMap.get(columnName);
 				if(columnModel == null){
 					throw new IllegalArgumentException("Unknown column reference: " + columnName);
@@ -563,36 +570,8 @@ public class SQLTranslatorUtils {
 					QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
 							" FROM " + columnFlattenedIndexTable +
 							" WHERE " + columnName +
-							" IN (" + arrayHasPredicate.getInPredicateValue().toSql() + ")");
-					//replace with "IN" predicate containing the subquery
-					Predicate replacementPredicate = new Predicate(new InPredicate(
-							SqlElementUntils.createColumnReference(ROW_ID),
-							arrayHasPredicate.getNot(),
-							new InPredicateValue(subquery)));
-
-					booleanPrimary.replacePredicate(replacementPredicate);
-				}catch (ParseException e){
-					throw new IllegalArgumentException(e);
-				}
-			}
-		}
-	}
-
-	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, IdAndVersion idAndVersion){
-		if(booleanPrimary.getPredicate() != null) {
-			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
-			if (arrayHasPredicate != null) {
-				String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
-
-				//assuming column name translation already happened
-				Long columnId =  SQLUtils.getColumnId(arrayHasPredicate.getLeftHandSide().toSql());
-				//build up subquery against the flattened index table
-				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId.toString());
-				try {
-					QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
-							" FROM " + columnFlattenedIndexTable +
-							" WHERE " + columnName +
-							" IN ( placeholder )"); //use a placeholder in the IN clause because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+							//use a placeholder in the IN clause because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+							" IN ( placeholder )");
 					InPredicate inPredicate = subquery.getFirstElementOfType(InPredicate.class);
 					inPredicate.getInPredicateValue().replaceChildren(arrayHasPredicate.getInPredicateValue());
 					//replace with "IN" predicate containing the subquery

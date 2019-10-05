@@ -955,7 +955,9 @@ public class SQLTranslatorUtilsTest {
 		Predicate element = new TableQueryParser("_D999_ IS NOT NULL").predicate();
 		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+		assertThrows( IllegalArgumentException.class, () -> {
+					SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+				});
 		assertEquals("_D999_ IS NOT NULL",element.toSql());
 	}
 	
