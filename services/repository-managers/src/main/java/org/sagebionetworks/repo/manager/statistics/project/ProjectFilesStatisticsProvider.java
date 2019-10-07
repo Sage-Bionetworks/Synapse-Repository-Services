@@ -13,11 +13,9 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
@@ -67,7 +65,8 @@ public class ProjectFilesStatisticsProvider implements StatisticsProvider<Projec
 
 		// Verify access to the project
 		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
-			authManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
+			throw new UnauthorizedException("You are not authorized to access the project statistics");
+			// authManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
 		}
 
 	}

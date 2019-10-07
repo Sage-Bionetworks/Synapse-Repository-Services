@@ -23,17 +23,16 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -380,6 +379,7 @@ public class ProjectFilesStatisticsProviderTest {
 	}
 
 	@Test
+	@Disabled("Until a decision on PLFM-5867 is taken")
 	public void testVerifyViewStatisticsAccessWithNoAccess() {
 		Long userId = 123L;
 		Long creator = 456L;
@@ -390,7 +390,7 @@ public class ProjectFilesStatisticsProviderTest {
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(creator);
 		when(mockAuthManager.isUserCreatorOrAdmin(any(), any())).thenReturn(false);
-		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
+		// when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
 		doThrow(UnauthorizedException.class).when(mockAuthStatus).checkAuthorizationOrElseThrow();
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
@@ -400,10 +400,11 @@ public class ProjectFilesStatisticsProviderTest {
 		});
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
-		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
+		//verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
 	}
 
 	@Test
+	@Disabled("Until a decision on PLFM-5867 is taken")
 	public void testVerifyViewStatisticsAccessWithAccess() {
 		Long userId = 123L;
 		Long creator = 456L;
@@ -421,7 +422,7 @@ public class ProjectFilesStatisticsProviderTest {
 		provider.verifyViewStatisticsAccess(user, projectId);
 
 		verify(mockAuthManager).isUserCreatorOrAdmin(user, creator.toString());
-		verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
+		//verify(mockAuthManager).canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
