@@ -8,6 +8,7 @@ import java.util.Date;
  */
 public class ViewSnapshot {
 
+	Long snapshotId;
 	Long viewId;
 	Long version;
 	String bucket;
@@ -15,6 +16,13 @@ public class ViewSnapshot {
 	Long createdBy;
 	Date createdOn;
 	
+	public Long getSnapshotId() {
+		return snapshotId;
+	}
+	public ViewSnapshot withSnapshotId(Long snapshotId) {
+		this.snapshotId = snapshotId;
+		return this;
+	}
 	public Long getViewId() {
 		return viewId;
 	}
@@ -65,6 +73,7 @@ public class ViewSnapshot {
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		result = prime * result + ((snapshotId == null) ? 0 : snapshotId.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		result = prime * result + ((viewId == null) ? 0 : viewId.hashCode());
 		return result;
@@ -98,6 +107,11 @@ public class ViewSnapshot {
 				return false;
 		} else if (!key.equals(other.key))
 			return false;
+		if (snapshotId == null) {
+			if (other.snapshotId != null)
+				return false;
+		} else if (!snapshotId.equals(other.snapshotId))
+			return false;
 		if (version == null) {
 			if (other.version != null)
 				return false;
@@ -112,9 +126,8 @@ public class ViewSnapshot {
 	}
 	@Override
 	public String toString() {
-		return "ViewSnapshot [viewId=" + viewId + ", version=" + version + ", bucket=" + bucket + ", key=" + key
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
+		return "ViewSnapshot [snapshotId=" + snapshotId + ", viewId=" + viewId + ", version=" + version + ", bucket="
+				+ bucket + ", key=" + key + ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
 	}
-	
-	
+
 }

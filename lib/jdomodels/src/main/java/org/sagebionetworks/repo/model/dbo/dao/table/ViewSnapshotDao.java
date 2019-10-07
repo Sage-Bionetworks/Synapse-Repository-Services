@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+
 public interface ViewSnapshotDao {
 
 	/**
@@ -11,5 +13,14 @@ public interface ViewSnapshotDao {
 	 * @param key
 	 */
 	ViewSnapshot createSnapshot(ViewSnapshot snapshot);
+
+	/**
+	 * Get the snapshot information for the given ID and version. Note: version is
+	 * required.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	ViewSnapshot getSnapshot(IdAndVersion idAndVersion);
 
 }

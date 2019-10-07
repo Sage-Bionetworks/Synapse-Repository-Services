@@ -473,7 +473,14 @@ public class SqlConstants {
 	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
 	
 	// Metadata about view snapshots.
-	public static final String TABLE_VIEW_SNAPSHOT 			="";
+	public static final String TABLE_VIEW_SNAPSHOT 			= "VIEW_SNAPSHOT";
+	public static final String COL_VIEW_SNAPSHOT_ID			= "SNAPSHOT_ID";
+	public static final String COL_VIEW_SNAPSHOT_VIEW_ID	= "VIEW_ID";
+	public static final String COL_VIEW_SNAPSHOT_VERSION	= "VERSION";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_BY	= "CREATED_BY";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_ON = "CREATED_ON";
+	public static final String COL_VIEW_SNAPSHOT_BUCKET		= "BUCKET_NAME";
+	public static final String COL_VIEW_SNAPSHOT_KEY		= "KEY";
 	public static final String DDL_VIEW_SNAPSHOT = "schema/ViewSnapshot-ddl.sql";
 		
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
