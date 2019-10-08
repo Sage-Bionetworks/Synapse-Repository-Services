@@ -23,4 +23,9 @@ public interface ViewSnapshotDao {
 	 */
 	ViewSnapshot getSnapshot(IdAndVersion idAndVersion);
 
+	/**
+	 * Truncate all snapshots.
+	 */
+	void truncateAll();
+
 }
