@@ -1236,6 +1236,19 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
+	public void testTranslateHasPredicate_ROW_BENEFACTOR_column() throws ParseException{
+		Predicate element = new TableQueryParser("ROW_BENEFACTOR <> 54").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+
+		//method under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+
+		assertEquals("ROW_BENEFACTOR <> :b0", element.toSql());
+		assertEquals(54L, parameters.get("b0"));
+	}
+
+	@Test
 	public void testTranslateHasPredicate_ROW_ETAG_column() throws ParseException{
 		String uuid = UUID.randomUUID().toString();
 		Predicate element = new TableQueryParser("ROW_ETAG <> '" + uuid + "'").predicate();

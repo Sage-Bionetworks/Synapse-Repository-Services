@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -84,6 +85,7 @@ public class SQLTranslatorUtils {
 		intColumnModel.setColumnType(ColumnType.INTEGER);
 		tempMap.put(ROW_ID, intColumnModel);
 		tempMap.put(ROW_VERSION, intColumnModel);
+		tempMap.put(ROW_BENEFACTOR, intColumnModel);
 
 		ColumnModel stringColumnModel = new ColumnModel();
 		stringColumnModel.setColumnType(ColumnType.STRING);
