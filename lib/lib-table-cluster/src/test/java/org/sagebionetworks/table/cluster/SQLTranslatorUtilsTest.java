@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1205,6 +1206,47 @@ public class SQLTranslatorUtilsTest {
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.translate(hasPredicate, parameters, null);
 		});
+	}
+
+	@Test
+	public void testTranslateHasPredicate_ROW_ID_column() throws ParseException{
+		Predicate element = new TableQueryParser("ROW_ID <> 3").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+
+		//method under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+
+		assertEquals("ROW_ID <> :b0", element.toSql());
+		assertEquals(3L, parameters.get("b0"));
+	}
+
+
+	@Test
+	public void testTranslateHasPredicate_ROW_VERSION_column() throws ParseException{
+		Predicate element = new TableQueryParser("ROW_VERSION <> 54").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+
+		//method under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+
+		assertEquals("ROW_VERSION <> :b0", element.toSql());
+		assertEquals(54L, parameters.get("b0"));
+	}
+
+	@Test
+	public void testTranslateHasPredicate_ROW_ETAG_column() throws ParseException{
+		String uuid = UUID.randomUUID().toString();
+		Predicate element = new TableQueryParser("ROW_ETAG <> '" + uuid + "'").predicate();
+		HasPredicate hasPredicate = element.getFirstElementOfType(HasPredicate.class);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+
+		//method under test
+		SQLTranslatorUtils.translate(hasPredicate, parameters, columnMap);
+
+		assertEquals("ROW_ETAG <> :b0", element.toSql());
+		assertEquals(uuid, parameters.get("b0"));
 	}
 	
 	@Test

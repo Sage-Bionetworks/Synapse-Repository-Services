@@ -7,13 +7,18 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.amazonaws.services.glue.model.Column;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -70,7 +75,24 @@ public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
-	public static final Set<String> rowMetadataColumnNames = Sets.newHashSet(ROW_ID, ROW_VERSION);
+	// fake column models for the row metadata columns so that query predicates against them can have bind variable replacemen
+	public static final Map<String, ColumnModel> ROW_METADATA_COLUMN_MODELS;
+	static {
+		Map<String, ColumnModel> tempMap = new CaseInsensitiveMap<>();
+
+		ColumnModel intColumnModel = new ColumnModel();
+		intColumnModel.setColumnType(ColumnType.INTEGER);
+		tempMap.put(ROW_ID, intColumnModel);
+		tempMap.put(ROW_VERSION, intColumnModel);
+
+		ColumnModel stringColumnModel = new ColumnModel();
+		stringColumnModel.setColumnType(ColumnType.STRING);
+		tempMap.put(ROW_ETAG, stringColumnModel);
+
+		ROW_METADATA_COLUMN_MODELS = Collections.unmodifiableMap(tempMap);
+	}
+	public static final Set<String> rowMetadataColumnNames = Collections.unmodifiableSet(ROW_METADATA_COLUMN_MODELS.keySet());
+
 
 	/**
 	 * Get the list of column IDs that are referenced in the select clause.
@@ -449,7 +471,12 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
 		// lookup the column name from the left-hand-side
 		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
-		ColumnModel model = columnNameToModelMap.get(columnName);
+
+		// Always replace right hand side with a bind variable, even for the row metadata columns
+		ColumnModel model =
+				Optional.ofNullable(columnNameToModelMap.get(columnName))
+				// try seeing if it is a metadata row
+				.orElse(ROW_METADATA_COLUMN_MODELS.get(columnName));
 		if(model == null){
 			throw new IllegalArgumentException("Column does not exist: " + columnName);
 		}
@@ -464,8 +491,15 @@ public class SQLTranslatorUtils {
 		// replace all column names in the predicate
 		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
 		for (ColumnName columnNameRef : rightHandReferences) {
+			String refColumnName = columnNameRef.toSqlWithoutQuotes();
+
+			//skip replacing metadata columns since they have no column id replacement
+			if(rowMetadataColumnNames.contains(refColumnName)){
+				continue;
+			}
+
 			// is this a reference to a column?
-			ColumnModel referencedColumn = columnNameToModelMap.get(columnNameRef.toSqlWithoutQuotes());
+			ColumnModel referencedColumn = columnNameToModelMap.get(refColumnName);
 			if (referencedColumn != null) {
 				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
 				columnNameRef.replaceChildren(new RegularIdentifier(replacementName));
