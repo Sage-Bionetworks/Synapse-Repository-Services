@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -40,6 +42,7 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -351,12 +354,13 @@ public class TableViewManagerImpl implements TableViewManager {
 			File tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
 			try {
 				// Stream view data from the replication database to a local CSV file.
-				try (CSVWriter writer = new CSVWriter(fileProvider.createFileWriter(tempFile, "UTF-8"))) {
+				try (CSVWriter writer = new CSVWriter(fileProvider.createFileWriter(tempFile, StandardCharsets.UTF_8))) {
+					CSVWriterStream writerAdapter = (String[] nextLine) -> {
+						writer.writeNext(nextLine);
+					};
 					// write the snapshot to the temp file.
 					indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope,
-							viewSchema, (String[] nextLine) -> {
-								writer.writeNext(nextLine);
-							});
+							viewSchema, writerAdapter);
 				}
 				// upload the resulting CSV to S3.
 				String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString();

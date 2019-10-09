@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -43,6 +44,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -678,7 +680,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
+		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
@@ -686,7 +688,7 @@ public class TableViewManagerImplTest {
 		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
-		verify(mockFileProvider).createFileWriter(mockFile, "UTF-8");
+		verify(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
 		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
 		assertNotNull(bucketAndKey);
 		verify(mockS3Client).putObject(putRequestCaptor.capture());
@@ -706,7 +708,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		UnsupportedEncodingException exception = new UnsupportedEncodingException("no");
-		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, "UTF-8");
+		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
 	
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
@@ -763,7 +765,7 @@ public class TableViewManagerImplTest {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, "UTF-8")).thenReturn(writer);
+		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		long snapshotVersion = 12L;

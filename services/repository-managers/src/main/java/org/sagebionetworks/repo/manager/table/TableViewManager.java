@@ -91,7 +91,6 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @param snapshotOptions
 	 * @return
-	 * @throws IOException 
 	 */
 	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
 

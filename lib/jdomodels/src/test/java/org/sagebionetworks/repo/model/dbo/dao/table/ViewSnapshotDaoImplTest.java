@@ -35,7 +35,8 @@ public class ViewSnapshotDaoImplTest {
 		viewSnapshot = new ViewSnapshot().withSnapshotId(111L).withViewId(idAndVersion.getId())
 				.withVersion(idAndVersion.getVersion().get()).withCreatedBy(adminUserId).withCreatedOn(new Date())
 				.withBucket("some bucket").withKey("some key");
-
+		
+		viewSnapshotDao.truncateAll();
 	}
 
 	@AfterEach

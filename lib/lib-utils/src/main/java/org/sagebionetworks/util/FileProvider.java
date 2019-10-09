@@ -7,6 +7,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.Charset;
+
+import com.google.common.io.CharStreams;
 
 /**
  * Simple abstraction for creating files.
@@ -34,12 +37,12 @@ public interface FileProvider {
 	/**
 	 * Create a Writer for the given file.
 	 * @param file
-	 * @param charsetName
+	 * @param charSet
 	 * @return
 	 * @throws FileNotFoundException
 	 * @throws UnsupportedEncodingException 
 	 */
-	Writer createFileWriter(File file, String charsetName) throws FileNotFoundException, UnsupportedEncodingException;
+	Writer createFileWriter(File file, Charset charSet) throws FileNotFoundException, UnsupportedEncodingException;
 
 	/**
 	 * Create a FileInputStream for the given file.

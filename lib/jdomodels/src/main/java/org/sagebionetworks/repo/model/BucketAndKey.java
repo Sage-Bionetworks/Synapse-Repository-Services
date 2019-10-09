@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.table;
+package org.sagebionetworks.repo.model;
 
 /**
  * Buck and Key pair.

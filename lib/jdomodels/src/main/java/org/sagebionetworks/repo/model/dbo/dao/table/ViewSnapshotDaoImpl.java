@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SNA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SNAPSHOT;
 
 import java.sql.Timestamp;
+import java.util.Date;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -85,8 +86,8 @@ public class ViewSnapshotDaoImpl implements ViewSnapshotDao {
 
 	static ViewSnapshot translate(DBOViewSnapshot in) {
 		return new ViewSnapshot().withSnapshotId(in.getSnapshotId()).withViewId(in.getViewId())
-				.withVersion(in.getVersion()).withCreatedBy(in.getCreatedBy()).withCreatedOn(in.getCreatedOn())
-				.withBucket(in.getBucket()).withKey(in.getKey());
+				.withVersion(in.getVersion()).withCreatedBy(in.getCreatedBy())
+				.withCreatedOn(new Date(in.getCreatedOn().getTime())).withBucket(in.getBucket()).withKey(in.getKey());
 	}
 
 	@WriteTransaction

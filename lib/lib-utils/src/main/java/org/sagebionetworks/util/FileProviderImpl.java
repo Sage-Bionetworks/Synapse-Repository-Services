@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.Charset;
 
 /**
  * Simple wrapper for static file calls.
@@ -43,8 +44,8 @@ public class FileProviderImpl implements FileProvider {
 	}
 
 	@Override
-	public Writer createFileWriter(File file, String charsetName) throws FileNotFoundException, UnsupportedEncodingException {
-		return new OutputStreamWriter(new FileOutputStream(file), charsetName);
+	public Writer createFileWriter(File file, Charset charSet) throws FileNotFoundException {
+		return new OutputStreamWriter(new FileOutputStream(file), charSet);
 	}
 
 }
