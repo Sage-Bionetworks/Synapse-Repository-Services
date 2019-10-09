@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.table;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -46,7 +49,8 @@ import com.google.common.collect.Lists;
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	public static final String COLUMN_TYPE_ERROR_TEMPLATE = "A %1$s column cannot be changed to %2$s";
-	
+	public static final Set<ColumnType> TYPES_ALLOWED_AS_LISTS = Collections.unmodifiableSet(
+			EnumSet.of(ColumnType.STRING,ColumnType.DOUBLE,ColumnType.INTEGER, ColumnType.DATE));
 	@Autowired
 	ColumnModelDAO columnModelDao;
 	
@@ -115,6 +119,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		ValidateArgument.required(columnModel, "ColumnModel");
 		checkColumnNaming(columnModel.getName());
 		validateFacetType(columnModel);
+		validateColumnIsListSetting(columnModel);
 	}
 	
 	/**
@@ -163,7 +168,15 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 	}
-	
+
+	/**
+	 * Checks that isList is only set to true on for the allowed columnTypes
+	 */
+	static void validateColumnIsListSetting(ColumnModel columnModel){
+		if(BooleanUtils.isTrue(columnModel.getIsList()) && !TYPES_ALLOWED_AS_LISTS.contains(columnModel.getColumnType())){
+				throw new IllegalArgumentException("Column "+ columnModel.getName() + " is of type " +columnModel.getColumnType() + ", which cannot be a list.");
+		}
+	}
 
 	@Override
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {

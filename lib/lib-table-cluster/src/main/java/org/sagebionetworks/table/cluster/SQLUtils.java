@@ -210,12 +210,28 @@ public class SQLUtils {
 		if (id == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
+		StringBuilder builder = new StringBuilder();
+		appendTableNameForId(id, type, builder);
+		return builder.toString();
+	}
+
+	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
+		builder.append(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion().isPresent()) {
 			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
+	}
+
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+
+		StringBuilder builder = new StringBuilder();
+		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
+		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
+		builder.append("_INDEX");
+		builder.append(getColumnNameForId(columnId));
 		return builder.toString();
 	}
 
@@ -1085,14 +1101,18 @@ public class SQLUtils {
 	public static long getColumnId(DatabaseColumnInfo info){
 		ValidateArgument.required(info, "DatabaseColumnInfo");
 		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
-		String columnName = info.getColumnName();
+		return getColumnId(info.getColumnName());
+	}
+
+	public static long getColumnId(String columnName) {
+		ValidateArgument.requiredNotEmpty(columnName, "columnName");
 		try {
 			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+			throw new IllegalArgumentException("Unexpected columnName: "+columnName);
 		}
 	}
-	
+
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 

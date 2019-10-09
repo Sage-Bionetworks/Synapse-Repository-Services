@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,8 +44,6 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
-import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -192,7 +192,33 @@ public class SQLUtilsTest {
 	public void testGetColumnNameForId(){
 		assertEquals("_C456_", SQLUtils.getColumnNameForId("456"));
 	}
-	
+
+	@Test
+	public void testGetTableNameForMultiValueColumnMaterlization_nullId(){
+		assertThrows(IllegalArgumentException.class, ()-> {
+			SQLUtils.getTableNameForMultiValueColumnIndex(null, null);
+		});
+	}
+
+	@Test
+	public void testGetTableNameForMultiValueColumnMaterlization_nullColumnModelId(){
+		assertThrows(IllegalArgumentException.class, ()-> {
+			SQLUtils.getTableNameForMultiValueColumnIndex(tableId, null );
+		});
+	}
+
+	@Test
+	public void testGetTableNameForMultiValueColumnMaterlization_Id_NoVersion(){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(IdAndVersion.parse("syn123"), "456");
+		assertEquals("T123_INDEX_C456_", tableName);
+	}
+
+	@Test
+	public void testGetTableNameForMultiValueColumnMaterlization_Id_WithVersion(){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(IdAndVersion.parse("syn123.456"), "456");
+		assertEquals("T123_456_INDEX_C456_", tableName);
+	}
+
 	@Test
 	public void testGetColumnNames() {
 		assertEquals("", createColNames());
@@ -855,7 +881,7 @@ public class SQLUtilsTest {
 		
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
-		assertEquals(null, results, "when there are no changes the sql should be null");
+		assertNull(results, "when there are no changes the sql should be null");
 	}
 	
 	/**
@@ -1945,7 +1971,6 @@ public class SQLUtilsTest {
 		ref1.setRowId(222L);
 		RowReference ref2 = new RowReference();
 		ref2.setRowId(333L);
-
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), new LinkedList<ColumnModel>());
@@ -1961,7 +1986,6 @@ public class SQLUtilsTest {
 		
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
-		
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));

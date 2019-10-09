@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -7,22 +8,31 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.amazonaws.services.glue.model.Column;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
@@ -37,9 +47,12 @@ import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
@@ -63,7 +76,25 @@ public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
-	public static final Set<String> rowMetadataColumnNames = Sets.newHashSet(ROW_ID, ROW_VERSION);
+	// fake column models for the row metadata columns so that query predicates against them can have bind variable replacemen
+	public static final Map<String, ColumnModel> ROW_METADATA_COLUMN_MODELS;
+	static {
+		Map<String, ColumnModel> tempMap = new CaseInsensitiveMap<>();
+
+		ColumnModel intColumnModel = new ColumnModel();
+		intColumnModel.setColumnType(ColumnType.INTEGER);
+		tempMap.put(ROW_ID, intColumnModel);
+		tempMap.put(ROW_VERSION, intColumnModel);
+		tempMap.put(ROW_BENEFACTOR, intColumnModel);
+
+		ColumnModel stringColumnModel = new ColumnModel();
+		stringColumnModel.setColumnType(ColumnType.STRING);
+		tempMap.put(ROW_ETAG, stringColumnModel);
+
+		ROW_METADATA_COLUMN_MODELS = Collections.unmodifiableMap(tempMap);
+	}
+	public static final Set<String> rowMetadataColumnNames = Collections.unmodifiableSet(ROW_METADATA_COLUMN_MODELS.keySet());
+
 
 	/**
 	 * Get the list of column IDs that are referenced in the select clause.
@@ -300,20 +331,33 @@ public class SQLTranslatorUtils {
 		}
 		// First change the table name
 		TableReference tableReference = tableExpression.getFromClause().getTableReference();
+
+		//save the original syn### id since we will need it for any HAS predicates
+		IdAndVersion originalSynId = IdAndVersion.parse(tableReference.getTableName());
 		translate(tableReference);
 		
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
 		if(whereClause != null){
-			// First we need to replace any boolean functions.
-			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
-			for(BooleanPrimary booleanPrimary: booleanPrimaries){
-				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
-			}
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
 			for(HasPredicate predicate: hasPredicates){
 				translate(predicate, parameters, columnNameToModelMap);
+			}
+
+			// Instead of key being user defined column (e.g. "foo" -> ColumnModel)
+			// , the key in this map is the actual translated column name (e.g. "_C123_" -> ColumnModel)
+			Map<String, ColumnModel> translatedColumnNameToColumnModel = columnNameToModelMap.values().stream()
+					.collect(Collectors.toMap(
+							(ColumnModel cm) -> SQLUtils.getColumnNameForId(cm.getId()),
+							Function.identity()
+					));
+
+			//once all row names are translated and predicate values are replaced with bind variables
+			//transform Synapse-specific predicate into MySQL
+			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
+				replaceBooleanFunction(booleanPrimary, translatedColumnNameToColumnModel);
+				replaceArrayHasPredicate(booleanPrimary, translatedColumnNameToColumnModel, originalSynId);
 			}
 		}
 		// translate the group by
@@ -428,25 +472,39 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(parameters, "parameters");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
 		// lookup the column name from the left-hand-side
-		ColumnModel model = columnNameToModelMap.get(predicate.getLeftHandSide().toSqlWithoutQuotes());
-		if(model != null){
-			// handle the right-hand-side values
-			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
-			if(rightHandSide != null){
-				for(UnsignedLiteral element: rightHandSide){
-					translateRightHandeSide(element, model, parameters);
-				}
+		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
+
+		// Always replace right hand side with a bind variable, even for the row metadata columns
+		ColumnModel model =
+				Optional.ofNullable(columnNameToModelMap.get(columnName))
+				// try seeing if it is a metadata row
+				.orElse(ROW_METADATA_COLUMN_MODELS.get(columnName));
+		if(model == null){
+			throw new IllegalArgumentException("Column does not exist: " + columnName);
+		}
+		// handle the right-hand-side values
+		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
+		if(rightHandSide != null){
+			for(UnsignedLiteral element: rightHandSide){
+				translateRightHandeSide(element, model, parameters);
 			}
 		}
 		
-		// replace all column references in the predicate
+		// replace all column names in the predicate
 		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
-		for (ColumnName columnName : rightHandReferences) {
+		for (ColumnName columnNameRef : rightHandReferences) {
+			String refColumnName = columnNameRef.toSqlWithoutQuotes();
+
+			//skip replacing metadata columns since they have no column id replacement
+			if(rowMetadataColumnNames.contains(refColumnName)){
+				continue;
+			}
+
 			// is this a reference to a column?
-			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+			ColumnModel referencedColumn = columnNameToModelMap.get(refColumnName);
 			if (referencedColumn != null) {
 				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
-				columnName.replaceChildren(new RegularIdentifier(replacementName));
+				columnNameRef.replaceChildren(new RegularIdentifier(replacementName));
 			}
 		}
 	}
@@ -522,6 +580,44 @@ public class SQLTranslatorUtils {
 					BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
 					booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
 				} catch (ParseException e) {
+					throw new IllegalArgumentException(e);
+				}
+			}
+		}
+	}
+
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap, IdAndVersion idAndVersion){
+		if(booleanPrimary.getPredicate() != null) {
+			ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
+			if (arrayHasPredicate != null) {
+				String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
+
+				ColumnModel columnModel = columnNameToModelMap.get(columnName);
+				if(columnModel == null){
+					throw new IllegalArgumentException("Unknown column reference: " + columnName);
+				}
+				if(BooleanUtils.isNotTrue(columnModel.getIsList())){ //false or null
+					throw new IllegalArgumentException("The HAS keyword only works for list columns");
+				}
+
+				//build up subquery against the flattened index table
+				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnModel.getId());
+				try {
+					QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
+							" FROM " + columnFlattenedIndexTable +
+							" WHERE " + columnName +
+							//use a placeholder in the IN clause because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+							" IN ( placeholder )");
+					InPredicate inPredicate = subquery.getFirstElementOfType(InPredicate.class);
+					inPredicate.getInPredicateValue().replaceChildren(arrayHasPredicate.getInPredicateValue());
+					//replace with "IN" predicate containing the subquery
+					Predicate replacementPredicate = new Predicate(new InPredicate(
+							SqlElementUntils.createColumnReference(ROW_ID),
+							arrayHasPredicate.getNot(),
+							new InPredicateValue(subquery)));
+
+					booleanPrimary.replacePredicate(replacementPredicate);
+				}catch (ParseException e){
 					throw new IllegalArgumentException(e);
 				}
 			}
