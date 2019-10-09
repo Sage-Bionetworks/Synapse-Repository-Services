@@ -775,7 +775,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
-		columnFoo.setIsList(null);
+		columnFoo.setIsList(true);
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {

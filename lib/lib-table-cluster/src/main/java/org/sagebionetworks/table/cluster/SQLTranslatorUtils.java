@@ -491,18 +491,13 @@ public class SQLTranslatorUtils {
 		}
 		
 		// replace all column names in the predicate
-		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
-		for (ColumnName columnNameRef : rightHandReferences) {
+		Iterable<ColumnName> columnNameReferences = predicate.createIterable(ColumnName.class);
+		for (ColumnName columnNameRef : columnNameReferences) {
 			String refColumnName = columnNameRef.toSqlWithoutQuotes();
-
-			//skip replacing metadata columns since they have no column id replacement
-			if(rowMetadataColumnNames.contains(refColumnName)){
-				continue;
-			}
 
 			// is this a reference to a column?
 			ColumnModel referencedColumn = columnNameToModelMap.get(refColumnName);
-			if (referencedColumn != null) {
+			if (referencedColumn != null) { //TODO: thow exception w/ new metadata code
 				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
 				columnNameRef.replaceChildren(new RegularIdentifier(replacementName));
 			}
@@ -608,6 +603,7 @@ public class SQLTranslatorUtils {
 							" WHERE " + columnName +
 							//use a placeholder in the IN clause because the colons in bind variables (e.g. ":b1") are not accepted by the parser
 							" IN ( placeholder )");
+					//TODO: getFirstElementOfType Predicate and replace Predicate's child
 					InPredicate inPredicate = subquery.getFirstElementOfType(InPredicate.class);
 					inPredicate.getInPredicateValue().replaceChildren(arrayHasPredicate.getInPredicateValue());
 					//replace with "IN" predicate containing the subquery
