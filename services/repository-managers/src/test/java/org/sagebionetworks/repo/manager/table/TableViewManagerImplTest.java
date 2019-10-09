@@ -724,7 +724,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3NullId() throws IOException {
 		idAndVersion = null;
-		assertThrows(RuntimeException.class, ()->{
+		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		});
@@ -733,7 +733,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3NullViewType() throws IOException {
 		viewType = null;
-		assertThrows(RuntimeException.class, ()->{
+		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		});
@@ -742,7 +742,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3NullSchema() throws IOException {
 		viewSchema = null;
-		assertThrows(RuntimeException.class, ()->{
+		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		});
@@ -751,7 +751,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3NullScope() throws IOException {
 		scopeIds = null;
-		assertThrows(RuntimeException.class, ()->{
+		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		});

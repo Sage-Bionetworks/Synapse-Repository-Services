@@ -350,29 +350,31 @@ public class TableViewManagerImpl implements TableViewManager {
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
+
+		File tempFile = null;
 		try {
-			File tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
-			try {
-				// Stream view data from the replication database to a local CSV file.
-				try (CSVWriter writer = new CSVWriter(fileProvider.createFileWriter(tempFile, StandardCharsets.UTF_8))) {
-					CSVWriterStream writerAdapter = (String[] nextLine) -> {
-						writer.writeNext(nextLine);
-					};
-					// write the snapshot to the temp file.
-					indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope,
-							viewSchema, writerAdapter);
-				}
-				// upload the resulting CSV to S3.
-				String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString();
-				String bucket = config.getViewSnapshotBucketName();
-				s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
-				return new BucketAndKey().withBucket(bucket).withtKey(key);
-			} finally {
-				// unconditionally delete the temporary file.
-				tempFile.delete();
+			tempFile = fileProvider.createTempFile("ViewSnapshot", ".csv");
+			// Stream view data from the replication database to a local CSV file.
+			try (CSVWriter writer = new CSVWriter(fileProvider.createFileWriter(tempFile, StandardCharsets.UTF_8))) {
+				CSVWriterStream writerAdapter = (String[] nextLine) -> {
+					writer.writeNext(nextLine);
+				};
+				// write the snapshot to the temp file.
+				indexManager.createViewSnapshot(idAndVersion.getId(), viewTypeMask, allContainersInScope, viewSchema,
+						writerAdapter);
 			}
+			// upload the resulting CSV to S3.
+			String key = idAndVersion.getId() + "/" + UUID.randomUUID().toString();
+			String bucket = config.getViewSnapshotBucketName();
+			s3Client.putObject(new PutObjectRequest(bucket, key, tempFile));
+			return new BucketAndKey().withBucket(bucket).withtKey(key);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		} finally {
+			// unconditionally delete the temporary file.
+			if (tempFile != null) {
+				tempFile.delete();
+			}
 		}
 	}
 	
