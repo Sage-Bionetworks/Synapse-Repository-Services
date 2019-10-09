@@ -17,7 +17,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -101,7 +100,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 5;
 	
 	@Autowired
 	private UserManager userManager;
@@ -814,7 +813,6 @@ public class TableViewIntegrationTest {
 	 * @throws Exception
 	 *
 	 */
-	@Ignore // A race condition on reconciliation worker can cause this test to fail (see PLFM-5846).
 	@Test
 	public void testProjectViewReconciliation() throws Exception{
 		String projectId = project.getId();
