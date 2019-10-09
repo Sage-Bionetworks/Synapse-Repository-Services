@@ -12,7 +12,8 @@ import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 public interface StatisticsService {
 
 	/**
-	 * Returns the statistics according to the given request
+	 * Returns the statistics according to the given request, the user must have {@link ACCESS_TYPE#READ} access
+	 * on the object referenced in the request
 	 * 
 	 * @param <T>     The type of statistics request
 	 * @param userId  The id of the user performing the request

@@ -3269,7 +3269,9 @@ public interface SynapseClient extends BaseClient {
 	public SnapshotResponse createTableSnapshot(String tableId, SnapshotRequest request) throws SynapseException;
 	
 	/**
-	 * Request to retrieve statistics about specific objects.
+	 * Request to retrieve statistics about specific objects. The user should have
+	 * {@link ACCESS_TYPE#READ} access on the {@link ObjectStatisticsRequest#getObjectId()
+	 * objectId} referenced by the request.
 	 * 
 	 * @param request The request body
 	 * @return The statistics according to the given request
