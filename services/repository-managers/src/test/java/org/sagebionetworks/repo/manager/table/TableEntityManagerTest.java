@@ -1598,7 +1598,7 @@ public class TableEntityManagerTest {
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, version);
 		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
-		verify(mockColumModelManager).bindDefaultColumnsToObjectVersion(
+		verify(mockColumModelManager).bindCurrentColumnsToVersion(
 				IdAndVersion.newBuilder().setId(tableIdLong).setVersion(version).build());
 	}
 	

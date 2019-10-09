@@ -457,7 +457,7 @@ public class ColumnModelManagerTest {
 		IdAndVersion defaultVersion = IdAndVersion.parse("syn123");
 		when(mockColumnModelDAO.getColumnModelIdsForObject(defaultVersion)).thenReturn(expectedNewSchemaIds);
 		// call under test
-		List<ColumnModel> results =columnModelManager.bindDefaultColumnsToObjectVersion(targetVersion);
+		List<ColumnModel> results =columnModelManager.bindCurrentColumnsToVersion(targetVersion);
 		assertEquals(newSchema, results);
 		verify(mockColumnModelDAO).bindColumnToObject(newSchema, targetVersion);
 	}

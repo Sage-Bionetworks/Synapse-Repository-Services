@@ -227,7 +227,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 
 	@Override
-	public List<ColumnModel> bindDefaultColumnsToObjectVersion(IdAndVersion idAndVersion) {
+	public List<ColumnModel> bindCurrentColumnsToVersion(IdAndVersion idAndVersion) {
 		// Lookup the current columns for the given object
 		List<String> currentSchema = columnModelDao.getColumnModelIdsForObject(IdAndVersion.newBuilder().setId(idAndVersion.getId()).build());
 		// bind the current schema to the given id and version pair.

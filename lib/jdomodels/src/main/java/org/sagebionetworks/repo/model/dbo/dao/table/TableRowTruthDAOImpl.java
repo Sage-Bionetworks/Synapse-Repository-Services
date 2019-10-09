@@ -200,18 +200,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		range.setEtag(dbo.getEtag());
 		return range;
 	}
-
-	/**
-	 * Called after bean creation.
-	 */
-	public void initialize() {
-		// Create the bucket as needed
-		try {
-			s3Client.createBucket(s3Bucket);
-		} catch (AmazonS3Exception e) {
-			log.info("S3 error creating bucket: " + e.getStackTrace());
-		}
-	}
 	
 	@WriteTransaction
 	@Override

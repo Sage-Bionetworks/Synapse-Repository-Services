@@ -17,7 +17,7 @@
 		factory-method="createAmazonS3Client" scope="singleton" />
 
 	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl"
-		scope="singleton" init-method="initialize">
+		scope="singleton">
 		<property name="bucketName" ref="stackConfiguration.logBucketName" />
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
 	</bean>
