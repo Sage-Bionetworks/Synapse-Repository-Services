@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -813,6 +814,7 @@ public class TableViewIntegrationTest {
 	 * @throws Exception
 	 *
 	 */
+	@Ignore // A race condition on reconciliation worker can cause this test to fail (see PLFM-5846).
 	@Test
 	public void testProjectViewReconciliation() throws Exception{
 		String projectId = project.getId();

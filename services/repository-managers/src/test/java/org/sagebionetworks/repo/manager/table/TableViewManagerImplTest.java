@@ -775,7 +775,7 @@ public class TableViewManagerImplTest {
 		
 		IdAndVersion expectedIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
 				.setVersion(snapshotVersion).build();
-		verify(mockColumnModelManager).bindDefaultColumnsToObjectVersion(expectedIdAndVersion);
+		verify(mockColumnModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
 		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
 		ViewSnapshot snapshot = snapshotCaptor.getValue();
 		assertNotNull(snapshot);

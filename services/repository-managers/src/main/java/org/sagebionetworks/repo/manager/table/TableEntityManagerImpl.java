@@ -979,7 +979,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		// bump the parent etag so the change can migrate.
 		tableTransactionDao.updateTransactionEtag(transactionId);
 		// bind the current schema to the version
-		columModelManager.bindDefaultColumnsToObjectVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
+		columModelManager.bindCurrentColumnsToVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
 	}
 
 

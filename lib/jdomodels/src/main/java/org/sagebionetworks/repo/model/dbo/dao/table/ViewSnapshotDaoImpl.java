@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SNAPSHOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SNAPSHOT_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_SNAPSHOT_VIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SNAPSHOT;
 
 import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.transactions.WriteTransaction;

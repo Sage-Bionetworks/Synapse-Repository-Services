@@ -43,7 +43,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -387,7 +386,7 @@ public class TableViewManagerImpl implements TableViewManager {
 		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
 				.setVersion(snapshotVersion).build();
 		// bind the current schema to the version
-		columModelManager.bindDefaultColumnsToObjectVersion(resultingIdAndVersion);
+		columModelManager.bindCurrentColumnsToVersion(resultingIdAndVersion);
 		// save the snapshot data.
 		viewSnapshotDao.createSnapshot(new ViewSnapshot().withBucket(bucketAndKey.getBucket())
 				.withKey(bucketAndKey.getKey()).withCreatedBy(userInfo.getId()).withCreatedOn(new Date())
