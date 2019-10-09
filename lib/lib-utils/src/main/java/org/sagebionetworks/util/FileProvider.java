@@ -9,8 +9,6 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
-import com.google.common.io.CharStreams;
-
 /**
  * Simple abstraction for creating files.
  *
