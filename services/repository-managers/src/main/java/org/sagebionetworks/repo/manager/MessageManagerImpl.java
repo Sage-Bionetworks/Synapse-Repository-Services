@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -625,7 +626,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("password reset email", email);
-			throw new IllegalStateException("There was a problem with the provided account, please contact support.");
+			throw new QuarantinedEmailException("There was a problem with the provided account, please contact support.");
 		}
 
 		String subject = "Reset Synapse Password";
@@ -673,7 +674,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("password change confirmation", email);
-			throw new IllegalStateException("There was a problem with your account, please contact support.");
+			throw new QuarantinedEmailException("There was a problem with your account, please contact support.");
 		}
 		
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -708,7 +709,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("delivery failure email", email);
-			throw new IllegalStateException("Cannot send delivery failure email to quarantined address");
+			throw new QuarantinedEmailException("Cannot send delivery failure email to quarantined address");
 		}
 		
 		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_DELIVERY_FAILURE, fieldValues);
