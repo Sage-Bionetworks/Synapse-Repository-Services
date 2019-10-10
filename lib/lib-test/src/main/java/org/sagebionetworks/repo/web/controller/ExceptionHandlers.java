@@ -99,7 +99,9 @@ public class ExceptionHandlers {
 		new TestEntry(413,
 				new ExceptionType("org.sagebionetworks.repo.web.filter.ByteLimitExceededException", false)),
 		new TestEntry(405,
-				new ExceptionType("org.springframework.web.HttpRequestMethodNotSupportedException", false))
+				new ExceptionType("org.springframework.web.HttpRequestMethodNotSupportedException", false)),
+		new TestEntry(409,
+				new ExceptionType("org.sagebionetworks.repo.model.ses.QuarantinedEmailException", true))
 
 	};
 }

@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.SerializationUtils;
@@ -414,7 +415,7 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 
-		Assertions.assertThrows(IllegalStateException.class, ()-> {
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
 		});
 		
@@ -532,7 +533,7 @@ public class MessageManagerImplUnitTest {
 	public void testSendPasswordChangeConfirmationEmailWithQuarantinedAddress() throws Exception {
 		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
 		
-		Assertions.assertThrows(IllegalStateException.class, ()-> {
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
 		});
 		
@@ -566,7 +567,7 @@ public class MessageManagerImplUnitTest {
 		
 		List<String> errors = new ArrayList<String>();
 		
-		Assertions.assertThrows(IllegalStateException.class, ()-> {
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
 		});
 		
