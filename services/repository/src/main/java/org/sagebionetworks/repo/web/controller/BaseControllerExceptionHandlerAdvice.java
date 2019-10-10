@@ -316,7 +316,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(QuarantinedEmailException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
 	ErrorResponse handleQuarantinedEmailException(QuarantinedEmailException ex,
 			HttpServletRequest request) {
