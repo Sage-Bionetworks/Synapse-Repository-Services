@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -258,39 +259,38 @@ public class SQLUtils {
 		builder.append(subName).append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
 	}
 
+	static void appendDoubleAbstractColumn(ColumnTranslationReference reference, StringBuilder builder){
+		builder.append(TableConstants.DOUBLE_PREFIX)
+				.append(reference.getTranslatedColumnName());
+	}
+	
 	/**
-	 * Append case statement for doubles, like:
-	 * 
+	 * Create a double clause, like:
+	 *
 	 * <pre>
 	 * CASE
 	 * 	WHEN _DBL_C1_ IS NULL THEN _C1_
 	 * 	ELSE _DBL_C1_
 	 * END AS _C1_
 	 * </pre>
-	 * 
-	 * @param column
-	 * @param subName
-	 * @param builder
-	 */
-	public static void appendDoubleCase(String columnId, StringBuilder builder) {
-		String subName = EMPTY_STRING;
-		builder.append("CASE WHEN ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" IS NULL THEN ");
-		appendColumnName(subName, columnId, builder);
-		builder.append(" ELSE ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" END");
-	}
-	
-	/**
-	 * Create a double clause.
-	 * @param columnId
+	 *
+	 * @param translationReference
 	 * @return
 	 */
-	public static String createDoubleCluase(String columnId){
+	public static String createDoubleCluase(ColumnTranslationReference translationReference){
+		//TODO: test
+		if(translationReference.getColumnType() != ColumnType.DOUBLE){
+			throw new IllegalArgumentException("This method should not be used for non-DOUBLE column types");
+		}
+
 		StringBuilder builder = new StringBuilder();
-		appendDoubleCase(columnId, builder);
+		builder.append("CASE WHEN ");
+		appendDoubleAbstractColumn( translationReference, builder);
+		builder.append(" IS NULL THEN ");
+		builder.append(translationReference.getTranslatedColumnName());
+		builder.append(" ELSE ");
+		appendDoubleAbstractColumn(translationReference, builder);
+		builder.append(" END");
 		return builder.toString();
 	}
 
