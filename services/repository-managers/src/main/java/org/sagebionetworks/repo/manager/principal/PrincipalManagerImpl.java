@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -234,7 +235,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	private void assertNotQuarantinedEmail(String email, String messageType) {
 		if (emailQuarantineDao.isQuarantined(email)) {
 			LOG.warn("Cannot send {} to quarantined email address: {}", messageType, email);
-			throw new IllegalStateException("There was a problem with the provided email address, please contact support");
+			throw new QuarantinedEmailException("There was a problem with the provided email address, please contact support");
 		}
 	}
 	

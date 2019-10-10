@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 
@@ -238,7 +239,7 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
 		when(mockEmailQuarantineDao.isQuarantined(EMAIL)).thenReturn(true);
 		
-		Assertions.assertThrows(IllegalStateException.class, ()-> {
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
 		});
 
@@ -330,7 +331,7 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
 		when(mockEmailQuarantineDao.isQuarantined(EMAIL)).thenReturn(true);
 		
-		Assertions.assertThrows(IllegalStateException.class, ()-> {			
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {			
 			manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
 		});
 	

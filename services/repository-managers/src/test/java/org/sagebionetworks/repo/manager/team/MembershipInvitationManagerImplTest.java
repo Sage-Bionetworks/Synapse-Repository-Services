@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -388,7 +389,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockEmailQuarantineDao.isQuarantined(INVITEE_EMAIL)).thenReturn(true);
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
 			// Call under test
 			membershipInvitationManagerImpl.sendInvitationToEmail(mis, null);
 		});
