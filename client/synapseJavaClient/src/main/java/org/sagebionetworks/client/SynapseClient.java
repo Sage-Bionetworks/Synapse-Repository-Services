@@ -3270,7 +3270,7 @@ public interface SynapseClient extends BaseClient {
 	
 	/**
 	 * Request to retrieve statistics about specific objects. The user should have
-	 * {@link ACCESS_TYPE#VIEW_STATISTICS} access on the {@link ObjectStatisticsRequest#getObjectId()
+	 * {@link ACCESS_TYPE#READ} access on the {@link ObjectStatisticsRequest#getObjectId()
 	 * objectId} referenced by the request.
 	 * 
 	 * @param request The request body
