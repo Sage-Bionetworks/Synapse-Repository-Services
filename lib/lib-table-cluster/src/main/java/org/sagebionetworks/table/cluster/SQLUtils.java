@@ -1356,7 +1356,8 @@ public class SQLUtils {
 	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
 		if (meta.getEntityField() != null) {
 			// entity field select
-			return buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
+			buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
+			return Lists.newArrayList(meta.getColumnNameForId());
 		}
 		List<String> headers = new LinkedList<>();
 		// annotation select
@@ -1377,15 +1378,19 @@ public class SQLUtils {
 	 * @param builder
 	 */
 	public static List<String> buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
-		List<String> headers = new LinkedList<>();
+
 		builder.append(ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(ENTITY_REPLICATION_COL_ID);
-		headers.add(ENTITY_REPLICATION_COL_ID);
-		headers.addAll(buildEntityReplicationSelect(builder,
+		buildEntityReplicationSelect(builder,
 				ENTITY_REPLICATION_COL_VERSION,
 				ENTITY_REPLICATION_COL_ETAG,
-				ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		List<String> headers = new LinkedList<>();
+		headers.add(ROW_ID);
+		headers.add(ROW_VERSION);
+		headers.add(ROW_ETAG);
+		headers.add(ROW_BENEFACTOR);
 		return headers;
 	}
 	/**
@@ -1393,13 +1398,10 @@ public class SQLUtils {
 	 * @param builder
 	 * @param names
 	 */
-	public static List<String> buildEntityReplicationSelect(StringBuilder builder, String...names) {
-		List<String> headers = new LinkedList<>();
+	public static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
 		for(String name: names) {
 			builder.append(String.format(TEMPLATE_MAX_ENTITY_SELECT, ENTITY_REPLICATION_ALIAS, name));
-			headers.add(name);
 		}
-		return headers;
 	}
 	/**
 	 * If isDoubleAbstract = false then builds: ', MAX(IF(A.ANNO_KEY='keyValue', A.valueColumnName, NULL)) as _columnId_'
@@ -1713,21 +1715,40 @@ public class SQLUtils {
 	}
 
 
+	/**
+	 * Create SQL to insert into a table for the IdAndVersion with the given headers.
+	 * @param idAndVersion
+	 * @param headers
+	 * @return
+	 */
 	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
 		String tableName = getTableNameForId(idAndVersion, TableType.INDEX);
-		StringBuilder builder = new StringBuilder("INSERT INTO ");
+		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
 		builder.append(tableName);
-		builder.append(" VALUES (");
+		boolean useBindVariables = false;
+		buildHeaders(builder, headers, useBindVariables);
+		builder.append(" VALUES ");
+		useBindVariables = true;
+		buildHeaders(builder, headers, useBindVariables);
+		return builder.toString();
+	}
+	
+	static void buildHeaders(StringBuilder builder, String[] headers, boolean useBindVariables) {
+		builder.append(" (");
 		boolean isFirst = true;
 		for(String header: headers) {
-			builder.append("?");
 			if(!isFirst) {
 				builder.append(",");
 			}
+			if(useBindVariables) {
+				builder.append("?");
+			}else {
+				builder.append(header);
+			}
 			isFirst = false;
 		}
-		return builder.toString();
+		builder.append(")");
 	}
 	
 	/**

@@ -92,9 +92,6 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
-
-	private static final int MAX_BYTES_PER_BATCH = 1000;
-
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
 			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
 
@@ -997,7 +994,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(idAndVersion.getVersion().isPresent(), "idAndVersion.version");
 		ValidateArgument.required(input, "input");
@@ -1012,7 +1009,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		while(input.hasNext()) {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
-			if(rowSize+batchSize > MAX_BYTES_PER_BATCH) {
+			if(batchSize + rowSize > maxBytesPerBatch) {
 				template.batchUpdate(sql, batch);
 				batch.clear();
 			}

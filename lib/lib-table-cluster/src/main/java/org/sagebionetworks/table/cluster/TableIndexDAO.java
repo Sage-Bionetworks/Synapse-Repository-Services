@@ -434,8 +434,14 @@ public interface TableIndexDAO {
 
 	/**
 	 * Populate a view from a snapshot.
+	 * 
 	 * @param idAndVersion
 	 * @param input
+	 * @param maxBytesPerBatch Used to limit the size of each batch of data pushed
+	 *                         to the database. Only a single batch will reside in
+	 *                         memory at a time. A batch will always contain at
+	 *                         least one row even if the size of the row is larger
+	 *                         than maxBytesPerBatch.
 	 */
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 }

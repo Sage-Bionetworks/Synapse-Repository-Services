@@ -43,6 +43,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 	
+	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
+	
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
 	
@@ -513,7 +515,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	@Override
 	public long populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
-		tableIndexDao.populateViewFromSnapshot(idAndVersion, input);
+		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(idAndVersion.getId());
 	}
