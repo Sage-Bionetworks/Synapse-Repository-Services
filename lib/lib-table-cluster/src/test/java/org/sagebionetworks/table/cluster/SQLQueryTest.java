@@ -628,12 +628,11 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder("select sum(doubletype) from syn123", tableSchema).build();
 		assertEquals("SELECT SUM(_C777_) FROM T123", translator.getOutputSQL());
 	}
-	
-	@Ignore // not sure if we are going to suppor this yet.
+
 	@Test
-	public void testTranslateRightHandSideNaN() throws ParseException{
-		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where aDouble <> 'NaN'", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
+	public void testTranslateIsNaN() throws ParseException{
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where not isNaN(doubletype)", tableSchema).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", translator.getOutputSQL());
 	}
 	
 	@Test

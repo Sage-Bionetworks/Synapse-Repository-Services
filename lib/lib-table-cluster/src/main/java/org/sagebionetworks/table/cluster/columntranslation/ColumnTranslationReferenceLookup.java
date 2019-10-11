@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -13,8 +14,8 @@ public class ColumnTranslationReferenceLookup {
 	private Map<String, ColumnTranslationReference> translatedColumnNameMap;
 
 	public ColumnTranslationReferenceLookup(Collection<ColumnModel> columnModels){
-		this.userQueryColumnNameMap = new CaseInsensitiveMap<>();
-		this.translatedColumnNameMap = new CaseInsensitiveMap<>();
+		this.userQueryColumnNameMap = new HashMap<>();
+		this.translatedColumnNameMap = new HashMap<>();
 
 		//always add the row metadata columns
 		for(RowMetadataColumnTranslationReference rowMetadata : RowMetadataColumnTranslationReference.values()){

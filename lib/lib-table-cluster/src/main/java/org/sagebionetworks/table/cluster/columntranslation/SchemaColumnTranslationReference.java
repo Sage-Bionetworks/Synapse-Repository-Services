@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.cluster.SQLUtils;
@@ -8,10 +10,12 @@ import org.sagebionetworks.util.ValidateArgument;
 /**
  * ColumnTranslationReference derived from a ColumnModel that was associated with a schema
  */
-class SchemaColumnTranslationReference implements ColumnTranslationReference{
+public class SchemaColumnTranslationReference implements ColumnTranslationReference{
 	private final ColumnType columnType;
 	private final String userQueryColumnName;
 	private final String translatedColumnName;
+	private final boolean isList;
+	private final String id;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
 		ValidateArgument.required(columnModel, "columnModel");
@@ -19,8 +23,10 @@ class SchemaColumnTranslationReference implements ColumnTranslationReference{
 		ValidateArgument.requiredNotBlank(columnModel.getId(), "columnModel.id");
 		ValidateArgument.requiredNotBlank(columnModel.getName(), "columnModel.name");
 		this.columnType = columnModel.getColumnType();
-		this.userQueryColumnName = columnModel.getName();
+		this.id = columnModel.getId();
 		this.translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
+		this.userQueryColumnName = columnModel.getName();
+		this.isList = columnModel.getIsList() != null && columnModel.getIsList();
 	}
 
 	@Override
@@ -36,5 +42,22 @@ class SchemaColumnTranslationReference implements ColumnTranslationReference{
 	@Override
 	public String getTranslatedColumnName() {
 		return translatedColumnName;
+	}
+
+
+	/**
+	 * Id of the column
+	 * @return Id of the column
+	 */
+	public String getId() {
+		return id;
+	}
+
+	/**
+	 * true if this column can have multiple-values. false otherwise.
+	 * @return true if this column can have multiple-values. false otherwise.
+	 */
+	public boolean isList() {
+		return isList;
 	}
 }

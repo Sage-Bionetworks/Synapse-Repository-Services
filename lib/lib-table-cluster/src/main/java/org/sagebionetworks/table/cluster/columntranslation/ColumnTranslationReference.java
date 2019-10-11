@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 /**
@@ -7,7 +9,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
  * Metadata about columns used to for SQL query translation
  */
 public interface ColumnTranslationReference {
-
 	/**
 	 * The type of the column being translated
 	 * @return type of the column being translated. never null

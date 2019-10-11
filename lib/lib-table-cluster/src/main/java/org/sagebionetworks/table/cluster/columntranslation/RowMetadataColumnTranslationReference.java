@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 
@@ -7,7 +9,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
  * ColumnTranslationReference for row metadata columns.
  * For these, the userQueryColumnName and translatedColumnName are the same
  */
-enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
+public enum RowMetadataColumnTranslationReference implements ColumnTranslationReference {
 	ROW_ID(TableConstants.ROW_ID, ColumnType.INTEGER),
 	ROW_VERSION(TableConstants.ROW_VERSION, ColumnType.INTEGER),
 	ROW_ETAG(TableConstants.ROW_ETAG, ColumnType.STRING),
