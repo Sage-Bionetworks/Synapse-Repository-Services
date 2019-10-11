@@ -333,7 +333,7 @@ public class ColumnModelManagerTest {
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
-			assertEquals("Duplicate column: 'col_333'", e.getMessage());
+			assertEquals("Duplicate column: 'col_333' id: 333", e.getMessage());
 		}
 	}
 	
@@ -349,7 +349,24 @@ public class ColumnModelManagerTest {
 			fail();
 		}catch( IllegalArgumentException e) {
 			// expected
-			assertEquals("Duplicate column name: 'col_444'", e.getMessage());
+			assertEquals("Duplicate column name: 'col_444' id: 333. Column names are case insensitive.", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testGetColumnsDuplicateName_caseInsensitive() {
+		// Setup duplicate names for two of the columns
+		ColumnModel zero = newSchema.get(0);
+		ColumnModel one = newSchema.get(1);
+		zero.setName(zero.getName().toLowerCase());
+		one.setName(zero.getName().toUpperCase());
+		//Call under test
+		try{
+			columnModelManager.getAndValidateColumnModels(expectedNewSchemaIds);
+			fail();
+		}catch( IllegalArgumentException e) {
+			// expected
+			assertEquals("Duplicate column name: 'COL_444' id: 333. Column names are case insensitive.", e.getMessage());
 		}
 	}
 	

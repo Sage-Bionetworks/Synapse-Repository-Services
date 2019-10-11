@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -59,5 +60,22 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	 */
 	public boolean isList() {
 		return isList;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		SchemaColumnTranslationReference that = (SchemaColumnTranslationReference) o;
+		return isList == that.isList &&
+				columnType == that.columnType &&
+				Objects.equals(userQueryColumnName, that.userQueryColumnName) &&
+				Objects.equals(translatedColumnName, that.translatedColumnName) &&
+				Objects.equals(id, that.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(columnType, userQueryColumnName, translatedColumnName, isList, id);
 	}
 }

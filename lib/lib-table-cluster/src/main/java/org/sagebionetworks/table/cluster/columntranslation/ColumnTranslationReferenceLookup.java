@@ -14,8 +14,8 @@ public class ColumnTranslationReferenceLookup {
 	private Map<String, ColumnTranslationReference> translatedColumnNameMap;
 
 	public ColumnTranslationReferenceLookup(Collection<ColumnModel> columnModels){
-		this.userQueryColumnNameMap = new HashMap<>();
-		this.translatedColumnNameMap = new HashMap<>();
+		this.userQueryColumnNameMap = new CaseInsensitiveMap<>();
+		this.translatedColumnNameMap = new CaseInsensitiveMap<>();
 
 		//always add the row metadata columns
 		for(RowMetadataColumnTranslationReference rowMetadata : RowMetadataColumnTranslationReference.values()){
