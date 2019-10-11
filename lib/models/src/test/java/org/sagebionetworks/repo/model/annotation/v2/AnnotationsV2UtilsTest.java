@@ -240,16 +240,6 @@ class AnnotationsV2UtilsTest {
 		AnnotationsV2Utils.validateAnnotations(annotationsV2);
 	}
 
-	@Test
-	public void testValidateAnnotations_duplicateCaseInsensitiveKeys(){
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "one", "1", AnnotationsValueType.TIMESTAMP_MS);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "One", "1.2", AnnotationsValueType.DOUBLE);
-		AnnotationsV2TestUtils.putAnnotations(annotationsV2, "oNe", "1", AnnotationsValueType.LONG);
-		annotationsV2.setEtag("etag");
-		assertThrows(IllegalArgumentException.class, ()-> {
-			AnnotationsV2Utils.validateAnnotations(annotationsV2);
-		});
-	}
 
 
 	@Test

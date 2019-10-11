@@ -47,20 +47,8 @@ class ColumnTranslationReferenceLookupTest {
 	}
 
 	@Test
-	public void testLookupForUserQueryColumnName_caseInsensitive(){
-		assertEquals(fooReference, lookup.forUserQueryColumnName("FoO").orElse(null));
-		assertEquals(barReference, lookup.forUserQueryColumnName("bAr").orElse(null));
-	}
-
-	@Test
 	public void testLookupForTranslatedColumnName(){
 		assertEquals(fooReference, lookup.forTranslatedColumnName("_C123_").orElse(null));
 		assertEquals(barReference, lookup.forTranslatedColumnName("_C456_").orElse(null));
-	}
-
-	@Test
-	public void testLookupForTranslatedColumnName_caseInsensitive(){
-		assertEquals(fooReference, lookup.forTranslatedColumnName("_c123_").orElse(null));
-		assertEquals(barReference, lookup.forTranslatedColumnName("_c456_").orElse(null));
 	}
 }

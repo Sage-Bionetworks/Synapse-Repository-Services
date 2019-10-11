@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -177,21 +175,10 @@ public class AnnotationsV2Utils {
 			throw new IllegalArgumentException("Exceeded maximum number of annotation keys: " + MAX_ANNOTATION_KEYS);
 		}
 
-		checkDuplicateKeys(annotationsMap.keySet());
-
 		for (Map.Entry<String, AnnotationsValue> entry: annotationsMap.entrySet()) {
 			String key = entry.getKey();
 			checkKeyName(key);
 			checkValue(key, entry.getValue());
-		}
-	}
-
-	private static void checkDuplicateKeys(Set<String> keyset){
-		Set<String> lowerCaseKeySet = new HashSet<>(keyset.size());
-		for(String key: keyset){
-			if(!lowerCaseKeySet.add(key.toLowerCase())){
-				throw new IllegalArgumentException("duplicate key: " + key + ". Keys are case insensitive!");
-			}
 		}
 	}
 }

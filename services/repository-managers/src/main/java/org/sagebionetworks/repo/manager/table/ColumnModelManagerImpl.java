@@ -197,7 +197,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		Map<String, ColumnModel> resultMap = TableModelUtils.createIdToColumnModelMap(fromDb);
 		// column IDs must be unique.
 		Set<String> visitedIds = new HashSet<>(fromDb.size());
-		// column names must be unique. case insensitive
+		// column names must be unique.
 		Set<String> visitedNames = new HashSet<>(fromDb.size());
 		List<ColumnModel> results = new LinkedList<>();
 		for(String id: ids) {
@@ -206,10 +206,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				throw new NotFoundException("Column does not exist for id: " + id);
 			}
 			if (!visitedIds.add(id)) {
-				throw new IllegalArgumentException("Duplicate column: '" + cm.getName() + "' id: " + id);
+				throw new IllegalArgumentException("Duplicate column: '" + cm.getName() + "'");
 			}
-			if (!visitedNames.add(cm.getName().toLowerCase())) {
-				throw new IllegalArgumentException("Duplicate column name: '" + cm.getName() + "' id: " + id + ". Column names are case insensitive.");
+			if (!visitedNames.add(cm.getName())) {
+				throw new IllegalArgumentException("Duplicate column name: '" + cm.getName() + "'");
 			}
 			results.add(cm);
 		}
