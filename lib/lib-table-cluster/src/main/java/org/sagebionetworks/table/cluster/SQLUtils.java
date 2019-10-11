@@ -1712,4 +1712,38 @@ public class SQLUtils {
 		}
 	}
 
+
+	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
+		String tableName = getTableNameForId(idAndVersion, TableType.INDEX);
+		StringBuilder builder = new StringBuilder("INSERT INTO ");
+		builder.append("INSERT INTO ");
+		builder.append(tableName);
+		builder.append(" VALUES (");
+		boolean isFirst = true;
+		for(String header: headers) {
+			builder.append("?");
+			if(!isFirst) {
+				builder.append(",");
+			}
+			isFirst = false;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Calculate the bytes of the given string array assuming 4 bytes per character.
+	 * 
+	 * @param row
+	 * @return
+	 */
+	public static long calculateBytes(String[] row) {
+		long rowSize = 0;
+		for(String cell: row) {
+			if(cell != null) {
+				rowSize += cell.length()*4L;
+			}
+		}
+		return rowSize;
+	}
+
 }

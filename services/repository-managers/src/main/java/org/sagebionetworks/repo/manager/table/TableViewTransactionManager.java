@@ -63,6 +63,10 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
 		TableTransactionUtils.validateRequest(request);
+		if(request.getCreateSnapshot() == null && request.getSnapshotOptions() != null) {
+			throw new IllegalArgumentException("Included SnapshotOptions but the createSnapshot boolean is null");
+		}
+		
 		String tableId = request.getEntityId();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table.

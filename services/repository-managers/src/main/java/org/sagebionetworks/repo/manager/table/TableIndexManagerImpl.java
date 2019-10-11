@@ -511,5 +511,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			List<ColumnModel> viewSchema, CSVWriterStream writter) {
 		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, viewTypeMask, allContainersInScope, viewSchema, writter);
 	}
+	@Override
+	public long populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
+		tableIndexDao.populateViewFromSnapshot(idAndVersion, input);
+		// calculate the new CRC32;
+		return tableIndexDao.calculateCRC32ofTableView(idAndVersion.getId());
+	}
 
 }

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
+import org.sagebionetworks.repo.manager.table.TableViewTransactionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -73,6 +74,7 @@ import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -287,7 +289,6 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testFileView() throws Exception{
 		createFileView();
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
@@ -1161,6 +1162,61 @@ public class TableViewIntegrationTest {
 			// expected.
 			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 		}
+	}
+	
+	@Test
+	public void testViewSnapshot() throws Exception {
+		createFileView();
+		// add a column to the view.
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange addColumn = new ColumnChange();
+		addColumn.setNewColumnId(stringColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
+		// Add a string annotation to each file in the view
+		List<PartialRow> rowsToAdd = new LinkedList<>();
+		int counter = 0;
+		for (String fileId : fileIds) {
+			PartialRow row = new PartialRow();
+			row.setRowId(KeyFactory.stringToKey(fileId));
+			Map<String, String> values = new HashMap<>(1);
+			values.put(stringColumn.getId(), "string value:" + counter++);
+			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
+			row.setEtag(file.getEtag());
+			row.setValues(values);
+			rowsToAdd.add(row);
+		}
+		PartialRowSet rowChange = new PartialRowSet();
+		rowChange.setTableId(fileViewId);
+		rowChange.setRows(rowsToAdd);
+		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
+		rowSetRequest.setToAppend(rowChange);
+
+		// create a snapshot after the change
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+
+		// Start the job that will change the schema and annotations to each file and
+		// then snapshot the view.
+		// call under test
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
+				TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getSnapshotVersionNumber());
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + response.getSnapshotVersionNumber());
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		assertNotNull(queryResults);
 	}
 	
 	/**

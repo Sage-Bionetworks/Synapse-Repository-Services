@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -430,4 +431,11 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
+
+	/**
+	 * Populate a view from a snapshot.
+	 * @param idAndVersion
+	 * @param input
+	 */
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 }

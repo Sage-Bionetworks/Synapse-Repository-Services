@@ -19,9 +19,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,6 +108,10 @@ public class TableViewManagerImplTest {
 	ViewSnapshotDao mockViewSnapshotDao;
 	@Mock
 	File mockFile;
+	@Mock
+	OutputStream mockOutStream;
+	@Mock
+	GZIPOutputStream mockGzipOutStream;
 	@Captor
 	ArgumentCaptor<PutObjectRequest> putRequestCaptor;
 	@Captor
@@ -675,12 +681,26 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
 	}
 	
+	/**
+	 * Setup the chain of file->gzip->writer.
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public StringWriter setupWriter() throws IOException {
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
+		return writer;
+	}
+	
+	
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		setupWriter();
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
@@ -688,7 +708,9 @@ public class TableViewManagerImplTest {
 		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
-		verify(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileProvider).createFileOutputStream(mockFile);
+		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
+		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
 		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
 		assertNotNull(bucketAndKey);
 		verify(mockS3Client).putObject(putRequestCaptor.capture());
@@ -707,8 +729,8 @@ public class TableViewManagerImplTest {
 	public void testCreateViewSnapshotAndUploadToS3Error() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		UnsupportedEncodingException exception = new UnsupportedEncodingException("no");
-		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+		FileNotFoundException exception = new FileNotFoundException("no");
+		doThrow(exception).when(mockFileProvider).createFileOutputStream(mockFile);
 	
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
@@ -764,8 +786,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		setupWriter();
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		long snapshotVersion = 12L;

@@ -214,5 +214,13 @@ public interface TableIndexManager {
 	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
 	 */
 	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
+	
+	/**
+	 * Populate a view table from a stream of snapshot CSV data.
+	 * @param idAndVersion
+	 * @param input
+	 * @return
+	 */
+	public long populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
 }
