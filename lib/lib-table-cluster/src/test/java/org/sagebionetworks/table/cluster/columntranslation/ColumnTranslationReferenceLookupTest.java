@@ -47,8 +47,25 @@ class ColumnTranslationReferenceLookupTest {
 	}
 
 	@Test
+	public void testLookupForUserQueryColumnName_caseInsensitiveMetadataColumns(){
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ID, lookup.forUserQueryColumnName("row_ID").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_VERSION, lookup.forUserQueryColumnName("rOw_Version").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ETAG, lookup.forUserQueryColumnName("roW_ETaG").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR, lookup.forUserQueryColumnName("rOW_BENEFACTOR").orElse(null));
+
+	}
+
+	@Test
 	public void testLookupForTranslatedColumnName(){
 		assertEquals(fooReference, lookup.forTranslatedColumnName("_C123_").orElse(null));
 		assertEquals(barReference, lookup.forTranslatedColumnName("_C456_").orElse(null));
+	}
+
+	@Test
+	public void testLookupForTranslatedColumnName_caseInsensitiveMetadataColumns(){
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ID, lookup.forTranslatedColumnName("row_ID").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_VERSION, lookup.forTranslatedColumnName("rOw_Version").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_ETAG, lookup.forTranslatedColumnName("roW_ETaG").orElse(null));
+		assertEquals(RowMetadataColumnTranslationReference.ROW_BENEFACTOR, lookup.forTranslatedColumnName("rOW_BENEFACTOR").orElse(null));
 	}
 }

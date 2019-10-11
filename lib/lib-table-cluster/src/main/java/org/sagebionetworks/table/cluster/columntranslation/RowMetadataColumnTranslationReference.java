@@ -21,7 +21,7 @@ public enum RowMetadataColumnTranslationReference implements ColumnTranslationRe
 
 
 	RowMetadataColumnTranslationReference(final String columnName, final ColumnType columnType){
-		this.columnName = columnName;
+		this.columnName = columnName.toUpperCase();
 		this.columnType = columnType;
 	}
 
