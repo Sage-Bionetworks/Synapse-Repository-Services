@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -170,6 +171,8 @@ public class SqlQuery {
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
 		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
+		ColumnTranslationReferenceLookup columnTranslationReferenceLookup = new ColumnTranslationReferenceLookup(tableSchema);
+
 		// SELECT * is replaced with a select including each column in the schema.
 		if (BooleanUtils.isTrue(this.model.getSelectList().getAsterisk())) {
 			SelectList expandedSelectList = SQLTranslatorUtils.createSelectListFromSchema(tableSchema);
@@ -178,7 +181,7 @@ public class SqlQuery {
 		// Track if this is an aggregate query.
 		this.isAggregatedResult = model.hasAnyAggregateElements();
 		// Build headers that describe how the client should read the results of this query.
-		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap, this.isAggregatedResult);
+		this.selectColumns = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnTranslationReferenceLookup, this.isAggregatedResult);
 		// Maximum row size is a function of both the select clause and schema.
 		this.maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(selectColumns, columnNameToModelMap);
 		if(maxBytesPerPage != null){
@@ -201,7 +204,7 @@ public class SqlQuery {
 		}else{
 			this.includesRowIdAndVersion = false;
 		}
-		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnNameToModelMap);
+		SQLTranslatorUtils.translateModel(transformedModel, parameters, columnTranslationReferenceLookup);
 		this.outputSQL = transformedModel.toSql();
 	}
 	

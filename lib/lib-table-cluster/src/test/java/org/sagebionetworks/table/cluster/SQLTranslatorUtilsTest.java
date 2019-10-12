@@ -29,6 +29,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
+import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
@@ -69,7 +72,7 @@ public class SQLTranslatorUtilsTest {
 	@Mock
 	ResultSet mockResultSet;
 	
-	Map<String, ColumnModel> columnMap;
+	ColumnTranslationReferenceLookup columnMap;
 	
 	ColumnModel columnFoo;
 	ColumnModel columnHasSpace;
@@ -101,10 +104,7 @@ public class SQLTranslatorUtilsTest {
 		
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble, columnDate);
 		// setup the map
-		columnMap = new HashMap<String, ColumnModel>(schema.size());
-		for(ColumnModel cm: schema){
-			columnMap.put(cm.getName(), cm);
-		}
+		columnMap = new ColumnTranslationReferenceLookup(schema);
 		
 		SelectColumn one = new SelectColumn();
 		one.setColumnType(ColumnType.STRING);
@@ -150,30 +150,7 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testGetBaseColulmnTypeRowId(){
-		when(mockHasQuoteValue.toSqlWithoutQuotes()).thenReturn("row_id");
-		// call under test
-		ColumnType type = SQLTranslatorUtils.getBaseColulmnType(mockHasQuoteValue);
-		// row_id is always integer
-		ColumnType expected = ColumnType.INTEGER;
-		assertEquals(expected, type);
-		verify(mockHasQuoteValue, never()).hasQuotesRecursive();
-	}
-	
-	@Test
-	public void testGetBaseColulmnTypeRowVersion(){
-		when(mockHasQuoteValue.toSqlWithoutQuotes()).thenReturn("row_version");
-		// call under test
-		ColumnType type = SQLTranslatorUtils.getBaseColulmnType(mockHasQuoteValue);
-		// row_version is always integer
-		ColumnType expected = ColumnType.INTEGER;
-		assertEquals(expected, type);
-		verify(mockHasQuoteValue, never()).hasQuotesRecursive();
-	}
-	
-	@Test
 	public void testGetBaseColulmnTypeNoQuotes(){
-		when(mockHasQuoteValue.toSqlWithoutQuotes()).thenReturn("1.23");
 		when(mockHasQuoteValue.hasQuotesRecursive()).thenReturn(false);
 		// call under test
 		ColumnType type = SQLTranslatorUtils.getBaseColulmnType(mockHasQuoteValue);
@@ -183,7 +160,6 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetBaseColulmnTypeWithQuotes(){
-		when(mockHasQuoteValue.toSqlWithoutQuotes()).thenReturn("foo");
 		when(mockHasQuoteValue.hasQuotesRecursive()).thenReturn(true);
 		// call under test
 		ColumnType type = SQLTranslatorUtils.getBaseColulmnType(mockHasQuoteValue);
@@ -215,11 +191,11 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsRowIdLower() throws ParseException{
-		DerivedColumn derivedColumn = new TableQueryParser("row_id").derivedColumn();
+		DerivedColumn derivedColumn = new TableQueryParser("ROW_ID").derivedColumn();
 		// call under test
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
-		assertEquals("row_id", results.getName());
+		assertEquals("ROW_ID", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 
@@ -249,11 +225,11 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testGetSelectColumnsRowVersionLower() throws ParseException{
-		DerivedColumn derivedColumn = new TableQueryParser("row_version").derivedColumn();
+		DerivedColumn derivedColumn = new TableQueryParser("ROW_VERSION").derivedColumn();
 		// call under test
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
-		assertEquals("row_version", results.getName());
+		assertEquals("ROW_VERSION", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
@@ -640,9 +616,9 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateSelectRowId() throws ParseException{
-		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
+		ValueExpressionPrimary column = new TableQueryParser("ROW_ID").valueExpressionPrimary();
 		SQLTranslatorUtils.translateSelect(column, columnMap);
-		assertEquals("row_id", column.toSql());
+		assertEquals("ROW_ID", column.toSql());
 	}
 	
 	@Test
@@ -682,9 +658,9 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateOrderByRowId() throws ParseException{
-		ValueExpressionPrimary column = new TableQueryParser("row_id").valueExpressionPrimary();
+		ValueExpressionPrimary column = new TableQueryParser("ROW_ID").valueExpressionPrimary();
 		SQLTranslatorUtils.translateOrderBy(column, columnMap);
-		assertEquals("row_id", column.toSql());
+		assertEquals("ROW_ID", column.toSql());
 	}
 	
 	@Test
@@ -710,21 +686,21 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testReplaceBooleanFunctionIsNaN() throws ParseException{
-		BooleanPrimary element = new TableQueryParser("isNaN(aDouble)").booleanPrimary();
+		BooleanPrimary element = new TableQueryParser("isNaN(_C777_)").booleanPrimary();
 		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
 		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", element.toSql());
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionIsInfinity() throws ParseException{
-		BooleanPrimary element = new TableQueryParser("isInfinity(aDouble)").booleanPrimary();
+		BooleanPrimary element = new TableQueryParser("isInfinity(_C777_)").booleanPrimary();
 		SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
 		assertEquals("( _DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ( '-Infinity', 'Infinity' ) )", element.toSql());
 	}
 	
 	@Test
 	public void testReplaceBooleanFunctionNonDoubleColumn() throws ParseException{
-		BooleanPrimary element = new TableQueryParser("isInfinity(id)").booleanPrimary();
+		BooleanPrimary element = new TableQueryParser("isInfinity(_C444_)").booleanPrimary();
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceBooleanFunction(element, columnMap);
 		});
@@ -755,7 +731,9 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
 		columnFoo.setIsList(false);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -766,7 +744,9 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_nullIsList() throws ParseException {
 		columnFoo.setIsList(null);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -775,7 +755,9 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
-		columnFoo.setIsList(null);
+		columnFoo.setIsList(true);
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
@@ -786,28 +768,33 @@ public class SQLTranslatorUtilsTest {
 	@Test
 	public void testReplaceArrayHasPredicate_Has() throws ParseException {
 		columnFoo.setIsList(true);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE foo IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
 		columnFoo.setIsList(true);
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo not has ('asdf', 'qwerty', 'yeet')");
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ not has ('asdf', 'qwerty', 'yeet')");
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID NOT IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE foo IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
-		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("foo IN (\"123\", \"456\")");
+		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("_C111_ IN (\"123\", \"456\")");
 
 		String beforeCallSqll = notArrayHasPredicate.toSql();
 		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
@@ -1030,7 +1017,7 @@ public class SQLTranslatorUtilsTest {
 		UnsignedLiteral element = null;
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+			SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.STRING, parameters);
 		});
 	}
 	
@@ -1039,7 +1026,7 @@ public class SQLTranslatorUtilsTest {
 		UnsignedLiteral element = new TableQueryParser("'aString'").unsignedLiteral();
 		Map<String, Object> parameters = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+			SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.STRING, parameters);
 		});
 	}
 	
@@ -1056,7 +1043,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideString() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("'aString'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.STRING, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals("aString", parameters.get("b0"));
 	}
@@ -1066,7 +1053,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideInteger() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("123456").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.INTEGER, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals(new Long(123456), parameters.get("b0"));
 	}
@@ -1075,7 +1062,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideIntegerLikeValue() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("'12345%'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.INTEGER, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals("12345%", parameters.get("b0"));
 	}
@@ -1084,7 +1071,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideDouble() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("1.45").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnDouble, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DOUBLE, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals(new Double(1.45), parameters.get("b0"));
 	}
@@ -1093,7 +1080,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideDateString() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("'16-01-29 13:55:33.999'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DATE, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals(new Long(1454075733999L), parameters.get("b0"));
 	}
@@ -1102,7 +1089,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("1454075733999").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DATE, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals(new Long(1454075733999L), parameters.get("b0"));
 	}
@@ -1110,7 +1097,7 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateRightHandeSideInterval() throws ParseException{
 		UnsignedLiteral element = new TableQueryParser("INTERVAL 3 MONTH").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		SQLTranslatorUtils.translateRightHandeSide(element, ColumnType.DATE, parameters);
 		assertEquals("INTERVAL 3 MONTH", element.toSqlWithoutQuotes());
 	}
 	
@@ -1639,6 +1626,10 @@ public class SQLTranslatorUtilsTest {
 	public void testTranslateModel_HASKeyword() throws ParseException {
 		columnDouble.setIsList(true);
 		columnFoo.setIsList(true);
+
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
 		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1.1,2.2,3.3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
@@ -1670,10 +1661,10 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
-	public void testValidateSelectColumnWithRealColumnModel() {
+	public void testValidateSelectColumnWithRealReference() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("model");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, new ColumnModel(), new ActualIdentifier(new RegularIdentifier("someColumn")));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, new SchemaColumnTranslationReference(columnFoo), new ActualIdentifier(new RegularIdentifier("someColumn")));
 	}
 
 	@Test
@@ -1681,20 +1672,6 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("function");
 		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionReturnType.DOUBLE, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
-	}
-
-	@Test
-	public void testValidateSelectColumnWithRowId() {
-		SelectColumn selectColumn = new SelectColumn();
-		selectColumn.setName("row_id");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, null);
-	}
-
-	@Test
-	public void testValidateSelectColumnWithRowVersion() {
-		SelectColumn selectColumn = new SelectColumn();
-		selectColumn.setName("row_version");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, null);
 	}
 
 	@Test
