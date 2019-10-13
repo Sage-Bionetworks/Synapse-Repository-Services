@@ -2223,26 +2223,6 @@ public class NodeDAOImplTest {
 		assertTrue(parameters.isEmpty());
 	}
 	
-	@Test
-	public void testGetProjectStatAdditionalConditionOTHER_USER_PROJECTS(){
-		Map<String, Object> parameters = new HashMap<>();
-		Long userId = 123L;
-		ProjectListType type = ProjectListType.OTHER_USER_PROJECTS;
-		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
-		assertEquals("", result);
-		assertTrue(parameters.isEmpty());
-	}
-	
-	@Test
-	public void testGetProjectStatAdditionalConditionTEAM_PROJECTS(){
-		Map<String, Object> parameters = new HashMap<>();
-		Long userId = 123L;
-		ProjectListType type = ProjectListType.TEAM_PROJECTS;
-		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
-		assertEquals("", result);
-		assertTrue(parameters.isEmpty());
-	}
-	
 	/**
 	 * Must work for each type.
 	 */

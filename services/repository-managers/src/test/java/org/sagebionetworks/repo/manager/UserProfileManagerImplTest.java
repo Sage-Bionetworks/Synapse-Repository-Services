@@ -242,12 +242,11 @@ public class UserProfileManagerImplTest {
 	 */
 	private List<ProjectHeader> getProjects(UserInfo caller, UserInfo lookingAt) {
 		Team teamToFetch = null;
-		ProjectListType type = ProjectListType.OTHER_USER_PROJECTS;
 		ProjectListSortColumn sortColumn = ProjectListSortColumn.PROJECT_NAME;
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 100L;
 		Long offset = 0L;
-		PaginatedResults<ProjectHeader> paginated = userProfileManager.getProjects(caller, lookingAt, teamToFetch, type,
+		PaginatedResults<ProjectHeader> paginated = userProfileManager.getOthersProjects(caller, lookingAt,
 				sortColumn, sortDirection, limit, offset);
 		if (paginated != null) {
 			return paginated.getResults();
