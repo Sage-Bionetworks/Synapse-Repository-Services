@@ -1482,7 +1482,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// some types add an additional condition.
 		String additionalCondition;
 		if (type==null) {
-			additionalCondition = null;
+			additionalCondition = "";
 		} else {
 			additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
 		}

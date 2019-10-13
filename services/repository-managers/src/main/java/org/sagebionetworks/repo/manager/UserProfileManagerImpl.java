@@ -287,9 +287,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		// this case requires a team
 		ValidateArgument.required(teamToFetch, "teamToFetch");
 		long teamId = Long.parseLong(teamToFetch.getId());
-		Set<Long> userToGetPrincipalIds = Sets.newHashSet(teamId);
 
-		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, true);
+		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, Sets.newHashSet(teamId), false);
 
 		// run the query.
 		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
