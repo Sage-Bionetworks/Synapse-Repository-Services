@@ -2223,6 +2223,15 @@ public class NodeDAOImplTest {
 		assertTrue(parameters.isEmpty());
 	}
 	
+	@Test
+	public void testGetProjectStatAdditionalCondition_NullType(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, null);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+
 	/**
 	 * Must work for each type.
 	 */
