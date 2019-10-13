@@ -94,36 +94,25 @@ public interface UserProfileManager {
 			InvalidModelException, NotFoundException;
 
 	/**
-	 * Retrieve list of projects and activity history for 'userInfo' in each project
-	 * TODO should the history instead be the history of 'userToGetInfoFor'?
+	 * Retrieve list of projects and activity history for 'userInfo' in each project.
+	 * The results are paginated and sorted.  The content of the returned list depends 
+	 * on the 'type' parameter.  The result for each type is:
 	 * 
-	 * The returned list depends on the 'type' parameter.  Regardless of 'type', the
-	 * result is paginated and sorted.  The result for each type is:
+	 * if type is MY_PROJECTS: the projects that the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member
 	 * 
-	 * if type is MY_PROJECTS or OTHER_USER_PROJECTS: the projects that 'userToGetInfoFor' has READ access to by virtue of being 
-	 * included in the project's ACL personally or via a team in which they are a member, and that 'userInfo' 
-	 * also has READ access to
+	 * if type is MY_CREATED_PROJECTS: the projects that the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member, and
+	 * which they have created
 	 * 
-	 * if type is MY_CREATED_PROJECTS: the projects that 'userToGetInfoFor' has READ access to by virtue of being 
-	 * included in the project's ACL personally or via a team in which they are a member, and 'userInfo' 
-	 * has created
-	 * TODO should this instead be filtered by which ones userToGetInfoFor has created?
+	 * if type is MY_PARTICIPATED_PROJECTS: the projects the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member, but which
+	 * the user has not created
 	 * 
-	 * if type is MY_PARTICIPATED_PROJECTS: the projects 'userToGetInfoFor' has READ access to by virtue of being 
-	 * included in the project's ACL personally or via a team in which they are a member, and 'userInfo' 
-	 * also has READ access but has not created
-	 * TODO should this instead be filtered by which ones userToGetInfoFor has not created?
-	 * 
-	 * if type is MY_TEAM_PROJECTS: the projects that 'userToGetInfoFor' has READ access by virtue of being included in
-	 * the project's ACL via some team and that that 'userInfo' also has READ access to
-	 * 
-	 * if type is TEAM_PROJECTS: the projects that 'teamToFetch' has been granted READ access to, and that 'userInfo' 
-	 * also has READ access to
-	 * 
+	 * if type is MY_TEAM_PROJECTS: the projects that the user has READ access by virtue of being 
+	 * included in the project's ACL via some team
 	 * 
 	 * @param userInfo
-	 * @param userToGetInfoFor
-	 * @param teamToFetch
 	 * @param type
 	 * @param sortColumn either project name or time of last access by 'userInfo'
 	 * @param sortDirection
@@ -134,8 +123,60 @@ public interface UserProfileManager {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public PaginatedResults<ProjectHeader> getMyOwnProjects(
+			UserInfo userInfo, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
+			Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Retrieve list of projects and activity history for 'userToGetInfoFor' in each project
+	 * The results are paginated and sorted.
+	 * 
+	 * The results include the projects that 'userToGetInfoFor' has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member, and that 'userInfo' 
+	 * also has READ access to
+	 * 
+	 * @param userInfo
+	 * @param userToGetInfoFor
+	 * @param sortColumn either project name or time of last access by 'userInfo'
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<ProjectHeader> getOthersProjects(
+			UserInfo userInfo, UserInfo userToGetInfoFor,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
+			Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Retrieve list of projects and activity history for 'userInfo' in each project
+	 * The results are paginated and sorted.
+	 *
+	 * The results include the projects  that 'teamToFetch' has been granted READ access to, and that 'userInfo' 
+	 * also has READ access to
+	 * 
+	 * 
+	 * @param userInfo
+	 * @param teamToFetch
+	 * @param sortColumn either project name or time of last access by 'userInfo'
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<ProjectHeader> getTeamsProjects(
+			UserInfo userInfo, Team teamToFetch, 
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
+			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 	
 	/**

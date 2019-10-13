@@ -205,43 +205,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
 	}
-
-	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
-			UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		/*
-		 * The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, /*
-		 * and CERTIFIED_USERS
-		 */
-		Set<Long> userToGetPrincipalIds;
-		switch (type) {
-		case MY_PROJECTS:
-		case OTHER_USER_PROJECTS:
-		case MY_CREATED_PROJECTS:
-		case MY_PARTICIPATED_PROJECTS:
-			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			break;
-		case MY_TEAM_PROJECTS:
-			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			break;
-		case TEAM_PROJECTS:
-			// this case requires a team
-			ValidateArgument.required(teamToFetch, "teamToFetch");
-			long teamId = Long.parseLong(teamToFetch.getId());
-			userToGetPrincipalIds = Sets.newHashSet(teamId);
-			break;
-		default:
-			throw new NotImplementedException("project list type " + type
-					+ " not yet implemented");
-		}
+	
+	private Set<Long> getProjectIdsForCallerAndUser(UserInfo caller, Set<Long> userToGetPrincipalIds, boolean userToGetIsSelf) {
 		// Find the projectIds accessible (READ access is granted) to the user-to-get-for.
 		Set<Long> userToGetAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(userToGetPrincipalIds);
 		Set<Long> projectIdsToFilterBy = null;
-		if (!caller.isAdmin()
-				&& !caller.getId().equals(userToGetInfoFor.getId())) { // Note, when type==TEAM_PROJECTS, then userToGetInfoFor=caller 
+		if (!caller.isAdmin() && !userToGetIsSelf) {
 			/*
 			 * The caller is not an administrator and the caller is not the same
 			 * as the user-to-get-for. Therefore, the return projects must only
@@ -257,11 +226,74 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			 * that the user-to-get-for can read.
 			 */
 			projectIdsToFilterBy = userToGetAccessibleProjectIds;
+		}	
+		return projectIdsToFilterBy;
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getMyOwnProjects(
+			UserInfo caller, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		// user's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
+
+		Set<Long> userToGetPrincipalIds;
+		switch (type) {
+		case MY_PROJECTS:
+		case MY_CREATED_PROJECTS:
+		case MY_PARTICIPATED_PROJECTS:
+			userToGetPrincipalIds = getGroupsMinusPublic(caller.getGroups());
+			break;
+		case MY_TEAM_PROJECTS:
+			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
+			break;
+		default:
+			throw new NotImplementedException("project list type " + type
+					+ " not yet supported");
 		}
+		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, true);
 		// run the query.
-		// TODO:  Should the following be caller.getId() or userToGetInfoFor.getId()?
 		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
 				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
+				offset);
+		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getOthersProjects(
+			UserInfo caller, UserInfo userToGetInfoFor,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+
+		// user's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
+		Set<Long> userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+
+		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, false);
+		// run the query.
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(userToGetInfoFor.getId(),
+				projectIdsToFilterBy, null, sortColumn, sortDirection, limit,
+				offset);
+		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getTeamsProjects(
+			UserInfo caller, Team teamToFetch,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		// this case requires a team
+		ValidateArgument.required(teamToFetch, "teamToFetch");
+		long teamId = Long.parseLong(teamToFetch.getId());
+		Set<Long> userToGetPrincipalIds = Sets.newHashSet(teamId);
+
+		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, true);
+
+		// run the query.
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
+				projectIdsToFilterBy, null, sortColumn, sortDirection, limit,
 				offset);
 		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
 	}

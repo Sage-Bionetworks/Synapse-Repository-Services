@@ -232,46 +232,59 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+	public PaginatedResults<ProjectHeader> getMyOwnProjects(Long userId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserInfo userToGetInfoFor = userInfo;
 
 		ValidateArgument.required(type, "type");
-		
-		// validate for different types of lists
-		switch (type) {
-		case OTHER_USER_PROJECTS:
-			ValidateArgument.required(otherUserId, "user");
-			if (teamId!=null) throw new IllegalArgumentException(
-					"Cannot specify team when type is 'OTHER_USER_PROJECTS'");
-			break;
-		case TEAM_PROJECTS:
-			ValidateArgument.required(teamId, "team");
-			if (otherUserId!=null) throw new IllegalArgumentException(
-						"Cannot specify user when type is 'TEAM_PROJECTS'");
-			break;
-		default:
-			break;
+
+		if (sortColumn==null) {
+			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection==null) {
+			sortDirection=sortDirection.DESC;
 		}
 
-		if(sortColumn ==null){
-			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		return userProfileManager.getMyOwnProjects(userInfo, type, sortColumn, sortDirection, limit, offset);
+	}
+	
+	@Override
+	public PaginatedResults<ProjectHeader> getOthersProjects(Long userId, Long otherUserId, 
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		ValidateArgument.required(otherUserId, "user");
+		UserInfo userToGetInfoFor = userManager.getUserInfo(otherUserId);
+
+		if (sortColumn==null) {
+			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
-		if (sortDirection == null) {
-			sortDirection = SortDirection.DESC;
+		if (sortDirection==null) {
+			sortDirection=sortDirection.DESC;
 		}
 
-		if (otherUserId != null) {
-			userToGetInfoFor = userManager.getUserInfo(otherUserId);
+		return userProfileManager.getOthersProjects(userInfo, userToGetInfoFor, sortColumn, sortDirection, limit, offset);
+	}
+	
+	@Override
+	public PaginatedResults<ProjectHeader> getTeamsProjects(Long userId, Long teamId, 
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		ValidateArgument.required(teamId, "team");
+		Team teamToFetch = teamManager.get(teamId.toString());
+
+		if (sortColumn==null) {
+			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
-		Team teamToFetch = null;
-		if (teamId != null) {
-			teamToFetch = teamManager.get(teamId.toString());
+		if (sortDirection==null) {
+			sortDirection=sortDirection.DESC;
 		}
 
-		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+		return userProfileManager.getTeamsProjects(userInfo, teamToFetch, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/*

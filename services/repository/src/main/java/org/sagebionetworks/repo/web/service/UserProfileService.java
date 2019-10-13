@@ -173,8 +173,6 @@ public interface UserProfileService {
 	 * Retrieve sorted list of projects, paginated
 	 * 
 	 * @param userId
-	 * @param otherUserId optional other user id required when retrieving projects of other user
-	 * @param teamId optional team id required when retrieving projects for a team
 	 * @param type type of project list
 	 * @param sortColumn optional sort column. default sort by last activity
 	 * @param sortDirection optional sort direction. default sort descending
@@ -185,7 +183,43 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+	public PaginatedResults<ProjectHeader> getMyOwnProjects(Long userId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve sorted list of projects, paginated
+	 * 
+	 * @param userId
+	 * @param otherUserId other user id required when retrieving projects of other user
+	 * @param sortColumn optional sort column. default sort by last activity
+	 * @param sortDirection optional sort direction. default sort descending
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<ProjectHeader> getOthersProjects(Long userId, Long otherUserId, 
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve sorted list of projects, paginated
+	 * 
+	 * @param userId
+	 * @param teamId team id required when retrieving projects for a team
+	 * @param sortColumn optional sort column. default sort by last activity
+	 * @param sortDirection optional sort direction. default sort descending
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<ProjectHeader> getTeamsProjects(Long userId, Long teamId,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 

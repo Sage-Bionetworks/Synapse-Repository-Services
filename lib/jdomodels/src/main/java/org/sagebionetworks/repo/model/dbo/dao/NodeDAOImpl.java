@@ -1480,7 +1480,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		parameters.put(BIND_PROJECT_STAT_USER_ID, userId);
 		StringBuilder sqlBuilder = new StringBuilder(SELECT_PROJECTS_STATS);
 		// some types add an additional condition.
-		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
+		String additionalCondition;
+		if (type==null) {
+			additionalCondition = null;
+		} else {
+			additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
+		}
 		sqlBuilder.append(additionalCondition);
 		// order and paging
 		String orgerAndPaging = getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
@@ -1496,9 +1501,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type){
 		switch (type) {
 		case MY_PROJECTS:
-		case OTHER_USER_PROJECTS:
 		case MY_TEAM_PROJECTS:
-		case TEAM_PROJECTS:
 			return "";
 		case MY_CREATED_PROJECTS:
 			parameters.put(BIND_CREATED_BY, userId);

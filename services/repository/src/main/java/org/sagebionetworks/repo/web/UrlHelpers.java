@@ -945,8 +945,10 @@ public class UrlHelpers {
 	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
 
 	public static final String PROJECTS = "/projects/{type}";
-	public static final String PROJECTS_USER = "/projects/OTHER_USER_PROJECTS" + USER + "/{principalId}"; // TODO change to /projects/user/{principalId}
-	public static final String PROJECTS_TEAM = "/projects/TEAM_PROJECTS" + TEAM + "/{teamId}"; // TODO change to /projects/team/{teamId}
+	public static final String PROJECTS_USER = "/projects" + USER + "/{principalId}";
+	public static final String PROJECTS_TEAM = "/projects" + TEAM + "/{teamId}";
+	public static final String PROJECTS_USER_DEPRECATED = "/projects/OTHER_USER_PROJECTS" + USER + "/{principalId}";
+	public static final String PROJECTS_TEAM_DEPRECATED = "/projects/TEAM_PROJECTS" + TEAM + "/{teamId}";
 	public static final String PROJECTS_SORT_PARAM = "sort";
 	public static final String PROJECTS_SORT_DIRECTION_PARAM = "sortDirection";
 

@@ -17,14 +17,6 @@
         {
             "name": "MY_TEAM_PROJECTS",
             "description": "Projects visible to any team the requesting user is a member of."
-        },
-        {
-            "name": "OTHER_USER_PROJECTS",
-            "description": "Projects visible to the provided user, and also visible to the requesting user."
-        },
-        {
-            "name": "TEAM_PROJECTS",
-            "description": "Projects visible to the provided team, and also visible to the requesting user."
         }
     ]
 }
