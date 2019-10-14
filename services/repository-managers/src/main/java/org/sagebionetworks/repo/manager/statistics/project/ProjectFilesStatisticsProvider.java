@@ -11,15 +11,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.statistics.StatisticsProvider;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.statistics.FileEvent;
@@ -38,38 +33,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProjectFilesStatisticsProvider implements StatisticsProvider<ProjectFilesStatisticsRequest, ProjectFilesStatisticsResponse> {
 
-	private AuthorizationManager authManager;
 	private NodeDAO nodeDao;
 	private StatisticsMonthlyProjectFilesDAO fileStatsDao;
 	private int maxMonths;
 
 	@Autowired
-	public ProjectFilesStatisticsProvider(StackConfiguration stackConfig, AuthorizationManager authManager, NodeDAO nodeDao,
-			StatisticsMonthlyProjectFilesDAO fileStatsDao) {
-		this.authManager = authManager;
+	public ProjectFilesStatisticsProvider(StackConfiguration stackConfig, NodeDAO nodeDao, StatisticsMonthlyProjectFilesDAO fileStatsDao) {
 		this.nodeDao = nodeDao;
 		this.fileStatsDao = fileStatsDao;
 		this.maxMonths = stackConfig.getMaximumMonthsForMonthlyStatistics();
-	}
-
-	@Override
-	public void verifyViewStatisticsAccess(UserInfo user, String objectId) throws UnauthorizedException {
-		ValidateArgument.required(user, "The user");
-		ValidateArgument.required(objectId, "The object id");
-
-		Node project = nodeDao.getNode(objectId);
-
-		if (!EntityType.project.equals(project.getNodeType())) {
-			throw new NotFoundException("The id " + objectId + " does not refer to project");
-		}
-
-		String projectCreator = project.getCreatedByPrincipalId().toString();
-
-		// Verify access to the project
-		if (!authManager.isUserCreatorOrAdmin(user, projectCreator)) {
-			authManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.VIEW_STATISTICS).checkAuthorizationOrElseThrow();
-		}
-
 	}
 
 	@Override
@@ -81,6 +53,12 @@ public class ProjectFilesStatisticsProvider implements StatisticsProvider<Projec
 	public ProjectFilesStatisticsResponse getObjectStatistics(ProjectFilesStatisticsRequest request) {
 		ValidateArgument.required(request, "The request");
 		ValidateArgument.required(request.getObjectId(), "The project id");
+		
+		Node project = nodeDao.getNode(request.getObjectId());
+
+		if (!EntityType.project.equals(project.getNodeType())) {
+			throw new NotFoundException("The id " + request.getObjectId() + " does not refer to project");
+		}
 
 		Long projectId = KeyFactory.stringToKey(request.getObjectId());
 

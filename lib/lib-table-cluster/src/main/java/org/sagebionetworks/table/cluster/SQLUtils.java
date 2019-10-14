@@ -226,12 +226,13 @@ public class SQLUtils {
 
 	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
 		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(columnId, "columnId");
 
 		StringBuilder builder = new StringBuilder();
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
 		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
 		builder.append("_INDEX");
-		builder.append(getColumnNameForId(columnId));
+		appendColumnNameForId(columnId, builder);
 		return builder.toString();
 	}
 
@@ -244,53 +245,60 @@ public class SQLUtils {
 	public static String getColumnNameForId(String columnId) {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
-		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
+		StringBuilder builder = new StringBuilder();
+		appendColumnNameForId(columnId, builder);
+		return builder.toString();
 	}
 
-	public static void appendColumnName(String subName, String columnId, StringBuilder builder) {
-		appendColumnName(null, subName, columnId, builder);
+	public static void appendColumnNameForId(String columnId, StringBuilder builder){
+		appendColumnName(null, columnId, builder);
 	}
 
-	private static void appendColumnName(String prefix, String subName, String columnId, StringBuilder builder) {
+	private static void appendColumnName(String prefix, String columnId, StringBuilder builder) {
 		if (prefix != null) {
 			builder.append(prefix);
 		}
-		builder.append(subName).append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
+		builder.append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
 	}
 
 	/**
-	 * Append case statement for doubles, like:
-	 * 
+	 * Append the column name that stores abstract values for doubles (Infinity, NaN).
+	 * Example : _DBL_C1_
+	 * @param reference
+	 * @param builder
+	 */
+	static void appendDoubleAbstractColumnName(String columnId, StringBuilder builder){
+		appendColumnName(TableConstants.DOUBLE_PREFIX, columnId, builder);
+	}
+
+	static String getDoubleAbstractColumnName(String columnId){
+		StringBuilder builder = new StringBuilder();
+		appendDoubleAbstractColumnName(columnId, builder);
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a double clause, like:
+	 *
 	 * <pre>
 	 * CASE
 	 * 	WHEN _DBL_C1_ IS NULL THEN _C1_
 	 * 	ELSE _DBL_C1_
 	 * END AS _C1_
 	 * </pre>
-	 * 
-	 * @param column
-	 * @param subName
-	 * @param builder
-	 */
-	public static void appendDoubleCase(String columnId, StringBuilder builder) {
-		String subName = EMPTY_STRING;
-		builder.append("CASE WHEN ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" IS NULL THEN ");
-		appendColumnName(subName, columnId, builder);
-		builder.append(" ELSE ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" END");
-	}
-	
-	/**
-	 * Create a double clause.
+	 *
 	 * @param columnId
 	 * @return
-	 */
-	public static String createDoubleCluase(String columnId){
+	 (*/
+	public static String createDoubleCase(String columnId){
 		StringBuilder builder = new StringBuilder();
-		appendDoubleCase(columnId, builder);
+		builder.append("CASE WHEN ");
+		appendDoubleAbstractColumnName( columnId, builder);
+		builder.append(" IS NULL THEN ");
+		appendColumnNameForId(columnId, builder);
+		builder.append(" ELSE ");
+		appendDoubleAbstractColumnName(columnId, builder);
+		builder.append(" END");
 		return builder.toString();
 	}
 
@@ -303,15 +311,14 @@ public class SQLUtils {
 	 * </pre>
 	 * 
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsNan(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsNan(String columnId, StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" = '").append(DOUBLE_NAN).append("')");
 	}
 
@@ -322,15 +329,14 @@ public class SQLUtils {
 	 * _DBL_C1_ IN ('Infinity', '-Infinity')
 	 * </pre>
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsInfinity(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsInfinity(String columnId,  StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IN ('").append(DOUBLE_NEGATIVE_INFINITY).append("', '").append(DOUBLE_POSITIVE_INFINITY).append("'))");
 	}
 
@@ -390,8 +396,8 @@ public class SQLUtils {
 		for(ColumnModel cm: schema){
 			String columnName = getColumnNameForId(cm.getId());
 			names.add(columnName);
-			if(ColumnType.DOUBLE.equals(cm.getColumnType())){
-				names.add(TableConstants.DOUBLE_PREFIX + columnName);
+			if(cm.getColumnType() == ColumnType.DOUBLE){
+				names.add(getDoubleAbstractColumnName(cm.getId()));
 			}
 		}
 		return names;
@@ -498,7 +504,7 @@ public class SQLUtils {
 					String columnName = getColumnNameForId(cm.getId());
 					switch (cm.getColumnType()) {
 					case DOUBLE:
-						String doubleEnumerationName = TableConstants.DOUBLE_PREFIX + columnName;
+						String doubleEnumerationName = getDoubleAbstractColumnName(cm.getId());
 						Double doubleValue = (Double) value;
 						if(AbstractDouble.isAbstractValue(doubleValue)){
 							// Abstract double include NaN and +/- Infinity.
@@ -732,7 +738,7 @@ public class SQLUtils {
 		}
 		ValidateArgument.required(oldColumn, "oldColumn");
 		builder.append("DROP COLUMN ");
-		builder.append(getColumnNameForId(oldColumn.getId()));
+		appendColumnNameForId(oldColumn.getId(), builder);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
 			appendDropDoubleEnum(builder, oldColumn.getId());
@@ -763,7 +769,7 @@ public class SQLUtils {
 			builder.append(", ");
 		}
 		builder.append("CHANGE COLUMN ");
-		builder.append(getColumnNameForId(change.getOldColumn().getId()));
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		builder.append(" ");
 		appendColumnDefinition(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		// Is this a type change?
@@ -792,7 +798,7 @@ public class SQLUtils {
 	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column , boolean useDepricatedUtf8ThreeBytes){
-		builder.append(getColumnNameForId(column.getId()));
+		appendColumnNameForId(column.getId(), builder);
 		builder.append(" ");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
 		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue(), useDepricatedUtf8ThreeBytes));
@@ -806,8 +812,7 @@ public class SQLUtils {
 	public static void appendAddDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", ADD COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 
@@ -819,8 +824,7 @@ public class SQLUtils {
 	public static void appendDropDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", DROP COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 	}
 	
 	/**
@@ -831,11 +835,9 @@ public class SQLUtils {
 	 */
 	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
 		builder.append(", CHANGE COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(oldId));
+		appendDoubleAbstractColumnName(oldId, builder);
 		builder.append(" ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(newId));
+		appendDoubleAbstractColumnName(newId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 

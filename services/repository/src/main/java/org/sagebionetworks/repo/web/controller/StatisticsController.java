@@ -34,7 +34,7 @@ public class StatisticsController {
 
 	/**
 	 * Generic endpoint to retrieve statistics about objects. The user should have
-	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">VIEW_STATISTICS</a> access on the object
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">READ</a> access on the object
 	 * referenced by the objectId in the request.
 	 * 
 	 * Currently supported requests:
