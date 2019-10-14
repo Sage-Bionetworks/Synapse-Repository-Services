@@ -243,7 +243,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
 		if (sortDirection==null) {
-			sortDirection=sortDirection.DESC;
+			sortDirection=SortDirection.DESC;
 		}
 
 		return userProfileManager.getMyOwnProjects(userInfo, type, sortColumn, sortDirection, limit, offset);
@@ -262,7 +262,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
 		if (sortDirection==null) {
-			sortDirection=sortDirection.DESC;
+			sortDirection=SortDirection.DESC;
 		}
 
 		return userProfileManager.getOthersProjects(userInfo, userToGetInfoFor, sortColumn, sortDirection, limit, offset);
@@ -281,7 +281,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
 		if (sortDirection==null) {
-			sortDirection=sortDirection.DESC;
+			sortDirection=SortDirection.DESC;
 		}
 
 		return userProfileManager.getTeamsProjects(userInfo, teamToFetch, sortColumn, sortDirection, limit, offset);

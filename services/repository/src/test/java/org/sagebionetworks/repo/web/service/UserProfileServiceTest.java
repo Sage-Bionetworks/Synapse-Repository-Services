@@ -30,27 +30,33 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasList;
@@ -71,9 +77,11 @@ import com.google.common.collect.Lists;
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
+	private static final Long OTHER_USER_ID = 2398999L;
 	private static final Long NONEXISTENT_USER_ID = 827634L;
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
+	private static UserInfo otherUserInfo;
 	private AliasList aliasList;
 	List<AliasType> typeList;
 	List<UserGroupHeader> headers;
@@ -94,6 +102,8 @@ public class UserProfileServiceTest {
 	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
 	@Mock
 	private TokenGenerator mockTokenGenerator;
+	@Mock
+	private TeamManager mockTeamManager;
 	
 	@Before
 	public void before() throws Exception {
@@ -125,12 +135,14 @@ public class UserProfileServiceTest {
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
 		userInfo = new UserInfo(false, EXTRA_USER_ID);
+		otherUserInfo = new UserInfo(false, OTHER_USER_ID);
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
 		when(mockUserProfileManager.getUserProfile(eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
 		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockPermissionsManager);
@@ -140,6 +152,7 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
 		ReflectionTestUtils.setField(userProfileService, "tokenGenerator", mockTokenGenerator);
+		ReflectionTestUtils.setField(userProfileService, "teamManager", mockTeamManager);
 		
 		aliasList = new AliasList();
 		aliasList.setList(Lists.newArrayList("aliasOne", "aliasTwo"));
@@ -641,4 +654,90 @@ public class UserProfileServiceTest {
 		boolean isIndividual = false;
 		verify(mockPrincipalPrefixDAO).listPrincipalsForPrefix(prefix, isIndividual, new Long(limit), new Long(offset));
 	}
+	
+	@Test
+	public void testGetMyOwnProjects() {
+		long offset = 0;
+		long limit = 2;
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getMyOwnProjects(
+				userInfo.getId(), ProjectListType.MY_PROJECTS,
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+		
+		verify(mockUserProfileManager).getMyOwnProjects(userInfo, ProjectListType.MY_PROJECTS, 
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+	}
+	
+	@Test
+	public void testGetMyOwnProjectsDefaultSort() {
+		long offset = 0;
+		long limit = 2;
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getMyOwnProjects(
+				userInfo.getId(), ProjectListType.MY_PROJECTS,
+				null, null, limit, offset);
+		
+		verify(mockUserProfileManager).getMyOwnProjects(userInfo, ProjectListType.MY_PROJECTS, 
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+	
+	@Test
+	public void testGetOthersProjects() {
+		long offset = 0;
+		long limit = 2;
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getOthersProjects(
+				userInfo.getId(), otherUserInfo.getId(),
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+		
+		verify(mockUserProfileManager).getOthersProjects(userInfo, otherUserInfo, 
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+	}
+	
+	
+	@Test
+	public void testGetOthersProjectsDefaultSort() {
+		long offset = 0;
+		long limit = 2;
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getOthersProjects(
+				userInfo.getId(), otherUserInfo.getId(),
+				null, null, limit, offset);
+		
+		verify(mockUserProfileManager).getOthersProjects(userInfo, otherUserInfo, 
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+	
+	@Test
+	public void testGetTeamsProjects() {
+		long offset = 0;
+		long limit = 2;
+		Long teamId = 101010101L;
+		Team team = new Team();
+		when(mockTeamManager.get(teamId.toString())).thenReturn(team);
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getTeamsProjects(
+				userInfo.getId(), teamId,
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+		
+		verify(mockUserProfileManager).getTeamsProjects(userInfo, team, 
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+	}
+	
+	@Test
+	public void testGetTeamsProjectsDefaultSort() {
+		long offset = 0;
+		long limit = 2;
+		Long teamId = 101010101L;
+		Team team = new Team();
+		when(mockTeamManager.get(teamId.toString())).thenReturn(team);
+		// call under test
+		PaginatedResults<ProjectHeader> prs = userProfileService.getTeamsProjects(
+				userInfo.getId(), teamId,
+				null, null, limit, offset);
+		
+		verify(mockUserProfileManager).getTeamsProjects(userInfo, team, 
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+	}
+	
 }

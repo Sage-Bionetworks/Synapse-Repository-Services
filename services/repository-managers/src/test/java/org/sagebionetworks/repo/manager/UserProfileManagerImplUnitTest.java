@@ -344,7 +344,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are the same.
+	 * and the userToGetFor are the same. The type is MY_CREATED_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsNonAdminCallerSame(){
@@ -361,6 +361,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
+		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
@@ -387,7 +388,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	/**
 	 * For this case the caller is an admin, and the caller
-	 * and the userToGetFor are different.
+	 * and the userToGetFor are the same.
 	 */
 	@Test
 	public void testGetProjectsAdminCallerSame(){
@@ -414,47 +415,6 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testGetProjectsMY_PROJECTS(){
 		type = ProjectListType.MY_PROJECTS;
-		// call under test
-		PaginatedResults<ProjectHeader> results = userProfileManager.getMyOwnProjects(
-				caller, type, sortColumn, sortDirection, limit, offset);
-		assertNotNull(results);
-		// Accessible projects should be called once for the caller.
-		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
-		// the groups for the userToGetFor should exclude public.
-		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), visibleProjectsOne, type, sortColumn, sortDirection, limit, offset);
-	}
-	
-	/**
-	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is OTHER_USER_PROJECTS.
-	 */
-	@Test
-	public void testGetProjectsOTHER_USER_PROJECTS(){
-		// call under test
-		PaginatedResults<ProjectHeader> results = userProfileManager.getOthersProjects(
-				caller, userToGetFor, sortColumn, sortDirection, limit, offset);
-		assertNotNull(results);
-		// Accessible projects should be called once for the userToGetFor and once for the caller.
-		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
-		// the groups for the userToGetFor should exclude public.
-		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
-		// The projectIds passed to the dao should be the intersection of the caller's projects
-		// and the userToGetFor's projects.
-		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, null, sortColumn, sortDirection, limit, offset);
-	}
-	
-	/**
-	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are the same.  The type is MY_CREATED_PROJECTS.
-	 */
-	@Test
-	public void testGetProjectsMY_CREATED_PROJECTS(){
-		type = ProjectListType.MY_CREATED_PROJECTS;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getMyOwnProjects(
 				caller, type, sortColumn, sortDirection, limit, offset);
