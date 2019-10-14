@@ -1006,6 +1006,7 @@ public class SqlConstants {
 	// Table constants related to emails that are quarantined
 	public static final String TABLE_QUARANTINED_EMAILS = 								"QUARANTINED_EMAILS";
 	public static final String DDL_QUARANTINED_EMAILS = 								"schema/ses/QuarantinedEmails-ddl.sql";
+	public static final String COL_QUARANTINED_EMAILS_ID = 								"ID";
 	public static final String COL_QUARANTINED_EMAILS_EMAIL = 							"EMAIL";
 	public static final String COL_QUARANTINED_EMAILS_ETAG = 							"ETAG";
 	public static final String COL_QUARANTINED_EMAILS_CREATED_ON = 						"CREATED_ON";

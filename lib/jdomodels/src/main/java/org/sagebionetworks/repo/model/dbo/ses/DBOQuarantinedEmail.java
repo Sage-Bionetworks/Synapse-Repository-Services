@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_REASON_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_SES_MESSAGE_ID;
@@ -34,7 +35,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuarantinedEmail, DBOQuarantinedEmail> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("email", COL_QUARANTINED_EMAILS_EMAIL, true).withIsBackupId(true),
+			new FieldColumn("id", COL_QUARANTINED_EMAILS_ID, true).withIsBackupId(true),
+			new FieldColumn("email", COL_QUARANTINED_EMAILS_EMAIL),
 			new FieldColumn("etag", COL_QUARANTINED_EMAILS_ETAG).withIsEtag(true),
 			new FieldColumn("createdOn", COL_QUARANTINED_EMAILS_CREATED_ON),
 			new FieldColumn("updatedOn", COL_QUARANTINED_EMAILS_UPDATED_ON),
@@ -49,6 +51,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 		public DBOQuarantinedEmail mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOQuarantinedEmail dbo = new DBOQuarantinedEmail();
 
+			dbo.setId(rs.getLong(COL_QUARANTINED_EMAILS_ID));
 			dbo.setEmail(rs.getString(COL_QUARANTINED_EMAILS_EMAIL));
 			dbo.setEtag(rs.getString(COL_QUARANTINED_EMAILS_ETAG));
 			dbo.setCreatedOn(rs.getTimestamp(COL_QUARANTINED_EMAILS_CREATED_ON));
@@ -85,6 +88,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 
 	private static final MigratableTableTranslation<DBOQuarantinedEmail, DBOQuarantinedEmail> TABLE_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
+	private Long id;
 	private String email;
 	private String etag;
 	private Timestamp createdOn;
@@ -94,6 +98,14 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 	private String reasonDetails;
 	// This is the optional SES generated id that lead to the quarantine
 	private String sesMessageId;
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
 
 	public String getEmail() {
 		return email;
@@ -191,7 +203,7 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, email, etag, expiresOn, reason, reasonDetails, sesMessageId, updatedOn);
+		return Objects.hash(createdOn, email, etag, expiresOn, id, reason, reasonDetails, sesMessageId, updatedOn);
 	}
 
 	@Override
@@ -207,16 +219,16 @@ public class DBOQuarantinedEmail implements MigratableDatabaseObject<DBOQuaranti
 		}
 		DBOQuarantinedEmail other = (DBOQuarantinedEmail) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(email, other.email) && Objects.equals(etag, other.etag)
-				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(reason, other.reason)
+				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(id, other.id) && Objects.equals(reason, other.reason)
 				&& Objects.equals(reasonDetails, other.reasonDetails) && Objects.equals(sesMessageId, other.sesMessageId)
 				&& Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOQuarantinedEmail [email=" + email + ", etag=" + etag + ", createdOn=" + createdOn + ", updatedOn=" + updatedOn
-				+ ", expiresOn=" + expiresOn + ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId=" + sesMessageId
-				+ "]";
+		return "DBOQuarantinedEmail [id=" + id + ", email=" + email + ", etag=" + etag + ", createdOn=" + createdOn + ", updatedOn="
+				+ updatedOn + ", expiresOn=" + expiresOn + ", reason=" + reason + ", reasonDetails=" + reasonDetails + ", sesMessageId="
+				+ sesMessageId + "]";
 	}
 
 }
