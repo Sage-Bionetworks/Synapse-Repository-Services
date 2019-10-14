@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service.statistics;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 
@@ -13,8 +12,8 @@ import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 public interface StatisticsService {
 
 	/**
-	 * Returns the statistics according to the given request, the user must have {@link ACCESS_TYPE#VIEW_STATISTICS} access
-	 * on the object reference in the request
+	 * Returns the statistics according to the given request, the user must have {@link ACCESS_TYPE#READ} access
+	 * on the object referenced in the request
 	 * 
 	 * @param <T>     The type of statistics request
 	 * @param userId  The id of the user performing the request

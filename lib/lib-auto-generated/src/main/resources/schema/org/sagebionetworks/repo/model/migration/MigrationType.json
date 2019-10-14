@@ -283,6 +283,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "VIEW_SNAPSHOT",
+			"description": "Table of metadata about view snapshots."
+		},
+		{
 			"name": "AUTHENTICATION_RECEIPT",
 			"description": "TODO: Auto-generated description"
 		},

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.ses;
 import java.time.Instant;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -17,11 +18,11 @@ public class QuarantinedEmail {
 	private Instant createdOn;
 	private Instant updatedOn;
 	private Instant expiresOn;
-	private QuarantineReason reason;
+	private EmailQuarantineReason reason;
 	private String reasonDetails;
 	private String sesMessageId;
 
-	public QuarantinedEmail(String email, QuarantineReason reason) {
+	public QuarantinedEmail(String email, EmailQuarantineReason reason) {
 		ValidateArgument.requiredNotBlank(email, "The email");
 		ValidateArgument.required(reason, "The reason");
 		this.email = email;
@@ -50,7 +51,7 @@ public class QuarantinedEmail {
 		return this;
 	}
 
-	public QuarantineReason getReason() {
+	public EmailQuarantineReason getReason() {
 		return reason;
 	}
 

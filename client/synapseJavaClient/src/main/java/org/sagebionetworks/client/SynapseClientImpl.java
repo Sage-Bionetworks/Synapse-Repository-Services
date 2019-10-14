@@ -212,6 +212,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
@@ -798,9 +799,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * 
 	 * @throws SynapseException
 	 */
-	public String getNotificationEmail() throws SynapseException {
-		return getJSONEntity(getRepoEndpoint(), NOTIFICATION_EMAIL,
-				Username.class).getEmail();
+	public NotificationEmail getNotificationEmail() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), NOTIFICATION_EMAIL, NotificationEmail.class);
 	}
 
 	/**

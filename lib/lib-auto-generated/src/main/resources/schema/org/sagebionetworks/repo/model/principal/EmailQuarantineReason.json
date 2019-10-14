@@ -1,0 +1,23 @@
+{
+    "description": "The enumeration of the possible reason for a notification email quarantine",
+    "name": "EmailQuarantineReason",
+    "type": "string",
+    "enum": [
+        {
+            "name": "PERMANENT_BOUNCE",
+            "description": "Messages were hard bounced from the email address"
+        },
+        {
+            "name": "TRANSIENT_BOUNCE",
+            "description": "Messages were bounced temporarly from the email address"
+        },
+        {
+            "name": "COMPLAINT",
+            "description": "Complaints were received for messages delivered to the email address"
+        },
+        {
+            "name": "OTHER",
+            "description": "Other uncategorized reason, might be an unrecognized bounce type"
+        }
+    ]
+}

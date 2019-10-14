@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -302,6 +303,26 @@ public class BaseControllerExceptionHandlerAdvice {
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
+	
+	/**
+	 * This is an application exception thrown when while trying to send an email
+	 * the recipient is in quarantine
+	 * 
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(QuarantinedEmailException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody
+	ErrorResponse handleQuarantinedEmailException(QuarantinedEmailException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
+
 
 	/**
 	 * This is an application exception thrown when a model object does not pass

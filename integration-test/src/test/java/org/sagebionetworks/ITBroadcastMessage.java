@@ -69,8 +69,8 @@ public class ITBroadcastMessage {
 
 	@Before
 	public void before() throws SynapseException {
-		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapseOne.getNotificationEmail());
-		bucketKeyTwo = EmailValidationUtil.getBucketKeyForEmail(synapseTwo.getNotificationEmail());
+		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapseOne.getNotificationEmail().getEmail());
+		bucketKeyTwo = EmailValidationUtil.getBucketKeyForEmail(synapseTwo.getNotificationEmail().getEmail());
 		project = new Project();
 		project = synapseOne.createEntity(project);
 		assertNotNull(project);

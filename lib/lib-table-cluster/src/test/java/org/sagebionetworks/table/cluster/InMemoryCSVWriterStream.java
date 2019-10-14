@@ -5,11 +5,11 @@ import java.util.List;
 
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
-public class SimpleCSVWriterStream implements CSVWriterStream {
+public class InMemoryCSVWriterStream implements CSVWriterStream {
 	
 	List<String[]> rows;
 	
-	public SimpleCSVWriterStream() {
+	public InMemoryCSVWriterStream() {
 		rows = new LinkedList<String[]>();
 	}
 	

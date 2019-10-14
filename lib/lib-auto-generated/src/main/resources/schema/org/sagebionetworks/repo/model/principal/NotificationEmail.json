@@ -1,0 +1,16 @@
+{
+	"title": "Notification Email", 
+	"name": "NotificationEmail",
+	"description": "Information about the notification email of the user, including its quarantined status if the email address is currently in quarantine",
+    "properties": {
+		"email": {
+			"type": "string",
+			"description": "The user's email"
+		},
+		"quarantineStatus": {
+			"type": "object",
+			"$ref": "org.sagebionetworks.repo.model.principal.EmailQuarantineStatus",
+			"description": "This property will be present iff the notification email is currently in quarantine, the user will not receive messages to this email address."
+		}
+	}
+}

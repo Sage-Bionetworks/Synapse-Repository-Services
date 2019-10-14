@@ -227,10 +227,9 @@ public class SESNotificationManagerTest {
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
 		String feedbackId = "000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000";
 
-		String messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
-		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		String messageBody = SESNotificationUtils.loadNotificationFromClasspath("permanent_general");
 		
-		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification json = SESNotificationUtils.parseSQSMessage(messageBody);
 
 		SESNotificationType notificationType = SESNotificationType.BOUNCE;
 
@@ -256,10 +255,9 @@ public class SESNotificationManagerTest {
 
 		String messageId = "000001378603177f-7a5433e7-8edb-42ae-af10-f0181f34d6ee-000000";
 
-		String messageBody = SESNotificationUtils.loadMessageFromClasspath("permanent_general");
-		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		String messageBody = SESNotificationUtils.loadNotificationFromClasspath("permanent_general");
 		
-		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification json = SESNotificationUtils.parseSQSMessage(messageBody);
 
 		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(true);
@@ -277,10 +275,9 @@ public class SESNotificationManagerTest {
 
 		String messageId = null;
 
-		String messageBody = SESNotificationUtils.loadMessageFromClasspath("no_mail");
-		String notificationBody = SESNotificationUtils.extractNotificationBody(messageBody);
+		String messageBody = SESNotificationUtils.loadNotificationFromClasspath("no_mail");
 		
-		SESJsonNotification json = SESNotificationUtils.parseNotification(notificationBody);
+		SESJsonNotification json = SESNotificationUtils.parseSQSMessage(messageBody);
 
 		when(mockProvider.getQuarantinedEmails(json.getBounce(), messageId)).thenReturn(mockBatch);
 		when(mockBatch.isEmpty()).thenReturn(false);

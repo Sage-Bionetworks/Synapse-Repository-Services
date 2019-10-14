@@ -48,7 +48,7 @@ public class TableConstants {
 	 * ROW_VERSION
 	 */
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and

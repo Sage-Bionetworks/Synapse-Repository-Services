@@ -10,19 +10,20 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
+import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
@@ -37,9 +38,12 @@ import org.sagebionetworks.table.query.model.HasFunctionReturnType;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.InPredicate;
+import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
@@ -52,7 +56,6 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * Helper methods to translate user generated queries
@@ -63,18 +66,18 @@ public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
-	public static final Set<String> rowMetadataColumnNames = Sets.newHashSet(ROW_ID, ROW_VERSION);
+
 
 	/**
 	 * Get the list of column IDs that are referenced in the select clause.
 	 * 
-	 * @param allColumns
 	 * @param selectList
-	 * @param isAggregatedResult
+	 * @param columnTranslationReferenceLookup
+	 * @param isAggregate
 	 * @return
 	 */
-	public static List<SelectColumn> getSelectColumns(SelectList selectList, Map<String, ColumnModel> columnNameToModelMap, boolean isAggregate) {
-		ValidateArgument.required(columnNameToModelMap, "all columns");
+	public static List<SelectColumn> getSelectColumns(SelectList selectList, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, boolean isAggregate) {
+		ValidateArgument.required(columnTranslationReferenceLookup, "all columns");
 		ValidateArgument.required(selectList, "selectList");
 		if (selectList.getAsterisk() != null) {
 			throw new IllegalStateException("The columns should have been expanded before getting here");
@@ -82,7 +85,7 @@ public class SQLTranslatorUtils {
 		List<SelectColumn> selects = Lists.newArrayListWithCapacity(selectList.getColumns().size());
 		boolean isAtLeastOneColumnIdNull = false;
 		for (DerivedColumn dc : selectList.getColumns()) {
-			SelectColumn model = getSelectColumns(dc, columnNameToModelMap);
+			SelectColumn model = getSelectColumns(dc, columnTranslationReferenceLookup);
 			selects.add(model);
 			if(model.getId() == null){
 				isAtLeastOneColumnIdNull = true;
@@ -103,10 +106,10 @@ public class SQLTranslatorUtils {
 	 * Given a DerivedColumn extract all data about both the SelectColumn and ColumnModel.
 	 * 
 	 * @param derivedColumn
-	 * @param columnMap
+	 * @param columnTranslationReferenceLookup
 	 * @return
 	 */
-	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, Map<String, ColumnModel> columnMap){
+	public static SelectColumn getSelectColumns(DerivedColumn derivedColumn, ColumnTranslationReferenceLookup columnTranslationReferenceLookup){
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
@@ -115,16 +118,23 @@ public class SQLTranslatorUtils {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName(displayName);
 		
-		ColumnModel model = null;
+		ColumnTranslationReference translationReference = null;
 		if(referencedColumn != null){
 			// Does the reference match an actual column name?
-			model = columnMap.get(referencedColumn.toSqlWithoutQuotes());
+			translationReference = columnTranslationReferenceLookup.forUserQueryColumnName(referencedColumn.toSqlWithoutQuotes()).orElse(null);
 		}
 		// Lookup the base type starting only with the column referenced.
 		ColumnType columnType = getBaseColulmnType(referencedColumn);
-		if(model != null){
+		if(translationReference != null){
 			// If we have a column model the base type is defined by it.
-			columnType = model.getColumnType();
+			columnType = translationReference.getColumnType();
+
+			// We only set the id on the select column when the display name match the column name.
+			if(translationReference.getUserQueryColumnName().equals(displayName)
+					//must be a column defined in the schema, not a metadata column
+					&& translationReference instanceof SchemaColumnTranslationReference){
+				selectColumn.setId(((SchemaColumnTranslationReference) translationReference).getId());
+			}
 		}
 		FunctionReturnType functionReturnType = null;
 		// if this is a function it will have a return type
@@ -136,28 +146,23 @@ public class SQLTranslatorUtils {
 			}
 		}
 		selectColumn.setColumnType(columnType);
-		// We only set the id on the select column when the display name match the column name.
-		if(model != null && model.getName().equals(displayName)){
-			selectColumn.setId(model.getId());
-		}
-		validateSelectColumn(selectColumn, functionReturnType, model, referencedColumn);
+		validateSelectColumn(selectColumn, functionReturnType, translationReference, referencedColumn);
 		// done
 		return selectColumn;
 	}
 	
 	public static void validateSelectColumn(SelectColumn selectColumn, FunctionReturnType functionReturnType,
-			ColumnModel model, ColumnNameReference referencedColumn) {
-		ValidateArgument.requirement(model != null
+											ColumnTranslationReference columnTranslationReference, ColumnNameReference referencedColumn) {
+		ValidateArgument.requirement(columnTranslationReference != null
 				|| functionReturnType != null
-				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
-				|| (referencedColumn != null && referencedColumn instanceof UnsignedLiteral),
+				|| (referencedColumn instanceof UnsignedLiteral),
 				"Unknown column "+selectColumn.getName());
 	}
 
 	/**
 	 * Given a referenced column, attempt to determine the type of the column using only
 	 * the SQL.
-	 * @param derivedColumn
+	 * @param referencedColumn
 	 * @return
 	 */
 	public static ColumnType getBaseColulmnType(ColumnNameReference referencedColumn){
@@ -165,13 +170,6 @@ public class SQLTranslatorUtils {
 			return null;
 		}
 		// Get the upper case column name without quotes.
-		String columnNameUpper = referencedColumn.toSqlWithoutQuotes().toUpperCase();
-		if(TableConstants.ROW_ID.equals(columnNameUpper)){
-			return ColumnType.INTEGER;
-		}
-		if(TableConstants.ROW_VERSION.equals(columnNameUpper)){
-			return ColumnType.INTEGER;
-		}
 		if(!referencedColumn.hasQuotesRecursive()){
 			return ColumnType.DOUBLE;
 		}
@@ -282,15 +280,16 @@ public class SQLTranslatorUtils {
 	 * 
 	 * @param transformedModel
 	 * @param parameters
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters,
-			Map<String, ColumnModel> columnNameToModelMap) {
+		  ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
+
 		// Select columns
 		Iterable<HasReferencedColumn> selectColumns = transformedModel.getSelectList().createIterable(HasReferencedColumn.class);
 		for(HasReferencedColumn hasReference: selectColumns){
-			translateSelect(hasReference, columnNameToModelMap);
+			translateSelect(hasReference, columnTranslationReferenceLookup);
 		}
 		
 		TableExpression tableExpression = transformedModel.getTableExpression();
@@ -300,33 +299,38 @@ public class SQLTranslatorUtils {
 		}
 		// First change the table name
 		TableReference tableReference = tableExpression.getFromClause().getTableReference();
+
+		//save the original syn### id since we will need it for any HAS predicates
+		IdAndVersion originalSynId = IdAndVersion.parse(tableReference.getTableName());
 		translate(tableReference);
 		
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
 		if(whereClause != null){
-			// First we need to replace any boolean functions.
-			Iterable<BooleanPrimary> booleanPrimaries = whereClause.createIterable(BooleanPrimary.class);
-			for(BooleanPrimary booleanPrimary: booleanPrimaries){
-				replaceBooleanFunction(booleanPrimary, columnNameToModelMap);
-			}
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
 			for(HasPredicate predicate: hasPredicates){
-				translate(predicate, parameters, columnNameToModelMap);
+				translate(predicate, parameters, columnTranslationReferenceLookup);
+			}
+
+			//once all row names are translated and predicate values are replaced with bind variables
+			//transform Synapse-specific predicate into MySQL
+			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
+				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
+				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
 			}
 		}
 		// translate the group by
 		GroupByClause groupByClause = tableExpression.getGroupByClause();
 		if(groupByClause != null){
-			translate(groupByClause, columnNameToModelMap);
+			translate(groupByClause, columnTranslationReferenceLookup);
 		}
 		// translate the order by
 		OrderByClause orderByClause = tableExpression.getOrderByClause();
 		if(orderByClause != null){
 			Iterable<HasReferencedColumn> orderByReferences = orderByClause.createIterable(HasReferencedColumn.class);
 			for(HasReferencedColumn hasReference: orderByReferences){
-				translateOrderBy(hasReference, columnNameToModelMap);
+				translateOrderBy(hasReference, columnTranslationReferenceLookup);
 			}
 		}
 		// translate Pagination
@@ -394,20 +398,20 @@ public class SQLTranslatorUtils {
 	 * run against the actual database.
 	 * 
 	 * @param groupByClause
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translate(GroupByClause groupByClause,
-			Map<String, ColumnModel> columnNameToModelMap) {
+			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ValidateArgument.required(groupByClause, "groupByClause");
-		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
+		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
 		Iterable<ColumnName> references = groupByClause.createIterable(ColumnName.class);
 		for(ColumnName reference: references){
 			// Lookup the column
-			ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
-			if(model != null){
-				String newName = SQLUtils.getColumnNameForId(model.getId());
-				reference.replaceChildren(new RegularIdentifier(newName));
-			}
+			columnTranslationReferenceLookup.forUserQueryColumnName(reference.toSqlWithoutQuotes()).ifPresent(
+					(ColumnTranslationReference columnTranslationReference) ->{
+						reference.replaceChildren(new RegularIdentifier(columnTranslationReference.getTranslatedColumnName()));
+					}
+			);
 		}
 	}
 
@@ -419,35 +423,38 @@ public class SQLTranslatorUtils {
 	 * 
 	 * @param predicate
 	 * @param parameters
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translate(HasPredicate predicate,
 			Map<String, Object> parameters,
-			Map<String, ColumnModel> columnNameToModelMap) {
+			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
-		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
+		ValidateArgument.required(columnTranslationReferenceLookup, "columnTranslationReferenceLookup");
 		// lookup the column name from the left-hand-side
-		ColumnModel model = columnNameToModelMap.get(predicate.getLeftHandSide().toSqlWithoutQuotes());
-		if(model != null){
-			// handle the right-hand-side values
-			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
-			if(rightHandSide != null){
-				for(UnsignedLiteral element: rightHandSide){
-					translateRightHandeSide(element, model, parameters);
-				}
+		String columnName = predicate.getLeftHandSide().toSqlWithoutQuotes();
+
+		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forUserQueryColumnName(columnName)
+				.orElseThrow(() ->  new IllegalArgumentException("Column does not exist: " + columnName) );
+
+		// handle the right-hand-side values
+		Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
+		if(rightHandSide != null){
+			for(UnsignedLiteral element: rightHandSide){
+				translateRightHandeSide(element, columnTranslationReference.getColumnType(), parameters);
 			}
 		}
 		
-		// replace all column references in the predicate
-		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
-		for (ColumnName columnName : rightHandReferences) {
+		// replace all column names in the predicate
+		Iterable<ColumnName> columnNameReferences = predicate.createIterable(ColumnName.class);
+		for (ColumnName columnNameRef : columnNameReferences) {
+			String refColumnName = columnNameRef.toSqlWithoutQuotes();
+
 			// is this a reference to a column?
-			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
-			if (referencedColumn != null) {
-				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
-				columnName.replaceChildren(new RegularIdentifier(replacementName));
-			}
+			columnTranslationReferenceLookup.forUserQueryColumnName(refColumnName)
+				.ifPresent((ColumnTranslationReference referencedColumn) ->{
+					columnNameRef.replaceChildren(new RegularIdentifier(referencedColumn.getTranslatedColumnName()));
+				});
 		}
 	}
 	
@@ -460,13 +467,13 @@ public class SQLTranslatorUtils {
 	 * run against the actual database.
 	 * 
 	 * @param element
-	 * @param model
+	 * @param type
 	 * @param parameters
 	 */
 	public static void translateRightHandeSide(HasReplaceableChildren element,
-			ColumnModel model, Map<String, Object> parameters) {
+			ColumnType type, Map<String, Object> parameters) {
 		ValidateArgument.required(element, "element");
-		ValidateArgument.required(model, "model");
+		ValidateArgument.required(type, "type");
 		ValidateArgument.required(parameters, "parameters");
 		if(element.getFirstElementOfType(IntervalLiteral.class) != null){
 			// intervals should not be replaced.
@@ -477,7 +484,7 @@ public class SQLTranslatorUtils {
 		String value = element.toSqlWithoutQuotes();
 		Object valueObject = null;
 		try{
-			valueObject = SQLUtils.parseValueForDB(model.getColumnType(), value);
+			valueObject = SQLUtils.parseValueForDB(type, value);
 		}catch (IllegalArgumentException e){
 			// thrown for number format exception.
 			valueObject = value;
@@ -491,33 +498,36 @@ public class SQLTranslatorUtils {
 	 * Replace any BooleanFunctionPredicate with a search condition.
 	 * For example: 'isInfinity(DOUBLETYPE)' will be replaced with (_DBL_C777_ IS NOT NULL AND _DBL_C777_ IN ('-Infinity', 'Infinity'))'
 	 * @param booleanPrimary
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
-	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
+	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup){
 		if(booleanPrimary.getPredicate() != null){
 			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getFirstElementOfType(BooleanFunctionPredicate.class);
 			if(bfp != null){
 				String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
-				ColumnModel cm = columnNameToModelMap.get(columnName);
-				if(cm == null){
-					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
+				ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
+						.orElseThrow(() -> new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName));
+
+				if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+					throw new IllegalArgumentException("(double boolean-functions can only be used on columns defined in the schema");
 				}
-				if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
+				if(columnTranslationReference.getColumnType() != ColumnType.DOUBLE){
 					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
 				}
+
 				StringBuilder builder = new StringBuilder();
 				// Is this a boolean function
 				switch(bfp.getBooleanFunction()){
 				case ISINFINITY:
-					SQLUtils.appendIsInfinity(cm.getId(), "", builder);
+					SQLUtils.appendIsInfinity(((SchemaColumnTranslationReference) columnTranslationReference).getId(), builder);
 					break;
 				case ISNAN:
-					SQLUtils.appendIsNan(cm.getId(), "", builder);
+					SQLUtils.appendIsNan(((SchemaColumnTranslationReference) columnTranslationReference).getId(), builder);
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
 				}
-				
+
 				try {
 					BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
 					booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
@@ -528,6 +538,54 @@ public class SQLTranslatorUtils {
 		}
 	}
 
+	public static void replaceArrayHasPredicate(BooleanPrimary booleanPrimary, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, IdAndVersion idAndVersion){
+		if(booleanPrimary.getPredicate() == null) {
+			return; // "HAS" should always be under a Predicate
+		}
+		ArrayHasPredicate arrayHasPredicate = booleanPrimary.getPredicate().getFirstElementOfType(ArrayHasPredicate.class);
+		if (arrayHasPredicate == null) {
+			return; // no ArrayHasPredicate to replace
+		}
+
+
+		String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
+
+		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
+				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnName));
+		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+			throw new IllegalArgumentException("HAS can only be used on columns defined in the schema");
+		}
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
+
+		if( !schemaColumnTranslationReference.isList() ){//TODO:  test
+			throw new IllegalArgumentException("The HAS keyword only works for columns that have list values");
+		}
+
+		//build up subquery against the flattened index table
+		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
+		try {
+			QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
+					" FROM " + columnFlattenedIndexTable +
+					" WHERE "
+					//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
+					+ " placeholder IN ( placeholder )");
+
+			//create a "IN" predicate that has the same left and right hand side as the "HAS" predicate for the subquery
+			InPredicate subqueryInPredicate = new InPredicate(arrayHasPredicate.getLeftHandSide(), arrayHasPredicate.getNot(), arrayHasPredicate.getInPredicateValue());
+			subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
+
+			//replace the "HAS" with "IN" predicate containing the subquery
+			Predicate replacementPredicate = new Predicate(new InPredicate(
+					SqlElementUntils.createColumnReference(ROW_ID),
+					null,
+					new InPredicateValue(subquery)));
+
+			booleanPrimary.getPredicate().replaceChildren(replacementPredicate);
+		}catch (ParseException e){
+			throw new IllegalArgumentException(e);
+		}
+	}
+
 	/**
 	 * Translate a HasReferencedColumn for the select clause.
 	 * 
@@ -535,26 +593,25 @@ public class SQLTranslatorUtils {
 	 * run against the actual database.
 	 * 
 	 * @param column
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translateSelect(HasReferencedColumn column,
-			Map<String, ColumnModel> columnNameToModelMap) {
+			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ColumnNameReference columnNameReference = column.getReferencedColumn();
 		if(columnNameReference != null){
 			String unquotedName = columnNameReference.toSqlWithoutQuotes();
-			ColumnModel model = columnNameToModelMap.get(unquotedName);
-			String newName = null;
-			if(model != null){
-				if(!column.isReferenceInFunction() && ColumnType.DOUBLE.equals(model.getColumnType())){
-					// non-function doubles are translated into a switch between the enum an double column.
-					newName = SQLUtils.createDoubleCluase(model.getId());
-				}else{
-					newName = SQLUtils.getColumnNameForId(model.getId());
+			columnTranslationReferenceLookup.forUserQueryColumnName(unquotedName)
+				.ifPresent((ColumnTranslationReference translationReference) -> {
+					String newName;
+					if((translationReference instanceof SchemaColumnTranslationReference) && !column.isReferenceInFunction() && ColumnType.DOUBLE.equals(translationReference.getColumnType())){
+						// non-function doubles are translated into a switch between the enum an double column.
+						newName = SQLUtils.createDoubleCase(((SchemaColumnTranslationReference) translationReference).getId());
+					}else{
+						newName = translationReference.getTranslatedColumnName();
+					}
+					columnNameReference.replaceChildren(new RegularIdentifier(newName));
 				}
-			}
-			if(newName != null){
-				columnNameReference.replaceChildren(new RegularIdentifier(newName));
-			}
+			);
 		}
 	}
 	
@@ -565,19 +622,18 @@ public class SQLTranslatorUtils {
 	 * run against the actual database.
 	 * 
 	 * @param column
-	 * @param columnNameToModelMap
+	 * @param columnTranslationReferenceLookup
 	 */
 	public static void translateOrderBy(HasReferencedColumn column,
-			Map<String, ColumnModel> columnNameToModelMap) {
+			ColumnTranslationReferenceLookup columnTranslationReferenceLookup) {
 		ColumnNameReference columnNameReference = column.getReferencedColumn();
 		if(columnNameReference != null){
 			String unquotedName = columnNameReference.toSqlWithoutQuotes();
-			ColumnModel model = columnNameToModelMap.get(unquotedName);
-			String newName = null;
-			if(model != null){
-				newName = SQLUtils.getColumnNameForId(model.getId());
-				columnNameReference.replaceChildren(new RegularIdentifier(newName));
-			}
+			columnTranslationReferenceLookup.forUserQueryColumnName(unquotedName).ifPresent(
+					(ColumnTranslationReference columnTranslationReference) -> {
+						columnNameReference.replaceChildren(new RegularIdentifier(columnTranslationReference.getTranslatedColumnName()));
+					}
+			);
 		}
 	}
 

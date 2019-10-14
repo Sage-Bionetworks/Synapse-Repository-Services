@@ -13,17 +13,6 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 public interface EmailQuarantineDao {
 
 	/**
-	 * Adds the email address in the given DTO to the quarantine. If the email is already quarantined updates the reason,
-	 * the sesMessageId and the expiration
-	 * 
-	 * @param quarantinedEmail  The quarantined email to save to the database
-	 * @param expirationTimeout The optional expiration timeout (ms) for the quarantine, if null and the quarantine exists
-	 *                          removes the expiration
-	 * @return The created or updated quarantined record
-	 */
-	QuarantinedEmail addToQuarantine(QuarantinedEmail quarantinedEmail, Long expirationTimeout);
-
-	/**
 	 * Save the given batch to the database
 	 * 
 	 * @param batch The batch to be saved to the database
@@ -39,12 +28,31 @@ public interface EmailQuarantineDao {
 	boolean removeFromQuarantine(String email);
 
 	/**
-	 * Retrieves the details about the quarantined email if any
+	 * Retrieves the details about the quarantined email if any iif the quarantine is not expired (See
+	 * {@link #getQuarantinedEmail(String, boolean) getQuarantinedEmail(String, true)}).
 	 * 
 	 * @param email The email to lookup
 	 * @return An optional containing the details about the quarantined email
 	 */
 	Optional<QuarantinedEmail> getQuarantinedEmail(String email);
+
+	/**
+	 * Retrieves the details about the quarantined email if any
+	 * 
+	 * @param email           The email to lookup
+	 * @param expirationCheck True if a value should be returned only for not expired quarantine, false otherwise
+	 * @return An optional containing the details about the quarantined email
+	 */
+	Optional<QuarantinedEmail> getQuarantinedEmail(String email, boolean expirationCheck);
+
+	/**
+	 * Checks whether the given email address is currently quarantined, if the email is in quarantine but the quarantine is
+	 * expired returns false
+	 * 
+	 * @param email The email to lookup
+	 * @return True if the email is currently quarantined and the quarantine is not expired
+	 */
+	boolean isQuarantined(String email);
 
 	/**
 	 * Clear the quarantine
