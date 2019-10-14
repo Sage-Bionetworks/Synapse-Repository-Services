@@ -22,8 +22,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.form.FormDao;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.form.StateEnum;
@@ -134,20 +136,21 @@ public class FormManagerImpl implements FormManager {
 
 	@WriteTransaction
 	@Override
-	public FormData createFormData(UserInfo user, String groupId, String name, String dataFileHandleId) {
+	public FormData createFormData(UserInfo user, String groupId, FormChangeRequest request) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(groupId, "groupId");
-		ValidateArgument.required(name, "name");
-		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getName(), "request.name");
+		ValidateArgument.required(request.getFileHandleId(), "request.fileHandleId");
 
 		AuthorizationUtils.disallowAnonymous(user);
 
-		validateName(name);
+		validateName(request.getName());
 		// must have submit on the group.
 		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
 		// Must own the fileHandle
-		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
-		return formDao.createFormData(user.getId(), groupId, name, dataFileHandleId);
+		authManager.canAccessRawFileHandleById(user, request.getFileHandleId()).checkAuthorizationOrElseThrow();
+		return formDao.createFormData(user.getId(), groupId, request.getName(), request.getFileHandleId());
 	}
 
 	/**
@@ -208,12 +211,13 @@ public class FormManagerImpl implements FormManager {
 
 	@WriteTransaction
 	@Override
-	public FormData updateFormData(UserInfo user, String formDataId, String name, String dataFileHandleId) {
+	public FormData updateFormData(UserInfo user, String formDataId, FormChangeRequest request) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(formDataId, "formDataId");
-		ValidateArgument.required(dataFileHandleId, "dataFileHandleId");
-		if (name != null) {
-			validateName(name);
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getFileHandleId(), "request.fileHandleId");
+		if (request.getName() != null) {
+			validateName(request.getName());
 		}
 
 		validateUserIsCreator(user, formDataId);
@@ -223,11 +227,11 @@ public class FormManagerImpl implements FormManager {
 		validateGroupPermission(user, formDataId, ACCESS_TYPE.SUBMIT);
 
 		// Must own the fileHandle
-		authManager.canAccessRawFileHandleById(user, dataFileHandleId).checkAuthorizationOrElseThrow();
-		if (name != null) {
-			formDao.updateFormData(formDataId, name, dataFileHandleId);
+		authManager.canAccessRawFileHandleById(user, request.getFileHandleId()).checkAuthorizationOrElseThrow();
+		if (request.getName() != null) {
+			formDao.updateFormData(formDataId, request.getName(), request.getFileHandleId());
 		} else {
-			formDao.updateFormData(formDataId, dataFileHandleId);
+			formDao.updateFormData(formDataId, request.getFileHandleId());
 		}
 		// reset the submission status
 		SubmissionStatus status = new SubmissionStatus();
@@ -357,12 +361,13 @@ public class FormManagerImpl implements FormManager {
 
 	@WriteTransaction
 	@Override
-	public FormData reviewerRejectForm(UserInfo user, String formDataId, String reason) {
+	public FormData reviewerRejectForm(UserInfo user, String formDataId, FormRejection rejection) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(formDataId, "formDataId");
-		ValidateArgument.required(reason, "reason");
+		ValidateArgument.required(rejection, "rejection");
+		ValidateArgument.required(rejection.getReason(), "rejection.reason");
 
-		if (reason.length() > MAX_REASON_CHARS) {
+		if (rejection.getReason().length() > MAX_REASON_CHARS) {
 			throw new IllegalArgumentException("Reason must be " + MAX_REASON_CHARS + " or less");
 		}
 
@@ -377,7 +382,7 @@ public class FormManagerImpl implements FormManager {
 		status.setReviewedBy(user.getId().toString());
 		status.setReviewedOn(new Date(System.currentTimeMillis()));
 		status.setState(StateEnum.REJECTED);
-		status.setRejectionMessage(reason);
+		status.setRejectionMessage(rejection.getReason());
 		return formDao.updateStatus(formDataId, status);
 	}
 

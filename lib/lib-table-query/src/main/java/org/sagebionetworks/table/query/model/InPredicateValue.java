@@ -5,26 +5,15 @@ import java.util.List;
 /**
  * This matches &ltin predicate value&gt  in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
-public class InPredicateValue extends SQLElement {
-
-	InValueList inValueList;
+public class InPredicateValue extends SimpleBranch {
 	
 	public InPredicateValue(InValueList inValueList) {
-		super();
-		this.inValueList = inValueList;
+		super(inValueList);
 	}
 
-	public InValueList getInValueList() {
-		return inValueList;
-	}
-	
-	@Override
-	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		inValueList.toSql(builder, parameters);
+	//NOTE: this is currently only used for translating a ArrayHasPredicate into an InPredicate. DO NOT EXPOSE IN PARSER
+	public InPredicateValue(QuerySpecification subQuery){
+		super(subQuery);
 	}
 
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, inValueList);
-	}
 }

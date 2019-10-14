@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyProcessNotification;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
+import org.sagebionetworks.util.Pair;
 
 public class StatisticsMonthlyUtilsTest {
 
@@ -71,6 +72,28 @@ public class StatisticsMonthlyUtilsTest {
 		
 		assertEquals(notification, result);
 		
+	}
+	
+	@Test
+	public void testGetTimestampRange() {
+		YearMonth month = YearMonth.of(2019, 8);
+		
+		// Call under test
+		Pair<Long, Long> result = StatisticsMonthlyUtils.getTimestampRange(month);
+		
+		assertEquals(1564617600000L, result.getFirst());
+		assertEquals(1567296000000L, result.getSecond());
+	}
+	
+	@Test
+	public void testGetTimestampRangeLeapYear() {
+		YearMonth month = YearMonth.of(2020, 2);
+		
+		// Call under test
+		Pair<Long, Long> result = StatisticsMonthlyUtils.getTimestampRange(month);
+		
+		assertEquals(1580515200000L, result.getFirst());
+		assertEquals(1583020800000L, result.getSecond());
 	}
 	
 	private void testForXMonths(int numberOfMonths) {

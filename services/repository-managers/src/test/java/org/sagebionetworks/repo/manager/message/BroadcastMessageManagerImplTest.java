@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.message;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,11 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -35,6 +39,7 @@ import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -46,46 +51,47 @@ import org.sagebionetworks.util.TimeoutUtils;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class BroadcastMessageManagerImplTest {
-	
-	Map<ObjectType, BroadcastMessageBuilder> builderMap;
 
 	@Mock
-	SubscriptionDAO mockSubscriptionDAO;
+	private SubscriptionDAO mockSubscriptionDAO;
 	@Mock
-	BroadcastMessageDao mockBroadcastMessageDao;
+	private BroadcastMessageDao mockBroadcastMessageDao;
 	@Mock
-	DBOChangeDAO mockChangeDao;
+	private DBOChangeDAO mockChangeDao;
 	@Mock
-	SynapseEmailService mockSesClient;
+	private SynapseEmailService mockSesClient;
 	@Mock
-	TimeoutUtils mockTimeoutUtils;
+	private TimeoutUtils mockTimeoutUtils;
 	@Mock
-	DiscussionBroadcastMessageBuilder mockBroadcastMessageBuilder;
+	private DiscussionBroadcastMessageBuilder mockBroadcastMessageBuilder;
 	@Mock
-	MessageBuilderFactory mockFactory;
+	private MessageBuilderFactory mockFactory;
 	@Mock
-	UserInfo mockUser;
+	private UserInfo mockUser;
 	@Mock
-	ProgressCallback mockCallback;
+	private ProgressCallback mockCallback;
 	@Mock
-	PrincipalAliasDAO mockPrincipalAliasDao;
+	private PrincipalAliasDAO mockPrincipalAliasDao;
 	@Mock
-	UserProfileDAO mockUserProfileDao;
+	private UserProfileDAO mockUserProfileDao;
 	@Mock
-	UserManager mockUserManager;
+	private UserManager mockUserManager;
 	@Mock
-	AuthorizationManager mockAuthManager;
+	private AuthorizationManager mockAuthManager;
+	@Mock
+	private EmailQuarantineDao mockEmailQuarantineDao;
 
 	@InjectMocks
-	BroadcastMessageManagerImpl manager;
-	ChangeMessage change;
-	List<Subscriber> subscribers;
-	Topic topic;
+	private BroadcastMessageManagerImpl manager;
+	
+	private ChangeMessage change;
+	private List<Subscriber> subscribers;
+	private Topic topic;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
-		MockitoAnnotations.initMocks(this);
 
 		Map<ObjectType, MessageBuilderFactory> factoryMap = new HashMap<ObjectType, MessageBuilderFactory>();
 		factoryMap.put(ObjectType.REPLY, mockFactory);
@@ -104,34 +110,32 @@ public class BroadcastMessageManagerImplTest {
 		topic.setObjectId("5555");
 		topic.setObjectType(SubscriptionObjectType.THREAD);
 
-		
-		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
-		when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
-		when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
-		
-		when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType(), change.getUserId())).thenReturn(mockBroadcastMessageBuilder);
-
-		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
-		
+		// This are invocations common to the exposed broadcastMessage method, lenient since we test also unexposed methods
+		lenient().when(mockUser.isAdmin()).thenReturn(true);
+		lenient().when(mockTimeoutUtils.hasExpired(anyLong(), anyLong())).thenReturn(false);
+		lenient().when(mockChangeDao.doesChangeNumberExist(change.getChangeNumber())).thenReturn(true);
+		lenient().when(mockBroadcastMessageDao.wasBroadcast(change.getChangeNumber())).thenReturn(false);
+		lenient().when(mockFactory.createMessageBuilder(change.getObjectId(), change.getChangeType(), change.getUserId())).thenReturn(mockBroadcastMessageBuilder);
+		lenient().when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
 		Subscriber sub1 = new Subscriber();
 		sub1.setSubscriptionId("1");
 		sub1.setSubscriberId("1");
+		
 		Subscriber sub2 = new Subscriber();
 		sub2.setSubscriptionId("2");
 		sub2.setSubscriberId("2");
-		subscribers = Lists.newArrayList(sub1, sub2);
 		
-		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
-		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
-		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
-
+		subscribers = Lists.newArrayList(sub1, sub2);
+	
 	}
 	
 	@Test
 	public void testBroadcastThreadWithoutMentionedUsers() throws Exception{
-		when(mockBroadcastMessageBuilder.getMarkdown()).thenReturn("");
+		
+		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(Collections.emptySet());
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
@@ -142,6 +146,9 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test
 	public void testBroadcastThreadWithMentionedUsers() throws Exception {
+		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222", "2"));
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
@@ -162,7 +169,9 @@ public class BroadcastMessageManagerImplTest {
 		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 
+		// Call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
+		
 		// The message state should be sent.
 		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
@@ -172,14 +181,34 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserManager, never()).getUserInfo(2L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
-		verify(mockSesClient, times(3)).sendRawEmail(any(SendRawEmailRequest.class));
+		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
+	}
+	
+	@Test
+	public void testBroadcastMessageToSubscribersWithQuarantinedEmail() throws Exception {
+		String quarantinedEmail = "quarantined@example.com";
+		
+		subscribers.get(0).setNotificationEmail(quarantinedEmail);
+		
+		when(mockEmailQuarantineDao.isQuarantined(quarantinedEmail)).thenReturn(true);
+		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		// call under test
+		manager.broadcastMessage(mockUser, mockCallback, change);
+
+		verify(mockEmailQuarantineDao).isQuarantined(quarantinedEmail);
+		// Only one message should be sent
+		verify(mockSesClient).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testSendMessageToNonSubscribersEmptyNonSubscribers() throws Exception {
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(new HashSet<String>());
+		
+		// Call under test
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao, never()).getUserNotificationInfo(any(Set.class));
 	}
@@ -188,7 +217,10 @@ public class BroadcastMessageManagerImplTest {
 	@Test
 	public void testSendMessageToNonSubscribersNullRelatedUsers() throws Exception {
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(null);
+		
+		// Call under test
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao, never()).getUserNotificationInfo(any(Set.class));
 	}
@@ -199,7 +231,10 @@ public class BroadcastMessageManagerImplTest {
 		userIds.addAll(Arrays.asList("111", "222", "2"));
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
 		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(new ArrayList<UserNotificationInfo>());
+		
+		// Call under test
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
 		verify(mockUserManager, never()).getUserInfo(anyLong());
@@ -208,6 +243,8 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test
 	public void testSendMessageToNonSubscribersAllWithPermission() throws Exception {
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222"));
 		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
@@ -226,18 +263,23 @@ public class BroadcastMessageManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType()))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
+		
+		// Call under test
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
 		verify(mockUserManager).getUserInfo(111L);
 		verify(mockUserManager).getUserInfo(222L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
-		verify(mockSesClient, times(1)).sendRawEmail(any(SendRawEmailRequest.class));
+		verify(mockSesClient).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
 	@Test
 	public void testSendMessageToNonSubscribersWithUserWithoutPermission() throws Exception {
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222"));
 		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
@@ -256,7 +298,10 @@ public class BroadcastMessageManagerImplTest {
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType()))
 				.thenReturn(AuthorizationStatus.authorized());
+		
+		// Call under test
 		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
 		verify(mockBroadcastMessageBuilder).getRelatedUsers();
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
 		verify(mockUserManager).getUserInfo(111L);
@@ -265,19 +310,61 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType());
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
+	
+	@Test
+	public void testSendMessageToNonSubscribersWithQuarantinedEmail() throws Exception {
+		
+		String quarantinedEmail = "quarantined@example.com";
 
-	@Test (expected = MarkdownClientException.class)
+		when(mockEmailQuarantineDao.isQuarantined(quarantinedEmail)).thenReturn(true);
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		
+		
+		Set<String> userIds = new HashSet<String>();
+		userIds.addAll(Arrays.asList("111", "222"));
+		UserNotificationInfo userNotificationInfo1 = new UserNotificationInfo();
+		userNotificationInfo1.setUserId("111");
+		userNotificationInfo1.setNotificationEmail(quarantinedEmail);
+		UserNotificationInfo userNotificationInfo2 = new UserNotificationInfo();
+		userNotificationInfo2.setUserId("222");
+		
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
+		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
+		
+		when(mockAuthManager.canSubscribe(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		
+		// Call under test
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
+		verify(mockEmailQuarantineDao).isQuarantined(quarantinedEmail);
+		verify(mockUserManager).getUserInfo(222L);
+		
+		// Only one should have been sent
+		verify(mockSesClient).sendRawEmail(any(SendRawEmailRequest.class));
+	}
+
+	@Test
 	public void testBroadcastFailToBuildMessage() throws Exception{
+		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
 		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new MarkdownClientException(500, ""));
-		manager.broadcastMessage(mockUser, mockCallback, change);
+		
+		Assertions.assertThrows(MarkdownClientException.class, () -> {
+			// call under test
+			manager.broadcastMessage(mockUser, mockCallback, change);
+		});
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testBroadcastMessageUnauthorized() throws Exception{
-		// not an adim.
+		// not an admin.
 		when(mockUser.isAdmin()).thenReturn(false);
-		// call under test
-		manager.broadcastMessage(mockUser, mockCallback, change);
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {			
+			// call under test
+			manager.broadcastMessage(mockUser, mockCallback, change);
+		});
 	}
 	
 	@Test
@@ -310,11 +397,13 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockBroadcastMessageDao, never()).setBroadcast(anyLong());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBroadcastMessageNoBuilder() throws Exception{
 		// there is no builder for this type.
 		change.setObjectType(ObjectType.TABLE);
-		// call under test
-		manager.broadcastMessage(mockUser, mockCallback, change);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
+			manager.broadcastMessage(mockUser, mockCallback, change);
+		});
 	}
 }

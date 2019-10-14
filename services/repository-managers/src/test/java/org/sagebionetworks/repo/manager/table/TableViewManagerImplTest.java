@@ -1,22 +1,28 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -24,18 +30,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
+import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -44,6 +53,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
@@ -51,27 +62,54 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 
-@RunWith(MockitoJUnitRunner.class)
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+@ExtendWith(MockitoExtension.class)
 public class TableViewManagerImplTest {
 
 	@Mock
 	ViewScopeDao viewScopeDao;
 	@Mock
-	ColumnModelManager columnModelManager;
+	ColumnModelManager mockColumnModelManager;
 	@Mock
-	TableManagerSupport tableManagerSupport;
+	TableManagerSupport mockTableManagerSupport;
 	@Mock
 	ColumnModelDAO columnModelDao;
 	@Mock
 	NodeManager mockNodeManager;
 	@Mock
 	ReplicationManager mockReplicationManager;
+	@Mock
+	ProgressCallback mockProgressCallback;
+	@Mock
+	TableIndexConnectionFactory mockConnectionFactory;
+	@Mock
+	TableIndexManager mockIndexManager;
+	@Mock
+	FileProvider mockFileProvider;
+	@Mock
+	SynapseS3Client mockS3Client;
+	@Mock
+	StackConfiguration mockConfig;
+	@Mock
+	ViewSnapshotDao mockViewSnapshotDao;
+	@Mock
+	File mockFile;
+	@Captor
+	ArgumentCaptor<PutObjectRequest> putRequestCaptor;
+	@Captor
+	ArgumentCaptor<ViewSnapshot> snapshotCaptor;
 	
 	@InjectMocks
 	TableViewManagerImpl manager;
@@ -95,11 +133,12 @@ public class TableViewManagerImplTest {
 	ColumnModel anno2;
 	ColumnModel dateColumn;
 	SparseRowDto row;
+	SnapshotRequest snapshotOptions;
 	
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
 
-	@Before
+	@BeforeEach
 	public void before(){
 		userInfo = new UserInfo(false, 888L);
 		schema = Lists.newArrayList("1","2","3");
@@ -115,14 +154,6 @@ public class TableViewManagerImplTest {
 		viewScope.setScope(scope);
 		viewScope.setViewTypeMask(viewType);
 		
-		doAnswer(new Answer<ColumnModel>(){
-			@Override
-			public ColumnModel answer(InvocationOnMock invocation) throws Throwable {
-				return (ColumnModel) invocation.getArguments()[0];
-			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
-		
-		when(tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
-		
 		rowCount = 13;
 		rows = new LinkedList<Row>();
 		for(long i=0; i<rowCount; i++){
@@ -130,30 +161,8 @@ public class TableViewManagerImplTest {
 			row.setRowId(i);
 			rows.add(row);
 		}
-	
-		doAnswer(new Answer<ColumnModel>(){
-			@Override
-			public ColumnModel answer(InvocationOnMock invocation)
-					throws Throwable {
-				EntityField field = (EntityField) invocation.getArguments()[0];
-				return field.getColumnModel();
-			}}).when(tableManagerSupport).getColumnModel(any(EntityField.class));
-		
-		doAnswer(new Answer<List<ColumnModel>>(){
-			@Override
-			public List<ColumnModel> answer(InvocationOnMock invocation)
-					throws Throwable {
-				Object[] fields =  invocation.getArguments();
-				List<ColumnModel> results = new LinkedList<ColumnModel>();
-				for(Object object: fields){
-					EntityField field = (EntityField) object;
-					results.add(field.getColumnModel());
-				}
-				return results;
-			}}).when(tableManagerSupport).getColumnModels(any());
 		
 		annotationsV2= AnnotationsV2TestUtils.newEmptyAnnotationsV2();
-		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 
 		anno1 = new ColumnModel();
 		anno1.setColumnType(ColumnType.STRING);
@@ -186,14 +195,19 @@ public class TableViewManagerImplTest {
 		row = new SparseRowDto();
 		row.setRowId(111L);
 		row.setValues(values);
+		
+		snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("a comment");
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testSetViewSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
-		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySet(), any(Long.class));
-		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		doThrow(overLimit).when(mockTableManagerSupport).validateScopeSize(anySet(), any(Long.class));
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});
 	}
 	
 	@Test
@@ -201,10 +215,10 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		// the size should be validated
-		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
+		verify(mockTableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -214,14 +228,12 @@ public class TableViewManagerImplTest {
 		for(int i=0; i<columnCount; i++) {
 			schema.add(""+i);
 		}
-		try {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-			fail();
-		} catch (IllegalArgumentException e) {
-			// expected
-			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
-		}
+		}).getMessage();
+		// expected
+		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 	}
 	
 	
@@ -231,8 +243,8 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(null, viewId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	@Test
@@ -241,17 +253,18 @@ public class TableViewManagerImplTest {
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
 		verify(viewScopeDao).setViewScopeAndType(555L, null, viewType);
-		verify(columnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(schema, viewId);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testSetViewSchemaAndScopeWithNullType(){
 		viewScope.setViewType(null);
 		viewScope.setViewTypeMask(null);
-		// call under test
-		manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-		
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
+		});		
 	}
 	
 	/**
@@ -261,13 +274,11 @@ public class TableViewManagerImplTest {
 	public void testSetViewSchemaAndScopeWithProjectCombinedWithOtherTypes(){
 		long mask = ViewTypeMask.Project.getMask() | ViewTypeMask.File.getMask();
 		viewScope.setViewTypeMask(mask);
-		try {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, viewScope, viewId);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, e.getMessage());
-		}
+		}).getMessage();	
+		assertEquals(TableViewManagerImpl.PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE, message);
 	}
 	
 	/**
@@ -285,7 +296,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testFindViewsContainingEntity(){
 		Set<Long> path = Sets.newHashSet(123L,456L);
-		when(tableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
+		when(mockTableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
 		Set<Long> expected = Sets.newHashSet(789L);
 		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
 		// call under test
@@ -300,7 +311,7 @@ public class TableViewManagerImplTest {
 				EntityField.createdBy.getColumnModel(),
 				EntityField.etag.getColumnModel()
 				);
-		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		assertEquals(rawSchema, result);
@@ -313,7 +324,7 @@ public class TableViewManagerImplTest {
 				EntityField.createdOn.getColumnModel(),
 				EntityField.benefactorId.getColumnModel()
 				);
-		when(columnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(rawSchema);
 		// call under test
 		List<ColumnModel> result = manager.getViewSchema(idAndVersion);
 		
@@ -335,14 +346,14 @@ public class TableViewManagerImplTest {
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
-		when(columnModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
+		when(mockColumnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
+		when(mockColumnModelManager.bindColumnsToDefaultVersionOfObject(newColumnIds, viewId)).thenReturn(schema);
 		
 		// call under test
 		List<ColumnModel> newSchema = manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
 		assertEquals(schema, newSchema);
-		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
-		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockColumnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 	}
 	
 	/**
@@ -366,22 +377,19 @@ public class TableViewManagerImplTest {
 			newSchemaColumnIds.add(""+i);
 		}
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
-		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
-		when(columnModelManager.getAndValidateColumnModels(newColumnIds)).thenReturn(schema);
+		when(mockColumnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
 		
-		try {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
-			fail();
-		} catch (IllegalArgumentException e) {
-			// expected
-			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
-		}
+		}).getMessage();
+		// expected
+		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 	}
 	
 	@Test
 	public void testGetTableSchema(){
-		when(columnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
+		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
 		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
 	}
@@ -511,6 +519,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testUpdateEntityInView(){
+		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should trigger an update
@@ -518,18 +527,22 @@ public class TableViewManagerImplTest {
 		verify(mockReplicationManager).replicate("syn111");
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testUpdateEntityInViewNullRow(){
 		row = null;
-		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateEntityInView(userInfo, viewSchema, row);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testUpdateEntityInViewNullRowId(){
 		row.setRowId(null);
-		// call under test
-		manager.updateEntityInView(userInfo, viewSchema, row);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateEntityInView(userInfo, viewSchema, row);
+		});
 	}
 	
 	@Test
@@ -556,6 +569,7 @@ public class TableViewManagerImplTest {
 	public void testUpdateEntityInViewNoChanges(){
 		row.getValues().remove(anno1.getId());
 		row.getValues().remove(anno2.getId());
+		when(mockNodeManager.getUserAnnotations(any(UserInfo.class), anyString())).thenReturn(annotationsV2);
 		// call under test
 		manager.updateEntityInView(userInfo, viewSchema, row);
 		// this should not trigger an update
@@ -576,4 +590,204 @@ public class TableViewManagerImplTest {
 		}
 	}
 
+	@Test
+	public void testDeleteViewIndex() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		// call under test
+		manager.deleteViewIndex(idAndVersion);
+		verify(mockIndexManager).deleteTableIndex(idAndVersion);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndex() throws Exception {
+		// call under test
+		manager.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndexHoldingNoWorkRequired() {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
+		// call under test
+		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockConnectionFactory);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndexHoldingWorkeRequired() {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		Long viewTypeMask = 1L;
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		String originalSchemaMD5Hex = "startMD5";
+		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		Set<Long> scope = Sets.newHashSet(124L, 455L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		viewCRC = 9999L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema))
+				.thenReturn(viewCRC);
+
+		// call under test
+		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+
+		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
+		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
+		verify(mockTableManagerSupport).getViewTypeMask(idAndVersion);
+		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(mockIndexManager).deleteTableIndex(idAndVersion);
+		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
+		verify(mockColumnModelManager).getColumnModelsForObject(idAndVersion);
+		verify(mockTableManagerSupport).getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+		boolean isTableView = true;
+		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
+		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
+				1L);
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
+				viewSchema);
+		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+				any(Exception.class));
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndexHoldingError() {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		IllegalStateException exception = new IllegalStateException("something is wrong");
+		doThrow(exception).when(mockTableManagerSupport).getViewTypeMask(idAndVersion);
+
+		assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		});
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
+				anyString(), anyString());
+		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3() throws IOException {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		String bucket = "snapshot.bucket";
+		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
+		
+		// call under test
+		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		
+		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
+		verify(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
+		assertNotNull(bucketAndKey);
+		verify(mockS3Client).putObject(putRequestCaptor.capture());
+		PutObjectRequest putRequest = putRequestCaptor.getValue();
+		assertNotNull(putRequest);
+		assertEquals(bucket, putRequest.getBucketName());
+		assertNotNull(putRequest.getKey());
+		assertTrue(putRequest.getKey().startsWith(""+idAndVersion.getId()));
+		assertEquals(mockFile, putRequest.getFile());
+		verify(mockFile).delete();
+		assertEquals(bucket, bucketAndKey.getBucket());
+		assertEquals(putRequest.getKey(), bucketAndKey.getKey());
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3Error() throws IOException {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		UnsupportedEncodingException exception = new UnsupportedEncodingException("no");
+		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+	
+		Throwable cause = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		}).getCause();
+		assertEquals(exception, cause);
+		
+		verify(mockIndexManager, never()).createViewSnapshot(anyLong(), anyLong(), any(), any(), any(CSVWriterStream.class));
+		// the temp file must be deleted even if there is an error
+		verify(mockFile).delete();	
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullId() throws IOException {
+		idAndVersion = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullViewType() throws IOException {
+		viewType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullSchema() throws IOException {
+		viewSchema = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateViewSnapshotAndUploadToS3NullScope() throws IOException {
+		scopeIds = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
+		});
+	}
+	
+	@Test
+	public void testCreateSnapshot() throws IOException {
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewType);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		String bucket = "snapshot.bucket";
+		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
+		long snapshotVersion = 12L;
+		when(mockNodeManager.createSnapshotAndVersion(userInfo, viewId, snapshotOptions)).thenReturn(snapshotVersion);
+		
+		// call under test
+		long result = manager.createSnapshot(userInfo, viewId, snapshotOptions);
+		assertEquals(snapshotVersion, result);
+		
+		IdAndVersion expectedIdAndVersion = IdAndVersion.newBuilder().setId(idAndVersion.getId())
+				.setVersion(snapshotVersion).build();
+		verify(mockColumnModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
+		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
+		ViewSnapshot snapshot = snapshotCaptor.getValue();
+		assertNotNull(snapshot);
+		assertEquals(bucket, snapshot.getBucket());
+		assertNotNull(snapshot.getKey());
+		assertTrue(snapshot.getKey().startsWith(""+idAndVersion.getId()));
+		assertEquals(userInfo.getId(), snapshot.getCreatedBy());
+		assertNotNull(snapshot.getCreatedOn());
+		assertEquals(snapshotVersion, snapshot.getVersion());
+		assertEquals(idAndVersion.getId(), snapshot.getViewId());
+		
+	}
 }

@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import org.sagebionetworks.repo.manager.statistics.StatisticsEventsCollector;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEvent;
-import org.sagebionetworks.repo.manager.statistics.events.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -18,7 +18,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	private static final String FILE_NAME_OVERRIDE_DEPRECATED_REASON = "fileNameOverride field is deprecated and should not be set.";
 
 	@Autowired
-	private StatisticsEventsCollector statisticsCollector;
+	private EventsCollector statisticsCollector;
 
 	@Override
 	public void validateEntity(FileEntity entity, EntityEvent event)

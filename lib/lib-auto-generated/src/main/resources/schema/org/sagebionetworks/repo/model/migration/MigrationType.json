@@ -283,6 +283,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "VIEW_SNAPSHOT",
+			"description": "Table of metadata about view snapshots."
+		},
+		{
 			"name": "AUTHENTICATION_RECEIPT",
 			"description": "TODO: Auto-generated description"
 		},
@@ -341,6 +345,14 @@
 		{
 			"name": "OAUTH_CLIENT",
 			"description": "Metadata for an Oauth client"
+		},
+		{
+			"name": "SES_NOTIFICATIONS",
+			"description": "Bounce and Complaint notifications received from SES"
+		},
+		{
+			"name": "QUARANTINED_EMAILS",
+			"description": "Email addresses that are quarantined and emails are not sent to"
 		},
 		{
 			"name": "CHANGE",

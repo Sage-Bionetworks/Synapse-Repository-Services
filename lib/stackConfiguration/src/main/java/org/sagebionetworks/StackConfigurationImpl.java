@@ -752,6 +752,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getTableRowChangeBucketName() {
 		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, getStack());
 	}
+	
+	/**
+	 * The name of the bucket for view snapshots
+	 * @return
+	 */
+	public String getViewSnapshotBucketName() {
+		return String.format(StackConstants.VIEW_SNAPSHOT_BUCKET, getStack());
+	}
 
 	/**
 	 * 

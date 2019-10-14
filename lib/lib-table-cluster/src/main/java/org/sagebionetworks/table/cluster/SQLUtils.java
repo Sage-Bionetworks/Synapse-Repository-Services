@@ -210,12 +210,29 @@ public class SQLUtils {
 		if (id == null) {
 			throw new IllegalArgumentException("Table ID cannot be null");			
 		}
-		StringBuilder builder = new StringBuilder(TABLE_PREFIX);
+		StringBuilder builder = new StringBuilder();
+		appendTableNameForId(id, type, builder);
+		return builder.toString();
+	}
+
+	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
+		builder.append(TABLE_PREFIX);
 		builder.append(id.getId());
 		if(id.getVersion().isPresent()) {
 			builder.append("_").append(id.getVersion().get());
 		}
 		builder.append(type.getTablePostFix());
+	}
+
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(columnId, "columnId");
+
+		StringBuilder builder = new StringBuilder();
+		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
+		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
+		builder.append("_INDEX");
+		appendColumnNameForId(columnId, builder);
 		return builder.toString();
 	}
 
@@ -228,53 +245,60 @@ public class SQLUtils {
 	public static String getColumnNameForId(String columnId) {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
-		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
+		StringBuilder builder = new StringBuilder();
+		appendColumnNameForId(columnId, builder);
+		return builder.toString();
 	}
 
-	public static void appendColumnName(String subName, String columnId, StringBuilder builder) {
-		appendColumnName(null, subName, columnId, builder);
+	public static void appendColumnNameForId(String columnId, StringBuilder builder){
+		appendColumnName(null, columnId, builder);
 	}
 
-	private static void appendColumnName(String prefix, String subName, String columnId, StringBuilder builder) {
+	private static void appendColumnName(String prefix, String columnId, StringBuilder builder) {
 		if (prefix != null) {
 			builder.append(prefix);
 		}
-		builder.append(subName).append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
+		builder.append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
 	}
 
 	/**
-	 * Append case statement for doubles, like:
-	 * 
+	 * Append the column name that stores abstract values for doubles (Infinity, NaN).
+	 * Example : _DBL_C1_
+	 * @param reference
+	 * @param builder
+	 */
+	static void appendDoubleAbstractColumnName(String columnId, StringBuilder builder){
+		appendColumnName(TableConstants.DOUBLE_PREFIX, columnId, builder);
+	}
+
+	static String getDoubleAbstractColumnName(String columnId){
+		StringBuilder builder = new StringBuilder();
+		appendDoubleAbstractColumnName(columnId, builder);
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a double clause, like:
+	 *
 	 * <pre>
 	 * CASE
 	 * 	WHEN _DBL_C1_ IS NULL THEN _C1_
 	 * 	ELSE _DBL_C1_
 	 * END AS _C1_
 	 * </pre>
-	 * 
-	 * @param column
-	 * @param subName
-	 * @param builder
-	 */
-	public static void appendDoubleCase(String columnId, StringBuilder builder) {
-		String subName = EMPTY_STRING;
-		builder.append("CASE WHEN ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" IS NULL THEN ");
-		appendColumnName(subName, columnId, builder);
-		builder.append(" ELSE ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" END");
-	}
-	
-	/**
-	 * Create a double clause.
+	 *
 	 * @param columnId
 	 * @return
-	 */
-	public static String createDoubleCluase(String columnId){
+	 (*/
+	public static String createDoubleCase(String columnId){
 		StringBuilder builder = new StringBuilder();
-		appendDoubleCase(columnId, builder);
+		builder.append("CASE WHEN ");
+		appendDoubleAbstractColumnName( columnId, builder);
+		builder.append(" IS NULL THEN ");
+		appendColumnNameForId(columnId, builder);
+		builder.append(" ELSE ");
+		appendDoubleAbstractColumnName(columnId, builder);
+		builder.append(" END");
 		return builder.toString();
 	}
 
@@ -287,15 +311,14 @@ public class SQLUtils {
 	 * </pre>
 	 * 
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsNan(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsNan(String columnId, StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" = '").append(DOUBLE_NAN).append("')");
 	}
 
@@ -306,15 +329,14 @@ public class SQLUtils {
 	 * _DBL_C1_ IN ('Infinity', '-Infinity')
 	 * </pre>
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsInfinity(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsInfinity(String columnId,  StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IN ('").append(DOUBLE_NEGATIVE_INFINITY).append("', '").append(DOUBLE_POSITIVE_INFINITY).append("'))");
 	}
 
@@ -374,8 +396,8 @@ public class SQLUtils {
 		for(ColumnModel cm: schema){
 			String columnName = getColumnNameForId(cm.getId());
 			names.add(columnName);
-			if(ColumnType.DOUBLE.equals(cm.getColumnType())){
-				names.add(TableConstants.DOUBLE_PREFIX + columnName);
+			if(cm.getColumnType() == ColumnType.DOUBLE){
+				names.add(getDoubleAbstractColumnName(cm.getId()));
 			}
 		}
 		return names;
@@ -482,7 +504,7 @@ public class SQLUtils {
 					String columnName = getColumnNameForId(cm.getId());
 					switch (cm.getColumnType()) {
 					case DOUBLE:
-						String doubleEnumerationName = TableConstants.DOUBLE_PREFIX + columnName;
+						String doubleEnumerationName = getDoubleAbstractColumnName(cm.getId());
 						Double doubleValue = (Double) value;
 						if(AbstractDouble.isAbstractValue(doubleValue)){
 							// Abstract double include NaN and +/- Infinity.
@@ -716,7 +738,7 @@ public class SQLUtils {
 		}
 		ValidateArgument.required(oldColumn, "oldColumn");
 		builder.append("DROP COLUMN ");
-		builder.append(getColumnNameForId(oldColumn.getId()));
+		appendColumnNameForId(oldColumn.getId(), builder);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
 			appendDropDoubleEnum(builder, oldColumn.getId());
@@ -747,7 +769,7 @@ public class SQLUtils {
 			builder.append(", ");
 		}
 		builder.append("CHANGE COLUMN ");
-		builder.append(getColumnNameForId(change.getOldColumn().getId()));
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		builder.append(" ");
 		appendColumnDefinition(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		// Is this a type change?
@@ -776,7 +798,7 @@ public class SQLUtils {
 	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column , boolean useDepricatedUtf8ThreeBytes){
-		builder.append(getColumnNameForId(column.getId()));
+		appendColumnNameForId(column.getId(), builder);
 		builder.append(" ");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
 		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue(), useDepricatedUtf8ThreeBytes));
@@ -790,8 +812,7 @@ public class SQLUtils {
 	public static void appendAddDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", ADD COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 
@@ -803,8 +824,7 @@ public class SQLUtils {
 	public static void appendDropDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", DROP COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 	}
 	
 	/**
@@ -815,11 +835,9 @@ public class SQLUtils {
 	 */
 	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
 		builder.append(", CHANGE COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(oldId));
+		appendDoubleAbstractColumnName(oldId, builder);
 		builder.append(" ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(newId));
+		appendDoubleAbstractColumnName(newId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 
@@ -1085,14 +1103,18 @@ public class SQLUtils {
 	public static long getColumnId(DatabaseColumnInfo info){
 		ValidateArgument.required(info, "DatabaseColumnInfo");
 		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
-		String columnName = info.getColumnName();
+		return getColumnId(info.getColumnName());
+	}
+
+	public static long getColumnId(String columnName) {
+		ValidateArgument.requiredNotEmpty(columnName, "columnName");
 		try {
 			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+			throw new IllegalArgumentException("Unexpected columnName: "+columnName);
 		}
 	}
-	
+
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 
@@ -1244,8 +1266,23 @@ public class SQLUtils {
 		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
-		builder.append(") SELECT ");
-		buildSelect(builder, metadata);
+		builder.append(") ");
+		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		return builder.toString();
+	}
+	
+	/**
+	 * Generate the SQL to get all of the data for a view table from the entity replication tables.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param currentSchema
+	 * @return
+	 */
+	public static List<String> createSelectFromEntityReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		builder.append("SELECT ");
+		List<String> headers = buildSelect(builder, metadata);
 		builder.append(" FROM ");
 		builder.append(ENTITY_REPLICATION_TABLE);
 		builder.append(" ");
@@ -1267,7 +1304,7 @@ public class SQLUtils {
 		builder.append(") AND ");
 		builder.append(createViewTypeFilter(viewTypeMask));
 		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
-		return builder.toString();
+		return headers;
 	}
 	
 	/**
@@ -1302,13 +1339,14 @@ public class SQLUtils {
 	 * @param builder
 	 * @param metadata
 	 */
-	public static void buildSelect(StringBuilder builder,
+	public static List<String> buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
 		// select the standard entity columns.
-		buildEntityReplicationSelectStandardColumns(builder);
+		List<String> headers = buildEntityReplicationSelectStandardColumns(builder);
 		for(ColumnMetadata meta: metadata){
-			buildSelectMetadata(builder, meta);
+			headers.addAll(buildSelectMetadata(builder, meta));
 		}
+		return headers;
 	}
 	
 	/**
@@ -1317,45 +1355,53 @@ public class SQLUtils {
 	 * @param builder
 	 * @param meta
 	 */
-	public static void buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
-		if(meta.getEntityField() != null) {
+	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
+		if (meta.getEntityField() != null) {
 			// entity field select
-			buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
-		}else {
-			// annotation select
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
-				// For doubles, the double-meta columns is also selected.
-				boolean isDoubleAbstract = true;
-				buildAnnotationSelect(builder, meta, isDoubleAbstract);
-			}
-			// select the annotation
-			boolean isDoubleAbstract = false;
-			buildAnnotationSelect(builder, meta, isDoubleAbstract);
+			return buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
 		}
+		List<String> headers = new LinkedList<>();
+		// annotation select
+		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			// For doubles, the double-meta columns is also selected.
+			boolean isDoubleAbstract = true;
+			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		}
+		// select the annotation
+		boolean isDoubleAbstract = false;
+		headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		return headers;
+
 	}
 	
 	/**
 	 * Build the select including the standard entity columns of, id, version, etag, and benefactor..
 	 * @param builder
 	 */
-	public static void buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+	public static List<String> buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+		List<String> headers = new LinkedList<>();
 		builder.append(ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(ENTITY_REPLICATION_COL_ID);
-		buildEntityReplicationSelect(builder,
+		headers.add(ENTITY_REPLICATION_COL_ID);
+		headers.addAll(buildEntityReplicationSelect(builder,
 				ENTITY_REPLICATION_COL_VERSION,
 				ENTITY_REPLICATION_COL_ETAG,
-				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+				ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+		return headers;
 	}
 	/**
 	 * For each provided name: ', MAX(R.name) AS name'
 	 * @param builder
 	 * @param names
 	 */
-	public static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
+	public static List<String> buildEntityReplicationSelect(StringBuilder builder, String...names) {
+		List<String> headers = new LinkedList<>();
 		for(String name: names) {
 			builder.append(String.format(TEMPLATE_MAX_ENTITY_SELECT, ENTITY_REPLICATION_ALIAS, name));
+			headers.add(name);
 		}
+		return headers;
 	}
 	/**
 	 * If isDoubleAbstract = false then builds: ', MAX(IF(A.ANNO_KEY='keyValue', A.valueColumnName, NULL)) as _columnId_'
@@ -1365,7 +1411,7 @@ public class SQLUtils {
 	 * @param valueName
 	 * @param alias
 	 */
-	public static void buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
+	public static String buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
 		String aliasPrefix =  isDoubleAbstract ? ABSTRACT_DOUBLE_ALIAS_PREFIX: EMPTY_STRING;
 		String valueColumnName = isDoubleAbstract ? ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT : meta.getSelectColumnName();
 		builder.append(String.format(TEMPLATE_MAX_ANNOTATION_SELECT,
@@ -1376,6 +1422,7 @@ public class SQLUtils {
 				aliasPrefix,
 				meta.getColumnNameForId()
 		));
+		return aliasPrefix+meta.getColumnNameForId();
 	}
 
 	/**

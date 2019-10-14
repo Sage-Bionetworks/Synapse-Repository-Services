@@ -471,6 +471,17 @@ public class SqlConstants {
 	public static final String COL_VIEW_SCOPE_VIEW_ID		= "VIEW_ID";
 	public static final String COL_VIEW_SCOPE_CONTAINER_ID	= "CONTAINER_ID";
 	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
+	
+	// Metadata about view snapshots.
+	public static final String TABLE_VIEW_SNAPSHOT 			= "VIEW_SNAPSHOT";
+	public static final String COL_VIEW_SNAPSHOT_ID			= "SNAPSHOT_ID";
+	public static final String COL_VIEW_SNAPSHOT_VIEW_ID	= "VIEW_ID";
+	public static final String COL_VIEW_SNAPSHOT_VERSION	= "VERSION";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_BY	= "CREATED_BY";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_ON = "CREATED_ON";
+	public static final String COL_VIEW_SNAPSHOT_BUCKET		= "BUCKET_NAME";
+	public static final String COL_VIEW_SNAPSHOT_KEY		= "KEY";
+	public static final String DDL_VIEW_SNAPSHOT = "schema/ViewSnapshot-ddl.sql";
 		
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
@@ -978,7 +989,33 @@ public class SqlConstants {
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_FILES_COUNT =		"FILES_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_USERS_COUNT =		"USERS_COUNT";
 	public static final String COL_STATISTICS_MONTHLY_PROJECT_FILES_LAST_UPDATED_ON =	"LAST_UPDATED_ON";
-
+	
+	// Table constants related to SES Notifications
+	public static final String TABLE_SES_NOTIFICATIONS = 								"SES_NOTIFICATIONS";
+	public static final String DDL_SES_NOTIFICATIONS = 									"schema/ses/SESNotifications-ddl.sql";
+	public static final String COL_SES_NOTIFICATIONS_ID = 								"ID";
+	public static final String COL_SES_NOTIFICATIONS_INSTANCE_NUMBER = 					"INSTANCE_NUMBER";
+	public static final String COL_SES_NOTIFICATIONS_CREATED_ON = 						"CREATED_ON";
+	public static final String COL_SES_NOTIFICATIONS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
+	public static final String COL_SES_NOTIFICATIONS_SES_FEEDBACK_ID = 					"SES_FEEDBACK_ID";
+	public static final String COL_SES_NOTIFICATIONS_TYPE = 							"NOTIFICATION_TYPE";
+	public static final String COL_SES_NOTIFICATIONS_SUBTYPE = 							"NOTIFICATION_SUBTYPE";
+	public static final String COL_SES_NOTIFICATIONS_REASON = 							"NOTIFICATION_REASON";
+	public static final String COL_SES_NOTIFICATIONS_BODY = 							"NOTIFICATION_BODY";
+	
+	// Table constants related to emails that are quarantined
+	public static final String TABLE_QUARANTINED_EMAILS = 								"QUARANTINED_EMAILS";
+	public static final String DDL_QUARANTINED_EMAILS = 								"schema/ses/QuarantinedEmails-ddl.sql";
+	public static final String COL_QUARANTINED_EMAILS_EMAIL = 							"EMAIL";
+	public static final String COL_QUARANTINED_EMAILS_ETAG = 							"ETAG";
+	public static final String COL_QUARANTINED_EMAILS_CREATED_ON = 						"CREATED_ON";
+	public static final String COL_QUARANTINED_EMAILS_UPDATED_ON = 						"UPDATED_ON";
+	public static final String COL_QUARANTINED_EMAILS_EXPIRES_ON = 						"EXPIRES_ON";
+	public static final String COL_QUARANTINED_EMAILS_REASON = 							"REASON";
+	public static final String COL_QUARANTINED_EMAILS_REASON_DETAILS =					"REASON_DETAILS";
+	public static final String COL_QUARANTINED_EMAILS_SES_MESSAGE_ID = 					"SES_MESSAGE_ID";
+	
+	
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

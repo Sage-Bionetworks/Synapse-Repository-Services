@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -13,6 +12,7 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -173,8 +173,19 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 * @return The new CRC23 for the view.
 	 */
-	public Long populateViewFromEntityReplication(Long tableId, ProgressCallback callback, Long viewTypeMask,
+	public Long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+	
+	/**
+	 * Create a snapshot of the given view.
+	 * @param tableId
+	 * @param viewTypeMask
+	 * @param allContainersInScope
+	 * @param viewSchema
+	 * @param writter
+	 */
+	public void createViewSnapshot(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> viewSchema, CSVWriterStream writter);	
 	
 	/**
 	 * Get the possible ColumnModel definitions based on annotation within a given scope.
@@ -202,6 +213,6 @@ public interface TableIndexManager {
 	 * @param targetChangeNumber
 	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
 	 */
-	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;	
+	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
 
 }

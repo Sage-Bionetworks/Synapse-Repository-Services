@@ -223,7 +223,7 @@
 	
 	<bean id="tableRowTruthDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
-		scope="singleton" init-method="initialize">
+		scope="singleton">
 		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
 	</bean>
 	

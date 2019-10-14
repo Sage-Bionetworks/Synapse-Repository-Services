@@ -1,14 +1,18 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE;
 import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
@@ -17,12 +21,13 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.google.common.collect.Lists;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -44,14 +49,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 
-import com.google.common.collect.Lists;
-
 /**
  * Unit test for the ColumnManager.
  * @author John
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ColumnModelManagerTest {
 	
 
@@ -80,7 +83,7 @@ public class ColumnModelManagerTest {
 	List<String> overLimitSchemaIds;
 	List<ColumnModel> overLimitSchema;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		user = new UserInfo(false, 123L);
 		
@@ -93,8 +96,8 @@ public class ColumnModelManagerTest {
 				);
 		
 		
-		when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
-		
+		lenient().when(mockColumnModelDAO.getColumnModelsForObject(idAndVersion)).thenReturn(currentSchema);
+
 		ColumnChange remove = new ColumnChange();
 		remove.setOldColumnId("111");
 		remove.setNewColumnId(null);
@@ -116,8 +119,8 @@ public class ColumnModelManagerTest {
 				TableModelTestUtils.createColumn(333L),
 				TableModelTestUtils.createColumn(555L)
 				);
-		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(newSchema);
-		
+		lenient().when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(newSchema);
+
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
 		// Currently the breaking point is 23 string columns of size 1000.
@@ -157,29 +160,37 @@ public class ColumnModelManagerTest {
 		assertEquals(results, page.getResults());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testListColumnModelsLimitNegative(){
-		columnModelManager.listColumnModels(user, "aa", -1, 0);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.listColumnModels(user, "aa", -1, 0);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testListColumnModelsLimitTooLarge(){
-		columnModelManager.listColumnModels(user, "aa", 101, 0);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.listColumnModels(user, "aa", 101, 0);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testListColumnModelsOffsetNegative(){
-		columnModelManager.listColumnModels(user, "aa", 1, -1);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.listColumnModels(user, "aa", 1, -1);
+		});
 	}
 	
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCreateColumnModelAnonymous() throws UnauthorizedException, DatastoreException, NotFoundException{
 		ColumnModel cm = new ColumnModel();
 		cm.setName("abb");
 		// Setup the anonymous users
 		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(true);
-		columnModelManager.createColumnModel(user, cm);
+		assertThrows(UnauthorizedException.class, () -> {
+			columnModelManager.createColumnModel(user, cm);
+		});
 	}
 	
 	@Test
@@ -216,7 +227,7 @@ public class ColumnModelManagerTest {
 		assertEquals(Lists.newArrayList(out1, out2), results);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateColumnModelsInvalidFacetType(){
 		ColumnModel in1 = new ColumnModel();
 		in1.setName("abb1");
@@ -224,8 +235,10 @@ public class ColumnModelManagerTest {
 		in2.setName("abb2");
 		in2.setColumnType(ColumnType.LARGETEXT);
 		in2.setFacetType(FacetType.enumeration);
-		
-		columnModelManager.createColumnModels(user, Lists.newArrayList(in1, in2));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.createColumnModels(user, Lists.newArrayList(in1, in2));
+		});
 	}
 
 	/**
@@ -242,7 +255,6 @@ public class ColumnModelManagerTest {
 		invalid.setName(TableConstants.ROW_ID.toLowerCase());
 		// Setup the anonymous users
 		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
-		when(mockColumnModelDAO.createColumnModel(invalid)).thenReturn(invalid);
 		try{
 			columnModelManager.createColumnModel(user, invalid);
 			fail("should not be able to create a column model with a reserved column name");
@@ -259,19 +271,23 @@ public class ColumnModelManagerTest {
 		}
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateColumnModelInvalidFacetType(){
 		ColumnModel cm = new ColumnModel();
 		cm.setName("abc");
 		cm.setColumnType(ColumnType.LARGETEXT);
 		cm.setFacetType(FacetType.enumeration);
-		
-		columnModelManager.createColumnModel(user, cm);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.createColumnModel(user, cm);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getAndValidateColumnModels(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.getAndValidateColumnModels(null);
+		});
 	}
 	
 	@Test
@@ -395,16 +411,18 @@ public class ColumnModelManagerTest {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBindColumnToObjectDuplicateId() throws DatastoreException, NotFoundException{
 		// bind a duplicate
 		expectedNewSchemaIds.add(expectedNewSchemaIds.get(1));
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testBindColumnsToObjectDuplicateName() {
 		// Setup duplicate names for two of the columns
 		ColumnModel zero = newSchema.get(0);
@@ -412,7 +430,9 @@ public class ColumnModelManagerTest {
 		one.setName(zero.getName());
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		});
 	}
 	
 	/**
@@ -420,13 +440,15 @@ public class ColumnModelManagerTest {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testBindColumnToObjectDoesNotExist() throws DatastoreException, NotFoundException{
 		// bind a column that does not exist
 		expectedNewSchemaIds.add("9999");
 		String objectId = "syn123";
 		// call under test
-		columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		assertThrows(NotFoundException.class, () -> {
+			columnModelManager.bindColumnsToDefaultVersionOfObject(expectedNewSchemaIds, objectId);
+		});
 	}	
 	
 	@Test
@@ -435,7 +457,7 @@ public class ColumnModelManagerTest {
 		IdAndVersion defaultVersion = IdAndVersion.parse("syn123");
 		when(mockColumnModelDAO.getColumnModelIdsForObject(defaultVersion)).thenReturn(expectedNewSchemaIds);
 		// call under test
-		List<ColumnModel> results =columnModelManager.bindDefaultColumnsToObjectVersion(targetVersion);
+		List<ColumnModel> results =columnModelManager.bindCurrentColumnsToVersion(targetVersion);
 		assertEquals(newSchema, results);
 		verify(mockColumnModelDAO).bindColumnToObject(newSchema, targetVersion);
 	}
@@ -455,10 +477,12 @@ public class ColumnModelManagerTest {
 		verify(mockColumnModelDAO).deleteOwner(objectId);
 	}
 
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testTruncateAllDataUnauthroized(){
 		UserInfo user = new UserInfo(false);
-		columnModelManager.truncateAllColumnData(user);
+		assertThrows(UnauthorizedException.class, () -> {
+			columnModelManager.truncateAllColumnData(user);
+		});
 	}
 	
 	@Test
@@ -479,14 +503,15 @@ public class ColumnModelManagerTest {
 		assertEquals(expected, resutls);
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		IdAndVersion expectedIdAndVersion = IdAndVersion.parse(objectId);
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		when(mockColumnModelDAO.getColumnModelsForObject(expectedIdAndVersion)).thenReturn(expected);
-		columnModelManager.getColumnModelsForTable(user, objectId);
+		assertThrows(UnauthorizedException.class, () -> {
+			columnModelManager.getColumnModelsForTable(user, objectId);
+		});
 	}
 	
 	@Test
@@ -505,7 +530,7 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateSchemaSizeOverLimit(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
@@ -517,8 +542,10 @@ public class ColumnModelManagerTest {
 			scheamIds.add(""+cm.getId());
 		}
 		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
-		
-		columnModelManager.validateSchemaSize(scheamIds);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaSize(scheamIds);
+		});
 	}
 	
 	/**
@@ -540,7 +567,7 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateLargeTextColumnsOverLimit() {
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
@@ -550,10 +577,12 @@ public class ColumnModelManagerTest {
 			scheamIds.add(""+cm.getId());
 		}
 		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
-		columnModelManager.validateSchemaSize(scheamIds);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaSize(scheamIds);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateSchemaTooManyColumns(){
 		List<String> scheamIds = Lists.newArrayList();
 		List<ColumnModel> schema = Lists.newArrayList();
@@ -564,8 +593,10 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
-		columnModelManager.validateSchemaSize(scheamIds);
+		lenient().when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaSize(scheamIds);
+		});
 	}
 	
 	@Test
@@ -605,12 +636,14 @@ public class ColumnModelManagerTest {
 	/**
 	 * See PLFM-3619.  This schema should be just over the limit.
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testOverDataPerColumnLimit(){
 		String objectId = "syn123";
 		when(mockColumnModelDAO.getColumnModels(overLimitSchemaIds)).thenReturn(overLimitSchema);
 		//call under test
-		columnModelManager.bindColumnsToDefaultVersionOfObject(overLimitSchemaIds, objectId);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.bindColumnsToDefaultVersionOfObject(overLimitSchemaIds, objectId);
+		});
 	}
 	
 	/**
@@ -628,7 +661,7 @@ public class ColumnModelManagerTest {
 			schema.add(cm);
 			scheamIds.add(""+cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
+		lenient().when(mockColumnModelDAO.getColumnModels(scheamIds)).thenReturn(schema);
 		try {
 			//call under test
 			columnModelManager.bindColumnsToDefaultVersionOfObject(scheamIds, objectId);
@@ -696,15 +729,19 @@ public class ColumnModelManagerTest {
 				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCalculateNewSchemaIdsAndValidateMissingInUserProvidedColumns(){
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCalculateNewSchemaIdsAndValidateMissingFromUserProvidedColumns(){
 		expectedNewSchemaIds.add("columnId that does not exist");
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		});
 	}
 	
 	@Test
@@ -738,7 +775,7 @@ public class ColumnModelManagerTest {
 		}
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateNewSchemaIdsAndValidateMissingUpdate(){
 		String tableId = "syn567";
 		List<ColumnModel> currentSchema = Lists.newArrayList(
@@ -753,7 +790,9 @@ public class ColumnModelManagerTest {
 		
 		changes = Lists.newArrayList(update);
 		// call under test.
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		});
 	}
 	
 	@Test
@@ -772,11 +811,13 @@ public class ColumnModelManagerTest {
 		assertFalse(ColumnModelManagerImpl.isFileHandleColumn(column));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testIsFileHandleColumnNull(){
 		ColumnModel column = null;
 		// call under test
-		assertFalse(ColumnModelManagerImpl.isFileHandleColumn(column));
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelManagerImpl.isFileHandleColumn(column);
+		});
 	}
 	
 	@Test
@@ -899,22 +940,26 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateFacetType(columnModel);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateFacetTypeBooleanColumnRangeFacet(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setColumnType(ColumnType.BOOLEAN);
 		columnModel.setFacetType(FacetType.range);
 		//should throw exception
-		columnModelManager.validateFacetType(columnModel);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateFacetTypeDoubleColumnEnumerationFacet(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setColumnType(ColumnType.DOUBLE);
 		columnModel.setFacetType(FacetType.enumeration);
 		//should throw exception
-		columnModelManager.validateFacetType(columnModel);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
 	}
 	
 	@Test 
@@ -926,13 +971,15 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateFacetType(columnModel);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateFacetTypeDateColumnEnumerationFacet(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setColumnType(ColumnType.DATE);
 		columnModel.setFacetType(FacetType.enumeration);
 		//should throw exception
-		columnModelManager.validateFacetType(columnModel);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
 	}
 	
 	@Test 
@@ -944,47 +991,101 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateFacetType(columnModel);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateFacetTypeOtherColumnTypeEnumerationFacet(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setColumnType(ColumnType.LARGETEXT);
 		columnModel.setFacetType(FacetType.enumeration);
 		//should throw exception
-		columnModelManager.validateFacetType(columnModel);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateFacetTypeOtherColumnTypeRangeFacet(){
 		ColumnModel columnModel = new ColumnModel();
 		columnModel.setColumnType(ColumnType.LARGETEXT);
 		columnModel.setFacetType(FacetType.range);
 		//should throw exception
-		columnModelManager.validateFacetType(columnModel);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
+	public void validateColumnIsListSetting_IsListFalse(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setIsList(false);
+		for(ColumnType columnType: ColumnType.values()){
+			columnModel.setColumnType(columnType);
+			assertDoesNotThrow(()->{
+				ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
+			});
+		}
+	}
+
+	@Test
+	public void validateColumnIsListSetting_IsListNull(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setIsList(null);
+		for(ColumnType columnType: ColumnType.values()){
+			columnModel.setColumnType(columnType);
+			assertDoesNotThrow(()->{
+				ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
+			});
+		}
+	}
+
+	@Test
+	public void validateColumnIsListSetting_IsListTrue(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setIsList(true);
+		for(ColumnType columnType: ColumnType.values()){
+			columnModel.setColumnType(columnType);
+			if(ColumnModelManagerImpl.TYPES_ALLOWED_AS_LISTS.contains(columnType)){
+				assertDoesNotThrow(()->{
+					ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
+				});
+			}else{
+				assertThrows(IllegalArgumentException.class, ()->{
+					ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
+				});
+			}
+		}
+	}
+
+	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithNullSchema() {
-		columnModelManager.validateSchemaWithProvidedOrderedColumns(null, new LinkedList<String>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaWithProvidedOrderedColumns(null, new LinkedList<String>());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithNullOrderedList() {
-		columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), null);
+		});
 	}
 
 	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithEmptyList() {
-		columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), new LinkedList<String>());
+			columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), new LinkedList<String>());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithMissingFromSchema() {
-		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1"), Arrays.asList("1", "2"));
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1"), Arrays.asList("1", "2"));
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithMissingFromOrderedList() {
-		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2"));
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2"));
+		});
 	}
 
 	@Test
@@ -999,11 +1100,13 @@ public class ColumnModelManagerTest {
 		ColumnModelManagerImpl.checkColumnNaming(name);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCheckColumnNamingReserved() {
 		String name = TableConstants.ROW_ID;
 		// call under test
-		ColumnModelManagerImpl.checkColumnNaming(name);
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelManagerImpl.checkColumnNaming(name);
+		});
 	}
 	
 	/**

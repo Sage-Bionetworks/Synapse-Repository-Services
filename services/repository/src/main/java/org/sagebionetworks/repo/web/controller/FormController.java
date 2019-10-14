@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
 import org.sagebionetworks.repo.model.form.FormData;
 import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -143,19 +145,14 @@ public class FormController {
 	 * @param userId
 	 * @param groupId          The identifier of the group that manages this data.
 	 *                         Required.
-	 * @param name             User provided name for this submission. Required.
-	 *                         Between 3 and 256 characters.
-	 * @param dataFileHandleId The identifier of the data FileHandle for this
-	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
 	public @ResponseBody FormData createFormData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String groupId, @RequestParam(required = true) String name,
-			@RequestParam(required = true) String dataFileHandleId) {
-		return serviceProvider.getFormService().createFormData(userId, groupId, name, dataFileHandleId);
+			@RequestParam(required = true) String groupId, @RequestBody FormChangeRequest request) {
+		return serviceProvider.getFormService().createFormData(userId, groupId, request);
 	}
 
 	/**
@@ -171,19 +168,14 @@ public class FormController {
 	 * 
 	 * @param userId
 	 * @param id               The identifier of the FormData to update.
-	 * @param name             Rename this submission. Optional. Between 3 and 256
-	 *                         characters.
-	 * @param dataFileHandleId The identifier of the data FileHandle for this
-	 *                         object. Required.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.PUT)
 	public @ResponseBody FormData updateFormData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id", required = true) String id, @RequestParam String name,
-			@RequestParam(required = true) String dataFileHandleId) {
-		return serviceProvider.getFormService().updateFormData(userId, id, name, dataFileHandleId);
+			@PathVariable(value = "id", required = true) String id, @RequestBody FormChangeRequest request) {
+		return serviceProvider.getFormService().updateFormData(userId, id, request);
 	}
 
 	/**
@@ -290,14 +282,13 @@ public class FormController {
 	 * 
 	 * @param userId
 	 * @param id     Identifier of the FormData to accept.
-	 * @param reason The reason for the rejection. Limit 500 characters or less.
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_REJECT }, method = RequestMethod.PUT)
 	public @ResponseBody FormData reviewerRejectForm(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = "id", required = true) String id, @RequestParam(required = true) String reason) {
-		return serviceProvider.getFormService().reviewerRejectForm(userId, id, reason);
+			@PathVariable(value = "id", required = true) String id, @RequestBody FormRejection rejection) {
+		return serviceProvider.getFormService().reviewerRejectForm(userId, id, rejection);
 	}
 }

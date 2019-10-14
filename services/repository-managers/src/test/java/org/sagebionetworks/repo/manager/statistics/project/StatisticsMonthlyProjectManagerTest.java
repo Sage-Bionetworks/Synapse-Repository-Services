@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.statistics.project.StatisticsMonthlyProjectManagerImpl;
 import org.sagebionetworks.repo.model.athena.AthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.project.AthenaProjectFileStatisticsDAO;
 import org.sagebionetworks.repo.model.dbo.statistics.StatisticsMonthlyProjectFilesDAO;
@@ -41,6 +40,7 @@ public class StatisticsMonthlyProjectManagerTest {
 
 	@Mock
 	private List<StatisticsMonthlyProjectFiles> mockBatch;
+	
 
 	@InjectMocks
 	private StatisticsMonthlyProjectManagerImpl manager;
