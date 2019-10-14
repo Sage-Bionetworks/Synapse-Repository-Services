@@ -35,6 +35,7 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -44,6 +45,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -733,7 +735,9 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setIsList(false);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of the ArrayHasPredicate when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -746,7 +750,9 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setIsList(null);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -758,7 +764,8 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setIsList(true);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has ('asdf', 'qwerty', 'yeet')");
+		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -770,11 +777,13 @@ public class SQLTranslatorUtilsTest {
 		columnFoo.setIsList(true);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
@@ -784,17 +793,21 @@ public class SQLTranslatorUtilsTest {
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ not has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo not has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
-		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("_C111_ IN (\"123\", \"456\")");
+		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("foo IN (\"123\", \"456\")");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), columnMap);
 
 		String beforeCallSqll = notArrayHasPredicate.toSql();
 		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
