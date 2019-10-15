@@ -471,6 +471,17 @@ public class SqlConstants {
 	public static final String COL_VIEW_SCOPE_VIEW_ID		= "VIEW_ID";
 	public static final String COL_VIEW_SCOPE_CONTAINER_ID	= "CONTAINER_ID";
 	public static final String DDL_VIEW_SCOPE = "schema/ViewScope-ddl.sql";
+	
+	// Metadata about view snapshots.
+	public static final String TABLE_VIEW_SNAPSHOT 			= "VIEW_SNAPSHOT";
+	public static final String COL_VIEW_SNAPSHOT_ID			= "SNAPSHOT_ID";
+	public static final String COL_VIEW_SNAPSHOT_VIEW_ID	= "VIEW_ID";
+	public static final String COL_VIEW_SNAPSHOT_VERSION	= "VERSION";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_BY	= "CREATED_BY";
+	public static final String COL_VIEW_SNAPSHOT_CREATED_ON = "CREATED_ON";
+	public static final String COL_VIEW_SNAPSHOT_BUCKET		= "BUCKET_NAME";
+	public static final String COL_VIEW_SNAPSHOT_KEY		= "KEY";
+	public static final String DDL_VIEW_SNAPSHOT = "schema/ViewSnapshot-ddl.sql";
 		
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
@@ -995,6 +1006,7 @@ public class SqlConstants {
 	// Table constants related to emails that are quarantined
 	public static final String TABLE_QUARANTINED_EMAILS = 								"QUARANTINED_EMAILS";
 	public static final String DDL_QUARANTINED_EMAILS = 								"schema/ses/QuarantinedEmails-ddl.sql";
+	public static final String COL_QUARANTINED_EMAILS_ID = 								"ID";
 	public static final String COL_QUARANTINED_EMAILS_EMAIL = 							"EMAIL";
 	public static final String COL_QUARANTINED_EMAILS_ETAG = 							"ETAG";
 	public static final String COL_QUARANTINED_EMAILS_CREATED_ON = 						"CREATED_ON";

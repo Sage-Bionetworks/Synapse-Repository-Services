@@ -31,6 +31,7 @@ import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
@@ -503,6 +504,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		setIndexSchema(idAndVersion, isTableView, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		applyChangeSetToIndex(idAndVersion, sparseChangeSet, rowChange.getChangeNumber());
+	}
+	
+	@Override
+	public void createViewSnapshot(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> viewSchema, CSVWriterStream writter) {
+		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, viewTypeMask, allContainersInScope, viewSchema, writter);
 	}
 
 }

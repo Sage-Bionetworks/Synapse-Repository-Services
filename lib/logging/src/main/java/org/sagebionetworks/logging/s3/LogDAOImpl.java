@@ -71,16 +71,6 @@ public class LogDAOImpl implements LogDAO {
 		// Delete a log file by its key
 		s3Client.deleteObject(bucketName, key);
 	}
-
-	/**
-	 * Called when the bean is initialized.
-	 */
-	public void initialize() {
-		if (bucketName == null)
-			throw new IllegalArgumentException("bucketName has not been set and cannot be null");
-		// Create the bucket if it does not exist
-		s3Client.createBucket(bucketName);
-	}
 	
 	@Override
 	public void deleteAllStackInstanceLogs() {

@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,13 +21,15 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -47,27 +48,15 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MembershipInvitationManagerImplTest {
-
-	private MembershipInvitationManagerImpl membershipInvitationManagerImpl;
-	@Mock
-	private AuthorizationManager mockAuthorizationManager = null;
-	@Mock
-	private MembershipInvitationDAO mockMembershipInvitationDAO = null;
-	@Mock
-	private TeamDAO mockTeamDAO = null;
-	@Mock
-	private SynapseEmailService mockSynapseEmailService;
-	@Mock
-	private TokenGenerator tokenGenerator;
-
-	private UserInfo userInfo = null;
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 	private static final String INVITEE_EMAIL = "invitee@test.com";
@@ -103,25 +92,32 @@ public class MembershipInvitationManagerImplTest {
 		return mis;
 	}
 
-	@Before
+	@Mock
+	private AuthorizationManager mockAuthorizationManager = null;
+	@Mock
+	private MembershipInvitationDAO mockMembershipInvitationDAO = null;
+	@Mock
+	private TeamDAO mockTeamDAO = null;
+	@Mock
+	private SynapseEmailService mockSynapseEmailService;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
+	@Mock
+	private EmailQuarantineDao mockEmailQuarantineDao;
+	@InjectMocks
+	private MembershipInvitationManagerImpl membershipInvitationManagerImpl;
+	
+	private UserInfo userInfo = null;
+
+	@BeforeEach
 	public void setUp() throws Exception {
-		this.membershipInvitationManagerImpl = new MembershipInvitationManagerImpl();
-		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "membershipInvitationDAO",
-				mockMembershipInvitationDAO);
-		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "teamDAO", mockTeamDAO);
-		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "sesClient", mockSynapseEmailService);
-		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "tokenGenerator", tokenGenerator);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
 	}
 
 	private void validateForCreateExpectFailure(MembershipInvitation mis) {
-		try {
+		Assertions.assertThrows(InvalidModelException.class, ()-> {
 			MembershipInvitationManagerImpl.validateForCreate(mis);
-			fail("InvalidModelException expected");
-		} catch (InvalidModelException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
@@ -178,12 +174,16 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(now, mis.getCreatedOn());
 	}
 
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testNonAdminCreate() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipInvitationManagerImpl.create(userInfo, mis);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipInvitationManagerImpl.create(userInfo, mis);
+		});
 	}
 
 	@Test
@@ -195,13 +195,16 @@ public class MembershipInvitationManagerImplTest {
 		Mockito.verify(mockMembershipInvitationDAO).create(mis);
 	}
 
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testNonAdminGet() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
-		membershipInvitationManagerImpl.get(userInfo, MIS_ID);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipInvitationManagerImpl.get(userInfo, MIS_ID);
+		});
 	}
 
 	@Test
@@ -223,13 +226,16 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, token));
 	}
 
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(MIS_ID);
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.DELETE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockMembershipInvitationDAO.get(MIS_ID)).thenReturn(mis);
-		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
+		});
 	}
 
 	@Test
@@ -286,11 +292,13 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testGetOpenSubmissionsForTeamInRangeUnauthorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID, 1, 0);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID, 1, 0);
+		});
 	}
 
 	@Test
@@ -309,12 +317,15 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,
-				1, 0);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,
+					1, 0);
+		});
 	}
 
 	@Test
@@ -354,7 +365,10 @@ public class MembershipInvitationManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		
+		// Call under test
 		membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint);
+		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest = argument.getValue();
@@ -368,10 +382,25 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
 	}
+	
+	@Test
+	public void testSendInvitationToEmailWithQuarantinedAddress() throws Exception {
+		
+		when(mockEmailQuarantineDao.isQuarantined(INVITEE_EMAIL)).thenReturn(true);
+		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		
+		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
+			// Call under test
+			membershipInvitationManagerImpl.sendInvitationToEmail(mis, null);
+		});
+		
+	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetOpenInvitationCountForUserWithNullPrincipalId() {
-		membershipInvitationManagerImpl.getOpenInvitationCountForUser(null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			membershipInvitationManagerImpl.getOpenInvitationCountForUser(null);
+		});
 	}
 
 	@Test
@@ -400,7 +429,7 @@ public class MembershipInvitationManagerImplTest {
 		assertNotNull(token);
 		assertEquals(MEMBER_PRINCIPAL_ID, token.getInviteeId());
 		assertEquals(MIS_ID, token.getMembershipInvitationId());
-		tokenGenerator.validateToken(token);
+		mockTokenGenerator.validateToken(token);
 
 		// Test failure cases
 		// Failure 1 - mis is expired

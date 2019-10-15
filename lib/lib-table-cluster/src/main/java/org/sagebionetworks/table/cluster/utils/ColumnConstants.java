@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.utils;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -34,40 +35,19 @@ public class ColumnConstants {
 	 * The maximum number of columns per MySQL table.
 	 */
 	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
-	
+
 	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
 	 */
-	public static final int MAX_BOOLEAN_BYTES_AS_STRING;
-	static{
-		try {
-			MAX_BOOLEAN_BYTES_AS_STRING = "FALSE".getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	public static final int MAX_BOOLEAN_BYTES_AS_STRING = "FALSE".getBytes(StandardCharsets.UTF_8).length;
 	/**
 	 * The maximum number of bytes of a integer (a long in java terms) when represented as a string.
 	 */
-	public static final int MAX_INTEGER_BYTES_AS_STRING;
-	static{
-		try {
-			MAX_INTEGER_BYTES_AS_STRING = Long.toString(-Long.MAX_VALUE).getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	public static final int MAX_INTEGER_BYTES_AS_STRING = Long.toString(-Long.MAX_VALUE).getBytes(StandardCharsets.UTF_8).length;
 	/**
 	 * The maximum number of bytes of a double when represented as a string.
 	 */
-	public static final int MAX_DOUBLE_BYTES_AS_STRING;
-	static{
-		try {
-			MAX_DOUBLE_BYTES_AS_STRING = Double.toString(-Double.MAX_VALUE).getBytes("UTF-8").length;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	public static final int MAX_DOUBLE_BYTES_AS_STRING = Double.toString(-Double.MAX_VALUE).getBytes(StandardCharsets.UTF_8).length;
 	/**
 	 * The maximum number of bytes of a FileHandle ID when represented as a string (same as long).
 	 */

@@ -477,6 +477,22 @@ public class DMLUtils {
 	}
 	
 	/**
+	 * The query will retrieve the data type of the given column
+	 * 
+	 * @param mapping
+	 * @return
+	 */
+	public static String getColumnDataType(String tableName, String columnName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='");
+		builder.append(tableName);
+		builder.append("' AND COLUMN_NAME='");
+		builder.append(columnName);
+		builder.append("'");
+		return builder.toString();
+	}
+	
+	/**
 	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
 	 * @param mapping
 	 * @param builder

@@ -9,10 +9,10 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 class AnnotationsTypeToValidatorTest {
 	@Test
 	public void testValidatorFor(){
-		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.STRING) instanceof StringValueValidator);
-		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.DOUBLE) instanceof DoubleValueValidator);
-		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.LONG) instanceof LongValueValidator);
-		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.TIMESTAMP_MS) instanceof LongValueValidator);
+		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.STRING) instanceof StringValueListValidator);
+		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.DOUBLE) instanceof DoubleValueListValidator);
+		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.LONG) instanceof LongValueListValidator);
+		assertTrue(AnnotationsV2TypeToValidator.validatorFor(AnnotationsValueType.TIMESTAMP_MS) instanceof LongValueListValidator);
 	}
 
 	@Test

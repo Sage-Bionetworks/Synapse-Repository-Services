@@ -172,6 +172,7 @@ TOKEN [IGNORE_CASE]: {
 | < group_by : "GROUP BY">
 | < interval: "INTERVAL">
 | < in: "IN">
+| < has: "HAS">
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
@@ -708,6 +709,7 @@ Predicate predicate():
 	InPredicate inPredicate = null;
 	LikePredicate likePredicate = null;
 	IsPredicate isPredicate = null;
+	ArrayHasPredicate arrayHasPredicate = null;
 	BooleanFunctionPredicate booleanFunctionPredicate = null;
 	Boolean notB = null;
 }
@@ -722,6 +724,7 @@ Predicate predicate():
 				(
 						betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
 					|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
+					|   arrayHasPredicate = arrayHasPredicate(leftHandSide, notB){return new Predicate(arrayHasPredicate);}
 					|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
 				)
 			)
@@ -784,6 +787,15 @@ BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
 	<between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
 	{ return new BetweenPredicate(leftHandSide, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
 }
+ArrayHasPredicate arrayHasPredicate(ColumnReference leftHandSide, Boolean notB):
+{
+	InPredicateValue inPredicateValue = null;
+}
+{
+	<has> inPredicateValue = inPredicateValue()
+	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);}
+
+}
 InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
 {
 	InPredicateValue inPredicateValue = null;
@@ -791,6 +803,7 @@ InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
 {
 	<in> inPredicateValue = inPredicateValue()
 	{ return new InPredicate(leftHandSide, notB, inPredicateValue);}
+
 }
 InPredicateValue inPredicateValue():
 {

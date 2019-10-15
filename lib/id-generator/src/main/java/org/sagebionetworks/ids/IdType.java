@@ -53,7 +53,8 @@ public enum IdType {
 	OAUTH_SECTOR_IDENTIFIER_ID(null),
 	OAUTH_CLIENT_ID(100000L),
 	SES_NOTIFICATION_ID(null),
-	QUARANTINED_EMAIL_ID(null)
+	QUARANTINED_EMAIL_ID(null),
+	VIEW_SNAPSHOT_ID(null),
 	;
 	
 	Long startingId;

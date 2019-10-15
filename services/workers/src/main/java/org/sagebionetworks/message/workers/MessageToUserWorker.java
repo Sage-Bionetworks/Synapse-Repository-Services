@@ -10,6 +10,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,12 +50,14 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 							change.getObjectId(), errors);
 				}
 
+			} catch (QuarantinedEmailException e) {
+				log.error("The message will be returned as processed and removed from the queue: " + e.getMessage(), e);
+				workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 			} catch (NotFoundException e) {
 				log.info("NotFound: "
 						+ e.getMessage()
 						+ ". The message will be returned as processed and removed from the queue");
-				workerLogger
-						.logWorkerFailure(this.getClass(), change, e, false);
+				workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 			} catch (Throwable e) {
 				// Something went wrong and we did not process the message
 				log.error("Failed to process message", e);

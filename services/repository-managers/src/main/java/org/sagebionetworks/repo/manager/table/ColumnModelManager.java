@@ -104,7 +104,7 @@ public interface ColumnModelManager {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public List<ColumnModel> bindDefaultColumnsToObjectVersion(IdAndVersion idAndVersion);
+	public List<ColumnModel> bindCurrentColumnsToVersion(IdAndVersion idAndVersion);
 	
 	/**
 	 * Remove all column bindings for an object

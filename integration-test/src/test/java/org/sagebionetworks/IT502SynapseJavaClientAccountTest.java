@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.util.SerializationUtils;
@@ -140,9 +141,9 @@ public class IT502SynapseJavaClientAccountTest {
 		UserProfile up = synapseOne.getMyProfile();
 		assertEquals(1, up.getEmails().size());
 		String myEmail = up.getEmails().get(0);
-		String notificationEmail = synapseOne.getNotificationEmail();
+		NotificationEmail notificationEmail = synapseOne.getNotificationEmail();
 		// the current notification email is the one/only email that I have
-		assertEquals(myEmail, notificationEmail);
+		assertEquals(myEmail, notificationEmail.getEmail());
 		// no-op, just checking that everything's wired up right
 		synapseOne.setNotificationEmail(myEmail);
 	}

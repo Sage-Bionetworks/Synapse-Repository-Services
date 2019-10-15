@@ -23,9 +23,9 @@ import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.BroadcastMessageDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -52,27 +52,35 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	 *  
 	 *  Injected (IoC).
 	 */
-	Map<ObjectType, MessageBuilderFactory> messageBuilderFactoryMap;
+	private Map<ObjectType, MessageBuilderFactory> messageBuilderFactoryMap;
 
 	@Autowired
-	SubscriptionDAO subscriptionDAO;
+	private SubscriptionDAO subscriptionDAO;
+	
 	@Autowired
-	BroadcastMessageDao broadcastMessageDao;
+	private BroadcastMessageDao broadcastMessageDao;
+	
 	@Autowired
-	SynapseEmailService sesClient;
+	private SynapseEmailService sesClient;
+	
 	@Autowired
-	DBOChangeDAO changeDao;
+	private DBOChangeDAO changeDao;
+	
 	@Autowired
-	TimeoutUtils timeoutUtils;
+	private TimeoutUtils timeoutUtils;
+	
 	@Autowired
-	PrincipalAliasDAO principalAliasDao;
+	private UserProfileDAO userProfileDao;
+	
 	@Autowired
-	UserProfileDAO userProfileDao;
+	private UserManager userManager;
+	
 	@Autowired
-	UserManager userManager;
+	private AuthorizationManager authManager;
+	
 	@Autowired
-	AuthorizationManager authManager;
-
+	private EmailQuarantineDao emailQuarantineDao;
+	
 	@Override
 	public void broadcastMessage(UserInfo user,	ProgressCallback progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		ValidateArgument.required(user, "user");
@@ -123,6 +131,10 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			if (subscriber.getSubscriberId().equals(changeMessage.getUserId().toString())) {
 				continue;
 			}
+			if (emailQuarantineDao.isQuarantined(subscriber.getNotificationEmail())) {
+				log.warn("Cannot send message to quarantined address: {}", subscriber.getNotificationEmail());
+				continue;
+			}
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
 			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);
@@ -153,6 +165,10 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 		for(UserNotificationInfo userNotificationInfo: mentionedUsers){
 			// do not send an email to the user who created this change
 			if (userNotificationInfo.getUserId().equals(changeMessage.getUserId().toString())) {
+				continue;
+			}
+			if (emailQuarantineDao.isQuarantined(userNotificationInfo.getNotificationEmail())) {
+				log.warn("Cannot send message to quarantined address: {}", userNotificationInfo.getNotificationEmail());
 				continue;
 			}
 			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));

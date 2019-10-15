@@ -4,21 +4,21 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 
 public enum AnnotationsV2TypeToValidator {
 
-	STRING(AnnotationsValueType.STRING, new StringValueValidator()),
-	DOUBLE(AnnotationsValueType.DOUBLE, new DoubleValueValidator()),
-	LONG(AnnotationsValueType.LONG, new LongValueValidator()),
+	STRING(AnnotationsValueType.STRING, new StringValueListValidator(AnnotationsValueType.STRING)),
+	DOUBLE(AnnotationsValueType.DOUBLE, new DoubleValueListValidator(AnnotationsValueType.DOUBLE)),
+	LONG(AnnotationsValueType.LONG, new LongValueListValidator(AnnotationsValueType.LONG)),
 	//timestamps are just special longs so they are validated as longs
-	TIMESTAMP_MS(AnnotationsValueType.TIMESTAMP_MS, new LongValueValidator());
+	TIMESTAMP_MS(AnnotationsValueType.TIMESTAMP_MS, new LongValueListValidator(AnnotationsValueType.TIMESTAMP_MS));
 
 	private AnnotationsValueType type;
-	private AnnotationsV2ValueValidator validator;
+	private AnnotationsV2ValueListValidator validator;
 
-	AnnotationsV2TypeToValidator(AnnotationsValueType type, AnnotationsV2ValueValidator validator) {
+	AnnotationsV2TypeToValidator(AnnotationsValueType type, AnnotationsV2ValueListValidator validator) {
 		this.type = type;
 		this.validator = validator;
 	}
 
-	public static AnnotationsV2ValueValidator validatorFor(AnnotationsValueType type){
+	public static AnnotationsV2ValueListValidator validatorFor(AnnotationsValueType type){
 		for(AnnotationsV2TypeToValidator validatorMapping : values()){
 			if(validatorMapping.type == type){
 				return validatorMapping.validator;

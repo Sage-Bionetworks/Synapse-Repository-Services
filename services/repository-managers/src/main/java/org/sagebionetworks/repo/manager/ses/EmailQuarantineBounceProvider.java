@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.ses;
 
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ses.QuarantineReason;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
 import org.sagebionetworks.repo.model.ses.SESJsonNotificationDetails;
@@ -41,12 +41,12 @@ public class EmailQuarantineBounceProvider implements EmailQuarantineProvider {
 
 		// We only care about the bounce type
 		String notificationSubtype = notificationDetails.getSubType().orElse(UNKNOWN_TYPE).trim().toUpperCase();
-		QuarantineReason reason = null;
+		EmailQuarantineReason reason = null;
 
 		if (PERMANENT_QUARANTINE_TYPES.contains(notificationSubtype)) {
-			reason = QuarantineReason.PERMANENT_BOUNCE;
+			reason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		} else if (TEMPORARY_QUARANTINE_TYPES.contains(notificationSubtype)) {
-			reason = QuarantineReason.OTHER;
+			reason = EmailQuarantineReason.OTHER;
 			batch.withExpirationTimeout(RETRY_TIMEOUT);
 		} else {
 			return batch;

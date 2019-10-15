@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
-import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueValidator;
+import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2ValueListValidator;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -147,13 +147,8 @@ public class AnnotationsV2Utils {
 			throw new IllegalArgumentException("a value type must be set for values associated with key=" + key);
 		}
 
-		AnnotationsV2ValueValidator valueValidator = AnnotationsV2TypeToValidator.validatorFor(type);
-		for(String value: valueList){
-			if(value == null){
-				throw new IllegalArgumentException("null is not allowed. To indicate no values, use an empty list.");
-			}
-			valueValidator.validate(key, value, type);
-		}
+		AnnotationsV2ValueListValidator valueValidator = AnnotationsV2TypeToValidator.validatorFor(type);
+		valueValidator.validate(key, valueList);
 	}
 
 	/**
