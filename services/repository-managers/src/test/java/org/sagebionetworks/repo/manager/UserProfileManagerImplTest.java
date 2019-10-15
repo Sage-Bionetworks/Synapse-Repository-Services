@@ -21,11 +21,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -243,7 +241,7 @@ public class UserProfileManagerImplTest {
 	 */
 	private List<ProjectHeader> getProjects(UserInfo caller, UserInfo lookingAt) {
 		Long teamId = null;
-		ProjectListFilter type = ProjectListFilter.ALL;
+		ProjectListType type = ProjectListType.ALL;
 		ProjectListSortColumn sortColumn = ProjectListSortColumn.PROJECT_NAME;
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 100L;

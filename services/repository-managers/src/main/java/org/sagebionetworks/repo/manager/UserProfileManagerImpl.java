@@ -21,8 +21,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Sets;
@@ -206,7 +205,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Override
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
-			UserInfo userToGetInfoFor, Long teamId, ProjectListFilter type,
+			UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {

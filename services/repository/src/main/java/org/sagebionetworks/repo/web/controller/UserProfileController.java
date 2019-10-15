@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -427,22 +427,22 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
-	private static ProjectListFilter getProjectListFilterForProjectListType(ProjectListTypeDeprecated deprecatedType) {
-		ProjectListFilter projectListFilter = null;
+	private static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {
+		ProjectListType projectListFilter = null;
 		switch (deprecatedType) {
 		case MY_PROJECTS:
 		case OTHER_USER_PROJECTS:
-			projectListFilter=ProjectListFilter.ALL;
+			projectListFilter=ProjectListType.ALL;
 			break;
 		case MY_CREATED_PROJECTS:
-			projectListFilter=ProjectListFilter.CREATED;
+			projectListFilter=ProjectListType.CREATED;
 			break;
 		case MY_PARTICIPATED_PROJECTS:
-			projectListFilter=ProjectListFilter.PARTICIPATED;
+			projectListFilter=ProjectListType.PARTICIPATED;
 			break;
 		case MY_TEAM_PROJECTS:
 		case TEAM_PROJECTS:
-			projectListFilter=ProjectListFilter.TEAM;
+			projectListFilter=ProjectListType.TEAM;
 			break;
 		default:
 			throw new IllegalArgumentException("Unrecognized "+deprecatedType);
@@ -463,7 +463,7 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		
-		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
 		return serviceProvider.getUserProfileService().getProjects(userId, userId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 	
@@ -480,7 +480,7 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
 		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 
@@ -498,7 +498,7 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
 		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 	
@@ -522,7 +522,7 @@ public class UserProfileController {
 	 * <br/>
 	 * 
 	 * @param userId The ID of the user making the request
-	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListFilter}">criterion</a> for including a project in the list (see above).
+	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListType}">criterion</a> for including a project in the list (see above).
 	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
 	 * @param filter see above
 	 * @param sortColumn The optional <a href="${org.sagebionetworks.repo.model.ProjectListSortColumn}">column</a> to sort on. 
@@ -542,7 +542,7 @@ public class UserProfileController {
 	PaginatedResults<ProjectHeader> getProjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
-			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter filter,
+			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
@@ -572,7 +572,7 @@ public class UserProfileController {
 	 * 
 	 * @param userId The ID of the user making the request
 	 * @param principalId The user ID to list projects for
-	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListFilter}">criterion</a> for including a project in the list (see above).
+	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListType}">criterion</a> for including a project in the list (see above).
 	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
 	 * @param filter see above
 	 * @param sortColumn The optional <a href="${org.sagebionetworks.repo.model.ProjectListSortColumn}">column</a> to sort on. 
@@ -593,7 +593,7 @@ public class UserProfileController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long principalId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
-			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter filter,
+			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,

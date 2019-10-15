@@ -74,7 +74,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
@@ -1469,7 +1468,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
-				ProjectListFilter type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be at least 0");
@@ -1495,7 +1494,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param type
 	 * @return
 	 */
-	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListFilter type){
+	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type){
 		switch (type) {
 		case ALL:
 		case TEAM:

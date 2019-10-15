@@ -44,8 +44,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -658,10 +658,10 @@ public class UserProfileServiceTest {
 		long teamId = 999;
 		// call under test
 		PaginatedResults<ProjectHeader> prs = userProfileService.getProjects(
-				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListFilter.CREATED,
+				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
 
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListFilter.CREATED,
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.CREATED,
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
 	}
 
@@ -676,7 +676,7 @@ public class UserProfileServiceTest {
 				userInfo.getId(), otherUserInfo.getId(), teamId, null,
 				null, null, limit, offset);
 
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListFilter.ALL,
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.ALL,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
 	}
 }

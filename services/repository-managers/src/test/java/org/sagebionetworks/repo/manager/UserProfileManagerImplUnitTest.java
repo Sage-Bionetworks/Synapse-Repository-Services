@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListFilter;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
@@ -85,7 +85,7 @@ public class UserProfileManagerImplUnitTest {
 	@Mock
 	UserInfo userToGetFor;
 	Long teamToFetchId;
-	ProjectListFilter type;
+	ProjectListType type;
 	ProjectListSortColumn sortColumn;
 	SortDirection sortDirection;
 	Long limit;
@@ -180,7 +180,7 @@ public class UserProfileManagerImplUnitTest {
 				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
 		teamToFetchId = null;
-		type = ProjectListFilter.CREATED;
+		type = ProjectListType.CREATED;
 		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		sortDirection = SortDirection.ASC;
 		limit = 10L;
@@ -414,7 +414,7 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_PROJECTS(){
-		type = ProjectListFilter.ALL;
+		type = ProjectListType.ALL;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -437,7 +437,7 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsOTHER_USER_PROJECTS(){
-		type = ProjectListFilter.ALL;
+		type = ProjectListType.ALL;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -460,7 +460,7 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_CREATED_PROJECTS(){
-		type = ProjectListFilter.CREATED;
+		type = ProjectListType.CREATED;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -483,7 +483,7 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_PARTICIPATED_PROJECTS(){
-		type = type = ProjectListFilter.PARTICIPATED;
+		type = type = ProjectListType.PARTICIPATED;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -506,7 +506,7 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test
 	public void testGetProjectsMY_TEAM_PROJECTS(){
-		type = type = ProjectListFilter.TEAM;
+		type = type = ProjectListType.TEAM;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -530,7 +530,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test 
 	public void testGetProjectsTEAM_PROJECTS(){
 		teamToFetchId = 999L;
-		type = ProjectListFilter.TEAM;
+		type = ProjectListType.TEAM;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -550,7 +550,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetProjectsTEAM_PROJECTSNullTeam(){
 		teamToFetchId = null;
-		type = ProjectListFilter.TEAM;
+		type = ProjectListType.TEAM;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
@@ -563,8 +563,8 @@ public class UserProfileManagerImplUnitTest {
 	@Test 
 	public void testGetProjectsAllTypes(){
 		teamToFetchId = 999L;
-		type = ProjectListFilter.TEAM;
-		for(ProjectListFilter type: ProjectListFilter.values()){
+		type = ProjectListType.TEAM;
+		for(ProjectListType type: ProjectListType.values()){
 			PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 					caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
 			assertNotNull(results);
