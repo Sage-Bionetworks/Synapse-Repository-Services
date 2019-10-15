@@ -450,17 +450,6 @@ public class UserProfileController {
 		return projectListFilter;
 	}
 
-	/**
-	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
-	 * headers</a> from a user. The list is ordered by most recent interacted with project first
-	 * 
-	 * @param type The type of project list
-	 * @param sortColumn The optional column to sort on. <i>Default sort by last activity</i>
-	 * @param sortDirection The optional sort direction. <i>Default sort descending</i>
-	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
-	 *        <i>Default is 0</i>
-	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
-	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_DEPRECATED }, method = RequestMethod.GET)
@@ -478,11 +467,6 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getProjects(userId, userId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 	
-	/**
-	 * Same as getProjects, but has team parameter
-	 * 
-	 * @param teamId The team ID to list projects for, when showing ProjectListType.TEAM_PROJECTS
-	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM_DEPRECATED }, method = RequestMethod.GET)
@@ -500,11 +484,6 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 
-	/**
-	 * Same as getProjects, but has other user id parameter
-	 * 
-	 * @param principalId The user ID to list projects for, when showing ProjectListType.OTHER_USER_PROJECTS
-	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER_DEPRECATED }, method = RequestMethod.GET)
@@ -523,6 +502,40 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 	
+	
+	/**
+	 * Get a paginated result that contains <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
+	 * headers</a> and user activity (last access date) of the caller. The included projects are filtered as follows:
+	 * 
+	 * If <i>filter</i> is ALL: the projects that the caller has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member.
+	 * <br/>
+	 * If <i>filter</i> is CREATED: the projects that the caller has created and currently has READ access to, 
+	 * by virtue of being included in the project's share settings personally or via a team in which they are a member.
+	 * <br/>
+	 * If <i>filter</i> is PARTICIPATED: the projects that the caller has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member, but has <em>not</em> created.
+	 * <br/>
+	 * If <i>filter</i> is TEAM: the projects that the caller has READ access by virtue of being included in
+	 * the project's share settings via the team given by 'teamId' or, if no team ID is specified, then by any team 
+	 * which they are a member of.
+	 * <br/>
+	 * 
+	 * @param userId The ID of the user making the request
+	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListFilter}">criterion</a> for including a project in the list (see above).
+	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
+	 * @param filter see above
+	 * @param sortColumn The optional <a href="${org.sagebionetworks.repo.model.ProjectListSortColumn}">column</a> to sort on. 
+	 * 			<i>Default sort by last activity</i>
+	 * @param sortDirection The optional <a href="${org.sagebionetworks.repo.model.entity.query.SortDirection}">sort direction</a>. 
+	 * 			<i>Default sort descending</i>
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        	<i>Default is 0</i>
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -538,7 +551,41 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, filter, sortColumn, sortDirection, limit, offset);
 	}
 
-	
+	/**
+	 * Get a paginated result that contains <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
+	 * headers</a> and user activity (last access date) of the user specified by 'principalId', returning only
+	 * those projects that the caller also has READ access to. The included projects are filtered as follows:
+	 * 
+	 * If <i>filter</i> is ALL: the projects that the user has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member.
+	 * <br/>
+	 * If <i>filter</i> is CREATED: the projects that the user has created and currently has READ access to, 
+	 * by virtue of being included in the project's share settings personally or via a team in which they are a member.
+	 * <br/>
+	 * If <i>filter</i> is PARTICIPATED: the projects that the user has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member, but has <em>not</em> created.
+	 * <br/>
+	 * If <i>filter</i> is TEAM: the projects that the user has READ access by virtue of being included in
+	 * the project's share settings via the team given by 'teamId' or, if no team ID is specified, then by any team 
+	 * which they are a member of.
+	 * <br/>
+	 * 
+	 * @param userId The ID of the user making the request
+	 * @param principalId The user ID to list projects for
+	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListFilter}">criterion</a> for including a project in the list (see above).
+	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
+	 * @param filter see above
+	 * @param sortColumn The optional <a href="${org.sagebionetworks.repo.model.ProjectListSortColumn}">column</a> to sort on. 
+	 * 			<i>Default sort by last activity</i>
+	 * @param sortDirection The optional <a href="${org.sagebionetworks.repo.model.entity.query.SortDirection}">sort direction</a>. 
+	 * 			<i>Default sort descending</i>
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        	<i>Default is 0</i>
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
 	public @ResponseBody

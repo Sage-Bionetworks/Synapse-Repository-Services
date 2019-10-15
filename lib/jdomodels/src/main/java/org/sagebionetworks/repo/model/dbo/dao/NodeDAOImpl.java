@@ -1472,7 +1472,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				ProjectListFilter type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be at least 0");
 		if(projectIds.isEmpty()){
 			return new LinkedList<>();
 		}
