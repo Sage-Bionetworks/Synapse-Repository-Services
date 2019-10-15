@@ -76,6 +76,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
@@ -621,6 +622,78 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
+	public void testPopulateViewFromSnapshot() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		setupReader("foo,bar");
+		
+		// call under test
+		long id = manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		assertEquals(snapshotId, id);
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
+		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testPopulateViewFromSnapshotError() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		AmazonServiceException error = new AmazonServiceException("not correct");
+		when(mockS3Client.getObject(any(GetObjectRequest.class), any(File.class))).thenThrow(error);
+		
+		assertThrows(AmazonServiceException.class, ()->{
+			// call under test
+			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		});
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
+		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
+		// file should still be deleted
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testPopulateViewFromSnapshotFileCreateError() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		IOException error = new IOException("some IO error");
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenThrow(error);
+		
+		Throwable cause = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		}).getCause();
+		assertEquals(error, cause);
+		
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client, never()).getObject(any(GetObjectRequest.class), any(File.class));
+		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
+		verify(mockFile, never()).delete();
+	}
+	
+	@Test
+	public void testPopulateViewIndexFromReplication() {
+		Long viewTypeMask = 1L;
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		Set<Long> scope = Sets.newHashSet(124L, 455L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		// call under test
+		long resultCRC32 = manager.populateViewIndexFromReplication(idAndVersion, mockIndexManager, viewSchema);
+		assertEquals(viewCRC, resultCRC32);
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
+				viewSchema);
+	}
+	
+	@Test
 	public void testCreateOrUpdateViewIndexHoldingNoWorkRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
@@ -646,7 +719,9 @@ public class TableViewManagerImplTest {
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
 		Set<Long> scope = Sets.newHashSet(124L, 455L);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
-
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		
 		// call under test
 		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
 
@@ -689,10 +764,12 @@ public class TableViewManagerImplTest {
 		String originalSchemaMD5Hex = "startMD5";
 		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
-		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key");
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
 		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
 		setupReader("foo,bar");
+		
 		// call under test
 		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
 
@@ -712,7 +789,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
 		verify(mockFile).delete();
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
-		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),

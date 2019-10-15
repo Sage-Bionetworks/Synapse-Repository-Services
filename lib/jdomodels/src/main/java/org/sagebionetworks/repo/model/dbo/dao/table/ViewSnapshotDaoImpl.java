@@ -99,7 +99,7 @@ public class ViewSnapshotDaoImpl implements ViewSnapshotDao {
 	@Override
 	public long getSnapshotId(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(idAndVersion.getVersion().isPresent(), "version");
+		ValidateArgument.requirement(idAndVersion.getVersion().isPresent(), "version");
 		try {
 			return jdbcTemplate.queryForObject(
 					"SELECT "+COL_VIEW_SNAPSHOT_ID+" FROM " + TABLE_VIEW_SNAPSHOT + " WHERE " + COL_VIEW_SNAPSHOT_VIEW_ID + " = ? AND "
