@@ -726,7 +726,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE));
+				dto.setValue(Collections.singletonList(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE)));
 				return dto;
 			}}, entityId);
 		if(!annotations.isEmpty()){

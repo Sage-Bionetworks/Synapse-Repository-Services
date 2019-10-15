@@ -805,7 +805,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
-		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("foo IN (\"123\", \"456\")");
+		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary(":wqfoo IN (\"123\", \"456\")");
 		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
 		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), columnMap);
 

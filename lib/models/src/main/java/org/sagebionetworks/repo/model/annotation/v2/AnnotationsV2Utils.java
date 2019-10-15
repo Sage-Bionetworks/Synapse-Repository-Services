@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.annotation.v2.annotaitonvalidator.AnnotationsV2TypeToValidator;
@@ -99,15 +100,12 @@ public class AnnotationsV2Utils {
 			String key = entry.getKey();
 			AnnotationsValue annotationsV2Value = entry.getValue();
 
-			String value = getSingleValue(annotationsV2Value);
-			if(value != null){
-				//enforce value max character limit
-				if(value.length() > maxAnnotationChars){
-					value = value.substring(0, maxAnnotationChars);
-				}
+			List<String> transferredValues = annotationsV2Value.getValue().stream()
+					//enforce value max character limit
+					.map((String value) -> value == null ? null : value.substring(0, maxAnnotationChars))
+					.collect(Collectors.toList());
 
-				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), value));
-			}
+			map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
 		}
 	}
 

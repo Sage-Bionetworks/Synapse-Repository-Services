@@ -37,7 +37,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	 * @param messages
 	 */
 	@Override
-	public void replicate(List<ChangeMessage> messages) throws RecoverableMessageException {
+	public void  replicate(List<ChangeMessage> messages) throws RecoverableMessageException {
 		// batch the create/update events and delete events
 		List<String> createOrUpdateIds = new LinkedList<>();
 		List<String> deleteIds = new LinkedList<String>();
