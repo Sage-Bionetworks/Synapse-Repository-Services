@@ -3418,14 +3418,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private PaginatedResults<ProjectHeader> getProjects(ProjectListFilter type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
 			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
-		String url = PROJECTS_URI_PATH + '/' + type.name();
+		String url = PROJECTS_URI_PATH;
 		if (userId != null) {
 			url += USER + '/' + userId;
 		}
-		if (teamId != null) {
-			url += TEAM + '/' + teamId;
-		}
-
 		if (sortColumn == null) {
 			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		}
@@ -3435,6 +3431,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit + "&sort=" + sortColumn.name() + "&sortDirection="
 				+ sortDirection.name();
+		if (teamId != null) {
+			url += "&teamId=" + teamId;
+		}
+		if (type!=null) {
+			url += "filter="+type;
+		}
+
 		return getPaginatedResults(getRepoEndpoint(), url, ProjectHeader.class);
 	}
 

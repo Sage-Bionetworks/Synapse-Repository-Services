@@ -524,19 +524,35 @@ public class UserProfileController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<ProjectHeader> getProjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable Long principalId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
-			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter projectListFilter,
+			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, principalId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, filter, sortColumn, sortDirection, limit, offset);
+	}
+
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getOtherUsersProjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
+			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter filter,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, teamId, filter, sortColumn, sortDirection, limit, offset);
 	}
 
 }
