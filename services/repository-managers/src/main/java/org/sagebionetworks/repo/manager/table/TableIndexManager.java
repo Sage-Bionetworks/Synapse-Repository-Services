@@ -171,9 +171,9 @@ public interface TableIndexManager {
 	 * @param viewType
 	 * @param allContainersInScope
 	 * @param currentSchema
-	 * @return The new CRC23 for the view.
+	 * @return View CRC32
 	 */
-	public Long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
+	public long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -219,8 +219,7 @@ public interface TableIndexManager {
 	 * Populate a view table from a stream of snapshot CSV data.
 	 * @param idAndVersion
 	 * @param input
-	 * @return
 	 */
-	public long populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
 }

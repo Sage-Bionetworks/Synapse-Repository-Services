@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -120,6 +122,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	ReplicationMessageManagerAsynch replicationMessageManagerAsynch;
 	@Autowired
 	ObjectTypeManager objectTypeManager;
+	@Autowired
+	ViewSnapshotDao viewSnapshotDao;
 	
 	/*
 	 * Cache of default ColumnModels for views.  Once created, these columns will not change
@@ -331,13 +335,18 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public Long calculateViewCRC32(IdAndVersion idAndVersion) {
-		// Start with all container IDs that define the view's scope
-		Long viewTypeMask = getViewTypeMask(idAndVersion);
-		Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-		// Trigger the reconciliation of this view's scope.
-		triggerScopeReconciliation(viewTypeMask, viewContainers);
-		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-		return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+		if(idAndVersion.getVersion().isPresent()) {
+			// The ID of the snapshot is used for this case.
+			return viewSnapshotDao.getSnapshotId(idAndVersion);
+		}else {
+			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
+			// Start with all container IDs that define the view's scope
+			Long viewTypeMask = getViewTypeMask(idAndVersion);
+			Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+			// Trigger the reconciliation of this view's scope.
+			triggerScopeReconciliation(viewTypeMask, viewContainers);
+			return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+		}
 	}
 
 	@Override

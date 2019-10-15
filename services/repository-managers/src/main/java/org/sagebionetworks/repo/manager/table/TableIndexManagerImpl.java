@@ -270,7 +270,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
+	public long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		try {
 			return populateViewFromEntityReplicationWithProgress(tableId,
@@ -295,7 +295,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
+	long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -514,10 +514,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, viewTypeMask, allContainersInScope, viewSchema, writter);
 	}
 	@Override
-	public long populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
-		// calculate the new CRC32;
-		return tableIndexDao.calculateCRC32ofTableView(idAndVersion.getId());
 	}
 
 }

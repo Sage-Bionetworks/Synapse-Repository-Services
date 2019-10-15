@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -105,6 +106,8 @@ public class TableManagerSupportTest {
 	ReplicationMessageManagerAsynch mockReplicationMessageManager;
 	@Mock
 	ObjectTypeManager mockObjectTypeManager;
+	@Mock
+	ViewSnapshotDao mockViewSnapshotDao;
 	
 	@InjectMocks
 	TableManagerSupportImpl manager;
@@ -621,6 +624,18 @@ public class TableManagerSupportTest {
 		Long crcResult = manager.calculateViewCRC32(idAndVersion);
 		assertEquals(crc32, crcResult);
 		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
+	}
+	
+	@Test
+	public void calculateFileViewCRC32Veserion(){
+		idAndVersion = IdAndVersion.parse("syn123.45");
+		Long snapshotId = 33L;
+		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
+		// call under test
+		Long crcResult = manager.calculateViewCRC32(idAndVersion);
+		assertEquals(snapshotId, crcResult);
+		verify(mockReplicationMessageManager, never()).pushContainerIdsToReconciliationQueue(any());
 	}
 	
 	@Test

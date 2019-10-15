@@ -312,8 +312,6 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 		try {
-			// Look-up the type for this table.
-			Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(idAndVersion);
@@ -321,17 +319,17 @@ public class TableViewManagerImpl implements TableViewManager {
 			String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
 			List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
 
-			// Get the containers for this view.
-			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion,
-					viewTypeMask);
-
 			// create the table in the index.
 			boolean isTableView = true;
 			indexManager.setIndexSchema(idAndVersion, isTableView, viewSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L, 1L);
-			// populate the view by coping data from the entity replication tables.
-			Long viewCRC = populateViewTable(idAndVersion, viewTypeMask, indexManager, viewSchema,
-					allContainersInScope);
+			
+			Long viewCRC = null;
+			if(idAndVersion.getVersion().isPresent()) {
+				viewCRC = populateViewFromSnapshot(idAndVersion, indexManager);
+			}else {
+				viewCRC = populateViewIndexFromReplication(idAndVersion, indexManager, viewSchema);
+			}
 			// now that table is created and populated the indices on the table can be
 			// optimized.
 			indexManager.optimizeTableIndices(idAndVersion);
@@ -347,38 +345,44 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	/**
-	 * 
+	 * Populate the view table using entity replication data.
 	 * @param idAndVersion
-	 * @param viewTypeMask
 	 * @param indexManager
 	 * @param viewSchema
-	 * @param allContainersInScope
-	 * @return
 	 */
-	Long populateViewTable(IdAndVersion idAndVersion, Long viewTypeMask, TableIndexManager indexManager,
-			List<ColumnModel> viewSchema, Set<Long> allContainersInScope) {
-		if(idAndVersion.getVersion().isPresent()) {
-			return populateViewFromSnapshot(idAndVersion, indexManager);
-		}else {
-			return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask,
-					allContainersInScope, viewSchema);
-		}
+	long populateViewIndexFromReplication(IdAndVersion idAndVersion, TableIndexManager indexManager,
+			List<ColumnModel> viewSchema) {
+		// Look-up the type for this table.
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		// Get the containers for this view.
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion,
+				viewTypeMask);
+		return indexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask,
+				allContainersInScope, viewSchema);
 	}
 
-	Long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
+	/**
+	 * Populate the view table from csv snapshot.
+	 * @param idAndVersion
+	 * @param indexManager
+	 */
+	long populateViewFromSnapshot(IdAndVersion idAndVersion, TableIndexManager indexManager) {
 		ViewSnapshot snapshot = viewSnapshotDao.getSnapshot(idAndVersion);
 		File tempFile = null;
 		try {
+			tempFile = fileProvider.createTempFile("ViewSnapshotDownload", ".csv.gzip");
 			// download the snapshot file to a temp file.
 			s3Client.getObject(new GetObjectRequest(snapshot.getBucket(), snapshot.getKey()), tempFile);
-			try (CSVReaderIterator reader = new CSVReaderIterator(new CSVReader(fileProvider
-					.createReader(fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)), StandardCharsets.UTF_8)))) {
-				return indexManager.populateViewFromSnapshot(idAndVersion, reader);
+			try (CSVReaderIterator reader = new CSVReaderIterator(new CSVReader(fileProvider.createReader(
+					fileProvider.createGZIPInputStream(fileProvider.createFileInputStream(tempFile)),
+					StandardCharsets.UTF_8)))) {
+				indexManager.populateViewFromSnapshot(idAndVersion, reader);
 			}
+			return snapshot.getSnapshotId();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
-		}finally {
-			if(tempFile != null) {
+		} finally {
+			if (tempFile != null) {
 				tempFile.delete();
 			}
 		}
