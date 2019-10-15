@@ -1217,6 +1217,8 @@ public class TableViewIntegrationTest {
 		int rowCount = 3;
 		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
 		assertNotNull(queryResults);
+		List<Row> rows = extractRows(queryResults);
+		assertEquals(rowCount, rows.size());
 	}
 	
 	/**
