@@ -73,15 +73,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
+
 	private StackConfiguration stackConfiguration;
 
-	/**
-	 * Default used by Spring
-	 */
-	public MigratableTableDAOImpl() { }
+	@Autowired
+	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.stackConfiguration = stackConfiguration;
+	}
 	
 	/**
 	 * Injected via Spring
