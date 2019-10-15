@@ -412,7 +412,7 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
+			ProjectFilter filter, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
 
 
 	/**

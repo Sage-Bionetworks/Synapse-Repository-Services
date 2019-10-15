@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -112,24 +112,6 @@ public interface UserProfileManager {
 	 * if type is MY_TEAM_PROJECTS: the projects that the user has READ access by virtue of being 
 	 * included in the project's ACL via some team
 	 * 
-	 * @param userInfo
-	 * @param type
-	 * @param sortColumn either project name or time of last access by 'userInfo'
-	 * @param sortDirection
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<ProjectHeader> getMyOwnProjects(
-			UserInfo userInfo, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
-			Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-	
-	/**
 	 * Retrieve list of projects and activity history for 'userToGetInfoFor' in each project
 	 * The results are paginated and sorted.
 	 * 
@@ -148,33 +130,9 @@ public interface UserProfileManager {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<ProjectHeader> getOthersProjects(
+	public PaginatedResults<ProjectHeader> getProjects(
 			UserInfo userInfo, UserInfo userToGetInfoFor,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
-			Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-	
-	/**
-	 * Retrieve list of projects and activity history for 'userInfo' in each project
-	 * The results are paginated and sorted.
-	 *
-	 * The results include the projects  that 'teamToFetch' has been granted READ access to, and that 'userInfo' 
-	 * also has READ access to
-	 * 
-	 * 
-	 * @param userInfo
-	 * @param teamToFetch
-	 * @param sortColumn either project name or time of last access by 'userInfo'
-	 * @param sortDirection
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<ProjectHeader> getTeamsProjects(
-			UserInfo userInfo, Team teamToFetch, 
+			Long teamId, ProjectListFilter type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, 
 			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;

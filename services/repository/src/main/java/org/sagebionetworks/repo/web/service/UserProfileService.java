@@ -13,8 +13,8 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -173,6 +173,7 @@ public interface UserProfileService {
 	 * Retrieve sorted list of projects, paginated
 	 * 
 	 * @param userId
+	 * @param subjectId other user id, which may be the same as 'userId'
 	 * @param type type of project list
 	 * @param sortColumn optional sort column. default sort by last activity
 	 * @param sortDirection optional sort direction. default sort descending
@@ -183,43 +184,7 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<ProjectHeader> getMyOwnProjects(Long userId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve sorted list of projects, paginated
-	 * 
-	 * @param userId
-	 * @param otherUserId other user id required when retrieving projects of other user
-	 * @param sortColumn optional sort column. default sort by last activity
-	 * @param sortDirection optional sort direction. default sort descending
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws NotFoundException
-	 * @throws InvalidModelException
-	 * @throws DatastoreException
-	 */
-	public PaginatedResults<ProjectHeader> getOthersProjects(Long userId, Long otherUserId, 
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException;
-
-	/**
-	 * Retrieve sorted list of projects, paginated
-	 * 
-	 * @param userId
-	 * @param teamId team id required when retrieving projects for a team
-	 * @param sortColumn optional sort column. default sort by last activity
-	 * @param sortDirection optional sort direction. default sort descending
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws NotFoundException
-	 * @throws InvalidModelException
-	 * @throws DatastoreException
-	 */
-	public PaginatedResults<ProjectHeader> getTeamsProjects(Long userId, Long teamId,
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long subjectId, Long teamId, ProjectListFilter type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 

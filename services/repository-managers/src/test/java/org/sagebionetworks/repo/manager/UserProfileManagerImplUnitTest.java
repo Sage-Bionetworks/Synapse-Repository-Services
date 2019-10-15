@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
@@ -325,8 +326,9 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testGetProjectsNonAdminCallerDifferent(){
 		// call under test
-		PaginatedResults<ProjectHeader> results = userProfileManager.getOthersProjects(
-				caller, userToGetFor, sortColumn, sortDirection, limit, offset);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, null, ProjectListFilter.ALL,
+				sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		assertNotNull(results.getResults());
 		assertEquals(0L, results.getTotalNumberOfResults());
@@ -351,8 +353,8 @@ public class UserProfileManagerImplUnitTest {
 		// the caller is the same as the userToGetFor.
 		caller = userToGetFor;
 		// call under test
-		PaginatedResults<ProjectHeader> results = userProfileManager.getMyOwnProjects(
-				caller, type, sortColumn, sortDirection, limit, offset);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, null, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once for the userToGetFor.
 		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));

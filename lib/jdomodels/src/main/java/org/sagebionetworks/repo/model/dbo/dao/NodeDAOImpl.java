@@ -56,8 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -75,9 +73,10 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ProjectFilter;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -119,6 +118,9 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -1467,7 +1469,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
-				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
+				ProjectFilter filter, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be at least 0");
@@ -1480,7 +1482,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		parameters.put(BIND_PROJECT_STAT_USER_ID, userId);
 		StringBuilder sqlBuilder = new StringBuilder(SELECT_PROJECTS_STATS);
 		// some types add an additional condition.
-		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
+		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, filter);
 		sqlBuilder.append(additionalCondition);
 		// order and paging
 		String orgerAndPaging = getProjectStatsOrderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
@@ -1493,22 +1495,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param type
 	 * @return
 	 */
-	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type) {
-		if (type==null) {
+	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectFilter filter) {
+		if (filter==null) {
 			return "";
 		}
-		switch (type) {
-		case MY_PROJECTS:
-		case MY_TEAM_PROJECTS:
+		switch (filter) {
+		case ALL:
 			return "";
-		case MY_CREATED_PROJECTS:
+		case CREATED_BY_USER:
 			parameters.put(BIND_CREATED_BY, userId);
 			return SELECT_CREATED;
-		case MY_PARTICIPATED_PROJECTS:
+		case NOT_CREATED_BY_USER:
 			parameters.put(BIND_CREATED_BY, userId);
 			return SELECT_NOT_CREATED;
 		default:
-			throw new NotImplementedException("project list type " + type + " not yet implemented");
+			throw new NotImplementedException("project list type " + filter + " not yet implemented");
 		}
 	}
 	

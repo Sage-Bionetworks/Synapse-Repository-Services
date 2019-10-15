@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -11,7 +12,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -21,9 +21,10 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ProjectFilter;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -206,11 +207,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
 	}
 	
-	private Set<Long> getProjectIdsForCallerAndUser(UserInfo caller, Set<Long> userToGetPrincipalIds, boolean userToGetIsSelf) {
+	private Set<Long> getProjectIdsForCallerAndUser(UserInfo caller, Set<Long> userToGetPrincipalIds) {
 		// Find the projectIds accessible (READ access is granted) to the user-to-get-for.
 		Set<Long> userToGetAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(userToGetPrincipalIds);
 		Set<Long> projectIdsToFilterBy = null;
-		if (!caller.isAdmin() && !userToGetIsSelf) {
+		if (!caller.isAdmin() && !caller.getGroups().equals(userToGetPrincipalIds)) {
 			/*
 			 * The caller is not an administrator and the caller is not the same
 			 * as the user-to-get-for. Therefore, the return projects must only
@@ -231,68 +232,62 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getMyOwnProjects(
-			UserInfo caller, ProjectListType type,
+	public PaginatedResults<ProjectHeader> getProjects(
+			UserInfo caller, UserInfo userToGetInfoFor,
+			Long teamId, ProjectListFilter type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		// user's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
-
+		
+		if (teamId!=null) {
+			if (type!=ProjectListFilter.TEAM) {
+				throw new IllegalArgumentException("teamId parameter only applies when TEAM filter is selected.");
+			}
+			if (!userToGetInfoFor.getGroups().contains(teamId)) {
+				throw new IllegalArgumentException("User "+userToGetInfoFor.getId()+ " is not a member of team "+teamId);
+			}
+		}
+		
 		Set<Long> userToGetPrincipalIds;
 		switch (type) {
-		case MY_PROJECTS:
-		case MY_CREATED_PROJECTS:
-		case MY_PARTICIPATED_PROJECTS:
+		case ALL:
+		case CREATED:
+		case PARTICIPATED:
 			userToGetPrincipalIds = getGroupsMinusPublic(caller.getGroups());
 			break;
-		case MY_TEAM_PROJECTS:
-			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
+		case TEAM:
+			if (teamId!=null) {
+				userToGetPrincipalIds = Collections.singleton(teamId);
+			} else {
+				userToGetPrincipalIds = getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
+			}
 			break;
 		default:
 			throw new NotImplementedException("project list type " + type
 					+ " not yet supported");
 		}
-		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, true);
-		// run the query.
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
-				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
-				offset);
-		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
-	}
+		
+		ProjectFilter projectFilter;
+		switch(type) {
+		case ALL:
+		case TEAM:
+			projectFilter=ProjectFilter.ALL;
+			break;
+		case CREATED:
+			projectFilter=ProjectFilter.CREATED_BY_USER;
+			break;
+		case PARTICIPATED:
+			projectFilter=ProjectFilter.NOT_CREATED_BY_USER;
+			break;
+		default:
+			throw new NotImplementedException("project list type " + type
+					+ " not yet supported");
+		}
 
-	@Override
-	public PaginatedResults<ProjectHeader> getOthersProjects(
-			UserInfo caller, UserInfo userToGetInfoFor,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-
-		// user's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
-		Set<Long> userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-
-		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds, false);
+		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, userToGetPrincipalIds);
 		// run the query.
 		List<ProjectHeader> page = nodeDao.getProjectHeaders(userToGetInfoFor.getId(),
-				projectIdsToFilterBy, null, sortColumn, sortDirection, limit,
-				offset);
-		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
-	}
-
-	@Override
-	public PaginatedResults<ProjectHeader> getTeamsProjects(
-			UserInfo caller, Team teamToFetch,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		// this case requires a team
-		ValidateArgument.required(teamToFetch, "teamToFetch");
-		long teamId = Long.parseLong(teamToFetch.getId());
-
-		Set<Long>  projectIdsToFilterBy = getProjectIdsForCallerAndUser(caller, Sets.newHashSet(teamId), false);
-
-		// run the query.
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
-				projectIdsToFilterBy, null, sortColumn, sortDirection, limit,
+				projectIdsToFilterBy, projectFilter, sortColumn, sortDirection, limit,
 				offset);
 		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
 	}

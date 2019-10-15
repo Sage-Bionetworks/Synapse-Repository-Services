@@ -45,9 +45,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -656,41 +655,16 @@ public class UserProfileServiceTest {
 	}
 	
 	@Test
-	public void testGetMyOwnProjects() {
-		long offset = 0;
-		long limit = 2;
-		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getMyOwnProjects(
-				userInfo.getId(), ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
-		
-		verify(mockUserProfileManager).getMyOwnProjects(userInfo, ProjectListType.MY_PROJECTS, 
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
-	}
-	
-	@Test
-	public void testGetMyOwnProjectsDefaultSort() {
-		long offset = 0;
-		long limit = 2;
-		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getMyOwnProjects(
-				userInfo.getId(), ProjectListType.MY_PROJECTS,
-				null, null, limit, offset);
-		
-		verify(mockUserProfileManager).getMyOwnProjects(userInfo, ProjectListType.MY_PROJECTS, 
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
-	}
-	
-	@Test
 	public void testGetOthersProjects() {
 		long offset = 0;
 		long limit = 2;
+		long teamId = 999;
 		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getOthersProjects(
-				userInfo.getId(), otherUserInfo.getId(),
+		PaginatedResults<ProjectHeader> prs = userProfileService.getProjects(
+				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListFilter.ALL,
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
 		
-		verify(mockUserProfileManager).getOthersProjects(userInfo, otherUserInfo, 
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListFilter.ALL,
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
 	}
 	
@@ -699,44 +673,13 @@ public class UserProfileServiceTest {
 	public void testGetOthersProjectsDefaultSort() {
 		long offset = 0;
 		long limit = 2;
+		long teamId = 999;
 		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getOthersProjects(
-				userInfo.getId(), otherUserInfo.getId(),
+		PaginatedResults<ProjectHeader> prs = userProfileService.getProjects(
+				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListFilter.ALL,
 				null, null, limit, offset);
 		
-		verify(mockUserProfileManager).getOthersProjects(userInfo, otherUserInfo, 
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
-	}
-	
-	@Test
-	public void testGetTeamsProjects() {
-		long offset = 0;
-		long limit = 2;
-		Long teamId = 101010101L;
-		Team team = new Team();
-		when(mockTeamManager.get(teamId.toString())).thenReturn(team);
-		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getTeamsProjects(
-				userInfo.getId(), teamId,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
-		
-		verify(mockUserProfileManager).getTeamsProjects(userInfo, team, 
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
-	}
-	
-	@Test
-	public void testGetTeamsProjectsDefaultSort() {
-		long offset = 0;
-		long limit = 2;
-		Long teamId = 101010101L;
-		Team team = new Team();
-		when(mockTeamManager.get(teamId.toString())).thenReturn(team);
-		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getTeamsProjects(
-				userInfo.getId(), teamId,
-				null, null, limit, offset);
-		
-		verify(mockUserProfileManager).getTeamsProjects(userInfo, team, 
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListFilter.ALL,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
 	}
 	

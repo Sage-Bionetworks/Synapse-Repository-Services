@@ -6,7 +6,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -26,8 +25,8 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -232,13 +231,15 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<ProjectHeader> getMyOwnProjects(Long userId, ProjectListType type,
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long subjectId, Long teamId, ProjectListFilter type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		ValidateArgument.required(subjectId, "user");
+		UserInfo userToGetInfoFor = userManager.getUserInfo(subjectId);
 
 		ValidateArgument.required(type, "type");
-
+		
 		if (sortColumn==null) {
 			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
 		}
@@ -246,45 +247,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			sortDirection=SortDirection.DESC;
 		}
 
-		return userProfileManager.getMyOwnProjects(userInfo, type, sortColumn, sortDirection, limit, offset);
-	}
-	
-	@Override
-	public PaginatedResults<ProjectHeader> getOthersProjects(Long userId, Long otherUserId, 
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		ValidateArgument.required(otherUserId, "user");
-		UserInfo userToGetInfoFor = userManager.getUserInfo(otherUserId);
-
-		if (sortColumn==null) {
-			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
-		}
-		if (sortDirection==null) {
-			sortDirection=SortDirection.DESC;
-		}
-
-		return userProfileManager.getOthersProjects(userInfo, userToGetInfoFor, sortColumn, sortDirection, limit, offset);
-	}
-	
-	@Override
-	public PaginatedResults<ProjectHeader> getTeamsProjects(Long userId, Long teamId, 
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		ValidateArgument.required(teamId, "team");
-		Team teamToFetch = teamManager.get(teamId.toString());
-
-		if (sortColumn==null) {
-			sortColumn=ProjectListSortColumn.LAST_ACTIVITY;
-		}
-		if (sortDirection==null) {
-			sortDirection=SortDirection.DESC;
-		}
-
-		return userProfileManager.getTeamsProjects(userInfo, teamToFetch, sortColumn, sortDirection, limit, offset);
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamId, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/*

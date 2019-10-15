@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -56,7 +54,9 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ProjectFilter;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
@@ -101,6 +101,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -2187,7 +2190,7 @@ public class NodeDAOImplTest {
 	public void testGetProjectStatAdditionalConditionMY_CREATED_PROJECTS(){
 		Map<String, Object> parameters = new HashMap<>();
 		Long userId = 123L;
-		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectFilter type = ProjectFilter.CREATED_BY_USER;
 		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
 		assertEquals(" AND n.CREATED_BY = :bCreatedBy", result);
 		assertEquals(userId, parameters.get("bCreatedBy"));
@@ -2197,7 +2200,7 @@ public class NodeDAOImplTest {
 	public void testGetProjectStatAdditionalConditionMY_PARTICIPATED_PROJECTS(){
 		Map<String, Object> parameters = new HashMap<>();
 		Long userId = 123L;
-		ProjectListType type = ProjectListType.MY_PARTICIPATED_PROJECTS;
+		ProjectFilter type = ProjectFilter.NOT_CREATED_BY_USER;
 		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
 		assertEquals(" AND n.CREATED_BY <> :bCreatedBy", result);
 		assertEquals(userId, parameters.get("bCreatedBy"));
@@ -2207,7 +2210,7 @@ public class NodeDAOImplTest {
 	public void testGetProjectStatAdditionalConditionMY_PROJECTS(){
 		Map<String, Object> parameters = new HashMap<>();
 		Long userId = 123L;
-		ProjectListType type = ProjectListType.MY_PROJECTS;
+		ProjectFilter type = ProjectFilter.ALL;
 		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
 		assertEquals("", result);
 		assertTrue(parameters.isEmpty());
@@ -2217,7 +2220,7 @@ public class NodeDAOImplTest {
 	public void testGetProjectStatAdditionalConditionMY_TEAM_PROJECTS(){
 		Map<String, Object> parameters = new HashMap<>();
 		Long userId = 123L;
-		ProjectListType type = ProjectListType.MY_TEAM_PROJECTS;
+		ProjectFilter type = ProjectFilter.ALL;
 		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
 		assertEquals("", result);
 		assertTrue(parameters.isEmpty());
@@ -2239,7 +2242,7 @@ public class NodeDAOImplTest {
 	public void testGetProjectStatAdditionalConditionEachType(){
 		Map<String, Object> parameters = new HashMap<>();
 		Long userId = 123L;
-		for(ProjectListType type : ProjectListType.values()){
+		for(ProjectFilter type : ProjectFilter.values()){
 			String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
 			assertNotNull(result);
 		}
@@ -2291,7 +2294,7 @@ public class NodeDAOImplTest {
 		Node projectTwo = createProject("testGetProjectHeaders.two", user1);
 		Node projectThree = createProject("testGetProjectHeaders.three", user1);
 		Set<Long> projectIds = Sets.newHashSet(KeyFactory.stringToKey(projectTwo.getId()), KeyFactory.stringToKey(projectThree.getId()));
-		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectFilter type = ProjectFilter.CREATED_BY_USER;
 		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 10L;
@@ -2315,7 +2318,7 @@ public class NodeDAOImplTest {
 		Long user1Id = Long.parseLong(user1);
 		// empty project ids should return an empty set.
 		Set<Long> projectIds = new HashSet<>();
-		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectFilter type = ProjectFilter.CREATED_BY_USER;
 		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 10L;

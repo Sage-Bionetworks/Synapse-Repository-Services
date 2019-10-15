@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -246,7 +247,8 @@ public class UserProfileManagerImplTest {
 		SortDirection sortDirection = SortDirection.ASC;
 		Long limit = 100L;
 		Long offset = 0L;
-		PaginatedResults<ProjectHeader> paginated = userProfileManager.getOthersProjects(caller, lookingAt,
+		PaginatedResults<ProjectHeader> paginated = userProfileManager.getProjects(caller, lookingAt,
+				null, ProjectListFilter.ALL,
 				sortColumn, sortDirection, limit, offset);
 		if (paginated != null) {
 			return paginated.getResults();
