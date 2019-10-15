@@ -943,9 +943,10 @@ public class UrlHelpers {
 	@Deprecated
 	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
 
-	public static final String PROJECTS = "/projects/{type}";
-	public static final String PROJECTS_USER = PROJECTS + USER + "/{principalId}";
-	public static final String PROJECTS_TEAM = PROJECTS + TEAM + "/{teamId}";
+	public static final String PROJECTS_USER = "/projects" + USER + "/{principalId}";
+	public static final String PROJECTS_DEPRECATED = "/projects/{type}";
+	public static final String PROJECTS_USER_DEPRECATED = PROJECTS_DEPRECATED + USER + "/{principalId}";
+	public static final String PROJECTS_TEAM_DEPRECATED = PROJECTS_DEPRECATED + TEAM + "/{teamId}";
 	public static final String PROJECTS_SORT_PARAM = "sort";
 	public static final String PROJECTS_SORT_DIRECTION_PARAM = "sortDirection";
 

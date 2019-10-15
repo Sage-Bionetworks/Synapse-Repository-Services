@@ -406,7 +406,7 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
+			ProjectListFilter type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
 
 
 	long getCount();

@@ -18,8 +18,9 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -426,6 +427,29 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
+	private static ProjectListFilter getProjectListFilterForProjectListType(ProjectListTypeDeprecated deprecatedType) {
+		ProjectListFilter projectListFilter = null;
+		switch (deprecatedType) {
+		case MY_PROJECTS:
+		case OTHER_USER_PROJECTS:
+			projectListFilter=ProjectListFilter.ALL;
+			break;
+		case MY_CREATED_PROJECTS:
+			projectListFilter=ProjectListFilter.CREATED;
+			break;
+		case MY_PARTICIPATED_PROJECTS:
+			projectListFilter=ProjectListFilter.PARTICIPATED;
+			break;
+		case MY_TEAM_PROJECTS:
+		case TEAM_PROJECTS:
+			projectListFilter=ProjectListFilter.TEAM;
+			break;
+		default:
+			throw new IllegalArgumentException("Unrecognized "+deprecatedType);
+		}
+		return projectListFilter;
+	}
+
 	/**
 	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
 	 * headers</a> from a user. The list is ordered by most recent interacted with project first
@@ -437,30 +461,34 @@ public class UserProfileController {
 	 *        <i>Default is 0</i>
 	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ProjectHeader> getProjects(
-			@PathVariable ProjectListType type,
+	PaginatedResults<ProjectHeader> getOwnProjectsDeprecated(
+			@PathVariable ProjectListTypeDeprecated deprecatedType,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, null, null, type, sortColumn, sortDirection, limit, offset);
+		
+		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		return serviceProvider.getUserProfileService().getProjects(userId, userId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
-
+	
 	/**
 	 * Same as getProjects, but has team parameter
 	 * 
 	 * @param teamId The team ID to list projects for, when showing ProjectListType.TEAM_PROJECTS
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ProjectHeader> getProjectsTeam(
-			@PathVariable ProjectListType type,
+	PaginatedResults<ProjectHeader> getProjectsTeamDeprecated(
+			@PathVariable ProjectListTypeDeprecated deprecatedType,
 			@PathVariable Long teamId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
@@ -468,7 +496,8 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, null, teamId, type, sortColumn, sortDirection, limit, offset);
+		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
 
 	/**
@@ -476,11 +505,12 @@ public class UserProfileController {
 	 * 
 	 * @param principalId The user ID to list projects for, when showing ProjectListType.OTHER_USER_PROJECTS
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_USER_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ProjectHeader> getProjectsUser(
-			@PathVariable ProjectListType type,
+	PaginatedResults<ProjectHeader> getProjectsUserDeprecated(
+			@PathVariable ProjectListTypeDeprecated deprecatedType,
 			@PathVariable Long principalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
@@ -488,6 +518,25 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, type, sortColumn, sortDirection, limit, offset);
+
+		ProjectListFilter projectListFilter = getProjectListFilterForProjectListType(deprecatedType);		
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
+			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListFilter projectListFilter,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
+			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
+	}
+
 }

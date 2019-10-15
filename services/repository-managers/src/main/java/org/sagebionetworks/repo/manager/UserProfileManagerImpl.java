@@ -11,7 +11,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -22,9 +21,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListFilter;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -208,30 +206,27 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	@Override
 	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
-			UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+			UserInfo userToGetInfoFor, Long teamId, ProjectListFilter type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		/*
-		 * The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, /*
-		 * and CERTIFIED_USERS
-		 */
 		Set<Long> userToGetPrincipalIds;
 		switch (type) {
-		case MY_PROJECTS:
-		case OTHER_USER_PROJECTS:
-		case MY_CREATED_PROJECTS:
-		case MY_PARTICIPATED_PROJECTS:
+		case ALL:
+		case CREATED:
+		case PARTICIPATED:
+			// The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
 			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
 			break;
-		case MY_TEAM_PROJECTS:
-			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			break;
-		case TEAM_PROJECTS:
-			// this case requires a team
-			ValidateArgument.required(teamToFetch, "teamToFetch");
-			long teamId = Long.parseLong(teamToFetch.getId());
-			userToGetPrincipalIds = Sets.newHashSet(teamId);
+		case TEAM:
+			if (teamId==null) {
+				userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+			} else {
+				if (!userToGetInfoFor.getGroups().contains(teamId)) {
+					throw new IllegalArgumentException("User "+userToGetInfoFor.getId()+" is not a member of team "+teamId);
+				}
+				userToGetPrincipalIds = Sets.newHashSet(teamId);
+			}
 			break;
 		default:
 			throw new NotImplementedException("project list type " + type
@@ -259,7 +254,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			projectIdsToFilterBy = userToGetAccessibleProjectIds;
 		}
 		// run the query.
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(userToGetInfoFor.getId(),
 				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
 				offset);
 		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);

@@ -3,28 +3,20 @@
     "type": "string",
     "enum": [
         {
-            "name": "MY_PROJECTS",
-            "description": "TODO: Auto-generated description"
+            "name": "ALL",
+            "description": "Projects visible to the user"
         },
         {
-            "name": "MY_CREATED_PROJECTS",
-            "description": "TODO: Auto-generated description"
+            "name": "CREATED",
+            "description": "Projects created by and visible to the user"
         },
         {
-            "name": "MY_PARTICIPATED_PROJECTS",
-            "description": "TODO: Auto-generated description"
+            "name": "PARTICIPATED",
+            "description": "Projects visible to, but not created by, the user"
         },
         {
-            "name": "MY_TEAM_PROJECTS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "OTHER_USER_PROJECTS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TEAM_PROJECTS",
-            "description": "TODO: Auto-generated description"
+            "name": "TEAM",
+            "description": "Projects visible to a given team the user is a member of, or to any team if no team is specified"
         }
     ]
 }
