@@ -5,7 +5,7 @@
     "enum": [
         {
             "name": "upload",
-            "description": "TODO: Auto-generated description"
+            "description": "Defines a setting to customize the upload location for files within projects (Maps to <a href=\"${org.sagebionetworks.repo.model.project.UploadDestinationListSetting}\">UploadDestinationListSetting</a>)"
         }
     ]
 }
