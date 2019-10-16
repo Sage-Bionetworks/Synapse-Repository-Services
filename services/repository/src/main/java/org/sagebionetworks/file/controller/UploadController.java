@@ -548,8 +548,8 @@ public class UploadController {
 	}
 
 	/**
-	 * Get the default upload destination for the entity with the given id. 
-	 * In general the id might refer the to parent (e.g. a folder or a project) where a file needs to be uploaded. 
+	 * Get the default upload destination for the entity with the given id. The id might refer to the parent container (e.g. a folder or a project) where a file needs to be uploaded.
+	 * <p> 
 	 * The upload destination is generated according to the default <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>
 	 * for the project where the entity resides. If the project does not contain any custom <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>
 	 * the default synapse storage location is used to generate an upload destination.
