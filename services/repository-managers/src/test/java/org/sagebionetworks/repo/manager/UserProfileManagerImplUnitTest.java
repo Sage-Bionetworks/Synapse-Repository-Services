@@ -340,7 +340,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -383,7 +383,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -428,7 +428,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -451,7 +451,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -474,7 +474,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -497,7 +497,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -520,7 +520,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -530,6 +530,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test 
 	public void testGetProjectsTEAM_PROJECTS(){
 		teamToFetchId = 999L;
+		userToGetFor.getGroups().add(teamToFetchId);
 		type = ProjectListType.TEAM;
 		// call under test
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
@@ -544,10 +545,10 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
+		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetProjectsTEAM_PROJECTSNullTeam(){
 		teamToFetchId = null;
 		type = ProjectListType.TEAM;
@@ -555,6 +556,7 @@ public class UserProfileManagerImplUnitTest {
 		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
 				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
+		// TODO check results
 	}
 	
 	/**
@@ -563,6 +565,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test 
 	public void testGetProjectsAllTypes(){
 		teamToFetchId = 999L;
+		userToGetFor.getGroups().add(teamToFetchId);
 		type = ProjectListType.TEAM;
 		for(ProjectListType type: ProjectListType.values()){
 			PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
