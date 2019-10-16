@@ -23,6 +23,7 @@ import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableToo
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1665,30 +1666,52 @@ public class SQLUtils {
 		ps.setLong(parameterIndex++, dto.getEntityId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
-		ps.setString(parameterIndex++, dto.getValue());
-		String stringValue = dto.getValue();
+		List<String> stringList = dto.getValue();
+
+		String stringValue = stringList.isEmpty() ? null : stringList.get(0);
+
+		ps.setString(parameterIndex++, stringValue);
 		// Handle longs
 		AllLongTypeParser longParser = new AllLongTypeParser();
-		Long longValue = null;
-		if(longParser.isOfType(stringValue)){
-			longValue = (Long) longParser.parseValueForDatabaseWrite(stringValue);
+		List<Long> longList = new ArrayList<>(stringList.size());
+		for(String value :stringList){
+			//if any values fail to parse, then the entire list of longs is invalid
+			if(!longParser.isOfType(value)){
+				longList = null;
+				break;
+			}
+			longList.add((Long) longParser.parseValueForDatabaseWrite(value));
 		}
+
+		Long longValue = longList == null || longList.isEmpty() ? null : longList.get(0);
 		if(longValue == null){
 			ps.setNull(parameterIndex++, Types.BIGINT);
 		}else{
 			ps.setLong(parameterIndex++, longValue);
 		}
+
+
 		// Handle doubles
-		Double doubleValue = null;
-		AbstractDouble abstractDoubleType = null;
 		DoubleParser doubleParser = new DoubleParser();
-		if(doubleParser.isOfType(stringValue)){
-			doubleValue = (Double) doubleParser.parseValueForDatabaseWrite(stringValue);
-			// Is this an abstract double?
-			if(AbstractDouble.isAbstractValue(doubleValue)){
-				abstractDoubleType = AbstractDouble.lookupType(doubleValue);
-				doubleValue = abstractDoubleType.getApproximateValue();
+
+		List<Double> doubleList = new ArrayList<>(stringList.size());
+		for(String value : stringList) {
+			//if any values fail to parse, then the entire list of doubles is invalid
+			if (!doubleParser.isOfType(value)) {
+				doubleList = null;
+				break;
 			}
+
+			doubleList.add((Double) doubleParser.parseValueForDatabaseWrite(value));
+		}
+
+		//todo: writing double list to json need to convert abstract values to string
+
+		Double doubleValue = doubleList == null || doubleList.isEmpty() ? null : doubleList.get(0);
+		AbstractDouble abstractDoubleType = null;
+		if(AbstractDouble.isAbstractValue(doubleValue)){
+			abstractDoubleType = AbstractDouble.lookupType(doubleValue);
+			doubleValue = abstractDoubleType.getApproximateValue();
 		}
 		if(doubleValue == null){
 			ps.setNull(parameterIndex++, Types.DOUBLE);
@@ -1702,16 +1725,25 @@ public class SQLUtils {
 			ps.setString(parameterIndex++, abstractDoubleType.getEnumerationValue());
 		}
 		// Handle booleans
-		Boolean booleanValue = null;
+		List<Boolean> booleanList = new ArrayList<>(stringList.size());
 		BooleanParser booleanParser = new BooleanParser();
-		if(booleanParser.isOfType(stringValue)){
-			booleanValue = (Boolean) booleanParser.parseValueForDatabaseWrite(stringValue);
+		for(String value : stringList){
+			//if any values fail to parse, then the entire list of boolean is invalid
+			if (!booleanParser.isOfType(value)){
+				booleanList = null;
+				break;
+			}
+
+			booleanList.add((Boolean) booleanParser.parseValueForDatabaseWrite(value));
 		}
+		Boolean booleanValue = booleanList == null || booleanList.isEmpty() ? null : booleanList.get(0);
 		if(booleanValue == null){
 			ps.setNull(parameterIndex, Types.BOOLEAN);
 		}else{
 			ps.setBoolean(parameterIndex, booleanValue);
 		}
+
+
 	}
 
 }

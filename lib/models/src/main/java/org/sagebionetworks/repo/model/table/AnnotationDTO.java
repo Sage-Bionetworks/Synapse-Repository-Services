@@ -61,6 +61,9 @@ public class AnnotationDTO {
 	public void setValue(List<String> value) {
 		this.value = value;
 	}
+	public void setValue(String value){
+		setValue(Collections.singletonList(value));
+	}
 	
 
 	@Override
