@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,11 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -27,7 +29,9 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
@@ -43,12 +47,12 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class MigratableTableDAOImplAutowireTest {
 
@@ -59,30 +63,32 @@ public class MigratableTableDAOImplAutowireTest {
 	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	private MigratableTableDAO migratableTableDAO;
-	
-	@Autowired
-	ColumnModelDAO columnModelDao;
+	private ColumnModelDAO columnModelDao;
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+
+	@Autowired
+	private StackConfiguration stackConfiguration;
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private MigratableTableDAO migratableTableDAO;
 	
 	private List<String> filesToDelete;
 	
 	private String creatorUserGroupId;
 	
-	@Before
-	public void before(){
+	@BeforeEach
+	public void before() {
 		filesToDelete = new LinkedList<String>();
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(fileHandleDao != null && filesToDelete != null){
 			for(String id: filesToDelete){
@@ -138,7 +144,7 @@ public class MigratableTableDAOImplAutowireTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
+	@Disabled
 	@Test
 	public void testRunWithUniquenessIgnored() throws Exception{
 		jdbcTemplate.execute("DROP TABLE IF EXISTS `KEY_TEST`");
@@ -579,14 +585,16 @@ public class MigratableTableDAOImplAutowireTest {
 		assertTrue(range.isEmpty());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsRequestNull() {
 		BatchChecksumRequest request = null;
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullBatch() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(null);
@@ -594,11 +602,14 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMaximumId(0L);
 		request.setSalt("some salt");
 		request.setMigrationType(MigrationType.FILE_HANDLE);
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullMin() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
@@ -606,11 +617,14 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMaximumId(0L);
 		request.setSalt("some salt");
 		request.setMigrationType(MigrationType.FILE_HANDLE);
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullMax() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
@@ -618,11 +632,14 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMaximumId(null);
 		request.setSalt("some salt");
 		request.setMigrationType(MigrationType.FILE_HANDLE);
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullSalt() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
@@ -630,11 +647,14 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMaximumId(0L);
 		request.setSalt(null);
 		request.setMigrationType(MigrationType.FILE_HANDLE);
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testCalculateBatchChecksumsNullType() {
 		BatchChecksumRequest request = new BatchChecksumRequest();
 		request.setBatchSize(3L);
@@ -642,8 +662,11 @@ public class MigratableTableDAOImplAutowireTest {
 		request.setMaximumId(0L);
 		request.setSalt("some salt");
 		request.setMigrationType(null);
-		// call under test
-		this.migratableTableDAO.calculateBatchChecksums(request);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			this.migratableTableDAO.calculateBatchChecksums(request);
+		});
 	}
 	
 	/**
@@ -681,6 +704,115 @@ public class MigratableTableDAOImplAutowireTest {
 				fail("Failed to translate: "+type+" message: "+e.getMessage());
 			}
 		}
+	}
+	
+	@Test
+	public void testBackupColumnValidationWithMissingUniqueness() throws SQLException {
+		// We use the implemenation as to access the validation method
+		MigratableTableDAOImpl daoImpl = new MigratableTableDAOImpl(jdbcTemplate, stackConfiguration);
+		
+		String tableName = "BACKUP_VALIDATION_TEST";
+		
+		jdbcTemplate.execute("DROP TABLE IF EXISTS `" + tableName + "`");
+		
+		// setup a simple table.
+		jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `" + tableName + "` (" + 
+				"  `ID` varchar(20) NOT NULL" + 
+				")");
+		
+		// Setup the corresponding table mapping
+		TableMapping tableMapping = new TableMapping () {
+
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return null;
+			}
+
+			@Override
+			public String getTableName() {
+				return tableName;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return null;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return new FieldColumn[] { 
+						new FieldColumn("id", "ID", true).withIsBackupId(true)
+				};
+			}
+
+			@Override
+			public Class getDBOClass() {
+				return null;
+			}
+		};
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// Call under test
+			daoImpl.validateBackupColumn(tableMapping);
+		});
+		
+		assertEquals("BackupId columns must have a uniqueness constraint.  Could not find such a constraint for table: BACKUP_VALIDATION_TEST column: ID", ex.getMessage());
+		
+	}
+	
+	@Test
+	public void testBackupColumnValidationWithWrongType() throws SQLException {
+		// We use the implemenation as to access the validation method
+		MigratableTableDAOImpl daoImpl = new MigratableTableDAOImpl(jdbcTemplate, stackConfiguration);
+		
+		String tableName = "BACKUP_VALIDATION_TEST";
+		
+		jdbcTemplate.execute("DROP TABLE IF EXISTS `" + tableName + "`");
+		
+		// setup a simple table.
+		jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `" + tableName + "` (" + 
+				"  `ID` varchar(20) NOT NULL," +
+				"  PRIMARY KEY (`ID`)" +  
+				")");
+		
+		// Setup the corresponding table mapping
+		TableMapping tableMapping = new TableMapping () {
+
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return null;
+			}
+
+			@Override
+			public String getTableName() {
+				return tableName;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return null;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return new FieldColumn[] { 
+						new FieldColumn("id", "ID", true).withIsBackupId(true)
+				};
+			}
+
+			@Override
+			public Class getDBOClass() {
+				return null;
+			}
+		};
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			// Call under test
+			daoImpl.validateBackupColumn(tableMapping);
+		});
+		
+		assertEquals("Backup columns must be of \"bigint\" type. Found varchar for table: BACKUP_VALIDATION_TEST column: ID", ex.getMessage());
+		
 	}
 	
 

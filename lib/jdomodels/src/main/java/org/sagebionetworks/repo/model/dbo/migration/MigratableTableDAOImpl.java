@@ -73,15 +73,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
+
 	private StackConfiguration stackConfiguration;
 
-	/**
-	 * Default used by Spring
-	 */
-	public MigratableTableDAOImpl() { }
+	@Autowired
+	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.stackConfiguration = stackConfiguration;
+	}
 	
 	/**
 	 * Injected via Spring
@@ -312,6 +312,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * 
 	 * Note: This requirement does NOT extend to secondary tables.
 	 * 
+	 * Additionally the data type of a backup column must be a bigint.
+	 * 
 	 * @param mapping
 	 */
 	public void validateBackupColumn(TableMapping mapping) {
@@ -338,7 +340,19 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 					+ mapping.getTableName() + ":");
 			log.debug("\t" + names.toString());
 		}
+		
+		sql = DMLUtils.getColumnDataType(mapping.getTableName(), backupColumnName);
+		
+		String dataType = jdbcTemplate.queryForObject(sql, String.class);
+		
+		if (!"bigint".equalsIgnoreCase(dataType)) {
+			throw new IllegalArgumentException("Backup columns must be of \"bigint\" type. Found " + dataType + " for table: " 
+					+ mapping.getTableName()
+					+ " column: "
+					+ backupColumnName);
+		}
 	}
+	
 	
 	@Override
 	public long getCount(MigrationType type) {

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.ses;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUARANTINED_EMAILS_EXPIRES_ON;
@@ -17,6 +18,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailBatch;
@@ -53,7 +56,8 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 	}
 
 	private static String SQL_INSERT = "INSERT INTO " + TABLE_QUARANTINED_EMAILS
-			+ "(" + COL_QUARANTINED_EMAILS_EMAIL + ", "
+			+ "(" + COL_QUARANTINED_EMAILS_ID + ", " 
+			+ COL_QUARANTINED_EMAILS_EMAIL + ", "
 			+ COL_QUARANTINED_EMAILS_ETAG + ", "
 			+ COL_QUARANTINED_EMAILS_CREATED_ON + ", "
 			+ COL_QUARANTINED_EMAILS_UPDATED_ON + ", " 
@@ -61,7 +65,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 			+ COL_QUARANTINED_EMAILS_REASON + ", "
 			+ COL_QUARANTINED_EMAILS_REASON_DETAILS + ", "
 			+ COL_QUARANTINED_EMAILS_SES_MESSAGE_ID + ") "
-			+ "VALUES (?, UUID(), ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+			+ "VALUES (?, ?, UUID(), ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
 			+ COL_QUARANTINED_EMAILS_ETAG + " = UUID(), "
 			+ COL_QUARANTINED_EMAILS_UPDATED_ON + " = ?, " 
 			+ COL_QUARANTINED_EMAILS_EXPIRES_ON + " = ?, "
@@ -73,9 +77,12 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 
 	private JdbcTemplate jdbcTemplate;
 
+	private IdGenerator idGenerator;
+
 	@Autowired
-	public EmailQuarantineDaoImpl(JdbcTemplate jdbcTemplate) {
+	public EmailQuarantineDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator) {
 		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
 	}
 
 	@Override
@@ -104,6 +111,7 @@ public class EmailQuarantineDaoImpl implements EmailQuarantineDao {
 				int index = 1;
 
 				// On create fields
+				ps.setLong(index++, idGenerator.generateNewId(IdType.QUARANTINED_EMAIL_ID));
 				ps.setString(index++, email);
 				ps.setTimestamp(index++, updatedOn);
 				ps.setTimestamp(index++, updatedOn);
