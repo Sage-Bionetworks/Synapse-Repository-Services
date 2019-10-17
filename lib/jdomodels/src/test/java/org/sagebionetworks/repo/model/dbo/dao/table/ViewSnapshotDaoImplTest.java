@@ -153,4 +153,40 @@ public class ViewSnapshotDaoImplTest {
 			viewSnapshotDao.getSnapshot(idAndVersion);
 		});
 	}
+	
+	@Test
+	public void testGetSnapshotId() {
+		viewSnapshot.withSnapshotId(null);
+		ViewSnapshot created = viewSnapshotDao.createSnapshot(viewSnapshot);
+		assertNotNull(created);
+		// call under test
+		long id = viewSnapshotDao.getSnapshotId(idAndVersion);
+		assertEquals(created.getSnapshotId(), id);
+	}
+	
+	@Test
+	public void testGetSnapshotIdNotFound() {
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			viewSnapshotDao.getSnapshotId(idAndVersion);
+		});
+	}
+	
+	@Test
+	public void testGetSnapshotIdNullId() {
+		idAndVersion = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			viewSnapshotDao.getSnapshotId(idAndVersion);
+		});
+	}
+	
+	@Test
+	public void testGetSnapshotIdNullVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			viewSnapshotDao.getSnapshotId(idAndVersion);
+		});
+	}
 }
