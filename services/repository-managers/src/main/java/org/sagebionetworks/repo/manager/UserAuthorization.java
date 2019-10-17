@@ -8,10 +8,13 @@ import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
+/*
+ * This object holds the scopes and claims that a user has been authorized to access,
+ * along with the client
+ */
 public class UserAuthorization {
 	private List<OAuthScope> scopes;
 	private Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims;
-	private String oauthClientId;
 	private UserInfo userInfo;
 	public List<OAuthScope> getScopes() {
 		return scopes;
@@ -25,12 +28,6 @@ public class UserAuthorization {
 	public void setOidcClaims(Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		this.oidcClaims = oidcClaims;
 	}
-	public String getOauthClientId() {
-		return oauthClientId;
-	}
-	public void setOauthClientId(String oauthClientId) {
-		this.oauthClientId = oauthClientId;
-	}
 	public UserInfo getUserInfo() {
 		return userInfo;
 	}
@@ -41,7 +38,6 @@ public class UserAuthorization {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((oauthClientId == null) ? 0 : oauthClientId.hashCode());
 		result = prime * result + ((oidcClaims == null) ? 0 : oidcClaims.hashCode());
 		result = prime * result + ((scopes == null) ? 0 : scopes.hashCode());
 		result = prime * result + ((userInfo == null) ? 0 : userInfo.hashCode());
@@ -56,11 +52,6 @@ public class UserAuthorization {
 		if (getClass() != obj.getClass())
 			return false;
 		UserAuthorization other = (UserAuthorization) obj;
-		if (oauthClientId == null) {
-			if (other.oauthClientId != null)
-				return false;
-		} else if (!oauthClientId.equals(other.oauthClientId))
-			return false;
 		if (oidcClaims == null) {
 			if (other.oidcClaims != null)
 				return false;

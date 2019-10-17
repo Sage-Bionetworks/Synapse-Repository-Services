@@ -4,7 +4,7 @@ import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class OIDCOPairedIDManagerImpl implements OIDCPairedIDManager {
+public class OIDCPairedIDManagerImpl implements OIDCPairedIDManager {
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;

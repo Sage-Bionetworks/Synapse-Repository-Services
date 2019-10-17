@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider;
@@ -45,9 +47,6 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -90,6 +89,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final String OAUTH_CLIENT_ID = "123";
 	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String EMAIL = "me@domain.com";
+	private static String ppid;
 
 	@Mock
 	private StackEncrypter mockStackEncrypter;
@@ -103,6 +103,9 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Mock
 	private OIDCTokenHelper oidcTokenHelper;
 	
+	@Mock
+	private OIDCPairedIDManager oidcPairedIDManager;
+
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
 	
@@ -179,6 +182,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		clientSpecificEncodingSecret = EncryptionUtils.newSecretKey();
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		this.ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
+		when(oidcPairedIDManager.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID)).thenReturn(ppid);
+		when(oidcPairedIDManager.getUserIdFromPPID(ppid, OAUTH_CLIENT_ID)).thenReturn(USER_ID);
 		
 		now = new Date();
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
@@ -212,6 +218,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
 		openIDConnectManagerImpl.setClaimProviders(mockClaimProviders);
+		
 	}
 	
 	@Test
@@ -470,21 +477,6 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testPPID() {
-		// method under test
-		String ppid = openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID);
-		assertEquals(USER_ID, EncryptionUtils.decrypt(ppid, clientSpecificEncodingSecret));
-	}
-
-	@Test
-	public void testGetUserIdFromPPID() {
-		String ppid = openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID);
-		
-		// method under test		
-		assertEquals(USER_ID, openIDConnectManagerImpl.getUserIdFromPPID(ppid, OAUTH_CLIENT_ID));
-	}
-
-	@Test
 	public void testGetUserInfo_internal() {
 		
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
@@ -540,7 +532,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
-		String ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenHelper.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), 
 				eq(NONCE), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
@@ -644,7 +635,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
@@ -657,19 +648,16 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertNotNull(tokenResponse.getAccess_token());
 	}
 	
-	private Jwt<JwsHeader,Claims> createAccessToken() {
-		Claims claims = Jwts.claims();
-		Jwt<JwsHeader,Claims> accessToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
-		claims.setAudience(OAUTH_CLIENT_ID);
-		claims.setSubject(openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID));
-		claims.put(OIDCClaimName.auth_time.name(), now);
+	private UserAuthorization createUserAuthorization() {
+		UserAuthorization userAuthorization = new UserAuthorization();
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.userid, null);
 		oidcClaims.put(OIDCClaimName.email, null);
 		oidcClaims.put(OIDCClaimName.email_verified, null);
-		ClaimsJsonUtil.addAccessClaims(Collections.singletonList(OAuthScope.openid), oidcClaims, claims);
-		
-		return accessToken;
+		userAuthorization.setOidcClaims(oidcClaims);
+		userAuthorization.setScopes(Arrays.asList(OAuthScope.values()));
+		userAuthorization.setUserInfo(userInfo);
+		return userAuthorization;
 	}
 	
 	@Test
@@ -678,7 +666,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		oauthClient.setUserinfo_signed_response_alg(null);
 		
 		// method under test
-		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.getOIDCUserInfo(createAccessToken(), OAUTH_ENDPOINT);
+		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.getOIDCUserInfo(createUserAuthorization(), OAUTH_CLIENT_ID, OAUTH_ENDPOINT);
 
 		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
 		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email));
@@ -696,7 +684,7 @@ public class OpenIDConnectManagerImplUnitTest {
 				eq(null), eq(now), anyString(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
-		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getOIDCUserInfo(createAccessToken(), OAUTH_ENDPOINT);
+		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getOIDCUserInfo(createUserAuthorization(), OAUTH_CLIENT_ID, OAUTH_ENDPOINT);
 		
 		assertEquals(expectedIdToken, jwt.getJwt());
 		

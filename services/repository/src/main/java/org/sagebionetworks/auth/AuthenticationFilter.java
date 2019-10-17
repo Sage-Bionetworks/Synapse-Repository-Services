@@ -152,23 +152,13 @@ public class AuthenticationFilter implements Filter {
 			// TODO add current headers, but not session token or HMAC
 			// TODO strip user id from param's
 			// TODO only add bearer header if not anonymous, otherwise strip
-			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+createaTotalAccessToken(userId) });
+			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+oidcTokenHelper.createTotalAccessToken(userId) });
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, null);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
 		}
-	}
-	
-	public String createaTotalAccessToken(Long userId) {
-		String issuer = null; // doesn't matter -- it's only important to the client
-		String subject = userId.toString(); // we don't encrypt
-		String oauthClientId = "0"; // TODO define a constant
-		String tokenId = UUID.randomUUID().toString();
-		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
-		return oidcTokenHelper.createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
-				tokenId, allScopes, Collections.EMPTY_MAP);
 	}
 
 	/**

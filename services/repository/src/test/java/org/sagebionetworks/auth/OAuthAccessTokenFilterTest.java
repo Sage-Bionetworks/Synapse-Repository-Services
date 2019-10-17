@@ -70,7 +70,7 @@ public class OAuthAccessTokenFilterTest {
 		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
-		assertEquals(BEARER_TOKEN, requestCaptor.getValue().getParameter(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN));
+		assertEquals(BEARER_TOKEN, requestCaptor.getValue().getParameter(AuthorizationConstants.AUTHORIZATION_HEADER_NAME));
 	}
 
 	@Test

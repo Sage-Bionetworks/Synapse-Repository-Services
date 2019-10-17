@@ -2,15 +2,19 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,6 +28,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -139,8 +145,11 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
 		Jwt<JwsHeader,Claims> accessToken = JSONWebTokenHelper.parseJWT(tokenResponse.getAccess_token(), oidcTokenHelper.getJSONWebKeySet());
 		
+		UserAuthorization userAuthorization = openIDConnectManager.getUserAuthorization(tokenResponse.getAccess_token());
+		String oauthClientId = oidcTokenHelper.parseJWT(tokenResponse.getAccess_token()).getBody().getAudience();
+
 		// method under test
-		JWTWrapper oidcUserInfo = (JWTWrapper)openIDConnectManager.getOIDCUserInfo(accessToken, OAUTH_ENDPOINT);
+		JWTWrapper oidcUserInfo = (JWTWrapper)openIDConnectManager.getOIDCUserInfo(userAuthorization, oauthClientId, OAUTH_ENDPOINT);
 		
 		oidcTokenHelper.validateJWT(oidcUserInfo.getJwt());
 		

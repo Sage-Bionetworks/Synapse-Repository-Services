@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -95,27 +96,37 @@ public class OpenIDConnectServiceImplTest {
 	public void testGetUserInfo() throws Exception {
 		Claims claims = Jwts.claims();
 		claims.put("foo", "bar");
+		String clientId="101";
+		claims.setAudience(clientId);
 		String accessToken = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact();
 		
 		Jwt<JwsHeader, Claims> parsedToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
 		when(oidcTokenHelper.parseJWT(accessToken)).thenReturn(parsedToken);
 		
+		UserAuthorization userAuthorization = new UserAuthorization();
+		when(oidcManager.getUserAuthorization(accessToken)).thenReturn(userAuthorization);
+
 		// method under test
 		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
 		
-		verify(oidcManager).getOIDCUserInfo(parsedToken, OAUTH_ENDPOINT);
+		verify(oidcManager).getOIDCUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 	
 	@Test
 	public void testGetUserInfo_badToken() throws Exception {
 		Claims claims = Jwts.claims();
 		claims.put("foo", "bar");
+		String clientId="101";
+		claims.setAudience(clientId);
 		String accessToken = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact();
 
 		Jwt<JwsHeader, Claims> parsedToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
 		when(oidcTokenHelper.parseJWT(accessToken)).thenThrow(new IllegalArgumentException());
+		
+		UserAuthorization userAuthorization = new UserAuthorization();
+		when(oidcManager.getUserAuthorization(accessToken)).thenThrow(new UnauthenticatedException("bad token"));
 
 		try {
 			// method under test
@@ -125,6 +136,6 @@ public class OpenIDConnectServiceImplTest {
 			// as expected
 		}
 
-		verify(oidcManager, never()).getOIDCUserInfo(parsedToken, OAUTH_ENDPOINT);
+		verify(oidcManager, never()).getOIDCUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 }
