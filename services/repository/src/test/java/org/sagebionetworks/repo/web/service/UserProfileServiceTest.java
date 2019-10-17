@@ -674,9 +674,9 @@ public class UserProfileServiceTest {
 		// call under test
 		userProfileService.getProjects(
 				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
+				null, null, nextPageToken);
 
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.ALL,
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.CREATED,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, nextPageToken);
 	}
 }
