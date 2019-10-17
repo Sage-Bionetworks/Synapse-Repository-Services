@@ -673,10 +673,10 @@ public class UserProfileServiceTest {
 		String nextPageToken = (new NextPageToken(null)).toToken();
 		// call under test
 		userProfileService.getProjects(
-				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
+				userInfo.getId(), otherUserInfo.getId(), teamId, null,
 				null, null, nextPageToken);
 
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.CREATED,
+		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.ALL,
 				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, nextPageToken);
 	}
 }
