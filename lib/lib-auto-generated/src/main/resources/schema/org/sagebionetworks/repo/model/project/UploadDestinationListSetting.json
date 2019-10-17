@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination list contains information to start an upload to different types of destinations. Each id in the locations attribute points to an existing StorageLocationSetting. The maximum number of storage locations that can be stored for a project is 10.",
+	"description": "This setting type contains the list of upload locations for files in a project. Each id in the locations attribute points to an existing <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>. The maximum number of storage locations that can be stored for a project is 10.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.project.ProjectSetting"
@@ -8,7 +8,7 @@
 	"properties": {
 		"locations": {
 			"type": "array",
-			"description": "List of ids pointing to StorageLocationSetting. The first one in the list is the default location; The maximum number of storage locations for a project is limited to 10.",
+			"description": "List of ids pointing to <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>. The first one in the list is the default location; The maximum number of storage locations for a project is limited to 10.",
 			"items": {
 				"type": "integer",
 				"description": "The id of a StorageLocationSetting"

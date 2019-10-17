@@ -26,4 +26,12 @@ public interface ViewSnapshotDao {
 	 */
 	void truncateAll();
 
+	/**
+	 * Get the snapshot ID for the given view/version.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	long getSnapshotId(IdAndVersion idAndVersion);
+
 }

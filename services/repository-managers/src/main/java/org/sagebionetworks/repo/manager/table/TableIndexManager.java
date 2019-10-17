@@ -171,9 +171,9 @@ public interface TableIndexManager {
 	 * @param viewType
 	 * @param allContainersInScope
 	 * @param currentSchema
-	 * @return The new CRC23 for the view.
+	 * @return View CRC32
 	 */
-	public Long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
+	public long populateViewFromEntityReplication(Long tableId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -214,5 +214,12 @@ public interface TableIndexManager {
 	 * @throws RecoverableMessageException Will RecoverableMessageException if the index cannot be built at this time.
 	 */
 	public void buildIndexToChangeNumber(ProgressCallback progressCallback, IdAndVersion idAndVersion, Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException;
+	
+	/**
+	 * Populate a view table from a stream of snapshot CSV data.
+	 * @param idAndVersion
+	 * @param input
+	 */
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
 }

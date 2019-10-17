@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information necessary to start an upload to an S3 bucket not managed by Synapse",
+	"description": "The upload destination contains information necessary to start an upload to an S3 bucket not managed by Synapse. This destination is mapped from an <a href=\"${org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting}\">ExternalObjectStorageLocationSetting</a>.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
