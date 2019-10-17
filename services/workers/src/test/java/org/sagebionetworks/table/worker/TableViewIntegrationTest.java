@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
-import org.sagebionetworks.repo.manager.table.TableViewTransactionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -102,7 +101,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60 * 5;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
 	
 	@Autowired
 	private UserManager userManager;
@@ -797,8 +796,8 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
+		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
@@ -830,8 +829,8 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
+		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
