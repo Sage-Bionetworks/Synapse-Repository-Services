@@ -13,7 +13,7 @@ import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Creates a copy of an HttpServelt request with a new set of headers and/or parameters
+ * Creates a copy of an HttpServlet request with a new set of headers and/or parameters
  * 
  * @author bhoff
  *
