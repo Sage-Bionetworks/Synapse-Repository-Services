@@ -17,9 +17,11 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -427,7 +429,7 @@ public class UserProfileController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
-	private static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {
+	public static ProjectListType getProjectListTypeForProjectListType(ProjectListTypeDeprecated deprecatedType) {
 		ProjectListType projectListFilter = null;
 		switch (deprecatedType) {
 		case MY_PROJECTS:
@@ -464,7 +466,12 @@ public class UserProfileController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		
 		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
-		return serviceProvider.getUserProfileService().getProjects(userId, userId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
+		String nextPageToken = (new NextPageToken(limit, offset)).toToken();
+		ProjectHeaderList list = serviceProvider.getUserProfileService().getProjects(userId, userId, null, projectListFilter, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> result = new PaginatedResults<ProjectHeader>();
+		result.setResults(list.getResults());
+		result.setTotalNumberOfResults(result.calculateTotalWithLimitAndOffset(list.getResults().size(), limit, offset));
+		return result;
 	}
 	
 	@Deprecated
@@ -472,7 +479,6 @@ public class UserProfileController {
 	@RequestMapping(value = { UrlHelpers.PROJECTS_TEAM_DEPRECATED }, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<ProjectHeader> getProjectsTeamDeprecated(
-			@PathVariable ProjectListTypeDeprecated deprecatedType,
 			@PathVariable Long teamId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
@@ -480,8 +486,13 @@ public class UserProfileController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
-		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, projectListFilter, sortColumn, sortDirection, limit, offset);
+		ProjectListType projectListFilter = ProjectListType.TEAM;	
+		String nextPageToken = (new NextPageToken(limit, offset)).toToken();
+		ProjectHeaderList list = serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, projectListFilter, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> result = new PaginatedResults<ProjectHeader>();
+		result.setResults(list.getResults());
+		result.setTotalNumberOfResults(result.calculateTotalWithLimitAndOffset(list.getResults().size(), limit, offset));
+		return result;
 	}
 
 	@Deprecated
@@ -499,22 +510,28 @@ public class UserProfileController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		ProjectListType projectListFilter = getProjectListTypeForProjectListType(deprecatedType);		
-		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, projectListFilter, sortColumn, sortDirection, limit, offset);
+		String nextPageToken = (new NextPageToken(limit, offset)).toToken();
+		ProjectHeaderList list = serviceProvider.getUserProfileService().getProjects(userId, principalId, null, projectListFilter, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> result = new PaginatedResults<ProjectHeader>();
+		result.setResults(list.getResults());
+		result.setTotalNumberOfResults(result.calculateTotalWithLimitAndOffset(list.getResults().size(), limit, offset));
+		return result;
 	}
 	
 	
 	/**
 	 * Get a paginated result that contains <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
-	 * headers</a> and user activity (last access date) of the caller. The included projects are filtered as follows:
+	 * headers</a> and user activity (last access date) of the caller. The project list includes only
+	 * those for which the user or a team they are on is explicitly granted access in the project's share
+	 * settings.  Other projects, including those visible by virtue of being Public, are not included.  
+	 * The list of projects is further filtered as follows:
 	 * 
-	 * If <i>filter</i> is ALL: the projects that the caller has READ access to by virtue of being 
-	 * included in the project's share settings personally or via a team in which they are a member.
+	 * If <i>filter</i> is ALL (the default): the projects that the caller has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member, as described above.
 	 * <br/>
-	 * If <i>filter</i> is CREATED: the projects that the caller has created and currently has READ access to, 
-	 * by virtue of being included in the project's share settings personally or via a team in which they are a member.
+	 * If <i>filter</i> is CREATED: only projects that the caller has created.
 	 * <br/>
-	 * If <i>filter</i> is PARTICIPATED: the projects that the caller has READ access to by virtue of being 
-	 * included in the project's share settings personally or via a team in which they are a member, but has <em>not</em> created.
+	 * If <i>filter</i> is PARTICIPATED: only projects that the caller has <em>not</em> created.
 	 * <br/>
 	 * If <i>filter</i> is TEAM: the projects that the caller has READ access by virtue of being included in
 	 * the project's share settings via the team given by 'teamId' or, if no team ID is specified, then by any team 
@@ -523,7 +540,7 @@ public class UserProfileController {
 	 * 
 	 * @param userId The ID of the user making the request
 	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListType}">criterion</a> for including a project in the list (see above).
-	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
+	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with the user.
 	 * @param filter see above
 	 * @param sortColumn The optional <a href="${org.sagebionetworks.repo.model.ProjectListSortColumn}">column</a> to sort on. 
 	 * 			<i>Default sort by last activity</i>
@@ -539,31 +556,30 @@ public class UserProfileController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ProjectHeader> getProjects(
+	ProjectHeaderList getProjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
 			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, filter, sortColumn, sortDirection, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, userId, teamId, filter, sortColumn, sortDirection, nextPageToken);
 	}
 
 	/**
 	 * Get a paginated result that contains <a href="${org.sagebionetworks.repo.model.ProjectHeader}">project
-	 * headers</a> and user activity (last access date) of the user specified by 'principalId', returning only
-	 * those projects that the caller also has READ access to. The included projects are filtered as follows:
+	 * headers</a> and user activity (last access date) of the user specified by 'principalId'. The project list includes only
+	 * those for which the user or a team they are on is explicitly granted access in the project's share
+	 * settings.  Other projects, including those visible by virtue of being Public, are not included.  
+	 * The list of projects is further filtered as follows:
 	 * 
-	 * If <i>filter</i> is ALL: the projects that the user has READ access to by virtue of being 
-	 * included in the project's share settings personally or via a team in which they are a member.
+	 * If <i>filter</i> is ALL (the default): the projects that the user has READ access to by virtue of being 
+	 * included in the project's share settings personally or via a team in which they are a member, as described above.
 	 * <br/>
-	 * If <i>filter</i> is CREATED: the projects that the user has created and currently has READ access to, 
-	 * by virtue of being included in the project's share settings personally or via a team in which they are a member.
+	 * If <i>filter</i> is CREATED: only projects that the user has created.
 	 * <br/>
-	 * If <i>filter</i> is PARTICIPATED: the projects that the user has READ access to by virtue of being 
-	 * included in the project's share settings personally or via a team in which they are a member, but has <em>not</em> created.
+	 * If <i>filter</i> is PARTICIPATED: only projects that the user has <em>not</em> created.
 	 * <br/>
 	 * If <i>filter</i> is TEAM: the projects that the user has READ access by virtue of being included in
 	 * the project's share settings via the team given by 'teamId' or, if no team ID is specified, then by any team 
@@ -589,17 +605,16 @@ public class UserProfileController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ProjectHeader> getOtherUsersProjects(
+	ProjectHeaderList getOtherUsersProjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long principalId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
 			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, principalId, teamId, filter, sortColumn, sortDirection, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, teamId, filter, sortColumn, sortDirection, nextPageToken);
 	}
 
 }

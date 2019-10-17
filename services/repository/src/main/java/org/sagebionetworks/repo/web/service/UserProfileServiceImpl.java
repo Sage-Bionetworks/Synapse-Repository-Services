@@ -24,7 +24,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -230,8 +231,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
@@ -255,7 +256,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			sortDirection = SortDirection.DESC;
 		}
 
-		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamId, type, sortColumn, sortDirection, limit, offset);
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamId, type, sortColumn, sortDirection, nextPageToken);
 	}
 	
 	/*

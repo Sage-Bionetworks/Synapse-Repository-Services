@@ -43,7 +43,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -653,30 +655,28 @@ public class UserProfileServiceTest {
 
 	@Test
 	public void testGetOthersProjects() {
-		long offset = 0;
-		long limit = 2;
 		long teamId = 999;
+		String nextPageToken = (new NextPageToken(null)).toToken();
 		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getProjects(
+		userProfileService.getProjects(
 				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
 
 		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.CREATED,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, limit, offset);
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
 	}
 
 
 	@Test
 	public void testGetOthersProjectsDefaultSort() {
-		long offset = 0;
-		long limit = 2;
 		long teamId = 999;
+		String nextPageToken = (new NextPageToken(null)).toToken();
 		// call under test
-		PaginatedResults<ProjectHeader> prs = userProfileService.getProjects(
-				userInfo.getId(), otherUserInfo.getId(), teamId, null,
-				null, null, limit, offset);
+		userProfileService.getProjects(
+				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
 
 		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.ALL,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, limit, offset);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, nextPageToken);
 	}
 }

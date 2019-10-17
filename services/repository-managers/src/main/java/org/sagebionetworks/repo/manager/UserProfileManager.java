@@ -9,7 +9,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -121,15 +122,14 @@ public interface UserProfileManager {
 	 * @param type
 	 * @param sortColumn
 	 * @param sortDirection
-	 * @param limit
-	 * @param offset
+	 * @param nextPageToken
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 	
 	/**

@@ -19,8 +19,10 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -204,11 +206,16 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
+	public ProjectHeaderList getProjects(UserInfo caller,
 			UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Long limit, Long offset) throws DatastoreException,
+			String nextPageTokenString) throws DatastoreException,
 			InvalidModelException, NotFoundException {
+		
+		if (type!=ProjectListType.TEAM && teamId!=null) {
+			throw new IllegalArgumentException("Cannot specify 'teamId' when filter is not TEAM.");
+		}
+		
 		Set<Long> userToGetPrincipalIds;
 		switch (type) {
 		case ALL:
@@ -252,11 +259,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			 */
 			projectIdsToFilterBy = userToGetAccessibleProjectIds;
 		}
+		NextPageToken nextPageToken = new NextPageToken(nextPageTokenString);
+		long limit = nextPageToken.getLimitForQuery();
+		long offset = nextPageToken.getOffset();
 		// run the query.
 		List<ProjectHeader> page = nodeDao.getProjectHeaders(userToGetInfoFor.getId(),
 				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
 				offset);
-		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+		ProjectHeaderList result = new ProjectHeaderList();
+		result.setResults(page);
+		result.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+		return result;
 	}
 
 	/**
