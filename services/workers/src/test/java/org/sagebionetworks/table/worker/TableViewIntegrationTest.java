@@ -73,6 +73,7 @@ import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -100,7 +101,7 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60 * 5;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
 	
 	@Autowired
 	private UserManager userManager;
@@ -287,7 +288,6 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testFileView() throws Exception{
 		createFileView();
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
@@ -796,8 +796,8 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data the file to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
+		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
@@ -829,8 +829,8 @@ public class TableViewIntegrationTest {
 		// manually delete the replicated data of the project to simulate a data loss.
 		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		indexDao.truncateReplicationSyncExpiration();
 		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
+		indexDao.truncateReplicationSyncExpiration();
 
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
@@ -1161,6 +1161,63 @@ public class TableViewIntegrationTest {
 			// expected.
 			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 		}
+	}
+	
+	@Test
+	public void testViewSnapshot() throws Exception {
+		createFileView();
+		// add a column to the view.
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange addColumn = new ColumnChange();
+		addColumn.setNewColumnId(stringColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
+		// Add a string annotation to each file in the view
+		List<PartialRow> rowsToAdd = new LinkedList<>();
+		int counter = 0;
+		for (String fileId : fileIds) {
+			PartialRow row = new PartialRow();
+			row.setRowId(KeyFactory.stringToKey(fileId));
+			Map<String, String> values = new HashMap<>(1);
+			values.put(stringColumn.getId(), "string value:" + counter++);
+			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
+			row.setEtag(file.getEtag());
+			row.setValues(values);
+			rowsToAdd.add(row);
+		}
+		PartialRowSet rowChange = new PartialRowSet();
+		rowChange.setTableId(fileViewId);
+		rowChange.setRows(rowsToAdd);
+		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
+		rowSetRequest.setToAppend(rowChange);
+
+		// create a snapshot after the change
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+
+		// Start the job that will change the schema and annotations to each file and
+		// then snapshot the view.
+		// call under test
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
+				TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getSnapshotVersionNumber());
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + response.getSnapshotVersionNumber());
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		assertNotNull(queryResults);
+		List<Row> rows = extractRows(queryResults);
+		assertEquals(rowCount, rows.size());
 	}
 	
 	/**

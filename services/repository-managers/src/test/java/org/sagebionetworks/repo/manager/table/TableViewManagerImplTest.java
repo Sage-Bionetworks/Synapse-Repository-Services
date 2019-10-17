@@ -19,9 +19,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +32,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +76,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -106,6 +113,14 @@ public class TableViewManagerImplTest {
 	ViewSnapshotDao mockViewSnapshotDao;
 	@Mock
 	File mockFile;
+	@Mock
+	OutputStream mockOutStream;
+	@Mock
+	GZIPOutputStream mockGzipOutStream;
+	@Mock
+	InputStream mockInputStream;
+	@Mock
+	GZIPInputStream mockGzipInputStream;
 	@Captor
 	ArgumentCaptor<PutObjectRequest> putRequestCaptor;
 	@Captor
@@ -607,6 +622,78 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
+	public void testPopulateViewFromSnapshot() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		setupReader("foo,bar");
+		
+		// call under test
+		long id = manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		assertEquals(snapshotId, id);
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
+		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testPopulateViewFromSnapshotError() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		AmazonServiceException error = new AmazonServiceException("not correct");
+		when(mockS3Client.getObject(any(GetObjectRequest.class), any(File.class))).thenThrow(error);
+		
+		assertThrows(AmazonServiceException.class, ()->{
+			// call under test
+			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		});
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
+		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
+		// file should still be deleted
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testPopulateViewFromSnapshotFileCreateError() throws IOException {
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		IOException error = new IOException("some IO error");
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenThrow(error);
+		
+		Throwable cause = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			manager.populateViewFromSnapshot(idAndVersion, mockIndexManager);
+		}).getCause();
+		assertEquals(error, cause);
+		
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client, never()).getObject(any(GetObjectRequest.class), any(File.class));
+		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
+		verify(mockFile, never()).delete();
+	}
+	
+	@Test
+	public void testPopulateViewIndexFromReplication() {
+		Long viewTypeMask = 1L;
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		Set<Long> scope = Sets.newHashSet(124L, 455L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		// call under test
+		long resultCRC32 = manager.populateViewIndexFromReplication(idAndVersion, mockIndexManager, viewSchema);
+		assertEquals(viewCRC, resultCRC32);
+		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
+				viewSchema);
+	}
+	
+	@Test
 	public void testCreateOrUpdateViewIndexHoldingNoWorkRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
@@ -616,6 +703,9 @@ public class TableViewManagerImplTest {
 		verifyNoMoreInteractions(mockConnectionFactory);
 	}
 	
+	/**
+	 * Populate a view from entity replication.
+	 */
 	@Test
 	public void testCreateOrUpdateViewIndexHoldingWorkeRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
@@ -629,10 +719,9 @@ public class TableViewManagerImplTest {
 		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
 		Set<Long> scope = Sets.newHashSet(124L, 455L);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
-		viewCRC = 9999L;
-		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema))
-				.thenReturn(viewCRC);
-
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
+		
 		// call under test
 		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
 
@@ -650,8 +739,57 @@ public class TableViewManagerImplTest {
 				1L);
 		verify(mockIndexManager).populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope,
 				viewSchema);
+		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+				any(Exception.class));
+		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
+		verifyNoMoreInteractions(mockS3Client);
+	}
+	
+	/**
+	 * Populate a view from a snapshot.
+	 * @throws IOException
+	 */
+	@Test
+	public void testCreateOrUpdateViewIndexHoldingWorkeRequiredWithVersion() throws IOException {
+		idAndVersion = IdAndVersion.parse("syn123.45");
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		String originalSchemaMD5Hex = "startMD5";
+		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		long snapshotId = 998L;
+		ViewSnapshot snapshot = new ViewSnapshot().withBucket("bucket").withKey("key").withSnapshotId(snapshotId);
+		when(mockViewSnapshotDao.getSnapshot(idAndVersion)).thenReturn(snapshot);
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		setupReader("foo,bar");
+		
+		// call under test
+		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+
+		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
+		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
+		verify(mockConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(mockIndexManager).deleteTableIndex(idAndVersion);
+		verify(mockTableManagerSupport).getSchemaMD5Hex(idAndVersion);
+		verify(mockColumnModelManager).getColumnModelsForObject(idAndVersion);
+		boolean isTableView = true;
+		verify(mockIndexManager).setIndexSchema(idAndVersion, isTableView, viewSchema);
+		verify(mockTableManagerSupport).attemptToUpdateTableProgress(idAndVersion, token, "Copying data to view...", 0L,
+				1L);
+		verify(mockIndexManager, never()).populateViewFromEntityReplication(any(Long.class), any(Long.class), any(), any());
+		verify(mockViewSnapshotDao).getSnapshot(idAndVersion);
+		verify(mockS3Client).getObject(new GetObjectRequest("bucket", "key"), mockFile);
+		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
+		verify(mockFile).delete();
+		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
@@ -664,8 +802,8 @@ public class TableViewManagerImplTest {
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
 		IllegalStateException exception = new IllegalStateException("something is wrong");
-		doThrow(exception).when(mockTableManagerSupport).getViewTypeMask(idAndVersion);
-
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenThrow(exception);
+		
 		assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
@@ -675,12 +813,40 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
 	}
 	
+	/**
+	 * Setup the chain of file->gzip->writer.
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public StringWriter setupWriter() throws IOException {
+		StringWriter writer = new StringWriter();
+		when(mockFileProvider.createFileOutputStream(mockFile)).thenReturn(mockOutStream);
+		when(mockFileProvider.createGZIPOutputStream(mockOutStream)).thenReturn(mockGzipOutStream);
+		when(mockFileProvider.createWriter(mockGzipOutStream, StandardCharsets.UTF_8)).thenReturn(writer);
+		return writer;
+	}
+	
+	/**
+	 * Setup chain of file->gzip->reader
+	 * @param toRead
+	 * @return
+	 * @throws IOException
+	 */
+	public StringReader setupReader(String toRead) throws IOException {
+		StringReader reader = new StringReader(toRead);
+		when(mockFileProvider.createFileInputStream(mockFile)).thenReturn(mockInputStream);
+		when(mockFileProvider.createGZIPInputStream(mockInputStream)).thenReturn(mockGzipInputStream);
+		when(mockFileProvider.createReader(mockGzipInputStream, StandardCharsets.UTF_8)).thenReturn(reader);
+		return reader;
+	}
+	
+	
 	@Test
 	public void testCreateViewSnapshotAndUploadToS3() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		setupWriter();
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		
@@ -688,7 +854,9 @@ public class TableViewManagerImplTest {
 		BucketAndKey bucketAndKey = manager.createViewSnapshotAndUploadToS3(idAndVersion, viewType, viewSchema, scopeIds);
 		
 		verify(mockFileProvider).createTempFile("ViewSnapshot",	".csv");
-		verify(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+		verify(mockFileProvider).createFileOutputStream(mockFile);
+		verify(mockFileProvider).createGZIPOutputStream(mockOutStream);
+		verify(mockFileProvider).createWriter(mockGzipOutStream, StandardCharsets.UTF_8);
 		verify(mockIndexManager).createViewSnapshot(eq(idAndVersion.getId()), eq(viewType), eq(scopeIds), eq(viewSchema), any(CSVWriterStream.class));
 		assertNotNull(bucketAndKey);
 		verify(mockS3Client).putObject(putRequestCaptor.capture());
@@ -707,8 +875,8 @@ public class TableViewManagerImplTest {
 	public void testCreateViewSnapshotAndUploadToS3Error() throws IOException {
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		UnsupportedEncodingException exception = new UnsupportedEncodingException("no");
-		doThrow(exception).when(mockFileProvider).createFileWriter(mockFile, StandardCharsets.UTF_8);
+		FileNotFoundException exception = new FileNotFoundException("no");
+		doThrow(exception).when(mockFileProvider).createFileOutputStream(mockFile);
 	
 		Throwable cause = assertThrows(RuntimeException.class, ()->{
 			// call under test
@@ -764,8 +932,7 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewType)).thenReturn(scopeIds);
 		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
 		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
-		StringWriter writer = new StringWriter();
-		when(mockFileProvider.createFileWriter(mockFile, StandardCharsets.UTF_8)).thenReturn(writer);
+		setupWriter();
 		String bucket = "snapshot.bucket";
 		when(mockConfig.getViewSnapshotBucketName()).thenReturn(bucket);
 		long snapshotVersion = 12L;

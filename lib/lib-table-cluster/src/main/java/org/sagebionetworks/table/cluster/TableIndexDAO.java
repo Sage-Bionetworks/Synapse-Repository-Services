@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -430,4 +431,17 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
+
+	/**
+	 * Populate a view from a snapshot.
+	 * 
+	 * @param idAndVersion
+	 * @param input
+	 * @param maxBytesPerBatch Used to limit the size of each batch of data pushed
+	 *                         to the database. Only a single batch will reside in
+	 *                         memory at a time. A batch will always contain at
+	 *                         least one row even if the size of the row is larger
+	 *                         than maxBytesPerBatch.
+	 */
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 }

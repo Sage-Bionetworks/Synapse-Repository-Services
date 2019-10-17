@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"description": "The upload destination contains information to start an upload of a file generated according to the underlying <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>.",
 	"type": "interface",
 	"properties": {
         "concreteType": {
@@ -8,7 +8,7 @@
         },
 		"storageLocationId": {
 			"type": "integer",
-			"description": "the unique id for the storage location"
+			"description": "the unique id for the storage location, that points to the <a href=\"${org.sagebionetworks.repo.model.project.StorageLocationSetting}\">StorageLocationSetting</a>"
 		},
 		"uploadType": {
 			"$ref": "org.sagebionetworks.repo.model.file.UploadType"

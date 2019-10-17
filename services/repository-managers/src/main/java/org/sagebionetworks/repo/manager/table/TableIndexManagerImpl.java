@@ -43,6 +43,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 	
+	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
+	
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
 	
@@ -268,7 +270,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
+	public long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		try {
 			return populateViewFromEntityReplicationWithProgress(tableId,
@@ -293,7 +295,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
 	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
+	long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -510,6 +512,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void createViewSnapshot(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> viewSchema, CSVWriterStream writter) {
 		tableIndexDao.createViewSnapshotFromEntityReplication(viewId, viewTypeMask, allContainersInScope, viewSchema, writter);
+	}
+	@Override
+	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
+		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
 	}
 
 }

@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"description": "The upload destination contains information to start an upload to the default Synapse storage location that exists on Amazon S3. This destination is mapped from an <a href=\"${org.sagebionetworks.repo.model.project.S3StorageLocationSetting}\">S3StorageLocationSetting</a>.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
