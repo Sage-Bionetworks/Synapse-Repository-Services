@@ -411,6 +411,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	};
 
+	private static final RowMapper<Node> NODE_MAPPER = new NodeMapper();
+	
 	// This is better suited for JDBC query.
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -562,7 +564,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Node getNode(String id){
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, new NodeMapper(), KeyFactory.stringToKey(id));
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, NODE_MAPPER, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -573,7 +575,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, new NodeMapper(),versionNumber, KeyFactory.stringToKey(id));
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER,versionNumber, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
