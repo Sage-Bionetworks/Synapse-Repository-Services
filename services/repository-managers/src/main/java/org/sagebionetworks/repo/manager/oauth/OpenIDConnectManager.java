@@ -45,11 +45,12 @@ public interface OpenIDConnectManager {
 	public UserAuthorization getUserAuthorization(String oauthToken);
 	
 	/**
-	 * 
 	 * Given the validated access token content, return the up-to-date user info
 	 * requested in the scopes / claims embedded in the access token
-
+	 * 
 	 * @param userAuthorization
+	 * @param oauthClientId
+	 * @param oauthEndpoint
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */

@@ -86,6 +86,8 @@
 	
 	<bean id="oauthClientManager" class="org.sagebionetworks.repo.manager.oauth.OAuthClientManagerImpl" />
 	
+	<bean id="oidcPairedIDManager" class="org.sagebionetworks.repo.manager.oauth.OIDCPairedIDManagerImpl" />
+	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />

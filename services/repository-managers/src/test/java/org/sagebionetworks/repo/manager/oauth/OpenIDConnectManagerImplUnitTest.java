@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,13 +75,6 @@ import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.impl.DefaultJws;
-import io.jsonwebtoken.impl.DefaultJwsHeader;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenIDConnectManagerImplUnitTest {
@@ -172,6 +167,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		oauthClient = new OAuthClient();
 		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
+		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(true);
@@ -553,6 +549,43 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email));
 		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
 		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
+
+		assertEquals(expectedAccessToken, tokenResponse.getAccess_token());
+		assertEquals(Collections.singletonList(OAuthScope.openid), scopesCaptor.getValue());
+		for (OIDCClaimName claimName : mockClaimProviders.keySet()) {
+			assertTrue(claimsCaptor.getValue().containsKey(claimName));
+			assertNull(claimsCaptor.getValue().get(claimName));
+		}
+	
+		assertNull(tokenResponse.getRefresh_token());  // in the future we will provide a refresh token
+	}
+	
+	@Test
+	public void testGetAccessToken_ReturnJSON() throws Exception {
+		// simulate a client which has registered to receive plain JSON rather than a JWT
+		oauthClient.setUserinfo_signed_response_alg(null);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(ImmutableList.of("id_token", "userinfo"));
+
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		String code = authResponse.getAccess_code();
+
+		
+		String expectedAccessToken = "ACCESS-TOKEN";
+		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				eq(now), anyString(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+		
+		// elsewhere we test that we correctly build up the requested user-info
+		// here we just spot check a few fields to make sure everything's wired up
+
+		// method under test
+		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		
+		JSONObject userInfo = (JSONObject)(new JSONParser()).parse(tokenResponse.getId_token());
+		// just spot check a few fields to make sure everything's wired up
+		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email.name()));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified.name()));
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid.name()));
 
 		assertEquals(expectedAccessToken, tokenResponse.getAccess_token());
 		assertEquals(Collections.singletonList(OAuthScope.openid), scopesCaptor.getValue());

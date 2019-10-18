@@ -1,13 +1,9 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -18,6 +14,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -28,13 +25,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,42 +52,39 @@ public class AuthenticationFilter implements Filter {
 	private UserManager userManager;
 	
 	@Autowired
-	OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenHelper oidcTokenHelper;
 	
 	private boolean allowAnonymous = false;
 	
 	@Override
 	public void destroy() { }
-	
+		
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
 		String sessionToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (isSessionTokenEmptyOrNull(sessionToken)) {
+		if (isTokenEmptyOrNull(sessionToken)) {
 			// Check for a session token as a parameter
 			sessionToken = req.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		}
 		
 		// Determine the caller's identity
 		Long userId = null;
+		String bearerToken = null;
 		
 		// A session token maps to a specific user
-		if (!isSessionTokenEmptyOrNull(sessionToken)) {
+		if (!isTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
 				userId = authenticationService.revalidate(sessionToken, false);
-			} catch (UnauthenticatedException e) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, failureReason);
-				log.warn(failureReason, e);
-				return;
-			} catch (NotFoundException e) {
+			} catch (UnauthenticatedException | NotFoundException  e) {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
 				return;
 			}
-		
+			bearerToken=oidcTokenHelper.createTotalAccessToken(userId);
 		// If there is no session token, then check for a HMAC signature
 		} else if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
@@ -104,14 +93,26 @@ public class AuthenticationFilter implements Filter {
 				userId = userManager.lookupUserByUsernameOrEmail(username).getPrincipalId();
 				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
-			} catch (UnauthenticatedException e) {
+			} catch (UnauthenticatedException | NotFoundException e) {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
 				log.warn(failureReason, e);
 				return;
-			} catch (NotFoundException e) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
-				log.warn(failureReason, e);
-				return;
+			}
+			bearerToken=oidcTokenHelper.createTotalAccessToken(userId);
+		} else {
+			bearerToken=HttpAuthUtil.getBearerToken(req);
+			if (!isTokenEmptyOrNull(bearerToken)) {
+				try {
+					oidcTokenHelper.validateJWT(bearerToken);
+				} catch (IllegalArgumentException e) {
+					String failureReason = "Invalid access token";
+					if (StringUtils.isNotEmpty(e.getMessage())) {
+						failureReason = e.getMessage();
+					}
+					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
+					log.warn(failureReason, e);
+					return;
+				}	
 			}
 		}
 		
@@ -130,7 +131,6 @@ public class AuthenticationFilter implements Filter {
 			} catch (NotFoundException e) {
 				String reason = "User " + userId + " does not exist";
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
-				log.error("This should be unreachable", e);
 				return;
 			}
 			if (!toUCheck) {
@@ -138,22 +138,23 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
 				return;
 			}	
-		}
-		
-		if (userId == null) {
+		} else {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+			// there is no bearer token (as an Auth or sessionToken header) or digital signature
+			// so create an 'anonymous' bearer token
+			bearerToken = oidcTokenHelper.createAnonymousAccessToken();
 		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
 		try {
 			// Pass along, including the user ID
-			Map<String, String[]> modHeaders = new HashMap<String, String[]>(); 
-			// TODO add current headers, but not session token or HMAC
-			// TODO strip user id from param's
-			// TODO only add bearer header if not anonymous, otherwise strip
-			modHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, new String[] { "Bearer "+oidcTokenHelper.createTotalAccessToken(userId) });
-			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, null);
+			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
+			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, bearerToken);
+			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case
@@ -167,7 +168,7 @@ public class AuthenticationFilter implements Filter {
 	 * @param sessionToken
 	 * @return
 	 */
-	private boolean isSessionTokenEmptyOrNull(String sessionToken){
+	private boolean isTokenEmptyOrNull(String sessionToken){
 		if(sessionToken == null) return true;
 		if("".equals(sessionToken.trim())) return true;
 		return false;

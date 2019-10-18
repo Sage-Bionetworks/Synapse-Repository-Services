@@ -76,15 +76,7 @@ public class HttpAuthUtil {
 		}
 		return result;
 	}	
-	
-	public static boolean isDigitalSignaturePresent(HttpServletRequest request) {
-		return false; // TODO
-	}
-	
-	public static long getDigitalSignaturePrincipalId(HttpServletRequest request) {
-		return 0l; // TODO throw unauthenticated exception if signature is invalid
-	}
-	
+		
 	public static void reject(HttpServletResponse resp, String reason) throws IOException {
 		reject(resp, reason, HttpStatus.UNAUTHORIZED);
 	}
