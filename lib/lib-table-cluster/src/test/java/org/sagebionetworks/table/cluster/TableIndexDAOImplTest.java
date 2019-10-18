@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -94,10 +95,10 @@ public class TableIndexDAOImplTest {
 	@AfterEach
 	public void after() {
 		// Drop the table
-		if (tableId != null && tableIndexDAO != null) {
-			tableIndexDAO.deleteTable(tableId);
-			tableIndexDAO.deleteSecondaryTables(tableId);
-		}
+//		if (tableId != null && tableIndexDAO != null) {
+//			tableIndexDAO.deleteTable(tableId);
+//			tableIndexDAO.deleteSecondaryTables(tableId);
+//		}
 	}
 	
 	/**
@@ -1204,6 +1205,48 @@ public class TableIndexDAOImplTest {
 		assertEquals(folder, fetched);
 		fetched = tableIndexDAO.getEntityData(3L);
 		assertEquals(file, fetched);
+	}
+
+	@Test
+	public void testEntityReplication_MultipleValues(){
+		// delete all data
+		long id = 1L;
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(id));
+
+		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
+		AnnotationDTO abstractDoubleAnnos = new AnnotationDTO();
+		abstractDoubleAnnos.setEntityId(id);
+		abstractDoubleAnnos.setType(AnnotationType.DOUBLE);
+		abstractDoubleAnnos.setKey("abstractDoubles");
+		abstractDoubleAnnos.setValue(Arrays.asList("a", "bb", "ccc", "dddd"));
+		project.setAnnotations(Collections.singletonList(abstractDoubleAnnos));
+
+		tableIndexDAO.addEntityData(Collections.singletonList(project));
+
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(id);
+		assertEquals(project, fetched);
+	}
+
+	@Test
+	public void testEntityReplication_AbstractDoubles(){
+		// delete all data
+		long id = 1L;
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(id));
+
+		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
+		AnnotationDTO abstractDoubleAnnos = new AnnotationDTO();
+		abstractDoubleAnnos.setEntityId(id);
+		abstractDoubleAnnos.setType(AnnotationType.DOUBLE);
+		abstractDoubleAnnos.setKey("abstractDoubles");
+		abstractDoubleAnnos.setValue(Arrays.asList("1.2", "infinity", "+infinity", "5.6", "nan", "7.8"));
+		project.setAnnotations(Collections.singletonList(abstractDoubleAnnos));
+
+		tableIndexDAO.addEntityData(Collections.singletonList(project));
+
+		// lookup each
+		EntityDTO fetched = tableIndexDAO.getEntityData(id);
+		assertEquals(project, fetched);
 	}
 	
 	@Test

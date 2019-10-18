@@ -2270,7 +2270,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
 		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
-		verify(mockPreparedStatement).setString(4, annotationDto.getValue());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
 		// all others should be set to null since the string cannot be converted to any other type.
 		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
 		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);

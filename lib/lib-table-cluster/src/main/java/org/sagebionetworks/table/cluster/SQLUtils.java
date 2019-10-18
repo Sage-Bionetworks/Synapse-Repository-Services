@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -1738,12 +1739,37 @@ public class SQLUtils {
 		}
 		Boolean booleanValue = booleanList == null || booleanList.isEmpty() ? null : booleanList.get(0);
 		if(booleanValue == null){
-			ps.setNull(parameterIndex, Types.BOOLEAN);
+			ps.setNull(parameterIndex++, Types.BOOLEAN);
 		}else{
-			ps.setBoolean(parameterIndex, booleanValue);
+			ps.setBoolean(parameterIndex++, booleanValue);
 		}
 
+		//TODO: test
 
+		ps.setString(parameterIndex++, stringList == null ? null : new JSONArray(stringList).toString());
+		ps.setString(parameterIndex++, longList == null ? null : new JSONArray(longList).toString());
+		//doubles need extra conversion:
+		ps.setString(parameterIndex++, doubleList == null ? null : new JSONArray(mixedDoubleList(doubleList)).toString());
+		ps.setString(parameterIndex++, booleanList == null ? null : new JSONArray(booleanList).toString());
+	}
+
+	//converts a list of doubles to a mixed list of Doubles and String
+	static List<Object> mixedDoubleList(List<Double> doubleList){ //TODO: test
+		if(doubleList == null){
+			throw new IllegalArgumentException("doubleList can not be null");
+		}
+		List<Object> mixedDoubleList = new ArrayList<>(doubleList.size());
+		for(Double d : doubleList){
+			if(d == null){
+				throw new IllegalArgumentException("null values in list are not allowed");
+			}
+			try{
+				mixedDoubleList.add(AbstractDouble.lookupType(d).getEnumerationValue());
+			} catch (NumberFormatException e){
+				mixedDoubleList.add(d);
+			}
+		}
+		return mixedDoubleList;
 	}
 
 }

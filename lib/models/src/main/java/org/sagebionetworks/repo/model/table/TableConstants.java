@@ -222,9 +222,9 @@ public class TableConstants {
 	public static final String ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT	="DOUBLE_ABSTRACT";
 	public static final String ANNOTATION_REPLICATION_COL_BOOLEAN_VALUE		="BOOLEAN_VALUE";
 	public static final String ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE ="STRING_LIST_VALUE";
-	public static final String ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE	                                                                                                                                                                                                                                                                                                                                                                                                                              ="LONG_VALUE";
-	public static final String ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE	="DOUBLE_VALUE";
-	public static final String ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE="BOOLEAN_VALUE";
+	public static final String ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE	="LONG_LIST_VALUE";
+	public static final String ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE	="DOUBLE_LIST_VALUE";
+	public static final String ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE="BOOLEAN_LIST_VALUE";
 
 	
 	public static final String ANNOTATION_TYPES;

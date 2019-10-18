@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
@@ -49,6 +50,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -726,7 +728,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue(Collections.singletonList(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE)));
+				//TODO: TEST
+				dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE)).toList());
 				return dto;
 			}}, entityId);
 		if(!annotations.isEmpty()){
