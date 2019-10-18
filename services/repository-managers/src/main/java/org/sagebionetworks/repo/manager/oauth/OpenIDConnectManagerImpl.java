@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,9 +65,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	@Autowired
-	private OIDCPairedIDManager oidcPairedIDManager;
 	
 	@Autowired
 	private UserManager userManager;
@@ -211,6 +209,23 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return result;
 	}
 
+	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
+	public String getPPIDFromUserId(String userId, String clientId) {
+		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+			return userId;
+		}
+		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
+		return EncryptionUtils.encrypt(userId, sectorIdentifierSecret);
+	}
+
+	public String getUserIdFromPPID(String ppid, String clientId) {
+		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+			return ppid;
+		}
+		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
+		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
+	}
+
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
@@ -236,7 +251,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return result;
 	}
-
+	
 	// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
 	// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
@@ -294,7 +309,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		String ppid = oidcPairedIDManager.getPPIDFromUserId(authorizationRequest.getUserId(), verifiedClientId);
+		String ppid = getPPIDFromUserId(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
@@ -344,7 +359,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String ppid = accessTokenClaims.getSubject();
 
 		// userId is used to retrieve the user info
-		String userId = oidcPairedIDManager.getUserIdFromPPID(ppid, oauthClientId);
+		String userId = getUserIdFromPPID(ppid, oauthClientId);
 
 		UserAuthorization result = new UserAuthorization();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
@@ -368,7 +383,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			oidcUserInfo.put(OIDCClaimName.sub, ppid);
 			return oidcUserInfo;
 		} else {
-			String ppid = oidcPairedIDManager.getPPIDFromUserId(userId.toString(), oauthClientId);
+			String ppid = getPPIDFromUserId(userId.toString(), oauthClientId);
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), oidcUserInfo);
 

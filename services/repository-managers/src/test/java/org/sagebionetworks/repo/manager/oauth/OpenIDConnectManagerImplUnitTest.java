@@ -84,7 +84,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	private static final String OAUTH_CLIENT_ID = "123";
 	private static final String OAUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String EMAIL = "me@domain.com";
-	private static String ppid;
+	private String ppid;
 
 	@Mock
 	private StackEncrypter mockStackEncrypter;
@@ -97,9 +97,6 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private OIDCTokenHelper oidcTokenHelper;
-	
-	@Mock
-	private OIDCPairedIDManager oidcPairedIDManager;
 
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
@@ -179,8 +176,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		clientSpecificEncodingSecret = EncryptionUtils.newSecretKey();
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		this.ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
-		when(oidcPairedIDManager.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID)).thenReturn(ppid);
-		when(oidcPairedIDManager.getUserIdFromPPID(ppid, OAUTH_CLIENT_ID)).thenReturn(USER_ID);
 		
 		now = new Date();
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
@@ -470,6 +465,35 @@ public class OpenIDConnectManagerImplUnitTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+	
+
+	@Test
+	public void testPPID() {
+		// method under test
+		String ppid = openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID);
+		assertEquals(USER_ID, EncryptionUtils.decrypt(ppid, clientSpecificEncodingSecret));
+	}
+
+	@Test
+	public void testPPIDForSynapse() {
+		// method under test
+		String ppid = openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID);
+		assertEquals(USER_ID, ppid);
+	}
+
+	@Test
+	public void testGetUserIdFromPPID() {
+		String ppid = openIDConnectManagerImpl.getPPIDFromUserId(USER_ID, OAUTH_CLIENT_ID);
+
+		// method under test		
+		assertEquals(USER_ID, openIDConnectManagerImpl.getUserIdFromPPID(ppid, OAUTH_CLIENT_ID));
+	}
+
+	@Test
+	public void testGetUserIdFromPPIDForSynapse() {
+		// method under test		
+		assertEquals(USER_ID, openIDConnectManagerImpl.getUserIdFromPPID(USER_ID, OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID));
 	}
 	
 	@Test
