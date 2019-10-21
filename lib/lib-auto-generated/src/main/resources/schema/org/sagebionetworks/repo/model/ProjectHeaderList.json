@@ -1,0 +1,16 @@
+{
+    "description": "List of project headers",
+ 	"properties": {
+		"results":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.ProjectHeader"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}
+

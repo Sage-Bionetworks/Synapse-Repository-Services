@@ -23,7 +23,6 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -35,6 +34,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
 import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.base.Function;
@@ -166,7 +166,7 @@ public class IT970UserProfileController {
 		synapse.updateACL(acl);
 
 		// retrieve my projects
-		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
+		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.ALL, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(2, projects.getTotalNumberOfResults());
 		assertEquals(2, projects.getResults().size());
 		List<ProjectHeader> alphabetical = Lists.newArrayList(projects.getResults());
@@ -192,7 +192,7 @@ public class IT970UserProfileController {
 			@Override
 			public boolean apply(List<ProjectHeader> expected) {
 				try {
-					PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null,
+					PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(ProjectListType.ALL, null, null,
 							Integer.MAX_VALUE, 0);
 					return expected.equals(projects.getResults());
 				} catch (SynapseException e) {
@@ -201,7 +201,7 @@ public class IT970UserProfileController {
 			}
 		});
 
-		PaginatedResults<ProjectHeader> projects3 = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
+		PaginatedResults<ProjectHeader> projects3 = synapse.getMyProjects(ProjectListType.ALL, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(nullOutLastActivity(Lists.reverse(projects.getResults())), nullOutLastActivity(projects3.getResults()));
 
 		PaginatedResults<ProjectHeader> projects4 = adminSynapse.getProjectsFromUser(userToDelete, null, null, 100, 0);
@@ -214,7 +214,7 @@ public class IT970UserProfileController {
 
 		// ignore trashed projects
 		synapse.deleteEntity(entity);
-		projects = synapse.getMyProjects(ProjectListType.MY_PROJECTS, null, null, Integer.MAX_VALUE, 0);
+		projects = synapse.getMyProjects(ProjectListType.ALL, null, null, Integer.MAX_VALUE, 0);
 		assertEquals(1, projects.getTotalNumberOfResults());
 		assertEquals(1, projects.getResults().size());
 		assertEquals(entity2.getId(), projects.getResults().get(0).getId());

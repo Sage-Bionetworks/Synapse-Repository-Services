@@ -216,5 +216,7 @@ public class AuthorizationConstants {
 	public static final String BASIC_PREFIX = "Basic ";
 
 
+	
+	public static final String PROJECT_FILTER_PARAM = "filter";
 
 }
