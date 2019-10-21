@@ -1144,14 +1144,16 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testCreateSnapshotAndVersionUnauthorizedEntityUpdate() {
 		SnapshotRequest request = new SnapshotRequest();
+		
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
+				.thenReturn(AuthorizationStatus.accessDenied("Unauthorized"));
+		
 		UnauthorizedException ex = Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			// call under test
 			nodeManager.createSnapshotAndVersion(mockUserInfo, nodeId, request);
 		});
 		
-		assertEquals("", ex.getMessage());
+		assertEquals("Unauthorized", ex.getMessage());
 	}
 	
 	@Test
