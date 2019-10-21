@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,12 +19,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
@@ -55,6 +58,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class UserProfileManagerImplUnitTest {
 
 	@Mock
@@ -100,7 +104,7 @@ public class UserProfileManagerImplUnitTest {
 	private static final Long OFFSET = NextPageToken.DEFAULT_OFFSET;
 
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		userProfileManager = new UserProfileManagerImpl();
@@ -209,7 +213,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockProfileDAO).update(any(UserProfile.class));
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
 		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied("User does not own the file handle"));
@@ -217,7 +221,9 @@ public class UserProfileManagerImplUnitTest {
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");
 		profile.setProfilePicureFileHandleId(fileHandleId);
-		userProfileManager.updateUserProfile(userInfo, profile);
+		assertThrows(UnauthorizedException.class, () -> {
+			userProfileManager.updateUserProfile(userInfo, profile);
+		});
 	}
 	
 	@Test
@@ -273,7 +279,7 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(userProfile, upClone);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testUpdateOthersUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
@@ -282,8 +288,10 @@ public class UserProfileManagerImplUnitTest {
 		// so we get back the UserProfile for the specified owner...
 		assertEquals(ownerId, upClone.getOwnerId());
 		// ... but we can't update it, since we are not the owner or an admin
-		// the following step will fail
-		userProfileManager.updateUserProfile(userInfo, upClone);
+		assertThrows(UnauthorizedException.class, () -> {
+			// the following step will fail
+			userProfileManager.updateUserProfile(userInfo, upClone);
+		});
 	}
 	
 	@Test

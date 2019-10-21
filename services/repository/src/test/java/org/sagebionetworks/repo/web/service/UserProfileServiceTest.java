@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -26,11 +28,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -44,8 +47,6 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -74,6 +75,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
@@ -103,7 +105,7 @@ public class UserProfileServiceTest {
 	@Mock
 	private TokenGenerator mockTokenGenerator;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		
@@ -201,7 +203,7 @@ public class UserProfileServiceTest {
 		verify(mockEntityManager).getEntityHeader(userInfo, entityId, null);
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
@@ -210,8 +212,10 @@ public class UserProfileServiceTest {
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
 		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
 
-		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
-		fail();
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+		userProfileService.addFavorite(EXTRA_USER_ID, entityId);	
+		});
 	}
 	
 	private static IdList singletonIdList(String id) {
@@ -536,7 +540,7 @@ public class UserProfileServiceTest {
 		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong(), anyLong());
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testListPrincipalsForPrefixFilterNull(){
 		String prefix = "aab";
 		TypeFilter filter = null;
@@ -545,8 +549,10 @@ public class UserProfileServiceTest {
 		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
 		boolean isIndividual = false;
 		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
-		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test		// call under test
 		userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		});
 	}
 	
 	@Test
@@ -557,19 +563,23 @@ public class UserProfileServiceTest {
 		assertEquals(headers, response.getList());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetUserGroupHeadersByAliasNullRequest(){
 		aliasList = null;
-		// call under test
-		userProfileService.getUserGroupHeadersByAlias(aliasList);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			userProfileService.getUserGroupHeadersByAlias(aliasList);
+		});
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetUserGroupHeadersByAliasEmptyList(){
 		aliasList.setList(new LinkedList<String>());
-		// call under test
-		userProfileService.getUserGroupHeadersByAlias(aliasList);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			userProfileService.getUserGroupHeadersByAlias(aliasList);
+		});
 	}
 	
 	@Test
