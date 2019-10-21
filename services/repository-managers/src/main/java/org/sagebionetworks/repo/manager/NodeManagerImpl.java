@@ -309,6 +309,12 @@ public class NodeManagerImpl implements NodeManager {
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 
 		UserInfo.validateUserInfo(userInfo);
+		NodeManagerImpl.validateNode(updatedNode);
+		// Validation for update only
+		ValidateArgument.required(updatedNode.getId(), "The id of the node");
+		ValidateArgument.required(updatedNode.getETag(), "The eTag of the node");
+		ValidateArgument.required(updatedNode.getParentId(), "The parent id of the node");
+		
 		// Validate that the user can update the node.
 		authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 
@@ -341,9 +347,6 @@ public class NodeManagerImpl implements NodeManager {
 	private void updateNode(UserInfo userInfo, Node updatedNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, boolean newVersion,
 							ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
-
-		NodeManagerImpl.validateNode(updatedNode);
-		ValidateArgument.required(updatedNode.getETag(), "eTag");
 
 		canConnectToActivity(updatedNode.getActivityId(), userInfo);
 		
