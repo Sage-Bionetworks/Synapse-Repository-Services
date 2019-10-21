@@ -114,6 +114,7 @@ public class AuthenticationFilter implements Filter {
 					return;
 				}	
 			}
+			// TODO set the userId
 		}
 		
 		if (userId == null && !allowAnonymous) {

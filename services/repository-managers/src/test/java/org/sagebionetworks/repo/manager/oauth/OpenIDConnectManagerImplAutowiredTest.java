@@ -2,12 +2,9 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -28,8 +25,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
-import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.web.NotFoundException;

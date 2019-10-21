@@ -6,15 +6,17 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,7 +30,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.joda.time.DateTime;
-import org.junit.Before;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,8 +58,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 @ExtendWith({MockitoExtension.class})
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthenticationFilterTest {
-
-	
 	@Mock
 	private HttpServletRequest mockHttpRequest;
 	
@@ -72,7 +71,7 @@ public class AuthenticationFilterTest {
 	private FilterChain mockFilterChain;
 	
 	@Mock
-	OIDCTokenHelper oidcTokenHelper;
+	private OIDCTokenHelper oidcTokenHelper;
 	
 	@Captor
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
@@ -90,12 +89,36 @@ public class AuthenticationFilterTest {
 	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
 	private static final String BEARER_TOKEN = "bearer token";
+
+	class ListEnumeration implements Enumeration<String> {
+		private List<String> list;
+		private int i=0;
+		
+		public ListEnumeration(List<String> list) {
+			this.list=list;
+			i=0;
+		}
+
+		@Override
+		public boolean hasMoreElements() {
+			return i<list.size();
+		}
+
+		@Override
+		public String nextElement() {
+			return list.get(i++);
+		}
+	}
 	
 	@BeforeEach
 	public void setupFilter() throws Exception {
 		String bearerTokenHeader = "Bearer "+BEARER_TOKEN;
 		
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(bearerTokenHeader);
+		
+		List<String> headerNames = Collections.singletonList("Authorization");
+		when(mockHttpRequest.getHeaderNames()).thenReturn(new ListEnumeration(headerNames));
+		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(new ListEnumeration(Collections.singletonList(bearerTokenHeader)));
 		
 		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
