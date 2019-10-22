@@ -1567,6 +1567,17 @@ public class SQLUtilsTest {
 			allTypes.add(cm);
 			i++;
 		}
+		//add list types
+		for(ColumnType type: ColumnType.values()){
+			ColumnModel cm = new ColumnModel();
+			cm.setName(type.name().toLowerCase() + "List");
+			cm.setColumnType(type);
+			cm.setId(""+i);
+			cm.setIsList(true);
+			allTypes.add(cm);
+			i++;
+		}
+
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
@@ -1586,7 +1597,17 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='entityid', A.LONG_VALUE, NULL)) AS _C6_,"
 				+ " MAX(IF(A.ANNO_KEY ='link', A.STRING_VALUE, NULL)) AS _C7_,"
 				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C8_,"
-				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_"
+				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_,"
+				+ " MAX(IF(A.ANNO_KEY ='stringList', A.STRING_LIST_VALUE, NULL)) AS _C10_,"
+				+ " MAX(IF(A.ANNO_KEY ='doubleList', A.DOUBLE_LIST_VALUE, NULL)) AS _C11_,"
+				+ " MAX(IF(A.ANNO_KEY ='integerList', A.LONG_LIST_VALUE, NULL)) AS _C12_,"
+				+ " MAX(IF(A.ANNO_KEY ='booleanList', A.BOOLEAN_LIST_VALUE, NULL)) AS _C13_,"
+				+ " MAX(IF(A.ANNO_KEY ='dateList', A.LONG_LIST_VALUE, NULL)) AS _C14_,"
+				+ " MAX(IF(A.ANNO_KEY ='filehandleidList', A.LONG_LIST_VALUE, NULL)) AS _C15_,"
+				+ " MAX(IF(A.ANNO_KEY ='entityidList', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
+				+ " MAX(IF(A.ANNO_KEY ='linkList', A.STRING_LIST_VALUE, NULL)) AS _C17_,"
+				+ " MAX(IF(A.ANNO_KEY ='largetextList', A.STRING_LIST_VALUE, NULL)) AS _C18_,"
+				+ " MAX(IF(A.ANNO_KEY ='useridList', A.LONG_LIST_VALUE, NULL)) AS _C19_"
 				, builder.toString());
 	}
 
@@ -1747,6 +1768,24 @@ public class SQLUtilsTest {
 				", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
 				+ ", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
 		assertEquals(Lists.newArrayList("_DBL_C456_","_C456_"), headers);
+	}
+
+	@Test
+	public void testBuildSelectMetadataDoubleListAnnotation() {
+		//list columns do not have an abstract column
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setId("456");
+		cm.setIsList(true);
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		// call under test
+		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		// Should include two selects, one for the abstract double and the other for the double value.
+		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_LIST_VALUE, NULL)) AS _C456_", builder.toString());
+		assertEquals(Lists.newArrayList("_C456_"), headers);
 	}
 
 	@Test

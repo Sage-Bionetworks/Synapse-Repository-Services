@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.doubles.AbstractDouble;
@@ -1197,16 +1198,17 @@ public class SQLUtils {
 		String tableAlias;
 		String selectColumnName;
 		String columnNameForId = getColumnNameForId(model.getId());
+		boolean isList = BooleanUtils.isTrue(model.getIsList());
 		AnnotationType annotationType = null;
 		if(entityField != null){
 			tableAlias = TableConstants.ENTITY_REPLICATION_ALIAS;
 			selectColumnName = entityField.getDatabaseColumnName();
 		}else{
 			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
-			selectColumnName = translateColumnTypeToAnnotationValueName(model.getColumnType());
-			annotationType = translateColumnTypeToAnnotationType(model.getColumnType());
+			selectColumnName = isList ? translateColumnTypeListToAnnotationValueName(model.getColumnType()) : translateColumnTypeToAnnotationValueName(model.getColumnType());
+			annotationType =  translateColumnTypeToAnnotationType(model.getColumnType());
 		}
-		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
+		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType, isList);
 	}
 	
 	/**
@@ -1249,6 +1251,24 @@ public class SQLUtils {
 		default:
 			// Everything else is a string
 			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
+		}
+	}
+
+	public static String translateColumnTypeListToAnnotationValueName(ColumnType type){
+		switch(type){
+			case DATE:
+			case INTEGER:
+			case ENTITYID:
+			case FILEHANDLEID:
+			case USERID:
+				return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
+			case DOUBLE:
+				return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE;
+			case BOOLEAN:
+				return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
+			default:
+				// Everything else is a string
+				return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 		}
 	}
 
@@ -1364,7 +1384,7 @@ public class SQLUtils {
 		}
 		List<String> headers = new LinkedList<>();
 		// annotation select
-		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+		if (!meta.isList() && AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 			// For doubles, the double-meta columns is also selected.
 			boolean isDoubleAbstract = true;
 			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));

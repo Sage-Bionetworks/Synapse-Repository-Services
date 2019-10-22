@@ -483,6 +483,10 @@ public class TableModelTestUtils {
 	}
 
 	public static ColumnModel createColumn(Long id, String name, ColumnType type) {
+		return createColumn(id, name, type, false);
+	}
+
+	public static ColumnModel createColumn(Long id, String name, ColumnType type, boolean isList) {
 		ColumnModel cm = new ColumnModel();
 		if (id != null) {
 			cm.setId(id.toString());
@@ -492,6 +496,7 @@ public class TableModelTestUtils {
 		if (type == ColumnType.STRING) {
 			cm.setMaximumSize(50L);
 		}
+		cm.setIsList(isList);
 		return cm;
 	}
 

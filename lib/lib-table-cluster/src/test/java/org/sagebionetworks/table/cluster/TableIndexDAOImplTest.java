@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -61,9 +63,6 @@ import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
@@ -1504,6 +1503,53 @@ public class TableIndexDAOImplTest {
 		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "NaN", null}, rows.get(1));
 		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "Infinity", "1.7976931348623157E308"}, rows.get(2));
 	}
+
+	@Test
+	public void testCreateViewSnapshotFromEntityReplication_ListColumns(){
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		AnnotationDTO double1 = new AnnotationDTO();
+		double1.setKey("foo");
+		double1.setValue(Arrays.asList("NaN", "1.2", "Infinity"));
+		double1.setType(AnnotationType.DOUBLE);
+		double1.setEntityId(2L);
+		file1.setAnnotations(Arrays.asList(double1));
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		AnnotationDTO double2 = new AnnotationDTO();
+		double2.setKey("foo");
+		double2.setValue(Arrays.asList("Infinity", "222.222"));
+		double2.setType(AnnotationType.DOUBLE);
+		double2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(double2));
+
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
+
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "foo", ColumnType.DOUBLE, true));
+		// capture the results of the stream
+		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
+		// call under test
+		tableIndexDAO.createViewSnapshotFromEntityReplication(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, stream);
+		List<String[]> rows = stream.getRows();
+		assertNotNull(rows);
+		assertEquals(3, rows.size());
+		for(String[] row: stream.getRows()){
+			System.out.println(Arrays.toString(row));
+		}
+
+		assertArrayEquals(new String[] {"ID", "CURRENT_VERSION", "ETAG", "BENEFACTOR_ID" , "_C1_"}, rows.get(0));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "NaN", null}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "Infinity", "1.7976931348623157E308"}, rows.get(2));
+	}
+
 	
 	@Test
 	public void testCreateViewSnapshotFromEntityReplicationEmptyScope() {
