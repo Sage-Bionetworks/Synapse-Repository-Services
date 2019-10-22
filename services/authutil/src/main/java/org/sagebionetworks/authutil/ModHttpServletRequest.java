@@ -33,8 +33,8 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 			Map<String,String[]> params
 			) {
 		super(request);
-		this.headers=new CaseInsensitiveMap<String,String[]>(headers);
-		this.params=new CaseInsensitiveMap<String,String[]>(params);
+		this.headers=headers==null?null:new CaseInsensitiveMap<String,String[]>(headers);
+		this.params=params==null?null:new CaseInsensitiveMap<String,String[]>(params);
 	}
 	
 	private static String getFirstValue(String[] values) {

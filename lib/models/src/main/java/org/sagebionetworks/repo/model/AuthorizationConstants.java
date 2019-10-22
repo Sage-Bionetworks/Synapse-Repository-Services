@@ -204,7 +204,6 @@ public class AuthorizationConstants {
 	public static final String OAUTH2_REDIRECT_URI_PARAM = "redirect_uri";
 	public static final String OAUTH2_REFRESH_TOKEN_PARAM = "refresh_token";
 	public static final String OAUTH_VERIFIED_CLIENT_ID_HEADER = "verifiedOauthClientId";
-	public static final String OAUTH_VERIFIED_ACCESS_TOKEN = "verifiedOauthAccessToken";
 	
 	/**
 	 * The Oauth access token is passed as the 'bearer' request header
