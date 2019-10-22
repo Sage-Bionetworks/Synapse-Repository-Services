@@ -7,12 +7,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -25,8 +24,7 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.repo.web.service.UserProfileService;
 
 
-
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class UserProfileControllerUnitTest {
 	
 	@Mock
@@ -47,8 +45,7 @@ public class UserProfileControllerUnitTest {
 	private List<ProjectHeader> projectHeaders;
 	private ProjectHeaderList projectHeaderList;
 
-	@Before
-	public void setUp() {
+	private void setUp() {
 		when(serviceProvider.getUserProfileService()).thenReturn(userProfileService);
 		
 		projectHeaderList = new ProjectHeaderList();
@@ -62,6 +59,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetOwnProjectsDeprecated() {
+		setUp();
 		when(userProfileService.getProjects(
 				USER_ID, 
 				USER_ID,
@@ -98,6 +96,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetProjectsTeamDeprecated() {
+		setUp();
 		Long teamId = 999L;
 		when(userProfileService.getProjects(
 				USER_ID, 
@@ -135,6 +134,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetProjectsUserDeprecated() {
+		setUp();
 		Long otherUserId = 202L;
 		when(userProfileService.getProjects(
 				USER_ID, 
