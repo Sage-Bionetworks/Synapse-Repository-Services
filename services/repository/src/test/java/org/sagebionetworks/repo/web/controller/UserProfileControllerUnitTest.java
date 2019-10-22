@@ -46,8 +46,7 @@ public class UserProfileControllerUnitTest {
 	private List<ProjectHeader> projectHeaders;
 	private ProjectHeaderList projectHeaderList;
 
-	@BeforeEach
-	public void setUp() {
+	private void setUp() {
 		when(serviceProvider.getUserProfileService()).thenReturn(userProfileService);
 		
 		projectHeaderList = new ProjectHeaderList();
@@ -61,6 +60,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetOwnProjectsDeprecated() {
+		setUp();
 		when(userProfileService.getProjects(
 				USER_ID, 
 				USER_ID,
@@ -97,6 +97,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetProjectsTeamDeprecated() {
+		setUp();
 		Long teamId = 999L;
 		when(userProfileService.getProjects(
 				USER_ID, 
@@ -134,6 +135,7 @@ public class UserProfileControllerUnitTest {
 	
 	@Test
 	public void testGetProjectsUserDeprecated() {
+		setUp();
 		Long otherUserId = 202L;
 		when(userProfileService.getProjects(
 				USER_ID, 
