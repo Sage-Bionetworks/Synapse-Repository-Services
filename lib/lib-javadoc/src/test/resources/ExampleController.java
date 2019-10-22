@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -352,6 +353,19 @@ public class ExampleController {
 	@RequestMapping(value = "/some/enum", method = RequestMethod.GET)
 	public @ResponseBody Long enumParam(
 			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter) {
+		return null;
+	}
+	
+	/**
+	 * including an authorization header
+	 * 
+	 * @param authorizationHeader
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/some/authorized/service", method = RequestMethod.POST)
+	public @ResponseBody Long authorizedService(
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
 }

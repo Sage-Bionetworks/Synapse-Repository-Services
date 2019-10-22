@@ -117,7 +117,10 @@ public class OpenIDConnectController {
 	}
 	
 	/**
-	 * Get an existing OAuth 2.0 client.
+	 * Get an existing OAuth 2.0 client.  When retrieving one's own client,
+	 * all metadata is returned.  It is permissible to retrieve a client anonymously
+	 * or as a user other than the one who created the client, but only public fields
+	 * (name, redirect URIs, and links to the client's site) are returned.
 	 * 
 	 * @param id the ID of the client to retrieve
 	 * @return
@@ -268,7 +271,7 @@ public class OpenIDConnectController {
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	 * <br>
-	 * Authorization is via a OAuth access token passed as a Bearer token in the Authorization header
+	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
@@ -286,7 +289,7 @@ public class OpenIDConnectController {
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 	 * <br>
-	 * Authorization is via a OAuth access token passed as a Bearer token in the Authorization header
+	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
 	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)

@@ -41,6 +41,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <ul>
  * <li>username and password</li>
  * <li>session token</li>
+ * <li>OAuth access token</li>
  * <li>API key</li>
  * </ul>
  * <p>
@@ -50,8 +51,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * and/or API key for use in other requests.
  * </p>
  * <p>
- * To authenticate using the session token returned by the "/login" service,
+ * To authenticate using the session token returned by the 
+ * <a href="${POST.login}">POST /login</a> service,
  * add it to the request a header named "sessionToken".
+ * </p>
+ * <p>
+ * To authentication with an OAuth access token, use the OAuth 2.0 services,
+ * culminating with this request to get an access token:
+ * <a href="${POST.oauth2.token}">POST /oauth2/token</a>
+ * Then include it as a Bearer token in the Authorization header of 
+ * the request.  Note:  At this time only selected services recognize the OAuth 2.0
+ * token and they are documented as such.
  * </p>
  * <p>
  * To authenticate using an API Key, include the following three headers in

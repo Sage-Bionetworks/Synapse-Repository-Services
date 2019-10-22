@@ -1,16 +1,15 @@
 package org.sagebionetworks.javadoc.velocity.controller;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.javadoc.JavaDocTestUtil;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 
@@ -23,7 +22,8 @@ public class ControllerUtilsTest {
 	private static RootDoc rootDoc;
 	private static ClassDoc controllerClassDoc;
 	private static Map<String, MethodDoc> methodMap;
-	@BeforeClass
+	
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Lookup the test files.
 		rootDoc = JavaDocTestUtil.buildRootDoc("ExampleController.java");
@@ -143,8 +143,18 @@ public class ControllerUtilsTest {
 	}
 	
 	@Test
-	public void testAuthetincationRequired(){
+	public void testAuthenticationRequired(){
 		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertTrue(model.getIsAuthenticationRequired());
+	}
+	
+	@Test
+	public void testAuthenticationRequiredViaHeader(){
+		MethodDoc method = methodMap.get("authorizedService");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);

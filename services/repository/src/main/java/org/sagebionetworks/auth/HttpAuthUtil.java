@@ -54,7 +54,8 @@ public class HttpAuthUtil {
 					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
-					AuthorizationConstants.SIGNATURE.toLowerCase()
+					AuthorizationConstants.SIGNATURE.toLowerCase(),
+					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase()
 			});
 	
 	/*
