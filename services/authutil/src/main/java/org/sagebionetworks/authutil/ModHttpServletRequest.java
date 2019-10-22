@@ -72,7 +72,7 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
     public Enumeration<String> getHeaders(String name) {
 		if (headers==null) return super.getHeaders(name);
 		String[] values = this.headers.get(name);
-		if (values==null) return null;
+		if (values==null) return Collections.emptyEnumeration();
 		return Collections.enumeration(Arrays.asList(values));
     }  
 
@@ -113,11 +113,7 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 	@Override
 	public Enumeration<String> getParameterNames() {
 		if (params==null) return (Enumeration<String>)super.getParameterNames();
-		final Iterator<String> it = params.keySet().iterator();
-		return new Enumeration<String>() {
-			public boolean hasMoreElements() { return it.hasNext();}
-			public String nextElement() {return it.next();}
-		};
+	    return Collections.enumeration(params.keySet());
 	}
 	
 	@Override

@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * access Synapse.
  * </p>
  * <p>
- * Synapse currently supports three modes of authentication:
+ * Synapse currently supports four modes of authentication:
  * </p>
  * <ul>
  * <li>username and password</li>
