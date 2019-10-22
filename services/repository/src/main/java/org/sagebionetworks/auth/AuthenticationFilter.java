@@ -19,7 +19,7 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -165,7 +165,7 @@ public class AuthenticationFilter implements Filter {
 			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
+			HttpServletRequest modRqst = new ModHttpServletRequest(req, null, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case

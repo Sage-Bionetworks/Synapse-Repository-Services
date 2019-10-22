@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -14,9 +13,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class OAuthAccessTokenFilter implements Filter {
@@ -44,10 +42,12 @@ public class OAuthAccessTokenFilter implements Filter {
 			}
 		}
 		
-		if (verified) {
-			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, new String[] {bearerToken});
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+		if (verified) {			
+			// get the current headers, but be sure to leave behind anything that might be mistaken for a valid
+			// authentication header 'down the filter chain'
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, bearerToken);
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;

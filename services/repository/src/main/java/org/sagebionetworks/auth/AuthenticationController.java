@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * access Synapse.
  * </p>
  * <p>
- * Synapse currently supports four modes of authentication:
+ * Synapse currently supports three modes of authentication:
  * </p>
  * <ul>
  * <li>username and password</li>
@@ -48,6 +48,22 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * outside of the authentication services. Authentication via a username and
  * password will allow the user to retrieve a session token
  * and/or API key for use in other requests.
+ * </p>
+ * <p>
+ * To authenticate using the session token returned by the "/login" service,
+ * add it to the request a header named "sessionToken".
+ * </p>
+ * <p>
+ * To authenticate using an API Key, include the following three headers in
+ * the request:
+ * <ul>
+ * <li>header name: 'userId'; header value: the user<em>name</em> of the Synapse user</li>
+ * <li>header name: 'signatureTimestamp'; header value: The current time stamp in ISO 8601 format</li>
+ * <li>header name: 'signature'; header value: A Base-64 encoded HMAC computed using the HMAC-SHA1 algorithm
+ * whose data is the concatenation of the user name, request URI, and time stamp, and whose secret is 
+ * the (Base 64 decoded) Synapse API key for the given Synapse user.  The request URI omits the host
+ * and query string, e.g. "/repo/v1/entity" is a valid URI. </li>
+ * </ul>
  * </p>
  */
 @ControllerInfo(displayName = "Authentication Services", path = "auth/v1")

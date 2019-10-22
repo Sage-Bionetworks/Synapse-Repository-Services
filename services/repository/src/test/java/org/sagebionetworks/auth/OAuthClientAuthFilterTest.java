@@ -71,7 +71,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockOauthClientManager).validateClientCredentials(any());
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
-		assertEquals(CLIENT_ID, requestCaptor.getValue().getParameter(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM));
+		assertEquals(CLIENT_ID, requestCaptor.getValue().getParameter(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
 	}
 
 	@Test

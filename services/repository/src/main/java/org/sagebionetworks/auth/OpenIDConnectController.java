@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -212,8 +213,6 @@ public class OpenIDConnectController {
 	 * 
 	 * Get authorization code for a given client, scopes, response type(s), and extra claim(s).
 	 * <br>
-	 * This request does not need to be authenticated.
-	 * <br>
 	 * See:
 	 * https://openid.net/specs/openid-connect-core-1_0.html#Consent
 	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
@@ -252,8 +251,8 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, required=false) String userId,
-			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM) OAuthGrantType grant_type,
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM, required=true) OAuthGrantType grant_type,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM, required=false) String code,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM, required=false) String refresh_token,
@@ -261,29 +260,24 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
-		if (StringUtils.isEmpty(userId)) {
-			// the 'userId' param is actually the OAuth client ID, verified by Basic Authentication
-			throw new UnauthenticatedException("OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
-		}
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(userId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
 	}
 		
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-	 * 
-	 * @param accessTokenHeader authorization header containing as a bearer token an OAuth access token
-	 * @return
-	 * @throws NotFoundException
+	 * <br>
+	 * Authorization is via a OAuth access token passed as a Bearer token in the Authorization header
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, required=true) String accessToken,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}
 
@@ -291,18 +285,18 @@ public class OpenIDConnectController {
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
 	 * signing algorithm in its userinfo_signed_response_alg field.  
 	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+	 * <br>
+	 * Authorization is via a OAuth access token passed as a Bearer token in the Authorization header
 	 * 
-	 * @param accessTokenHeader authorization header containing as a bearer token an OAuth access token
-	 * @return
-	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
-			@RequestParam(value = AuthorizationConstants.OAUTH_VERIFIED_ACCESS_TOKEN, required=true) String accessToken,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}
 

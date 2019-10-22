@@ -1,5 +1,12 @@
 package org.sagebionetworks.auth;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -24,10 +31,49 @@ public class HttpAuthUtil {
 	}
 
 	public static String getBearerToken(HttpServletRequest httpRequest) {
-		
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
+		return getBearerTokenFromAuthorizationHeader(header);
+	}
+
+	public static String getBearerTokenFromAuthorizationHeader(String header) {
 		if (header==null || !header.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) return null;
 		return header.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
 	}
-
+	
+	/*
+	 * Set the given bearerToken as an Authorization header, overwriting any other Authorization headers
+	 */
+	public static void setBearerTokenHeader(Map<String, String[]> headers, String bearerToken) {
+		headers.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, 
+				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
+	}
+	
+	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
+			Arrays.asList(new String[] {
+					AuthorizationConstants.AUTHORIZATION_HEADER_NAME.toLowerCase(),
+					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
+					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
+					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
+					AuthorizationConstants.SIGNATURE.toLowerCase()
+			});
+	
+	/*
+	 * Get all the request headers *except* the authorization headers used by Synapse
+	 */
+	public static Map<String, String[]> filterAuthorizationHeaders(HttpServletRequest request) {
+		Map<String, String[]> result = new HashMap<String, String[]> ();
+		for (Enumeration<String> e = request.getHeaderNames(); e.hasMoreElements();) {
+			String headerName = e.nextElement();
+			if (AUTHORIZATION_HEADERS_LOWER_CASE.contains(headerName.toLowerCase())) {
+				continue;
+			}
+			List<String> headerValues = new ArrayList<String>();
+			for (Enumeration<String> n = request.getHeaders(headerName); n.hasMoreElements();) {
+				String headerValue = n.nextElement();
+				headerValues.add(headerValue);
+			}
+			result.put(headerName, headerValues.toArray(new String[] {}));
+		}
+		return result;
+	}
 }
