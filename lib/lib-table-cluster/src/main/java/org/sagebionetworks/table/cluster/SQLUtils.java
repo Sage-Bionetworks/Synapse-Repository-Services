@@ -1416,14 +1416,19 @@ public class SQLUtils {
 	public static String buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
 		String aliasPrefix =  isDoubleAbstract ? ABSTRACT_DOUBLE_ALIAS_PREFIX: EMPTY_STRING;
 		String valueColumnName = isDoubleAbstract ? ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT : meta.getSelectColumnName();
-		builder.append(String.format(TEMPLATE_MAX_ANNOTATION_SELECT,
-				ANNOTATION_REPLICATION_ALIAS,
-				ANNOTATION_REPLICATION_COL_KEY,
-				meta.getColumnModel().getName(),
-				valueColumnName,
-				aliasPrefix,
-				meta.getColumnNameForId()
-		));
+		builder.append(", MAX(IF(");
+		builder.append(ANNOTATION_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(ANNOTATION_REPLICATION_COL_KEY);
+		builder.append(" ='").append(meta.getColumnModel().getName()).append("', ");
+		String valueReference = ANNOTATION_REPLICATION_ALIAS+"."+valueColumnName;
+		if(meta.columnModel.getMaximumSize() != null) {
+			builder.append("SUBSTRING(").append(valueReference).append(", ").append(meta.columnModel.getMaximumSize().intValue()).append(")");
+		}else {
+			builder.append(valueReference);
+		}
+		builder.append(", NULL)) AS ");
+		builder.append(aliasPrefix).append(meta.getColumnNameForId());
 		return aliasPrefix+meta.getColumnNameForId();
 	}
 

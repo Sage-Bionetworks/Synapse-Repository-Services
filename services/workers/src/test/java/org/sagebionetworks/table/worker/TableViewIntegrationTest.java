@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1212,6 +1213,59 @@ public class TableViewIntegrationTest {
 		// Query the snapshot
 		Query query = new Query();
 		query.setSql("select * from " + fileViewId + "." + response.getSnapshotVersionNumber());
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		assertNotNull(queryResults);
+		List<Row> rows = extractRows(queryResults);
+		assertEquals(rowCount, rows.size());
+	}
+	
+	/**
+	 * Test for PLFM-5869.  Case where an annotation value is too large for the corresponding view column size.
+	 * @throws Exception
+	 */
+	@Test
+	public void testAnnotationTooLargeForView() throws Exception {
+		createFileView();
+		// add a column to the view.
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange addColumn = new ColumnChange();
+		addColumn.setNewColumnId(stringColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
+		// Add a string annotation to each file in the view
+		List<PartialRow> rowsToAdd = new LinkedList<>();
+		for (String fileId : fileIds) {
+			PartialRow row = new PartialRow();
+			row.setRowId(KeyFactory.stringToKey(fileId));
+			Map<String, String> values = new HashMap<>(1);
+			// Add a string annotation value that is too large for the view.
+			String valueTooLarge = StringUtils.repeat("a",stringColumn.getMaximumSize().intValue()+1);
+			values.put(stringColumn.getId(), valueTooLarge);
+			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
+			row.setEtag(file.getEtag());
+			row.setValues(values);
+			rowsToAdd.add(row);
+		}
+		PartialRowSet rowChange = new PartialRowSet();
+		rowChange.setTableId(fileViewId);
+		rowChange.setRows(rowsToAdd);
+		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
+		rowSetRequest.setToAppend(rowChange);
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
+
+		// change the schema and add the values.
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
+				TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId);
 		query.setIncludeEntityEtag(true);
 		int rowCount = 3;
 		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);

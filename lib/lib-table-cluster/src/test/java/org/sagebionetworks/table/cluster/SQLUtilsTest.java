@@ -1669,7 +1669,7 @@ public class SQLUtilsTest {
 		boolean isDoubleAbstract = false;
 		// call under test
 		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', A.STRING_VALUE, NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C123_", builder.toString());
 	}
 
 	@Test
