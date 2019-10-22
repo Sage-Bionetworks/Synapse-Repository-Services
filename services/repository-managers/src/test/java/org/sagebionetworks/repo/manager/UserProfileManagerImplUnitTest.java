@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,32 +16,31 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ProjectHeaderList;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -58,7 +54,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
-@ExtendWith(MockitoExtension.class)
 public class UserProfileManagerImplUnitTest {
 
 	@Mock
@@ -88,11 +83,12 @@ public class UserProfileManagerImplUnitTest {
 	UserInfo caller;
 	@Mock
 	UserInfo userToGetFor;
-	Long teamToFetchId;
+	Team teamToFetch;
 	ProjectListType type;
 	ProjectListSortColumn sortColumn;
 	SortDirection sortDirection;
-	String nextPageToken;
+	Long limit;
+	Long offset;
 	Set<Long> visibleProjectsOne;
 	Set<Long> visibleProjectsTwo;
 	
@@ -100,11 +96,8 @@ public class UserProfileManagerImplUnitTest {
 	private static final Long adminUserId = 823746L;
 	private static final String USER_EMAIL = "foo@bar.org";
 	private static final String USER_OPEN_ID = "http://myspace.com/foo";
-	private static final Long LIMIT_FOR_QUERY = NextPageToken.DEFAULT_LIMIT+1;
-	private static final Long OFFSET = NextPageToken.DEFAULT_OFFSET;
 
-
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		userProfileManager = new UserProfileManagerImpl();
@@ -185,11 +178,12 @@ public class UserProfileManagerImplUnitTest {
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
 				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		when(userToGetFor.getGroups()).thenReturn(userToGetForGroups);
-		teamToFetchId = null;
-		type = ProjectListType.CREATED;
+		teamToFetch = null;
+		type = ProjectListType.MY_CREATED_PROJECTS;
 		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		sortDirection = SortDirection.ASC;
-		nextPageToken = (new NextPageToken(null)).toToken();
+		limit = 10L;
+		offset = 0L;
 		
 		visibleProjectsOne = Sets.newHashSet(111L,222L,333L);
 		visibleProjectsTwo = Sets.newHashSet(222L,333L,444L);
@@ -213,7 +207,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockProfileDAO).update(any(UserProfile.class));
 	}
 	
-	@Test
+	@Test (expected=UnauthorizedException.class)
 	public void testUpdateProfileFileHandleUnAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
 		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(AuthorizationStatus.accessDenied("User does not own the file handle"));
@@ -221,9 +215,7 @@ public class UserProfileManagerImplUnitTest {
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");
 		profile.setProfilePicureFileHandleId(fileHandleId);
-		assertThrows(UnauthorizedException.class, () -> {
-			userProfileManager.updateUserProfile(userInfo, profile);
-		});
+		userProfileManager.updateUserProfile(userInfo, profile);
 	}
 	
 	@Test
@@ -279,7 +271,7 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(userProfile, upClone);
 	}
 	
-	@Test
+	@Test(expected=UnauthorizedException.class)
 	public void testUpdateOthersUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		userInfo.setId(-100L);
@@ -288,10 +280,8 @@ public class UserProfileManagerImplUnitTest {
 		// so we get back the UserProfile for the specified owner...
 		assertEquals(ownerId, upClone.getOwnerId());
 		// ... but we can't update it, since we are not the owner or an admin
-		assertThrows(UnauthorizedException.class, () -> {
-			// the following step will fail
-			userProfileManager.updateUserProfile(userInfo, upClone);
-		});
+		// the following step will fail
+		userProfileManager.updateUserProfile(userInfo, upClone);
 	}
 	
 	@Test
@@ -335,11 +325,11 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testGetProjectsNonAdminCallerDifferent(){
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		assertNotNull(results.getResults());
-		assertNull(results.getNextPageToken());
+		assertEquals(0L, results.getTotalNumberOfResults());
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
 		// the groups for the userToGetFor should exclude public.
@@ -349,7 +339,7 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -361,8 +351,8 @@ public class UserProfileManagerImplUnitTest {
 		// the caller is the same as the userToGetFor.
 		caller = userToGetFor;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once for the userToGetFor.
 		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -371,7 +361,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -382,8 +372,8 @@ public class UserProfileManagerImplUnitTest {
 	public void testGetProjectsAdminCallerDifferent(){
 		when(caller.isAdmin()).thenReturn(true);
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once the userToGetFor
 		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -392,7 +382,7 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
@@ -404,8 +394,8 @@ public class UserProfileManagerImplUnitTest {
 		caller = userToGetFor;
 		when(caller.isAdmin()).thenReturn(true);
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should only be called once the userToGetFor
 		verify(mockAuthorizationManager, times(1)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -414,19 +404,19 @@ public class UserProfileManagerImplUnitTest {
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		// The projectIds passed to the dao should be the same as  userToGetFor can see.
 		Set<Long> expectedProjectIds = visibleProjectsOne;
-		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is ALL.
+	 * and the userToGetFor are different.  The type is MY_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsMY_PROJECTS(){
-		type = ProjectListType.ALL;
+		type = ProjectListType.MY_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -437,19 +427,19 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is ALL.
+	 * and the userToGetFor are different.  The type is OTHER_USER_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsOTHER_USER_PROJECTS(){
-		type = ProjectListType.ALL;
+		type = ProjectListType.OTHER_USER_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -460,19 +450,19 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is CREATED.
+	 * and the userToGetFor are different.  The type is MY_CREATED_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsMY_CREATED_PROJECTS(){
-		type = ProjectListType.CREATED;
+		type = ProjectListType.MY_CREATED_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -483,19 +473,19 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is PARTICIPATED.
+	 * and the userToGetFor are different.  The type is MY_PARTICIPATED_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsMY_PARTICIPATED_PROJECTS(){
-		type = type = ProjectListType.PARTICIPATED;
+		type = ProjectListType.MY_PARTICIPATED_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -506,21 +496,19 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is TEAM and
-	 * we specify one particular tem.
+	 * and the userToGetFor are different.  The type is MY_TEAM_PROJECTS.
 	 */
 	@Test
 	public void testGetProjectsMY_TEAM_PROJECTS(){
-		teamToFetchId = null;
-		type = ProjectListType.TEAM;
+		type = ProjectListType.MY_TEAM_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
@@ -531,47 +519,43 @@ public class UserProfileManagerImplUnitTest {
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
 	/**
 	 * For this case the caller is not an admin, and the caller
-	 * and the userToGetFor are different.  The type is TEAM and
-	 * we allow all teams.
+	 * and the userToGetFor are different.  The type is TEAM_PROJECTS.
 	 */
 	@Test 
 	public void testGetProjectsTEAM_PROJECTS(){
-		teamToFetchId = 999L;
-		userToGetFor.getGroups().add(teamToFetchId);
-		type = ProjectListType.TEAM;
+		Long teamId = 999L;
+		teamToFetch = new Team();
+		teamToFetch.setId(teamId.toString());
+		type = ProjectListType.TEAM_PROJECTS;
 		// call under test
-		ProjectHeaderList results = userProfileManager.getProjects(
-				caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 		assertNotNull(results);
 		// Accessible projects should be called once for the userToGetFor and once for the caller.
 		verify(mockAuthorizationManager, times(2)).getAccessibleProjectIds(anySetOf(Long.class));
 		// the groups for the userToGetFor should exclude public, and the user
-		Set<Long> expectedUserToGetGroups = Sets.newHashSet(teamToFetchId);
+		Set<Long> expectedUserToGetGroups = Sets.newHashSet(teamId);
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
 		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
-		verify(mockNodeDao).getProjectHeaders(userToGetFor.getId(), expectedProjectIds, type, sortColumn, sortDirection, LIMIT_FOR_QUERY, OFFSET);
+		verify(mockNodeDao).getProjectHeaders(caller.getId(), expectedProjectIds, type, sortColumn, sortDirection, limit, offset);
 	}
 	
-	@Test
-	public void testGetProjectsNonTeamWithTeamId() {
-		teamToFetchId = 999L;
-		type = ProjectListType.ALL;
-		try {
-			userProfileManager.getProjects(
-					caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetProjectsTEAM_PROJECTSNullTeam(){
+		teamToFetch = null;
+		type = ProjectListType.TEAM_PROJECTS;
+		// call under test
+		PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+				caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+		assertNotNull(results);
 	}
 	
 	/**
@@ -579,10 +563,13 @@ public class UserProfileManagerImplUnitTest {
 	 */
 	@Test 
 	public void testGetProjectsAllTypes(){
-		userToGetFor.getGroups().add(teamToFetchId);
-		for(ProjectListType type: ProjectListType.values()) {
-			ProjectHeaderList results = userProfileManager.getProjects(
-					caller, userToGetFor, teamToFetchId, type, sortColumn, sortDirection, nextPageToken);
+		Long teamId = 999L;
+		teamToFetch = new Team();
+		teamToFetch.setId(teamId.toString());
+		type = ProjectListType.TEAM_PROJECTS;
+		for(ProjectListType type: ProjectListType.values()){
+			PaginatedResults<ProjectHeader> results = userProfileManager.getProjects(
+					caller, userToGetFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 			assertNotNull(results);
 		}
 	}

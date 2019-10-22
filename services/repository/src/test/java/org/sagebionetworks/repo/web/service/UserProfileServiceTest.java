@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.web.service;
 
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -28,12 +26,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -42,22 +38,19 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasList;
@@ -75,15 +68,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-@ExtendWith(MockitoExtension.class)
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
 	private static final Long NONEXISTENT_USER_ID = 827634L;
-	private static final Long OTHER_USER_ID = 2398999L;
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
-	private static UserInfo otherUserInfo;
 	private AliasList aliasList;
 	List<AliasType> typeList;
 	List<UserGroupHeader> headers;
@@ -105,7 +95,7 @@ public class UserProfileServiceTest {
 	@Mock
 	private TokenGenerator mockTokenGenerator;
 	
-	@BeforeEach
+	@Before
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		
@@ -135,14 +125,12 @@ public class UserProfileServiceTest {
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
 		userInfo = new UserInfo(false, EXTRA_USER_ID);
-		otherUserInfo = new UserInfo(false, OTHER_USER_ID);
-		
+
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
 		when(mockUserProfileManager.getUserProfile(eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
-		when(mockUserManager.getUserInfo(OTHER_USER_ID)).thenReturn(otherUserInfo);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME)).thenReturn(groups);
 
 		ReflectionTestUtils.setField(userProfileService, "entityPermissionsManager", mockPermissionsManager);
@@ -203,7 +191,7 @@ public class UserProfileServiceTest {
 		verify(mockEntityManager).getEntityHeader(userInfo, entityId, null);
 	}
 
-	@Test
+	@Test(expected=UnauthorizedException.class)
 	public void testAddFavoriteUnauthorized() throws Exception {
 		String entityId = "syn123";
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
@@ -212,10 +200,8 @@ public class UserProfileServiceTest {
 		fav.setPrincipalId(EXTRA_USER_ID.toString());
 		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
 
-		assertThrows(UnauthorizedException.class, () -> {
-			// call under test
-		userProfileService.addFavorite(EXTRA_USER_ID, entityId);	
-		});
+		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
+		fail();
 	}
 	
 	private static IdList singletonIdList(String id) {
@@ -540,7 +526,7 @@ public class UserProfileServiceTest {
 		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong(), anyLong());
 	}
 
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testListPrincipalsForPrefixFilterNull(){
 		String prefix = "aab";
 		TypeFilter filter = null;
@@ -549,10 +535,8 @@ public class UserProfileServiceTest {
 		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
 		boolean isIndividual = false;
 		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test		// call under test
+		// call under test
 		userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
-		});
 	}
 	
 	@Test
@@ -563,23 +547,19 @@ public class UserProfileServiceTest {
 		assertEquals(headers, response.getList());
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testGetUserGroupHeadersByAliasNullRequest(){
 		aliasList = null;
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			userProfileService.getUserGroupHeadersByAlias(aliasList);
-		});
+		// call under test
+		userProfileService.getUserGroupHeadersByAlias(aliasList);
 	}
 	
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testGetUserGroupHeadersByAliasEmptyList(){
 		aliasList.setList(new LinkedList<String>());
-		assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			userProfileService.getUserGroupHeadersByAlias(aliasList);
-		});
+		// call under test
+		userProfileService.getUserGroupHeadersByAlias(aliasList);
 	}
 	
 	@Test
@@ -660,33 +640,5 @@ public class UserProfileServiceTest {
 		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong() , anyLong());
 		boolean isIndividual = false;
 		verify(mockPrincipalPrefixDAO).listPrincipalsForPrefix(prefix, isIndividual, new Long(limit), new Long(offset));
-	}
-	
-
-	@Test
-	public void testGetOthersProjects() {
-		long teamId = 999;
-		String nextPageToken = (new NextPageToken(null)).toToken();
-		// call under test
-		userProfileService.getProjects(
-				userInfo.getId(), otherUserInfo.getId(), teamId, ProjectListType.CREATED,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
-
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.CREATED,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, nextPageToken);
-	}
-
-
-	@Test
-	public void testGetOthersProjectsDefaultSort() {
-		long teamId = 999;
-		String nextPageToken = (new NextPageToken(null)).toToken();
-		// call under test
-		userProfileService.getProjects(
-				userInfo.getId(), otherUserInfo.getId(), teamId, null,
-				null, null, nextPageToken);
-
-		verify(mockUserProfileManager).getProjects(userInfo, otherUserInfo, teamId, ProjectListType.ALL,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, nextPageToken);
 	}
 }
