@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -13,7 +12,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
@@ -44,9 +43,11 @@ public class OAuthClientAuthFilter implements Filter {
 		}
 		
 		if (validCredentials) {
-			Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
-			modParams.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM, new String[] {oauthClientId});
+			// get the current headers, but be sure to leave behind anything that might be mistaken for a valid
+			// authentication header 'down the filter chain'
+			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(httpRequest);
+			modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] {oauthClientId});
+			HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, modHeaders, null);
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;

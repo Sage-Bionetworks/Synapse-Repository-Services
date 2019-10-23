@@ -1,10 +1,12 @@
 package org.sagebionetworks.auth;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletOutputStream;
@@ -13,21 +15,21 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 
 import com.sun.jersey.core.util.Base64;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class OAuthClientAuthFilterTest {
 	
 	@Mock
@@ -53,17 +55,17 @@ public class OAuthClientAuthFilterTest {
 	
 	private static final String CLIENT_ID = "oauthClientId";
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
-		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
 	}
 
 	@Test
 	public void testFilter_validCredentials() throws Exception {
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(
+				Collections.singletonList(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)));
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -71,11 +73,12 @@ public class OAuthClientAuthFilterTest {
 		verify(mockOauthClientManager).validateClientCredentials(any());
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
-		assertEquals(CLIENT_ID, requestCaptor.getValue().getParameter(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_PARAM));
+		assertEquals(CLIENT_ID, requestCaptor.getValue().getHeader(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER));
 	}
 
 	@Test
 	public void testFilter_invalid_Credentials() throws Exception {
+		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(false);
 
 		// method under test
@@ -92,7 +95,7 @@ public class OAuthClientAuthFilterTest {
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
-		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(false);
+		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
