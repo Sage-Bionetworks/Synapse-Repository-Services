@@ -724,7 +724,7 @@ public class SQLUtils {
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
-		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
+		if(BooleanUtils.isTrue(newColumn.getIsList()) && ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
 	}
@@ -1463,7 +1463,7 @@ public class SQLUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			if (!meta.isList() && AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				builder.append(", _DBL");
 				builder.append(meta.getColumnNameForId());
 			}

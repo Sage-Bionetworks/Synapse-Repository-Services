@@ -5,14 +5,23 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import com.google.gson.JsonObject;
+import org.apache.commons.lang3.BooleanUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -260,8 +269,9 @@ public class TableViewManagerImpl implements TableViewManager {
 					annotationsMap.remove(column.getName());
 					// Add back the annotation if the value is not null
 					if(value != null){
+						List<String> annoStringValues = toAnnotationValuesList(column, value);
 						AnnotationsValue annotationsV2Value = new AnnotationsValue();
-						annotationsV2Value.setValue(Collections.singletonList(value));
+						annotationsV2Value.setValue(annoStringValues);
 						annotationsV2Value.setType(type.getAnnotationsV2ValueType());
 						annotationsMap.put(column.getName(), annotationsV2Value);
 					}
@@ -269,6 +279,28 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 		}
 		return updated;
+	}
+
+	static List<String> toAnnotationValuesList(ColumnModel column, String value) {
+		if(BooleanUtils.isTrue(column.getIsList())){
+			//try to parse as JSON array and extract values as string
+			try {
+				JSONArray jsonArray = new JSONArray(value);
+				List<String> annoStringValues = new ArrayList<>(jsonArray.length());
+				for(Object o : jsonArray){
+					if(JSONObject.NULL.equals(o)){ //null values are parsed as JSONObject.NULL
+						throw new IllegalArgumentException("null value is not allowed");
+					}
+					annoStringValues.add(o.toString());
+				}
+				return annoStringValues;
+			}catch (JSONException e){
+				throw new IllegalArgumentException("Value is not correctly formatted as a JSON Array: " + value);
+			}
+		} else{
+			//column type is not list, take as is
+			return Collections.singletonList(value);
+		}
 	}
 
 	@Override

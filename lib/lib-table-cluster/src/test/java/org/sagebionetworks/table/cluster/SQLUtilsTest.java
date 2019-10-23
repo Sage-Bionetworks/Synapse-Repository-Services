@@ -1555,6 +1555,25 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testbuildInsertValues_DoubleList(){
+		ColumnModel one = EntityField.benefactorId.getColumnModel();
+		one.setId("1");
+		ColumnModel two = TableModelTestUtils.createColumn(2L);
+		ColumnModel three = new ColumnModel();
+		three.setId("3");
+		three.setColumnType(ColumnType.DOUBLE);
+		three.setName("three");
+		three.setIsList(true);
+		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildInsertValues(builder, metaList);
+		//for List of doubles, no abstract cloumn is added
+		assertEquals("ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_, _C3_", builder.toString());
+	}
+
+	@Test
 	public void testBuildSelectEachColumnType(){
 		// Build a select for each type.
 		List<ColumnModel> allTypes = new LinkedList<>();
