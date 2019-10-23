@@ -1,8 +1,6 @@
 package org.sagebionetworks.auth;
 
-import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -97,7 +95,7 @@ public class OpenIDConnectController {
 	/**
 	 * Get a secret credential to use when requesting an access token.  
 	 * <br>
-	 * See https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+	 * See the <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>
 	 * <br>
 	 * Synapse supports 'client_secret_basic'.
 	 * <br>
@@ -215,10 +213,12 @@ public class OpenIDConnectController {
 	/**
 	 * 
 	 * Get authorization code for a given client, scopes, response type(s), and extra claim(s).
-	 * <br>
+	 * <br/>
 	 * See:
-	 * https://openid.net/specs/openid-connect-core-1_0.html#Consent
-	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	 * <br/>
+	 * <a href="https://openid.net/specs/openid-connect-core-1_0.html#Consent">Open ID Connect specification for consent</a>.
+	 * <br/>
+	 * <a href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest">Open ID Connect specification for the authorization request</a>.
 	 *
 	 * @param authorizationRequest the request to be authorized
 	 * @return
@@ -236,10 +236,12 @@ public class OpenIDConnectController {
 	
 	/**
 	 * 
-	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
-	 *  
-	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method: 
-	 *  https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+	 *  Get access, refresh and id tokens, as per the 
+	 *  <a href="https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse">Open ID Connect specification for the token request</a>.
+	 * <br/>
+	 * <br/>
+	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method, as per the 
+	 *  <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication">Open ID Connect specification for client authentication</a>.
 	 *  
 	 * @param grant_type  authorization_code or refresh_token
 	 * @param code required if grant_type is authorization_code
@@ -268,9 +270,10 @@ public class OpenIDConnectController {
 		
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
-	 * signing algorithm in its userinfo_signed_response_alg field.  
-	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-	 * <br>
+	 * signing algorithm in its userinfo_signed_response_alg field, as per the
+	 * <a href="https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata">Open ID Connect specification</a>.
+	 * <br/>
+	 * <br/>
 	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -286,11 +289,11 @@ public class OpenIDConnectController {
 
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
-	 * signing algorithm in its userinfo_signed_response_alg field.  
-	 * https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-	 * <br>
+	 * signing algorithm in its userinfo_signed_response_alg field, as per the
+	 * <a href="https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata">Open ID Connect specification</a>.
+	 * <br/>
+	 * <br/>
 	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
-	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})

@@ -45,10 +45,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li>API key</li>
  * </ul>
  * <p>
- * Only the session token or API key can be used to authenticate the user
- * outside of the authentication services. Authentication via a username and
- * password will allow the user to retrieve a session token
- * and/or API key for use in other requests.
+ * The username and password can only be used to authenticate the user
+ * initially, obtaining a session token for use in other requests.
  * </p>
  * <p>
  * To authenticate using the session token returned by the 
@@ -57,11 +55,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * To authentication with an OAuth access token, use the OAuth 2.0 services,
- * culminating with this request to get an access token:
+ * culminating with this request to retrieve an access token:
  * <a href="${POST.oauth2.token}">POST /oauth2/token</a>
- * Then include it as a Bearer token in the Authorization header of 
- * the request.  Note:  At this time only selected services recognize the OAuth 2.0
- * token and they are documented as such.
+ * which is then included as a Bearer token in the Authorization header of 
+ * subsequent requests.  Note:  At this time only selected services recognize the OAuth 2.0
+ * token and they are documented accordingly.
  * </p>
  * <p>
  * To authenticate using an API Key, include the following three headers in
