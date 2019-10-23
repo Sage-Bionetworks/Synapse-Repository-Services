@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -593,12 +594,17 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
-	 * Test for PLFM-4235. For PLFM-4235, an annotation with a value that is
-	 * larger than the size of the Corresponding string column on the view. The
-	 * view should be set to failed with a human readable error message.
+	 * Test for PLFM-4235. For PLFM-4235, an annotation with a value that is larger
+	 * than the size of the Corresponding string column on the view. The view should
+	 * be set to failed with a human readable error message.
+	 * 
+	 * This test is currently ignored: An experimental fix for PLFM-5869 involved
+	 * truncating values to fit into the view. That means this test will no longer
+	 * fail. If we decide to keep the truncation solution we can remove this test.
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testPLFM_4235() throws Exception {
 		createFileView();
@@ -1227,51 +1233,43 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testAnnotationTooLargeForView() throws Exception {
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		int maxStringSize = stringColumn.getMaximumSize().intValue();
+		String valueUnderSize = StringUtils.repeat("a",maxStringSize-1);
+		// save a double with the string name
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), valueUnderSize, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		String valueAtSize = StringUtils.repeat("a",maxStringSize);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), valueAtSize, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		// two
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		String valueOverSize = StringUtils.repeat("a",maxStringSize+1);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), valueOverSize, AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
 		createFileView();
-		// add a column to the view.
-		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
-		ColumnChange addColumn = new ColumnChange();
-		addColumn.setNewColumnId(stringColumn.getId());
-		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
-		// Add a string annotation to each file in the view
-		List<PartialRow> rowsToAdd = new LinkedList<>();
-		for (String fileId : fileIds) {
-			PartialRow row = new PartialRow();
-			row.setRowId(KeyFactory.stringToKey(fileId));
-			Map<String, String> values = new HashMap<>(1);
-			// Add a string annotation value that is too large for the view.
-			String valueTooLarge = StringUtils.repeat("a",stringColumn.getMaximumSize().intValue()+1);
-			values.put(stringColumn.getId(), valueTooLarge);
-			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
-			row.setEtag(file.getEtag());
-			row.setValues(values);
-			rowsToAdd.add(row);
-		}
-		PartialRowSet rowChange = new PartialRowSet();
-		rowChange.setTableId(fileViewId);
-		rowChange.setRows(rowsToAdd);
-		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
-		rowSetRequest.setToAppend(rowChange);
 
-		// Add all of the parts
-		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
-		transactionRequest.setEntityId(fileViewId);
-		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
-
-		// change the schema and add the values.
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
-				TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-
-		// Query the snapshot
-		Query query = new Query();
-		query.setSql("select * from " + fileViewId);
-		query.setIncludeEntityEtag(true);
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		String sql = "select "+stringColumn.getName()+" from "+fileViewId;
 		int rowCount = 3;
-		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
-		assertNotNull(queryResults);
-		List<Row> rows = extractRows(queryResults);
-		assertEquals(rowCount, rows.size());
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows  = extractRows(results);
+		assertEquals(3, rows.size());
+		assertEquals(valueUnderSize, rows.get(0).getValues().get(0));
+		assertEquals(valueAtSize, rows.get(1).getValues().get(0));
+		// value should be truncated to match the value at size.
+		assertEquals(valueAtSize, rows.get(2).getValues().get(0));
 	}
 	
 	/**

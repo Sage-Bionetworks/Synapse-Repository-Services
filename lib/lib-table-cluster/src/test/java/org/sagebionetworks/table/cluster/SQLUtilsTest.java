@@ -1669,7 +1669,7 @@ public class SQLUtilsTest {
 		boolean isDoubleAbstract = false;
 		// call under test
 		SQLUtils.buildAnnotationSelect(builder, meta, isDoubleAbstract);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', SUBSTRING(A.STRING_VALUE, 1, 50), NULL)) AS _C123_", builder.toString());
 	}
 
 	@Test
@@ -1729,7 +1729,7 @@ public class SQLUtilsTest {
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
-		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C123_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='bar', SUBSTRING(A.STRING_VALUE, 1, 50), NULL)) AS _C123_", builder.toString());
 		assertEquals(Lists.newArrayList("_C123_"), headers);
 	}
 
@@ -1787,7 +1787,7 @@ public class SQLUtilsTest {
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 1, 50), NULL)) AS _C1_,"
 				+ " MAX(R.ID) AS ID"
 				+ " FROM"
 				+ " ENTITY_REPLICATION R"
@@ -1815,7 +1815,7 @@ public class SQLUtilsTest {
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 1, 50), NULL)) AS _C1_,"
 				+ " MAX(R.ID) AS ID"
 				+ " FROM"
 				+ " ENTITY_REPLICATION R"
@@ -1841,7 +1841,7 @@ public class SQLUtilsTest {
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
 				+ " MAX(R.ETAG) AS ETAG,"
 				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
-				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 50), NULL)) AS _C1_,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', SUBSTRING(A.STRING_VALUE, 1, 50), NULL)) AS _C1_,"
 				+ " MAX(R.ID) AS ID"
 				+ " FROM"
 				+ " ENTITY_REPLICATION R"

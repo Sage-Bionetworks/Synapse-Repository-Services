@@ -1423,7 +1423,7 @@ public class SQLUtils {
 		builder.append(" ='").append(meta.getColumnModel().getName()).append("', ");
 		String valueReference = ANNOTATION_REPLICATION_ALIAS+"."+valueColumnName;
 		if(meta.columnModel.getMaximumSize() != null) {
-			builder.append("SUBSTRING(").append(valueReference).append(", ").append(meta.columnModel.getMaximumSize().intValue()).append(")");
+			builder.append("SUBSTRING(").append(valueReference).append(", 1, ").append(meta.columnModel.getMaximumSize().intValue()).append(")");
 		}else {
 			builder.append(valueReference);
 		}
