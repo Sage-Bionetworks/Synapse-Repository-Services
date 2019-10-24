@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 import com.sun.jersey.core.util.Base64;
@@ -17,9 +18,9 @@ public class HttpAuthUtil {
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
-		if (header==null || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) return null;
+		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) return null;
 
-		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length());
+		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length()).trim();
 		String basicCredentials = Base64.base64Decode(base64EncodedCredentials);
 		int colon = basicCredentials.indexOf(":");
 		if (colon>0 && colon<basicCredentials.length()-1) {
@@ -36,8 +37,8 @@ public class HttpAuthUtil {
 	}
 
 	public static String getBearerTokenFromAuthorizationHeader(String header) {
-		if (header==null || !header.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) return null;
-		return header.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
+		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) return null;
+		return header.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length()).trim();
 	}
 	
 	/*
@@ -73,7 +74,7 @@ public class HttpAuthUtil {
 				String headerValue = n.nextElement();
 				headerValues.add(headerValue);
 			}
-			result.put(headerName, headerValues.toArray(new String[] {}));
+			result.put(headerName, headerValues.toArray(new String[headerValues.size()]));
 		}
 		return result;
 	}

@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -31,10 +34,9 @@ public class ModHttpServletRequestTest {
 	private HttpServletRequest originalRequest;
 	
 	@Test
-	void testGetDateHeader() {
+	void testGetDateHeaderOriginalHeaders() {
 		String dateHeaderName = "DATE HEADER";
 		long originalDateValue = 1234567L;
-		long overrideDateValue = 7654321L;
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -47,27 +49,35 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getDateHeader(dateHeaderName)).thenReturn(originalDateValue);
 		// method under test
 		assertEquals(originalDateValue, modifiedRequest.getDateHeader(dateHeaderName));
-		
+
+		verify(originalRequest, times(2)).getDateHeader(dateHeaderName);
+	}
+
+	@Test
+	void testGetDateHeaderOverrideHeaders() {
+		String dateHeaderName = "DATE HEADER";
+		long overrideDateValue = 7654321L;
+
 		// now override the headers
 		Map<String,String[]> headers = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
-		
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
+
 		// check the case of no such header in the overriding list
 		// method under test
 		assertEquals(-1L, modifiedRequest.getDateHeader(dateHeaderName));
 		// what if we DO set a value?
 		headers.put(dateHeaderName, new String[] {""+overrideDateValue, "9999"});
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		// method under test
 		assertEquals(overrideDateValue, modifiedRequest.getDateHeader(dateHeaderName));
-		
+
+		verify(originalRequest, never()).getDateHeader(dateHeaderName);
 	}
 
 	@Test
-	void testGetHeader() {
+	void testGetHeaderOriginalHeaders() {
 		String headerName = "HEADER";
 		String originalValue = "orig";
-		String overrideValue = "override";
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -80,20 +90,29 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getHeader(headerName)).thenReturn(originalValue);
 		// method under test
 		assertEquals(originalValue, modifiedRequest.getHeader(headerName));
+
+		verify(originalRequest, times(2)).getHeader(headerName);
+	}
 		
+	@Test
+	void testGetHeaderOverrideHeaders() {
+			String headerName = "HEADER";
+			String overrideValue = "override";
+
 		// now override the headers
 		Map<String,String[]> headers = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		
 		// check the case of no such header in the overriding list
 		// method under test
 		assertNull(modifiedRequest.getHeader(headerName));
 		// what if we DO set a value?
 		headers.put(headerName, new String[] {overrideValue, "some other value"});
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		// method under test
 		assertEquals(overrideValue, modifiedRequest.getHeader(headerName));
 		
+		verify(originalRequest, never()).getHeader(headerName);
 	}
 	
 	private static <T> boolean enumerationsAreEqual(Enumeration<T> a, Enumeration<T> b ) {
@@ -118,10 +137,9 @@ public class ModHttpServletRequestTest {
 	}
 
 	@Test
-	void testGetHeaders() {
+	void testGetHeadersOriginalHeaders() {
 		String headerName = "HEADER";
 		String[] originalValues = new String[] {"orig1", "orig2"};
-		String[] overrideValues = new String[] {"override1", "override2"};
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -134,26 +152,34 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getHeaders(headerName)).thenReturn(Collections.enumeration(Arrays.asList(originalValues)));
 		// method under test
 		assertTrue(enumerationsAreEqual(Collections.enumeration(Arrays.asList(originalValues)), modifiedRequest.getHeaders(headerName)));
-		
+
+		verify(originalRequest, times(2)).getHeaders(headerName);
+	}
+	
+	@Test
+	void testGetHeadersOverrideHeaders() {
+		String headerName = "HEADER";
+		String[] overrideValues = new String[] {"override1", "override2"};
+
 		// now override the headers
 		Map<String,String[]> headers = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		
 		// check the case of no such header in the overriding list
 		// method under test
 		assertTrue(enumerationsAreEqual(Collections.emptyEnumeration(), modifiedRequest.getHeaders(headerName)));
 		// what if we DO set a value?
 		headers.put(headerName, overrideValues);
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		// method under test
 		assertTrue(enumerationsAreEqual(Collections.enumeration(Arrays.asList(overrideValues)), modifiedRequest.getHeaders(headerName)));
 		
+		verify(originalRequest, never()).getHeader(headerName);
 	}
 
 	@Test
-	void testGetHeaderNames() {
+	void testGetHeaderNamesOriginalHeaders() {
 		String[] originalNames = new String[] {"origName1", "origName2"};
-		String[] overrideNames = new String[] {"overrideName1", "overrideName2"};
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -166,10 +192,18 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getHeaderNames()).thenReturn(Collections.enumeration(Arrays.asList(originalNames)));
 		// method under test
 		assertTrue(enumerationsHaveSameContent_caseInsensitive(Collections.enumeration(Arrays.asList(originalNames)), modifiedRequest.getHeaderNames()));
-		
+
+		verify(originalRequest, times(2)).getHeaderNames();
+	}
+	
+
+	@Test
+	void testGetHeaderNamesOverrideHeaders() {
+		String[] overrideNames = new String[] {"overrideName1", "overrideName2"};
+
 		// now override the headers
 		Map<String,String[]> headers = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		
 		// check the case of no headers in the overriding list
 		// method under test
@@ -178,49 +212,58 @@ public class ModHttpServletRequestTest {
 		for (String headerName : overrideNames) {
 			headers.put(headerName, new String[] {});
 		}
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		// method under test
 		assertTrue(enumerationsHaveSameContent_caseInsensitive(Collections.enumeration(Arrays.asList(overrideNames)), modifiedRequest.getHeaderNames()));
+
+		verify(originalRequest, never()).getHeaderNames();
 	}
 	
 	@Test
-	void testGetIntHeader() {
-		String dateHeaderName = "INT HEADER";
+	void testGetIntHeaderOriginalHeaders() {
+		String headerName = "INT HEADER";
 		int originalIntValue = 1234567;
-		int overrideIntValue = 7654321;
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
-		when(originalRequest.getIntHeader(dateHeaderName)).thenReturn(-1);
+		when(originalRequest.getIntHeader(headerName)).thenReturn(-1);
 		// what if we don't set any value?
 		// method under test
-		assertEquals(-1, modifiedRequest.getIntHeader(dateHeaderName));
+		assertEquals(-1, modifiedRequest.getIntHeader(headerName));
 		
 		// what if we DO set a value?
-		when(originalRequest.getIntHeader(dateHeaderName)).thenReturn(originalIntValue);
+		when(originalRequest.getIntHeader(headerName)).thenReturn(originalIntValue);
 		// method under test
-		assertEquals(originalIntValue, modifiedRequest.getIntHeader(dateHeaderName));
-		
+		assertEquals(originalIntValue, modifiedRequest.getIntHeader(headerName));
+
+		verify(originalRequest, times(2)).getIntHeader(headerName);
+	}
+	
+	@Test
+	void testGetIntHeaderOverrideHeaders() {
+		String headerName = "INT HEADER";
+		int overrideIntValue = 7654321;
+
 		// now override the headers
 		Map<String,String[]> headers = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		
 		// check the case of no such header in the overriding list
 		// method under test
-		assertEquals(-1L, modifiedRequest.getIntHeader(dateHeaderName));
+		assertEquals(-1L, modifiedRequest.getIntHeader(headerName));
 		// what if we DO set a value?
-		headers.put(dateHeaderName, new String[] {""+overrideIntValue, "9999"});
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, headers, null);
+		headers.put(headerName, new String[] {""+overrideIntValue, "9999"});
+		modifiedRequest = new ModHttpServletRequest(originalRequest, headers, null);
 		// method under test
-		assertEquals(overrideIntValue, modifiedRequest.getIntHeader(dateHeaderName));
-		
+		assertEquals(overrideIntValue, modifiedRequest.getIntHeader(headerName));
+
+		verify(originalRequest, never()).getIntHeader(headerName);
 	}
 
 	@Test
-	void testGetParameter() {
+	void testGetParameterOriginalValues() {
 		String parameterName = "PARAMETER";
 		String originalValue = "orig";
-		String overrideValue = "override";
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -233,28 +276,35 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getParameter(parameterName)).thenReturn(originalValue);
 		// method under test
 		assertEquals(originalValue, modifiedRequest.getParameter(parameterName));
-		
+
+		verify(originalRequest, times(2)).getParameter(parameterName);
+	}
+	
+	@Test
+	void testGetParameterOverrideValues() {
+		String parameterName = "PARAMETER";
+		String overrideValue = "override";
 		// now override the parameters
 		Map<String,String[]> parameters = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		
 		// check the case of no such header in the overriding list
 		// method under test
 		assertNull(modifiedRequest.getParameter(parameterName));
 		// what if we DO set a value?
 		parameters.put(parameterName, new String[] {overrideValue, "some other value"});
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		// method under test
 		assertEquals(overrideValue, modifiedRequest.getParameter(parameterName));
 		
+		verify(originalRequest, never()).getParameter(parameterName);
 	}
 	
 	@Test
-	void testGetParameterMap() {
+	void testGetParameterMapOriginalValues() {
 		String parameterName = "parameter";
 
 		Map<String, String[]> originalMap = ImmutableMap.of(parameterName, new String[] {"orig1", "orig2"});
-		Map<String, String[]> overrideMap = ImmutableMap.of(parameterName, new String[] {"override1", "override2"});
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -267,19 +317,27 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getParameterMap()).thenReturn(originalMap);
 		// method under test
 		assertEquals(originalMap, modifiedRequest.getParameterMap());
-		
-		// now override the parameters
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, overrideMap);
-		
-		// method under test
-		assertEquals(overrideMap, modifiedRequest.getParameterMap());
-		
+
+		verify(originalRequest, times(2)).getParameterMap();
 	}
 	
 	@Test
-	void testGetParameterNames() {
+	void testGetParameterMapOverrideValues() {
+		String parameterName = "parameter";
+		Map<String, String[]> overrideMap = ImmutableMap.of(parameterName, new String[] {"override1", "override2"});
+
+		// now override the parameters
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, overrideMap);
+		
+		// method under test
+		assertEquals(overrideMap, modifiedRequest.getParameterMap());	
+
+		verify(originalRequest, never()).getParameterMap();
+	}
+	
+	@Test
+	void testGetParameterNamesOriginalCValues() {
 		String[] originalNames = new String[] {"origName1", "origName2"};
-		String[] overrideNames = new String[] {"overrideName1", "overrideName2"};
 
 		// check the case that we do not override the parameters
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -292,10 +350,17 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getParameterNames()).thenReturn(Collections.enumeration(Arrays.asList(originalNames)));
 		// method under test
 		assertTrue(enumerationsHaveSameContent_caseInsensitive(Collections.enumeration(Arrays.asList(originalNames)), modifiedRequest.getParameterNames()));
-		
+
+		verify(originalRequest, times(2)).getParameterNames();
+	}
+	
+	@Test
+	void testGetParameterNamesOverrideValues() {
+		String[] overrideNames = new String[] {"overrideName1", "overrideName2"};
+
 		// now override the parameters
 		Map<String,String[]> parameters = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		
 		// check the case of no headers in the overriding list
 		// method under test
@@ -304,17 +369,18 @@ public class ModHttpServletRequestTest {
 		for (String parameterName : overrideNames) {
 			parameters.put(parameterName, new String[] {});
 		}
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		// method under test
 		assertTrue(enumerationsHaveSameContent_caseInsensitive(Collections.enumeration(Arrays.asList(overrideNames)), modifiedRequest.getParameterNames()));
+
+		verify(originalRequest, never()).getParameterNames();
 	}
 	
 
 	@Test
-	void testGetParameterValues() {
+	void testGetParameterValuesOriginalValues() {
 		String parameterName = "parameter";
 		String[] originalValues = new String[] {"orig1","orig2"};
-		String[] overrideValues = new String[] {"override1","override2"};
 
 		// check the case that we do not override the headers
 		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, null);
@@ -327,20 +393,28 @@ public class ModHttpServletRequestTest {
 		when(originalRequest.getParameterValues(parameterName)).thenReturn(originalValues);
 		// method under test
 		assertEquals(originalValues, modifiedRequest.getParameterValues(parameterName));
-		
+
+		verify(originalRequest, times(2)).getParameterValues(parameterName);
+	}
+
+	@Test
+	void testGetParameterValuesOverrideValues() {
+		String parameterName = "parameter";
+		String[] overrideValues = new String[] {"override1","override2"};
 		// now override the headers
 		Map<String,String[]> parameters = new HashMap<String,String[]>();
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		ModHttpServletRequest modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		
 		// check the case of no such header in the overriding list
 		// method under test
 		assertNull(modifiedRequest.getParameterValues(parameterName));
 		// what if we DO set a value?
 		parameters.put(parameterName, overrideValues);
-		modifiedRequest = new ModHttpServletRequest(modifiedRequest, null, parameters);
+		modifiedRequest = new ModHttpServletRequest(originalRequest, null, parameters);
 		// method under test
-		assertEquals(overrideValues, modifiedRequest.getParameterValues(parameterName));
-		
+		assertEquals(overrideValues, modifiedRequest.getParameterValues(parameterName));		
+
+		verify(originalRequest, never()).getParameterValues(parameterName);
 	}
 	
 }

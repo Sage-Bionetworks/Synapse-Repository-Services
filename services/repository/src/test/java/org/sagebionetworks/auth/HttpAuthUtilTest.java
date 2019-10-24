@@ -35,6 +35,10 @@ class HttpAuthUtilTest {
 		// method under test
 		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
 
+		when(httpRequest.getHeader("Authorization")).thenReturn(" ");
+		// method under test
+		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+
 		// not Basic Authentication
 		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer 1a2b3c");
 		// method under test
@@ -53,6 +57,13 @@ class HttpAuthUtilTest {
 		
 		// method under test
 		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+
+		// extra white space
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic   \t"+Base64.encode(username+":"+password)+"\n\n    \t");
+	
+		// method under test
+		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+	
 	}
 
 	@Test
@@ -72,9 +83,19 @@ class HttpAuthUtilTest {
 	void testGetBearerTokenFromAuthorizationHeader() {
 		// method under test
 		assertNull(HttpAuthUtil.getBearerTokenFromAuthorizationHeader(null));
+
+		// method under test
+		assertNull(HttpAuthUtil.getBearerTokenFromAuthorizationHeader(" "));
+
 		// method under test
 		assertNull(HttpAuthUtil.getBearerTokenFromAuthorizationHeader("Basic xxx"));
+		
+		// method under test
 		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerTokenFromAuthorizationHeader("Bearer "+BEARER_TOKEN));
+		
+		// what if there's extra white space?
+		// method under test
+		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerTokenFromAuthorizationHeader("Bearer \t\t "+BEARER_TOKEN+"   "));
 	}
 
 	@Test
