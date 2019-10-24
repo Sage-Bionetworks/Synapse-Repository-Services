@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +33,7 @@ public class ControllerUtils {
 	public static String REQUEST_MAPPING_VALUE = RequestMapping.class.getName()+".value";
 	public static String REQUEST_MAPPING_METHOD = RequestMapping.class.getName()+".method";
 	public static String REQUEST_PARAMETER_VALUE = RequestParam.class.getName()+".value";
+	public static String REQUEST_HEADER_VALUE = RequestHeader.class.getName()+".value";
 	public static String REQUEST_PARAMETER_REQUIRED = RequestParam.class.getName()+".required";
 	
 	public static String CONTROLLER_INFO_DISPLAY_NAME = ControllerInfo.class.getName()+".displayName";
@@ -153,7 +155,7 @@ public class ControllerUtils {
         					methodModel.addPathVariable(paramModel);
         					paramMap.put(param.name(), paramModel);
         				}else if(RequestParam.class.getName().equals(qualifiedName)){
-        					// if this is the userId parameter then we do now show it,
+        					// if this is the userId parameter then we do not show it,
         					// rather it means this method requires authentication.
         					if(AuthorizationConstants.USER_ID_PARAM.equals(annotationMap.get(REQUEST_PARAMETER_VALUE))){
         						methodModel.setIsAuthenticationRequired(true);
@@ -169,6 +171,12 @@ public class ControllerUtils {
             					paramModel.setIsOptional(!(isRequired(annotationMap)));
             					methodModel.addParameter(paramModel);
             					paramMap.put(param.name(), paramModel);
+        					}
+        				} else if (RequestHeader.class.getName().equals(qualifiedName)) {
+        					// if this is the authorization header we do not show it,
+        					// rather it means that this method requires authentication
+        					if (AuthorizationConstants.AUTHORIZATION_HEADER_NAME.equals(annotationMap.get(REQUEST_HEADER_VALUE))) {
+        						methodModel.setIsAuthenticationRequired(true);
         					}
         				}
         			}

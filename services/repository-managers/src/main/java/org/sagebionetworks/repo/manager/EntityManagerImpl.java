@@ -270,11 +270,17 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
-		if (updated == null)
+		if (updated == null) {
 			throw new IllegalArgumentException("Entity cannot be null");
-		if (updated.getId() == null)
-			throw new IllegalArgumentException(
-					"The updated Entity cannot have a null ID");
+		}
+		
+		if (updated.getId() == null) {
+			throw new IllegalArgumentException("The id of the entity should be present");
+		}
+		
+		if (updated.getParentId() == null) {
+			throw new IllegalArgumentException("The parentId of the entity should be present");
+		}
 
 		Node node = nodeManager.get(userInfo, updated.getId());
 		// Now get the annotations for this node

@@ -56,8 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -119,6 +117,9 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -411,6 +412,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	};
 
+	private static final RowMapper<Node> NODE_MAPPER = new NodeMapper();
+	
 	// This is better suited for JDBC query.
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -562,7 +565,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Node getNode(String id){
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, new NodeMapper(), KeyFactory.stringToKey(id));
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, NODE_MAPPER, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -573,7 +576,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, new NodeMapper(),versionNumber, KeyFactory.stringToKey(id));
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER,versionNumber, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
@@ -1467,10 +1470,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
-				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
-		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be at least 0");
 		if(projectIds.isEmpty()){
 			return new LinkedList<>();
 		}
@@ -1495,15 +1498,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type){
 		switch (type) {
-		case MY_PROJECTS:
-		case OTHER_USER_PROJECTS:
-		case MY_TEAM_PROJECTS:
-		case TEAM_PROJECTS:
+		case ALL:
+		case TEAM:
 			return "";
-		case MY_CREATED_PROJECTS:
+		case CREATED:
 			parameters.put(BIND_CREATED_BY, userId);
 			return SELECT_CREATED;
-		case MY_PARTICIPATED_PROJECTS:
+		case PARTICIPATED:
 			parameters.put(BIND_CREATED_BY, userId);
 			return SELECT_NOT_CREATED;
 		default:

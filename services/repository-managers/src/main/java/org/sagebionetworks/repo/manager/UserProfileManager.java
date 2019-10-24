@@ -9,10 +9,10 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -93,11 +93,43 @@ public interface UserProfileManager {
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 
+	
 	/**
-	 * Retrieve list of projects, paginated
+	 * Retrieve list of projects and activity history for 'userToGetInfoFor' in each project.
+	 * The results are paginated and sorted.  The content of the returned list depends 
+	 * on the 'type' parameter.  The result for each type is:
+	 * 
+	 * if type is ALL: the projects that the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member
+	 * 
+	 * if type is CREATED: the projects that the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member, and
+	 * which they have created
+	 * 
+	 * if type is PARTICIPATED: the projects the user has READ access to by virtue of being 
+	 * included in the project's ACL personally or via a team in which they are a member, but which
+	 * the user has not created
+	 * 
+	 * if type is TEAM: the projects that the user has READ access by virtue of being 
+	 * included in the project's ACL via the team given by the 'teamId' parameter or, if
+	 * omitted, via any team the user is a member of
+	 * 
+	 * The results include only the projects that 'userInfo'  also has READ access to
+	 * 
+	 * @param userInfo
+	 * @param userToGetInfoFor
+	 * @param teamId
+	 * @param type
+	 * @param sortColumn
+	 * @param sortDirection
+	 * @param nextPageToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 	
 	/**

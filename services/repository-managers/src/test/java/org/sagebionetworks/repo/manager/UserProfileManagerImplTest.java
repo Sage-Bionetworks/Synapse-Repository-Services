@@ -14,17 +14,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -241,14 +241,12 @@ public class UserProfileManagerImplTest {
 	 * @return
 	 */
 	private List<ProjectHeader> getProjects(UserInfo caller, UserInfo lookingAt) {
-		Team teamToFetch = null;
-		ProjectListType type = ProjectListType.OTHER_USER_PROJECTS;
+		Long teamId = null;
+		ProjectListType type = ProjectListType.ALL;
 		ProjectListSortColumn sortColumn = ProjectListSortColumn.PROJECT_NAME;
 		SortDirection sortDirection = SortDirection.ASC;
-		Long limit = 100L;
-		Long offset = 0L;
-		PaginatedResults<ProjectHeader> paginated = userProfileManager.getProjects(caller, lookingAt, teamToFetch, type,
-				sortColumn, sortDirection, limit, offset);
+		ProjectHeaderList paginated = userProfileManager.getProjects(caller, lookingAt, teamId, type,
+				sortColumn, sortDirection, (new NextPageToken(null)).toToken());
 		if (paginated != null) {
 			return paginated.getResults();
 		}

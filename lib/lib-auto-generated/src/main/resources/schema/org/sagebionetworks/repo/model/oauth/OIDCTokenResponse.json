@@ -11,7 +11,7 @@
 		},
 		"id_token": {
 			"type": "string",
-			"description": "The Open ID Connect IT Token"
+			"description": "The Open ID Connect ID token"
 		}
 	}
 }

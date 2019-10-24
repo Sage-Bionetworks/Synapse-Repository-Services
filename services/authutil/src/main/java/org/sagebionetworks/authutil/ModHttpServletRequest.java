@@ -3,7 +3,6 @@ package org.sagebionetworks.authutil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,8 +32,8 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 			Map<String,String[]> params
 			) {
 		super(request);
-		this.headers=new CaseInsensitiveMap<String,String[]>(headers);
-		this.params=new CaseInsensitiveMap<String,String[]>(params);
+		this.headers=headers==null?null:new CaseInsensitiveMap<String,String[]>(headers);
+		this.params=params==null?null:new CaseInsensitiveMap<String,String[]>(params);
 	}
 	
 	private static String getFirstValue(String[] values) {
@@ -72,7 +71,7 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
     public Enumeration<String> getHeaders(String name) {
 		if (headers==null) return super.getHeaders(name);
 		String[] values = this.headers.get(name);
-		if (values==null) return null;
+		if (values==null) return Collections.emptyEnumeration();
 		return Collections.enumeration(Arrays.asList(values));
     }  
 
@@ -113,11 +112,8 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 	@Override
 	public Enumeration<String> getParameterNames() {
 		if (params==null) return (Enumeration<String>)super.getParameterNames();
-		final Iterator<String> it = params.keySet().iterator();
-		return new Enumeration<String>() {
-			public boolean hasMoreElements() { return it.hasNext();}
-			public String nextElement() {return it.next();}
-		};
+	    return Collections.enumeration(params.keySet());
+
 	}
 	
 	@Override

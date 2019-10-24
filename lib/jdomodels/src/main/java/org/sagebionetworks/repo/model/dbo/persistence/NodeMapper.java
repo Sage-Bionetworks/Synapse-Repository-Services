@@ -13,14 +13,14 @@ import org.springframework.jdbc.core.RowMapper;
  * 
  */
 public class NodeMapper implements RowMapper<Node> {
+	
+	private static final RowMapper<DBONode> NODE_MAPPER = new DBONodeMapper();
+	private static final RowMapper<DBORevision> REVISION_MAPPER = new DBORevisionMapper(false);
 
 	@Override
 	public Node mapRow(ResultSet rs, int rowNum) throws SQLException {
-		RowMapper<DBONode> nodeMapper = new DBONodeMapper();
-		boolean includeAnnotations = false;
-		RowMapper<DBORevision> revisionMapper = new DBORevisionMapper(includeAnnotations);
-		DBONode node = nodeMapper.mapRow(rs, rowNum);
-		DBORevision rev = revisionMapper.mapRow(rs, rowNum);
+		DBONode node = NODE_MAPPER.mapRow(rs, rowNum);
+		DBORevision rev = REVISION_MAPPER.mapRow(rs, rowNum);
 		Node result = NodeUtils.copyFromJDO(node, rev);
 		/*
 		 * Use the Zero etag for any version that is not the current version.

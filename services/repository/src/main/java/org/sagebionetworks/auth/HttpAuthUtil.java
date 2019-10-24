@@ -41,7 +41,7 @@ public class HttpAuthUtil {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 		return getBearerTokenFromAuthorizationHeader(header);
 	}
-	
+
 	public static String getBearerTokenFromAuthorizationHeader(String header) {
 		if (header==null || !header.startsWith(AuthorizationConstants.BEARER_TOKEN_HEADER)) return null;
 		return header.substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
@@ -55,8 +55,17 @@ public class HttpAuthUtil {
 				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
 	}
 	
-	private static final List<String> AUTHORIZATION_HEADERS = 
-			Arrays.asList(new String[] {}); // TODO Authorization, sessionToken, HMAC, time stamp, user name, what else??
+
+	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
+			Arrays.asList(new String[] {
+					AuthorizationConstants.AUTHORIZATION_HEADER_NAME.toLowerCase(),
+					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
+					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
+					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
+					AuthorizationConstants.SIGNATURE.toLowerCase(),
+					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase()
+			});
+	
 	/*
 	 * Get all the request headers *except* the authorization headers used by Synapse
 	 */
@@ -64,7 +73,7 @@ public class HttpAuthUtil {
 		Map<String, String[]> result = new HashMap<String, String[]> ();
 		for (Enumeration<String> e = request.getHeaderNames(); e.hasMoreElements();) {
 			String headerName = e.nextElement();
-			if (AUTHORIZATION_HEADERS.contains(headerName)) {
+			if (AUTHORIZATION_HEADERS_LOWER_CASE.contains(headerName.toLowerCase())) {
 				continue;
 			}
 			List<String> headerValues = new ArrayList<String>();
