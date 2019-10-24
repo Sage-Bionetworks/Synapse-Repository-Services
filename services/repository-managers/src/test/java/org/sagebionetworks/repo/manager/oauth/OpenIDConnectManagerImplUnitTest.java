@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProv
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -75,6 +77,11 @@ import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jwts;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenIDConnectManagerImplUnitTest {
@@ -113,6 +120,9 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Mock
 	private UserManager mockUserManager;
 	
+	@Mock
+	Jwt<JwsHeader,Claims> mockJWT;
+
 	@Mock
 	private Clock mockClock;
 	
@@ -754,5 +764,56 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email));
 		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
 	}
+	
+	@Test
+	public void testGetUserAuthorization() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = Collections.singletonList(OAuthScope.openid);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+		
+		UserInfo userInfo = new UserInfo(false, USER_ID_LONG);
+		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
+		
+		// method under test
+		UserAuthorization actual = openIDConnectManagerImpl.getUserAuthorization(token);
+		
+		verify(mockJWT).getBody();
+		verify(mockUserManager).getUserInfo(USER_ID_LONG);
+		
+		assertEquals(oidcClaims, actual.getOidcClaims());
+		assertEquals(scopes, actual.getScopes());
+		assertEquals(userInfo, actual.getUserInfo());
+	}
+
+	@Test
+	public void testGetUserAuthorizationBadToken() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenThrow(IllegalArgumentException.class);
+		
+		// method under test
+		assertThrows(UnauthenticatedException.class, () -> openIDConnectManagerImpl.getUserAuthorization(token));
+	}
+	
+	@Test
+	public void testGetUserAuthorizationNoAudience() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		ClaimsJsonUtil.addAccessClaims(Collections.EMPTY_LIST, Collections.EMPTY_MAP, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		
+		// method under test
+		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.getUserAuthorization(token));
+	}
+
 
 }
