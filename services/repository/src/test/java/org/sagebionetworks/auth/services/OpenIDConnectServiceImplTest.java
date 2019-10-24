@@ -4,8 +4,8 @@ package org.sagebionetworks.auth.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -108,6 +107,8 @@ public class OpenIDConnectServiceImplTest {
 		// method under test
 		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
 		
+		verify(oidcManager).getUserAuthorization(accessToken);
+		verify(oidcTokenHelper).parseJWT(accessToken);
 		verify(oidcManager).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 	
@@ -123,14 +124,10 @@ public class OpenIDConnectServiceImplTest {
 		UserAuthorization userAuthorization = new UserAuthorization();
 		when(oidcManager.getUserAuthorization(accessToken)).thenThrow(new UnauthenticatedException("bad token"));
 
-		try {
-			// method under test
-			oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
-			fail("UnauthenticatedException expected");
-		} catch (UnauthenticatedException e) {
-			// as expected
-		}
+		assertThrows(UnauthenticatedException.class, ()->oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT));
 
+		verify(oidcManager).getUserAuthorization(accessToken);
+		verify(oidcTokenHelper, never()).parseJWT(accessToken);
 		verify(oidcManager, never()).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 }
