@@ -10,12 +10,13 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 
 /*
  * This object holds the scopes and claims that a user has been authorized to access,
- * along with the client
+ * along with the client info
  */
 public class UserAuthorization {
 	private List<OAuthScope> scopes;
 	private Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims;
 	private UserInfo userInfo;
+	
 	public List<OAuthScope> getScopes() {
 		return scopes;
 	}
@@ -69,9 +70,4 @@ public class UserAuthorization {
 			return false;
 		return true;
 	}
-	
-	
-	
-
-
 }

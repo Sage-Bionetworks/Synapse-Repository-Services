@@ -18,6 +18,7 @@ import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -210,7 +211,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String ppid(String userId, String clientId) {
-		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return userId;
 		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
@@ -218,7 +219,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public String getUserIdFromPPID(String ppid, String clientId) {
-		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
+		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return ppid;
 		}
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
@@ -360,7 +361,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		// and then sends a request with Accept: application/json or vice versa (registers with no 
 		// algorithm and then sends a request with Accept: application/jwt).
 		boolean returnJson;
-		if (oauthClientId.equals(OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID)) {
+		if (oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
 			returnJson = true;
 		} else {
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);

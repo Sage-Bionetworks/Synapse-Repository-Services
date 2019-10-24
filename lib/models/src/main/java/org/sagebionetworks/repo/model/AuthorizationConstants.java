@@ -194,6 +194,12 @@ public class AuthorizationConstants {
 	
 	
 	/**
+	 * The oauth 'client id' representing Synapse itself
+	 */
+	public static final String SYNAPSE_OAUTH_CLIENT_ID = "0";
+	
+	
+	/**
 	 * Request parameters for the Synapse OAuth server, defined by
 	 * https://openid.net/specs/openid-connect-core-1_0.html#RefreshingAccessToken
 	 */

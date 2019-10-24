@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -474,7 +475,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testPPIDForSynapse() {
 		// method under test
-		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID);
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 		assertEquals(USER_ID, ppid);
 	}
 
@@ -489,7 +490,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetUserIdFromPPIDForSynapse() {
 		// method under test		
-		assertEquals(USER_ID, openIDConnectManagerImpl.getUserIdFromPPID(USER_ID, OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID));
+		assertEquals(USER_ID, openIDConnectManagerImpl.getUserIdFromPPID(USER_ID, AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID));
 	}
 	
 	@Test

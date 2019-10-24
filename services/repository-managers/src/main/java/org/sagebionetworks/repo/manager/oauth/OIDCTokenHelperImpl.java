@@ -126,7 +126,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	public String createTotalAccessToken(Long principalId) {
 		String issuer = null; // doesn't matter -- it's only important to the client
 		String subject = principalId.toString(); // we don't encrypt
-		String oauthClientId = ""+OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID; // TODO circular dependency?
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
@@ -148,7 +148,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	public String createAnonymousAccessToken() {
 		String issuer = null; // doesn't matter -- it's only important to the client
 		String subject = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(); // we don't encrypt
-		String oauthClientId = ""+OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID; // TODO circular dependency?
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Collections.EMPTY_LIST;
 		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
