@@ -126,12 +126,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	ViewSnapshotDao viewSnapshotDao;
 	
 	/*
-	 * Cache of default ColumnModels for views.  Once created, these columns will not change
-	 * and will be the same across the cluster.
-	 */
-	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
-	
-	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableRowManager#getTableStatusOrCreateIfNotExists(java.lang.String)
 	 */
@@ -491,15 +485,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
-		// check the cache.
-		ColumnModel model = defaultColumnCache.get(field);
-		if(model == null){
-			// not in the cache so create the column.
-			// this call is idempotent so we won't end up creating multiple ColumnModels with same configuration
-			model = columnModelManager.createColumnModel(field.getColumnModel());
-			defaultColumnCache.put(field, model);
-		}
-		return model;
+		/*
+		 * We no longer cache these columns in memory.  Caching has caused
+		 * numerous issues such as PLFM-5249 and PLFM-5902.
+		 */
+		return columnModelManager.createColumnModel(field.getColumnModel());
 	}
 	
 	@Override
