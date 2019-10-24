@@ -2,18 +2,21 @@ package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.ImmutableList;
 import com.sun.syndication.io.impl.Base64; 
@@ -24,6 +27,12 @@ class HttpAuthUtilTest {
 
 	@Mock
 	private HttpServletRequest httpRequest;
+	
+	@Mock
+	private HttpServletResponse httpResponse;
+	
+	@Mock
+	private PrintWriter mockWriter;
 	
 
 	@Test
@@ -120,6 +129,36 @@ class HttpAuthUtilTest {
 		String[] values = actual.get(nonAuthHeader);
 		assertEquals(1, values.length);
 		assertEquals("application/json", values[0]);
+	}
+	
+	@Test
+	void testRejectWithStatus() throws Exception {
+		HttpStatus status = HttpStatus.BAD_REQUEST;
+		
+		when(httpResponse.getWriter()).thenReturn(mockWriter);
+		
+		// method under test
+		HttpAuthUtil.reject(httpResponse, "bad request", status);
+		
+		verify(httpResponse).setStatus(status.value());
+		verify(httpResponse).setContentType("application/json");
+		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(mockWriter).println("{\"reason\":\"bad request\"}");
+		
+	}
+
+	@Test
+	void testRejectUnauthorized() throws Exception {
+		when(httpResponse.getWriter()).thenReturn(mockWriter);
+		
+		// method under test
+		HttpAuthUtil.reject(httpResponse, "missing token");
+		
+		verify(httpResponse).setStatus(401);
+		verify(httpResponse).setContentType("application/json");
+		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(mockWriter).println("{\"reason\":\"missing token\"}");
+		
 	}
 
 }
