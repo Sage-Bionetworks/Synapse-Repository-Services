@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.PrintWriter;
 import java.util.Collections;
 
 import javax.servlet.FilterChain;
@@ -41,8 +42,9 @@ public class OAuthClientAuthFilterTest {
 	@Mock
 	private HttpServletResponse mockHttpResponse;
 	
+	
 	@Mock
-	private ServletOutputStream mockServletOutputStream;
+	private PrintWriter mockPrintWriter;
 	
 	@Mock
 	private FilterChain mockFilterChain;
@@ -59,6 +61,7 @@ public class OAuthClientAuthFilterTest {
 	public void setUp() throws Exception {
 		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 	}
 
 	@Test
@@ -78,7 +81,7 @@ public class OAuthClientAuthFilterTest {
 
 	@Test
 	public void testFilter_invalid_Credentials() throws Exception {
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(false);
 
 		// method under test
@@ -89,13 +92,13 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
 	}
 
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -105,7 +108,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
 	}
 
 }

@@ -14,7 +14,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.json.simple.JSONObject;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -251,24 +250,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return result;
 	}
-	
-	// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
-	// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
-	// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
-	// encoded JSON object using the application/json content-type."
-	// 
-	// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
-	// and then sends a request with Accept: application/json or vice versa (registers with no 
-	// algorithm and then sends a request with Accept: application/jwt).
-	private boolean returnJson(String oauthClientId) {
-		if (oauthClientId.equals(OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID)) {
-			return true;
-		} else {
-			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
-			return oauthClient.getUserinfo_signed_response_alg()==null;
-		}
-	}
-	
+
 	@Override
 	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
 		ValidateArgument.required(code, "Authorization Code");

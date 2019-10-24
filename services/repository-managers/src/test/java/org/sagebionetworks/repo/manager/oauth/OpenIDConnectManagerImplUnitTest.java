@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

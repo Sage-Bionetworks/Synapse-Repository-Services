@@ -65,9 +65,6 @@ public class AuthenticationFilterTest {
 	private HttpServletResponse mockHttpResponse;
 	
 	@Mock
-	private ServletOutputStream mockServletOutputStream;
-	
-	@Mock
 	private PrintWriter mockPrintWriter;
 	
 	@Mock
@@ -104,7 +101,6 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(headerNames));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(bearerTokenHeader)));
 		
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
