@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -26,14 +27,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -75,7 +76,7 @@ import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class OpenIDConnectManagerImplUnitTest {
 	private static final String USER_ID = "101";
 	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
@@ -149,9 +150,9 @@ public class OpenIDConnectManagerImplUnitTest {
 	private OAuthClient oauthClient;
 	private Map<OIDCClaimName, OIDCClaimProvider> mockClaimProviders;
 	private UserProfile userProfile;
+	private VerificationSubmission verificationSubmission;
 	
-	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
@@ -165,30 +166,15 @@ public class OpenIDConnectManagerImplUnitTest {
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
 
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
-		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(true);
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
-		
-		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
-		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
-		
 		clientSpecificEncodingSecret = EncryptionUtils.newSecretKey();
-		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		this.ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
 		
 		now = new Date();
-		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
-		
-		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
-		
-		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
-		when(mockClock.now()).thenReturn(new Date());
 
 		// we don't wire up all the claim providers, just a representative sample returning a variety of object types
 		mockClaimProviders = new HashMap<OIDCClaimName, OIDCClaimProvider>();
 		userProfile = new UserProfile();
 		userProfile.setEmails(ImmutableList.of(EMAIL, "secondary email"));
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		mockClaimProviders.put(OIDCClaimName.email, mockEmailClaimProvider);
 		
 		mockClaimProviders.put(OIDCClaimName.email_verified, mockEmailVerifiedClaimProvider);
@@ -198,13 +184,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		VerificationState verificationState = new VerificationState();
 		verificationState.setState(VerificationStateEnum.APPROVED);
 		verificationState.setCreatedOn(now);
-		VerificationSubmission verificationSubmission = new VerificationSubmission();
+		verificationSubmission = new VerificationSubmission();
 		verificationSubmission.setStateHistory(Collections.singletonList(verificationState));
-		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		mockClaimProviders.put(OIDCClaimName.validated_at, mockValidatedAtClaimProvider);
 		
-		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
-
 		mockClaimProviders.put(OIDCClaimName.team, mockTeamClaimProvider);
 		
 		openIDConnectManagerImpl.setClaimProviders(mockClaimProviders);
@@ -326,6 +309,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_IdTokenClaims() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
@@ -342,6 +327,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_UserInfoClaims() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
 		OIDCAuthorizationRequestDescription description = 
 				// method under test
@@ -358,6 +345,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_NoOAuthScope() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null);
 		OIDCAuthorizationRequestDescription description = 
@@ -411,6 +400,12 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testAuthorizeClient() throws Exception {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.now()).thenReturn(new Date());
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
@@ -467,6 +462,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testPPID() {
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+
 		// method under test
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
 		assertEquals(USER_ID, EncryptionUtils.decrypt(ppid, clientSpecificEncodingSecret));
@@ -481,6 +478,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetUserIdFromPPID() {
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
 
 		// method under test		
@@ -495,6 +494,9 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetUserInfo_internal() {
+		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
 		
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.email, null);
@@ -544,6 +546,16 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken() {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(ImmutableList.of("id_token", "userinfo"));
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
@@ -583,6 +595,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetAccessToken_invalidAuthCode() {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+
 		String incorrectlyEncryptedCode = "some invalid code";
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(incorrectlyEncryptedCode)).thenThrow(new RuntimeException());
 		try {
@@ -606,16 +620,20 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken_expiredAuthCode() throws Exception {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		// let's doctor the authorization time stamp to be long ago
 		when(mockClock.now()).thenReturn(new Date(System.currentTimeMillis()-100000L));
+		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		
-		// now let's doctor the authorization time stamp:
 		String code = authResponse.getAccess_code();
 
 		// now let's return the clock to normal, making the token expire
-		when(mockClock.now()).thenReturn(new Date());
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 
 		// method under test
 		try {
@@ -629,6 +647,13 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken_mismatchRedirectURI() {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
@@ -644,6 +669,14 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetAccessToken_noOpenIdScope() {
+		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockClock.now()).thenReturn(new Date());
+
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null); // omit the 'openid' scope.  This should suppress the idToken
 
@@ -679,6 +712,11 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetUserInfoAsMap() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+
 		// if the client omits a signing algorithm it means it wants the UserInfo as json
 		oauthClient.setUserinfo_signed_response_alg(null);
 		
@@ -692,6 +730,12 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetUserInfoAsJWT() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+
 		// if the client sets a signing algorithm it means it wants the UserInfo json
 		// to be encoded as a JWT and signed
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);

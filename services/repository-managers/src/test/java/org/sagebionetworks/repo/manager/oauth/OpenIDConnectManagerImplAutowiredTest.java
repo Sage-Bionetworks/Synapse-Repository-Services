@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -31,13 +32,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class OpenIDConnectManagerImplAutowiredTest {
 	private static final String CLIENT_NAME = "some client";
@@ -63,7 +65,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	private UserInfo userInfo;
 	private OAuthClient oauthClient;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		DBOCredential cred = new DBOCredential();
@@ -93,7 +95,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		try {
 			oauthClientManager.deleteOpenIDConnectClient(adminUserInfo, oauthClient.getClient_id());
