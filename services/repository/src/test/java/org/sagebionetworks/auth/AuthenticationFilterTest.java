@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -104,6 +105,7 @@ public class AuthenticationFilterTest {
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
+		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
 		PrincipalAlias pa = new PrincipalAlias();
 		pa.setPrincipalId(userId);
 		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);

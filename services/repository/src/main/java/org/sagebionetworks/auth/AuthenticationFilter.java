@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,13 +23,9 @@ import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +43,7 @@ public class AuthenticationFilter implements Filter {
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+	private static final String TOU_UNSIGNED_REASON = "Terms of use have not been signed.";
 
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -57,8 +53,6 @@ public class AuthenticationFilter implements Filter {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
-
-	private boolean allowAnonymous = false;
 
 	@Override
 	public void destroy() { }
@@ -120,33 +114,27 @@ public class AuthenticationFilter implements Filter {
 			}
 		}
 
-		if (userId == null && !allowAnonymous) {
-			String reason = "The session token provided was missing, invalid or expired.";
-			HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason);
-			log.warn("Anonymous not allowed");
-			return;
-		}
-
 		// If the user has been identified, check if they have accepted the terms of use
 		if (userId != null) {
-			boolean toUCheck = false;
-			try {
-				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId);
-			} catch (NotFoundException e) {
-				String reason = "User " + userId + " does not exist";
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
-				return;
-			}
-			if (!toUCheck) {
-				String reason = "Terms of use have not been signed";
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;
 			}	
-		} else if (bearerToken==null) {
-			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-			// there is no bearer token (as an Auth or sessionToken header) or digital signature
-			// so create an 'anonymous' bearer token
-			bearerToken = oidcTokenHelper.createAnonymousAccessToken();
+		} else if (bearerToken!=null) {
+			try {
+				if (!authenticationService.hasUserAcceptedTermsOfUse(bearerToken)) {
+					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
+					return;
+				}
+			} catch (Exception e) {
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage(), HttpStatus.FORBIDDEN);
+				return;
+			}	
+		} else { // anonymous
+				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+				// there is no bearer token (as an Auth or sessionToken header) or digital signature
+				// so create an 'anonymous' bearer token
+				bearerToken = oidcTokenHelper.createAnonymousAccessToken();
 		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
@@ -205,7 +193,7 @@ public class AuthenticationFilter implements Filter {
 		int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
 
 		if (Math.abs(timeDiff) > MAX_TIMESTAMP_DIFF_MIN) {
-			throw new UnauthenticatedException("Timestamp in request, " + date + ", is out of date");
+			throw new UnauthenticatedException("Timestamp in request, " + date + ", is out of date.");
 		}
 
 		String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, uri, date, secretKey);
@@ -215,13 +203,6 @@ public class AuthenticationFilter implements Filter {
 	}
 
 	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-		Enumeration<String> paramNames = filterConfig.getInitParameterNames();
-		while (paramNames.hasMoreElements()) {
-			String paramName = paramNames.nextElement();
-			String paramValue = filterConfig.getInitParameter(paramName);
-			if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
-		}
-	}
+	public void init(FilterConfig filterConfig) throws ServletException {}
 }
 

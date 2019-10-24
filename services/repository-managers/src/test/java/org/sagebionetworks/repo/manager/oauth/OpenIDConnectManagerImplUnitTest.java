@@ -815,5 +815,23 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.getUserAuthorization(token));
 	}
 
+	@Test
+	public void testGetUserId() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		ClaimsJsonUtil.addAccessClaims(Collections.EMPTY_LIST, Collections.EMPTY_MAP, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		
+		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+
+		// method under test
+		assertEquals(USER_ID, openIDConnectManagerImpl.getUserId(token));
+		
+		verify(oidcTokenHelper).parseJWT(token);
+	}
 
 }

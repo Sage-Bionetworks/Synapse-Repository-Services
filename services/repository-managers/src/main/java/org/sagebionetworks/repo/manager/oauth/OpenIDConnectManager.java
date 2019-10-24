@@ -36,6 +36,14 @@ public interface OpenIDConnectManager {
 	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
 	
 	/**
+	 * Given an OAuth access token with an audience and subject, 'decode' the
+	 * subject to find the Synapse user id and return it
+	 * @param accessToken
+	 * @return
+	 */
+	String getUserId(String accessToken);
+	
+	/**
 	 * Parse the given JWT token and return the user identity, groups,
 	 * and scopes/claims authorized by the token.
 	 * 

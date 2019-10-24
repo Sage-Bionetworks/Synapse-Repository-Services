@@ -226,6 +226,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
 	
+	public String getUserId(String jwtToken) {
+		Claims claims = oidcTokenHelper.parseJWT(jwtToken).getBody();
+		return getUserIdFromPPID(claims.getSubject(), claims.getAudience());
+	}
+
+	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token

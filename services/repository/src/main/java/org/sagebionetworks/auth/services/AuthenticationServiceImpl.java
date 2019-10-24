@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -40,6 +41,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private MessageManager messageManager;
+
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 
 	@Override
 	@WriteTransaction
@@ -101,11 +105,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public void deleteSecretKey(Long principalId) throws NotFoundException {
 		authManager.changeSecretKey(principalId);
 	}
-
 	
 	@Override
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
 		return authManager.hasUserAcceptedTermsOfUse(userId);
+	}
+
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(String jwtToken) throws NotFoundException {
+		String userId = oidcManager.getUserId(jwtToken);
+		return authManager.hasUserAcceptedTermsOfUse(Long.parseLong(userId));
 	}
 
 	@Override
