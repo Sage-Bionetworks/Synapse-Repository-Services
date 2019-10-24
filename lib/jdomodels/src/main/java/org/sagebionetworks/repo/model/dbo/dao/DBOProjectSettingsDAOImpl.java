@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.PaginationIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -63,8 +60,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
-	private static final String SELECT_SETTINGS_BY_TYPE = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
-			+ COL_PROJECT_SETTING_TYPE + " = ? ORDER BY " + COL_PROJECT_SETTING_ID + " LIMIT ? OFFSET ?";
 
 	private static final String SELECT_SETTING_FROM_PARENTS = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " IN ( :" + PARENT_IDS_PARAM_NAME + " ) and " + COL_PROJECT_SETTING_TYPE
@@ -72,8 +67,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			+ PARENT_IDS_PARAM_NAME + " ) LIMIT 1";
 
 	private static final RowMapper<DBOProjectSetting> ROW_MAPPER = new DBOProjectSetting().getTableMapping();
-
-	private static final long SELECT_SETTINGS_BY_TYPE_PAGE_SIZE = 500;
 
 	public DBOProjectSettingsDAOImpl() {
 	}
@@ -157,18 +150,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_PROJECT, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
 		return projectSettings.stream().map(DBOProjectSettingsDAOImpl::convertDboToDto).collect(Collectors.toList());
-	}
-
-	@Override
-	public Iterator<ProjectSetting> getByType(ProjectSettingsType projectSettingsType)
-			throws DatastoreException, NotFoundException {
-
-		return new PaginationIterator<ProjectSetting>((long limit, long offset) -> {
-			List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_TYPE, ROW_MAPPER,
-					projectSettingsType.name(), limit, offset);
-			return projectSettings.stream().map(DBOProjectSettingsDAOImpl::convertDboToDto)
-					.collect(Collectors.toList());
-		}, SELECT_SETTINGS_BY_TYPE_PAGE_SIZE);
 	}
 
 	@WriteTransaction
