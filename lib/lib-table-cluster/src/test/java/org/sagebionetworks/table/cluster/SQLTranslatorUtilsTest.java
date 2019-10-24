@@ -732,7 +732,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
-		columnFoo.setIsList(false);
+		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
@@ -747,7 +747,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_nullIsList() throws ParseException {
-		columnFoo.setIsList(null);
+		columnFoo.setColumnType(null);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
@@ -761,7 +761,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
@@ -774,7 +774,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_Has() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
@@ -789,7 +789,7 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 
@@ -1637,8 +1637,8 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_HASKeyword() throws ParseException {
-		columnDouble.setIsList(true);
-		columnFoo.setIsList(true);
+		columnDouble.setColumnType(ColumnType.DOUBLE_LIST);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//need to recreate the translation reference
 		columnMap = new ColumnTranslationReferenceLookup(schema);

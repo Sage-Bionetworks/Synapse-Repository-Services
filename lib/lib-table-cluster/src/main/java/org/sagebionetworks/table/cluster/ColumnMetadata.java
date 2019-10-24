@@ -18,11 +18,10 @@ public class ColumnMetadata {
 	String columnNameForId;
 	int columnIndex;
 	AnnotationType annotationType;
-	boolean isList;
-	
+
 	public ColumnMetadata(ColumnModel columnModel, EntityField entityField,
 			String tableAlias, String selectColumnName, String columnNameForId,
-			int columnIndex, AnnotationType annotationType, boolean isList) {
+			int columnIndex, AnnotationType annotationType) {
 		super();
 		this.columnModel = columnModel;
 		this.entityField = entityField;
@@ -31,7 +30,6 @@ public class ColumnMetadata {
 		this.columnNameForId = columnNameForId;
 		this.columnIndex = columnIndex;
 		this.annotationType = annotationType;
-		this.isList = isList;
 	}
 
 	public ColumnModel getColumnModel() {
@@ -88,14 +86,6 @@ public class ColumnMetadata {
 
 	public void setAnnotationType(AnnotationType annotationType) {
 		this.annotationType = annotationType;
-	}
-
-	public boolean isList() {
-		return isList;
-	}
-
-	public void setIsList(boolean isList) {
-		this.isList = isList;
 	}
 
 	@Override

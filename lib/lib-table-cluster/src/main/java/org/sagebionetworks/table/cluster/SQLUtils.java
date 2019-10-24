@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.amazonaws.services.glue.model.Column;
 import org.apache.commons.lang3.BooleanUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -724,7 +725,7 @@ public class SQLUtils {
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
-		if(BooleanUtils.isTrue(newColumn.getIsList()) && ColumnType.DOUBLE.equals(newColumn.getColumnType())){
+		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
 		}
 	}
@@ -1198,17 +1199,16 @@ public class SQLUtils {
 		String tableAlias;
 		String selectColumnName;
 		String columnNameForId = getColumnNameForId(model.getId());
-		boolean isList = BooleanUtils.isTrue(model.getIsList());
 		AnnotationType annotationType = null;
 		if(entityField != null){
 			tableAlias = TableConstants.ENTITY_REPLICATION_ALIAS;
 			selectColumnName = entityField.getDatabaseColumnName();
 		}else{
 			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
-			selectColumnName = isList ? translateColumnTypeListToAnnotationValueName(model.getColumnType()) : translateColumnTypeToAnnotationValueName(model.getColumnType());
+			selectColumnName = translateColumnTypeToAnnotationValueName(model.getColumnType());
 			annotationType =  translateColumnTypeToAnnotationType(model.getColumnType());
 		}
-		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType, isList);
+		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
 	}
 	
 	/**
@@ -1216,16 +1216,20 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){
+	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){ //TODO: test
 		switch(type){
 		case STRING:
+		case STRING_LIST:
 			return AnnotationType.STRING;
 		case DATE:
+		case DATE_LIST:
 			return AnnotationType.DATE;
 		case DOUBLE:
-			return AnnotationType.DOUBLE;
+		case DOUBLE_LIST:
+				return AnnotationType.DOUBLE;
 		case INTEGER:
-			return AnnotationType.LONG;
+		case INTEGER_LIST:
+				return AnnotationType.LONG;
 		default:
 			return AnnotationType.STRING;
 		}
@@ -1248,30 +1252,19 @@ public class SQLUtils {
 			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE;
 		case BOOLEAN:
 			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_VALUE;
+		case STRING_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
+		case INTEGER_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
+		case DOUBLE_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE;
+		case BOOLEAN_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
 		default:
 			// Everything else is a string
 			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 		}
 	}
-
-	public static String translateColumnTypeListToAnnotationValueName(ColumnType type){
-		switch(type){
-			case DATE:
-			case INTEGER:
-			case ENTITYID:
-			case FILEHANDLEID:
-			case USERID:
-				return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
-			case DOUBLE:
-				return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE;
-			case BOOLEAN:
-				return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
-			default:
-				// Everything else is a string
-				return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
-		}
-	}
-
 	
 	/**
 	 * Generate the SQL used to insert select data from the entity replication tables to a
@@ -1384,7 +1377,7 @@ public class SQLUtils {
 		}
 		List<String> headers = new LinkedList<>();
 		// annotation select
-		if (!meta.isList() && AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 			// For doubles, the double-meta columns is also selected.
 			boolean isDoubleAbstract = true;
 			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
@@ -1463,7 +1456,7 @@ public class SQLUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
-			if (!meta.isList() && AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				builder.append(", _DBL");
 				builder.append(meta.getColumnNameForId());
 			}
@@ -1792,4 +1785,16 @@ public class SQLUtils {
 		return mixedDoubleList;
 	}
 
+	public static boolean isList(ColumnType columnType){ //TODO: test and maybe move into separate class for list-> non-list type mapping if necessary
+		switch(columnType){
+			case STRING_LIST:
+			case DOUBLE_LIST:
+			case INTEGER_LIST:
+			case BOOLEAN_LIST:
+			case DATE_LIST:
+				return true;
+			default:
+				return false;
+		}
+	}
 }

@@ -823,7 +823,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask); //TODO: handle multiple values? automatically suggest list types?
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, new RowMapper<ColumnAggregation>() {
 
 			@Override

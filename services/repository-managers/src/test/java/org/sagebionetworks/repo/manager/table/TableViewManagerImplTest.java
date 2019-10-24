@@ -184,8 +184,7 @@ public class TableViewManagerImplTest {
 		dateColumn.setId("3");
 
 		doubleListColumn = new ColumnModel();
-		doubleListColumn.setColumnType(ColumnType.DOUBLE);
-		doubleListColumn.setIsList(true);
+		doubleListColumn.setColumnType(ColumnType.DOUBLE_LIST);
 		doubleListColumn.setName("doubleList");
 		doubleListColumn.setId("4");
 
@@ -428,7 +427,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testUpdateAnnotations_ListValues(){
 		//make anno1 a list
-		anno1.setIsList(true);
+		anno1.setColumnType(ColumnType.STRING_LIST);
 
 
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();

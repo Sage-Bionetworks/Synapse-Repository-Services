@@ -1561,9 +1561,8 @@ public class SQLUtilsTest {
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
 		ColumnModel three = new ColumnModel();
 		three.setId("3");
-		three.setColumnType(ColumnType.DOUBLE);
+		three.setColumnType(ColumnType.DOUBLE_LIST);
 		three.setName("three");
-		three.setIsList(true);
 		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
 		StringBuilder builder = new StringBuilder();
@@ -1583,16 +1582,6 @@ public class SQLUtilsTest {
 			cm.setName(type.name().toLowerCase());
 			cm.setColumnType(type);
 			cm.setId(""+i);
-			allTypes.add(cm);
-			i++;
-		}
-		//add list types
-		for(ColumnType type: ColumnType.values()){
-			ColumnModel cm = new ColumnModel();
-			cm.setName(type.name().toLowerCase() + "List");
-			cm.setColumnType(type);
-			cm.setId(""+i);
-			cm.setIsList(true);
 			allTypes.add(cm);
 			i++;
 		}
@@ -1617,16 +1606,11 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='link', A.STRING_VALUE, NULL)) AS _C7_,"
 				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C8_,"
 				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_,"
-				+ " MAX(IF(A.ANNO_KEY ='stringList', A.STRING_LIST_VALUE, NULL)) AS _C10_,"
-				+ " MAX(IF(A.ANNO_KEY ='doubleList', A.DOUBLE_LIST_VALUE, NULL)) AS _C11_,"
-				+ " MAX(IF(A.ANNO_KEY ='integerList', A.LONG_LIST_VALUE, NULL)) AS _C12_,"
-				+ " MAX(IF(A.ANNO_KEY ='booleanList', A.BOOLEAN_LIST_VALUE, NULL)) AS _C13_,"
-				+ " MAX(IF(A.ANNO_KEY ='dateList', A.LONG_LIST_VALUE, NULL)) AS _C14_,"
-				+ " MAX(IF(A.ANNO_KEY ='filehandleidList', A.LONG_LIST_VALUE, NULL)) AS _C15_,"
-				+ " MAX(IF(A.ANNO_KEY ='entityidList', A.LONG_LIST_VALUE, NULL)) AS _C16_,"
-				+ " MAX(IF(A.ANNO_KEY ='linkList', A.STRING_LIST_VALUE, NULL)) AS _C17_,"
-				+ " MAX(IF(A.ANNO_KEY ='largetextList', A.STRING_LIST_VALUE, NULL)) AS _C18_,"
-				+ " MAX(IF(A.ANNO_KEY ='useridList', A.LONG_LIST_VALUE, NULL)) AS _C19_"
+				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C10_,"
+				+ " MAX(IF(A.ANNO_KEY ='double_list', A.DOUBLE_LIST_VALUE, NULL)) AS _C11_,"
+				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C12_,"
+				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C13_,"
+				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C14_"
 				, builder.toString());
 	}
 
@@ -1795,9 +1779,8 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		ColumnModel cm = new ColumnModel();
 		cm.setName("foo");
-		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setColumnType(ColumnType.DOUBLE_LIST);
 		cm.setId("456");
-		cm.setIsList(true);
 		int index = 4;
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test

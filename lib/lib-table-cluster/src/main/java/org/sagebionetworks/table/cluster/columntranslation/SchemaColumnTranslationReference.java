@@ -15,7 +15,6 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 	private final ColumnType columnType;
 	private final String userQueryColumnName;
 	private final String translatedColumnName;
-	private final boolean isList;
 	private final String id;
 
 	public SchemaColumnTranslationReference(ColumnModel columnModel){
@@ -27,7 +26,6 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		this.id = columnModel.getId();
 		this.translatedColumnName = SQLUtils.getColumnNameForId(columnModel.getId());
 		this.userQueryColumnName = columnModel.getName();
-		this.isList = columnModel.getIsList() != null && columnModel.getIsList();
 	}
 
 	@Override
@@ -54,28 +52,19 @@ public class SchemaColumnTranslationReference implements ColumnTranslationRefere
 		return id;
 	}
 
-	/**
-	 * true if this column can have multiple-values. false otherwise.
-	 * @return true if this column can have multiple-values. false otherwise.
-	 */
-	public boolean isList() {
-		return isList;
-	}
-
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
-		SchemaColumnTranslationReference that = (SchemaColumnTranslationReference) o;
-		return isList == that.isList &&
-				columnType == that.columnType &&
-				Objects.equals(userQueryColumnName, that.userQueryColumnName) &&
-				Objects.equals(translatedColumnName, that.translatedColumnName) &&
-				Objects.equals(id, that.id);
+		SchemaColumnTranslationReference reference = (SchemaColumnTranslationReference) o;
+		return columnType == reference.columnType &&
+				Objects.equals(userQueryColumnName, reference.userQueryColumnName) &&
+				Objects.equals(translatedColumnName, reference.translatedColumnName) &&
+				Objects.equals(id, reference.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnType, userQueryColumnName, translatedColumnName, isList, id);
+		return Objects.hash(columnType, userQueryColumnName, translatedColumnName, id);
 	}
 }

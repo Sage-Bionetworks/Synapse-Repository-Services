@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
  *
  */
 public enum AnnotationType{
-	
+	//todo: handle list types?
 	STRING	(ColumnType.STRING, AnnotationsValueType.STRING),
 	LONG	(ColumnType.INTEGER, AnnotationsValueType.LONG),
 	DOUBLE	(ColumnType.DOUBLE, AnnotationsValueType.DOUBLE),

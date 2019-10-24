@@ -282,7 +282,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	static List<String> toAnnotationValuesList(ColumnModel column, String value) {
-		if(BooleanUtils.isTrue(column.getIsList())){
+		if(SQLUtils.isList(column.getColumnType())){
 			//try to parse as JSON array and extract values as string
 			try {
 				JSONArray jsonArray = new JSONArray(value);

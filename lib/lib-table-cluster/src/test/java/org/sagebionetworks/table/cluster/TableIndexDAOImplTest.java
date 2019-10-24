@@ -1576,7 +1576,7 @@ public class TableIndexDAOImplTest {
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "foo", ColumnType.DOUBLE, true));
+				.createColumn(1L, "foo", ColumnType.DOUBLE_LIST));
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
@@ -2282,7 +2282,6 @@ public class TableIndexDAOImplTest {
 				if(ColumnType.STRING.equals(cm.getColumnType())){
 					cm.setMaximumSize(50L);
 				}
-				cm.setIsList(annoDto.getValue()!=null && annoDto.getValue().size() > 1);
 				schema.add(cm);
 			}
 		}

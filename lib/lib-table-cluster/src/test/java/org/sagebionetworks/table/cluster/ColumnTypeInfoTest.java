@@ -22,7 +22,7 @@ public class ColumnTypeInfoTest {
 	public void before(){
 		useDepricatedUtf8ThreeBytes = false;
 	}
-	
+
 	@Test
 	public void testParseInteger(){
 		Object dbValue = ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("123");

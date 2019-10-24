@@ -11,7 +11,9 @@ public enum MySqlColumnType {
 	BOOLEAN(false),
 	MEDIUMTEXT(false),
 	TINYINT(true),
-	ENUM(false);
+	ENUM(false),
+	JSON(false);
+
 	
 	boolean hasSize;
 	
