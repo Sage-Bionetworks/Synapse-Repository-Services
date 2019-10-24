@@ -367,13 +367,12 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
 			returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
 		}		
+		String ppid = ppid(userId.toString(), oauthClientId);
 		if (returnJson) {
-			String ppid = userId.toString();
 			// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
 			userInfo.put(OIDCClaimName.sub, ppid);
 			return userInfo;
 		} else {
-			String ppid = ppid(userId.toString(), oauthClientId);
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
 					authTime, UUID.randomUUID().toString(), userInfo);
 

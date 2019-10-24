@@ -109,6 +109,6 @@ public class HttpAuthUtil {
 			// give up here, use old method, so we at least send something back
 			resp.getWriter().println("{\"reason\": \"" + reason + "\"}");
 		}
-		resp.getOutputStream().flush();
+		resp.getWriter().flush();
 	}
 }
