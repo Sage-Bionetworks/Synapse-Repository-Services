@@ -150,8 +150,8 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 		String subject = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
-		List<OAuthScope> allScopes = Collections.EMPTY_LIST;
+		List<OAuthScope> noScopes = Collections.EMPTY_LIST;
 		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
-				tokenId, allScopes, Collections.EMPTY_MAP);
+				tokenId, noScopes, Collections.EMPTY_MAP);
 	}
 }
