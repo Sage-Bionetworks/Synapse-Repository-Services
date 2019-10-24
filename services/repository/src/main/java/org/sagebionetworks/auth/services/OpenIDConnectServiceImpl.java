@@ -133,6 +133,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
 		UserAuthorization userAuthorization = oidcManager.getUserAuthorization(accessTokenParam);
 		String oauthClientId = oidcTokenHelper.parseJWT(accessTokenParam).getBody().getAudience();
-		return oidcManager.getOIDCUserInfo(userAuthorization, oauthClientId, oauthEndpoint);
+		return oidcManager.getUserInfo(userAuthorization, oauthClientId, oauthEndpoint);
 	}
 }

@@ -11,7 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collection;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -68,6 +68,9 @@ public class AuthenticationFilterTest {
 	private ServletOutputStream mockServletOutputStream;
 	
 	@Mock
+	private PrintWriter mockPrintWriter;
+	
+	@Mock
 	private FilterChain mockFilterChain;
 	
 	@Mock
@@ -89,26 +92,7 @@ public class AuthenticationFilterTest {
 	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
 	private static final String BEARER_TOKEN = "bearer token";
-
-	class ListEnumeration implements Enumeration<String> {
-		private List<String> list;
-		private int i=0;
-		
-		public ListEnumeration(List<String> list) {
-			this.list=list;
-			i=0;
-		}
-
-		@Override
-		public boolean hasMoreElements() {
-			return i<list.size();
-		}
-
-		@Override
-		public String nextElement() {
-			return list.get(i++);
-		}
-	}
+	private static final String ANONYMOUS_TOKEN = "anonymous token";
 	
 	@BeforeEach
 	public void setupFilter() throws Exception {
@@ -117,10 +101,11 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(bearerTokenHeader);
 		
 		List<String> headerNames = Collections.singletonList("Authorization");
-		when(mockHttpRequest.getHeaderNames()).thenReturn(new ListEnumeration(headerNames));
-		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(new ListEnumeration(Collections.singletonList(bearerTokenHeader)));
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(headerNames));
+		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(bearerTokenHeader)));
 		
 		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
@@ -315,7 +300,7 @@ public class AuthenticationFilterTest {
 		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
-		assertEquals(BEARER_TOKEN, requestCaptor.getValue().getParameter(AuthorizationConstants.AUTHORIZATION_HEADER_NAME));
+		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME));
 	}
 
 	@Test
@@ -329,21 +314,21 @@ public class AuthenticationFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid access token\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Invalid access token\"}");
 	}
 
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
-
+		when(oidcTokenHelper.createAnonymousAccessToken()).thenReturn(ANONYMOUS_TOKEN);
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
 		verify(oidcTokenHelper, never()).validateJWT(BEARER_TOKEN);
-		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
-		verify(mockHttpResponse).setStatus(401);
-		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid access token\"}");
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+		
+		assertEquals("273950", requestCaptor.getValue().getParameter("userId"));
+		assertEquals("Bearer "+ANONYMOUS_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME));
 	}
 
 

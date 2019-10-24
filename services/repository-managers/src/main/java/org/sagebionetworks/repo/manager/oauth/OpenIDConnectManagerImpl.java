@@ -210,7 +210,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
-	public String getPPIDFromUserId(String userId, String clientId) {
+	public String ppid(String userId, String clientId) {
 		if (OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return userId;
 		}
@@ -225,7 +225,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String sectorIdentifierSecret = oauthClientDao.getSectorIdentifierSecretForClient(clientId);
 		return EncryptionUtils.decrypt(ppid, sectorIdentifierSecret);
 	}
-
+	
 	/*
 	 * Given the scopes and additional OIDC claims requested by the user, return the 
 	 * user info claims to add to the returned User Info object or JSON Web Token
@@ -309,7 +309,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// The following implements 'pairwise' subject_type, https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 		// Pairwise Pseudonymous Identifier (PPID)
-		String ppid = getPPIDFromUserId(authorizationRequest.getUserId(), verifiedClientId);
+		String ppid = ppid(authorizationRequest.getUserId(), verifiedClientId);
 		String oauthClientId = authorizationRequest.getClientId();
 
 		OIDCTokenResponse result = new OIDCTokenResponse();
@@ -320,15 +320,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
-			String idToken;
-			if (returnJson(oauthClientId)) {
-				JSONObject json = new JSONObject();
-				json.putAll(userInfo);
-				idToken = json.toJSONString();
-			} else {
-				idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
-						authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
-			}
+			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
+					authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 
@@ -370,22 +363,36 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}	
 	
 	@Override
-	public Object getOIDCUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint) {
+	public Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint) {
 		Long userId = userAuthorization.getUserInfo().getId();
 		Date authTime = authDao.getSessionValidatedOn(userId);
 
-		Map<OIDCClaimName,Object> oidcUserInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());
+		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());
 
-		boolean returnJson = returnJson(oauthClientId);
+		// From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+		// "If [a signing algorithm] is specified, the response will be JWT serialized, and signed using JWS. 
+		// The default, if omitted, is for the UserInfo Response to return the Claims as a UTF-8 
+		// encoded JSON object using the application/json content-type."
+		// 
+		// Note: This leaves ambiguous what to do if the client is registered with a signing algorithm
+		// and then sends a request with Accept: application/json or vice versa (registers with no 
+		// algorithm and then sends a request with Accept: application/jwt).
+		boolean returnJson;
+		if (oauthClientId.equals(OAuthClientManager.SYNAPSE_OAUTH_CLIENT_ID)) {
+			returnJson = true;
+		} else {
+			OAuthClient oauthClient = oauthClientDao.getOAuthClient(oauthClientId);
+			returnJson = oauthClient.getUserinfo_signed_response_alg()==null;
+		}		
 		if (returnJson) {
 			String ppid = userId.toString();
 			// https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-			oidcUserInfo.put(OIDCClaimName.sub, ppid);
-			return oidcUserInfo;
+			userInfo.put(OIDCClaimName.sub, ppid);
+			return userInfo;
 		} else {
-			String ppid = getPPIDFromUserId(userId.toString(), oauthClientId);
+			String ppid = ppid(userId.toString(), oauthClientId);
 			String jwtIdToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
-					authTime, UUID.randomUUID().toString(), oidcUserInfo);
+					authTime, UUID.randomUUID().toString(), userInfo);
 
 			return new JWTWrapper(jwtIdToken);
 		}

@@ -113,7 +113,6 @@ public class ModHttpServletRequest extends HttpServletRequestWrapper {
 	public Enumeration<String> getParameterNames() {
 		if (params==null) return (Enumeration<String>)super.getParameterNames();
 	    return Collections.enumeration(params.keySet());
-
 	}
 	
 	@Override

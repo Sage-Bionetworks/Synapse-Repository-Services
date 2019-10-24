@@ -54,6 +54,6 @@ public interface OpenIDConnectManager {
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */
-	Object getOIDCUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint);
+	Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint);
 
 }

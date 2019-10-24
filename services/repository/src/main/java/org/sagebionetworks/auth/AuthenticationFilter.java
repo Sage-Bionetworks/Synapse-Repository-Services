@@ -44,9 +44,9 @@ import org.springframework.http.HttpStatus;
  * 		to reject requests that cannot be made anonymously.)
  */
 public class AuthenticationFilter implements Filter {
-
+	
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
-
+	
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	@Autowired
@@ -118,7 +118,6 @@ public class AuthenticationFilter implements Filter {
 					return;
 				}	
 			}
-			// TODO set the userId
 		}
 
 		if (userId == null && !allowAnonymous) {
@@ -143,7 +142,7 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
 				return;
 			}	
-		} else {
+		} else if (bearerToken==null) {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 			// there is no bearer token (as an Auth or sessionToken header) or digital signature
 			// so create an 'anonymous' bearer token
@@ -155,7 +154,9 @@ public class AuthenticationFilter implements Filter {
 		try {
 			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			if (userId!=null) {
+				modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			HttpAuthUtil.setBearerTokenHeader(modHeaders, bearerToken);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);

@@ -110,7 +110,7 @@ public class OpenIDConnectServiceImplTest {
 		// method under test
 		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
 		
-		verify(oidcManager).getOIDCUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
+		verify(oidcManager).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 	
 	@Test
@@ -136,6 +136,6 @@ public class OpenIDConnectServiceImplTest {
 			// as expected
 		}
 
-		verify(oidcManager, never()).getOIDCUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
+		verify(oidcManager, never()).getUserInfo(userAuthorization, clientId, OAUTH_ENDPOINT);
 	}
 }
