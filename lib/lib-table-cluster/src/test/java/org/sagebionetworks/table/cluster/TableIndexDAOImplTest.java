@@ -1420,8 +1420,10 @@ public class TableIndexDAOImplTest {
 		assertEquals(381255304L, crc32);
 	}
 
+	//TODO: handle columnModel.maxSize for string_list
+
 	@Test
-	public void testCopyEntityReplicationToTable_WithListAnnotations(){ //TODO: fix table creation sql to include json types
+	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException { //TODO: fix table creation sql to include json types
 		isView = true;
 		// delete all data
 		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
@@ -1455,9 +1457,15 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		// method under test
 		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+
+		// This is our query
+		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema).build();
 		// Query the results
-		long count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(2, count);
+		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
+		assertEquals(2, result.getRows().size());
+		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0));
+		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1));
+
 		// Check the CRC of the view
 		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
 		assertEquals(381255304L, crc32);
@@ -2277,7 +2285,7 @@ public class TableIndexDAOImplTest {
 		if(dto.getAnnotations() != null){
 			for(AnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
-				cm.setColumnType(annoDto.getType().getColumnType());
+				cm.setColumnType(annoDto.getValue().size() > 1 ? annoDto.getType().getListColumnType() : annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
 				if(ColumnType.STRING.equals(cm.getColumnType())){
 					cm.setMaximumSize(50L);

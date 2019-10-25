@@ -1377,7 +1377,7 @@ public class SQLUtils {
 		}
 		List<String> headers = new LinkedList<>();
 		// annotation select
-		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+		if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 			// For doubles, the double-meta columns is also selected.
 			boolean isDoubleAbstract = true;
 			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
@@ -1456,7 +1456,7 @@ public class SQLUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 				builder.append(", _DBL");
 				builder.append(meta.getColumnNameForId());
 			}
@@ -1776,9 +1776,9 @@ public class SQLUtils {
 			if(d == null){
 				throw new IllegalArgumentException("null values in list are not allowed");
 			}
-			try{
-				mixedDoubleList.add(AbstractDouble.lookupType(d).getEnumerationValue());
-			} catch (NumberFormatException e){
+			if(d.isNaN() || d.isInfinite()){
+				mixedDoubleList.add(d.toString());
+			}else {
 				mixedDoubleList.add(d);
 			}
 		}
