@@ -145,14 +145,6 @@
 					<path>/</path>
 				</configuration>
 			</plugin>
-
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<argLine>-Xmx1024m -Xms128m -XX:MaxPermSize=512m</argLine>
-				</configuration>
-			</plugin>
-
 		</plugins>
 	</build>
 </project>
