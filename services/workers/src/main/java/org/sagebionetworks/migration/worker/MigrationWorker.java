@@ -23,11 +23,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
-import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsRequest;
-import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsResponse;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,11 +43,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 	private UserManager userManager;
 	@Autowired
 	private MigrationManager migrationManager;
-	
-	@Autowired
-	@TemporaryCode(author = "marco.marasca@sagebase.org")
-	private StorageLocationsCleanup storageLocationsCleanup;
-
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message)
@@ -99,10 +91,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
-		} else if (req instanceof CleanupStorageLocationsRequest) {
-			@TemporaryCode(author = "marco.marasca@sagebase.org")
-			CleanupStorageLocationsResponse response = storageLocationsCleanup.cleanupStorageLocations(user, (CleanupStorageLocationsRequest) req);
-			return response;
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
