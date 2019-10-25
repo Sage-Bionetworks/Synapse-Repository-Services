@@ -296,6 +296,7 @@ public class AuthenticationFilterTest {
 		
 		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME));
 	}
@@ -308,6 +309,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
 		verify(oidcTokenHelper).validateJWT(BEARER_TOKEN);
+		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
@@ -322,6 +324,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
 		verify(oidcTokenHelper, never()).validateJWT(BEARER_TOKEN);
+		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		
 		assertEquals("273950", requestCaptor.getValue().getParameter("userId"));
