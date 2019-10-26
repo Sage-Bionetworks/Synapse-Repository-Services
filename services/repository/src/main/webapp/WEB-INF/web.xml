@@ -80,22 +80,8 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 
-	<!--  Any filters depending on Authorization header should go before the general authFilter -->
 	<filter>
-		<filter-name>cloudMailInAuthFilter</filter-name>
-		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
-	</filter>
-
-   <!--  Note we tried applying the filter to both /cloudMailInMessage and /cloudMailInAuthorization,
-    but CloudMailIn doesn't seem to pass the BasicAuthentication credentials when it calls the latter
-    service.   -->
-	<filter-mapping>
-		<filter-name>cloudMailInAuthFilter</filter-name>
-		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
-	</filter-mapping>
-
-	<filter>
-		<filter-name>oauthClientAuthFilter</filter-name>
+		<filter-name>authFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<!-- Make sure the init-params are passed through the proxy to the bean -->
@@ -105,8 +91,13 @@
 	</filter>
 
 	<filter-mapping>
-		<filter-name>oauthClientAuthFilter</filter-name>
-		<url-pattern>/auth/v1/oauth2/token</url-pattern>
+		<filter-name>authFilter</filter-name>
+		<url-pattern>/auth/v1/secretKey</url-pattern>
+		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
+		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
+		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -132,29 +123,6 @@
 	<filter-mapping>
 		<filter-name>dockerRegistryAuthFilter</filter-name>
 		<url-pattern>/dockerRegistryListener/v1/*</url-pattern>
-	</filter-mapping>
-
-	<!--  the general auth filter is the last in the list.  It will overwrite the Authorization
-	header with an OAuth bearer token -->
-	<filter>
-		<filter-name>authFilter</filter-name>
-		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
-		<init-param>
-			<!-- Make sure the init-params are passed through the proxy to the bean -->
-			<param-name>targetFilterLifecycle</param-name>
-			<param-value>true</param-value>
-		</init-param>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>authFilter</filter-name>
-		<url-pattern>/auth/v1/secretKey</url-pattern>
-		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
-		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
-		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
-		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
-		<url-pattern>/repo/v1/*</url-pattern>
-		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>
@@ -277,6 +245,31 @@
 	</filter-mapping>
 	
 	<filter>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<filter-class>org.sagebionetworks.auth.CloudMailInAuthFilter</filter-class>
+	</filter>
+
+	<filter>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter>
+		<filter-name>oauthAccessTokenFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<init-param>
+			<!-- Make sure the init-params are passed through the proxy to the bean -->
+			<param-name>targetFilterLifecycle</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter>
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
 		<filter-class>org.sagebionetworks.auth.CloudMailInAcceptPlainTextFilter</filter-class>
 	</filter>
@@ -286,7 +279,15 @@
 		<filter-class>org.sagebionetworks.auth.CloudMailInCharacterEncodingFilter</filter-class>
 	</filter>
 
- 	<filter-mapping>
+    <!--  Note we tried applying the filter to both /cloudMailInMessage and /cloudMailInAuthorization,
+    but CloudMailIn doesn't seem to pass the BasicAuthentication credentials when it calls the latter
+    service.   -->
+	<filter-mapping>
+		<filter-name>cloudMailInAuthFilter</filter-name>
+		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
 		<filter-name>cloudMailInContentTypeFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 	</filter-mapping>
@@ -295,6 +296,17 @@
 		<filter-name>cloudMailInAcceptPlainTextFilter</filter-name>
 		<url-pattern>/repo/v1/cloudMailInMessage/*</url-pattern>
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>oauthClientAuthFilter</filter-name>
+		<url-pattern>/auth/v1/oauth2/token</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>oauthAccessTokenFilter</filter-name>
+		<!-- Note:  The following will grow, as OAuth access tokens authorize additional services. -->
+		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
 	</filter-mapping>
 
 	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->

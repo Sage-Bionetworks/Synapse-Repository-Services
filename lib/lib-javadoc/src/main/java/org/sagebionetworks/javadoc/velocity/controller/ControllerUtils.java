@@ -175,7 +175,7 @@ public class ControllerUtils {
         				} else if (RequestHeader.class.getName().equals(qualifiedName)) {
         					// if this is the authorization header we do not show it,
         					// rather it means that this method requires authentication
-        					if (AuthorizationConstants.AUTHORIZATION_HEADER_NAME.equals(annotationMap.get(REQUEST_HEADER_VALUE))) {
+        					if (AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.equals(annotationMap.get(REQUEST_HEADER_VALUE))) {
         						methodModel.setIsAuthenticationRequired(true);
         					}
         				}

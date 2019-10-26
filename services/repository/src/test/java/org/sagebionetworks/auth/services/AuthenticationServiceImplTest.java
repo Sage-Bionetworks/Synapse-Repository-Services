@@ -327,17 +327,6 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testHasUserAcceptedTermsOfUseID() {
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
-		
-		// method under test
-		assertTrue(service.hasUserAcceptedTermsOfUse(userId));
-		
-		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userId);
-		
-	}
-	
-	@Test
 	public void testHasUserAcceptedTermsOfUseJWT() {
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
 		

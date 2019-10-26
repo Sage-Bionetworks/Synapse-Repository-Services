@@ -211,6 +211,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	// As per, https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg
 	public String ppid(String userId, String clientId) {
+		// we introduce the 'Synapse OAuth client ID' for internal use only,
+		// when we construct a token corresponding to a (total access) session token.
+		// when treating a subject in the context of this client, we skip encryption/decryption
 		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return userId;
 		}
@@ -219,6 +222,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	public String getUserIdFromPPID(String ppid, String clientId) {
+		// we introduce the 'Synapse OAuth client ID' for internal use only,
+		// when we construct a token corresponding to a (total access) session token.
+		// when treating a subject in the context of this client, we skip encryption/decryption
 		if (AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID.equals(clientId)) {
 			return ppid;
 		}

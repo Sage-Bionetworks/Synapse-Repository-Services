@@ -72,11 +72,6 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
-
-	/**
-	 * Has the user accepted the terms of use?
-	 */
 	public boolean hasUserAcceptedTermsOfUse(String accessToken) throws NotFoundException;
 
 	/**

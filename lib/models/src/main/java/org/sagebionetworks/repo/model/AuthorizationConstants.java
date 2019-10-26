@@ -216,7 +216,15 @@ public class AuthorizationConstants {
 	 */
 	public static final String BEARER_TOKEN_HEADER = "Bearer ";
 	
+	/**
+	 * Standard name for the HTTP Header containing credentials, bearer token, or other authentication/authorization information
+	 */
 	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	/**
+	 * Internal header name used when passing authorization from a Synapse HTTP Filter to a Spring Controller
+	 */
+	public static final String SYNAPSE_AUTHORIZATION_HEADER_NAME = "Synapse-Authorization";
 	
 	public static final String BASIC_PREFIX = "Basic ";
 

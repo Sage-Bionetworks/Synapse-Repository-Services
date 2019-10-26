@@ -107,13 +107,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
-		return authManager.hasUserAcceptedTermsOfUse(userId);
-	}
-
-	@Override
-	public boolean hasUserAcceptedTermsOfUse(String jwtToken) throws NotFoundException {
-		String userId = oidcManager.getUserId(jwtToken);
+	public boolean hasUserAcceptedTermsOfUse(String accessToken) throws NotFoundException {
+		String userId = oidcManager.getUserId(accessToken);
 		return authManager.hasUserAcceptedTermsOfUse(Long.parseLong(userId));
 	}
 

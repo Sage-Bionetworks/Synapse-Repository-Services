@@ -70,7 +70,7 @@ public class AuthenticationFilter implements Filter {
 
 		// Determine the caller's identity
 		Long userId = null;
-		String bearerToken = null;
+		String accessToken = null;
 
 		// A session token maps to a specific user
 		if (!isTokenEmptyOrNull(sessionToken)) {
@@ -82,7 +82,7 @@ public class AuthenticationFilter implements Filter {
 				log.warn(failureReason, e);
 				return;
 			}
-			bearerToken=oidcTokenHelper.createTotalAccessToken(userId);
+			accessToken=oidcTokenHelper.createTotalAccessToken(userId);
 			// If there is no session token, then check for a HMAC signature
 		} else if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
@@ -96,12 +96,12 @@ public class AuthenticationFilter implements Filter {
 				log.warn(failureReason, e);
 				return;
 			}
-			bearerToken=oidcTokenHelper.createTotalAccessToken(userId);
+			accessToken=oidcTokenHelper.createTotalAccessToken(userId);
 		} else {
-			bearerToken=HttpAuthUtil.getBearerToken(req);
-			if (!isTokenEmptyOrNull(bearerToken)) {
+			accessToken=HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
+			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
-					oidcTokenHelper.validateJWT(bearerToken);
+					oidcTokenHelper.validateJWT(accessToken);
 				} catch (IllegalArgumentException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {
@@ -115,26 +115,22 @@ public class AuthenticationFilter implements Filter {
 		}
 
 		// If the user has been identified, check if they have accepted the terms of use
-		if (userId != null) {
-			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
-				return;
-			}	
-		} else if (bearerToken!=null) {
+		if (accessToken!=null) {
 			try {
-				if (!authenticationService.hasUserAcceptedTermsOfUse(bearerToken)) {
+				if (!authenticationService.hasUserAcceptedTermsOfUse(accessToken)) {
 					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 					return;
 				}
 			} catch (Exception e) {
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage(), HttpStatus.FORBIDDEN);
+				String message = StringUtils.isBlank(e.getMessage()) ? TOU_UNSIGNED_REASON : e.getMessage();
+				HttpAuthUtil.reject((HttpServletResponse) servletResponse, message, HttpStatus.FORBIDDEN);
 				return;
 			}	
 		} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 				// there is no bearer token (as an Auth or sessionToken header) or digital signature
 				// so create an 'anonymous' bearer token
-				bearerToken = oidcTokenHelper.createAnonymousAccessToken();
+				accessToken = oidcTokenHelper.createAnonymousAccessToken();
 		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
@@ -146,7 +142,7 @@ public class AuthenticationFilter implements Filter {
 				modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
-			HttpAuthUtil.setBearerTokenHeader(modHeaders, bearerToken);
+			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

@@ -766,6 +766,20 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testGetUserInfoDefaultClient() {
+		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
+		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+
+		// method under test
+		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.getUserInfo(createUserAuthorization(), 
+				AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, OAUTH_ENDPOINT);
+
+		assertEquals(USER_ID, userInfo.get(OIDCClaimName.userid));
+		assertEquals(EMAIL, userInfo.get(OIDCClaimName.email));
+		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
+	}
+
+	@Test
 	public void testGetUserAuthorization() {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);

@@ -38,7 +38,7 @@ public class HttpAuthUtil {
 		return null;
 	}
 
-	public static String getBearerToken(HttpServletRequest httpRequest) {
+	public static String getBearerTokenFromStandardAuthorizationHeader(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
 		return getBearerTokenFromAuthorizationHeader(header);
 	}
@@ -49,17 +49,18 @@ public class HttpAuthUtil {
 	}
 	
 	/*
-	 * Set the given bearerToken as an Authorization header, overwriting any other Authorization headers
+	 * Set the given bearerToken as an Authorization header, using the standard *internal* 
+	 * Synapse authorization header name
 	 */
 	public static void setBearerTokenHeader(Map<String, String[]> headers, String bearerToken) {
-		headers.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, 
+		headers.put(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, 
 				new String[] {AuthorizationConstants.BEARER_TOKEN_HEADER+bearerToken});
 	}
 	
 
 	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
 			Arrays.asList(new String[] {
-					AuthorizationConstants.AUTHORIZATION_HEADER_NAME.toLowerCase(),
+					AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.toLowerCase(),
 					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),

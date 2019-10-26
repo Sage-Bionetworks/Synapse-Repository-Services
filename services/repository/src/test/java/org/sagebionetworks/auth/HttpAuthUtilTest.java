@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.ImmutableList;
@@ -78,12 +79,12 @@ class HttpAuthUtilTest {
 		// test no authorization header
 		when(httpRequest.getHeader("Authorization")).thenReturn(null);
 		// method under test
-		assertNull(HttpAuthUtil.getBearerToken(httpRequest));
+		assertNull(HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(httpRequest));
 
 		// proper bearer token
 		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer "+BEARER_TOKEN);
 		// method under test
-		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerToken(httpRequest));
+		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(httpRequest));
 }
 
 	@Test
@@ -109,7 +110,7 @@ class HttpAuthUtilTest {
 	void testSetBearerTokenHeader() {
 		Map<String, String[]> headers = new HashMap<String, String[]>();
 		HttpAuthUtil.setBearerTokenHeader(headers,  BEARER_TOKEN);
-		assertEquals("Bearer "+BEARER_TOKEN, headers.get("Authorization")[0]);
+		assertEquals("Bearer "+BEARER_TOKEN, headers.get(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME)[0]);
 	}
 
 	@Test
@@ -118,7 +119,7 @@ class HttpAuthUtilTest {
 		String nonAuthHeaderValue = "application/json";
 
 		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", nonAuthHeader)));
+				"Synapse-Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test
