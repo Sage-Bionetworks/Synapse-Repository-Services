@@ -55,11 +55,11 @@ public class OAuthClientAuthFilterTest {
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
 	
 	private static final String CLIENT_ID = "oauthClientId";
+	private static final String BASIC_HEADER = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
-		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BASIC_HEADER);
 	}
 
 	@Test
@@ -67,6 +67,8 @@ public class OAuthClientAuthFilterTest {
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(
 				Collections.singletonList(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)));
+		when(mockHttpRequest.getHeaders(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(
+				Collections.enumeration(Collections.singletonList(BASIC_HEADER)));
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
