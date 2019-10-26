@@ -289,12 +289,6 @@
 		<url-pattern>/repo/v1/cloudMailInAuthorization/*</url-pattern>
 	</filter-mapping>
 
-	<filter-mapping>
-		<filter-name>oauthAccessTokenFilter</filter-name>
-		<!-- Note:  The following will grow, as OAuth access tokens authorize additional services. -->
-		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
-	</filter-mapping>
-
 	<!-- appends a new sessionId cookie to the response if the user did not provide one in their request -->
 	<filter>
 		<filter-name>sessionIdCookieSetterFilter</filter-name>
