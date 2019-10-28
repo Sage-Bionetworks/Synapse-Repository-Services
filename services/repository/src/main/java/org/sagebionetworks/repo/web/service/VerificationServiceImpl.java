@@ -45,10 +45,17 @@ public class VerificationServiceImpl implements VerificationService {
 				createVerificationSubmission(userInfo, verificationSubmission);
 		List<MessageToUserAndBody> createNotifications = verificationManager.
 				createSubmissionNotification(result, notificationUnsubscribeEndpoint);
-		notificationManager.sendNotifications(userInfo, createNotifications);
+		
+		// Notifications are sent to the ACT team, this should not happen but the verification submission 
+		// should not fail (as it can be retrieved later on)
+		boolean stopOnFailure = false;
+		
+		notificationManager.sendNotifications(userInfo, createNotifications, stopOnFailure);
+		
 		return result;
 	}
 	
+	@Override
 	public void deleteVerificationSubmission(Long userId, Long verificationId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		verificationManager.deleteVerificationSubmission(userInfo, verificationId);
@@ -69,7 +76,11 @@ public class VerificationServiceImpl implements VerificationService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		verificationManager.changeSubmissionState(userInfo, verificationSubmissionId, newState);
 		List<MessageToUserAndBody> createNotifications = verificationManager.createStateChangeNotification(verificationSubmissionId, newState, notificationUnsubscribeEndpoint);
-		notificationManager.sendNotifications(userInfo, createNotifications);
+		
+		// Notifications are sent to the submitter, if the notification to the user fail we bubble up the exception to the caller
+		boolean stopOnFailure = true;
+		
+		notificationManager.sendNotifications(userInfo, createNotifications, stopOnFailure);
 	}
 
 }

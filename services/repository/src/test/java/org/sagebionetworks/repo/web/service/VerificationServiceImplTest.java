@@ -7,9 +7,12 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -19,29 +22,26 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
+@ExtendWith(MockitoExtension.class)
 public class VerificationServiceImplTest {
-	private VerificationServiceImpl verificationService;
+	@Mock
 	private VerificationManager mockVerificationManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private NotificationManager mockNotificationManager;
+	@InjectMocks
+	private VerificationServiceImpl verificationService;
+
 	private UserInfo userInfo; 
 		
 	private static final Long USER_ID = 111L;
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "notificationUnsubscribeEndpoint:";
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
-		mockVerificationManager = Mockito.mock(VerificationManager.class);
-
-		this.verificationService = new VerificationServiceImpl(
-				mockVerificationManager,
-				mockUserManager,
-				mockNotificationManager);
-		
+		userInfo.setId(USER_ID);		
 		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 	}
 
@@ -60,8 +60,11 @@ public class VerificationServiceImplTest {
 			 NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
 		verify(mockVerificationManager).createVerificationSubmission(userInfo, verificationSubmission);
-		verify(mockVerificationManager).
-			createSubmissionNotification(verificationSubmission, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		verify(mockVerificationManager).createSubmissionNotification(verificationSubmission, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		boolean stopOnFailure = false;
+		
+		verify(mockNotificationManager).sendNotifications(userInfo, mtubList, stopOnFailure);
 		
 		assertEquals(created, verificationSubmission);
 	}
@@ -94,8 +97,11 @@ public class VerificationServiceImplTest {
 				USER_ID, verificationId, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
 		verify(mockVerificationManager).changeSubmissionState(userInfo, verificationId, newState);
-		verify(mockVerificationManager).
-		createStateChangeNotification(verificationId, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		verify(mockVerificationManager).createStateChangeNotification(verificationId, newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		boolean stopOnFailure = true;
+		
+		verify(mockNotificationManager).sendNotifications(userInfo, mtubList, stopOnFailure);
 
 	}
 
