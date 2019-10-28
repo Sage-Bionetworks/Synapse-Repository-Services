@@ -170,10 +170,16 @@ public class EvaluationServiceImpl implements EvaluationService {
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
+		
 		List<MessageToUserAndBody> messages = submissionManager.
 				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
 						challengeEndpoint, notificationUnsubscribeEndpoint);
-		notificationManager.sendNotifications(userInfo, messages);
+		
+		// Avoid bubbling up to the client on notification failures PLFM-5913
+		boolean stopOnFailure = false;
+		
+		notificationManager.sendNotifications(userInfo, messages, stopOnFailure);
+		
 		return created;
 	}
 	

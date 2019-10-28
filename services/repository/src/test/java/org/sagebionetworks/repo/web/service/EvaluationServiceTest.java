@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -13,13 +13,14 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
@@ -35,11 +36,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EvaluationServiceTest {
-
-
-	private EvaluationServiceImpl evaluationService;
 
 	@Mock
 	private ServiceProvider mockServiceProvider;
@@ -57,25 +55,14 @@ public class EvaluationServiceTest {
 	private QueryDAO mockQueryDAO;
 	@Mock
 	private NotificationManager mockNotificationManager;
+	@InjectMocks
+	private EvaluationServiceImpl evaluationService;
 
 	UserInfo userInfo;
 	Long userId;
 	private String evalId;
 	private long limit;
 	private long offset;
-
-
-	@Before
-	public void before() throws Exception {
-		this.evaluationService = new EvaluationServiceImpl(
-				mockServiceProvider,
-				mockEvaluationManager,
-				mockSubmissionManager,
-				mockEvaluationPermissionsManager,
-				mockUserManager,
-				mockQueryDAO,
-				mockNotificationManager);
-	}
 
 	@Test
 	public void testCreateSubmission() throws Exception {
@@ -110,7 +97,7 @@ public class EvaluationServiceTest {
 				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint));
 		
 		ArgumentCaptor<List> mtuArg = ArgumentCaptor.forClass(List.class);
-		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());
+		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture(), eq(false));
 		assertEquals(result, mtuArg.getValue());		
 	}
 
