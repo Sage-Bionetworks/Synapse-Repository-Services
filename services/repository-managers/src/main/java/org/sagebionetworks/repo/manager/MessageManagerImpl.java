@@ -468,7 +468,7 @@ public class MessageManagerImpl implements MessageManager {
 					String email = getEmailForUser(Long.parseLong(userId));
 					
 					if (emailQuarantineDao.isQuarantined(email)) {
-						errors.add("Cannot send message to quarantined recipient: " + userId);
+						errors.add("Cannot deliver message to recipient (" + userId + "). The recipient does not have a valid notification email.");
 						continue;
 					}
 					
