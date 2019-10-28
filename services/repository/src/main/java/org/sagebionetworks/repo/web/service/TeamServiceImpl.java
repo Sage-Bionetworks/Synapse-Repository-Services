@@ -258,7 +258,11 @@ public class TeamServiceImpl implements TeamService {
 		// the method is idempotent.  If the member is already added, it returns false
 		boolean memberAdded = teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		if (memberAdded) notificationManager.sendNotifications(userInfo, messages);
+		if (memberAdded) {
+			// A failed notification should not stop the team member addition at this point
+			boolean stopOnFailure = false;
+			notificationManager.sendNotifications(userInfo, messages, stopOnFailure);
+		}
 		
 		return memberAdded;
 	}
