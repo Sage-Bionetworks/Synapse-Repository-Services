@@ -6,10 +6,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.PrintWriter;
 import java.util.Collections;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -41,8 +41,9 @@ public class OAuthClientAuthFilterTest {
 	@Mock
 	private HttpServletResponse mockHttpResponse;
 	
+	
 	@Mock
-	private ServletOutputStream mockServletOutputStream;
+	private PrintWriter mockPrintWriter;
 	
 	@Mock
 	private FilterChain mockFilterChain;
@@ -54,11 +55,11 @@ public class OAuthClientAuthFilterTest {
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
 	
 	private static final String CLIENT_ID = "oauthClientId";
+	private static final String BASIC_HEADER = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		String basicHeader = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
-		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(basicHeader);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BASIC_HEADER);
 	}
 
 	@Test
@@ -66,6 +67,8 @@ public class OAuthClientAuthFilterTest {
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(true);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(
 				Collections.singletonList(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)));
+		when(mockHttpRequest.getHeaders(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(
+				Collections.enumeration(Collections.singletonList(BASIC_HEADER)));
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -78,8 +81,9 @@ public class OAuthClientAuthFilterTest {
 
 	@Test
 	public void testFilter_invalid_Credentials() throws Exception {
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockOauthClientManager.validateClientCredentials((OAuthClientIdAndSecret)any())).thenReturn(false);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -89,13 +93,13 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.\"}");
 	}
 
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
-		when(mockHttpResponse.getOutputStream()).thenReturn(mockServletOutputStream);
+		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
 		// method under test
 		oAuthClientAuthFilter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
@@ -105,7 +109,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockServletOutputStream).println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.\"}");
 	}
 
 }

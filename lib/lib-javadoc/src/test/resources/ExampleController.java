@@ -365,7 +365,7 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/some/authorized/service", method = RequestMethod.POST)
 	public @ResponseBody Long authorizedService(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
 }

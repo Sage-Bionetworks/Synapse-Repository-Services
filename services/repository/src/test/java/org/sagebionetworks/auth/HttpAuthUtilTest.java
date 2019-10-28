@@ -2,20 +2,22 @@ package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import java.util.Arrays;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.ImmutableList;
 import com.sun.syndication.io.impl.Base64; 
@@ -26,6 +28,12 @@ class HttpAuthUtilTest {
 
 	@Mock
 	private HttpServletRequest httpRequest;
+	
+	@Mock
+	private HttpServletResponse httpResponse;
+	
+	@Mock
+	private PrintWriter mockWriter;
 	
 
 	@Test
@@ -71,12 +79,12 @@ class HttpAuthUtilTest {
 		// test no authorization header
 		when(httpRequest.getHeader("Authorization")).thenReturn(null);
 		// method under test
-		assertNull(HttpAuthUtil.getBearerToken(httpRequest));
+		assertNull(HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(httpRequest));
 
 		// proper bearer token
 		when(httpRequest.getHeader("Authorization")).thenReturn("Bearer "+BEARER_TOKEN);
 		// method under test
-		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerToken(httpRequest));
+		assertEquals(BEARER_TOKEN, HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(httpRequest));
 }
 
 	@Test
@@ -102,7 +110,7 @@ class HttpAuthUtilTest {
 	void testSetBearerTokenHeader() {
 		Map<String, String[]> headers = new HashMap<String, String[]>();
 		HttpAuthUtil.setBearerTokenHeader(headers,  BEARER_TOKEN);
-		assertEquals("Bearer "+BEARER_TOKEN, headers.get("Authorization")[0]);
+		assertEquals("Bearer "+BEARER_TOKEN, headers.get(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME)[0]);
 	}
 
 	@Test
@@ -111,7 +119,7 @@ class HttpAuthUtilTest {
 		String nonAuthHeaderValue = "application/json";
 
 		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", nonAuthHeader)));
+				"Synapse-Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test
@@ -122,6 +130,36 @@ class HttpAuthUtilTest {
 		String[] values = actual.get(nonAuthHeader);
 		assertEquals(1, values.length);
 		assertEquals("application/json", values[0]);
+	}
+	
+	@Test
+	void testRejectWithStatus() throws Exception {
+		HttpStatus status = HttpStatus.BAD_REQUEST;
+		
+		when(httpResponse.getWriter()).thenReturn(mockWriter);
+		
+		// method under test
+		HttpAuthUtil.reject(httpResponse, "bad request", status);
+		
+		verify(httpResponse).setStatus(status.value());
+		verify(httpResponse).setContentType("application/json");
+		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(mockWriter).println("{\"reason\":\"bad request\"}");
+		
+	}
+
+	@Test
+	void testRejectUnauthorized() throws Exception {
+		when(httpResponse.getWriter()).thenReturn(mockWriter);
+		
+		// method under test
+		HttpAuthUtil.reject(httpResponse, "missing token");
+		
+		verify(httpResponse).setStatus(401);
+		verify(httpResponse).setContentType("application/json");
+		verify(httpResponse).setHeader("WWW-Authenticate", "\"Digest\" your email");
+		verify(mockWriter).println("{\"reason\":\"missing token\"}");
+		
 	}
 
 }

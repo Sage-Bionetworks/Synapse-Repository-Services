@@ -51,10 +51,7 @@ public class OAuthClientAuthFilter implements Filter {
 			chain.doFilter(modRqst, response);
 		} else {
 			HttpServletResponse httpResponse = (HttpServletResponse)response;
-			httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			httpResponse.setContentType("application/json");
-			httpResponse.getOutputStream().println("{\"reason\":\"Missing or invalid OAuth 2.0 client credentials\"}");
-			httpResponse.getOutputStream().flush();
+			HttpAuthUtil.reject(httpResponse, "OAuth Client ID and secret must be passed via Basic Authentication.  Credentials are missing or invalid.");
 		}
 	}
 
