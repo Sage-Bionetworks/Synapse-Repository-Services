@@ -62,7 +62,10 @@ public class MembershipInvitationServiceImpl implements
 			MessageToUserAndBody message = membershipInvitationManager.
 					createInvitationMessageToUser(created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 			if (message != null) {
-				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
+				// If the notification fails, propagate to the caller
+				boolean stopOnFailure = true;
+				
+				notificationManager.sendNotifications(userInfo, Collections.singletonList(message), stopOnFailure);
 			}
 		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null){
 			// Invitation to new user
