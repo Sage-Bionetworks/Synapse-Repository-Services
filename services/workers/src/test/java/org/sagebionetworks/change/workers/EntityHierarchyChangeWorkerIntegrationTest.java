@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityHierarchyChangeWorkerIntegrationTest {
 	
-	private static final int MAX_WAIT_MS = 30*1000;
+	private static final int MAX_WAIT_MS = 60*1000*3;
 	
 	@Autowired
 	StackConfiguration config;
