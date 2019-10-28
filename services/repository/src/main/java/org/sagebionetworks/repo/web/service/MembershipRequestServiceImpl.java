@@ -58,7 +58,12 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 		List<MessageToUserAndBody> messages = membershipRequestManager.
 				createMembershipRequestNotification(created,
 						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
-		notificationManager.sendNotifications(userInfo, messages);
+		
+		// If the notification fail for any of the team admins, does not propagate to the caller
+		boolean stopOnFailure = false;
+		
+		notificationManager.sendNotifications(userInfo, messages, stopOnFailure);
+		
 		return created;
 	}
 
