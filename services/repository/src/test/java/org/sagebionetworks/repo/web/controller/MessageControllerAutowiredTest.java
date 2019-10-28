@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -49,6 +50,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	
 	@Autowired
 	private FileHandleManager fileHandleManager;
+	
+	@Autowired
+	private MessageManager messageManager;
 	
 	private String fileHandleId;
 	
@@ -176,6 +180,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		
+		// Process the outgoing message (emulates a worker)
+		messageManager.processMessage(messageToBob.getId(), null);
+		
 		PaginatedResults<MessageToUser> outboxOfAlice = servletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, outboxOfAlice.getTotalNumberOfResults());
 		assertEquals(1, outboxOfAlice.getResults().size());
@@ -237,6 +244,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		MessageToUser messageToAlice = servletTestHelper.forwardMessage(bob, messageToBob.getId(), bouncy);
 		cleanup.add(messageToAlice.getId());
 		
+		// Process the outgoing message (emulates a worker)
+		messageManager.processMessage(messageToAlice.getId(), null);
+		
 		PaginatedResults<MessageBundle> inboxOfAlice = servletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfAlice.getTotalNumberOfResults());
 		assertEquals(1, inboxOfAlice.getResults().size());
@@ -273,6 +283,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
+		
+		// Process the outgoing message (emulates a worker)
+		messageManager.processMessage(messageToBob.getId(), null);
 		
 		PaginatedResults<MessageBundle> inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());

@@ -31,12 +31,8 @@ public interface MessageManager {
 	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
-	 * Saves the message so that it can be processed by other queries.
-	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
-	 * and any failures will be propagated immediately.
-	 * </br> 
-	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
-	 * In case of failure, the user will be notified via bounce message.  
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
+	 * In case of failure, the user will be notified via bounce message.
 	 * </br>
 	 * This method also checks to see if file handles (message body) are accessible.  
 	 */
@@ -131,11 +127,7 @@ public interface MessageManager {
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
 
 	/**
-	 * Saves the message so that it can be processed by other queries.
-	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
-	 * and any failures will be propagated immediately.
-	 * </br> 
-	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
 	 * </br>
 	 * This method also handles throttling of message creation 

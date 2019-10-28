@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -299,13 +298,15 @@ public class MessageManagerImplTest {
 			when(mockFileHandleManager.downloadFileToString(tmsFileHandleId)).thenReturn("some other message body");
 		}
 		
-		// Create all the messages
-		// These will be sent automatically since they have only one recipient
 		final String otherTestUserId = otherTestUser.getId().toString();
 		userToOther = createMessage(testUser, "userToOther",  ImmutableSet.of(otherTestUserId), null);
 		otherReplyToUser = createMessage(otherTestUser, "otherReplyToUser", ImmutableSet.of(testUserId), userToOther.getId());
 		
-		// These must be sent by a worker
+		// Process the message right away (emulate the worker processing the messages)
+		messageManager.processMessage(userToOther.getId(), null);
+		messageManager.processMessage(otherReplyToUser.getId(), null);
+		
+		// This messages are sent later by a worker
 		userReplyToOtherAndSelf = createMessage(testUser, "userReplyToOtherAndSelf", 
 				ImmutableSet.of(testUserId, otherTestUserId), otherReplyToUser.getId());
 		otherReplyToUserAndSelf = createMessage(otherTestUser, "otherReplyToUserAndSelf", 
@@ -479,12 +480,13 @@ public class MessageManagerImplTest {
 		final String otherId = otherTestUser.getId().toString();
 		Set<String> otherIdSet = ImmutableSet.of(otherId);
 		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", otherIdSet, null);
-		try {
+	
+		UnauthorizedException e = Assertions.assertThrows(UnauthorizedException.class, () -> {
 			messageManager.getMessage(testUser, invisible.getId());
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(e.getMessage().contains("not the sender or receiver"));
-		}
+		});
+		
+		assertTrue(e.getMessage().contains("not the sender or receiver"));
+		
 	}
 	
 	@Test
@@ -496,7 +498,9 @@ public class MessageManagerImplTest {
 		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
 		cleanup.add(forwarded.getId());
 		
-		// It should appear in the test user's inbox immediately
+		// Process the message (emulates the worker)
+		messageManager.processMessage(forwarded.getId(), null);
+		
 		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(2, messages.size());
@@ -535,7 +539,7 @@ public class MessageManagerImplTest {
 		
 		List<MessageToUser> whatTheOtherUserSees = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("The users have the same privileges regarding the thread's visibility", messages, whatTheOtherUserSees);
+		assertEquals(messages, whatTheOtherUserSees, "The users have the same privileges regarding the thread's visibility");
 	}
 	
 	@Test
@@ -653,33 +657,29 @@ public class MessageManagerImplTest {
 		}
 		
 		// This gets past one of the checks, but not the DAO's check
-		try {
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			createMessage(testUser, null, tooMany, null);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("not recognized"));
-		}
+		});
+	
+		assertTrue(e.getMessage().contains("not recognized"));
 		
 		for (long i = MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS; i < MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS * 2; i++) {
 			tooMany.add("" + i);
 		}
 		
 		// This fails the manager's check
-		try {
+		e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			createMessage(testUser, null, tooMany, null);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("Consider grouping"));
-		}
+		});
+		assertTrue(e.getMessage().contains("Consider grouping"));	
 		
 		// it's OK to do this as a trusted message sender
-		try {
+
+		e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			createMessageWithThrottle(trustedMessageSender, null, tmsFileHandleId, tooMany, null);
-			fail();
-		} catch (IllegalArgumentException e) {
-			// this shows that we got past the quantity and frequency limitations
-			assertTrue(e.getMessage().contains("One or more of the following IDs are not recognized"));
-		}
+		});
+		// this shows that we got past the quantity and frequency limitations
+		assertTrue(e.getMessage().contains("One or more of the following IDs are not recognized"));
 	}
 	
 	// can't create more than 10 messages in a minute
@@ -718,6 +718,10 @@ public class MessageManagerImplTest {
 		
 		// With default settings, the message should appear in the user's inbox
 		MessageToUser message = createMessage(otherTestUser, "message1", testUserIdSet, null);
+		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);
+		
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.get(0).getMessage());
@@ -730,6 +734,10 @@ public class MessageManagerImplTest {
 		
 		// Now this second message will be marked as READ
 		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
+		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message2.getId(), null);
+				
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.get(0).getMessage());
@@ -743,6 +751,10 @@ public class MessageManagerImplTest {
 		
 		// Now the third message appears UNREAD
 		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
+		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message3.getId(), null);
+		
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.get(0).getMessage());
@@ -761,6 +773,9 @@ public class MessageManagerImplTest {
 		userToOther.setRecipients(null);
 		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		cleanup.add(message.getId());
+
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);
 		
 		// Check the test user's inbox
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
@@ -783,6 +798,9 @@ public class MessageManagerImplTest {
 		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		cleanup.add(message.getId());
 		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);
+		
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -803,6 +821,9 @@ public class MessageManagerImplTest {
 		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		cleanup.add(message.getId());
 		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);
+		
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -813,12 +834,9 @@ public class MessageManagerImplTest {
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 
-		try {
-			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
-			fail("Exception expected");
-		} catch (UnauthorizedException e) { 
-			// as expected
-		}
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		});
 	}
 	
 	@Test
@@ -841,6 +859,9 @@ public class MessageManagerImplTest {
 		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, childId, userToOther);
 		cleanup.add(message.getId());
 		
+		// Process the message (emulates the worker)
+		messageManager.processMessage(message.getId(), null);
+		
 		// Check the test user's inbox
 		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -852,14 +873,12 @@ public class MessageManagerImplTest {
 	public void testCreateMessageToInvalidRecipient() throws Exception {
 		// No user has a negative ID (I hope)
 		userToOther.getRecipients().add("-1");
-		
-		try {
+		 
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			messageManager.createMessage(testUser, userToOther);
-			fail();
-		} catch (IllegalArgumentException e) {
-			// We shouldn't get a nasty DB error
-			assertFalse(e.getMessage().contains("foreign key"));
-		}
+		});
+		// We shouldn't get a nasty DB error
+		assertFalse(e.getMessage().contains("foreign key"));
 	}
 	
 	@Test
