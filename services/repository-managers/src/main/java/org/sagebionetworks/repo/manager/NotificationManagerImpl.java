@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -13,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class NotificationManagerImpl implements NotificationManager {
 
+	private static final Logger LOG = LogManager.getLogger(NotificationManagerImpl.class);
+	
 	@Autowired
 	private FileHandleManager fileHandleManager;
 
@@ -29,16 +33,24 @@ public class NotificationManagerImpl implements NotificationManager {
 	}
 
 	@Override
-	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages) throws NotFoundException {
+	public void sendNotifications(UserInfo userInfo, List<MessageToUserAndBody> messages, boolean stopOnFailure) throws NotFoundException {
 		for (MessageToUserAndBody message : messages) {
-			sendNotification(userInfo, message);
+			try {
+				sendNotification(userInfo, message);
+			} catch (Throwable e) {
+				if (stopOnFailure) {
+					throw e;
+				}
+				LOG.error("Cannot send notification: " + e.getMessage(), e);
+			}
 		}
 	}
 	
-	@Override
-	public MessageToUser sendNotification(UserInfo userInfo, MessageToUserAndBody message){
+	private MessageToUser sendNotification(UserInfo userInfo, MessageToUserAndBody message){
 		try {
-			if (message.getMetadata().getRecipients().isEmpty()) return null;
+			if (message.getMetadata().getRecipients().isEmpty()) {
+				return null;
+			}
 			FileHandle fileHandle = fileHandleManager.createCompressedFileFromString(
 					userInfo.getId().toString(), new Date(), message.getBody(), message.getMimeType());
 
