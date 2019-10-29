@@ -557,7 +557,7 @@ public class SQLTranslatorUtils {
 		}
 		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
 
-		if( !SQLUtils.isList(columnTranslationReference.getColumnType()) ){
+		if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
 			throw new IllegalArgumentException("The HAS keyword only works for columns that have list values");
 		}
 

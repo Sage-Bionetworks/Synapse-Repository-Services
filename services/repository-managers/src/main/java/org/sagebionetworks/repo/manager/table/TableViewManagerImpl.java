@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.ColumnTypeListMappings;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.util.FileProvider;
@@ -292,7 +293,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	static List<String> toAnnotationValuesList(ColumnModel column, String value) {
-		if(SQLUtils.isList(column.getColumnType())){
+		if(ColumnTypeListMappings.isList(column.getColumnType())){
 			//try to parse as JSON array and extract values as string
 			try {
 				JSONArray jsonArray = new JSONArray(value);

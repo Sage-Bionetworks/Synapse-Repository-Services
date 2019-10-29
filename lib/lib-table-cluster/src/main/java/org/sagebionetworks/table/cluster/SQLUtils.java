@@ -1787,19 +1787,6 @@ public class SQLUtils {
 		return mixedDoubleList;
 	}
 
-	public static boolean isList(ColumnType columnType){ //TODO: test and maybe move into separate class for list-> non-list type mapping if necessary
-		switch(columnType){
-			case STRING_LIST:
-			case DOUBLE_LIST:
-			case INTEGER_LIST:
-			case BOOLEAN_LIST:
-			case DATE_LIST:
-				return true;
-			default:
-				return false;
-		}
-	}
-
 	/**
 	 * Create SQL to insert into a table for the IdAndVersion with the given headers.
 	 * @param idAndVersion
