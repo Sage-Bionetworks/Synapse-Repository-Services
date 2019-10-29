@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -30,11 +30,11 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOProjectSettingsDAOImplTest {
 
@@ -49,7 +49,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 	private String projectId;
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -63,7 +63,7 @@ public class DBOProjectSettingsDAOImplTest {
 		projectId = nodeDao.createNew(project);
 	}
 
-	@After
+	@AfterEach
 	public void teardown() throws Exception {
 		if (projectId != null) {
 			nodeDao.delete(projectId);
@@ -135,28 +135,44 @@ public class DBOProjectSettingsDAOImplTest {
 		projectId = null;
 	}
 
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testProjectIdMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(null);
 		setting.setSettingsType(ProjectSettingsType.upload);
-		projectSettingsDao.create(setting);
+		
+		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("projectId must be specified", ex.getMessage());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testProjectIdMustBeValid() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId("123");
 		setting.setSettingsType(ProjectSettingsType.upload);
-		projectSettingsDao.create(setting);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
 	}
 
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testTypeMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(null);
-		projectSettingsDao.create(setting);
+		
+		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("settingsType must be specified", ex.getMessage());
 	}
 
 	@Test
@@ -185,42 +201,18 @@ public class DBOProjectSettingsDAOImplTest {
 	}
 
 	@Test
-	public void testGetByType() {
-		
-		
-		Iterator<ProjectSetting> iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
-		
-		int uploadBefore = 0;
-		while (iterator.hasNext()) {
-			iterator.next();
-			uploadBefore++;
-		}
-
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId(projectId);
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setLocations(Lists.<Long> newArrayList());
-		projectSettingsDao.create(setting);
-
-		iterator = projectSettingsDao.getByType(ProjectSettingsType.upload);
-		
-		int uploadAfter = 0;
-		
-		while (iterator.hasNext()) {
-			iterator.next();
-			uploadAfter++;
-		}
-		
-		assertEquals(uploadBefore + 1, uploadAfter);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
 	public void testFailOnDuplicatEntry() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.<Long> newArrayList());
 		projectSettingsDao.create(setting);
-		projectSettingsDao.create(setting);
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("A project setting of type 'upload' for project " + projectId + " already exists.", ex.getMessage());
 	}
 }

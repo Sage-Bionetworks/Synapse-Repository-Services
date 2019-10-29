@@ -187,13 +187,6 @@
 					<path>/</path>
 				</configuration>
 			</plugin>
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<argLine>-Xmx1024m -Xms128m -XX:MaxPermSize=512m</argLine>
-				</configuration>
-			</plugin>
-
 			<!-- Added this path to the test classpath so that we do not need to copy 
 				and paste our servlet config into a separate file even though we want the 
 				exact same config for testing -->

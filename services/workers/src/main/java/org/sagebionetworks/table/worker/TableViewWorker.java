@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.table.TableIndexConnectionUnavailableExc
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -40,8 +41,9 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			Exception {
 		// This worker is only works on FileView messages
 		if(ObjectType.ENTITY_VIEW.equals(message.getObjectType())){
-			final String tableId = message.getObjectId();
-			final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			final long tableId = KeyFactory.stringToKey(message.getObjectId());
+			final IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(tableId)
+					.setVersion(message.getObjectVersion()).build();
 			try {
 				if(ChangeType.DELETE.equals(message.getChangeType())){
 					// just delete the index

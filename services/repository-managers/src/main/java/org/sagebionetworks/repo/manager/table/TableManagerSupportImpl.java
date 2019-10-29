@@ -2,16 +2,12 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -32,14 +28,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -48,7 +43,6 @@ import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -120,12 +114,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	ReplicationMessageManagerAsynch replicationMessageManagerAsynch;
 	@Autowired
 	ObjectTypeManager objectTypeManager;
-	
-	/*
-	 * Cache of default ColumnModels for views.  Once created, these columns will not change
-	 * and will be the same across the cluster.
-	 */
-	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
+	@Autowired
+	ViewSnapshotDao viewSnapshotDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -331,13 +321,18 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public Long calculateViewCRC32(IdAndVersion idAndVersion) {
-		// Start with all container IDs that define the view's scope
-		Long viewTypeMask = getViewTypeMask(idAndVersion);
-		Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-		// Trigger the reconciliation of this view's scope.
-		triggerScopeReconciliation(viewTypeMask, viewContainers);
-		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-		return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+		if(idAndVersion.getVersion().isPresent()) {
+			// The ID of the snapshot is used for this case.
+			return viewSnapshotDao.getSnapshotId(idAndVersion);
+		}else {
+			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
+			// Start with all container IDs that define the view's scope
+			Long viewTypeMask = getViewTypeMask(idAndVersion);
+			Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+			// Trigger the reconciliation of this view's scope.
+			triggerScopeReconciliation(viewTypeMask, viewContainers);
+			return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+		}
 	}
 
 	@Override
@@ -482,15 +477,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
-		// check the cache.
-		ColumnModel model = defaultColumnCache.get(field);
-		if(model == null){
-			// not in the cache so create the column.
-			// this call is idempotent so we won't end up creating multiple ColumnModels with same configuration
-			model = columnModelManager.createColumnModel(field.getColumnModel());
-			defaultColumnCache.put(field, model);
-		}
-		return model;
+		/*
+		 * We no longer cache these columns in memory.  Caching has caused
+		 * numerous issues such as PLFM-5249 and PLFM-5902.
+		 */
+		return columnModelManager.createColumnModel(field.getColumnModel());
 	}
 	
 	@Override

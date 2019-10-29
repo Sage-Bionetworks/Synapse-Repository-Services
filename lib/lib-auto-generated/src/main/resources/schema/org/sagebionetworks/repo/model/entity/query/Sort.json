@@ -13,11 +13,11 @@
             "enum": [
                 {
                     "name": "ASC",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Ascending sort order"
                 },
                 {
                     "name": "DESC",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Descending sort order"
                 }
             ]
         }

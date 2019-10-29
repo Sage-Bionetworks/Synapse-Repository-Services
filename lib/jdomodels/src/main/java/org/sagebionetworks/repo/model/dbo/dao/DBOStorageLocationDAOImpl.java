@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -74,17 +73,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	private static final String SELECT_ID_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
 			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
 			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC LIMIT 1";
-
-	private static final String SELECT_DUPLICATES_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
-			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
-			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? AND " + COL_STORAGE_LOCATION_ID + " <> ?";
-
-	private static final String SELECT_IDS_WITH_DUPLICATES = "SELECT MAX(" + COL_STORAGE_LOCATION_ID + ") FROM "
-			+ TABLE_STORAGE_LOCATION + " GROUP BY " + COL_STORAGE_LOCATION_CREATED_BY + ", "
-			+ COL_STORAGE_LOCATION_DATA_HASH + " HAVING COUNT(" + COL_STORAGE_LOCATION_ID + ") > 1";
-
-	private static final String DELETE_BATCH = "DELETE FROM " + TABLE_STORAGE_LOCATION + " WHERE "
-			+ COL_STORAGE_LOCATION_ID + " IN (:" + STORAGE_LOCATION_IDS_PARAM + " )";
 
 	private static final RowMapper<DBOStorageLocation> ROW_MAPPER = new DBOStorageLocation().getTableMapping();
 
@@ -191,19 +179,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 						return location;
 					}
 				});
-	}
-
-	@Override
-	public List<Long> findAllWithDuplicates() throws DatastoreException {
-		return jdbcTemplate.queryForList(SELECT_IDS_WITH_DUPLICATES, Long.class);
-	}
-
-	@Override
-	public Set<Long> findDuplicates(Long id) throws DatastoreException, NotFoundException {
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
-				new SinglePrimaryKeySqlParameterSource(id));
-		return jdbcTemplate.queryForList(SELECT_DUPLICATES_BY_CREATOR_AND_HASH, Long.class, dbo.getCreatedBy(),
-				dbo.getDataHash(), id).stream().collect(Collectors.toSet());
 	}
 
 	private Optional<Long> findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {

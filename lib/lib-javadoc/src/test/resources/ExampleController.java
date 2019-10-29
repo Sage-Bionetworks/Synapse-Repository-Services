@@ -1,4 +1,5 @@
 package org.sagebionetworks.samples;
+import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Annotations;
@@ -8,12 +9,16 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -27,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -111,6 +117,64 @@ public class ExampleController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
 			throws DatastoreException, NotFoundException {
+		return null;
+	}
+	
+	/**
+	 * Maecenas eu placerat ante. Fusce ut neque justo, et aliquet enim. In hac
+	 * habitasse platea dictumst. Nullam commodo neque erat, vitae facilisis
+	 * erat. Cras at mauris ut tortor vestibulum fringilla vel sed metus. Donec
+	 * interdum purus a justo feugiat rutrum. Sed ac neque ut neque dictum
+	 * accumsan. Cras lacinia rutrum risus, id viverra metus dictum sit amet.
+	 * Fusce venenatis, urna eget cursus placerat, dui nisl fringilla purus, nec
+	 * tincidunt sapien justo ut nisl. Curabitur lobortis semper neque et
+	 * varius. Etiam eget lectus risus, a varius orci. Nam placerat mauris at
+	 * dolor imperdiet at aliquet lectus ultricies. Duis tincidunt mi at quam
+	 * condimentum lobortis.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/entity/{id}/uploadDestination", method = RequestMethod.GET)
+	public @ResponseBody
+	UploadDestination getDefaultUploadDestination(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id)
+			throws DatastoreException, NotFoundException {
+		return null;
+	}
+	
+	/**
+	 * Maecenas eu placerat ante. Fusce ut neque justo, et aliquet enim. In hac
+	 * habitasse platea dictumst. Nullam commodo neque erat, vitae facilisis
+	 * erat. Cras at mauris ut tortor vestibulum fringilla vel sed metus. Donec
+	 * interdum purus a justo feugiat rutrum. Sed ac neque ut neque dictum
+	 * accumsan. Cras lacinia rutrum risus, id viverra metus dictum sit amet.
+	 * Fusce venenatis, urna eget cursus placerat, dui nisl fringilla purus, nec
+	 * tincidunt sapien justo ut nisl. Curabitur lobortis semper neque et
+	 * varius. Etiam eget lectus risus, a varius orci. Nam placerat mauris at
+	 * dolor imperdiet at aliquet lectus ultricies. Duis tincidunt mi at quam
+	 * condimentum lobortis.
+	 * 
+	 * @param userId
+	 * @param storageLocationSetting
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { "/storageLocation" }, method = RequestMethod.POST)
+	public @ResponseBody
+	StorageLocationSetting createStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+														@RequestBody StorageLocationSetting storageLocationSetting) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException, IOException {
 		return null;
 	}
 
@@ -289,6 +353,19 @@ public class ExampleController {
 	@RequestMapping(value = "/some/enum", method = RequestMethod.GET)
 	public @ResponseBody Long enumParam(
 			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter) {
+		return null;
+	}
+	
+	/**
+	 * including an authorization header
+	 * 
+	 * @param authorizationHeader
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/some/authorized/service", method = RequestMethod.POST)
+	public @ResponseBody Long authorizedService(
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
 }

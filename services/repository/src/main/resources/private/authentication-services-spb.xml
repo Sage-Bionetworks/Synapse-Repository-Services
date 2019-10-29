@@ -19,5 +19,4 @@
 	
 	<bean id="oauthClientAuthFilter" class="org.sagebionetworks.auth.OAuthClientAuthFilter" />
 	
-	<bean id="oauthAccessTokenFilter" class="org.sagebionetworks.auth.OAuthAccessTokenFilter" />	
 </beans>

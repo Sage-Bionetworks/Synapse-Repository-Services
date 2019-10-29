@@ -24,11 +24,11 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -231,42 +231,32 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserInfo userToGetInfoFor = userInfo;
 
-		ValidateArgument.required(type, "type");
-
-		// validate for different types of lists
-		switch (type) {
-		case OTHER_USER_PROJECTS:
-			ValidateArgument.required(otherUserId, "user");
-			break;
-		case TEAM_PROJECTS:
-			ValidateArgument.required(teamId, "team");
-			break;
-		default:
-			break;
+		ValidateArgument.required(otherUserId, "subject");
+		
+		UserInfo userToGetInfoFor;
+		if (otherUserId.equals(userId)) {
+			userToGetInfoFor = userInfo;
+		} else {
+			userToGetInfoFor = userManager.getUserInfo(otherUserId);
+		}
+		
+		if (type==null) {
+			type = ProjectListType.ALL;
 		}
 
-		if(sortColumn ==null){
+		if(sortColumn==null){
 			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		}
-		if (sortDirection == null) {
+		if (sortDirection==null) {
 			sortDirection = SortDirection.DESC;
 		}
 
-		if (otherUserId != null) {
-			userToGetInfoFor = userManager.getUserInfo(otherUserId);
-		}
-		Team teamToFetch = null;
-		if (teamId != null) {
-			teamToFetch = teamManager.get(teamId.toString());
-		}
-
-		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamId, type, sortColumn, sortDirection, nextPageToken);
 	}
 	
 	/*

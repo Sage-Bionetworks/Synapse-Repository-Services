@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"description": "This upload destination contains information to start an upload to an external external S3 bucket connected with Synapse. The destination is mapped from an <a href=\"${org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting}\">ExternalS3StorageLocationSetting</a>.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"

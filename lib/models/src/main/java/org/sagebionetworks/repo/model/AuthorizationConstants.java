@@ -194,6 +194,12 @@ public class AuthorizationConstants {
 	
 	
 	/**
+	 * The oauth 'client id' representing Synapse itself
+	 */
+	public static final String SYNAPSE_OAUTH_CLIENT_ID = "0";
+	
+	
+	/**
 	 * Request parameters for the Synapse OAuth server, defined by
 	 * https://openid.net/specs/openid-connect-core-1_0.html#RefreshingAccessToken
 	 */
@@ -203,18 +209,27 @@ public class AuthorizationConstants {
 	public static final String OAUTH2_CODE_PARAM = "code";
 	public static final String OAUTH2_REDIRECT_URI_PARAM = "redirect_uri";
 	public static final String OAUTH2_REFRESH_TOKEN_PARAM = "refresh_token";
-	public static final String OAUTH_VERIFIED_CLIENT_ID_PARAM = "verifiedOauthClientId";
-	public static final String OAUTH_VERIFIED_ACCESS_TOKEN = "verifiedOauthAccessToken";
+	public static final String OAUTH_VERIFIED_CLIENT_ID_HEADER = "verifiedOauthClientId";
 	
 	/**
 	 * The Oauth access token is passed as the 'bearer' request header
 	 */
 	public static final String BEARER_TOKEN_HEADER = "Bearer ";
 	
+	/**
+	 * Standard name for the HTTP Header containing credentials, bearer token, or other authentication/authorization information
+	 */
 	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	/**
+	 * Internal header name used when passing authorization from a Synapse HTTP Filter to a Spring Controller
+	 */
+	public static final String SYNAPSE_AUTHORIZATION_HEADER_NAME = "Synapse-Authorization";
 	
 	public static final String BASIC_PREFIX = "Basic ";
 
 
+	
+	public static final String PROJECT_FILTER_PARAM = "filter";
 
 }

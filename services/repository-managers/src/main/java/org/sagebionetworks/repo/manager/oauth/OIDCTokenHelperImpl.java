@@ -2,12 +2,16 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -119,6 +123,18 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	}
 	
 	@Override
+	public String createTotalAccessToken(Long principalId) {
+		String issuer = null; // doesn't matter -- it's only important to the client (which will never see this token, used internally)
+		String subject = principalId.toString(); // we don't encrypt the subject
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
+		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+				tokenId, allScopes, Collections.EMPTY_MAP);
+	}
+
+	
+	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {
 		return JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 	}
@@ -126,5 +142,16 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	@Override
 	public void validateJWT(String token) {
 		JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
+	}
+
+	@Override
+	public String createAnonymousAccessToken() {
+		String issuer = null; // doesn't matter -- it's only important to the client (which will never see this token, used internally)
+		String subject = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(); // we don't encrypt the subject
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
+		String tokenId = UUID.randomUUID().toString();
+		List<OAuthScope> noScopes = Collections.EMPTY_LIST;
+		return createOIDCaccessToken(issuer, subject, oauthClientId, System.currentTimeMillis(), null,
+				tokenId, noScopes, Collections.EMPTY_MAP);
 	}
 }

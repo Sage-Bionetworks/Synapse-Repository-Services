@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.springframework.jdbc.core.RowMapper;
 
 /**
  * The database object for a node.
@@ -47,37 +48,40 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("type", COL_NODE_TYPE),
 			new FieldColumn("alias", COL_NODE_ALIAS),
 			};
+	
+	private static final RowMapper<DBONode> ROW_MAPPER = new DBONodeMapper();
+	
+	private static final TableMapping<DBONode> TABLE_MAPPING = new TableMapping<DBONode>() {
+		// Map a result set to this object
+		@Override
+		public DBONode mapRow(ResultSet rs, int rowNum)	throws SQLException {
+			return ROW_MAPPER.mapRow(rs, rowNum);
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_NODE;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_NODE;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBONode> getDBOClass() {
+			return DBONode.class;
+		}
+	};
 
 	@Override
 	public TableMapping<DBONode> getTableMapping() {
-		return new TableMapping<DBONode>() {
-			// Map a result set to this object
-			@Override
-			public DBONode mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				DBONodeMapper mapper = new DBONodeMapper();
-				return mapper.mapRow(rs, rowNum);
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_NODE;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_NODE;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBONode> getDBOClass() {
-				return DBONode.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 	
 	private Long id;

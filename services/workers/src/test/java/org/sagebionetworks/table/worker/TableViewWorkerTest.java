@@ -72,6 +72,20 @@ public class TableViewWorkerTest {
 	}
 	
 	@Test
+	public void testRunCreateWithVersion() throws Exception {
+		String tableId = "syn123";
+		long version = 44;
+		idAndVersion = IdAndVersion.parse(tableId+"."+version);
+		change.setObjectId(tableId);
+		change.setObjectVersion(version);
+		// call under test
+		worker.run(mockProgressCallback, change);
+		verify(mockTableViewManager).createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(mockTableViewManager, never()).deleteViewIndex(any(IdAndVersion.class));
+		verifyZeroInteractions(mockLogger);
+	}
+	
+	@Test
 	public void testRunDelete() throws Exception {
 		change.setChangeType(ChangeType.DELETE);
 		// call under test

@@ -261,13 +261,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<argLine>-Xmx1024m -Xms128m</argLine>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
 

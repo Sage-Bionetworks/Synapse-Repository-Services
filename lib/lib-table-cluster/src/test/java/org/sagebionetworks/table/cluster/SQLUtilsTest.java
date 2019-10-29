@@ -1589,7 +1589,7 @@ public class SQLUtilsTest {
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
-		SQLUtils.buildSelect(builder, metaList);
+		List<String> headers = SQLUtils.buildSelect(builder, metaList);
 		assertEquals(
 				"R.ID,"
 				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
@@ -1612,6 +1612,8 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C13_,"
 				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C14_"
 				, builder.toString());
+		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
+				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_"), headers);
 	}
 
 	@Test
@@ -1736,7 +1738,7 @@ public class SQLUtilsTest {
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		assertEquals(", MAX(R.CREATED_ON) AS CREATED_ON", builder.toString());
-		assertEquals(Lists.newArrayList("CREATED_ON"), headers);
+		assertEquals(Lists.newArrayList("_C1_"), headers);
 	}
 
 	@Test
@@ -1795,9 +1797,8 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		String columnName = TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
-		List<String> headers = SQLUtils.buildEntityReplicationSelect(builder, columnName);
+		SQLUtils.buildEntityReplicationSelect(builder, columnName);
 		assertEquals(", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
-		assertEquals(Lists.newArrayList(columnName), headers);
 	}
 
 	@Test
@@ -1809,7 +1810,7 @@ public class SQLUtilsTest {
 				+ ", MAX(R.CURRENT_VERSION) AS CURRENT_VERSION"
 				+ ", MAX(R.ETAG) AS ETAG"
 				+ ", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
-		assertEquals(Lists.newArrayList("ID", "CURRENT_VERSION","ETAG","BENEFACTOR_ID"), headers);
+		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR"), headers);
 	}
 
 	@Test
@@ -1837,7 +1838,7 @@ public class SQLUtilsTest {
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
 				+ " GROUP BY R.ID", sql);
-		assertEquals(Lists.newArrayList("ID", "CURRENT_VERSION","ETAG","BENEFACTOR_ID","_C1_","ID"), headers);
+		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
 
 
@@ -2434,5 +2435,21 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setDouble(6, AbstractDouble.NEGATIVE_INFINITY.getApproximateValue());
 		verify(mockPreparedStatement).setString(7, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testCreateInsertViewFromSnapshot() {
+		String[] headers = new String[] {"foo","bar"};
+		tableId = IdAndVersion.parse("syn999.23");
+		// call under test
+		String sql = SQLUtils.createInsertViewFromSnapshot(tableId, headers);
+		assertEquals("INSERT INTO T999_23 (foo,bar) VALUES  (?,?)", sql);
+	}
+	
+	@Test
+	public void testCalcualteBytes() {
+		String[] row = new String[] {"foo","barbar"};
+		long bytes = SQLUtils.calculateBytes(row);
+		assertEquals(3*4+6*4, bytes);
 	}
 }

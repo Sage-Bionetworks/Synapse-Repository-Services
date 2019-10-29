@@ -3395,7 +3395,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(ProjectListType.OTHER_USER_PROJECTS, userId, null, sortColumn, sortDirection, limit, offset);
+		return getProjects(ProjectListType.ALL, userId, null, sortColumn, sortDirection, limit, offset);
 	}
 
 	/**
@@ -3412,19 +3412,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(ProjectListType.TEAM_PROJECTS, null, teamId, sortColumn, sortDirection, limit, offset);
+		return getProjects(ProjectListType.TEAM, null, teamId, sortColumn, sortDirection, limit, offset);
 	}
 
 	private PaginatedResults<ProjectHeader> getProjects(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
 			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
-		String url = PROJECTS_URI_PATH + '/' + type.name();
+		String url = PROJECTS_URI_PATH;
 		if (userId != null) {
 			url += USER + '/' + userId;
 		}
-		if (teamId != null) {
-			url += TEAM + '/' + teamId;
-		}
-
 		if (sortColumn == null) {
 			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		}
@@ -3434,6 +3430,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit + "&sort=" + sortColumn.name() + "&sortDirection="
 				+ sortDirection.name();
+		if (teamId != null) {
+			url += "&teamId=" + teamId;
+		}
+		if (type!=null) {
+			url += "&filter="+type;
+		}
+
 		return getPaginatedResults(getRepoEndpoint(), url, ProjectHeader.class);
 	}
 

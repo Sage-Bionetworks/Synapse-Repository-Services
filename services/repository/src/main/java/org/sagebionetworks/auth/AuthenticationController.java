@@ -41,13 +41,37 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <ul>
  * <li>username and password</li>
  * <li>session token</li>
+ * <li>OAuth access token</li>
  * <li>API key</li>
  * </ul>
  * <p>
- * Only the session token or API key can be used to authenticate the user
- * outside of the authentication services. Authentication via a username and
- * password will allow the user to retrieve a session token
- * and/or API key for use in other requests.
+ * The username and password can only be used to authenticate the user
+ * initially, obtaining a session token for use in other requests.
+ * </p>
+ * <p>
+ * To authenticate using the session token returned by the 
+ * <a href="${POST.login}">POST /login</a> service,
+ * add it to the request a header named "sessionToken".
+ * </p>
+ * <p>
+ * To authentication with an OAuth access token, use the OAuth 2.0 services,
+ * culminating with this request to retrieve an access token:
+ * <a href="${POST.oauth2.token}">POST /oauth2/token</a>
+ * which is then included as a Bearer token in the Authorization header of 
+ * subsequent requests.  Note:  At this time only selected services recognize the OAuth 2.0
+ * token and they are documented accordingly.
+ * </p>
+ * <p>
+ * To authenticate using an API Key, include the following three headers in
+ * the request:
+ * <ul>
+ * <li>header name: 'userId'; header value: the user<em>name</em> of the Synapse user</li>
+ * <li>header name: 'signatureTimestamp'; header value: The current time stamp in ISO 8601 format</li>
+ * <li>header name: 'signature'; header value: A Base-64 encoded HMAC computed using the HMAC-SHA1 algorithm
+ * whose data is the concatenation of the user name, request URI, and time stamp, and whose secret is 
+ * the (Base 64 decoded) Synapse API key for the given Synapse user.  The request URI omits the host
+ * and query string, e.g. "/repo/v1/entity" is a valid URI. </li>
+ * </ul>
  * </p>
  */
 @ControllerInfo(displayName = "Authentication Services", path = "auth/v1")

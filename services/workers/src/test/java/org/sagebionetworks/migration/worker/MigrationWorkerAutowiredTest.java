@@ -3,15 +3,11 @@ package org.sagebionetworks.migration.worker;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Arrays;
-import java.util.UUID;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -22,12 +18,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
-import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsRequest;
-import org.sagebionetworks.repo.model.migration.CleanupStorageLocationsResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -35,9 +28,9 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MigrationWorkerAutowiredTest {
 
@@ -53,10 +46,8 @@ public class MigrationWorkerAutowiredTest {
 	StackStatusDao stackStatusDao;
 
 	private UserInfo adminUserInfo;
-	
-	private UserInfo userInfo;
 
-	@Before
+	@BeforeEach
 	public void before() throws NotFoundException {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
@@ -66,18 +57,12 @@ public class MigrationWorkerAutowiredTest {
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
 		
-		NewUser user = new NewUser();
-		String username = UUID.randomUUID().toString();
-		user.setEmail(username + "@test.com");
-		user.setUserName(username);
-		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_ONLY);
 		stackStatusDao.updateStatus(status);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
@@ -106,32 +91,6 @@ public class MigrationWorkerAutowiredTest {
 		assertTrue(0 == checksum.getMinid());
 		assertTrue(Long.MAX_VALUE == checksum.getMaxid());
 		assertNotNull(checksum.getChecksum());
-	}
-	
-	@Test
-	public void testStorageLocationsCleanup() throws Exception {
-		CleanupStorageLocationsRequest req = new CleanupStorageLocationsRequest();
-		
-		req.setUsers(Arrays.asList(userInfo.getId()));
-		
-		AsyncMigrationRequest request = new AsyncMigrationRequest();
-		request.setAdminRequest(req);		
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
-		status = waitForStatus(adminUserInfo, status);
-		assertNotNull(status);
-		assertNotNull(status.getResponseBody());
-		AsynchronousResponseBody resp = status.getResponseBody();
-		assertTrue(resp instanceof AsyncMigrationResponse);
-		AsyncMigrationResponse aResp = (AsyncMigrationResponse)resp;
-		assertNotNull(aResp.getAdminResponse());
-		assertTrue(aResp.getAdminResponse() instanceof CleanupStorageLocationsResponse);
-		
-		CleanupStorageLocationsResponse response = (CleanupStorageLocationsResponse) aResp.getAdminResponse();
-		
-		assertEquals(0L, response.getDeletedProjectSettingsCount());
-		assertEquals(0L, response.getDuplicateLocationsCount());
-		assertEquals(0L, response.getUpdatedFilesCount());
-		
 	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user,

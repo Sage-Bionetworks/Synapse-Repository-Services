@@ -1,8 +1,9 @@
 package org.sagebionetworks.auth.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -11,17 +12,18 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -44,7 +46,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AuthenticationServiceImplTest {
 
 	@InjectMocks
@@ -58,6 +60,9 @@ public class AuthenticationServiceImplTest {
 	private MessageManager mockMessageManager;
 	@Mock
 	private OAuthManager mockOAuthManager;
+	@Mock
+	private OpenIDConnectManager mockOidcManager;
+
 	
 	private LoginCredentials credential;
 	private UserInfo userInfo;
@@ -72,7 +77,7 @@ public class AuthenticationServiceImplTest {
 	LoginRequest loginRequest;
 	LoginResponse loginResponse;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		credential = new LoginCredentials();
 		credential.setEmail(username);
@@ -81,11 +86,6 @@ public class AuthenticationServiceImplTest {
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
 		
-		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
-		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
-		
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
-				.thenReturn(userId);
 
 		alias = "alias";
 		principalAlias = new PrincipalAlias();
@@ -93,7 +93,6 @@ public class AuthenticationServiceImplTest {
 		principalAlias.setAlias(alias);
 		principalAlias.setAliasId(2222L);
 		principalAlias.setType(AliasType.USER_NAME);
-		when(mockUserManager.lookupUserByUsernameOrEmail(alias)).thenReturn(principalAlias);
 		
 		aliasEmail = "user_alternative@test.com";
 		principalEmailAlias = new PrincipalAlias();
@@ -101,7 +100,6 @@ public class AuthenticationServiceImplTest {
 		principalEmailAlias.setAliasId(3333L);
 		principalEmailAlias.setAlias(aliasEmail);
 		principalEmailAlias.setType(AliasType.USER_EMAIL);
-		when(mockUserManager.lookupUserByUsernameOrEmail(aliasEmail)).thenReturn(principalEmailAlias);
 		
 		loginRequest = new LoginRequest();
 		loginRequest.setAuthenticationReceipt("receipt");
@@ -113,25 +111,18 @@ public class AuthenticationServiceImplTest {
 		loginResponse.setAuthenticationReceipt("newReceipt");
 		loginResponse.setSessionToken("sessionToken");
 		
-		when(mockUserManager.lookupUserByUsernameOrEmail(loginRequest.getUsername())).thenReturn(principalAlias);
-		when(mockAuthenticationManager.login(loginRequest)).thenReturn(loginResponse);
 	}
 	
 	@Test
 	public void testRevalidateToU() throws Exception {
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
-				.thenThrow(new TermsOfUseException());
-		
 		// A boolean flag should let us get past this call
 		service.revalidate(sessionToken, false);
 
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
+		.thenThrow(new TermsOfUseException());
+
 		// But it should default to true
-		try {
-			service.revalidate(sessionToken);
-			fail();
-		} catch (TermsOfUseException e) {
-			// Expected
-		}
+		assertThrows(TermsOfUseException.class, ()->service.revalidate(sessionToken));
 	}
 	
 	@Test
@@ -190,7 +181,7 @@ public class AuthenticationServiceImplTest {
 		assertEquals(session, result);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateOAuthAuthenticationCodeEmailNull() throws NotFoundException{
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
@@ -202,13 +193,11 @@ public class AuthenticationServiceImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		long userId = 3456L;
 		alias.setPrincipalId(userId);
-		when(mockUserManager.lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
-		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
+
 		//call under test
-		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
-		assertEquals(session, result);
+		assertThrows(IllegalArgumentException.class, ()->service.validateOAuthAuthenticationCodeAndLogin(request));
 	}
 	
 	@Test
@@ -233,10 +222,10 @@ public class AuthenticationServiceImplTest {
 		assertEquals(principalAlias, result);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testBindExternalIDAnonymous() throws Exception {
-		service.bindExternalID(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null);
+		assertThrows(UnauthorizedException.class, ()->service.bindExternalID(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null));
 	}
 	
 	@Test
@@ -254,6 +243,8 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testLogin() {
+		when(mockAuthenticationManager.login(loginRequest)).thenReturn(loginResponse);
+
 		// call under test
 		LoginResponse response = service.login(loginRequest);
 		assertNotNull(response);
@@ -267,7 +258,6 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testLoginNotFound() {
 		// NotFoundException should be converted to UnauthenticatedException;
-		when(mockUserManager.lookupUserByUsernameOrEmail(loginRequest.getUsername())).thenThrow(new NotFoundException("does not exist"));
 		try {
 			// call under test
 			service.login(loginRequest);
@@ -321,6 +311,8 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testSendPasswordResetEmailWithEmailAlias() {
+		when(mockUserManager.lookupUserByUsernameOrEmail(aliasEmail)).thenReturn(principalEmailAlias);
+
 		String passwordResetUrlPrefix = "synapse.org";
 		
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
@@ -332,6 +324,22 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail(aliasEmail);
 		verify(mockAuthenticationManager).createPasswordResetToken(principalEmailAlias.getPrincipalId());
 		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalEmailAlias);	
+	}
+	
+	@Test
+	public void testHasUserAcceptedTermsOfUseJWT() {
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
+		
+		String token = "jwt-token";
+		when(mockOidcManager.getUserId(token)).thenReturn(""+userId);
+		
+		// method under test
+		assertTrue(service.hasUserAcceptedTermsOfUse(token));
+		
+		verify(mockOidcManager).getUserId(token);
+		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userId);
+
+		
 	}
 	
 }
