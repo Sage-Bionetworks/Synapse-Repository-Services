@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.ValueParser;
 public class ListStringParser extends AbstractValueParser{
 	private ValueParser individualElementParser;
 
+	final static int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 	/**
 	 *
 	 * @param individualElementParser parser that will be applied to each element in the list
@@ -18,11 +19,16 @@ public class ListStringParser extends AbstractValueParser{
 		this.individualElementParser = individualElementParser;
 	}
 
+	//TODO: consolidate with ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST
+
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {//TODO: test
 		try {
 			JSONArray parsed = new JSONArray(value);
 			JSONArray toDatabase = new JSONArray();
+			if(parsed.length() >  MAX_NUMBER_OF_ITEMS_IN_LIST){
+				throw new IllegalArgumentException("value can not exceed " + MAX_NUMBER_OF_ITEMS_IN_LIST + " in list: " + value);
+			}
 			for(int i = 0; i < parsed.length(); i++){
 				if(parsed.isNull(i)){
 					throw new IllegalArgumentException("null value is not allowed");

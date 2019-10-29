@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.cluster.utils;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -101,7 +103,7 @@ public class TableModelUtils {
 			return Long.parseLong(sc.getId());
 		}
 	};
-	
+
 	/**
 	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
 	 * @param set
@@ -720,33 +722,42 @@ public class TableModelUtils {
 	public static int calculateMaxSizeForType(ColumnType type, Long maxSize){
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
 		switch (type) {
-		case STRING:
-		case LINK:
-			if (maxSize == null) {
-				throw new IllegalArgumentException("maxSize cannot be null for String types");
-			}
-			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
-		case LARGETEXT:
-			return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;	
-		case BOOLEAN:
-			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
-		case INTEGER:
-		case DATE:
-			return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
-		case DOUBLE:
-			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
-		case FILEHANDLEID:
-			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
-		case ENTITYID:
-			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
-		case USERID:
-			return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
+			case STRING:
+			case LINK:
+				if (maxSize == null) {
+					throw new IllegalArgumentException("maxSize cannot be null for String types");
+				}
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
+			case LARGETEXT:
+				return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
+			case BOOLEAN:
+				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
+			case INTEGER:
+			case DATE:
+				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
+			case DOUBLE:
+				return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
+			case FILEHANDLEID:
+				return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
+			case ENTITYID:
+				return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
+			case USERID:
+				return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
+			case STRING_LIST:
+				if (maxSize == null) { //todo validate value so that it can not exceed in the maxsize a list
+					throw new IllegalArgumentException("maxSize cannot be null for String List types");
+				}
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST);
+			case DOUBLE_LIST:
+				return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
+			case INTEGER_LIST:
+			case DATE_LIST:
+				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
+			case BOOLEAN_LIST:
+				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
-	}
-//TODO: for lists String: counts as 4 * 100 * maxSize
-	//TODO: for double 23 * 100, where 23 is double.max.tostring.getbytes
-	//TODO: 100 is max size of list
+		}
 	
 	/**
 	 * Calculate the amount of memory needed load the given row.

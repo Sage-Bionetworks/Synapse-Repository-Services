@@ -387,7 +387,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000",
-				"link708000", "largeText804000", "903000");
+				"link708000", "largeText804000", "903000", "[\"string1000000\"]", "[3751003.12]", "[1203000]", "[false]", "[1404000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -396,7 +396,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001", 
-				"link708001", "largeText804001", "903001");
+				"link708001", "largeText804001", "903001", "[\"string1000001\"]", "[3751006.53]", "[1203001]", "[true]", "[1404001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -520,7 +520,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null,
-				null, null, null, null,  null, null);
+				null, null, null, null,  null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -528,7 +528,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null, null);
+				null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -1420,8 +1420,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(381255304L, crc32);
 	}
 
-	//TODO: handle columnModel.maxSize for string_list
-
 	@Test
 	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException { //TODO: fix table creation sql to include json types
 		isView = true;
@@ -1463,8 +1461,8 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
 		assertEquals(2, result.getRows().size());
-		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0));
-		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1));
+		assertEquals(Collections.singletonList("[\"NaN\", 1.2, \"Infinity\"]"), result.getRows().get(0).getValues());
+		assertEquals(Collections.singletonList("[\"Infinity\", 222.222]"), result.getRows().get(1).getValues());
 
 		// Check the CRC of the view
 		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());

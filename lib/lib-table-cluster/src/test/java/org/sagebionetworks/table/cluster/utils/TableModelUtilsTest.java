@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -570,7 +571,7 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeString() throws UnsupportedEncodingException {
+	public void testCalculateMaxSizeForTypeString(){
 		long maxSize = 444;
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
@@ -579,7 +580,7 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeLink() throws UnsupportedEncodingException {
+	public void testCalculateMaxSizeForTypeLink(){
 		long maxSize = 444;
 		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
@@ -588,61 +589,97 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException {
-		int expected = new String("false").getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeBoolean(){
+		int expected = "false".getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null));
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeLong() throws UnsupportedEncodingException {
-		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeLong(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null));
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeDate() throws UnsupportedEncodingException {
-		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeDate(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DATE, null));
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeDouble() throws UnsupportedEncodingException {
+	public void testCalculateMaxSizeForTypeDouble(){
 		double big = -1.123456789123456789e123;
-		int expected = Double.toString(big).getBytes("UTF-8").length;
+		int expected = Double.toString(big).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE, null));
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeFileHandle() throws UnsupportedEncodingException {
-		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeFileHandle(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID, null));
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeUserID() throws UnsupportedEncodingException {
-		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeUserID(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.USERID, null));
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeEntityId() throws UnsupportedEncodingException {
-		int expected = new String("syn" + Long.toString(-1111111111111111111l) + "." + Long.toString(-1111111111111111111l))
-				.getBytes("UTF-8").length;
+	public void testCalculateMaxSizeForTypeEntityId(){
+		int expected = ("syn" + -1111111111111111111l + "." + -1111111111111111111l)
+				.getBytes(StandardCharsets.UTF_8).length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID, null));
 	}
 	
 	@Test
-	public void testCalculateMaxSizeForTypeLargeText() throws UnsupportedEncodingException {
+	public void testCalculateMaxSizeForTypeLargeText(){
 		assertEquals(ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES,
 				TableModelUtils.calculateMaxSizeForType(ColumnType.LARGETEXT, null));
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException {
+	public void testCalculateMaxSizeForTypeStringList(){
+		long maxSize = 444;
+		int expected = (int) (maxSize * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8) * 100;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.STRING_LIST, maxSize));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeDoubleList(){
+		int expected = Double.toString(-Double.MAX_VALUE).getBytes(StandardCharsets.UTF_8).length * 100;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE_LIST, null));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeIntegerList(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 100;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER_LIST, null));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeDateList(){
+		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 100;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.DATE_LIST, null));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeBooleanList(){
+		int expected = "false".getBytes(StandardCharsets.UTF_8).length * 100;
+		assertEquals(expected,
+				TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN_LIST, null));
+	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeAll(){
 		// The should be a size for each type.
 		for (ColumnType ct : ColumnType.values()) {
 			Long maxSize = null;
-			if (ColumnType.STRING == ct) {
+			if (ColumnType.STRING == ct || ColumnType.STRING_LIST == ct) {
 				maxSize = 14L;
 			}
 			if (ColumnType.LINK == ct) {
@@ -705,7 +742,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(2661, allBytes);
+		assertEquals(28261, allBytes);
 	}
 
 	@Test
@@ -1117,7 +1154,7 @@ public class TableModelUtilsTest {
 		RowSet rowSet = new RowSet();
 		rowSet.setHeaders(headers);
 		rowSet.setEtag("etag");
-		rowSet.setRows(Lists.newArrayList((Row)row1, (Row)row2));
+		rowSet.setRows(Lists.newArrayList(row1, row2));
 		rowSet.setTableId(tableId);
 		
 		// Call under test

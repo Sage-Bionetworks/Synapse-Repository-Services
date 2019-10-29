@@ -163,5 +163,7 @@ public class ColumnConstants {
 	 * The minimum size of a rows value.
 	 */
 	public static final int MINUMUM_ROW_VALUE_SIZE = SIZE_OF_REFERENCE_BYTES*4+80;
-	
+
+	//TODO: enforce limit for additions
+	public static final int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 }
