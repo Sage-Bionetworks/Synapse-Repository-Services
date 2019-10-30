@@ -132,7 +132,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Override
 	public List<String> filterUserGroups(String principalId, List<String> groupIds) {
 		ValidateArgument.required(principalId, "userId");
-		if (groupIds==null || groupIds.isEmpty()) return Collections.EMPTY_LIST;
+		if (groupIds==null || groupIds.isEmpty()) return Collections.emptyList();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
 		param.addValue(GROUP_ID_PARAM_NAME, groupIds);
@@ -276,12 +276,25 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		Integer count = namedJdbcTemplate.queryForObject(SQL_COUNT_MEMBERS, params, Integer.class);
 		return count.equals(userIds.size());
 	}
+	
+	@Override
+	public Set<Long> getMemberIdsForUpdate(Long teamId) {
+		return getMemberIds(teamId, true);
+	}
 
 	@Override
 	public Set<Long> getMemberIds(Long teamId) {
+		return getMemberIds(teamId, false);
+	}
+	
+	private Set<Long> getMemberIds(Long teamId, boolean forUpdate) {
 		ValidateArgument.required(teamId, "teamId");
 		final HashSet<Long> results = new HashSet<Long>();
-		jdbcTemplate.query(SELECT_MEMBER_IDS, new RowCallbackHandler(){
+		StringBuilder sql = new StringBuilder(SELECT_MEMBER_IDS);
+		if (forUpdate) {
+			sql.append(" FOR UPDATE");
+		}
+		jdbcTemplate.query(sql.toString(), new RowCallbackHandler(){
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				results.add(rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
