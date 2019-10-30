@@ -63,10 +63,6 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		ValidateArgument.required(progressCallback, "callback");
 		ValidateArgument.required(userInfo, "userInfo");
 		TableTransactionUtils.validateRequest(request);
-		if(request.getCreateSnapshot() == null && request.getSnapshotOptions() != null) {
-			throw new IllegalArgumentException("Included SnapshotOptions but the createSnapshot boolean is null");
-		}
-		
 		String tableId = request.getEntityId();
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table.
@@ -75,10 +71,12 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		List<TableUpdateResponse> results = new LinkedList<>();
 		response.setResults(results);
-		// process each type
-		for(TableUpdateRequest change: request.getChanges()){
-			TableUpdateResponse result = applyChange(progressCallback, userInfo, change);
-			results.add(result);
+		if(request.getChanges() != null) {
+			// process each type
+			for(TableUpdateRequest change: request.getChanges()){
+				TableUpdateResponse result = applyChange(progressCallback, userInfo, change);
+				results.add(result);
+			}
 		}
 		if(Boolean.TRUE.equals(request.getCreateSnapshot())) {
 			long snapshotVersionNumber = tableViewManger.createSnapshot(userInfo, tableId, request.getSnapshotOptions());
