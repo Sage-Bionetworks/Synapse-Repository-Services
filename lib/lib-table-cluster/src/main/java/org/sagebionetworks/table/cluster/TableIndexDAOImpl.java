@@ -530,6 +530,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
+	public void createListColumnIndexTables(List<DatabaseColumnInfo> list, IdAndVersion tableIdAndVersion){
+		for(DatabaseColumnInfo info : list){
+			if(!ColumnTypeListMappings.isList(info.getColumnType())){
+				continue;
+			}
+
+
+			// drop and re-create table
+			//todo: truncate instead?
+			//todo: handle deletion of index tables that are no longer being used
+			String createTableSql = SQLUtils.dropAndRecreateListColumnIndexTable(tableIdAndVersion, info);
+			template.update(createTableSql);
+
+			String insertIntoSql = SQLUtils.;
+		}
+	}
+
+
+
+
+	@Override
 	public void createTemporaryTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTempTableSql(tableId);
 		template.update(sql);

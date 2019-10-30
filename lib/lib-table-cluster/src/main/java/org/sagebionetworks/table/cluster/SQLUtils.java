@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.amazonaws.services.athena.model.ColumnInfo;
 import com.amazonaws.services.glue.model.Column;
 import org.apache.commons.lang3.BooleanUtils;
 import org.json.JSONArray;
@@ -1837,6 +1839,25 @@ public class SQLUtils {
 			}
 		}
 		return rowSize;
+	}
+
+
+	public static String dropAndRecreateListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
+		String indexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
+		String columnName = columnInfo.getColumnName();
+		return "DROP TABLE IF EXISTS " + indexTableName + ";"
+				+ "CREATE TABLE " + indexTableName + " (" +
+				ROW_ID+" BIGINT(20) NOT NULL, " +
+				INDEX_NUM + " BIGINT(20) NOT NULL, " + //index of value in its list
+				columnName + " " + ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql((long) columnInfo.getMaxSize(), null, false) + ", " +
+				"PRIMARY KEY ("+ROW_ID+", "+INDEX_NUM+")," +
+				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
+				");";
+	}
+
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
+		String indexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
+		
 	}
 
 }

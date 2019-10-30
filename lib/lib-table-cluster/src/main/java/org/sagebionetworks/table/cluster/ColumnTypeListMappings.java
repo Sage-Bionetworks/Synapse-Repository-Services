@@ -22,12 +22,32 @@ public enum ColumnTypeListMappings {
 		this.listType = listType;
 	}
 
-	public static boolean isList(ColumnType columnType){
+	public ColumnType getNonListType() {
+		return nonListType;
+	}
+
+	public ColumnType getListType() {
+		return listType;
+	}
+
+	public static ColumnTypeListMappings forListType(ColumnType listType){
 		for(ColumnTypeListMappings mapping : values()){
-			if(mapping.listType == columnType){
-				return true;
+			if(mapping.listType == listType){
+				return mapping;
 			}
 		}
-		return false;
+		throw new IllegalArgumentException(listType + " is not a List ColumnType");
+	}
+
+	public static ColumnType nonListType(ColumnType listType){
+		return forListType(listType).getNonListType();
+	}
+
+	public static boolean isList(ColumnType columnType){
+		try{
+			return forListType(columnType) != null;
+		} catch (IllegalArgumentException e){
+			return false;
+		}
 	}
 }

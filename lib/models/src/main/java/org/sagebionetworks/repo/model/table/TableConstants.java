@@ -17,6 +17,11 @@ public class TableConstants {
 	public static final String ROW_ID = "ROW_ID";
 
 	/**
+	 * Column name only used in Index tables of multi-value list columns. Indicates the index number of a particular element in its list
+	 */
+	public static final String INDEX_NUM = "INDEX_NUM";
+
+	/**
 	 * The reserved column name for row version.
 	 */
 	public static final String ROW_VERSION = "ROW_VERSION";
