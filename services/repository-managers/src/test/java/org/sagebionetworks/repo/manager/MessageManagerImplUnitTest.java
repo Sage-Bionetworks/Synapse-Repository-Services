@@ -580,7 +580,7 @@ public class MessageManagerImplUnitTest {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID, null);
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
-		assertEquals(ImmutableList.of("Cannot send message to quarantined recipient: " + RECIPIENT_ID), errors);
+		assertEquals(ImmutableList.of("Cannot deliver message to recipient (" + RECIPIENT_ID + "). The recipient does not have a valid notification email."), errors);
 		verifyZeroInteractions(sesClient);
 	}
 

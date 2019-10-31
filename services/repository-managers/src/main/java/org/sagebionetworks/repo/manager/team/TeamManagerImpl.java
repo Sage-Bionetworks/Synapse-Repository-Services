@@ -513,11 +513,6 @@ public class TeamManagerImpl implements TeamManager {
 		}
 	}
 	
-	public static boolean userGroupsHasPrincipalId(Collection<UserGroup> userGroups, String principalId) {
-		for (UserGroup ug : userGroups) if (ug.getId().equals(principalId)) return true;
-		return false;
-	}
-	
 	@Override
 	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo, 
 			UserInfo memberInfo, String teamId, String teamEndpoint,
@@ -577,7 +572,8 @@ public class TeamManagerImpl implements TeamManager {
 	public boolean addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		String principalId = principalUserInfo.getId().toString();
-		boolean alreadyInTeam = userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId);
+		Set<Long> currentMembers = groupMembersDAO.getMemberIdsForUpdate(Long.valueOf(teamId));
+		boolean alreadyInTeam = currentMembers.contains(principalUserInfo.getId());
 		if (!canAddTeamMember(userInfo, teamId, principalUserInfo, alreadyInTeam)) throw new UnauthorizedException("Cannot add member to Team.");
 
 		if (!alreadyInTeam) {
@@ -620,9 +616,9 @@ public class TeamManagerImpl implements TeamManager {
 			UnauthorizedException, NotFoundException {
 		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
 		// check that member is actually in Team
-		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
-		if (userGroupsHasPrincipalId(currentMembers, principalId)) {
-			if (currentMembers.size()==1) throw new UnauthorizedException("Cannot remove the last member of a Team.");
+		Set<Long> currentMembers = groupMembersDAO.getMemberIdsForUpdate(Long.valueOf(teamId));
+		if (currentMembers.contains(Long.valueOf(principalId))) {
+			if (currentMembers.size() == 1) throw new UnauthorizedException("Cannot remove the last member of a Team.");
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
@@ -716,7 +712,7 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setTeamId(teamId);
 		String principalId = principalUserInfo.getId().toString();
 		tms.setUserId(principalId);
-		boolean isMember = userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId);
+		boolean isMember = groupMembersDAO.areMemberOf(teamId, Collections.singleton(principalId));
 		tms.setIsMember(isMember);
 		long now = System.currentTimeMillis();
 		long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
