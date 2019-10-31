@@ -509,6 +509,21 @@ public class MessageManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testSendDeliveryFailureEmailToNotificationMessage() throws Exception {
+		
+		mtu.setIsNotificationMessage(true);
+		
+		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
+		
+		List<String> errors = new ArrayList<String>();
+		
+		// Call under test
+		messageManager.sendDeliveryFailureEmail(MESSAGE_ID, errors);
+		
+		verifyZeroInteractions(sesClient);
+	}
+	
+	@Test
 	public void testSendDeliveryFailureEmailWithQuarantinedAddress() throws Exception {
 		when(principalAliasDAO.getUserName(CREATOR_ID)).thenReturn("foo");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(CREATOR_ID)).thenReturn(CREATOR_EMAIL);

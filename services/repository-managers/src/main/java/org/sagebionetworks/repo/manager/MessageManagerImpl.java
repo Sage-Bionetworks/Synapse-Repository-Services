@@ -636,6 +636,15 @@ public class MessageManagerImpl implements MessageManager {
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
 		// Build the subject and body of the message
 		MessageToUser dto = messageDAO.getMessage(messageId);
+		
+		// Notification messages are special system generated messages that might be sent on behalf of the user
+		// but that the user might not even be aware of, we avoid bouncing back to the user if the notification didn't go
+		// through
+		if (Boolean.TRUE.equals(dto.getIsNotificationMessage())) {
+			LOG.warn("Skipping delivery failure notification for notification message (Message: {}, Errors: {})", messageId, StringUtils.join(errors));
+			return;
+		}
+		
 		Long senderId = Long.parseLong(dto.getCreatedBy());
 		String subject = "Message " + messageId + " Delivery Failure(s)";
 		

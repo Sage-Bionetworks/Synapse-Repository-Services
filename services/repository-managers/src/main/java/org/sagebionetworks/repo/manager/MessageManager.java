@@ -122,7 +122,7 @@ public interface MessageManager {
 	public void sendPasswordChangeConfirmationEmail(long userId);
 	
 	/**
-	 * Sends a delivery failure notification based on a template
+	 * Sends a delivery failure notification based on a template unless the message is a notification message
 	 */
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
 
