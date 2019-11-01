@@ -1,17 +1,14 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,8 +22,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -79,11 +81,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableSet;
+
+@ExtendWith(MockitoExtension.class)
 public class SubmissionManagerTest {
 		
-	private SubmissionManager submissionManager;	
 	private Evaluation eval;
 	private Submission sub;
 	private Submission sub2;
@@ -95,27 +98,48 @@ public class SubmissionManagerTest {
 
 	private SubmissionStatusBatch batch;
 	
+	@Mock
 	private IdGenerator mockIdGenerator;
+	@Mock
 	private SubmissionDAO mockSubmissionDAO;
+	@Mock
 	private SubmissionStatusDAO mockSubmissionStatusDAO;
+	@Mock
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
+	@Mock
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
+	@Mock
 	private EntityManager mockEntityManager;
+	@Mock
 	private NodeManager mockNodeManager;
+	@Mock
 	private FileHandleManager mockFileHandleManager;
+	@Mock
 	private EvaluationPermissionsManager mockEvalPermissionsManager;
+	@Mock
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
+	@Mock
 	private Node mockNode;
+	@Mock
 	private Node mockDockerRepoNode;
+	@Mock
 	private TeamDAO mockTeamDAO;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	@Mock
 	private EvaluationDAO mockEvaluationDAO;
+	@Mock
 	private DockerCommitDao mockDockerCommitDao;
+	
+	@InjectMocks
+	private SubmissionManagerImpl submissionManager;	
+	
 	private Folder folder;
 	private EntityBundle bundle;
 	
     private FileHandle fileHandle1;
     private FileHandle fileHandle2;
+	private List<String> handleIds;
 	
 	private static final String EVAL_ID = "12";
 	private static final Long EVAL_ID_LONG = Long.parseLong("12");
@@ -155,7 +179,7 @@ public class SubmissionManagerTest {
 		return joa.toJSONString();
 	}
 	
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 		// User Info
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -163,7 +187,8 @@ public class SubmissionManagerTest {
     	
     	// FileHandles
 		List<FileHandle> handles = new ArrayList<FileHandle>();
-		List<String> handleIds = new ArrayList<String>();
+		handleIds = new ArrayList<String>();
+		
 		fileHandle1 = new S3FileHandle();
 		fileHandle1.setId(HANDLE_ID_1);
 		handles.add(fileHandle1);
@@ -246,85 +271,26 @@ public class SubmissionManagerTest {
         bundle = new EntityBundle();
         bundle.setEntity(folder);
         bundle.setFileHandles(handles);
-		
-    	// Mocks
-        mockIdGenerator = mock(IdGenerator.class);
-    	mockSubmissionDAO = mock(SubmissionDAO.class);
-    	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
-    	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
-    	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
-    	mockEntityManager = mock(EntityManager.class);
-    	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
-    	mockNode = mock(Node.class);
-    	mockDockerRepoNode = mock(Node.class);
-      	mockFileHandleManager = mock(FileHandleManager.class);
-      	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
-      	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
-      	mockTeamDAO = mock(TeamDAO.class);
-      	mockUserProfileManager = mock(UserProfileManager.class);
-      	mockEvaluationDAO = mock(EvaluationDAO.class);
-      	mockDockerCommitDao = mock(DockerCommitDao.class);
-
+    }
+	
+	@Test
+	public void testCRUDAsAdmin() throws Exception {
     	when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
-    	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.file);
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
-    	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
-    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
-    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
-    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
-    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(DOCKER_REPO_ENTITY_ID), anyLong())).thenReturn(mockDockerRepoNode);
-    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
-    	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
-    	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
-    	
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
-       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
-       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
-       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
-       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
-
-    	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
 
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
     	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
     		thenReturn(AuthorizationStatus.authorized());
     	
-    	DockerCommit commit = new DockerCommit();
-    	commit.setTag("foo");
-    	commit.setDigest(DOCKER_REPO_DIGEST);
-    	when(mockDockerCommitDao.
-    			listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST)).
-    			thenReturn(Collections.singletonList(commit));
-    	
-    	// Submission Manager
-    	submissionManager = new SubmissionManagerImpl();
-    	ReflectionTestUtils.setField(submissionManager, "idGenerator", mockIdGenerator);
-    	ReflectionTestUtils.setField(submissionManager, "submissionDAO", mockSubmissionDAO);
-    	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
-    	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
-    	ReflectionTestUtils.setField(submissionManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
-    	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
-    	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
-    	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
-    	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
-    	ReflectionTestUtils.setField(submissionManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
-    	ReflectionTestUtils.setField(submissionManager, "teamDAO", mockTeamDAO);
-    	ReflectionTestUtils.setField(submissionManager, "userProfileManager", mockUserProfileManager);
-    	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvaluationDAO);
-    	ReflectionTestUtils.setField(submissionManager, "dockerCommitDao", mockDockerCommitDao);
-    }
-	
-	@Test
-	public void testCRUDAsAdmin() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
@@ -351,55 +317,66 @@ public class SubmissionManagerTest {
 		verify(mockEvaluationSubmissionsDAO, times(3)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testCAsUser_NotAuthorized() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.accessDenied(""));
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		});
 	}
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+    	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
+
+
+    	// by default we say that individual submissions are within quota
+    	// (specific tests will change this)
+    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
+    		thenReturn(AuthorizationStatus.authorized());
+    	
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
-		try {
+
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.getSubmission(userInfo, SUB_ID);
-			fail();
-		} catch (UnauthorizedException e) {
-			// expected
-		}
-		try {
+		});
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
-			fail();
-		} catch (UnauthorizedException e) {
-			//expected
-		}
-		try {
+		});	
+
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(userInfo, EVAL_ID, batch);
-			fail();
-		} catch (UnauthorizedException e) {
-			//expected
-		}
+		});
 		
 		// add another contributor
 		SubmissionContributor submissionContributor = new SubmissionContributor();
 		submissionContributor.setPrincipalId("101");
-		try {
+
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.addSubmissionContributor(userInfo, SUB_ID, submissionContributor);
-			fail();
-		} catch (UnauthorizedException e) {
-			//expected
-		}
+		});
 		
-		try {
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.deleteSubmission(userInfo, SUB_ID);
-			fail();
-		} catch (UnauthorizedException e) {
-			//expected
-		}
+		});
+		
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
@@ -408,6 +385,18 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testInsertUserAsContributor_NullContributorList() throws Exception {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	// by default we say that individual submissions are within quota
+    	// (specific tests will change this)
+    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
+    		thenReturn(AuthorizationStatus.authorized());
+    	
 		assertNull(sub.getContributors());
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 		assertEquals(1, sub.getContributors().size());
@@ -422,6 +411,19 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testInsertUserAsContributor_SubmitterIsContributor() throws Exception {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+
+    	// by default we say that individual submissions are within quota
+    	// (specific tests will change this)
+    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
+    		thenReturn(AuthorizationStatus.authorized());
+    	
 		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
 		SubmissionContributor sc = new SubmissionContributor();
 		sc.setPrincipalId(USER_ID);
@@ -440,6 +442,14 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testTeamSubmission() throws Exception {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	
 		assertNull(sub.getContributors());
 		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
 		SubmissionContributor sc = new SubmissionContributor();
@@ -471,36 +481,71 @@ public class SubmissionManagerTest {
 					any(List.class), eq(""+submissionEligibilityHash), any(Date.class));
 	}
 	
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testContributorListButNoTeamId() throws Exception {
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	
 		assertNull(sub.getContributors());
 		Set<SubmissionContributor> contributors = new HashSet<SubmissionContributor>();
 		SubmissionContributor sc = new SubmissionContributor();
 		sc.setPrincipalId(OWNER_ID);
 		contributors.add(sc);
 		sub.setContributors(contributors);
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
+		Assertions.assertThrows(InvalidModelException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
+		});
 	}
 	
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testIndividualSubmissionWithHash() throws Exception {
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	
 		assertNull(sub.getContributors());
-		submissionManager.createSubmission(userInfo, sub, ETAG, "123456", bundle);
+		Assertions.assertThrows(InvalidModelException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, "123456", bundle);
+		});
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testUnauthorizedGet() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		submissionManager.getSubmission(userInfo, SUB2_ID);
+    	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+    	
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			submissionManager.getSubmission(userInfo, SUB2_ID);
+		});
 	}
 	
-	@Test(expected=UnauthorizedException.class)
-	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {		
-		// user should not have access to sub2
-		submissionManager.createSubmission(userInfo, sub2, ETAG, null, bundle);		
+	@Test
+	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+       
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			// user should not have access to sub2
+			submissionManager.createSubmission(userInfo, sub2, ETAG, null, bundle);		
+		});
 	}
 	
 	@Test
 	public void testCreateWithErroneousDockerDigest() throws Exception{
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockNode.getNodeType()).thenReturn(EntityType.file);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
+    		thenReturn(AuthorizationStatus.authorized());
+    	
 		sub.setDockerDigest("this is some digest");
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
 		Submission retrieved = submissionManager.getSubmission(ownerInfo, SUB_ID);
@@ -509,41 +554,82 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testCreateDockerRepoSubmission() throws Exception {
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
+    	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
+    	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());    	when(mockSubmissionEligibilityManager.isIndividualEligible(eq(EVAL_ID), any(UserInfo.class), any(Date.class))).
+    		thenReturn(AuthorizationStatus.authorized());
+    	
+    	DockerCommit commit = new DockerCommit();
+    	commit.setTag("foo");
+    	commit.setDigest(DOCKER_REPO_DIGEST);
+    	when(mockDockerCommitDao.
+    			listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST)).
+    			thenReturn(Collections.singletonList(commit));
+    	
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
 		sub.setDockerDigest(DOCKER_REPO_DIGEST);
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 		verify(mockDockerCommitDao).listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateDockerRepoSubmissionNoDigest() throws Exception {
+    	when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
+    	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
 		sub.setDockerDigest(null);
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateDockerRepoSubmissionInvalidDigest() throws Exception {
+		when(mockDockerRepoNode.getNodeType()).thenReturn(EntityType.dockerrepo);
+    	when(mockDockerRepoNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(DOCKER_REPO_ENTITY_ID))).thenReturn(mockDockerRepoNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+    	
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
 		sub.setDockerDigest("not a valid digest");
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);
+		});
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testInvalidScore() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);
-		submissionManager.getSubmission(ownerInfo, SUB_ID);
-		subStatus.setScore(1.1);
-		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		
+    	subStatus.setScore(1.1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
+		});
 	}
 		
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testInvalidEtag() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG + "modified", null, bundle);
+    	when(mockNode.getETag()).thenReturn(ETAG);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationStatus.authorized());
+       	
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.createSubmission(userInfo, sub, ETAG + "modified", null, bundle);
+		});
 	}
 	
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, null, 10, 0);
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, statusEnum, 10, 0);
@@ -551,18 +637,22 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).getAllByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
 	}
 	
-	@Test(expected = UnauthorizedException.class)
+	@Test
 	public void testGetAllSubmissionsUnauthorized() throws DatastoreException, UnauthorizedException, NotFoundException {
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(USER_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
+    	Assertions.assertThrows(UnauthorizedException.class, ()-> {
+    		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
+    	});
 	}
 	
 	@Test
 	public void testGetAllSubmissionBundles() throws Exception {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    			
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
 		when(mockSubmissionDAO.getAllBundlesByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
 			thenReturn(Collections.singletonList(submissionBundle));
-		when(mockSubmissionDAO.getCountByEvaluationAndStatus(EVAL_ID, statusEnum)).thenReturn(1L);
+		
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getAllSubmissionBundles(ownerInfo, EVAL_ID, statusEnum, 10L, 0L);
 		assertEquals(1L, queryResults.size());
@@ -575,9 +665,10 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetMyOwnSubmissionBundles() throws Exception {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	
 		when(mockSubmissionDAO.getAllBundlesByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
 			thenReturn(Collections.singletonList(submissionBundle));
-		when(mockSubmissionDAO.getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString())).thenReturn(1L);
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10L, 0L);
 		SubmissionBundle expected = new SubmissionBundle();
@@ -595,6 +686,8 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	
 		submissionManager.getSubmissionCount(ownerInfo, EVAL_ID);
 		verify(mockSubmissionDAO).getCountByEvaluation(eq(EVAL_ID));
 	}
@@ -602,6 +695,10 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetRedirectURLForFileHandle()
 			throws DatastoreException, NotFoundException {
+		when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	
 		
 		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(ownerInfo, HANDLE_ID_1)
 				.withAssociation(FileHandleAssociateType.SubmissionAttachment, SUB_ID);
@@ -616,21 +713,35 @@ public class SubmissionManagerTest {
 		assertEquals(TEST_URL, url);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetRedirectURLForFileHandleUnauthorized()
 			throws DatastoreException, NotFoundException {
-		submissionManager.getRedirectURLForFileHandle(userInfo, SUB_ID, HANDLE_ID_1);
+    	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+       	
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			submissionManager.getRedirectURLForFileHandle(userInfo, SUB_ID, HANDLE_ID_1);
+		});
 	}
 	
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetRedirectURLForFileHandleNotFound() 
 			throws DatastoreException, NotFoundException {
-		// HANDLE_ID_1 is not contained in this Submission
-		submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB2_ID, HANDLE_ID_1);
+    	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionFileHandleDAO.getAllBySubmission(any())).thenReturn(Collections.emptyList());
+    	   	
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			// HANDLE_ID_1 is not contained in this Submission
+			submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB2_ID, HANDLE_ID_1);
+		});
 	}
 	
 	@Test
 	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+		
 		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
 		
 		verify(mockSubmissionDAO).getBundle(SUB_ID);
@@ -652,30 +763,40 @@ public class SubmissionManagerTest {
 		assertEquals(1, annos.getDoubleAnnos().size());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetSubmissionStatusNoREADAccess() throws Exception {
+		when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
-		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+    	Assertions.assertThrows(UnauthorizedException.class, ()-> {
+    		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+    	});
 	}
 	
 	@Test
 	public void testGetALLSubmissionStatus() throws Exception {
-		when(mockSubmissionDAO.getAllBundlesByEvaluation(EVAL_ID, 100L, 0L)).
-			thenReturn(Collections.singletonList(submissionBundle));
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+		when(mockSubmissionDAO.getAllBundlesByEvaluation(EVAL_ID, 100L, 0L)).thenReturn(Collections.singletonList(submissionBundle));
 		List<SubmissionStatus> actual = submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
 		verify(mockSubmissionDAO).getAllBundlesByEvaluation(EVAL_ID, 100L, 0L);
 		List<SubmissionStatus> expected = Collections.singletonList(subStatus);
 		assertEquals(expected, actual);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
-		submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+    	Assertions.assertThrows(UnauthorizedException.class, ()-> {
+    		submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+    	});
 	}
 	
 	@Test
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+       	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+    	
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 
 		verify(mockSubmissionDAO).getBundle(SUB_ID);
@@ -697,6 +818,10 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetSubmissionStatusNoPrivateNoAnnot() throws DatastoreException, NotFoundException {
+		when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationStatus.accessDenied(""));
+       	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
+       	
  		Annotations annots = subStatus.getAnnotations();
 		annots.setStringAnnos(null); // this is the case in PLFM-2586
 		annots.setLongAnnos(null);
@@ -736,77 +861,73 @@ public class SubmissionManagerTest {
 
 	@Test
 	public void testBadBatch() throws Exception {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
+
 		// baseline:  all is good
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		
 		batch.setIsFirstBatch(null);
-		try {
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("firstBatch can't be null");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
+
 		batch.setIsFirstBatch(true);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		
 		batch.setIsLastBatch(null);
-		try {
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("lastBatch can't be null");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
+
 		batch.setIsLastBatch(true);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		
 		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(batch.getStatuses());
 		batch.getStatuses().clear();
-		try {
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("statuses can't be empty");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
+
 		batch.setStatuses(null);
-		try {
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("statuses can't be null");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
+
 		List<SubmissionStatus> tooLong = new ArrayList<SubmissionStatus>();
 		for (int i=0; i<501; i++) tooLong.add(new SubmissionStatus());
 		batch.setStatuses(tooLong);
-		try {
+
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("statuses can't be this many");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
+		
 		List<SubmissionStatus> hasNull = new ArrayList<SubmissionStatus>();
 		hasNull.add(null);
 		batch.setStatuses(hasNull);
-		try {
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("statuses can't pass null");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 		
 		// back to base-line
 		batch.setStatuses(statuses);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		
-		try {
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID+"xxx", batch);
-			fail("statuses can't wrong ID");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
 	public void testConflictingBatchUpdate() throws Exception {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
+
 		// baseline:  all is OK
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		batch.setIsFirstBatch(false);
@@ -820,16 +941,17 @@ public class SubmissionManagerTest {
 		// but what if the token is wrong?
 		evalSubs.setEtag("bar");
 		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVAL_ID_LONG)).thenReturn(evalSubs);
-		try {
+		
+		Assertions.assertThrows(ConflictingUpdateException.class, ()-> {
 			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("ConflictingUpdateException expected");
-		} catch (ConflictingUpdateException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
 	public void testBatchResponseToken() throws Exception {
+		when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
+
 		batch.setIsFirstBatch(true);
 		batch.setIsLastBatch(false);
 		when(mockEvaluationSubmissionsDAO.updateEtagForEvaluation(EVAL_ID_LONG, false, ChangeType.UPDATE)).thenReturn("foo");
@@ -871,10 +993,6 @@ public class SubmissionManagerTest {
 		up.setUserName("auser");
 		when(mockUserProfileManager.getUserProfile(userInfo.getId().toString())).thenReturn(up);
 
-		when(mockSubmissionEligibilityManager.isTeamEligible(
-				eq(EVAL_ID), eq(TEAM_ID),
-				any(List.class), eq(""+submissionEligibilityHash), any(Date.class))).
-				thenReturn(AuthorizationStatus.authorized());
 		List<MessageToUserAndBody> result = 
 				submissionManager.createSubmissionNotifications(
 						userInfo, sub, ""+submissionEligibilityHash,
@@ -928,40 +1046,78 @@ public class SubmissionManagerTest {
 		assertTrue(result.isEmpty());
 		
 	}
+	
+	@Test
+	public void testBuildSubmissionNotificationBody() {
+		String to = "Test team";
+		String messageContent = "Content";
+		String notificationUnsubscribeEndpoint = "someUnsubscribeEndpoint";
+		String recipient1 = "recipient1";
+		String recipient2 = "recipient2";
+		
+		Set<String> recipients = ImmutableSet.of(recipient1, recipient2);
+		
+		// Call under test
+		List<MessageToUserAndBody> result = submissionManager.buildSubmissionNotificationMessages(to, recipients, messageContent, notificationUnsubscribeEndpoint);
+		
+		assertEquals(2, result.size());
 
-	@Test (expected=IllegalArgumentException.class)
+		Set<String> resultRecipients = new HashSet<>();
+		
+		resultRecipients.addAll(result.get(0).getMetadata().getRecipients());
+		resultRecipients.addAll(result.get(1).getMetadata().getRecipients());
+		
+		assertEquals(recipients, resultRecipients);
+	}
+
+	@Test
 	public void testProcessCancelRequestWithInvalidUserInfo() {
-		submissionManager.processUserCancelRequest(null, subWithId.getId());
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.processUserCancelRequest(null, subWithId.getId());
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testProcessCancelRequestWithNullId() {
-		submissionManager.processUserCancelRequest(userInfo, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			submissionManager.processUserCancelRequest(userInfo, null);
+		});
 	}
 
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testProcessCancelRequestWithUnauthorizedUser() {
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		UserInfo unauthorizedUser = new UserInfo(false);
 		unauthorizedUser.setId(Long.parseLong(USER_ID+1));
-		submissionManager.processUserCancelRequest(unauthorizedUser, subWithId.getId());
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			submissionManager.processUserCancelRequest(unauthorizedUser, subWithId.getId());
+		});
 	}
 
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testProcessCancelRequestWithAuthorizedUserNonCancellable() {
+    	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
+		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		UserInfo authorizedUser = new UserInfo(false);
 		authorizedUser.setId(Long.parseLong(USER_ID));
-		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
+		});
 	}
 
 	@Test
 	public void testProcessCancelRequestWithAuthorizedUserCancellable() {
+		when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
+    	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		subStatus.setCanCancel(true);
 		UserInfo authorizedUser = new UserInfo(false);
 		authorizedUser.setId(Long.parseLong(USER_ID));
+		
 		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
+		
 		verify(mockSubmissionDAO).getCreatedBy(subWithId.getId());
 		verify(mockSubmissionStatusDAO).get(subWithId.getId());
 		subStatus.setCancelRequested(true);
@@ -973,109 +1129,124 @@ public class SubmissionManagerTest {
 	
 	// tests of limit and offset checks
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionsLimitLow() {
-
-		// Call under test
-		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionsLimitHigh() {
-
-		// Call under test
-		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionsOffsetNeg() {
-
-		// Call under test
-		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionBundlesLimitLow() {
-
-		// Call under test
-		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionBundlesLimitHigh() {
-
-		// Call under test
-		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionBundlesOffsetNeg() {
-
-		// Call under test
-		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionStatusesLimitLow() {
-
-		// Call under test
-		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionStatusesLimitHigh() {
-
-		// Call under test
-		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testGetAllSubmissionStatusesOffsetNeg() {
-
-		// Call under test
-		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionsByEvaluationLimitLow() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, -1, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, -1, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionsByEvaluationLimitHigh() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 101, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 101, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionsByEvaluationOffsetNeg() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 100, -1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 100, -1);
+		});
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionBundlesByEvaluationLimitLow() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, -1, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, -1, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionBundlesByEvaluationLimitHigh() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 101, 0);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 101, 0);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testgetMyOwnSubmissionBundlesByEvaluationOffsetNeg() {
-
-		// Call under test
-		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 100, -1);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 100, -1);
+		});
 	}
 
 

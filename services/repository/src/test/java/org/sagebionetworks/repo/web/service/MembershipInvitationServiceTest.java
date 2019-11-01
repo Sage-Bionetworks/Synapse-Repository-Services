@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,10 +8,14 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -21,11 +24,17 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
+@ExtendWith(MockitoExtension.class)
 public class MembershipInvitationServiceTest {
-	private MembershipInvitationServiceImpl membershipInvitationService;
+	@Mock
 	private MembershipInvitationManager mockMembershipInvitationManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private NotificationManager mockNotificationManager;
+	
+	@InjectMocks
+	private MembershipInvitationServiceImpl membershipInvitationService;
 	
 	private static final Long USER_ID = 111L;
 	private static final String ACCEPT_INVITATION_ENDPOINT = "acceptInvitationEndpoint:";
@@ -33,20 +42,11 @@ public class MembershipInvitationServiceTest {
 	private UserInfo userInfo; 
 
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
-		mockMembershipInvitationManager = Mockito.mock(MembershipInvitationManager.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
-
 		userInfo = new UserInfo(false); 
 		userInfo.setId(USER_ID);
 		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
-
-		this.membershipInvitationService = new MembershipInvitationServiceImpl(
-				mockMembershipInvitationManager,
-				mockUserManager,
-				mockNotificationManager);
 	}
 
 	@Test
@@ -71,8 +71,7 @@ public class MembershipInvitationServiceTest {
 				mis, ACCEPT_INVITATION_ENDPOINT, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
 		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
-		verify(mockNotificationManager).
-			sendNotifications(eq(userInfo), messageArg.capture());
+		verify(mockNotificationManager).sendNotifications(eq(userInfo), messageArg.capture());
 		assertEquals(1, messageArg.getValue().size());		
 		assertEquals(result, messageArg.getValue().get(0));
 	}
@@ -84,14 +83,10 @@ public class MembershipInvitationServiceTest {
 		mis.setInviteeEmail("me@domain.com");
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
 
-		try {
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			// method under test
-			membershipInvitationService.create(USER_ID, mis,
-					ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
-			fail("Expected IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
 
 	}
 
@@ -100,14 +95,10 @@ public class MembershipInvitationServiceTest {
 		MembershipInvitation mis = new MembershipInvitation();
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
 
-		try {
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			// method under test
-			membershipInvitationService.create(USER_ID, mis,
-					ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
-			fail("Expected IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
 
 	}
 

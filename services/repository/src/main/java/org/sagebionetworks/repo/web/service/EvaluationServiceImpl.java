@@ -4,8 +4,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
@@ -46,8 +44,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationServiceImpl implements EvaluationService {
-	
-	private final static Logger LOG = LogManager.getLogger(EvaluationServiceImpl.class);
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
@@ -175,15 +171,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 		
-		try {
-			List<MessageToUserAndBody> messages = submissionManager.
-					createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
-							challengeEndpoint, notificationUnsubscribeEndpoint);
+		List<MessageToUserAndBody> messages = submissionManager.
+				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
+						challengeEndpoint, notificationUnsubscribeEndpoint);
 		
-			notificationManager.sendNotifications(userInfo, messages);
-		} catch (Throwable e) {
-			LOG.warn("Could not send notifications: " + e.getMessage(), e);
-		}
+		notificationManager.sendNotifications(userInfo, messages);
 		
 		return created;
 	}

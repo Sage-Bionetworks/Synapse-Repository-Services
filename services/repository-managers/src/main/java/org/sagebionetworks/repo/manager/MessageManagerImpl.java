@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -74,15 +73,15 @@ public class MessageManagerImpl implements MessageManager {
 	private static final long MAX_NUMBER_OF_NEW_MESSAGES = 10L;
 	
 	/**
+	 * The maximum number of targets of a message
+	 */
+	protected static final int MAX_NUMBER_OF_RECIPIENTS = 50;
+	
+	/**
 	 * The span of the interval, in milliseconds, in which created messages are counted
 	 * See {@link #MAX_NUMBER_OF_NEW_MESSAGES}  
 	 */
 	private static final long MESSAGE_CREATION_INTERVAL_MILLISECONDS = 60000L;
-	
-	/**
-	 * The maximum number of targets of a message
-	 */
-	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
 	
 	// Message templates
 	private static final String MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION = "message/PasswordChangeConfirmationTemplate.txt";
@@ -246,33 +245,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
 		
-		dto = messageDAO.createMessage(dto);
-		
-		// If the recipient list is only one element long, 
-		// process and send the message in this transaction 
-		if (dto.getRecipients().size() == 1) {
-			UserGroup ug;
-			try {
-				ug = userGroupDAO.get(Long.parseLong(dto.getRecipients().iterator().next()));
-			} catch (NotFoundException e) {
-				throw new DatastoreException("Could not get a user group that satisfied message creation constraints");
-			}
-			
-			// Defer the sending of messages to non-individuals 
-			// since there could be more than one actual recipient after finding the members
-			if (ug.getIsIndividual()) {
-				List<String> errors;
-				try {
-					errors = processMessage(dto.getId(), true, null);
-				} catch (NotFoundException e) {
-					throw new DatastoreException("Could not find a message that was created in the same transaction");
-				}
-				if (errors.size() > 0) {
-					throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
-				}
-			}
-		}
-		return dto;
+		return messageDAO.createMessage(dto);
 	}
 	
 	@Override
@@ -371,21 +344,6 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException {
-		return processMessage(messageId, false, progressCallback);
-	}
-	
-	/**
-	 * See {@link #processMessage(String)}
-	 * Also used by {@link #createMessage(UserInfo, MessageToUser)}
-	 * 
-	 * @param singleTransaction Should the sending be done in one transaction or one transaction per recipient?
-	 *    This allows the sending of messages during creation to complete without deadlock. 
-	 *    Note: It is crucial to pass in "true" when creating *and* sending a message in the same operation together. 
-	 *      Otherwise the 'sending step' waits forever for the lock obtained by the 'creation step' to be released.
-	 * General usage of this method sets this parameter to false.
-	 * @throws  
-	 */
-	private List<String> processMessage(String messageId, boolean singleTransaction, ProgressCallback progressCallback) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
@@ -393,23 +351,19 @@ public class MessageManagerImpl implements MessageManager {
 
 		try {
 			String messageBody = fileHandleManager.downloadFileToString(dto.getFileHandleId());
-			return processMessage(dto, singleTransaction, messageBody, mimeType, progressCallback);
+			return processMessage(dto, messageBody, mimeType, progressCallback);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
 	/**
-	 * See {@link #processMessage(String, boolean)}
-	 * Also used by {@link #sendTemplateEmail(String, String, String, boolean)}
+	 * See {@link #processMessage(String, ProgressCallback)}
 	 * 
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
 	 */
-	private List<String> processMessage(
-			MessageToUser dto, boolean singleTransaction, 
-			String messageBody, String mimeType,
-			ProgressCallback progressCallback) throws NotFoundException {
+	private List<String> processMessage(MessageToUser dto, String messageBody, String mimeType, ProgressCallback progressCallback) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		// Check to see if the message has already been sent
@@ -439,11 +393,6 @@ public class MessageManagerImpl implements MessageManager {
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
 		
-		// Make sure the caller set the boolean correctly
-		if (recipients.size() > 1 && singleTransaction) {
-			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
-		}
-		
 		// Now that the recipients list has been expanded, begin processing the message
 		for (String userId : recipients) {
 			// Try to send messages to each user individually
@@ -456,12 +405,8 @@ public class MessageManagerImpl implements MessageManager {
 					settings = new Settings();
 				}
 				MessageStatusType userMessageStatus = null; // setting to null tells the DAO to use the default value
-				// This marks a user as a recipient of the message
-				if (singleTransaction) {
-					messageDAO.createMessageStatus_SameTransaction(dto.getId(), userId, userMessageStatus);
-				} else {
-					messageDAO.createMessageStatus_NewTransaction(dto.getId(), userId, userMessageStatus);
-				}
+				
+				messageDAO.createMessageStatus_NewTransaction(dto.getId(), userId, userMessageStatus);	
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
@@ -509,11 +454,7 @@ public class MessageManagerImpl implements MessageManager {
 					messageStatus.setMessageId(dto.getId());
 					messageStatus.setRecipientId(userId);
 					messageStatus.setStatus(userMessageStatus);
-					if (singleTransaction) {
-						messageDAO.updateMessageStatus_SameTransaction(messageStatus);
-					} else {
-						messageDAO.updateMessageStatus_NewTransaction(messageStatus);
-					}
+					messageDAO.updateMessageStatus_NewTransaction(messageStatus);
 				}
 			} catch (Exception e) {
 				LOG.info("Error caught while processing message", e);
@@ -695,6 +636,15 @@ public class MessageManagerImpl implements MessageManager {
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
 		// Build the subject and body of the message
 		MessageToUser dto = messageDAO.getMessage(messageId);
+		
+		// Notification messages are special system generated messages that might be sent on behalf of the user
+		// but that the user might not even be aware of, we avoid bouncing back to the user if the notification didn't go
+		// through
+		if (Boolean.TRUE.equals(dto.getIsNotificationMessage())) {
+			LOG.warn("Skipping delivery failure notification for notification message (Message: {}, Errors: {})", messageId, StringUtils.join(errors));
+			return;
+		}
+		
 		Long senderId = Long.parseLong(dto.getCreatedBy());
 		String subject = "Message " + messageId + " Delivery Failure(s)";
 		

@@ -39,7 +39,7 @@
 		},
 		"isNotificationMessage": {
 			"type": "boolean",
-			"description": "is this a notification message?"
+			"description": "A notification message is sent from a noreply email address, delivery failures are not sent back to the sender"
 		},
 		"to": {
 			"type": "string",

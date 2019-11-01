@@ -531,14 +531,17 @@ public class TeamManagerImpl implements TeamManager {
 			String memberDisplayName = EmailUtils.getDisplayNameWithUsername(memberUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
 			fieldValues.put(TEMPLATE_KEY_USER_ID, memberInfo.getId().toString());
+			
+			String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+			
 			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
-				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
-				String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
+				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);	
 				mtu.setRecipients(Collections.singleton(recipient));
 				mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 				result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 			}
+			
 		} else {
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
 			String joinerDisplayName = EmailUtils.getDisplayNameWithUsername(joinerUserProfile);
