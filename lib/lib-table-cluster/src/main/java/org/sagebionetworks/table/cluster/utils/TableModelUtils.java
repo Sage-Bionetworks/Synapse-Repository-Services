@@ -211,7 +211,7 @@ public class TableModelUtils {
 	 * @param cm
 	 * @return
 	 */
-	public static String validateValue(String value, ColumnModel cm) {
+	public static String validateValue(String value, ColumnModel cm) { //TODO: handle string list maximim size
 		switch (cm.getColumnType()) {
 		case STRING:
 			if (cm.getMaximumSize() == null)

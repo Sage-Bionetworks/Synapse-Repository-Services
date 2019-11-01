@@ -31,12 +31,15 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import com.amazonaws.services.athena.model.ColumnInfo;
 import com.amazonaws.services.glue.model.Column;
 import org.apache.commons.lang3.BooleanUtils;
+import org.checkerframework.checker.nullness.Opt;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.query.model.ColumnName;
@@ -673,14 +676,31 @@ public class SQLUtils {
 		}
 		return builder.toString();
 	}
-	
-	/**
-	 * Alter a single column for a given column change.
-	 * @param builder
-	 * @param change
-	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
-	 * tables that are too large to build with the correct 4 byte UTF-8.
-	 */
+
+	public static Optional<String> createListColumnDropIndexTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId) {
+		StringJoiner dropTableJoiner = new StringJoiner(",", "DROP TABLE IF EXISTS ", ";");
+		int originalLen = dropTableJoiner.length();
+
+		for(ColumnChangeDetails changeDetails : changes){
+			//no changes applied to old column if no old column or old column same as new column
+			if(changeDetails.getOldColumn() != null && !changeDetails.getOldColumn().equals(changeDetails.getNewColumn())
+				&& ColumnTypeListMappings.isList(changeDetails.getOldColumn().getColumnType())
+			){
+				dropTableJoiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(tableId, changeDetails.oldColumn.getId()));
+			}
+		}
+
+		return dropTableJoiner.length() > originalLen ? Optional.of(dropTableJoiner.toString()) : Optional.empty();
+	}
+
+
+		/**
+		 * Alter a single column for a given column change.
+		 * @param builder
+		 * @param change
+		 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+		 * tables that are too large to build with the correct 4 byte UTF-8.
+		 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
 			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
@@ -1258,6 +1278,7 @@ public class SQLUtils {
 		case STRING_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 		case INTEGER_LIST:
+		case DATE_LIST:_VALUE:
 			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
 		case DOUBLE_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE;

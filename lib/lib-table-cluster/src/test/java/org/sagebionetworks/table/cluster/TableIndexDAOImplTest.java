@@ -939,6 +939,24 @@ public class TableIndexDAOImplTest {
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
+
+	@Test
+	public void testAlterTableAsNeeded_DropListIndexes(){
+		// This will be an add, so the old is null.
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setId("1337");
+		newColumn.setName("StringList");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		// Create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		boolean alterTemp = false;
+
+		//add column to list
+		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		assertTrue(wasAltered);
+	}
 	
 	
 	@Test
@@ -2220,10 +2238,10 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// apply the rows
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
-		
+
 		// the new schema has a large text column with the same name
 		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
-		
+
 		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
@@ -2388,5 +2406,38 @@ public class TableIndexDAOImplTest {
 			entityDto.setAnnotations(annos);
 		}
 		return entityDto;
+	}
+
+	@Test
+	public void testCreateAndPopulateListColumnIndexTables(){
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setId("15");
+		stringListColumn.setName("myList");
+		stringListColumn.setMaximumSize(54L);
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+
+
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		tableIndexDAO.createAndPopulateListColumnIndexTables(infoList, tableId);
+
 	}
 }

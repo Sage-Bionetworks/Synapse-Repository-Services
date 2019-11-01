@@ -499,7 +499,7 @@ public class TableModelTestUtils {
 		}
 		cm.setName(name);
 		cm.setColumnType(type);
-		if (type == ColumnType.STRING) {
+		if (type == ColumnType.STRING || type == ColumnType.STRING_LIST) {
 			cm.setMaximumSize(50L);
 		}
 		return cm;

@@ -12,9 +12,12 @@ import static org.mockito.Mockito.verify;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -997,6 +1000,92 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testCreateListColumnDropIndexTableSql_ColumnAddition(){
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+
+		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+
+	}
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_NoColumnChange(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = oldColumn;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+
+		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+
+	}
+
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_DeleteNonListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+	}
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_DeleteListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+
+		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId);
+		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_;", deleteSql.get());
+	}
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_ReplaceListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+
+		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId);
+		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_;", deleteSql.get());
+	}
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_MultipleChanges(){
+		ColumnModel oldColumn1 = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn1 = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
+
+		ColumnChangeDetails replaceChange = new ColumnChangeDetails(oldColumn1, newColumn1);
+
+		ColumnModel oldColumn2 = TableModelTestUtils.createColumn(789L, "test", ColumnType.STRING);
+		ColumnModel newColumn2 = TableModelTestUtils.createColumn(101112L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails addChange = new ColumnChangeDetails(oldColumn2, newColumn2);
+
+		ColumnModel oldColumn3 = TableModelTestUtils.createColumn(161718L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn3 = null;
+
+		ColumnChangeDetails deleteChange = new ColumnChangeDetails(oldColumn3, newColumn3);
+
+
+		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Arrays.asList(replaceChange,addChange,deleteChange), tableId);
+		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_,T999_INDEX_C161718_;", deleteSql.get());
+	}
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_empty(){
+		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.emptyList(), tableId).isPresent());
+	}
+
+	@Test
 	public void testCreateTableIfDoesNotExistSQL(){
 		boolean isView = false;
 		// call under test
@@ -1613,7 +1702,7 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C14_"
 				, builder.toString());
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
-				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_"), headers);
+				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_", "_C14_"), headers);
 	}
 
 	@Test

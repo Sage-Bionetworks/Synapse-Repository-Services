@@ -434,6 +434,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		// apply the update
 		template.update(sql);
+
+
+		//for any columns that have list columns delete their table indexes //TODO: test
+		SQLUtils.createListColumnDropIndexTableSql(changes, tableId)
+				//apply DROP sql if generated
+				.ifPresent(template::update);
+
 		return true;
 	}
 
@@ -531,6 +538,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void createAndPopulateListColumnIndexTables(List<DatabaseColumnInfo> columnInfos, IdAndVersion tableIdAndVersion){
 		for(DatabaseColumnInfo info : columnInfos){
+			//only operate on list column types
 			if(!ColumnTypeListMappings.isList(info.getColumnType())){
 				continue;
 			}
