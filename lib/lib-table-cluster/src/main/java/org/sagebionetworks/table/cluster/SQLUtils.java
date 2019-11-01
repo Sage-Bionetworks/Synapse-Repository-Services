@@ -39,6 +39,7 @@ import com.amazonaws.services.glue.model.Column;
 import org.apache.commons.lang3.BooleanUtils;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -1842,22 +1843,38 @@ public class SQLUtils {
 	}
 
 
-	public static String dropAndRecreateListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
-		String indexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
+	public static String createAndTruncateListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
 		String columnName = columnInfo.getColumnName();
-		return "DROP TABLE IF EXISTS " + indexTableName + ";"
-				+ "CREATE TABLE " + indexTableName + " (" +
+		Long maxSizeLong = columnInfo.getMaxSize() == null ? null : new Long(columnInfo.getMaxSize());
+		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(maxSizeLong, null, false);
+		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
 				ROW_ID+" BIGINT(20) NOT NULL, " +
 				INDEX_NUM + " BIGINT(20) NOT NULL, " + //index of value in its list
-				columnName + " " + ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql((long) columnInfo.getMaxSize(), null, false) + ", " +
+				columnName + " " + columnTypeSql + ", " +
 				"PRIMARY KEY ("+ROW_ID+", "+INDEX_NUM+")," +
 				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
-				");";
+				");" +
+				"TRUNCATE TABLE " + columnIndexTableName +";";
 	}
 
 	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
-		String indexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
-		
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
+		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
+
+		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaxSize() != null ? "("  + columnInfo.getMaxSize() + ")": "");
+
+		return "INSERT INTO " + columnIndexTableName + " (" + ROW_ID + "," + INDEX_NUM + ","+ columnInfo.getColumnName() +") " +
+				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM "+ tableName + ", JSON_TABLE(" +
+				columnInfo.getColumnName() +
+				", '$[*]'" +
+				" COLUMNS (" +
+				" ORDINAL FOR ORDINALITY, " +
+				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
+				" )" +
+				") TEMP_JSON_TABLE;";
 	}
 
 }

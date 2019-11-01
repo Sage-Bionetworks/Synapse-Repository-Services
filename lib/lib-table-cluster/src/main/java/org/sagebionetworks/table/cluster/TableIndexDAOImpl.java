@@ -3,7 +3,6 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
@@ -530,20 +529,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createListColumnIndexTables(List<DatabaseColumnInfo> list, IdAndVersion tableIdAndVersion){
-		for(DatabaseColumnInfo info : list){
+	public void createAndPopulateListColumnIndexTables(List<DatabaseColumnInfo> columnInfos, IdAndVersion tableIdAndVersion){
+		for(DatabaseColumnInfo info : columnInfos){
 			if(!ColumnTypeListMappings.isList(info.getColumnType())){
 				continue;
 			}
 
 
 			// drop and re-create table
-			//todo: truncate instead?
 			//todo: handle deletion of index tables that are no longer being used
-			String createTableSql = SQLUtils.dropAndRecreateListColumnIndexTable(tableIdAndVersion, info);
+			String createTableSql = SQLUtils.createAndTruncateListColumnIndexTable(tableIdAndVersion, info);
 			template.update(createTableSql);
 
-			String insertIntoSql = SQLUtils.;
+			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, info);
+			template.update(insertIntoSql);
 		}
 	}
 

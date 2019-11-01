@@ -2452,4 +2452,40 @@ public class SQLUtilsTest {
 		long bytes = SQLUtils.calculateBytes(row);
 		assertEquals(3*4+6*4, bytes);
 	}
+
+	@Test
+	public void testCreateAndTruncateListColumnIndexTable(){
+		DatabaseColumnInfo columnInfo = new DatabaseColumnInfo();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setColumnName("_C0_");
+		columnInfo.setMaxSize(42);
+		String sql = SQLUtils.createAndTruncateListColumnIndexTable(tableId, columnInfo);
+		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
+				"ROW_ID BIGINT(20) NOT NULL, " +
+				"INDEX_NUM BIGINT(20) NOT NULL, " +
+				"_C0_ VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+				"INDEX _C0__IDX (_C0_ ASC) " +
+				");TRUNCATE TABLE T999_INDEX_C0_;";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testInsertIntoListColumnIndexTable(){
+		DatabaseColumnInfo columnInfo = new DatabaseColumnInfo();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setColumnName("_C0_");
+		columnInfo.setMaxSize(42);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo);
+		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID,INDEX_NUM,_C0_) " +
+				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM T999, JSON_TABLE(" +
+				"_C0_," +
+				" '$[*]' COLUMNS (" +
+				" ORDINAL FOR ORDINALITY," +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				")" +
+				") TEMP_JSON_TABLE;";
+		assertEquals(expected, sql);
+	}
 }

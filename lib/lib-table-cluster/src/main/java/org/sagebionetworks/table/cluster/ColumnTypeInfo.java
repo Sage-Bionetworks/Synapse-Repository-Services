@@ -49,19 +49,24 @@ public enum ColumnTypeInfo {
 		this.maxSize = maxSize;
 		this.parser = parser;
 	}
-	
+
+
+	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
+		return toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes, false);
+	}
 
 	/**
 	 * Get the SQL to define a column of this type in MySQL.
 	 * @param inputSize
 	 * @param defaultValue
 	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * @param forJsonTempTable
 	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 * @return
 	 */
-	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
+	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes, boolean forJsonTempTable){
 		StringBuilder builder = new StringBuilder();
-		builder.append(mySqlType.name());
+			builder.append(mySqlType.name());
 		Long size = maxSize;
 		if(inputSize == null && requiresInputMaxSize()){
 			throw new IllegalArgumentException("Size must be provided for type: "+type);

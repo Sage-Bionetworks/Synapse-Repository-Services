@@ -248,9 +248,17 @@ public interface TableIndexDAO {
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
 
 	/**
-	 * Create a temporary table like the given table.
-	 * @param tableId
+	 * For any column in columnInfos that has a LIST columnType, creates separate index tables for its values.
+	 * @param columnInfos
+	 * @param tableIdAndVersion
 	 */
+	public void createAndPopulateListColumnIndexTables(List<DatabaseColumnInfo> columnInfos, IdAndVersion tableIdAndVersion);
+
+
+		/**
+		 * Create a temporary table like the given table.
+		 * @param tableId
+		 */
 	public void createTemporaryTable(IdAndVersion tableId);
 
 	/**
