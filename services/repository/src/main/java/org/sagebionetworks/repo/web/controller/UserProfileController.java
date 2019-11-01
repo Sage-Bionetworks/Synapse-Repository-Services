@@ -525,7 +525,7 @@ public class UserProfileController {
 	 * those for which the user or a team they are on is explicitly granted access in the project's share
 	 * settings.  Other projects, including those visible by virtue of being Public, are not included.  
 	 * The list of projects is further filtered as follows:
-	 * 
+	 * <br/>
 	 * If <i>filter</i> is ALL (the default): the projects that the caller has READ access to by virtue of being 
 	 * included in the project's share settings personally or via a team in which they are a member, as described above.
 	 * <br/>
@@ -546,8 +546,7 @@ public class UserProfileController {
 	 * 			<i>Default sort by last activity</i>
 	 * @param sortDirection The optional <a href="${org.sagebionetworks.repo.model.entity.query.SortDirection}">sort direction</a>. 
 	 * 			<i>Default sort descending</i>
-	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
-	 *        	<i>Default is 0</i>
+	 * @param nextPageToken a token returned with the previous page of results
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -573,7 +572,7 @@ public class UserProfileController {
 	 * those for which the user or a team they are on is explicitly granted access in the project's share
 	 * settings.  Other projects, including those visible by virtue of being Public, are not included.  
 	 * The list of projects is further filtered as follows:
-	 * 
+	 * <br/>
 	 * If <i>filter</i> is ALL (the default): the projects that the user has READ access to by virtue of being 
 	 * included in the project's share settings personally or via a team in which they are a member, as described above.
 	 * <br/>
@@ -587,7 +586,7 @@ public class UserProfileController {
 	 * <br/>
 	 * 
 	 * @param userId The ID of the user making the request
-	 * @param principalId The user ID to list projects for
+	 * @param principalId The ID of the user to list projects for
 	 * @param projectFilter The <a href="${org.sagebionetworks.repo.model.ProjectListType}">criterion</a> for including a project in the list (see above).
 	 * @param teamId If the projectFilter is 'TEAM' then this is the ID of the team through which the returned projects are shared with 'principalId'.
 	 * @param filter see above
@@ -595,8 +594,7 @@ public class UserProfileController {
 	 * 			<i>Default sort by last activity</i>
 	 * @param sortDirection The optional <a href="${org.sagebionetworks.repo.model.entity.query.SortDirection}">sort direction</a>. 
 	 * 			<i>Default sort descending</i>
-	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
-	 *        	<i>Default is 0</i>
+	 * @param nextPageToken a token returned with the previous page of results
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
