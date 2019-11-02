@@ -945,7 +945,7 @@ public class UrlHelpers {
 
 	public static final String PROJECTS = "/projects";
 	public static final String PROJECTS_USER = PROJECTS + USER + "/{principalId}";
-	public static final String PROJECTS_DEPRECATED = "/projects/{type}";
+	public static final String PROJECTS_DEPRECATED = "/projects/{deprecatedType}";
 	public static final String PROJECTS_USER_DEPRECATED = PROJECTS_DEPRECATED + USER + "/{principalId}";
 	public static final String PROJECTS_TEAM_DEPRECATED = PROJECTS_DEPRECATED + TEAM + "/{teamId}";
 	public static final String PROJECTS_SORT_PARAM = "sort";
