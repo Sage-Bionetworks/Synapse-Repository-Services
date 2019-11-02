@@ -134,7 +134,6 @@ public class IT970UserProfileController {
 		synapse.getMyProjectsDeprecated(ProjectListType.ALL, null, null, null, null);
 		synapse.getProjectsForTeamDeprecated(Long.parseLong(teamToDelete), null, null, null, null);
 		synapse.getProjectsFromUserDeprecated(userToDelete, null, null, null, null);
-
 	}
 
 	private List<ProjectHeader> nullOutLastActivity(List<ProjectHeader> alphabetical) {

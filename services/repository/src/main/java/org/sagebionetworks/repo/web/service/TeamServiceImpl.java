@@ -218,10 +218,10 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#addMember(java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
 	@Override
-	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint,
+	public boolean addMember(Long userId, String teamId, String principalId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
-		 addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
+		 return addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	@Override

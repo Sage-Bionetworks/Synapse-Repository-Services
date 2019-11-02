@@ -607,12 +607,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>3.0.1</version>
+				<version>3.0.2</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.1</version>
+				<version>1.1.2</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -863,7 +863,15 @@
 						</execution>
 					</executions>
 				</plugin>
-
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>3.0.0-M3</version>
+					<configuration>
+						<argLine>-Xmx1024m -Xms128m</argLine>
+						<runOrder>alphabetical</runOrder>
+					</configuration>
+				</plugin>
 				<!-- Make a WAR file -->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
