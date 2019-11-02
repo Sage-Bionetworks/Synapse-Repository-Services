@@ -250,7 +250,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// All of the column data is then used to optimized the indices.
 		tableIndexDao.optimizeTableIndices(tableInfo, tableId, MAX_MYSQL_INDEX_COUNT);
 	}
-	
+
+	@Override
+	public void createAndPopulateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schemas){
+		tableIndexDao.createAndPopulateListColumnIndexTables(tableIdAndVersion, schemas); //todo: mock test usage
+	}
+
 	@Override
 	public void createTemporaryTableCopy(final IdAndVersion tableId, ProgressCallback callback) {
 		// creating a temp table can take a long time so auto-progress is used.
@@ -456,6 +461,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		optimizeTableIndices(idAndVersion);
+		createAndPopulateListColumnIndexTables(idAndVersion, boundSchema);
 		return lastEtag;
 	}
 	

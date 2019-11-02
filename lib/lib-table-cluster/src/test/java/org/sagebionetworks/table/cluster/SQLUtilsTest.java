@@ -2543,11 +2543,11 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testCreateAndTruncateListColumnIndexTable(){
-		DatabaseColumnInfo columnInfo = new DatabaseColumnInfo();
+	public void testCreateListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setColumnName("_C0_");
-		columnInfo.setMaxSize(42);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
 		String sql = SQLUtils.createAndTruncateListColumnIndexTable(tableId, columnInfo);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
 				"ROW_ID BIGINT(20) NOT NULL, " +
@@ -2555,16 +2555,25 @@ public class SQLUtilsTest {
 				"_C0_ VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 				"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
 				"INDEX _C0__IDX (_C0_ ASC) " +
-				");TRUNCATE TABLE T999_INDEX_C0_;";
+				");";
 		assertEquals(expected, sql);
 	}
 
 	@Test
-	public void testInsertIntoListColumnIndexTable(){
-		DatabaseColumnInfo columnInfo = new DatabaseColumnInfo();
+	public void testTruncateListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setColumnName("_C0_");
-		columnInfo.setMaxSize(42);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		assertEquals("TRUNCATE TABLE T999_INDEX_C0_;", SQLUtils.truncateListColumnIndexTable(tableId, columnInfo));
+	}
+
+	@Test
+	public void testInsertIntoListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
 		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID,INDEX_NUM,_C0_) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +

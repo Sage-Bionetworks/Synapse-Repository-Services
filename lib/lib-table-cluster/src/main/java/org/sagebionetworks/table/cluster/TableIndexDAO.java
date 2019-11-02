@@ -248,11 +248,11 @@ public interface TableIndexDAO {
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
 
 	/**
-	 * For any column in columnInfos that has a LIST columnType, creates separate index tables for its values.
-	 * @param columnInfos
+	 * For any column in columnModels that has a LIST columnType, creates separate index tables for its values.
+	 * @param columnModels
 	 * @param tableIdAndVersion
 	 */
-	public void createAndPopulateListColumnIndexTables(List<DatabaseColumnInfo> columnInfos, IdAndVersion tableIdAndVersion);
+	public void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels);
 
 
 		/**

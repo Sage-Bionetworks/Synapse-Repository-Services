@@ -371,7 +371,7 @@ public class TableModelTestUtils {
 			case LARGETEXT:
 				return (isUpdate ? "updateLargeText" : "largeText") + (4000 + i);
 			case STRING_LIST:
-				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\"]";
+				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\",  \"" +(isUpdate ? "otherupdatestring" : "otherstring") + i+"\"]";
 			case DOUBLE_LIST:
 				return "[" + (i * 3.41 + 3.12 + (isUpdate ? 10000 : 0)) + "]";
 			case INTEGER_LIST:

@@ -82,6 +82,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.object.SqlUpdate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -536,20 +537,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createAndPopulateListColumnIndexTables(List<DatabaseColumnInfo> columnInfos, IdAndVersion tableIdAndVersion){
-		for(DatabaseColumnInfo info : columnInfos){
+	public void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
+		for(ColumnModel columnModel : columnModels){
 			//only operate on list column types
-			if(!ColumnTypeListMappings.isList(info.getColumnType())){
+			if(!ColumnTypeListMappings.isList(columnModel.getColumnType())){
 				continue;
 			}
 
 
 			// drop and re-create table
-			//todo: handle deletion of index tables that are no longer being used
-			String createTableSql = SQLUtils.createAndTruncateListColumnIndexTable(tableIdAndVersion, info);
+			String createTableSql = SQLUtils.createAndTruncateListColumnIndexTable(tableIdAndVersion, columnModel);
 			template.update(createTableSql);
 
-			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, info);
+			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
+			template.update(truncateTablesql);
+
+			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     );
 			template.update(insertIntoSql);
 		}
 	}

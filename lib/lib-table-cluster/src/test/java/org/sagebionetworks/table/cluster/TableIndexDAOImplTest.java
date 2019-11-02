@@ -1609,7 +1609,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(rows);
 		assertEquals(3, rows.size());
 
-		assertArrayEquals(new String[] {"ID", "CURRENT_VERSION", "ETAG", "BENEFACTOR_ID" , "_C1_"}, rows.get(0));
+		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_"}, rows.get(0));
 		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[\"NaN\", 1.2, \"Infinity\"]"}, rows.get(1));
 		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[\"Infinity\", 222.222]"}, rows.get(2));
 	}
@@ -2432,12 +2432,20 @@ public class TableIndexDAOImplTest {
 
 		createOrUpdateTable(schema, tableId, isView);
 
-		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+		int numRows = 5;
+		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
 
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
-		tableIndexDAO.createAndPopulateListColumnIndexTables(infoList, tableId);
+		tableIndexDAO.createAndPopulateListColumnIndexTables(schema, tableId);
 
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
+
+		//each list value created by createRows has 2 items in the list
+		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+
+		//drop the created table as cleanup
+		tableIndexDAO.getConnection().update("DROP TABLE " + listColumnindexTableName);
 	}
 }

@@ -1,5 +1,11 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.repo.model.table.ColumnType;
 
 /**
@@ -13,6 +19,13 @@ public enum ColumnTypeListMappings {
 	BOOLEAN(ColumnType.BOOLEAN, ColumnType.BOOLEAN_LIST),
 	DATE(ColumnType.DATE, ColumnType.DATE_LIST);
 
+	private static final Map<ColumnType, ColumnTypeListMappings> LIST_TO_NON_LIST = Arrays.stream(values())
+			.collect(Collectors.toMap(
+						ColumnTypeListMappings::getListType, //key
+						Function.identity(), //value
+						(key, val) -> {throw new IllegalArgumentException("duplicate key " + key);}	, //duplicate key handler
+						() -> new EnumMap<>(ColumnType.class) //map implementation supplier
+					));
 
 	ColumnType nonListType;
 	ColumnType listType;
@@ -31,12 +44,11 @@ public enum ColumnTypeListMappings {
 	}
 
 	public static ColumnTypeListMappings forListType(ColumnType listType){
-		for(ColumnTypeListMappings mapping : values()){
-			if(mapping.listType == listType){
-				return mapping;
-			}
+		ColumnTypeListMappings nonListType = LIST_TO_NON_LIST.get(listType);
+		if (nonListType == null) {
+			throw new IllegalArgumentException(listType + " is not a List ColumnType");
 		}
-		throw new IllegalArgumentException(listType + " is not a List ColumnType");
+		return nonListType;
 	}
 
 	public static ColumnType nonListType(ColumnType listType){
@@ -45,7 +57,8 @@ public enum ColumnTypeListMappings {
 
 	public static boolean isList(ColumnType columnType){
 		try{
-			return forListType(columnType) != null;
+			forListType(columnType);
+			return true;
 		} catch (IllegalArgumentException e){
 			return false;
 		}

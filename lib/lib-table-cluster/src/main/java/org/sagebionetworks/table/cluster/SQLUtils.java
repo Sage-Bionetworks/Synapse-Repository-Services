@@ -1864,32 +1864,35 @@ public class SQLUtils {
 	}
 
 
-	public static String createAndTruncateListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
-		String columnName = columnInfo.getColumnName();
-		Long maxSizeLong = columnInfo.getMaxSize() == null ? null : new Long(columnInfo.getMaxSize());
-		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(maxSizeLong, null, false);
+	public static String createAndTruncateListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
+		String columnName = getColumnNameForId(columnInfo.getId());
+		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);
 		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
 				ROW_ID+" BIGINT(20) NOT NULL, " +
 				INDEX_NUM + " BIGINT(20) NOT NULL, " + //index of value in its list
 				columnName + " " + columnTypeSql + ", " +
 				"PRIMARY KEY ("+ROW_ID+", "+INDEX_NUM+")," +
 				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
-				");" +
-				"TRUNCATE TABLE " + columnIndexTableName +";";
+				");";
 	}
 
-	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, DatabaseColumnInfo columnInfo){
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, Long.toString(getColumnId(columnInfo)));
+	public static String truncateListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		return "TRUNCATE TABLE " + getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId()) +";";
+	}
+
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		String columnName = getColumnNameForId(columnInfo.getId());
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
 		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
-		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaxSize() != null ? "("  + columnInfo.getMaxSize() + ")": "");
+		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
 
-		return "INSERT INTO " + columnIndexTableName + " (" + ROW_ID + "," + INDEX_NUM + ","+ columnInfo.getColumnName() +") " +
+		return "INSERT INTO " + columnIndexTableName + " (" + ROW_ID + "," + INDEX_NUM + ","+ columnName +") " +
 				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM "+ tableName + ", JSON_TABLE(" +
-				columnInfo.getColumnName() +
+				columnName +
 				", '$[*]'" +
 				" COLUMNS (" +
 				" ORDINAL FOR ORDINALITY, " +
