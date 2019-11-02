@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -3439,6 +3440,73 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 		return getJSONEntity(getRepoEndpoint(), url, ProjectHeaderList.class);
 	}
+
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getMyProjectsDeprecated(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(type, null, null, sortColumn, sortDirection, limit, offset);
+	}
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsFromUserDeprecated(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(ProjectListType.ALL, userId, null, sortColumn, sortDirection, limit, offset);
+	}
+	
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsForTeamDeprecated(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(ProjectListType.TEAM, null, teamId, sortColumn, sortDirection, limit, offset);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjectsDeprecated(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
+			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
+		String url = PROJECTS_URI_PATH+"/";
+		switch (type) {
+		case ALL:
+		default:
+			if (userId==null) {
+				url += ProjectListTypeDeprecated.MY_PROJECTS;
+			} else {
+				url += ProjectListTypeDeprecated.OTHER_USER_PROJECTS;
+			}
+			break;
+		case CREATED:
+			url += ProjectListTypeDeprecated.MY_CREATED_PROJECTS;
+			break;
+		case PARTICIPATED:
+			url += ProjectListTypeDeprecated.MY_PARTICIPATED_PROJECTS;
+			break;
+		case TEAM:
+			if (teamId==null) {
+				url += ProjectListTypeDeprecated.MY_TEAM_PROJECTS;
+			} else {
+				url += ProjectListTypeDeprecated.TEAM_PROJECTS;
+			}
+			break;
+		}
+		if (userId != null) {
+			url += USER + '/' + userId;
+		}
+		if (teamId != null) {
+			url += TEAM + '/' + teamId;
+		}
+		if (sortColumn == null) {
+			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection == null) {
+			sortDirection = SortDirection.DESC;
+		}
+		url += "?sort=" + sortColumn.name() + "&sortDirection="+ sortDirection.name();		
+		if (offset!=null) {
+			url += '&' + OFFSET_PARAMETER + offset ;
+		}
+		if (limit!=null) {
+			url += '&' + LIMIT_PARAMETER + limit;
+		}
+
+		return getPaginatedResults(getRepoEndpoint(), url, ProjectHeader.class);
+	}
+
 
 	/**
 	 * Gets the DOI Association for the specified object. If object version is null, the call will return the DOI

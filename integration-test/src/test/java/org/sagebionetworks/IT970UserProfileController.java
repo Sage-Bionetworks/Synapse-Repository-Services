@@ -55,6 +55,8 @@ public class IT970UserProfileController {
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
+		team = synapse.createTeam(team);
+		teamToDelete = team.getId();
 	}
 	
 	@Before
@@ -123,10 +125,15 @@ public class IT970UserProfileController {
 		
 		// retrieve my projects
 		ProjectHeaderList projects = synapse.getMyProjects(ProjectListType.ALL, null, null, null);
-		// retrieve someone else's projects
+		// retrieve my next page of projects
 		projects = synapse.getMyProjects(ProjectListType.ALL, null, null, projects.getNextPageToken());
+		// retrieve someone else's projects
 		projects = synapse.getProjectsFromUser(userToDelete, null, null, null);
-
+				
+		// make sure deprecated services still work
+		synapse.getMyProjectsDeprecated(ProjectListType.ALL, null, null, null, null);
+		synapse.getProjectsForTeamDeprecated(Long.parseLong(teamToDelete), null, null, null, null);
+		synapse.getProjectsFromUserDeprecated(userToDelete, null, null, null, null);
 	}
 
 	private List<ProjectHeader> nullOutLastActivity(List<ProjectHeader> alphabetical) {
