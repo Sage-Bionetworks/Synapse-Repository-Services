@@ -74,33 +74,15 @@ public interface MessageDAO {
 	 * Note: This 'recipient status' is disctinct from the message's 'transmission status'.
 	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
-	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status);
+	public void createMessageStatus(String messageId, String userId, MessageStatusType status);
 	
-	/**
-	 * Marks a user as a recipient of a message
-	 * The status of the message defaults to UNREAD
-	 * 
-	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
-	 * Note: This operation occurs in the same transaction (REQUIRED)
-	 */
-	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
-	
-
 	/**
 	 * Marks a message within the recipient's inbox with the given status, doing so in a new, isolated transaction
 	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * 
 	 * @return Did the update succeed?
 	 */
-	boolean updateMessageStatus_NewTransaction(MessageStatus status);
-	
-	/**
-	 * Marks a message within the recipient's inbox with the given status
-	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
-	 * 
-	 * @return Did the update succeed?
-	 */
-	public boolean updateMessageStatus_SameTransaction(MessageStatus status);
+	boolean updateMessageStatus(MessageStatus status);
 	
 	/**
 	 * Deletes a message.  Only used for test cleanup.

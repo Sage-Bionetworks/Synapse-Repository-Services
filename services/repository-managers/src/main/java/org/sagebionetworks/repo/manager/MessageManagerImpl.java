@@ -327,14 +327,13 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	@WriteTransaction
 	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException {
 		// Check to see if the user can see the message being updated
 		getMessage(userInfo, status.getMessageId());
 		
 		// Update the message
 		status.setRecipientId(userInfo.getId().toString());
-		boolean succeeded = messageDAO.updateMessageStatus_SameTransaction(status);
+		boolean succeeded = messageDAO.updateMessageStatus(status);
 		
 		if (!succeeded) {
 			throw new UnauthorizedException("Cannot change status of message (" + status.getMessageId() + ")");
@@ -406,7 +405,7 @@ public class MessageManagerImpl implements MessageManager {
 				}
 				MessageStatusType userMessageStatus = null; // setting to null tells the DAO to use the default value
 				
-				messageDAO.createMessageStatus_NewTransaction(dto.getId(), userId, userMessageStatus);	
+				messageDAO.createMessageStatus(dto.getId(), userId, userMessageStatus);	
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
@@ -454,7 +453,7 @@ public class MessageManagerImpl implements MessageManager {
 					messageStatus.setMessageId(dto.getId());
 					messageStatus.setRecipientId(userId);
 					messageStatus.setStatus(userMessageStatus);
-					messageDAO.updateMessageStatus_NewTransaction(messageStatus);
+					messageDAO.updateMessageStatus(messageStatus);
 				}
 			} catch (Exception e) {
 				LOG.info("Error caught while processing message", e);
