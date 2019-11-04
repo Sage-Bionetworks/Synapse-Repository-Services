@@ -803,6 +803,7 @@ public class TableViewManagerImplTest {
 				viewSchema);
 		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
@@ -851,6 +852,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
 		verify(mockFile).delete();
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);

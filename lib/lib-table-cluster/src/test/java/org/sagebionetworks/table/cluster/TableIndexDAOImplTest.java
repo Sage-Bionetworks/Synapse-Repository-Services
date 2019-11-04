@@ -387,7 +387,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000",
-				"link708000", "largeText804000", "903000", "[\"string1000000\"]", "[3751003.12]", "[1203000]", "[false]", "[1404000]");
+				"link708000", "largeText804000", "903000", "[\"string1000000\", \"otherstring1000000\"]", "[3751003.12]", "[1203000]", "[false]", "[1404000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -396,7 +396,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001", 
-				"link708001", "largeText804001", "903001", "[\"string1000001\"]", "[3751006.53]", "[1203001]", "[true]", "[1404001]");
+				"link708001", "largeText804001", "903001", "[\"string1000001\", \"otherstring1000001\"]", "[3751006.53]", "[1203001]", "[true]", "[1404001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -2438,7 +2438,7 @@ public class TableIndexDAOImplTest {
 
 
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
-		tableIndexDAO.createAndPopulateListColumnIndexTables(schema, tableId);
+		tableIndexDAO.createAndPopulateListColumnIndexTables(tableId, schema);
 
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 

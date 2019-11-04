@@ -457,7 +457,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		boolean isTableView = false;
 		List<ColumnChangeDetails> changes = setIndexSchema(idAndVersion, isTableView, boundSchema);
 		if(changes != null && !changes.isEmpty()) {
-			log.warn("PLFM-5639: table: "+idAndVersion.toString()+" required the following scheam changes: "+changes);
+			log.warn("PLFM-5639: table: "+idAndVersion.toString()+" required the following schema changes: "+changes);
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		optimizeTableIndices(idAndVersion);
