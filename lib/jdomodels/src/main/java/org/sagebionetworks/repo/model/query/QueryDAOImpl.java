@@ -364,7 +364,8 @@ public class QueryDAOImpl implements QueryDAO {
 			String prefix, String name, String alias, String joinColumn, String joinType, boolean isFirst) {
 		if (!isFirst) {
 			builder.append(" ");
-			builder.append(" "+joinType+" join ");
+			builder.append(joinType);
+			builder.append(" join ");
 		}
 		builder.append(" ");
 		builder.append(prefix);
