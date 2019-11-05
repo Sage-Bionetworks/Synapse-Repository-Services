@@ -905,7 +905,7 @@ public class IT100TableControllerTest {
 	@Test
 	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
 		Project project = new Project();
-		project.setName("testEntityView_multipleValueColumnRoundTrip");
+		project.setName("testEntityView_multipleValueColumnRoundTrip" + UUID.randomUUID());
 
 		project = synapse.createEntity(project);
 		entitiesToDelete.add(project);
@@ -947,22 +947,28 @@ public class IT100TableControllerTest {
 
 		EntityView view = new EntityView();
 		view.setParentId(project.getId());
-		view.setName("ENTITY_VIEW_testEntityView_multipleValueColumnRoundTrip");
+		view.setName("ENTITY_VIEW_testEntityView_multipleValueColumnRoundTrip" + UUID.randomUUID());
 		view.setScopeIds(Collections.singletonList(project.getId()));
 		view.setViewTypeMask(folderViewMask);
 		view.setColumnIds(columnIds);
 		view = synapse.createEntity(view);
 		entitiesToDelete.add(view);
 
+
+		RowSet temp = waitForQueryResults("select * from "+ view.getId(), 0L, 10L,view.getId());
+		System.out.println(temp.getRows());
+
+		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId(), view.getId()));
+
 		//only 1 entity has "val1" as a value
-		assertEquals(1, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val1\")", view.getId()));
+		assertEquals(1, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS ('val1')", view.getId()));
 		//both annotations have "val2" as a value
-		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val2\")", view.getId()));
+		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS ('val2')", view.getId()));
 		//HAS "val1" or "val3" should also cover both values
-		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val1\", \"val3\")", view.getId()));
+		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS ('val1', 'val3')", view.getId()));
 
 		//modify annotation values by using updates to table view
-		RowSet result = waitForQueryResults("select * from "+ view.getId() + " where multiValueKey HAS (\"val1\", \"val3\")", 0L, 10L,view.getId());
+		RowSet result = waitForQueryResults("select * from "+ view.getId() + " where multiValueKey HAS ('val1', 'val3')", 0L, 10L,view.getId());
 		System.out.println(result);
 
 	}

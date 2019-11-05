@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.util.ValidateArgument;
 
 class StringValueListValidator implements AnnotationsV2ValueListValidator {
-	static final int MAX_STRING_SIZE = 1000;
+	static final int MAX_STRING_SIZE = 500;
 	//used for printing a better error message
 	private AnnotationsValueType annotationType;
 

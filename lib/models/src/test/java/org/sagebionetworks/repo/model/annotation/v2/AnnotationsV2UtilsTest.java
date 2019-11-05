@@ -285,9 +285,9 @@ class AnnotationsV2UtilsTest {
 		int maxAnnotationChars = 6;
 		Annotations annos = new Annotations();
 		AnnotationsV2TestUtils.putAnnotations(annos, "listWithNullValue", Collections.singletonList(null), AnnotationsValueType.STRING);
-		List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
-		assertNotNull(results);
-		Assertions.assertEquals(0, results.size());
+		assertThrows(IllegalArgumentException.class,() ->{
+			List<AnnotationDTO> results = AnnotationsV2Utils.translate(entityId, annos, maxAnnotationChars);
+		});
 	}
 
 	@Test

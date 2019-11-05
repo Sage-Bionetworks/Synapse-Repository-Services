@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.annotation.v2;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -100,10 +101,21 @@ public class AnnotationsV2Utils {
 			String key = entry.getKey();
 			AnnotationsValue annotationsV2Value = entry.getValue();
 
-			List<String> transferredValues = annotationsV2Value.getValue().stream()
-					//enforce value max character limit
-					.map((String value) -> value == null ? null : value.substring(0, maxAnnotationChars))
-					.collect(Collectors.toList());
+			//ignore empty list or null list for values
+			if(annotationsV2Value.getValue() == null || annotationsV2Value.getValue().isEmpty()){
+				continue;
+			}
+
+			//enforce value max character limit
+			List<String> transferredValues = new ArrayList<>();
+			for (String value : annotationsV2Value.getValue()) {
+				if(value == null){
+					throw new IllegalArgumentException("values list can not contain null");
+				}
+				//make sure values are under the maxAnnotationChars limit
+				String shortenedString = value.substring(0, Math.min(value.length(), maxAnnotationChars));
+				transferredValues.add(shortenedString);
+			}
 
 			map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
 		}
