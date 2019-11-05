@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,9 +72,6 @@ public class EntityManagerImplAutowireTest {
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
-	
-	// We use a mock auth DAO for this test.
-	private AuthorizationManager mockAuth;
 
 	private List<String> toDelete;
 	private List<String> activitiesToDelete;
@@ -99,10 +97,6 @@ public class EntityManagerImplAutowireTest {
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		fileHandlesToDelete = new ArrayList<String>();
-		mockAuth = Mockito.mock(AuthorizationManager.class);
-		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuth.canCreate((UserInfo)any(), (String)any(), (EntityType)any())).thenReturn(AuthorizationStatus.authorized());
-
 	}
 	
 	@AfterEach
@@ -372,6 +366,20 @@ public class EntityManagerImplAutowireTest {
 		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, view, newVersion, activityId);
 		// should not create a new version.
 		assertFalse(wasNewVersionCreated);
+	}
+	
+	@Test
+	public void testDescriptionLimit() {
+		Project project = new Project();
+		project.setName("some project");
+		int limit = 1000;
+		String description = StringUtils.repeat("b", limit);
+		project.setDescription(description);
+		//folder.setParentId(parentId);
+		String id = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(id);
+		project = entityManager.getEntity(adminUserInfo, id, Project.class);
+		assertEquals(description, project.getDescription());
 	}
 	
 }
