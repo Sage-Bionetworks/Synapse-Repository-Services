@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -18,13 +17,14 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -46,14 +45,13 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MembershipRequestManagerImplTest {
 	
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
-	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	@Mock
 	private MembershipRequestDAO mockMembershipRequestDAO;
 	@Mock
@@ -64,22 +62,16 @@ public class MembershipRequestManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	@Mock
 	private TokenGenerator mockTokenGenerator;
+	@InjectMocks
+	private MembershipRequestManagerImpl membershipRequestManagerImpl;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
 	private static final String TEAM_ID = "111";
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		membershipRequestManagerImpl = new MembershipRequestManagerImpl();
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "membershipRequestDAO", mockMembershipRequestDAO);
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "userProfileManager", mockUserProfileManager);
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "teamDAO", mockTeamDAO);
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "accessRequirementDAO", mockAccessRequirementDAO);
-		ReflectionTestUtils.setField(membershipRequestManagerImpl, "tokenGenerator", mockTokenGenerator);
-
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
 		userInfo.setGroups(Collections.singleton(Long.parseLong(MEMBER_PRINCIPAL_ID)));
@@ -89,12 +81,9 @@ public class MembershipRequestManagerImplTest {
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRequest mrs, UserInfo userInfo) {
-		try {
+		Assertions.assertThrows(InvalidModelException.class, ()-> {
 			MembershipRequestManagerImpl.validateForCreate(mrs, userInfo);
-			fail("InvalidModelException expected");
-		} catch (InvalidModelException e) {
-			// as expected
-		}		
+		});
 	}
 
 	@Test
@@ -161,12 +150,15 @@ public class MembershipRequestManagerImplTest {
 		assertEquals("something else", mrs.getUserId());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testAnonymousCreate() throws Exception {
 		UserInfo anonymousInfo = new UserInfo(false);
 		anonymousInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		MembershipRequest mrs = new MembershipRequest();
-		membershipRequestManagerImpl.create(anonymousInfo, mrs);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.create(anonymousInfo, mrs);
+		});
 	}
 	
 	@Test
@@ -179,11 +171,10 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(mrs, membershipRequestManagerImpl.create(userInfo, mrs));
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testCreateHasUnmetAccessRequirements() throws Exception {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
-		when(mockMembershipRequestDAO.create((MembershipRequest)any())).thenReturn(mrs);
 		// now mock an unmet access requirement
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				eq(Collections.singletonList(TEAM_ID)), 
@@ -191,8 +182,11 @@ public class MembershipRequestManagerImplTest {
 				eq(userInfo.getGroups()), 
 				eq(Collections.singletonList(ACCESS_TYPE.PARTICIPATE))))
 			.thenReturn(Collections.singletonList(77L));
-		// should throw UnauthorizedException
-		membershipRequestManagerImpl.create(userInfo, mrs);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			// should throw UnauthorizedException
+			membershipRequestManagerImpl.create(userInfo, mrs);
+		});
 	}
 	
 	@Test
@@ -271,14 +265,17 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(mrs, membershipRequestManagerImpl.get(adminInfo, "001"));
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetForAnotherUser() throws Exception {
 		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId("-1");
 		when(mockMembershipRequestDAO.get(anyString())).thenReturn(mrs);
 		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.get(userInfo, "001");
+		});
 	}
 
 	@Test
@@ -299,7 +296,7 @@ public class MembershipRequestManagerImplTest {
 		membershipRequestManagerImpl.delete(adminInfo, MRS_ID);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testDeleteOther() throws Exception {
 		String MRS_ID = "222";
 		MembershipRequest mrs = new MembershipRequest();
@@ -308,8 +305,10 @@ public class MembershipRequestManagerImplTest {
 		mrs.setId(MRS_ID);
 		when(mockMembershipRequestDAO.get(MRS_ID)).thenReturn(mrs);
 		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipRequestManagerImpl.delete(userInfo, MRS_ID);
-		Mockito.verify(mockMembershipRequestDAO).delete(MRS_ID);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.delete(userInfo, MRS_ID);
+		});
 	}
 
 	@Test
@@ -328,11 +327,14 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetOpenByTeamUnauthorized() throws Exception {
 		long teamId = 101L;
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
+		});
 	}
 	
 	@Test
@@ -352,12 +354,14 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetOpenByTeamAndRequesterUnauthorized() throws Exception {
 		long userId = 333L;
 		long teamId = 101L;
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationStatus.accessDenied(""));
-		membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
+		});
 	}
 
 	@Test
@@ -375,10 +379,12 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetOpenSubmissionsByRequesterUnauthorized() throws Exception {
 		long userId = userInfo.getId();
-		membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+(userId+999),1,0);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+(userId+999),1,0);
+		});
 	}
 	
 	@Test
@@ -397,16 +403,20 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testGetOpenSubmissionsByRequesterAndTeamUnauthorized() throws Exception {
 		long teamId = 111L;
 		long userId = userInfo.getId();
-		membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetOpenSubmissionsCountForTeamAdminWithNullUserInfo() {
-		membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(null);
+		});
 	}
 
 	@Test
@@ -431,18 +441,17 @@ public class MembershipRequestManagerImplTest {
 
 	@Test
 	public void testCreateRequestPublicTeam() {
-		try {
-			MembershipRequest mrs = new MembershipRequest();
-			mrs.setTeamId(TEAM_ID);
-			mrs.setUserId(MEMBER_PRINCIPAL_ID);
-			Team team = new Team();
-			team.setCanPublicJoin(true);
-			when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+		MembershipRequest mrs = new MembershipRequest();
+		mrs.setTeamId(TEAM_ID);
+		mrs.setUserId(MEMBER_PRINCIPAL_ID);
+		Team team = new Team();
+		team.setCanPublicJoin(true);
+		when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+		
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			membershipRequestManagerImpl.create(userInfo, mrs);
-			Assert.fail("Expected IllegalArgumentException to be thrown");
-		} catch (Exception e) {
-			assertEquals(IllegalArgumentException.class, e.getClass());
-			assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
-		}
+		});
+		assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
+
 	}
 }

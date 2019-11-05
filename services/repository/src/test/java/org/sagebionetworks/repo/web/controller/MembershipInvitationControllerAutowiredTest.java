@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageManager;
+import org.sagebionetworks.repo.manager.MessageManagerImpl;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -34,6 +36,9 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 
 	@Autowired
 	public UserManager userManager;
+	
+	@Autowired
+	private MessageManager messageManager;
 	
 	@Autowired
 	private SynapseS3Client s3Client;
@@ -106,6 +111,13 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 				getMembershipInvitationSubmissions(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
+		
+		// Process the outgoing messages (emulates a worker)
+		PaginatedResults<MessageToUser> messages = 
+				 servletTestHelper.getOutbox(adminUserId, MessageSortBy.SEND_DATE, false, (long)Integer.MAX_VALUE, 0L);
+		 for (MessageToUser mtu : messages.getResults()) {
+			 messageManager.processMessage(mtu.getId(), null);
+		 }
 		
 		assertTrue(S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, 60000L));
 	}

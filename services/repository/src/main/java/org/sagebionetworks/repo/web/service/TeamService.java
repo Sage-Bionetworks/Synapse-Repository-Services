@@ -119,7 +119,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public boolean addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Add a member to a Team, based on a JoinedTeamSignedToken object

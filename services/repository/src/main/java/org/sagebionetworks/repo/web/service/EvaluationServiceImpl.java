@@ -44,6 +44,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationServiceImpl implements EvaluationService {
+	
 	@Autowired
 	private ServiceProvider serviceProvider;
 	@Autowired
@@ -158,7 +159,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@WriteTransaction
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
@@ -170,10 +170,13 @@ public class EvaluationServiceImpl implements EvaluationService {
 		Long versionNumber = submission.getVersionNumber();
 		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
+		
 		List<MessageToUserAndBody> messages = submissionManager.
 				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
 						challengeEndpoint, notificationUnsubscribeEndpoint);
+		
 		notificationManager.sendNotifications(userInfo, messages);
+		
 		return created;
 	}
 	

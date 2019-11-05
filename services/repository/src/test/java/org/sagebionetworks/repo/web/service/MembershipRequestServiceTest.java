@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -8,10 +8,12 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -20,24 +22,17 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
+@ExtendWith(MockitoExtension.class)
 public class MembershipRequestServiceTest {
-	private MembershipRequestServiceImpl membershipRequestService;
+	@Mock
 	private MembershipRequestManager mockMembershipRequestManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private NotificationManager mockNotificationManager;
+	@InjectMocks
+	private MembershipRequestServiceImpl membershipRequestService;
 	
-	@Before
-	public void before() throws Exception {
-		mockMembershipRequestManager = Mockito.mock(MembershipRequestManager.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
-
-		this.membershipRequestService = new MembershipRequestServiceImpl(
-				mockMembershipRequestManager,
-				mockUserManager,
-				mockNotificationManager);
-	}
-
 	@Test
 	public void testCreate() {
 		Long userId = 111L;
@@ -55,15 +50,17 @@ public class MembershipRequestServiceTest {
 		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs,
 				acceptRequestEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
+		// Call under test
 		membershipRequestService.create(userId, mrs, acceptRequestEndpoint, notificationUnsubscribeEndpoint);
+		
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipRequestManager).create(userInfo, mrs);
 		verify(mockMembershipRequestManager).createMembershipRequestNotification(mrs,
 				acceptRequestEndpoint, notificationUnsubscribeEndpoint);
 		
 		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
-		verify(mockNotificationManager).
-			sendNotifications(eq(userInfo), messageArg.capture());
+		
+		verify(mockNotificationManager).sendNotifications(eq(userInfo), messageArg.capture());
 		assertEquals(1, messageArg.getValue().size());		
 		assertEquals(result, messageArg.getValue());		
 

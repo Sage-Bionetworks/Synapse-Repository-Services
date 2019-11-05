@@ -74,8 +74,10 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -3370,15 +3372,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param type the type of list to get
 	 * @param sortColumn the optional sort column (default by last activity)
 	 * @param sortDirection the optional sort direction (default descending)
-	 * @param limit
-	 * @param offset
+	 * @param nextPageToken
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(type, null, null, sortColumn, sortDirection, limit, offset);
+	public ProjectHeaderList getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException {
+		return getProjects(type, null, null, sortColumn, sortDirection, nextPageToken);
 	}
 
 	/**
@@ -3387,15 +3388,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param userId the user for which to get the project list
 	 * @param sortColumn the optional sort column (default by last activity)
 	 * @param sortDirection the optional sort direction (default descending)
-	 * @param limit
-	 * @param offset
+	 * @param nextPageToken
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(ProjectListType.ALL, userId, null, sortColumn, sortDirection, limit, offset);
+	public ProjectHeaderList getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException {
+		return getProjects(ProjectListType.ALL, userId, null, sortColumn, sortDirection, nextPageToken);
 	}
 
 	/**
@@ -3404,19 +3404,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param teamId the team for which to get the project list
 	 * @param sortColumn the optional sort column (default by last activity)
 	 * @param sortDirection the optional sort direction (default descending)
-	 * @param limit
-	 * @param offset
+	 * @param nextPageToken
 	 * @return
 	 * @throws SynapseException
 	 */
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Integer limit, Integer offset) throws SynapseException {
-		return getProjects(ProjectListType.TEAM, null, teamId, sortColumn, sortDirection, limit, offset);
+	public ProjectHeaderList getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException {
+		return getProjects(ProjectListType.TEAM, null, teamId, sortColumn, sortDirection, nextPageToken);
 	}
 
-	private PaginatedResults<ProjectHeader> getProjects(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
-			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
+	private ProjectHeaderList getProjects(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
+			SortDirection sortDirection, String nextPageToken) throws SynapseException, SynapseClientException {
 		String url = PROJECTS_URI_PATH;
 		if (userId != null) {
 			url += USER + '/' + userId;
@@ -3427,9 +3426,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (sortDirection == null) {
 			sortDirection = SortDirection.DESC;
 		}
+		url += "?sort=" + sortColumn.name() + "&sortDirection=" + sortDirection.name();
+		if (nextPageToken != null) {
+			url += "&" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}		
 
-		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit + "&sort=" + sortColumn.name() + "&sortDirection="
-				+ sortDirection.name();
 		if (teamId != null) {
 			url += "&teamId=" + teamId;
 		}
@@ -3437,8 +3438,75 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url += "&filter="+type;
 		}
 
+		return getJSONEntity(getRepoEndpoint(), url, ProjectHeaderList.class);
+	}
+
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getMyProjectsDeprecated(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(type, null, null, sortColumn, sortDirection, limit, offset);
+	}
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsFromUserDeprecated(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(ProjectListType.ALL, userId, null, sortColumn, sortDirection, limit, offset);
+	}
+	
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsForTeamDeprecated(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException {
+		return getProjectsDeprecated(ProjectListType.TEAM, null, teamId, sortColumn, sortDirection, limit, offset);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjectsDeprecated(ProjectListType type, Long userId, Long teamId, ProjectListSortColumn sortColumn,
+			SortDirection sortDirection, Integer limit, Integer offset) throws SynapseException, SynapseClientException {
+		String url = PROJECTS_URI_PATH+"/";
+		switch (type) {
+		case ALL:
+		default:
+			if (userId==null) {
+				url += ProjectListTypeDeprecated.MY_PROJECTS;
+			} else {
+				url += ProjectListTypeDeprecated.OTHER_USER_PROJECTS;
+			}
+			break;
+		case CREATED:
+			url += ProjectListTypeDeprecated.MY_CREATED_PROJECTS;
+			break;
+		case PARTICIPATED:
+			url += ProjectListTypeDeprecated.MY_PARTICIPATED_PROJECTS;
+			break;
+		case TEAM:
+			if (teamId==null) {
+				url += ProjectListTypeDeprecated.MY_TEAM_PROJECTS;
+			} else {
+				url += ProjectListTypeDeprecated.TEAM_PROJECTS;
+			}
+			break;
+		}
+		if (userId != null) {
+			url += USER + '/' + userId;
+		}
+		if (teamId != null) {
+			url += TEAM + '/' + teamId;
+		}
+		if (sortColumn == null) {
+			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		}
+		if (sortDirection == null) {
+			sortDirection = SortDirection.DESC;
+		}
+		url += "?sort=" + sortColumn.name() + "&sortDirection="+ sortDirection.name();		
+		if (offset!=null) {
+			url += '&' + OFFSET_PARAMETER + offset ;
+		}
+		if (limit!=null) {
+			url += '&' + LIMIT_PARAMETER + limit;
+		}
+
 		return getPaginatedResults(getRepoEndpoint(), url, ProjectHeader.class);
 	}
+
 
 	/**
 	 * Gets the DOI Association for the specified object. If object version is null, the call will return the DOI

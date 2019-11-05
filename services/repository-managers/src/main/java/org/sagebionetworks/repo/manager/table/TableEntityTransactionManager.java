@@ -183,9 +183,11 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		response.setResults(results);
-		for(TableUpdateRequest change: request.getChanges()){
-			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
-			results.add(changeResponse);
+		if(request.getChanges() != null) {
+			for(TableUpdateRequest change: request.getChanges()){
+				TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
+				results.add(changeResponse);
+			}
 		}
 		if (request.getCreateSnapshot() != null
 				&& Boolean.TRUE.equals(request.getCreateSnapshot())) {

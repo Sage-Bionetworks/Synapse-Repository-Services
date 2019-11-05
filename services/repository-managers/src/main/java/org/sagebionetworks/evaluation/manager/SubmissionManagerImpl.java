@@ -286,21 +286,44 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<MessageToUserAndBody> createSubmissionNotifications(UserInfo userInfo, 
 			Submission submission, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
+		
 		ValidateArgument.required(challengeEndpoint, "challengeEndpoint");
 		ValidateArgument.required(notificationUnsubscribeEndpoint, "notificationUnsubscribeEndpoint");
-		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
+		
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
 			// no contributors to notify, so just return an empty list
-			return result;
+			return Collections.emptyList();
 		}
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		Team team = teamDAO.get(submission.getTeamId());
-		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, team.getName());
-		fieldValues.put(TEMPLATE_KEY_TEAM_ID, submission.getTeamId());
+
+		String submitterId = submission.getUserId();
+		String teamId = submission.getTeamId();
 		String evaluationId = submission.getEvaluationId();
+		
+		Team team = teamDAO.get(teamId);
 		Evaluation evaluation = evaluationDAO.get(evaluationId);
+		
+		// notify all but the one who submitted.  If there is no one else on the team
+		// then this list will be empty and no notification will be sent.
+		Set<String> recipients = new HashSet<>();
+		
+		for (SubmissionContributor contributor : submission.getContributors()) {
+			if (submitterId.equals(contributor.getPrincipalId())) {
+				continue;
+			}
+			recipients.add(contributor.getPrincipalId());
+		}
+		
+		if (recipients.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, team.getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
+		
 		String challengeEntityId = evaluation.getContentSource();
 		EntityHeader entityHeader = null;
+		
 		try {
 			entityHeader = entityManager.getEntityHeader(userInfo, challengeEntityId, null);
 		} catch (UnauthorizedException e) {
@@ -312,26 +335,33 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		} else {
 			challengeName = entityHeader.getName();
 		}
+		
 		fieldValues.put(TEMPLATE_KEY_CHALLENGE_NAME, challengeName);
 		String challengeEntityURL = challengeEndpoint+challengeEntityId;
 		EmailUtils.validateSynapsePortalHost(challengeEntityURL);
 		fieldValues.put(TEMPLATE_KEY_CHALLENGE_WEB_LINK, challengeEntityURL);
-		String submitterId = submission.getUserId();			
+			
 		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(TEMPLATE_KEY_USER_ID, submitterId);
 		fieldValues.put(TEMPLATE_KEY_EVAL_QUEUE_NAME, evaluation.getName());
-		// notify all but the one who submitted.  If there is no one else on the team
-		// then this list will be empty and no notification will be sent.
-		for (SubmissionContributor contributor : submission.getContributors()) {
-			if (submitterId.equals(contributor.getPrincipalId())) continue;
-			MessageToUser mtu = new MessageToUser();
-			mtu.setTo(EmailUtils.getEmailAddressForPrincipalName(team.getName()));
+
+
+		String to = EmailUtils.getEmailAddressForPrincipalName(team.getName());
+		String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
+		
+		return buildSubmissionNotificationMessages(to, recipients, messageContent, notificationUnsubscribeEndpoint);
+	}
+	
+	protected List<MessageToUserAndBody> buildSubmissionNotificationMessages(String to, Set<String> recipients, String messageContent, String notificationUnsubscribeEndpoint) {
+		List<MessageToUserAndBody> result = new ArrayList<>();
+		for (String recipient : recipients) {
+			MessageToUser mtu = new MessageToUser();			
+			mtu.setTo(to);
 			mtu.setSubject(TEAM_SUBMISSION_SUBJECT);
-			mtu.setRecipients(Collections.singleton(contributor.getPrincipalId()));
+			mtu.setRecipients(Collections.singleton(recipient));
 			mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
-			String messageContent = EmailUtils.readMailTemplate(TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, fieldValues);
 			result.add(new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 		}
 		return result;

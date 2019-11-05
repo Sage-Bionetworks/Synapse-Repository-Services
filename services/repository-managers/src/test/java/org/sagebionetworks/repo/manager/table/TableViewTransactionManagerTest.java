@@ -245,6 +245,22 @@ public class TableViewTransactionManagerTest {
 	}
 	
 	@Test
+	public void testUpdateTableWithTransactionWithSnapshotNulChanges() throws RecoverableMessageException, TableUnavailableException{
+		request.setChanges(null);
+		request.setCreateSnapshot(true);
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotLabel("some label");
+		request.setSnapshotOptions(snapshotOptions);
+		// call under test
+		TableUpdateTransactionResponse response = manager.updateTableWithTransaction(mockProgressCallback, user, request);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertTrue(response.getResults().isEmpty());
+		// calls create snapshot.
+		verify(mockTableViewManger).createSnapshot(user, request.getEntityId(), snapshotOptions);
+	}
+	
+	@Test
 	public void testUpdateTableWithTransactionWithSnapshotNull() throws RecoverableMessageException, TableUnavailableException{
 		request.setCreateSnapshot(null);
 		// call under test

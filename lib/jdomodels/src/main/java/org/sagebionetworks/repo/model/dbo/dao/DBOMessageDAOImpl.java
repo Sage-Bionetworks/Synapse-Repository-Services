@@ -382,20 +382,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@NewWriteTransaction
-	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
-		createMessageStatus(messageId, userId, status);
-	}
-
-	@Override
-	@WriteTransaction
-	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
-		createMessageStatus(messageId, userId, status);
-	}
-	
-	/**
-	 * Helper method for both the exposed methods that create a message status
-	 */
-	private void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
 		if (status == null) {
 			status = MessageStatusType.UNREAD;
 		}
@@ -408,21 +395,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		basicDAO.createNew(dbo);
 		
 		touch(messageId);
+		
 	}
 
 	@Override
 	@NewWriteTransaction
-	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
-		return updateMessageStatus(status);
-	}
-	
-	@Override
-	@WriteTransaction
-	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
-		return updateMessageStatus(status);
-	}
-	
-	private boolean updateMessageStatus(MessageStatus status) {
+	public boolean updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);
