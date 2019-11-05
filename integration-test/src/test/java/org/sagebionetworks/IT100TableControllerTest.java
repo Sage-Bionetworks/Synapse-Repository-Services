@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -597,7 +598,7 @@ public class IT100TableControllerTest {
 			assertTrue(e.getMessage().contains("has been changed"));
 		}
 	}
-	
+
 	@Test
 	public void testUpdate() throws Exception {
 		// Create a column to add to a table entity
@@ -899,6 +900,71 @@ public class IT100TableControllerTest {
 		// Call under test
 		String resultSql = synapse.transformSqlRequest(request);
 		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
+	}
+
+	@Test
+	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
+		Project project = new Project();
+		project.setName("testEntityView_multipleValueColumnRoundTrip");
+
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		String multiValueKey = "multiValueKey";
+
+		// Add an entity
+		Folder folder = new Folder();
+		folder.setName(UUID.randomUUID().toString());
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		Annotations annos = synapse.getAnnotationsV2(folder.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, multiValueKey, Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder.getId(), annos);
+
+		// Add another entity
+		Folder folder2 = new Folder();
+		folder2.setName(UUID.randomUUID().toString());
+		folder2.setParentId(project.getId());
+		folder2 = synapse.createEntity(folder2);
+		Annotations annos2 = synapse.getAnnotationsV2(folder2.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos2, multiValueKey, Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder2.getId(), annos2);
+
+
+		long folderViewMask = 0x08L;
+
+		//create schema for entity view
+		ColumnModel listColumnModel = new ColumnModel();
+		listColumnModel.setColumnType(ColumnType.STRING_LIST);
+		listColumnModel.setName(multiValueKey);
+		listColumnModel = synapse.createColumnModel(listColumnModel);
+		List<ColumnModel> defaultViewColumns = synapse.getDefaultColumnsForView(folderViewMask);
+		List<String> columnIds = new ArrayList<>(defaultViewColumns.size() + 1);
+		for(ColumnModel cm : defaultViewColumns){
+			columnIds.add(cm.getId());
+		}
+		columnIds.add(listColumnModel.getId());
+
+		EntityView view = new EntityView();
+		view.setParentId(project.getId());
+		view.setName("ENTITY_VIEW_testEntityView_multipleValueColumnRoundTrip");
+		view.setScopeIds(Collections.singletonList(project.getId()));
+		view.setViewTypeMask(folderViewMask);
+		view.setColumnIds(columnIds);
+		view = synapse.createEntity(view);
+		entitiesToDelete.add(view);
+
+		//only 1 entity has "val1" as a value
+		assertEquals(1, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val1\")", view.getId()));
+		//both annotations have "val2" as a value
+		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val2\")", view.getId()));
+		//HAS "val1" or "val3" should also cover both values
+		assertEquals(2, waitForCountResults("select count(*) from "+ view.getId() + " where multiValueKey HAS (\"val1\", \"val3\")", view.getId()));
+
+		//modify annotation values by using updates to table view
+		RowSet result = waitForQueryResults("select * from "+ view.getId() + " where multiValueKey HAS (\"val1\", \"val3\")", 0L, 10L,view.getId());
+		System.out.println(result);
+
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

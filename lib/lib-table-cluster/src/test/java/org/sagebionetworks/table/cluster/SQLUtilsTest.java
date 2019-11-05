@@ -1179,6 +1179,31 @@ public class SQLUtilsTest {
 		assertEquals(0, changes.getToRename().size());
 	}
 
+	@Test
+	public void testCalculateIndexChanges_IgnoreJSONColumns(){
+		int maxNumberOfIndex = 10;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(3);
+		assertEquals(5, currentInfo.size()); //row_id and row_version are also included
+		//find first column not named row_id or row_version and set it to be JSON type
+		for(DatabaseColumnInfo columnInfo : currentInfo){
+			if(!columnInfo.getColumnName().equals("ROW_ID") && !columnInfo.getColumnName().equals("ROW_VERSION")){
+				columnInfo.setType(MySqlColumnType.JSON);
+				break;
+			}
+		}
+
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+
+		//ignore 1 column because it is a JSON column
+		assertEquals(2, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+
 	/**
 	 * A LARGETEXT column that does not currently have an index should not have an index added.
 	 */

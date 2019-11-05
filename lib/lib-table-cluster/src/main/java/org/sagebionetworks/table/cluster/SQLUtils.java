@@ -942,6 +942,11 @@ public class SQLUtils {
 		
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
+			//do not create indexes for JSON columns, these will be done as a separate table
+			if(info.getType() == MySqlColumnType.JSON){
+				continue;
+			}
+
 			// ignore row_id and version
 			if(info.isMetadata()){
 				continue;
