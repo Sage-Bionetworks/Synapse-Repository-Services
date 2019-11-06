@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -13,7 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
 import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
@@ -24,9 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +60,9 @@ import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityManagerImplUnitTest {
@@ -515,5 +518,152 @@ public class EntityManagerImplUnitTest {
 		// call under test
 		entityManager.changeEntityDataType(mockUser, entityId, dataType);
 		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType);
+	}
+	
+	@Test
+	public void testValidateEntityNull() {
+		Project project = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			EntityManagerImpl.validateEntity(project);
+		});
+	}
+	
+	@Test
+	public void testValidateEntityDescriptionNull() {
+		Project project = new Project();
+		project.setDescription(null);
+		// call under test
+		EntityManagerImpl.validateEntity(project);
+	}
+	
+	@Test
+	public void testValidateEntityDescriptionAtLimit() {
+		Project project = new Project();
+		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS);
+		project.setDescription(description);
+		// call under test
+		EntityManagerImpl.validateEntity(project);
+	}
+	
+	@Test
+	public void testValidateEntityNameNull() {
+		Project project = new Project();
+		project.setName(null);
+		// call under test
+		EntityManagerImpl.validateEntity(project);
+	}
+	
+	@Test
+	public void testValidateEntityNameAtLimit() {
+		Project project = new Project();
+		String name = StringUtils.repeat("b", EntityManagerImpl.MAX_NAME_CHARS);
+		project.setName(name);
+		// call under test
+		EntityManagerImpl.validateEntity(project);
+	}
+	
+	@Test
+	public void testValidateEntityNameOverLimit() {
+		Project project = new Project();
+		String name = StringUtils.repeat("b", EntityManagerImpl.MAX_NAME_CHARS+1);
+		project.setName(name);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			EntityManagerImpl.validateEntity(project);
+		}).getMessage();
+		assertEquals("Name must be "+EntityManagerImpl.MAX_NAME_CHARS+" characters or less", message);
+	}
+	
+	@Test
+	public void testValidateEntityDescriptionOverLimit() {
+		Project project = new Project();
+		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
+		project.setDescription(description);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			EntityManagerImpl.validateEntity(project);
+		}).getMessage();
+		assertEquals("Description must be "+EntityManagerImpl.MAX_DESCRIPTION_CHARS+" characters or less", message);
+
+	}
+	
+	@Test
+	public void testCreateEntityDescriptionOverLimit() {
+		String activityId = null;
+		Project project = new Project();
+		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
+		project.setDescription(description);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.createEntity(mockUser, project, activityId);
+		}).getMessage();
+		assertTrue(message.startsWith("Description must be"));
+	}
+	
+	@Test
+	public void testUpdateEntityDescriptionOverLimit() {
+		String activityId = null;
+		boolean newVersion = true;
+		Project project = new Project();
+		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
+		project.setDescription(description);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		}).getMessage();
+		assertTrue(message.startsWith("Description must be"));
+	}
+	
+	@Test
+	public void testEntityUpdateUnderVersionLimit() {
+		String activityId = null;
+		boolean newVersion = true;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// still have room for one more version
+		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS-1);
+		// call under test
+		entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		verify(mockNodeManager).update(eq(mockUser),any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
+	}
+	
+	@Test
+	public void testEntityUpdateUnderVersionOverLimit() {
+		String activityId = null;
+		boolean newVersion = true;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// still have room for one more version
+		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		}).getMessage();
+		assertEquals("Exceeded the maximum number of "+EntityManagerImpl.MAX_NUMBER_OF_REVISIONS+" versions for a single Entity", message);
+		verify(mockNodeManager, never()).update(any(UserInfo.class),any(Node.class), any(Annotations.class), any(Boolean.class));
+		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
+	}
+	
+	@Test
+	public void testEntityUpdateAtLimitNewVersionFalse() {
+		String activityId = null;
+		boolean newVersion = false;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// call under test
+		entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		verify(mockNodeManager).update(eq(mockUser),any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager, never()).getCurrentRevisionNumber(project.getId());
 	}
 }

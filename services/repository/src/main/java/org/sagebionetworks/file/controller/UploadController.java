@@ -142,6 +142,24 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${GET.entity.id.version.versionNumber.filehandles}">GET
  * /entity/{id}/version/{versionNumber}/filehandles</a>
  * </ul>
+ * <b>Service Limits</b>
+ * <table border="1">
+ * <tr>
+ * <th>resource</th>
+ * <th>limit</th>
+ * <th>notes</th>
+ * </tr>
+ * <tr>
+ * <td>Minimum file size</td>
+ * <td>0 bytes</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>Maximum file size</td>
+ * <td>5 terabytes</td>
+ * <td></td>
+ * </tr>
+ * </table>
  */
 @ControllerInfo(displayName = "File Services", path = "file/v1")
 @Controller
