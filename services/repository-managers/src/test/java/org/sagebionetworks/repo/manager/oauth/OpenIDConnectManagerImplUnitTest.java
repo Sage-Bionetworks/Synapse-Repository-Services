@@ -53,9 +53,9 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -112,7 +112,10 @@ public class OpenIDConnectManagerImplUnitTest {
 	private StackConfiguration mockStackConfigurations;
 	
 	@Mock
-	private UserProfileManager userProfileManager;
+	private NotificationEmailDAO mockNotificationEmailDao;
+	
+	@Mock
+	private UserProfileManager mockUserProfileManager;
 	
 	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
@@ -159,7 +162,6 @@ public class OpenIDConnectManagerImplUnitTest {
 	private String clientSpecificEncodingSecret;
 	private OAuthClient oauthClient;
 	private Map<OIDCClaimName, OIDCClaimProvider> mockClaimProviders;
-	private UserProfile userProfile;
 	private VerificationSubmission verificationSubmission;
 	
 	@BeforeEach
@@ -183,8 +185,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// we don't wire up all the claim providers, just a representative sample returning a variety of object types
 		mockClaimProviders = new HashMap<OIDCClaimName, OIDCClaimProvider>();
-		userProfile = new UserProfile();
-		userProfile.setEmails(ImmutableList.of(EMAIL, "secondary email"));
+
 		mockClaimProviders.put(OIDCClaimName.email, mockEmailClaimProvider);
 		
 		mockClaimProviders.put(OIDCClaimName.email_verified, mockEmailVerifiedClaimProvider);
@@ -504,8 +505,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Test
 	public void testGetUserInfo_internal() {
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
-		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
 		
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
@@ -531,7 +532,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetUserInfo_internal_missing_info() {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
-		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
 
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
@@ -563,8 +564,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
-		when(userProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
+		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(ImmutableList.of("id_token", "userinfo"));
 
@@ -725,7 +726,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 
 		// if the client omits a signing algorithm it means it wants the UserInfo as json
 		oauthClient.setUserinfo_signed_response_alg(null);
@@ -744,7 +745,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 
 		// if the client sets a signing algorithm it means it wants the UserInfo json
 		// to be encoded as a JWT and signed
@@ -768,7 +769,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetUserInfoDefaultClient() {
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
-		when(userProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 
 		// method under test
 		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.getUserInfo(createUserAuthorization(), 
