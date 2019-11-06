@@ -95,6 +95,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				if (blob != null) {
 					eval.setQuota(blob.getBytes(1, (int) blob.length()));
 				}
+				eval.setStartTimestamp(rs.getLong(PARAM_EVALUATION_START_TIMESTAMP));
+				eval.setEndTimestamp(rs.getLong(PARAM_EVALUATION_END_TIMESTAMP));
 				return eval;
 			}
 
@@ -258,15 +260,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public String toString() {
-		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name
-				+ ", description=" + Arrays.toString(description)
-				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
-				+ ", contentSource=" + contentSource + ", status=" + status
-				+ ", submissionInstructionsMessage="
-				+ Arrays.toString(submissionInstructionsMessage)
-				+ ", submissionReceiptMessage="
-				+ Arrays.toString(submissionReceiptMessage) + ", quota="
-				+ Arrays.toString(quota) + "]";
+		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name + ", description="
+				+ Arrays.toString(description) + ", ownerId=" + ownerId + ", createdOn=" + createdOn
+				+ ", contentSource=" + contentSource + ", status=" + status + ", submissionInstructionsMessage="
+				+ Arrays.toString(submissionInstructionsMessage) + ", submissionReceiptMessage="
+				+ Arrays.toString(submissionReceiptMessage) + ", quota=" + Arrays.toString(quota) + ", startTimestamp="
+				+ startTimestamp + ", endTimestamp=" + endTimestamp + "]";
 	}
 	@Override
 	public int hashCode() {
