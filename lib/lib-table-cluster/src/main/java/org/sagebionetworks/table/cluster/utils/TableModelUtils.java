@@ -744,7 +744,7 @@ public class TableModelUtils {
 			case USERID:
 				return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
 			case STRING_LIST:
-				if (maxSize == null) { //todo validate value so that it can not exceed in the maxsize a list
+				if (maxSize == null) {
 					throw new IllegalArgumentException("maxSize cannot be null for String List types");
 				}
 				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST);

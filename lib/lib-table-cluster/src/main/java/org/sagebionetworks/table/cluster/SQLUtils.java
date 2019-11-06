@@ -1244,7 +1244,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){ //TODO: test
+	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){
 		switch(type){
 		case STRING:
 		case STRING_LIST:
