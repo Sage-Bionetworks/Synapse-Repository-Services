@@ -187,7 +187,7 @@ public class TestUtils {
 			if (i % 2 == 1) { // odd numbered annotations are null
 				sa2.setValue(null);
 			} else {
-				sa2.setValue("not null");
+				sa2.setValue("not null "+(100-i));
 			}
 			stringAnnos.add(sa2);
 		}

@@ -63,8 +63,7 @@ public class QueryDAOImplTest {
     private AccessControlListDAO mockAclDAO;
     private UserInfo mockUserInfo;
     private Map<String, Object> annoMap;
-    
-	
+    	
 	@Before
 	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
 		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationSubmissionsDAO);
@@ -869,10 +868,28 @@ public class QueryDAOImplTest {
 		query.setAscending(true);
 		List<String> select = new ArrayList<String>();
 		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_WITH_NULLS_NAME);
 		query.setSelect(select);
 		
 		// In PLFM-2778 this generates an exception 
-		queryDAO.executeQuery(query, mockUserInfo);
+		QueryTableResults qtr = queryDAO.executeQuery(query, mockUserInfo);
+		
+		// PLFM-4741 is about missing rows in the results
+		assertEquals(new Long(NUM_SUBMISSIONS), qtr.getTotalNumberOfResults());
+		assertEquals(NUM_SUBMISSIONS, qtr.getRows().size());
+		String previous = null;
+		for (Row row : qtr.getRows()) {
+			List<String> values = row.getValues();
+			assertEquals(2, values.size());
+			String thisRowValue = values.get(1);
+			if (thisRowValue!=null) {
+				if (previous!=null) {
+					assertTrue("Expected "+previous+" to come before "+thisRowValue+" lexigraphically.", 
+							previous.compareTo(thisRowValue)<0);
+				}
+				previous=thisRowValue;
+			}
+		}
 	}
 	
 	@Test
