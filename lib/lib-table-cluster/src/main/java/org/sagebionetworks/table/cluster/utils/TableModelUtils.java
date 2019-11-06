@@ -23,6 +23,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -211,18 +212,10 @@ public class TableModelUtils {
 	 * @param cm
 	 * @return
 	 */
-	public static String validateValue(String value, ColumnModel cm) { //TODO: handle string list maximim size
+	public static String validateValue(String value, ColumnModel cm) {
 		switch (cm.getColumnType()) {
 		case STRING:
-			if (cm.getMaximumSize() == null)
-				throw new IllegalArgumentException("String columns must have a maximum size");
-			if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
-				throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
-			}
-			if (value.length() > cm.getMaximumSize()) {
-				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
-						+ " characters. Consider using a FileHandle to store large strings.");
-			}
+			validateStringValueSize(value, cm);
 			checkStringEnum(value, cm);
 			return value;
 		case LINK:
@@ -240,11 +233,33 @@ public class TableModelUtils {
 			}
 			checkStringEnum(value, cm);
 			return value;
+		case STRING_LIST:
+			//make sure this is a valid JSON List (size limit, values
+			String listValue = (String) ColumnTypeInfo.STRING_LIST.parseValueForDatabaseWrite(value);
+
+			//validate values for each individual string in the list
+			for(Object listElem : new JSONArray(listValue)){
+				String strListElem = listElem.toString();
+				validateStringValueSize(strListElem, cm);
+				checkStringEnum(strListElem, cm);
+			}
 		default:
 			// All other types are handled by the type specific parser.
 			ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
 			Object objectValue = info.parseValueForDatabaseWrite(value);
 			return objectValue.toString();
+		}
+	}
+
+	private static void validateStringValueSize(String value, ColumnModel cm) {
+		if (cm.getMaximumSize() == null)
+			throw new IllegalArgumentException("String columns must have a maximum size");
+		if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
+			throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+		}
+		if (value.length() > cm.getMaximumSize()) {
+			throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
+					+ " characters.");
 		}
 	}
 

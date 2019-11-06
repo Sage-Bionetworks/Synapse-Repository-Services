@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.table.ValueParser;
 public class ListStringParser extends AbstractValueParser{
 	private ValueParser individualElementParser;
 
-	final static int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
+	public final static int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 	/**
 	 *
 	 * @param individualElementParser parser that will be applied to each element in the list
@@ -27,7 +27,7 @@ public class ListStringParser extends AbstractValueParser{
 			JSONArray parsed = new JSONArray(value);
 			JSONArray toDatabase = new JSONArray();
 			if(parsed.length() >  MAX_NUMBER_OF_ITEMS_IN_LIST){
-				throw new IllegalArgumentException("value can not exceed " + MAX_NUMBER_OF_ITEMS_IN_LIST + " in list: " + value);
+				throw new IllegalArgumentException("value can not exceed " + MAX_NUMBER_OF_ITEMS_IN_LIST + " elements in list: " + value);
 			}
 			for(int i = 0; i < parsed.length(); i++){
 				if(parsed.isNull(i)){
@@ -44,7 +44,7 @@ public class ListStringParser extends AbstractValueParser{
 			}
 			return toDatabase.toString();
 		} catch (JSONException e){
-			throw new IllegalArgumentException("not a JSON Array:" + value);
+			throw new IllegalArgumentException("Not a JSON Array: " + value);
 		}
 	}
 
