@@ -5,21 +5,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
@@ -36,8 +35,11 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	private String adminUserIdString;
 
 	private S3FileHandle handleOne;
-	private PreviewFileHandle handleTwo;
+	private S3FileHandle handleTwo;
 	private List<String> toDelete;
+	
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
 
 	@Before
 	public void before() throws Exception {
@@ -48,25 +50,12 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		adminUserIdString = adminUserId.toString();
 		
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
-		handleOne.setKey("mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleOne.setBucketName(S3_BUCKET_NAME);
+
 		// Create a preview
-		handleTwo = new PreviewFileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName("bucket");
-		handleTwo.setKey("previewFileKey");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("bar.txt");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
+		handleTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleTwo.setBucketName(S3_BUCKET_NAME);
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);
@@ -75,7 +64,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
 		toDelete.add(handleOne.getId());
-		handleTwo = (PreviewFileHandle) fileHandleDao.get(handleTwo.getId());
+		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 		toDelete.add(handleTwo.getId());

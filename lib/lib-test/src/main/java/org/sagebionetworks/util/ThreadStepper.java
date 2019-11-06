@@ -8,10 +8,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import junit.framework.Assert;
 
 public class ThreadStepper {
 

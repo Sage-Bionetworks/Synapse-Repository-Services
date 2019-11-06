@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_JOIN;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
-import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.SELECT_RESOURCE_INTERSECTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
@@ -43,6 +44,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
@@ -51,7 +54,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +73,28 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String BIND_PARENT_ID = "bParentId";
 	private static final String BIND_GROUP_IDS = "bGroupIds";
+	
+	private static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
+			+ COL_ACL_OWNER_ID
+			+ " as "+COL_ACL_OWNER_ID+" FROM "
+			+ AUTHORIZATION_SQL_TABLES
+			+ " WHERE "
+			+ AUTHORIZATION_SQL_JOIN
+			+ " AND ra."
+			+ COL_RESOURCE_ACCESS_GROUP_ID
+			+ " IN (:"
+			+ PRINCIPAL_IDS_BIND_VAR
+			+ ") AND at."
+			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
+			+ "=:"
+			+ ACCESS_TYPE_BIND_VAR
+			+ " AND acl."
+			+ COL_ACL_OWNER_ID
+			+ " IN (:"
+			+ RESOURCE_ID_BIND_VAR
+			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
+	
+
 	
 	private static final String SELECT_NON_VISIBLE_CHILDREN =
 			"SELECT N1."+COL_NODE_ID+
@@ -438,7 +462,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int delete(List<Long> ownerIds, ObjectType ownerType)
 			throws DatastoreException {
@@ -582,5 +606,23 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		Map<String, Object> namedParameters = new HashMap<String, Object>(1);
 		namedParameters.put(BIND_PARENT_ID, parentIds);
 		return namedParameterJdbcTemplate.queryForList(SQL_SELECT_CHILDREN_ENTITIES_WITH_ACLS, namedParameters, Long.class);
+	}
+
+	@Override
+	public AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
+			ACCESS_TYPE permission) {
+		ValidateArgument.required(user, "user");
+		if (canAccess(user.getGroups(), resourceId, resourceType, permission)) {
+			return AuthorizationStatus.authorized();
+		} else {
+			return AuthorizationStatus.accessDenied(
+					String.format("You do not have %s permission for %s : %s", permission, resourceType, resourceId));
+		}
+	}
+
+	@Override
+	public void deleteAllofType(ObjectType objectType) {
+		ValidateArgument.required(objectType, "objectType");
+		jdbcTemplate.update("DELETE FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_OWNER_TYPE+" = ?", objectType.name());
 	}
 }

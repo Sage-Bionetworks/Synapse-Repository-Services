@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -50,13 +49,14 @@ public interface ColumnModelManager {
 	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get a list of column models for the given list of IDs
+	 * Get a list of column models for the given list of IDs.
 	 * @param ids
-	 * @return
+	 * @return The result order will match the order of the requested IDs.
+	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.
@@ -78,15 +78,33 @@ public interface ColumnModelManager {
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Bind a set of columns to an object.
+	 * Bind a set of columns to the default version (version = null) of the given object.
 	 * @param user
 	 * @param columnIds
-	 * @param objectId
+	 * @param idAndVersion
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bind a set of columns to the given version of the given object
+	 * @param user
+	 * @param columnIds
+	 * @param idAndVersion
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public List<ColumnModel> bindColumnsToVersionOfObject(List<String> columnIds, IdAndVersion idAndVersion) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bind the current schema of an object to a targeted version of that object.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<ColumnModel> bindCurrentColumnsToVersion(IdAndVersion idAndVersion);
 	
 	/**
 	 * Remove all column bindings for an object
@@ -94,18 +112,6 @@ public interface ColumnModelManager {
 	 * @param objectId
 	 */
 	public void unbindAllColumnsAndOwnerFromObject(String objectId);
-
-	/**
-	 * List all of the objects that are bound to the given column IDs.
-	 * 
-	 * @param user
-	 * @param columnIds
-	 * @param currentOnly
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<String> columnIds, boolean currentOnly, long limit, long offset);
 	
 	/**
 	 * Clear all data for tests.
@@ -151,9 +157,25 @@ public interface ColumnModelManager {
 
 	/**
 	 * Get the columnIds for a table.
-	 * @param id
+	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getColumnIdForTable(String id);
+	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion);
+
+	/**
+	 * Get the column models bound to this object.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion);
+
+	/**
+	 * Create a new column model.  Column models are immutable and cannot be deleted once they are used.
+	 * @param model
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ColumnModel createColumnModel(ColumnModel columnModel);
 }
 

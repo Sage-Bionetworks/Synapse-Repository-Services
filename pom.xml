@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org\
-                    /2001/XMLSchema-instance"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
-                             http://maven.apache.org/maven-v4_0_0.xsd">
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 
 	<modelVersion>4.0.0</modelVersion>
-
 	<groupId>org.sagebionetworks</groupId>
 
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
 	<version>develop-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<url>http://www.sagebase.org/</url>
+	<url>https://www.sagebase.org/</url>
+
 	<scm>
 		<connection>scm:svn:https://sagebionetworks.jira.com/svn/PLFM/trunk
 		</connection>
-		<url>http://sagebionetworks.jira.com/source/browse/PLFM</url>
+		<url>https://sagebionetworks.jira.com/source/browse/PLFM</url>
 	</scm>
 
 	<name>Sage Bionetworks Platform</name>
@@ -36,26 +36,22 @@
 		<repository>
 			<id>sagebionetworks-releases-local</id>
 			<name>sagebionetworks-releases-local</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<repository>
 			<id>sagebionetworks-ext</id>
 			<name>sagebionetworks-releases-ext</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
 			</url>
 		</repository>
 		<repository>
-			<id>mvn-gae-plugin-repo</id>
-			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
-		</repository>
-		<repository>
 			<id>maven-central-rep-1</id>
-			<url>http://repo1.maven.org/maven2/</url>
+			<url>https://repo1.maven.org/maven2/</url>
 		</repository>
 		<repository>
-			<id>sun-maven-repository</id>
-			<url>http://download.java.net/maven/2/</url>
+			<id>mvnrepository.com</id>
+			<url>https://central.maven.org/maven2/</url>
 		</repository>
 		<repository>
 			<id>apache-repo-releases</id>
@@ -63,21 +59,15 @@
 			</url>
 		</repository>
 		<repository>
-			<id>central</id>
-			<name>Atlassian Public Repository</name>
-			<layout>default</layout>
-			<url>https://maven.atlassian.com/content/repositories/atlassian-public
-			</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
+			<id>spring-plugins</id>
+			<url>https://repo.spring.io/plugins-release/</url>
 		</repository>
 	</repositories>
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>sagebionetworks-plugins-releases-local</id>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/plugins-releases-local/
+			<id>sagebionetworks-libs-releases-local</id>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local/
 			</url>
 			<snapshots>
 				<enabled>true</enabled>
@@ -88,7 +78,7 @@
 		</pluginRepository>
 		<pluginRepository>
 			<id>Maven Repo 1</id>
-			<url>http://repo1.maven.org/maven2/</url>
+			<url>https://repo1.maven.org/maven2/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -127,7 +117,43 @@
 				<artifactId>commons-logging</artifactId>
 				<version>${commonslogging.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-collections4</artifactId>
+				<version>${commonscollections4.version}</version>
+				<type>jar</type>
+			</dependency>
 
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt</artifactId>
+				<version>0.7.0</version>
+			</dependency>
+
+			<!-- jsonwebtoken seems to need this JSON library -->
+			<dependency>
+				<groupId>com.googlecode.json-simple</groupId>
+				<artifactId>json-simple</artifactId>
+				<version>1.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-jdk15on</artifactId>
+				<version>1.55</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcpkix-jdk15on</artifactId>
+				<version>1.55</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-ext-jdk15on</artifactId>
+				<version>1.55</version>
+			</dependency>
 			<!-- OAuth support -->
 			<dependency>
 				<groupId>org.scribe</groupId>
@@ -137,37 +163,43 @@
 
 			<!-- Make sure all the Jackson libraries are of the same version -->
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-core-asl</artifactId>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>com.fasterxml.jackson.datatype</groupId>
+				<artifactId>jackson-datatype-jsr310</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-jaxrs</artifactId>
+				<groupId>com.fasterxml.jackson.jaxrs</groupId>
+				<artifactId>jackson-jaxrs-json-provider</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-xc</artifactId>
+				<groupId>com.fasterxml.jackson.module</groupId>
+				<artifactId>jackson-module-jaxb-annotations</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.codehaus.jackson</groupId>
-				<artifactId>jackson-mapper-asl</artifactId>
-				<version>${jackson.version}</version>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>${jackson.databind.version}</version>
 			</dependency>
 
-			<!-- Used for timer triggers (cron-like)
-			Note: spring-context-support also depends on this libary as an optional dependancy.
-			Since spring-context-support version 4.0.2-RELEASE uses quartz version 1.8.6 that 
-			is the version of quartz we are using.  See the  spring-context-support pom.xml.-->
+			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
+				also depends on this libary as an optional dependancy. Since spring-context-support 
+				version 5.1.5.RELEASE uses quartz version 2.3.0 that is the version of quartz 
+				we are using. See the spring-context-support pom.xml. -->
 			<dependency>
 				<groupId>org.quartz-scheduler</groupId>
 				<artifactId>quartz</artifactId>
-				<version>2.2.3</version>
+				<version>2.3.0</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.servlet</groupId>
@@ -219,7 +251,7 @@
 			</dependency>
 			<dependency>
 				<groupId>org.springframework</groupId>
-				<artifactId>spring-webmvc-portlet</artifactId>
+				<artifactId>spring-webmvc</artifactId>
 				<version>${org.springframework.version}</version>
 			</dependency>
 			<dependency>
@@ -248,18 +280,53 @@
 				<type>jar</type>
 				<scope>compile</scope>
 			</dependency>
-
+			<!--interface between junit5 and programmatic clients, such as IDEs and 
+				build tools, for running tests -->
 			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.12</version>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-launcher</artifactId>
+				<version>${junit.platform.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--adds a subset of junit5 functionality to tests currently running under 
+				junit4. should be REMOVED once fully converted to junit5 -->
+			<dependency>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-runner</artifactId>
+				<version>${junit.platform.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--junit5 engine -->
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-engine</artifactId>
+				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-api</artifactId>
+				<version>${junit.jupiter.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<!--junit4 engine for backwards compatibility -->
+			<dependency>
+				<groupId>org.junit.vintage</groupId>
+				<artifactId>junit-vintage-engine</artifactId>
+				<version>${junit.vintage.version}</version>
 				<scope>test</scope>
 			</dependency>
 
 			<dependency>
 				<groupId>org.mockito</groupId>
-				<artifactId>mockito-all</artifactId>
-				<version>1.9.5</version>
+				<artifactId>mockito-core</artifactId>
+				<version>${mockito.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-junit-jupiter</artifactId>
+				<version>${mockito.version}</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
@@ -271,37 +338,49 @@
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
-				<version>1.3.2</version>
+				<version>2.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-cli</groupId>
 				<artifactId>commons-cli</artifactId>
-				<version>1.1</version>
+				<version>1.4</version>
 			</dependency>
 
 			<dependency>
-				<groupId>commons-lang</groupId>
-				<artifactId>commons-lang</artifactId>
-				<version>2.3</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-lang3</artifactId>
+				<version>3.8.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-text</artifactId>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-codec</groupId>
 				<artifactId>commons-codec</artifactId>
-				<version>1.9</version>
+				<version>1.12</version>
 			</dependency>
 
 			<dependency>
 				<groupId>commons-validator</groupId>
 				<artifactId>commons-validator</artifactId>
-				<version>1.4.0</version>
+				<version>1.6</version>
 			</dependency>
 
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk</artifactId>
 				<version>${com.amazonaws.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>google-cloud-storage</artifactId>
+				<version>${com.google.cloud.version}</version>
 			</dependency>
 
 			<dependency>
@@ -314,13 +393,21 @@
 				<artifactId>httpmime</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
 			</dependency>
+
+			<!--Apache Xerces XML DOM library -->
+			<dependency>
+				<groupId>xerces</groupId>
+				<artifactId>xercesImpl</artifactId>
+				<version>2.12.0</version>
+			</dependency>
+
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
-				<version>3.0.1</version>
+				<version>3.6</version>
 			</dependency>
 			<dependency>
-				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
+				<!-- jsoup HTML parser library @ https://jsoup.org/ -->
 				<groupId>org.jsoup</groupId>
 				<artifactId>jsoup</artifactId>
 				<version>1.7.2</version>
@@ -336,7 +423,11 @@
 				<artifactId>schema-to-pojo-org-json</artifactId>
 				<version>${schema-to-pojo.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>schema-to-pojo-core</artifactId>
+				<version>${schema-to-pojo.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-gwt</artifactId>
@@ -414,6 +505,13 @@
 				<artifactId>lib-audit</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-googlecloud</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-doi</artifactId>
@@ -504,22 +602,22 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>common-utilities</artifactId>
-				<version>1.0.9</version>
+				<version>1.0.10</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
-				<version>1.0.7</version>
+				<version>3.0.2</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.0.26</version>
+				<version>1.1.2</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.9</version>
+				<version>1.0.11</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -534,7 +632,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>simple-http-client</artifactId>
-				<version>0.0.8</version>
+				<version>0.0.9</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
@@ -584,16 +682,13 @@
 			<dependency>
 				<groupId>commons-fileupload</groupId>
 				<artifactId>commons-fileupload</artifactId>
-				<version>1.2</version>
+				<version>1.4</version>
 			</dependency>
 			<dependency>
 				<groupId>com.sun</groupId>
 				<artifactId>tools</artifactId>
-				<!-- 
-				A copy of the tools.jar from 
-				jdk1.8.0_152 was manually added to 
-				atrifactory to create version 1.8.20171103.
-				-->
+				<!-- A copy of the tools.jar from jdk1.8.0_152 was manually added to 
+					atrifactory to create version 1.8.20171103. -->
 				<version>1.8.20171103</version>
 			</dependency>
 
@@ -609,16 +704,40 @@
 				<version>${org.apache.pivot.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>org.json</groupId>
-				<artifactId>json</artifactId>
-				<version>${org.json.version}</version>
+				<groupId>com.sun.mail</groupId>
+				<artifactId>javax.mail</artifactId>
+				<version>1.6.1</version>
 			</dependency>
 			<dependency>
-				<groupId>javax.mail</groupId>
-				<artifactId>mail</artifactId>
-				<version>1.4</version>
+				<groupId>com.google.inject</groupId>
+				<artifactId>guice</artifactId>
+				<version>3.0</version>
 			</dependency>
 
+			<dependency>
+				<groupId>com.atlassian.jira</groupId>
+				<artifactId>jira-rest-java-client-api</artifactId>
+				<version>${jira.client.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.atlassian.jira</groupId>
+				<artifactId>jira-rest-java-client-core</artifactId>
+				<version>${jira.client.version}</version>
+			</dependency>
+
+			<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
+			<dependency>
+				<groupId>io.atlassian.fugue</groupId>
+				<artifactId>fugue</artifactId>
+				<version>4.7.2</version>
+			</dependency>
+			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-dbcp2</artifactId>
+				<version>2.6.0</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -626,7 +745,7 @@
 		<pluginManagement>
 			<plugins>
 				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings 
-					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
+					See: https://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
@@ -712,7 +831,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>2.3.2</version>
+					<version>3.8.0</version>
 					<configuration>
 						<source>1.8</source>
 						<target>1.8</target>
@@ -721,12 +840,12 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>exec-maven-plugin</artifactId>
-					<version>1.2.1</version>
+					<version>1.6.0</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.12.1</version>
+					<version>3.0.0-M3</version>
 				</plugin>
 
 				<!-- Build JavaDocs -->
@@ -744,7 +863,15 @@
 						</execution>
 					</executions>
 				</plugin>
-
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>3.0.0-M3</version>
+					<configuration>
+						<argLine>-Xmx1024m -Xms128m</argLine>
+						<runOrder>alphabetical</runOrder>
+					</configuration>
+				</plugin>
 				<!-- Make a WAR file -->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -822,41 +949,46 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.5.1</gwtVersion>
-		<guiceVersion>3.0-rc2</guiceVersion>
-		<guavaVersion>10.0.1</guavaVersion>
+		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>4.3.3.RELEASE</org.springframework.version>
-		<jackson.version>1.8.1</jackson.version>
-		<xstream.version>1.3.1</xstream.version>
+		<org.springframework.version>5.1.5.RELEASE</org.springframework.version>
+		<jackson.version>2.9.9</jackson.version>
+		<jackson.databind.version>2.9.10</jackson.databind.version>
+		<xstream.version>1.4.11.1</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
-		<mysql.mysql-connector-java.version>5.1.13</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>8.0.16</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.3.15</schema-to-pojo.version>
-		<com.amazonaws.version>1.11.45</com.amazonaws.version>
+		<schema-to-pojo.version>0.4.1</schema-to-pojo.version>
+		<com.amazonaws.version>1.11.535</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.7</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
-		<org.json.version>20090211</org.json.version>
+		<commonscollections4.version>4.1</commonscollections4.version>
+		<jira.client.version>5.1.0-476bd700</jira.client.version>
+		<junit.jupiter.version>5.4.1</junit.jupiter.version>
+		<junit.vintage.version>5.4.1</junit.vintage.version>
+		<junit.platform.version>1.4.1</junit.platform.version>
+		<mockito.version>2.27.0</mockito.version>
+		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 	</properties>
 
 	<distributionManagement>
 		<repository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<snapshotRepository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-snapshots</name>
-			<url>http://sagebionetworks.jfrog.io/sagebionetworks/libs-snapshots-local
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-snapshots-local
 			</url>
 			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>

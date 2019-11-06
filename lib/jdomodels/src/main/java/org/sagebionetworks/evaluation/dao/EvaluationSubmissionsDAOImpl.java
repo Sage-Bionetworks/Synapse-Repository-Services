@@ -17,12 +17,12 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	private static final String SELECT_FOR_EVALUATION = "SELECT * FROM "+TABLE_EVALUATION_SUBMISSIONS+
@@ -106,7 +106,6 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		message.setChangeType(changeType);
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setObjectId(evaluationId.toString());
-		message.setObjectEtag(etag);
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 	

@@ -4,16 +4,22 @@ import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
 
 /**
  * Abstraction for working with TableEntities
@@ -122,21 +128,14 @@ public interface TableServices {
 	 * @throws IOException
 	 */
 	public String getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
-			NotFoundException;
-
-	/**
-	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.
-	 * @param models
-	 * @return
-	 */
-	public Long getMaxRowsPerPage(List<ColumnModel> models);
-
+			NotFoundException;	
+	
 	/**
 	 * Get the default columns for a view of the given type.
-	 * @param valueOf
+	 * @param viewTypeMask 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType valueOf);
+	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask);
 
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.
@@ -153,6 +152,30 @@ public interface TableServices {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type,
+	ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope,
 			String nextPageToken);
+
+	/**
+	 * Request to transform the given SQL.
+	 * @param request
+	 * @return
+	 * @throws ParseException 
+	 */
+	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException;
+
+	/**
+	 * Create a snapshot of the given table.
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	public SnapshotResponse createTableSnapshot(Long userId, String tableId, SnapshotRequest request);
+
+	/**
+	 * Get a table bundle for the given tableId and optional version.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public TableBundle getTableBundle(IdAndVersion idAndVersion);
 }

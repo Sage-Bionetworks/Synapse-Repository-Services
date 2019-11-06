@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_CURRENT_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_PENDING_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STACK_STATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_STACK_STATUS;

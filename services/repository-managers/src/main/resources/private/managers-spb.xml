@@ -13,7 +13,8 @@
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
        ">
 
-    <context:annotation-config />
+	<context:annotation-config/>
+    <context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
@@ -27,8 +28,6 @@
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
 		<property name="allowCreationOfOldEntities" ref="stackConfiguration.allowCreationOfOldEntities"/>
 	</bean>
-	
-	<bean id="entityQueryManager" class="org.sagebionetworks.repo.manager.EntityQueryManagerImpl" />
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
@@ -41,6 +40,52 @@
 	
 	<bean id="dockerManager" class="org.sagebionetworks.repo.manager.DockerManagerImpl" />
 	
+	<bean id="httpClient" class="org.sagebionetworks.repo.manager.http.HttpClientImpl" />
+
+	<bean id="companyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.CompanyClaimProvider"/>
+	<bean id="emailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider"/>
+	<bean id="emailVerifiedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.EmailVerifiedClaimProvider"/>
+	<bean id="familyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.FamilyNameClaimProvider"/>
+	<bean id="givenNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.GivenNameClaimProvider"/>
+	<bean id="isCertifiedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.IsCertifiedClaimProvider"/>
+	<bean id="isValidatedClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.IsValidatedClaimProvider"/>
+	<bean id="orcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.OrcidClaimProvider"/>
+	<bean id="teamClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider"/>
+	<bean id="userIdClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider"/>
+	<bean id="validatedAtClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider"/>
+	<bean id="validatedCompanyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedCompanyClaimProvider"/>
+	<bean id="validatedEmailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedEmailClaimProvider"/>
+	<bean id="validatedFamilyNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedFamilyNameClaimProvider"/>
+	<bean id="validatedGivenNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedGivenNameClaimProvider"/>
+	<bean id="validatedLocationClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedLocationClaimProvider"/>
+	<bean id="validatedOrcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedOrcidClaimProvider"/>
+
+	<bean id="oidcManager" class="org.sagebionetworks.repo.manager.oauth.OpenIDConnectManagerImpl">
+		<property name="claimProviders">
+			<map>
+				<entry key="company" value-ref="companyClaimProvider" />
+				<entry key="email" value-ref="emailClaimProvider" />
+				<entry key="email_verified" value-ref="emailVerifiedClaimProvider" />
+				<entry key="family_name" value-ref="familyNameClaimProvider" />
+				<entry key="given_name" value-ref="givenNameClaimProvider" />
+				<entry key="is_certified" value-ref="isCertifiedClaimProvider" />
+				<entry key="is_validated" value-ref="isValidatedClaimProvider" />
+				<entry key="orcid" value-ref="orcidClaimProvider" />
+				<entry key="team" value-ref="teamClaimProvider" />
+				<entry key="userid" value-ref="userIdClaimProvider" />
+				<entry key="validated_at" value-ref="validatedAtClaimProvider" />
+				<entry key="validated_company" value-ref="validatedCompanyClaimProvider" />
+				<entry key="validated_email" value-ref="validatedEmailClaimProvider" />
+				<entry key="validated_family_name" value-ref="validatedFamilyNameClaimProvider" />
+				<entry key="validated_given_name" value-ref="validatedGivenNameClaimProvider" />
+				<entry key="validated_location" value-ref="validatedLocationClaimProvider" />
+				<entry key="validated_orcid" value-ref="validatedOrcidClaimProvider" />
+			</map>
+		</property>
+	</bean>	
+	
+	<bean id="oauthClientManager" class="org.sagebionetworks.repo.manager.oauth.OAuthClientManagerImpl" />
+	
 	<bean id="googleOAuth2Provider" class="org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider">
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientId" index="0" />
 		<constructor-arg ref="stackConfiguration.oAuth2GoogleClientSecret" index="1" />
@@ -50,6 +95,10 @@
 		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientId" index="0" />
 		<constructor-arg ref="stackConfiguration.oAuth2ORCIDClientSecret" index="1" />
 	</bean>
+
+	<bean id="tokenGenerator"
+		class="org.sagebionetworks.repo.manager.token.TokenGeneratorSingleton"
+		factory-method="singleton"/>
 
 	<bean id="oAuthManager" class="org.sagebionetworks.repo.manager.oauth.OAuthManagerImpl">
 		<property name="providerMap">
@@ -82,12 +131,6 @@
 	
 	<bean name="userApiThrottleMemoryTimeBlockSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphoreImpl" scope="singleton"/>
 	
-	<bean name="authenticationThrottleMemoryCountingSemaphore" class="org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphoreImpl" scope="singleton">
-		<constructor-arg index="0">
-		<bean class="org.sagebionetworks.common.util.ClockImpl"/>
-		</constructor-arg>
-	</bean>	
-	
 	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
 	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
@@ -113,9 +156,6 @@
 		</property>
 		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
 	</bean>
-	
-	<!-- Temp file provider -->
-	<bean id="tempFileProvider" class="org.sagebionetworks.repo.model.file.TempFileProviderImpl" />
 	
 	<!-- File Upload manager -->
 	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
@@ -220,6 +260,10 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
 				</entry>
+				<entry key="FormData">
+				<bean
+						class="org.sagebionetworks.repo.manager.form.FormFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -240,26 +284,28 @@
 
 	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
 
-	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
-		scope="singleton" />
-
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
-		
-	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+
+	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
+
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />
+
+	<bean id="unsuccessfulLoginLockout" class="org.sagebionetworks.repo.manager.loginlockout.ExponentialBackoffLoginLockoutStatusImpl"/>
+
+	<bean id="passwordValidator" class="org.sagebionetworks.repo.manager.password.PasswordValidatorImpl"/>
+
+	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
-	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
-        <constructor-arg ref="awsCredentials" />
-    </bean>
+	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonSimpleEmailServiceClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
 			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
-	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
 	
-	<bean id="fileProvider" class="org.sagebionetworks.repo.manager.migration.FileProviderImpl" scope="singleton"/>
+	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
 	<bean
 		id="migrationManager"
@@ -304,24 +350,20 @@
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
 		scope="singleton" />
 
-	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
-		scope="singleton" />
+	<bean id="doiManager" class="org.sagebionetworks.repo.manager.doi.DoiManagerImpl"
+		  scope="singleton" />
 
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
-		
-	<bean id="writeReadSemaphore" class="org.sagebionetworks.database.semaphore.WriteReadSemaphoreImpl">
-		<constructor-arg ref="dataSourcePool" index="0"></constructor-arg>
-		<constructor-arg ref="txManager" index="1"></constructor-arg>
-	</bean>
 	
 	<bean id="writeReadSemaphoreRunner" class="org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunnerImpl">
-		<constructor-arg index="0" ref="writeReadSemaphore"/>
+		<constructor-arg index="0" ref="countingSemaphore"/>
 		<constructor-arg index="1"><bean class="org.sagebionetworks.common.util.ClockImpl"/>
 		</constructor-arg>
+		<constructor-arg index="2" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders"/>
 	</bean>
 	
 	<bean id="timeoutUtils" class="org.sagebionetworks.util.TimeoutUtils"/>
@@ -416,42 +458,14 @@
 	<bean id="projectStatsManager"
 		class="org.sagebionetworks.repo.manager.ProjectStatsManagerImpl"
 		scope ="singleton" />	
-
-	<!-- The thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<!-- The second thread pool used by the backup/restore daemons -->
-	<bean id="backupDaemonThreadPool2"
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetClass">
-			<value>java.util.concurrent.Executors</value>
-		</property>
-		<property name="targetMethod">
-			<value>newFixedThreadPool</value>
-		</property>
-		<property name="arguments"
-			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
-	</bean>
-
-	<bean id="backupDaemonLauncher"
-		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
-		scope="singleton" >
-	</bean>
 	
 	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
+
+	<bean id="changeMessageToDocumentTranslator"
+		class="org.sagebionetworks.repo.manager.search.ChangeMessageToSearchDocumentTranslator"/>
 
 	<!-- Used to perform search and upload search documents-->
 	<bean id="searchManager"
@@ -488,11 +502,16 @@
             <property name="id" value="464532" />
             <property name="name" value="Synapse Access and Compliance Team" />
         </bean>
-        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
-            <property name="id" value="4" />
-            <property name="name" value="Trusted Message Senders" />
-            <property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
-           </bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="4" />
+			<property name="name" value="Trusted Message Senders" />
+			<property name="description" value="team for users who may send messages unlimited by recipient count or message frequency" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="5" />
+			<property name="name" value="Synapse Report Team" />
+			<property name="description" value="Team for users authorized to generate reports about general resource usage and costs incurred by Synapse" />
+		</bean>
        </util:list>
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
@@ -541,8 +560,32 @@
 	<bean id="replicationMessageManager"
 		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerImpl"
 		scope="singleton" init-method="initialize">
-		<property name="replicationQueueName" ref="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" />
-		<property name="reconciliationQueueName" ref="stackConfiguration.workerQueueName[EntityReplicationReconciliationWorker]" />
+		<property name="replicationQueueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}" />
+		<property name="reconciliationQueueName" value="#{stackConfiguration.getQueueName('ENTITY_REPLICATION_RECONCILIATION')}" />
 	</bean>
 
+	<bean id="replicationMessageThreadPool" class="java.util.concurrent.Executors"
+		scope="singleton" factory-method="newFixedThreadPool">
+		<constructor-arg value="5" />
+	</bean>
+
+	<bean id="replicationMessageManagerAsynch"
+		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynchImpl"
+		scope="singleton" />
+
+	<bean id="bulkDownloadManager"
+		class="org.sagebionetworks.repo.manager.file.download.BulkDownloadManagerImpl"
+		scope="singleton" />
+
+	<bean id="objectTypeManager"
+		class="org.sagebionetworks.repo.manager.ObjectTypeManagerImpl"
+		scope="singleton" />
+
+	<bean id="storageReportManager"
+		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
+		  scope="singleton"/>
+		  
+	<bean id="oidcTokenHelper" class="org.sagebionetworks.repo.manager.oauth.OIDCTokenHelperImpl" scope="singleton" />
+	
+		  
 </beans>

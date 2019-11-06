@@ -5,11 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -17,19 +20,24 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.EmailQuarantineStatus;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -45,11 +53,16 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
  */
 public class PrincipalManagerImpl implements PrincipalManager {
 	
+	private static final Logger LOG = LogManager.getLogger(PrincipalManagerImpl.class);
+	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private NotificationEmailDAO notificationEmailDao;
+	
+	@Autowired
+	private EmailQuarantineDao emailQuarantineDao;
 	
 	@Autowired
 	private UserManager userManager;
@@ -62,6 +75,9 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private TokenGenerator tokenGenerator;
 
 	@Override
 	public boolean isAliasAvailable(String alias) {
@@ -90,7 +106,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now);
+		assertNotQuarantinedEmail(user.getEmail(), "account validation");
+		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -110,8 +127,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	@WriteTransaction
 	@Override
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date());
+	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date(), tokenGenerator);
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
 		newUser.setFirstName(accountSetupInfo.getFirstName());
@@ -119,8 +136,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		newUser.setUserName(accountSetupInfo.getUsername());
 		long newPrincipalId = userManager.createUser(newUser);
 		
-		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword());
+		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
+		return authManager.loginWithNoPasswordCheck(newPrincipalId);
 	}
 
 	@Override
@@ -133,7 +150,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now);
+		assertNotQuarantinedEmail(email.getEmail(), "validation email");
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now, tokenGenerator);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -161,13 +179,15 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void addEmail(UserInfo userInfo, EmailValidationSignedToken emailValidationSignedToken,
 						 Boolean setAsNotificationEmail) throws NotFoundException {
-		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date());
+		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date(), tokenGenerator);
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(newEmail);
 		alias.setPrincipalId(userInfo.getId());
 		alias.setType(AliasType.USER_EMAIL);
 		alias = principalAliasDAO.bindAliasToPrincipal(alias);
-		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) notificationEmailDao.update(alias);
+		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) {
+			notificationEmailDao.update(alias);
+		}
 	}
 
 	@WriteTransaction
@@ -187,10 +207,16 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	}
 
 	@Override
-	public Username getNotificationEmail(UserInfo userInfo) throws NotFoundException {
+	public NotificationEmail getNotificationEmail(UserInfo userInfo) throws NotFoundException {
 		String email= notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
-		Username dto = new Username();
+		NotificationEmail dto = new NotificationEmail();
 		dto.setEmail(email);
+		
+		// Includes the quarantine status if the email is in quarantine (and the quarantine is not expired)
+		emailQuarantineDao.getQuarantinedEmail(email).ifPresent( quarantinedEmail -> {
+			dto.setQuarantineStatus(mapQuarantineStatus(quarantinedEmail));
+		});
+		
 		return dto;
 	}
 
@@ -204,6 +230,26 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		PrincipalAliasResponse response = new PrincipalAliasResponse();
 		response.setPrincipalId(principalId);
 		return response;
+	}
+	
+	private void assertNotQuarantinedEmail(String email, String messageType) {
+		if (emailQuarantineDao.isQuarantined(email)) {
+			LOG.warn("Cannot send {} to quarantined email address: {}", messageType, email);
+			throw new QuarantinedEmailException("There was a problem with the provided email address, please contact support");
+		}
+	}
+	
+	private static EmailQuarantineStatus mapQuarantineStatus(QuarantinedEmail quarantinedEmail) {
+		EmailQuarantineStatus quarantineStatus = new EmailQuarantineStatus();
+		
+		quarantineStatus.setReason(quarantinedEmail.getReason());
+		quarantineStatus.setReasonDetails(quarantinedEmail.getReasonDetails());
+		
+		if (quarantinedEmail.getExpiresOn() != null) {
+			quarantineStatus.setExpiration(Date.from(quarantinedEmail.getExpiresOn()));
+		}
+		
+		return quarantineStatus;
 	}
 
 	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {

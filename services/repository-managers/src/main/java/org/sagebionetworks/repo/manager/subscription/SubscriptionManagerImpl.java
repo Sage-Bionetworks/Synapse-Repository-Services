@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -12,9 +11,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionListRequest;
+import org.sagebionetworks.repo.model.subscription.SortByType;
+import org.sagebionetworks.repo.model.subscription.SortDirection;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -22,7 +21,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,29 +34,25 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private DBOChangeDAO changeDao;
-	@Autowired
 	private AccessControlListDAO aclDao;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription create(UserInfo userInfo, Topic toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(toSubscribe, "toSubscribe");
 		ValidateArgument.required(toSubscribe.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(toSubscribe.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()).checkAuthorizationOrElseThrow();
 		return subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Subscription subscribeAll(UserInfo userInfo, SubscriptionObjectType toSubscribe) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(toSubscribe, "toSubscribe");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, ALL_OBJECT_IDS, toSubscribe));
+		authorizationManager.canSubscribe(userInfo, ALL_OBJECT_IDS, toSubscribe).checkAuthorizationOrElseThrow();
 		return subscriptionDao.create(userInfo.getId().toString(), ALL_OBJECT_IDS, toSubscribe);
 	}
 
@@ -67,60 +62,73 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getObjectType(), "SubscriptionRequest.objectType");
 		ValidateArgument.required(request.getIdList(), "SubscriptionRequest.idList");
-		switch(request.getObjectType()) {
-		case THREAD:
-			return subscriptionDao.listSubscriptionForThread(userInfo.getId().toString(), request.getIdList());
-		case FORUM:
-			return subscriptionDao.listSubscriptionForForum(userInfo.getId().toString(), request.getIdList());
-		case DATA_ACCESS_SUBMISSION_STATUS:
-			return subscriptionDao.listSubscriptions(userInfo.getId().toString(), request.getObjectType(), request.getIdList());
-		default:
-			throw new IllegalArgumentException("Do not support type "+request.getObjectType());
-		}
+		SubscriptionPagedResults result = new SubscriptionPagedResults();
+		List<Subscription> page = subscriptionDao.listSubscriptions(new SubscriptionListRequest()
+				.withSubscriberId(userInfo.getId().toString())
+				.withObjectIds(request.getIdList())
+				.withObjectType(request.getObjectType())
+				.withSortByType(request.getSortByType())
+				.withSortDirection(request.getSortDirection()));
+		result.setResults(page);
+		result.setTotalNumberOfResults((long) page.size());
+		return result;
 	}
 
 	@Override
 	public SubscriptionPagedResults getAll(UserInfo userInfo, Long limit,
-			Long offset, SubscriptionObjectType objectType) {
+			Long offset, SubscriptionObjectType objectType, SortByType sortByType, SortDirection sortDirection) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
+		
+		// Lookup the projects for this user and type if relevant.
+		Set<Long> projectIds = getAllProjectsUserHasSubscriptions(userInfo, objectType);
+		SubscriptionListRequest request = new SubscriptionListRequest()
+		.withSubscriberId(userInfo.getId().toString())
+		.withObjectType(objectType)
+		.withSortByType(sortByType)
+		.withSortDirection(sortDirection)
+		.withLimit(limit)
+		.withOffset(offset)
+		.withProjectIds(projectIds);
+		List<Subscription> page = subscriptionDao.listSubscriptions(request);
+		Long count = subscriptionDao.listSubscriptionsCount(request);
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		results.setResults(page);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+	
+	/**
+	 * Get the projects the user has subscriptions for based on the passed type.
+	 * Projects the user cannot see are filtered out.
+	 * @param userInfo
+	 * @param objectType
+	 * @return
+	 */
+	Set<Long> getAllProjectsUserHasSubscriptions(UserInfo userInfo, SubscriptionObjectType objectType) {
+		Set<Long> projectIds = null;
 		switch (objectType) {
-			case THREAD:
-				return getAllThreadSubscriptions(userInfo, limit, offset);
-			case FORUM:
-				return getAllForumSubscriptions(userInfo, limit, offset);
-			default:
-				return subscriptionDao.getAllSubscriptions(userInfo.getId().toString(), limit, offset, objectType);
+		case FORUM:
+			projectIds = subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
+			break;
+		case THREAD:
+			projectIds = subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
+			break;
+		default:
+			// other types do not have projects
+			projectIds = null;
 		}
+		if (projectIds != null) {
+			// filter projects the user cannot see.
+			projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY,
+					ACCESS_TYPE.READ);
+		}
+		return projectIds;
 	}
 
-	/**
-	 * @param userInfo
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public SubscriptionPagedResults getAllForumSubscriptions(UserInfo userInfo, Long limit, Long offset) {
-		Set<Long> projectIds = subscriptionDao.getAllProjectsUserHasForumSubs(userInfo.getId().toString());
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		return subscriptionDao.getAllForumSubscriptions(userInfo.getId().toString(), limit, offset, projectIds);
-	}
-
-	/**
-	 * @param userInfo
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public SubscriptionPagedResults getAllThreadSubscriptions(UserInfo userInfo, Long limit, Long offset) {
-		Set<Long> projectIds = subscriptionDao.getAllProjectsUserHasThreadSubs(userInfo.getId().toString());
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		return subscriptionDao.getAllThreadSubscriptions(userInfo.getId().toString(), limit, offset, projectIds);
-	}
-
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String subscriptionId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -137,7 +145,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAll(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -157,28 +165,12 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 	}
 
 	@Override
-	public Etag getEtag(String objectId, ObjectType objectType) {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(objectType, "objectType");
-		Long objectIdLong = null;
-		if (objectType == ObjectType.ENTITY) {
-			objectIdLong = KeyFactory.stringToKey(objectId);
-		} else {
-			objectIdLong = Long.parseLong(objectId);
-		}
-		Etag etag = new Etag();
-		etag.setEtag(changeDao.getEtag(objectIdLong, objectType));
-		return etag;
-	}
-
-	@Override
 	public SubscriberPagedResults getSubscribers(UserInfo userInfo, Topic topic, String nextPageToken) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(topic, "topic");
 		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).checkAuthorizationOrElseThrow();
 		NextPageToken token = new NextPageToken(nextPageToken);
 		List<String> subscribers = subscriptionDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), token.getLimitForQuery(), token.getOffset());
 		SubscriberPagedResults results = new SubscriberPagedResults();
@@ -193,8 +185,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(topic, "topic");
 		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
 		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).checkAuthorizationOrElseThrow();
 		SubscriberCount count = new SubscriberCount();
 		count.setCount(subscriptionDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()));
 		return count;

@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.model;
 
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 
 /**
  * Represents a single row a sparsely populated change set. A cell value might

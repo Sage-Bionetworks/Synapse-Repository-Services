@@ -4,7 +4,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -13,7 +12,6 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -34,19 +32,6 @@ public class PrivateFieldUtilsTest {
 		assertNull(up.getEmails());
 		assertNotNull(up.getLastName());
 		assertNotNull(up.getUserName());
-	}
-	
-	@Test
-	public void testProfilePic() {
-		UserProfile up = new UserProfile();
-		AttachmentData ad = new AttachmentData();
-		ad.setName("name");
-		ad.setPreviewId("123");
-		up.setPic(ad);
-		PrivateFieldUtils.clearPrivateFields(up);
-		assertNotNull(up.getPic());
-		assertNotNull(up.getPic().getName());
-		assertNotNull(up.getPic().getPreviewId());
 	}
 	
 	@Test

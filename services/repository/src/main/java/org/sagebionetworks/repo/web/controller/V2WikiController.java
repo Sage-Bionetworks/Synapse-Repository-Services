@@ -7,10 +7,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -88,7 +86,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "WikiPage Services 2", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class V2WikiController extends BaseController {
+public class V2WikiController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	

@@ -1,14 +1,15 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.commons.io.FileUtils;
-import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
 
 /**

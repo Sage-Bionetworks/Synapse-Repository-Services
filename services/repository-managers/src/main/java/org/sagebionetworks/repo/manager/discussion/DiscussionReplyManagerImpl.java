@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.io.IOException;
 import java.util.List;
@@ -10,7 +10,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -30,7 +29,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -55,7 +54,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle createReply(UserInfo userInfo,
 			CreateDiscussionReply createReply) throws IOException {
@@ -85,19 +84,17 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		DiscussionReplyBundle reply = replyDao.getReply(Long.parseLong(replyId), DiscussionFilter.NO_FILTER);
 		if (reply.getIsDeleted()) {
 			try {
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-						authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+				authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE).checkAuthorizationOrElseThrow();
 			} catch (UnauthorizedException e) {
 				throw new NotFoundException();
 			}
 		} else {
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+			authorizationManager.canAccess(userInfo, reply.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		}
 		return reply;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo,
 			String replyId, UpdateReplyMessage newMessage) throws IOException {
@@ -117,7 +114,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
 		checkPermission(userInfo, replyId, ACCESS_TYPE.MODERATE);
@@ -150,8 +147,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(accessType, "accessType");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = replyDao.getProjectId(replyId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
+		authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType).checkAuthorizationOrElseThrow();
 		
 	}
 

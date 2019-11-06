@@ -1,31 +1,40 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -34,11 +43,11 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@ExtendWith(MockitoExtension.class)
 public class TableEntityTransactionManagerTest {
 
 	@Mock
@@ -55,12 +64,16 @@ public class TableEntityTransactionManagerTest {
 	TableIndexManager tableIndexManager;
 	@Mock
 	TransactionStatus mockTransactionStatus;
+	@Mock
+	TableTransactionDao mockTransactionDao;
 
+	@InjectMocks
 	TableEntityTransactionManager manager;
 
 	TableStatus status;
 
 	String tableId;
+	IdAndVersion idAndVersion;
 	TableUpdateTransactionRequest request;
 	UploadToTableRequest uploadRequest;
 
@@ -68,24 +81,14 @@ public class TableEntityTransactionManagerTest {
 
 	TableUpdateTransactionResponse response;
 
-	@SuppressWarnings("unchecked")
-	@Before
-	public void before() throws Exception {
-		MockitoAnnotations.initMocks(this);
-		manager = new TableEntityTransactionManager();
-		ReflectionTestUtils.setField(manager, "tableManagerSupport",
-				tableManagerSupport);
-		ReflectionTestUtils.setField(manager,
-				"readCommitedTransactionTemplate",
-				readCommitedTransactionTemplate);
-		ReflectionTestUtils.setField(manager, "tableEntityManager",
-				tableEntityManager);
-		ReflectionTestUtils.setField(manager, "tableIndexConnectionFactory",
-				tableIndexConnectionFactory);
+	Long transactionId;
 
+	@BeforeEach
+	public void before() throws Exception {
 		userInfo = new UserInfo(false, 2222L);
 
 		tableId = "syn213";
+		idAndVersion = IdAndVersion.parse(tableId);
 		request = new TableUpdateTransactionRequest();
 		request.setEntityId(tableId);
 		List<TableUpdateRequest> changes = new LinkedList<>();
@@ -96,19 +99,16 @@ public class TableEntityTransactionManagerTest {
 		changes.add(uploadRequest);
 
 		response = new TableUpdateTransactionResponse();
+		transactionId = 987L;
+	}
 
-		when(
-				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenReturn(response);
-		
-		when(tableIndexConnectionFactory.connectToTableIndex(tableId)).thenReturn(tableIndexManager);
-		
+	@SuppressWarnings("unchecked")
+	private void setupCallback() {
 		doAnswer(new Answer<TableUpdateTransactionResponse>() {
 			@Override
-			public TableUpdateTransactionResponse answer(
-					InvocationOnMock invocation) throws Throwable {
-				TransactionCallback<TableUpdateTransactionResponse> callback = (TransactionCallback<TableUpdateTransactionResponse>) invocation.getArguments()[0];
+			public TableUpdateTransactionResponse answer(InvocationOnMock invocation) throws Throwable {
+				TransactionCallback<TableUpdateTransactionResponse> callback = (TransactionCallback<TableUpdateTransactionResponse>) invocation
+						.getArguments()[0];
 				return callback.doInTransaction(mockTransactionStatus);
 			}
 		}).when(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
@@ -116,104 +116,101 @@ public class TableEntityTransactionManagerTest {
 
 	@Test
 	public void testUpdateTableWithTransaction() throws Exception {
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenReturn(response);
 		// call under test.
-		TableUpdateTransactionResponse results = manager
-				.updateTableWithTransaction(progressCallback, userInfo, request);
+		TableUpdateTransactionResponse results = manager.updateTableWithTransaction(progressCallback, userInfo,
+				request);
 		assertEquals(response, results);
 		// user must have write
-		verify(tableManagerSupport).validateTableWriteAccess(userInfo, tableId);
+		verify(tableManagerSupport).validateTableWriteAccess(userInfo, idAndVersion);
 	}
 
 	@SuppressWarnings("unchecked")
-	@Test(expected = TableUnavailableException.class)
-	public void testUpdateTableWithTransactionTableUnavailableException()
-			throws Exception {
-
-		when(
-				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
-				new TableUnavailableException(null));
-		// call under test.
-		manager.updateTableWithTransaction(progressCallback, userInfo, request);
-	}
-	
-	@SuppressWarnings("unchecked")
-	@Test(expected = LockUnavilableException.class)
-	public void testUpdateTableWithTransactionLockUnavilableException()
-			throws Exception {
-
-		when(
-				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
-				new LockUnavilableException());
-		// call under test.
-		manager.updateTableWithTransaction(progressCallback, userInfo, request);
-	}
-	
-	@SuppressWarnings("unchecked")
-	@Test(expected = RecoverableMessageException.class)
-	public void testUpdateTableWithTransactionRecoverableMessageException()
-			throws Exception {
-
-		when(
-				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
-				new RecoverableMessageException());
-		// call under test.
-		manager.updateTableWithTransaction(progressCallback, userInfo, request);
-	}
-	
-	@SuppressWarnings("unchecked")
-	@Test(expected = RuntimeException.class)
-	public void testUpdateTableWithTransactionRuntimeException()
-			throws Exception {
-
-		when(
-				tableManagerSupport.tryRunWithTableExclusiveLock(
-						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
-				new RuntimeException());
-		// call under test.
-		manager.updateTableWithTransaction(progressCallback, userInfo, request);
-	}
-	
 	@Test
-	public void testIsTemporaryTableNeededTrue(){
+	public void testUpdateTableWithTransactionTableUnavailableException() throws Exception {
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(new TableUnavailableException(null));
+		assertThrows(TableUnavailableException.class, () -> {
+			// call under test.
+			manager.updateTableWithTransaction(progressCallback, userInfo, request);
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testUpdateTableWithTransactionLockUnavilableException() throws Exception {
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
+		assertThrows(LockUnavilableException.class, () -> {
+			// call under test.
+			manager.updateTableWithTransaction(progressCallback, userInfo, request);
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testUpdateTableWithTransactionRecoverableMessageException() throws Exception {
+
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(new RecoverableMessageException());
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test.
+			manager.updateTableWithTransaction(progressCallback, userInfo, request);
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testUpdateTableWithTransactionRuntimeException() throws Exception {
+
+		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(new RuntimeException());
+		assertThrows(RuntimeException.class, () -> {
+			// call under test.
+			manager.updateTableWithTransaction(progressCallback, userInfo, request);
+		});
+	}
+
+	@Test
+	public void testIsTemporaryTableNeededTrue() {
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(true);
-		//call under test
+		// call under test
 		boolean needed = manager.isTemporaryTableNeeded(progressCallback, request);
 		assertTrue(needed);
 	}
-	
+
 	@Test
-	public void testIsTemporaryTableNeededFalse(){
+	public void testIsTemporaryTableNeededFalse() {
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(false);
-		//call under test
+		// call under test
 		boolean needed = manager.isTemporaryTableNeeded(progressCallback, request);
 		assertFalse(needed);
 	}
 
 	@Test
-	public void testValidateUpdateRequestsWithTempTable(){
+	public void testValidateUpdateRequestsWithTempTable() {
+		when(tableIndexConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(tableIndexManager);
+
 		// need to a temp table.
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(true);
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
-		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
 	}
-	
+
 	@Test
-	public void testValidateUpdateRequestsWithTempTableException(){
+	public void testValidateUpdateRequestsWithTempTableException() {
+		when(tableIndexConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(tableIndexManager);
 		// need to a temp table.
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(true);
 		// setup a failure
-		doThrow(new RuntimeException("Wrong")).when(tableEntityManager).validateUpdateRequest(any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateRequest.class), any(TableIndexManager.class));
+		doThrow(new RuntimeException("Wrong")).when(tableEntityManager).validateUpdateRequest(
+				any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateRequest.class),
+				any(TableIndexManager.class));
 		// call under test
 		try {
 			manager.validateUpdateRequests(progressCallback, userInfo, request);
@@ -221,29 +218,105 @@ public class TableEntityTransactionManagerTest {
 		} catch (RuntimeException e) {
 			// expected
 		}
-		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(idAndVersion, progressCallback);
 	}
-	
+
 	@Test
-	public void testValidateUpdateRequestsWithoutTempTable(){
+	public void testValidateUpdateRequestsWithoutTempTable() {
 		// need to a temp table.
 		when(tableEntityManager.isTemporaryTableNeededToValidate(uploadRequest)).thenReturn(false);
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
-		verify(tableIndexConnectionFactory, never()).connectToTableIndex(tableId);
-		verify(tableIndexManager, never()).createTemporaryTableCopy(tableId, progressCallback);
+		verify(tableIndexConnectionFactory, never()).connectToTableIndex(idAndVersion);
+		verify(tableIndexManager, never()).createTemporaryTableCopy(idAndVersion, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, null);
-		verify(tableIndexManager, never()).deleteTemporaryTableCopy(anyString(), any(ProgressCallback.class));
+		verify(tableIndexManager, never()).deleteTemporaryTableCopy(any(IdAndVersion.class),
+				any(ProgressCallback.class));
 	}
-	
+
 	@Test
-	public void testUpdateTableWithTransactionWithExclusiveLock(){
+	public void testUpdateTableWithTransactionWithExclusiveLock() throws Exception {
+		setupCallback();
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
-		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest);
+		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest, transactionId);
 		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+	}
+
+	@Test
+	public void testDoIntransactionUpdateTableNullSnapshotOptions() {
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+
+		request.setSnapshotOptions(null);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertNull(response.getSnapshotVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(SnapshotRequest.class), anyLong());
+	}
+
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersionFalse() {
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(false);
+		request.setSnapshotOptions(snapshotRequest);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertNull(response.getSnapshotVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager, never()).createSnapshotAndBindToTransaction(any(UserInfo.class), anyString(),
+				any(SnapshotRequest.class), anyLong());
+	}
+
+	@Test
+	public void testDoIntransactionUpdateTableWithNewVersiontrue() {
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(true);
+		request.setSnapshotOptions(snapshotRequest);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertEquals(new Long(0), response.getSnapshotVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager).updateTable(eq(progressCallback), eq(userInfo), any(TableUpdateRequest.class),
+				eq(transactionId));
+		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest,
+				transactionId);
+	}
+
+	@Test
+	public void testDoIntransactionUpdateTableWithNullChangesSnapshotTrue() {
+		when(mockTransactionDao.startTransaction(any(String.class), any(Long.class))).thenReturn(transactionId);
+		request.setChanges(null);
+		SnapshotRequest snapshotRequest = new SnapshotRequest();
+		request.setCreateSnapshot(true);
+		request.setSnapshotOptions(snapshotRequest);
+		// call under test
+		TableUpdateTransactionResponse response = manager.doIntransactionUpdateTable(mockTransactionStatus,
+				progressCallback, userInfo, request);
+		assertNotNull(response);
+		assertEquals(new Long(0), response.getSnapshotVersionNumber());
+		verify(mockTransactionDao).startTransaction(tableId, userInfo.getId());
+		verify(tableEntityManager, never()).updateTable(any(ProgressCallback.class), any(UserInfo.class),
+				any(TableUpdateRequest.class), anyLong());
+		verify(tableEntityManager).createSnapshotAndBindToTransaction(userInfo, tableId, snapshotRequest,
+				transactionId);
 	}
 }

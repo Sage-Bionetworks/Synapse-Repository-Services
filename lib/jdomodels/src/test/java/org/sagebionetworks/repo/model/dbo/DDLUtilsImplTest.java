@@ -50,7 +50,7 @@ public class DDLUtilsImplTest {
 		String functionName = "new_function";
 		ddlUtils.dropFunction(functionName);
 		assertFalse(ddlUtils.doesFunctionExist(functionName));
-		String functionDef = "CREATE FUNCTION `"+functionName+"` () RETURNS INTEGER BEGIN RETURN 1; END";
+		String functionDef = "CREATE FUNCTION `"+functionName+"` () RETURNS INTEGER NO SQL BEGIN RETURN 1; END";
 		ddlUtils.createFunction(functionDef);
 		assertTrue(ddlUtils.doesFunctionExist(functionName));
 		ddlUtils.dropFunction(functionName);

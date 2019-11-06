@@ -1,23 +1,19 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.junit.Assert.*;
-
-import java.net.URL;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoAnnotations.Mock;
-
-import static org.mockito.Mockito.*;
 
 public class HttpToHttpsFilterTest {
 	

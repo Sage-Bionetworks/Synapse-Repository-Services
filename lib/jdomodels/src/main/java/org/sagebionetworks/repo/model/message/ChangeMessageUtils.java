@@ -5,16 +5,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Utilities for translating between DTOs and DBOs for  ChangeMessage.
  * 
- * @author John
- *
  */
 public class ChangeMessageUtils {
 	
@@ -47,8 +48,11 @@ public class ChangeMessageUtils {
 		}
 		dbo.setObjectType(dto.getObjectType().name());
 		dbo.setChangeType(dto.getChangeType().name());
-		dbo.setObjectEtag(dto.getObjectEtag());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
+		dbo.setObjectVersion(dto.getObjectVersion());
+		if(dto.getObjectVersion() == null) {
+			dbo.setObjectVersion(DBOChange.DEFAULT_NULL_VERSION);
+		}
 		if (dto.getUserId() != null) {
 			dbo.setUserId(dto.getUserId());
 		}
@@ -79,7 +83,6 @@ public class ChangeMessageUtils {
 		ChangeMessage dto = new ChangeMessage();
 		dto.setChangeNumber(dbo.getChangeNumber());
 		dto.setTimestamp(dbo.getTimeStamp());
-		dto.setObjectEtag(dbo.getObjectEtag());
 		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));
 		if(ObjectType.ENTITY == dto.getObjectType()){
 			// Entities get an 'syn' prefix
@@ -88,11 +91,37 @@ public class ChangeMessageUtils {
 			// All other types are longs.
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
+		if(DBOChange.DEFAULT_NULL_VERSION == dbo.getObjectVersion()) {
+			dto.setObjectVersion(null);
+		}else {
+			dto.setObjectVersion(dbo.getObjectVersion());
+		}
+
 		dto.setChangeType(ChangeType.valueOf(dbo.getChangeType()));
 		if (dbo.getUserId() != null) {
 			dto.setUserId(dbo.getUserId());
 		}
 		return dto;
+	}
+	
+	/**
+	 * Create a DBOSentMessage for the given change message.
+	 * @param message
+	 * @param now
+	 * @return
+	 */
+	public static DBOSentMessage createSentDBO(ChangeMessage message, Timestamp now) {
+		DBOSentMessage sent = new DBOSentMessage();
+		sent.setChangeNumber(message.getChangeNumber());
+		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
+		if(message.getObjectVersion() == null) {
+			sent.setObjectVersion(DBOChange.DEFAULT_NULL_VERSION);
+		}else {
+			sent.setObjectVersion(message.getObjectVersion());
+		}
+		sent.setObjectType(message.getObjectType().name());
+		sent.setTimeStamp(now);
+		return sent;
 	}
 	
 	/**
@@ -102,24 +131,47 @@ public class ChangeMessageUtils {
 	 * @return
 	 */
 	public static List<ChangeMessage> sortByObjectId(List<ChangeMessage> list){
-		Collections.sort(list, new Comparator<ChangeMessage>() {
-			@Override
-			public int compare(ChangeMessage one, ChangeMessage two) {
-				if(one == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(one.getObjectId() == null) throw new IllegalArgumentException("one.getObjectId() cannot be null");
-				if(two == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(two.getObjectId() == null) throw new IllegalArgumentException("two.getObjectId() cannot be null");
-				// First sort by ID
-				int idOrder = one.getObjectId().compareTo(two.getObjectId());
-				if(idOrder == 0){
-					// When equal sort by type.
-					return one.getObjectType().name().compareTo(two.getObjectType().name());
-				}else{
-					return idOrder;
-				}
-			}
+		Collections.sort(list, (ChangeMessage one, ChangeMessage two) -> {
+			return compareIdVersionType(one, two);
 		});
 		return list;
+	}
+	
+	/**
+	 * Compare two changes first by objectId, then objectVersion, then objectType.
+	 * @param one
+	 * @param two
+	 * @return
+	 */
+	public static int compareIdVersionType(ChangeMessage one, ChangeMessage two) {
+		ChangeMessageUtils.validateChangeMessage(one);
+		ChangeMessageUtils.validateChangeMessage(two);
+		// First 
+		int order = KeyFactory.compare(one.getObjectId(), two.getObjectId());
+		if(order != 0) {
+			return order;
+		}
+		// Ids match so compare versions
+		order = compareWithNull(one.getObjectVersion(), two.getObjectVersion());
+		if(order != 0) {
+			return order;
+		}
+		// Ids and version match so compare types.
+		return one.getObjectType().name().compareTo(two.getObjectType().name());
+	}
+	
+	/**
+	 * Compare two Longs.  Handles the case where either is null.
+	 * 
+	 * @param one
+	 * @param two
+	 * @return
+	 */
+	public static int compareWithNull(Long one, Long two) {
+		if(one == null) {
+			return two == null ? 0 : -1;
+		}
+		return two == null ? 1 : one.compareTo(two);
 	}
 
 	
@@ -143,4 +195,15 @@ public class ChangeMessageUtils {
 		return list;
 	}
 
+	
+	/**
+	 * Null checks for all required fields of a change message.
+	 * 
+	 * @param toValiate
+	 */
+	public static void validateChangeMessage(ChangeMessage toValiate) {
+		ValidateArgument.required(toValiate, "ChangeMessage");
+		ValidateArgument.required(toValiate.getObjectId(), "ChangeMessage.objectId");
+		ValidateArgument.required(toValiate.getObjectType(), "ChangeMessage.objectType");
+	}
 }

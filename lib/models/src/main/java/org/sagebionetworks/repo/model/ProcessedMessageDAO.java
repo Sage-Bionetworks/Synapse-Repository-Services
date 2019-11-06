@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 public interface ProcessedMessageDAO {

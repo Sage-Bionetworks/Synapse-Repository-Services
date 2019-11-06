@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import javax.servlet.http.HttpServlet;
 
-import org.apache.commons.lang.StringUtils;
-import org.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -15,21 +15,19 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.VersionableEntity;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
@@ -38,7 +36,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -114,12 +111,13 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity bundle using only the ID
 	 */
-	public EntityBundle getEntityBundle(String id, int mask, Long userId)
+	public EntityBundle getEntityBundle(String id, EntityBundleRequest bundleV2Request, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE_V2,
 				userId, null);
-		request.setParameter("mask", "" + mask);
+		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
+		request.setContentType("application/json");
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -133,7 +131,46 @@ public class EntityServletTestHelper {
 	 * versionNumber.
 	 */
 	public EntityBundle getEntityBundleForVersion(String id,
-			Long versionNumber, int mask, Long userId) throws Exception {
+												  Long versionNumber, EntityBundleRequest bundleV2Request, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
+				null);
+		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
+		request.setContentType("application/json");
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EntityBundle(
+				ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	/**
+	 * Get an entity bundle using only the ID
+	 */
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
+				userId, null);
+		request.setParameter("mask", "" + mask);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new org.sagebionetworks.repo.model.EntityBundle(
+				ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	/**
+	 * Get an entity bundle for a specific version using the ID and
+	 * versionNumber.
+	 */
+	@Deprecated
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundleForVersion(String id,
+																				 Long versionNumber, int mask, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
 						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
@@ -143,7 +180,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundle(
+		return new org.sagebionetworks.repo.model.EntityBundle(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
@@ -165,7 +202,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public Annotations getEntityAnnotations(String id, Long userId)
+	public org.sagebionetworks.repo.model.Annotations getEntityAnnotations(String id, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
@@ -175,13 +212,13 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), Annotations.class);
+				response.getContentAsString(), org.sagebionetworks.repo.model.Annotations.class);
 	}
 
 	/**
 	 * Update the annotations of an entity
 	 */
-	public Annotations updateAnnotations(Annotations annos, Long userId)
+	public org.sagebionetworks.repo.model.Annotations updateAnnotations(org.sagebionetworks.repo.model.Annotations annos, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
@@ -191,7 +228,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), Annotations.class);
+				response.getContentAsString(), org.sagebionetworks.repo.model.Annotations.class);
 	}
 
 	/**
@@ -208,6 +245,38 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), UserEntityPermissions.class);
+	}
+
+	/**
+	 * Get the annotations for an entity.
+	 */
+	public Annotations getEntityAnnotationsV2(String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.ANNOTATIONS_V2, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), Annotations.class);
+	}
+
+	/**
+	 * Update the annotations of an entity
+	 */
+	public Annotations updateAnnotationsV2(Annotations annos, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
+						+ UrlHelpers.ANNOTATIONS_V2, userId, annos);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), Annotations.class);
 	}
 
 	/**
@@ -630,70 +699,6 @@ public class EntityServletTestHelper {
 	 * Get the RowMetadata for a given Migration type. This is used to get all
 	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadata(Long userId,
-			MigrationType type, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/rows", userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-	/**
-	 * Get the RowMetadata for a given type and id range
-	 * 
-	 * @param userId
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws Exception
-	 */
-	public RowMetadataResult getRowMetadataByRange(Long userId,
-			MigrationType type, long minId, long maxId, long limit, long offset) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.MIGRATION_ROWS_BY_RANGE, userId, null);
-		request.setParameter("type", type.name());
-		request.setParameter("minId", "" + minId);
-		request.setParameter("maxId", "" + maxId);
-		request.setParameter("limit", "" + limit);
-		request.setParameter("offset", "" + offset);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-	
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
-	public RowMetadataResult getRowMetadataDelta(Long userId,
-			MigrationType type, IdList list) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/delta", userId, list);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), RowMetadataResult.class);
-	}
-
-	/**
-	 * Get the RowMetadata for a given Migration type. This is used to get all
-	 * metadata from a source stack during migation.
-	 */
 	public MigrationTypeList getPrimaryMigrationTypes(Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -704,54 +709,6 @@ public class EntityServletTestHelper {
 
 		return EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), MigrationTypeList.class);
-	}
-
-	/**
-	 * Start the backup of a list of objects
-	 */
-	public BackupRestoreStatus startBackup(Long userId, MigrationType type,
-			IdList list) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/backup", userId, list);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Start the restore of a list of objects
-	 */
-	public BackupRestoreStatus startRestore(Long userId,
-			MigrationType type, RestoreSubmission sub) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/restore", userId, sub);
-		request.setParameter("type", type.name());
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
-	 * Get the status of a migration operation
-	 */
-	public BackupRestoreStatus getBackupRestoreStatus(Long userId,
-			String daemonId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/status", userId, null);
-		request.setParameter("daemonId", daemonId);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	/**

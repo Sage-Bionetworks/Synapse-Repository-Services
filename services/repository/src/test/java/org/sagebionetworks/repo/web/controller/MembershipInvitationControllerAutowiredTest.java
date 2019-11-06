@@ -10,8 +10,11 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.MessageManager;
+import org.sagebionetworks.repo.manager.MessageManagerImpl;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -22,8 +25,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * This is a an integration test for the MembershipInvitationController.
@@ -37,7 +38,10 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 	public UserManager userManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private MessageManager messageManager;
+	
+	@Autowired
+	private SynapseS3Client s3Client;
 
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
@@ -87,8 +91,8 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 	@Test
 	public void testRoundTrip() throws Exception {
 		String key = userEmail+".json"; // this is the target for 'sent' email messages to the invitee
-		assertFalse(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, 2000L));
-		S3TestUtils.addObjectToDelete(StackConfiguration.getS3Bucket(), key);
+		assertFalse(S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, 2000L));
+		S3TestUtils.addObjectToDelete(StackConfigurationSingleton.singleton().getS3Bucket(), key);
 		
 		// create an invitation
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
@@ -108,6 +112,13 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
 		
-		assertTrue(S3TestUtils.doesFileExist(StackConfiguration.getS3Bucket(), key, s3Client, 60000L));
+		// Process the outgoing messages (emulates a worker)
+		PaginatedResults<MessageToUser> messages = 
+				 servletTestHelper.getOutbox(adminUserId, MessageSortBy.SEND_DATE, false, (long)Integer.MAX_VALUE, 0L);
+		 for (MessageToUser mtu : messages.getResults()) {
+			 messageManager.processMessage(mtu.getId(), null);
+		 }
+		
+		assertTrue(S3TestUtils.doesFileExist(StackConfigurationSingleton.singleton().getS3Bucket(), key, s3Client, 60000L));
 	}
 }

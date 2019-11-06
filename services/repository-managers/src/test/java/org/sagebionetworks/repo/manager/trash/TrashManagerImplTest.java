@@ -2,13 +2,20 @@ package org.sagebionetworks.repo.manager.trash;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import java.sql.Date;
@@ -21,12 +28,11 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
-import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -41,6 +47,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -71,7 +78,8 @@ public class TrashManagerImplTest {
 
 	@Mock
 	private StackConfiguration stackConfig;
-	
+
+	@InjectMocks
 	private TrashManagerImpl trashManager;
 	private long userID;
 	private long adminUserID;
@@ -102,7 +110,7 @@ public class TrashManagerImplTest {
 	public void setUp() throws Exception {
 		trashManager = new TrashManagerImpl();
 		MockitoAnnotations.initMocks(this);
-		
+
 		userID = 12345L;
 		userInfo = new UserInfo(false /*not admin*/);
 		userInfo.setId(userID);
@@ -115,6 +123,7 @@ public class TrashManagerImplTest {
 		nodeName = "testName.test";
 		nodeParentID = "syn489";
 		testNode = new Node();
+		testNode.setId(nodeID);
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
 		testNode.setNodeType(EntityType.file);
@@ -157,13 +166,7 @@ public class TrashManagerImplTest {
 			
 			
 		});
-		
-		setField(trashManager, "nodeDao", mockNodeDAO);
-		setField(trashManager, "aclDAO", mockAclDAO);
-		setField(trashManager, "trashCanDao", mockTrashCanDao);
-		setField(trashManager, "authorizationManager", mockAuthorizationManager);
-		setField(trashManager, "nodeManager", mockNodeManager);
-		setField(trashManager, "transactionalMessenger", mockTransactionalMessenger);
+
 		
 		when(mockNodeDAO.peekCurrentEtag(child1ID)).thenReturn(child1Etag);
 		when(mockNodeDAO.peekCurrentEtag(child2ID)).thenReturn(child2Etag);
@@ -175,9 +178,9 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 		
 		when(mockAuthorizationManager.canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
-		.thenReturn(new AuthorizationStatus(true, "DO IT! YES YOU CAN! JUST DO IT!"));
+		.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
-		.thenReturn(new AuthorizationStatus(true, "YESTERDAY YOU SAID TOMORROW, SO JUST DO IT!"));
+		.thenReturn(AuthorizationStatus.authorized());
 		
 		//mocking for getDescendants()
 		when(mockNodeDAO.getChildrenIdsAsList(nodeID))
@@ -189,7 +192,7 @@ public class TrashManagerImplTest {
 		
 		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 		newEtag = "newEtag";
-		when(mockNodeDAO.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+		when(mockNodeDAO.touch(any(Long.class), anyString(), any(ChangeType.class))).thenReturn(newEtag);
 	}
 	
 	@Test
@@ -201,17 +204,13 @@ public class TrashManagerImplTest {
 		ChangeType changeType = ChangeType.DELETE;
 		// call under test
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
-		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is not a container so a message should not be sent.
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
 		verify(mockNodeDAO).updateNode(nodeCapture.capture());
 		Node capturedNode = nodeCapture.getValue();
 		assertNotNull(capturedNode);
 		assertNotNull(capturedNode.getModifiedOn());
-		// modified on should be set be set
-		assertTrue(capturedNode.getModifiedOn().getTime() > 0);
-		// modified by should be set
-		assertEquals(userInfo.getId(), capturedNode.getModifiedByPrincipalId());
 	}
 	
 	@Test
@@ -222,7 +221,7 @@ public class TrashManagerImplTest {
 		ChangeType changeType = ChangeType.DELETE;
 		// call under test
 		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
-		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		verify(mockNodeDAO).touch(userInfo.getId(), testNode.getId(), changeType);
 		// the entity is a container so a container event should be generated.
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(testNode.getId(), ObjectType.ENTITY_CONTAINER, newEtag, changeType);
 	}
@@ -269,7 +268,7 @@ public class TrashManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testMoveToTrashNoAuthorization(){
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
-		.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
 		trashManager.moveToTrash(userInfo, nodeID);
 	} 
 	
@@ -277,7 +276,7 @@ public class TrashManagerImplTest {
 	public void testMoveToTrashAuthourized(){
 		//setup
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
-		.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		.thenReturn(AuthorizationStatus.authorized());
 		EntityHeader mockChild1EntityHeader = mock(EntityHeader.class);
 		EntityHeader mockChild2EntityHeader = mock(EntityHeader.class);
 		when(mockNodeDAO.getEntityHeader(child1ID, null)).thenReturn(mockChild1EntityHeader);
@@ -339,7 +338,7 @@ public class TrashManagerImplTest {
 	@Test 
 	public void testRestoreFromTrashUnauthourizedNewParent(){
 		when(mockAuthorizationManager.canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
-		.thenReturn(new AuthorizationStatus(false, "I'm a teapot."));
+		.thenReturn(AuthorizationStatus.accessDenied("I'm a teapot."));
 		try{
 			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 			fail("expected UnauthorizedException");
@@ -354,7 +353,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testRestoreFromTrashUnauthourizedNodeID(){
 		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeTrashedEntity.getOriginalParentId(), nodeParentID))
-		.thenReturn(new AuthorizationStatus(false, "U can't touch this."));
+		.thenReturn(AuthorizationStatus.accessDenied("U can't touch this."));
 		try{
 			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 		}catch (UnauthorizedException e){

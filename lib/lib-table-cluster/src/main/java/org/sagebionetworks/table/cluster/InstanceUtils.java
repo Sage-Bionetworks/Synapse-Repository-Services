@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
 
 public class InstanceUtils {
@@ -21,7 +21,7 @@ public class InstanceUtils {
 		connectionPool.setUsername(config.getRepositoryDatabaseUsername());
 		connectionPool.setPassword(config.getRepositoryDatabasePassword());
 		connectionPool.setMinIdle(Integer.parseInt(config.getDatabaseConnectionPoolMinNumberConnections()));
-		connectionPool.setMaxActive(Integer.parseInt(config.getDatabaseConnectionPoolMaxNumberConnections()));
+		connectionPool.setMaxTotal(Integer.parseInt(config.getDatabaseConnectionPoolMaxNumberConnections()));
 		connectionPool.setTestOnBorrow(Boolean.parseBoolean(config.getDatabaseConnectionPoolShouldValidate()));
 		connectionPool.setValidationQuery(config.getDatabaseConnectionPoolValidateSql());
 		return connectionPool;

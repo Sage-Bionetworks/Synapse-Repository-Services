@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
@@ -97,6 +97,9 @@ public class EntityReplicationReconciliationWorkerTest {
 		ReflectionTestUtils.setField(worker, "clock", mockClock);
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
+		// default to under the max messages.
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
 		
 		// truth
 		Map<Long, Long> truthCRCs = new HashMap<Long, Long>();
@@ -129,17 +132,17 @@ public class EntityReplicationReconciliationWorkerTest {
 		));
 		
 		// setup the check for the first parent.
-		truthOne = new IdAndEtag(111L, "et1");
-		truthTwo = new IdAndEtag(222L, "et2");
-		truthThree = new IdAndEtag(333L, "et3");
+		truthOne = new IdAndEtag(111L, "et1", 444L);
+		truthTwo = new IdAndEtag(222L, "et2", 444L);
+		truthThree = new IdAndEtag(333L, "et3", 444L);
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
 		// one matches the truth
-		replicaOne = new IdAndEtag(111L, "et1");
+		replicaOne = new IdAndEtag(111L, "et1", 444L);
 		// two does not match
-		replicaTwo = new IdAndEtag(222L, "no-match");
+		replicaTwo = new IdAndEtag(222L, "no-match", 444L);
 		// three does not exist in  replica
 		// four does not exist in truth.
-		replicaFour = new IdAndEtag(444L,	"et4");
+		replicaFour = new IdAndEtag(444L,"et4", 444L);
 		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		IdList list = new IdList();
@@ -181,11 +184,10 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testCreateChange(){
-		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag");
+		IdAndEtag idAndEtag = new IdAndEtag(111L, "anEtag",444L);
 		ChangeMessage message = worker.createChange(idAndEtag, ChangeType.DELETE);
 		assertNotNull(message);
 		assertEquals(""+idAndEtag.getId(), message.getObjectId());
-		assertEquals(idAndEtag.getEtag(), message.getObjectEtag());
 		assertEquals(ObjectType.ENTITY, message.getObjectType());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		assertNotNull(message.getChangeNumber());
@@ -222,10 +224,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		// setup some differences between the truth and replica.
 		Long parentId = 999L;
 		boolean parentInTrash = true;
-		// one matches the truth
-		IdAndEtag replicaOne = new IdAndEtag(111L, "et1");
-		// two does not match
-		IdAndEtag replicaTwo = new IdAndEtag(222L, "et2");
 		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
 		
 		// call under test
@@ -244,6 +242,28 @@ public class EntityReplicationReconciliationWorkerTest {
 		verify(mockIndexDao).getEntityChildren(parentId);
 		// since the parent is in the trash this call should not be made
 		verify(mockNodeDao, never()).getChildren(parentId);
+	}
+	
+	@Test
+	public void testPLFM_5352BenefactorDoesNotMatch(){
+		// setup some differences between the truth and replica.
+		Long parentId = firstParentId;
+		boolean parentInTrash = false;
+		// The benefactor does not match
+		replicaOne.setBenefactorId(truthOne.getBenefactorId()+1);
+		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne));
+		
+		// call under test
+		List<ChangeMessage> result = worker.findChangesForParentId(mockProgressCallback, mockIndexDao, parentId, parentInTrash);
+		assertNotNull(result);
+		assertEquals(3, result.size());
+		// first should be updated
+		ChangeMessage message = result.get(0);
+		assertEquals(""+replicaOne.getId(), message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+		message = result.get(1);
+		assertEquals(""+replicaTwo.getId(), message.getObjectId());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 	
 	@Test
@@ -310,6 +330,22 @@ public class EntityReplicationReconciliationWorkerTest {
 		// The expiration should be set for the first parent
 		long expectedExpires = nowMS + EntityReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
 		verify(mockIndexDao).setContainerSynchronizationExpiration(Lists.newArrayList(firstParentId), expectedExpires);
+		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
+		
+		// no exceptions should occur.
+		verifyZeroInteractions(mockWorkerLog);
+	}
+	
+	@Test
+	public void testRunMessageCountOverMax(){
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+		.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION + 1L);
+		// call under test
+		worker.run(mockProgressCallback, message);
+		// no work should occur when over the max.
+		verifyZeroInteractions(mockIndexDao);
+		verifyZeroInteractions(mockNodeDao);
+		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
 		
 		// no exceptions should occur.
 		verifyZeroInteractions(mockWorkerLog);
@@ -338,7 +374,6 @@ public class EntityReplicationReconciliationWorkerTest {
 			ChangeMessage message = new ChangeMessage();
 			message.setChangeNumber(new Long(i));
 			message.setChangeType(ChangeType.UPDATE);
-			message.setObjectEtag("etag"+i);
 			message.setObjectId("id"+i);
 			message.setObjectType(ObjectType.ENTITY);
 			list.add(message);

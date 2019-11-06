@@ -1,0 +1,21 @@
+{
+	"description": "Request for a list of FormData matching the provided filters.",
+	"properties": {
+		"filterByState": {
+			"description": "Only return results with a state that matches elements from this set.  Required. Must include at least one element.",
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.form.StateEnum"
+			}
+		},
+		"groupId": {
+			"type": "string",
+			"description": "The group identifier. Required."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The results are automatically paginated.  To get the next page, forward the nextPageToken returned from the last request."
+		}
+	}
+}

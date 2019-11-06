@@ -1,33 +1,30 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -37,18 +34,26 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityManagerImplAutowireTest {
 	
@@ -80,7 +85,7 @@ public class EntityManagerImplAutowireTest {
 	
 	private AccessRequirement arToDelete;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		NewUser nu = new NewUser();
@@ -95,12 +100,12 @@ public class EntityManagerImplAutowireTest {
 		activitiesToDelete = new ArrayList<String>();
 		fileHandlesToDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
-		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuth.canCreate((UserInfo)any(), (String)any(), (EntityType)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuth.canCreate((UserInfo)any(), (String)any(), (EntityType)any())).thenReturn(AuthorizationStatus.authorized());
 
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
@@ -141,7 +146,8 @@ public class EntityManagerImplAutowireTest {
 		String sourceId = entityManager.createEntity(userInfo, source, null);
 		toDelete.add(sourceId);
 		// add a restriction to the project
-		arToDelete = accessRequirementManager.createLockAccessRequirement(userInfo, sourceId);
+		AccessRequirement ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, sourceId, "jiraKey");
+		arToDelete = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		Folder child = new Folder();
 		child.setName("child");
 		child.setParentId(sourceId);
@@ -178,27 +184,26 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Folder> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Folder.class);
-		assertNotNull(ewa);
-		assertNotNull(ewa.getAnnotations());
-		assertNotNull(ewa.getEntity());
+		Folder entity = entityManager.getEntity(adminUserInfo, id, Folder.class);
+		assertNotNull(entity);
 		Folder fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		assertNotNull(fetched);
-		assertEquals(ewa.getEntity(), fetched);
+		assertEquals(entity, fetched);
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
 		// Now get the Annotations
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals(ewa.getAnnotations(), annos);
-		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
+		AnnotationsV2TestUtils.putAnnotations(annos, "someNewTestAnnotation", "someStringValue", AnnotationsValueType.STRING);
 		// Update
 		entityManager.updateAnnotations(adminUserInfo,id, annos);
 		// Now make sure it changed
 		annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
-		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
+		AnnotationsValue annoValue = annos.getAnnotations().get("someNewTestAnnotation");
+		assertEquals("someStringValue", AnnotationsV2Utils.getSingleValue(annoValue));
+		assertEquals(AnnotationsValueType.STRING, annoValue.getType());
 		// Now update the dataset
 		fetched = entityManager.getEntity(adminUserInfo, id, Folder.class);
 		fetched.setName("myNewName");
@@ -207,46 +212,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
-	
-	@Test
-	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Folder ds = createDataset();
-		String parentId = entityManager.createEntity(adminUserInfo, ds, null);
-		assertNotNull(parentId);
-		toDelete.add(parentId);
-		List<Folder> layerList = new ArrayList<Folder>();
-		int layers = 3;
-		for(int i=0; i<layers; i++){
-			Folder layer = createLayerForTest(i);
-			layerList.add(layer);
-		}
-		List<String> childrenIds = entityManager.aggregateEntityUpdate(adminUserInfo, parentId, layerList);
-		assertNotNull(childrenIds);
-		assertEquals(layers, childrenIds.size());
-		
-		List<Folder> children = new LinkedList<Folder>();
-		for(String childId: childrenIds){
-			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
-		}
-		assertEquals(layers, children.size());
-		Folder toUpdate = children.get(0);
-		String udpatedId = toUpdate.getId();
-		assertNotNull(udpatedId);
-		toUpdate.setName("updatedName");
-		// Do it again
-		entityManager.aggregateEntityUpdate(adminUserInfo, parentId, children);
-		children = new LinkedList<Folder>();
-		for(String childId: childrenIds){
-			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
-		}
-		assertNotNull(children);
-		assertEquals(layers, children.size());
-		// find the one with the updated name
-		Folder updatedLayer = entityManager.getEntity(adminUserInfo, udpatedId, Folder.class);
-		assertNotNull(updatedLayer);
-		assertEquals("updatedName", updatedLayer.getName());
-	}
-	
+
 	@Test
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Folder study = new Folder();
@@ -255,7 +221,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(id);
 		toDelete.add(id);
 		try{
-			entityManager.getEntityWithAnnotations(adminUserInfo, id, Project.class);
+			entityManager.getEntity(adminUserInfo, id, Project.class);
 			fail("The requested entity type does not match the actaul entity type so this should fail.");
 		}catch(IllegalArgumentException e){
 			// This is expected.
@@ -265,14 +231,6 @@ public class EntityManagerImplAutowireTest {
 			assertTrue(e.getMessage().indexOf(Project.class.getName()) > 0);
 		}
 		
-	}
-
-	private Folder createLayerForTest(int i){
-		Folder layer = new Folder();
-		layer.setName("layerName"+i);
-		layer.setDescription("layerDesc"+i);
-		layer.setCreatedOn(new Date(1001));
-		return layer;
 	}
 
 	@Test
@@ -329,10 +287,8 @@ public class EntityManagerImplAutowireTest {
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
 		ds.setCreatedOn(new Date(1001));
-		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setUri("someUri");
 		return ds;
 	}
 
@@ -360,4 +316,62 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(fileView.getColumnIds(), viewGet.getColumnIds());
 		assertEquals(Lists.newArrayList("4","5"), viewGet.getScopeIds());
 	}
+	
+	/**
+	 * Test added for PLFM-5188
+	 * 
+	 */
+	@Test
+	public void testCreateWithID() {
+		String maxId = KeyFactory.keyToString(Long.MAX_VALUE);
+		Project project = new Project();
+		project.setName(null);
+		project.setId(maxId);
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// the provided ID must not be used.
+		assertFalse(maxId.equals(pid));
+		project = entityManager.getEntity(userInfo, pid, Project.class);
+		// the name should match the newly issued ID.
+		assertEquals(pid, project.getName());
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionTable() {
+		// update a table with newVersion=true;
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		String id = entityManager.createEntity(userInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, table, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
+	}
+	
+	/**
+	 * Test for PLFM-5702
+	 */
+	@Test
+	public void testUpdateEntityNewVersionEntityView() {
+		// update a table with newVersion=true;
+		EntityView view = new EntityView();
+		view.setName("Table");
+		String id = entityManager.createEntity(userInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, id, EntityView.class);
+		toDelete.add(id);
+		boolean newVersion = true;
+		String activityId = null;
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(adminUserInfo, view, newVersion, activityId);
+		// should not create a new version.
+		assertFalse(wasNewVersionCreated);
+	}
+	
 }

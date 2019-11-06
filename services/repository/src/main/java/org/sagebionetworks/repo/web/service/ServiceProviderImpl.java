@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +27,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private EntityBundleService entityBundleService;
 	@Autowired
-	private NodeQueryService nodeQueryService;
-	@Autowired
 	private UserGroupService userGroupService;
 	@Autowired
 	private UserProfileService userProfileService;
@@ -45,7 +45,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private TrashService trashService;
 	@Autowired
-	private DoiService doiService;
+	private DoiServiceV2 doiServiceV2;
 	@Autowired
 	private MigrationService migrationService;
 	@Autowired
@@ -73,11 +73,17 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private DiscussionService discussionService;
 	@Autowired
+	private FormService formService;
+	@Autowired
 	private SubscriptionService subscriptionService;
 	@Autowired
 	private DockerService dockerService;
 	@Autowired
 	private DataAccessService dataAccessService;
+	@Autowired
+	private OpenIDConnectService openIDConnectService;
+	@Autowired
+	private StatisticsService statisticsService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -93,9 +99,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public EntityBundleService getEntityBundleService() {
 		return entityBundleService;
-	}
-	public NodeQueryService getNodeQueryService() {
-		return nodeQueryService;
 	}
 	public UserGroupService getUserGroupService() {
 		return userGroupService;
@@ -132,8 +135,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return trashService;
 	}
 	@Override
-	public DoiService getDoiService() {
-		return doiService;
+	public DoiServiceV2 getDoiServiceV2() {
+		return doiServiceV2;
 	}
 	@Override
 	public MigrationService getMigrationService() {
@@ -191,6 +194,12 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public DiscussionService getDiscussionService() {
 		return discussionService;
 	}
+	
+	@Override
+	public FormService getFormService() {
+		return formService;
+	}
+	
 	@Override
 	public SubscriptionService getSubscriptionService() {
 		return subscriptionService;
@@ -202,5 +211,13 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DataAccessService getDataAccessService() {
 		return dataAccessService;
+	}
+	@Override
+	public OpenIDConnectService getOpenIDConnectService() {
+		return openIDConnectService;
+	}
+	@Override
+	public StatisticsService getStatisticsService() {
+		return statisticsService;
 	}
 }

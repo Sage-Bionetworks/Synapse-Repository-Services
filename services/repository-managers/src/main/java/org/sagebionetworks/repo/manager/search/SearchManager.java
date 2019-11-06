@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.manager.search;
 
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 
-import java.io.IOException;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 
 public interface SearchManager {
 
@@ -49,9 +50,8 @@ public interface SearchManager {
 	void createOrUpdateSearchDocument(Document document);
 
 	/**
-	 * Creates a document based on an Entity or Wiki change that occurred in Synapse. Used by SearchQueueWorker.
-	 * @param change a ChangeMessage representing a change in Synapse
-	 * @throws IOException
+	 * Creates a document based on Entity or Wiki changes that occurred in Synapse. Used by SearchQueueWorker.
+	 * @param changeMessages a batch of ChangeMessages representing changes in Synapse
 	 */
-	void documentChangeMessage(ChangeMessage change) throws IOException;
+	void documentChangeMessages(List<ChangeMessage> changeMessages);
 }

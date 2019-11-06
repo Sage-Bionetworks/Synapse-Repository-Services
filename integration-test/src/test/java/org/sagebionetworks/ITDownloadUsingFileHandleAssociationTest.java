@@ -6,9 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -24,10 +22,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -43,8 +40,8 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	private static String MARKDOWN_NAME = "SmallTextFiles/markdown.txt";
 	private Project project;
 	private File imageFile;
-	private S3FileHandle fileHandle;
-	private S3FileHandle markdownHandle;
+	private FileHandle fileHandle;
+	private FileHandle markdownHandle;
 	private File markdownFile;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 
@@ -53,8 +50,8 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);

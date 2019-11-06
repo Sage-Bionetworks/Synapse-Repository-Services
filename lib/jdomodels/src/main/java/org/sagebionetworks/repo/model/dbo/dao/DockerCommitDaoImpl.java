@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -86,14 +86,13 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 			" WHERE d."+COL_DOCKER_COMMIT_OWNER_ID+"=? AND d."+
 					COL_DOCKER_COMMIT_DIGEST+"=?";
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public String createDockerCommit(String entityId, long modifiedBy, DockerCommit commit) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(commit, "commit");
 		ValidateArgument.required(commit.getCreatedOn(), "commit.createdOn");
 		ValidateArgument.required(commit.getDigest(), "commit.digest");
-		ValidateArgument.required(commit.getTag(), "commit.tag");
 		
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
@@ -111,7 +110,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	}
 	
 	@Override
-	public List<DockerCommit> listDockerCommits(String entityId, 
+	public List<DockerCommit> listDockerTags(String entityId,
 			DockerCommitSortBy sortBy, boolean ascending, long limit, long offset) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(sortBy, "sortBy");

@@ -1,9 +1,5 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.web.service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -15,6 +11,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,13 +22,13 @@ import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,21 +50,8 @@ public class TeamServiceImpl implements TeamService {
 	private NotificationManager notificationManager;
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
-	public TeamServiceImpl() {}
-	
-	// for testing
-	public TeamServiceImpl(TeamManager teamManager, 
-			PrincipalPrefixDAO principalPrefixDAO,
-			UserManager userManager,
-			NotificationManager notificationManager,
-			UserProfileManager userProfileManager) {
-		this.teamManager=teamManager;
-		this.principalPrefixDAO=principalPrefixDAO;
-		this.userManager=userManager;
-		this.notificationManager=notificationManager;
-		this.userProfileManager = userProfileManager;
-	}
+	@Autowired
+	private TokenGenerator tokenGenerator;
 	
 	
 	/* (non-Javadoc)
@@ -122,8 +106,7 @@ public class TeamServiceImpl implements TeamService {
 		if (fragment==null || fragment.trim().length()==0) {
 			return teamManager.list(limit, offset);
 		}
-		boolean isIndividual = false;
-		List<Long> teamIds = principalPrefixDAO.listPrincipalsForPrefix(fragment, isIndividual, limit, offset);
+		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}
@@ -133,30 +116,30 @@ public class TeamServiceImpl implements TeamService {
 	 */
 	@Override
 	public PaginatedResults<TeamMember> getMembers(String teamId,
-			String fragment, long limit, long offset)
+			String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
-		// if there is no prefix provided, we just to a regular paginated query
-		// against the database and return the result.  We also clear out the private fields.
+		if (memberType == null) memberType = TeamMemberTypeFilterOptions.ALL;
+		PaginatedResults<TeamMember> results;
 		if (fragment==null || fragment.trim().length()==0) {
-			PaginatedResults<TeamMember>results = teamManager.listMembers(teamId, limit, offset);
-			for (TeamMember teamMember : results.getResults()) {
-				UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
-			}
-			return results;
+			// if there is no prefix provided, we just do a regular paginated query against the database
+			results = teamManager.listMembers(teamId, memberType, limit, offset);
+		} else {
+			results = teamManager.listMembersForPrefix(fragment, teamId, memberType, limit, offset);
 		}
-		Long teamIdLong = Long.parseLong(teamId);
-		List<Long> memberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, teamIdLong, limit, offset);
-		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
-		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
+		// Clear out the private fields.
+		for (TeamMember teamMember : results.getResults()) {
+			UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
+		}
+		return results;
 	}
-	
+
 	/**
-	 * 
-	 * @param id
+	 *
+	 * @param teamId
 	 * @param fragment
 	 * @return
 	 */
@@ -205,9 +188,10 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#getIconURL(java.lang.String)
 	 */
 	@Override
-	public String getIconURL(String teamId) throws DatastoreException,
+	public String getIconURL(Long userId, String teamId) throws DatastoreException,
 			NotFoundException {
-		return teamManager.getIconURL(teamId);
+		UserInfo userInfo = userManager.getUserInfo(userId);		
+		return teamManager.getIconURL(userInfo, teamId);
 	}
 
 	/* (non-Javadoc)
@@ -234,15 +218,15 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#addMember(java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
 	@Override
-	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint,
+	public boolean addMember(Long userId, String teamId, String principalId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
-		 addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
+		 return addMemberIntern(userId, teamId, principalId, teamEndpoint, notificationUnsubscribeEndpoint);
 	}
 	
 	@Override
 	public ResponseMessage addMember(JoinTeamSignedToken joinTeamToken, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException {
-		SignedTokenUtil.validateToken(joinTeamToken);
+		tokenGenerator.validateToken(joinTeamToken);
 		boolean memberAdded = addMemberIntern(Long.parseLong(joinTeamToken.getUserId()), joinTeamToken.getTeamId(), joinTeamToken.getMemberId(), teamEndpoint, notificationUnsubscribeEndpoint);
 		ResponseMessage responseMessage = new ResponseMessage();
 		UserProfile userProfile = userProfileManager.getUserProfile(joinTeamToken.getMemberId());
@@ -274,7 +258,9 @@ public class TeamServiceImpl implements TeamService {
 		// the method is idempotent.  If the member is already added, it returns false
 		boolean memberAdded = teamManager.addMember(userInfo, teamId, memberUserInfo);
 		
-		if (memberAdded) notificationManager.sendNotifications(userInfo, messages);
+		if (memberAdded) {
+			notificationManager.sendNotifications(userInfo, messages);
+		}
 		
 		return memberAdded;
 	}

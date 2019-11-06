@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import java.net.URISyntaxException;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -23,8 +26,17 @@ public class OAuthManagerImpl implements OAuthManager {
 	}
 
 	@Override
-	public String getAuthorizationUrl(OAuthProvider provider, String redirectUrl) {
-		return getBinding(provider).getAuthorizationUrl(redirectUrl);
+	public String getAuthorizationUrl(OAuthProvider provider, String redirectUrl, String state) {
+		String authURL = getBinding(provider).getAuthorizationUrl(redirectUrl);
+		if (StringUtils.isEmpty(state)) {
+			return authURL;
+		} else {
+			try {
+				return new URIBuilder(authURL).addParameter("state", state).build().toString();
+			} catch (URISyntaxException e) {
+				throw new RuntimeException("Failed to add state "+state+" to url "+authURL, e);
+			}
+		}
 	}
 
 	@Override

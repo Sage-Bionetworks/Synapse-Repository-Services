@@ -5,6 +5,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
@@ -15,6 +16,10 @@ public class MembershipInvitationUtils {
 	// the 'blob' and then populate the individual fields
 
 	public static final String CLASS_ALIAS = "MembershipInvitation";
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypes(MembershipInvitation.class)
+			.alias(CLASS_ALIAS, MembershipInvitation.class)
+			.build();
 
 	public static void copyDtoToDbo(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
@@ -39,7 +44,7 @@ public class MembershipInvitationUtils {
 
 	public static void copyToSerializedField(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		try {
-			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto, CLASS_ALIAS));
+			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -47,7 +52,7 @@ public class MembershipInvitationUtils {
 	
 	public static MembershipInvitation deserialize(byte[] b) {
 		try {
-			return (MembershipInvitation)JDOSecondaryPropertyUtils.decompressedObject(b, CLASS_ALIAS, MembershipInvitation.class);
+			return (MembershipInvitation)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,8 +13,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-import org.junit.Ignore;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
@@ -20,6 +23,12 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
  *
  */
 public class AnnotationsTest {
+	Annotations annotations;
+
+	@BeforeEach
+	public void setUp(){
+		annotations = new Annotations();
+	}
 	
 	@Test
 	public void testAddString(){
@@ -101,7 +110,6 @@ public class AnnotationsTest {
 		Map<String, List<String>> map = anno.getStringAnnotations();
 		assertNull(map.get("key1"));
 		assertNull(anno.getAllValues("key1"));
-		return;
 	}
 	
 	@Test
@@ -117,7 +125,6 @@ public class AnnotationsTest {
 		Map<String, List<Long>> map = anno.getLongAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
@@ -133,7 +140,6 @@ public class AnnotationsTest {
 		Map<String, List<Double>> map = anno.getDoubleAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
@@ -149,12 +155,10 @@ public class AnnotationsTest {
 		Map<String, List<Date>> map = anno.getDateAnnotations();
 		assertNull(map.get("key2"));
 		assertNull(anno.getAllValues("key2"));
-		return;
 	}
 	
 	@Test
-	@Ignore
-	public void testGetStringSingle() {
+	public void testGetSingleValue__results_returned() {
 		Annotations anno = new Annotations();
 		anno.addAnnotation("key1", "value1");
 		anno.addAnnotation("key1", "value2");
@@ -162,8 +166,15 @@ public class AnnotationsTest {
 		String result = (String)anno.getSingleValue("key1");
 		assertNotNull(result);
 		assertEquals("value1", result);
-		return;
 	}
+
+	@Test
+	public void testGetSingleValue__no_result() {
+		Annotations anno = new Annotations();
+		String result = (String)anno.getSingleValue("key1");
+		assertNull(result);
+	}
+
 	@Test
 	public void testGetStringArray() {
 		Annotations anno = new Annotations();
@@ -174,7 +185,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals("value1", result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -187,7 +197,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(new Long(1), result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -200,7 +209,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(new Double(1), result.iterator().next());
-		return;
 	}
 	
 	@Test
@@ -214,7 +222,6 @@ public class AnnotationsTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 		assertEquals(v, result.iterator().next());
-		return;
 	}
 
 	@Test
@@ -222,8 +229,6 @@ public class AnnotationsTest {
 		Annotations anno = new Annotations();
 		anno.setId("9810");
 		anno.setEtag("456");
-		anno.setCreationDate(new Date(10*1000));
-		anno.setUri("http://localhost:8080/");
 		anno.addAnnotation("byteArray", "This is a bigString".getBytes("UTF-8"));
 		anno.addAnnotation("string", "This is a bigString");
 		anno.addAnnotation("string", "2");
@@ -234,19 +239,56 @@ public class AnnotationsTest {
 		anno.getStringAnnotations().put("emptyList", new ArrayList<String>());
 		
 		String json = EntityFactory.createJSONStringForEntity(anno);
-		System.out.println(json);
 		assertNotNull(json);
 		Annotations clone = EntityFactory.createEntityFromJSONString(json, Annotations.class);
-		System.out.println(EntityFactory.createJSONStringForEntity(clone));
 		assertEquals(anno, clone);
 		
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testReplaceDate() {
 		java.sql.Date wrongDate = new java.sql.Date(123L);
 		Annotations anno = new Annotations();
-		anno.replaceAnnotation("wrong", wrongDate);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			anno.replaceAnnotation("wrong", wrongDate);
+		});
+
+	}
+
+	public void testIsEmpty_allMapsEmpty(){
+		Annotations anno = new Annotations();
+		assertTrue(anno.isEmpty());
+	}
+
+	public void testIsEmpty_StringAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", "StringValue");
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_DoubleAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", 6.9);
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_LongAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", 420L);
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_DateAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", new Date());
+		assertFalse(annotations.isEmpty());
+	}
+
+	public void testIsEmpty_BlobAnnotationsNotEmpty(){
+		assertTrue(annotations.isEmpty());
+		annotations.addAnnotation("key", new Object());
+		assertFalse(annotations.isEmpty());
 	}
 
 }

@@ -1,11 +1,12 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,8 +28,8 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.Message;
 
 public class ChangeMessageBatchProcessorTest {
@@ -36,7 +37,7 @@ public class ChangeMessageBatchProcessorTest {
 	@Mock
 	ProgressCallback mockProgressCallback;
 	@Mock
-	AmazonSQSClient mockAwsSQSClient;
+	AmazonSQS mockAwsSQSClient;
 	@Mock
 	ChangeMessageDrivenRunner mockRunner;
 	@Mock
@@ -59,21 +60,19 @@ public class ChangeMessageBatchProcessorTest {
 		MockitoAnnotations.initMocks(this);
 		queueName = "someQueue";
 		queueUrl = "someQueueUrl";
-		when(mockAwsSQSClient.createQueue(queueName)).thenReturn(
-				new CreateQueueResult().withQueueUrl(queueUrl));
+		when(mockAwsSQSClient.getQueueUrl(queueName)).thenReturn(
+				new GetQueueUrlResult().withQueueUrl(queueUrl));
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
 				queueName, mockRunner);
 
 		// one
 		one = new ChangeMessage();
 		one.setChangeType(ChangeType.DELETE);
-		one.setObjectEtag("etag1");
 		one.setObjectId("456");
 		one.setObjectId("synABC");
 		// two
 		two = new ChangeMessage();
 		two.setChangeType(ChangeType.DELETE);
-		two.setObjectEtag("etag2");
 		two.setObjectId("789");
 		two.setObjectId("synXYZ");
 		ChangeMessages messages = new ChangeMessages();
@@ -122,7 +121,7 @@ public class ChangeMessageBatchProcessorTest {
 		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
 				queueName, mockBatchRunner);
 		// setup RecoverableMessageException failures
-		doThrow(new RecoverableMessageException()).when(mockBatchRunner).run(
+		doThrow(new Exception()).when(mockBatchRunner).run(
 				any(ProgressCallback.class), anyListOf(ChangeMessage.class));
 		// call under test
 		processor.run(mockProgressCallback, awsMessage);

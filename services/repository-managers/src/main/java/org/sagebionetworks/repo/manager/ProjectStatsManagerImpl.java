@@ -8,13 +8,11 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +66,7 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.ProjectStatsManager#updateProjectStats(java.lang.Long, java.lang.String, org.sagebionetworks.repo.model.ObjectType, java.util.Date)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateProjectStats(Long principalId, String objectId,
 			ObjectType objectType, Date activityDate) {
@@ -102,7 +100,7 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 	}
 
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void memberAddedToTeam(Long teamId, Long memberId, Date activityDate) {
 		ValidateArgument.required(teamId, "teamId");

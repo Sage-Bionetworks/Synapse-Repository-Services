@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Date;
 import java.util.LinkedList;
@@ -18,14 +18,13 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -64,13 +63,11 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.context.request.NativeWebRequest;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
@@ -95,7 +92,7 @@ public class FileHandleManagerImplAutowireTest {
 	private FileHandleManager fileUploadManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private SynapseS3Client s3Client;
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
@@ -334,29 +331,10 @@ public class FileHandleManagerImplAutowireTest {
 		externalS3LocationSetting.setBanner("upload here");
 		externalS3LocationSetting.setDescription("external");
 		externalS3LocationSetting.setUploadType(UploadType.S3);
-		externalS3LocationSetting.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
+		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
 		s3Client.createBucket(externalS3LocationSetting.getBucket());
-
-		externalS3LocationSetting.setEndpointUrl("https://someurl");
-		try {
-			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-			fail();
-		} catch (NotImplementedException e) {
-		}
-
-		// null, empty or us-east-1 should all not give NotImplementedException
-		for (String host : new String[] { null, "", "https://" + Constants.S3_HOSTNAME }) {
-			externalS3LocationSetting.setEndpointUrl(host);
-
-			try {
-				projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-				fail();
-			} catch (IllegalArgumentException e) {
-				assertTrue(e.getMessage().indexOf("Did not find S3 object") != -1);
-			}
-		}
 
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();
@@ -488,7 +466,7 @@ public class FileHandleManagerImplAutowireTest {
 		S3FileHandle handle = fileUploadManager.createCompressedFileFromString(userId, createdOn, fileContents);
 		assertNotNull(handle);
 		toDelete.add(handle);
-		assertEquals(StackConfiguration.getS3Bucket(), handle.getBucketName());
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), handle.getBucketName());
 		assertEquals("compressed.txt.gz", handle.getFileName());
 		assertNotNull(handle.getContentMd5());
 		assertTrue(handle.getContentSize() > 1);
@@ -517,12 +495,12 @@ public class FileHandleManagerImplAutowireTest {
 	public void testGetWikiFileHandleAnonymous() throws Exception {
 		Date now = new Date();
 		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
-				.getId().toString(), now, "markdown contents".getBytes("UTF-8"), "markdown.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, "markdown contents".getBytes(StandardCharsets.UTF_8), "markdown.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(markdownHandle);
 		S3FileHandle attachmentFileHandle = fileUploadManager.createFileFromByteArray(userInfo
-				.getId().toString(), now, "attachment data".getBytes("UTF-8"), "attachment.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, "attachment data".getBytes(StandardCharsets.UTF_8), "attachment.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		toDelete.add(attachmentFileHandle);
 
 		// add a wiki to the project

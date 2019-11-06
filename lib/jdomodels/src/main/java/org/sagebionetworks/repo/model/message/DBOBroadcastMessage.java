@@ -12,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -92,19 +93,7 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 
 	@Override
 	public MigratableTableTranslation<DBOBroadcastMessage, DBOBroadcastMessage> getTranslator() {
-		return new MigratableTableTranslation<DBOBroadcastMessage, DBOBroadcastMessage>(){
-
-			@Override
-			public DBOBroadcastMessage createDatabaseObjectFromBackup(
-					DBOBroadcastMessage backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOBroadcastMessage createBackupFromDatabaseObject(
-					DBOBroadcastMessage dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOBroadcastMessage>();
 	}
 
 	@Override
@@ -120,6 +109,39 @@ public class DBOBroadcastMessage implements MigratableDatabaseObject<DBOBroadcas
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
+	}
+
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((changeNumber == null) ? 0 : changeNumber.hashCode());
+		result = prime * result + ((sentOn == null) ? 0 : sentOn.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOBroadcastMessage other = (DBOBroadcastMessage) obj;
+		if (changeNumber == null) {
+			if (other.changeNumber != null)
+				return false;
+		} else if (!changeNumber.equals(other.changeNumber))
+			return false;
+		if (sentOn == null) {
+			if (other.sentOn != null)
+				return false;
+		} else if (!sentOn.equals(other.sentOn))
+			return false;
+		return true;
 	}
 
 }

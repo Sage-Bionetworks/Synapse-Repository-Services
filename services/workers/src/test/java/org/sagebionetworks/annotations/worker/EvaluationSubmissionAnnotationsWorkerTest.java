@@ -1,15 +1,18 @@
 package org.sagebionetworks.annotations.worker;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -19,26 +22,25 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.dao.TransientDataAccessException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Test for AnnotationsWorker
  */
+@RunWith(MockitoJUnitRunner.class)
 public class EvaluationSubmissionAnnotationsWorkerTest {
-	
+	@Mock
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
+	@Mock
 	WorkerLogger mockWorkerLogger;
-	EvaluationSubmissionAnnotationsWorker worker;
+	@Mock
 	ProgressCallback mockProgressCallback;
-	
+
+	@InjectMocks
+	EvaluationSubmissionAnnotationsWorker worker;
+
+
 	@Before
 	public void before(){
-		mockDAO = Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
-		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-		worker = new EvaluationSubmissionAnnotationsWorker();
-		ReflectionTestUtils.setField(worker, "ssAsyncMgr", mockDAO);
-		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLogger);
 	}
 	
 	/**
@@ -53,8 +55,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the DAO should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
-		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class));
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class));
 	}
 	
 	@Test
@@ -66,8 +68,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
-		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
+		verify(mockDAO).updateEvaluationSubmissionStatuses(message.getObjectId());
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any());
 	}
 	
 	@Test
@@ -79,8 +81,8 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
-		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any());
+		verify(mockDAO).deleteEvaluationSubmissionStatuses(message.getObjectId());
 	}
 	
 	
@@ -103,7 +105,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
+		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(any());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -126,7 +128,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a runtime exception
-		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
+		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(any());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -134,12 +136,11 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	public void testDeadlockException() throws Exception {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.CREATE);
-		message.setObjectEtag("etag");
 		message.setObjectId("101");
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		doThrow(new TransientDataAccessException("foo", null) {
 			private static final long serialVersionUID = 1L;
-		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString(), anyString());
+		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString());
 		// Make the call
 		worker.run(mockProgressCallback, message);
 	}

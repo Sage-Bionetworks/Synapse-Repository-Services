@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
+	<import resource="classpath:cloudwatch-trigger-spb.xml" />
+
+	<bean id="memoryLogger" class="org.sagebionetworks.repo.memory.MemoryLogger">
+		<constructor-arg index="0" value="Workers"/>
+	</bean>
+
+	<!-- Trigger to drive the memory logger -->
+	<bean id="memoryLoggerTrigger"
+		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="memoryLogger" />
+				<property name="targetMethod" value="onTimerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="500" />
+		<property name="repeatInterval" value="10" />
+	</bean>
+	
+	<!-- This trigger pushes the collected synapse events to kinesis -->
+	<bean id="eventsQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="eventsCollectorImpl" />
+				<property name="targetMethod" value="flush" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="200" />
+		<property name="repeatInterval" value="5000" />
+	</bean>
+
+</beans>

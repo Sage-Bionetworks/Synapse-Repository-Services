@@ -17,7 +17,7 @@ public class VerificationFileHandleAssociationProvider implements
 
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
 		List<Long> associatedIds = verificationDao.listFileHandleIds(Long.parseLong(objectId));
 		Set<String> result = new HashSet<String>();

@@ -24,7 +24,6 @@ public class ChangeMessageUtilsTest {
 		ChangeMessage change = new ChangeMessage();
 		change.setChangeNumber(Long.MAX_VALUE);
 		change.setChangeType(ChangeType.UPDATE);
-		change.setObjectEtag("a4fc5142-6a33-4255-bb47-6dbb0e3f055c");
 		change.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		change.setObjectId("" + Long.MAX_VALUE);
 		change.setTimestamp(new Date(292278993));
@@ -80,4 +79,5 @@ public class ChangeMessageUtilsTest {
 		assertEquals(1, groupPartitions.size());
 		assertEquals(Arrays.asList(four), groupPartitions.get(0));
 	}
+
 }

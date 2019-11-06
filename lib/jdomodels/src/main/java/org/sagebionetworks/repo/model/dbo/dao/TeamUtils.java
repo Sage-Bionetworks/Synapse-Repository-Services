@@ -23,10 +23,12 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class TeamUtils {
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Team.class).build();
 
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
@@ -47,7 +49,7 @@ public class TeamUtils {
 
 	public static void copyToSerializedField(Team dto, DBOTeam dbo) throws DatastoreException {
 		try {
-			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -55,7 +57,7 @@ public class TeamUtils {
 	
 	public static Team deserialize(byte[] b) {		
 		try {
-			return (Team)JDOSecondaryPropertyUtils.decompressedObject(b);
+			return (Team)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

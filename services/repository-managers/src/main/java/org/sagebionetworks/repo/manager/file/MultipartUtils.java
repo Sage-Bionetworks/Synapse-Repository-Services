@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -23,9 +24,11 @@ public class MultipartUtils {
 	public static String getBucket(StorageLocationSetting storageLocationSetting) {
 		String bucket;
 		if (storageLocationSetting == null || storageLocationSetting instanceof S3StorageLocationSetting) {
-			bucket = StackConfiguration.getS3Bucket();
+			bucket = StackConfigurationSingleton.singleton().getS3Bucket();
 		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			bucket = ((ExternalS3StorageLocationSetting) storageLocationSetting).getBucket();
+		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
+			bucket = ((ExternalGoogleCloudStorageLocationSetting) storageLocationSetting).getBucket();
 		} else {
 			throw new IllegalArgumentException("Cannot get bucket from storage location setting type " + storageLocationSetting.getClass());
 		}
@@ -45,6 +48,11 @@ public class MultipartUtils {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
 			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getBaseKey())) {
 				base = externalS3StorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+			}
+		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
+			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
+			if (!StringUtils.isEmpty(externalGoogleCloudStorageLocationSetting.getBaseKey())) {
+				base = externalGoogleCloudStorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
 			}
 		}
 		return String.format(FILE_TOKEN_TEMPLATE, base, userId, UUID.randomUUID().toString(), fileName);

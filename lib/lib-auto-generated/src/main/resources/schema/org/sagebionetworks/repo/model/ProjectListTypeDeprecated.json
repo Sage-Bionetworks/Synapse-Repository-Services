@@ -1,0 +1,30 @@
+{
+    "description": "Enum for the different types of project lists",
+    "type": "string",
+    "enum": [
+        {
+            "name": "MY_PROJECTS",
+            "description": "deprecated"
+        },
+        {
+            "name": "MY_CREATED_PROJECTS",
+            "description": "deprecated"
+        },
+        {
+            "name": "MY_PARTICIPATED_PROJECTS",
+            "description": "deprecated"
+        },
+        {
+            "name": "MY_TEAM_PROJECTS",
+            "description": "deprecated"
+        },
+        {
+            "name": "OTHER_USER_PROJECTS",
+            "description": "deprecated"
+        },
+        {
+            "name": "TEAM_PROJECTS",
+            "description": "deprecated"
+        }
+    ]
+}

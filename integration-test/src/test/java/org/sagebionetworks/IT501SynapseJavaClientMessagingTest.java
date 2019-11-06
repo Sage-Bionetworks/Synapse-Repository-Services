@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -24,6 +25,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -49,7 +51,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static final Long OFFSET = 0L;
 	private static final String MESSAGE_BODY = "Blah blah blah\n";
 	private static final String MESSAGE_BODY_WITH_EXTENDED_CHARS = "G\u00E9rard Depardieum, Camille Saint-Sa\u00EBns and Myl\u00E8ne Demongeot";
-
+	private static final long MAX_MESSAGE_WAIT = 60 * 1000;
 
 	private static String oneId;
 	private static String twoId;
@@ -69,8 +71,8 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
@@ -106,28 +108,53 @@ public class IT501SynapseJavaClientMessagingTest {
 
 		oneToTwo = new MessageToUser();
 		oneToTwo.setFileHandleId(oneToRuleThemAll.getId());
-		oneToTwo.setRecipients(new HashSet<String>() {
-			{
-				add(twoId);
-			}
-		});
+		oneToTwo.setRecipients(Collections.singleton(twoId));
 		oneToTwo = synapseOne.sendMessage(oneToTwo);
 		cleanup.add(oneToTwo.getId());
+		
+		waitForMessage(synapseTwo, oneToTwo.getId());
 
 		twoToOne = new MessageToUser();
 		twoToOne.setFileHandleId(oneToRuleThemAll.getId());
-		twoToOne.setRecipients(new HashSet<String>() {
-			{
-				add(oneId);
-			}
-		});
+		twoToOne.setRecipients(Collections.singleton(oneId));
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 		cleanup.add(twoToOne.getId());
+		
+		waitForMessage(synapseOne, twoToOne.getId());
 
 		fileHandleIdWithExtendedChars = null;
 	}
 
+	/**
+	 * Wait for the message with the given id to reach the inbox of the given client with an UNREAD status
+	 * 
+	 * @param client
+	 * @param messageId
+	 * @throws Exception
+	 */
+	private void waitForMessage(SynapseClient client, String messageId) throws Exception {
+		long start = System.currentTimeMillis();
+		
+		while (true) {
+			
+			if (System.currentTimeMillis() - start >= MAX_MESSAGE_WAIT) {
+				throw new IllegalStateException("Timed out waiting for message: " + messageId);
+			}
+			
+			System.out.println("Waiting for message (" + messageId + ") to reach inbox...");
+			
+			PaginatedResults<MessageBundle> inbox = client.getInbox(Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, LIMIT, OFFSET);
+		
+			if (!inbox.getResults().isEmpty() && inbox.getResults().get(0).getMessage().getId().equals(messageId)) {
+				return;
+			}
+			
+			Thread.sleep(1000);
+			
+		}
+	}
+	
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
@@ -201,6 +228,8 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageToUser forwarded = synapseOne.forwardMessage(oneToTwo.getId(), recipients);
 		cleanup.add(forwarded.getId());
 		
+		waitForMessage(synapseOne, forwarded.getId());
+		
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(2, messages.getResults().size());
@@ -242,7 +271,7 @@ public class IT501SynapseJavaClientMessagingTest {
 				oneToTwo = synapseOne.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
 			} catch (SynapseServerException e) {
-				if (e.getStatusCode()==429) {
+				if (e instanceof SynapseTooManyRequestsException) {
 					gotNerfed = true;
 					break;
 				}
@@ -309,6 +338,8 @@ public class IT501SynapseJavaClientMessagingTest {
 		twoToOne.setRecipients(null);
 		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());
 		cleanup.add(message.getId());
+		
+		waitForMessage(synapseOne, message.getId());
 		
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				MessageSortBy.SEND_DATE, true, LIMIT, OFFSET);

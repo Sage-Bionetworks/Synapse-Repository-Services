@@ -33,7 +33,9 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +73,8 @@ public class DBOAccessControlListDAOImplTest {
 	private Long createdById;
 	private Long modifiedById;
 	
+	private UserInfo userInfo;
+	
 	@Before
 	public void setUp() throws Exception {
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -94,16 +98,25 @@ public class DBOAccessControlListDAOImplTest {
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group).toString());
+		Long groupOneId = userGroupDAO.create(group);
+		group.setId(groupOneId.toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
 
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
-		group2.setId(userGroupDAO.create(group2).toString());
+		Long groupTwoId = userGroupDAO.create(group2);
+		group2.setId(groupTwoId.toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
+		
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(true);
+		Long userId = userGroupDAO.create(ug);
+		boolean isAdmin = false;
+		userInfo = new UserInfo(isAdmin, userId);
+		userInfo.setGroups(Sets.newHashSet(userId, groupOneId, groupTwoId));
 
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
@@ -160,7 +173,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#getForResource(java.lang.String)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, org.sagebionetworks.repo.model.ObjectType)}.
 	 */
 	@Test
 	public void testGetForResource() throws Exception {
@@ -184,7 +197,7 @@ public class DBOAccessControlListDAOImplTest {
 
 	
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Set, java.lang.String, org.sagebionetworks.repo.model.ObjectType, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
@@ -203,6 +216,17 @@ public class DBOAccessControlListDAOImplTest {
 		gs.clear();
 		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testCanAccessStatus() throws Exception {
+		// call under test
+		AuthorizationStatus status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertTrue(status.isAuthorized());
+		// call under test
+		status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		assertFalse(status.isAuthorized());
+		assertEquals("You do not have UPDATE permission for ENTITY : "+node.getId(), status.getMessage());
 	}
 	
 	@Test
@@ -275,7 +299,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, Long)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, ObjectType)}.
 	 */
 	@Test
 	public void testGet() throws Exception {
@@ -391,7 +415,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.Base)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.AccessControlList, org.sagebionetworks.repo.model.ObjectType)}.
 	 */
 	@Test
 	public void testUpdate() throws Exception {
@@ -586,11 +610,11 @@ public class DBOAccessControlListDAOImplTest {
 	}
 	
 	@Test
-	public void testGetNonVisibleChilrenOfEntity(){
+	public void testGetNonVisibleChildrenOfEntity(){
 		// add three children to the project
-		Node visibleToBoth = createFolder("visibleToBoth");
-		Node visibleToOne = createFolder("visibleToOne");
-		Node visibleToTwo = createFolder("visibleToTwo");
+		Node visibleToBoth = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToBoth", createdById, modifiedById, node.getId()));
+		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
+		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
 		
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
@@ -629,10 +653,10 @@ public class DBOAccessControlListDAOImplTest {
 	@Test
 	public void testGetChildrenEntitiesWithAcls(){
 		// add three children to the project
-		Node visibleToBoth = createFolder("visibleToBoth");
-		Node visibleToOne = createFolder("visibleToOne");
-		Node visibleToTwo = createFolder("visibleToTwo");
-		
+		Node visibleToBoth = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToBoth", createdById, modifiedById, node.getId()));
+		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
+		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
+
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
@@ -658,18 +682,5 @@ public class DBOAccessControlListDAOImplTest {
 		List<Long> results = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>());
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
-	}
-	
-	public Node createFolder(String name){
-		Node folder = new Node();
-		folder.setName(name);
-		folder.setCreatedOn(new Date());
-		folder.setCreatedByPrincipalId(createdById);
-		folder.setModifiedOn(new Date());
-		folder.setModifiedByPrincipalId(modifiedById);
-		folder.setNodeType(EntityType.folder);
-		// use the project as the parent
-		folder.setParentId(node.getId());
-		return nodeDAO.createNewNode(folder);
 	}
 }

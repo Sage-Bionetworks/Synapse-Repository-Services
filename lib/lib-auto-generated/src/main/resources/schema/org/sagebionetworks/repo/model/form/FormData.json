@@ -1,0 +1,43 @@
+{
+	"description": "User's data gathered from a form template. All FormData belongs to a single FormGroup.",
+	"properties": {
+		"formDataId": {
+			"type": "string",
+			"description": "The system issued identifier that uniquely identifies this object."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Will change whenever there is a change to the this data or its status."
+		},
+		"groupId": {
+			"type": "string",
+			"description": "The identifier of the group that manages this data. Required."
+		},
+		"name": {
+			"type": "string",
+			"description": "User provided name for this submission. Required."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "Id of the user that created this object"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date this object was originally created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description": "The date this object was last modified."
+		},
+		"dataFileHandleId": {
+			"type": "string",
+			"description": "The identifier of the data FileHandle for this object."
+		},
+		"submissionStatus" : {
+			"description": "The submission status of this object.",
+			"$ref": "org.sagebionetworks.repo.model.form.SubmissionStatus"
+		}
+	}
+}

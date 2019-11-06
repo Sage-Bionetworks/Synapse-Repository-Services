@@ -1,6 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_REQUEST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_REQUEST;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -11,6 +21,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -238,19 +249,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 
 	@Override
 	public MigratableTableTranslation<DBORequest, DBORequest> getTranslator() {
-		return new MigratableTableTranslation<DBORequest, DBORequest>(){
-
-			@Override
-			public DBORequest createDatabaseObjectFromBackup(DBORequest backup) {
-				return backup;
-			}
-
-			@Override
-			public DBORequest createBackupFromDatabaseObject(DBORequest dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBORequest>();
 	}
 
 	@Override

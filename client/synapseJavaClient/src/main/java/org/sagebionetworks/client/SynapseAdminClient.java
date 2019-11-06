@@ -1,19 +1,17 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupAliasType;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -21,8 +19,10 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for the Synapse Administration client.
@@ -39,27 +39,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException;
-	
-	/**
-	 * Get one page of metatdata for the given MigrationType
-	 * 
-	 * @param migrationType
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException;
-	
-	/**
-	 * 
-	 * @param type
-	 * @param minId
-	 * @param maxId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException;
 	
 	/**
 	 * Get the counts for all types
@@ -105,45 +84,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public MigrationTypeNames getMigrationTypeNames() throws SynapseException;
-
-	/**
-	 * Delete a list of IDs
-	 * 
-	 * @param migrationType
-	 * @param ids
-	 * @return
-	 * @throws SynapseException
-	 */
-	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException;
-	
-	/**
-	 * Start a backup daemon task
-	 * @param migrationType
-	 * @param ids
-	 * @param backupAliasType
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids, BackupAliasType backupAliasType) throws SynapseException;
-	
-	/**
-	 * Start a restore daemon task
-	 * @param migrationType
-	 * @param req
-	 * @param backupAliasType
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req, BackupAliasType backupAliasType) throws SynapseException;
-	
-	/**
-	 * Get the status of a daemon backup/restore task
-	 * @param daemonId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus getStatus(String daemonId) throws SynapseException;
-	
+		
 	/**
 	 * Get checksum for migration type and range of ids
 	 * @throws SynapseException 
@@ -218,9 +159,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException;
 	
-	public BackupRestoreStatus getDaemonStatus(String daemonId)
-			throws SynapseException;
-
 	/**
 	 * List change messages.
 	 * @param startChangeNumber - The change number to start from.
@@ -257,15 +195,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	void clearAllLocks() throws SynapseException;
 
 	/**
-	 * Don't return unless someone makes this call with release set to true. Only used for testing to emulate long
-	 * running calls
-	 * 
-	 * @param release
-	 * @throws SynapseException
-	 */
-	public void waitForTesting(boolean release) throws SynapseException;
-
-	/**
 	 * Create or update change messages
 	 */
 	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
@@ -287,5 +216,62 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
+	
+	/**
+	 * Create an export of the ID generator.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public IdGeneratorExport createIdGeneratorExport() throws SynapseException;
+
+	/**
+	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
+	 * @param submissionId
+	 * @param contributor
+	 * @return
+	 */
+	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor) throws SynapseException;
+
+	/**
+	 * For integration testing only:  This allows an administrator to set the Certified user status
+	 * of a user.
+	 * @param prinicipalId
+	 * @param status
+	 * @throws SynapseException
+	 */
+	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
+
+	/**
+	 * Must be a Synapse admin to make this request
+	 *
+	 * @param offset
+	 * @param limit
+	 * @param principalId (optional)
+	 * @return the C.U. test responses in the system, optionally filtered by principalId
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
+
+	/**
+	 * Get all Passing Records on the Certified User test for the given user
+	 */
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
+
+	
+	/**
+	 * Delete the Test Response indicated by the given id
+	 * 
+	 * Must be a Synapse admin to make this request
+	 * 
+	 * @param id
+	 * @throws SynapseException 
+	 */
+	public void deleteCertifiedUserTestResponse(String id) throws SynapseException;
+
+	
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	public void deleteMessage(String messageId) throws SynapseException;
 
 }

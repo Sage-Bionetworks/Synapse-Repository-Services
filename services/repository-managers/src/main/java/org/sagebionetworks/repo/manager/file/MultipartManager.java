@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.File;
 import java.net.URL;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -10,10 +9,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.amazonaws.event.ProgressListener;
 
 /**
  * Abstraction for multi-part support.
@@ -89,14 +85,10 @@ public interface MultipartManager {
 	String getChunkPartKey(ChunkedFileToken token, int partNumber);
 
 	/**
+	 * Upload local file to S3.
 	 * 
-	 * @param bucket
-	 * @param userId
-	 * @param fileToUpload
-	 * @param contentType
-	 * @param listener
+	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(Long storageLocationId, String userId, File fileToUpload, String contentType,
-			ProgressListener listener);
+	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 }

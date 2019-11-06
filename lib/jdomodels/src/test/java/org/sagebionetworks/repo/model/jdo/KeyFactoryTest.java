@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 import com.google.common.collect.Lists;
 
@@ -89,5 +93,39 @@ public class KeyFactoryTest {
 		assertTrue(KeyFactory.equals("1", "syn1"));
 		assertTrue(KeyFactory.equals("syn1", "1"));
 		assertTrue(KeyFactory.equals("SYN1", " syn1 "));
+	}
+	
+	@Test
+	public void testCompare() {
+		assertEquals(0, KeyFactory.compare(null, null));
+		assertEquals(1, KeyFactory.compare("syn123", null));
+		assertEquals(-1, KeyFactory.compare(null, "syn123"));
+		assertEquals(0, KeyFactory.compare("syn123", "syn123"));
+		assertEquals(0, KeyFactory.compare("123", "syn123"));
+		assertEquals(0, KeyFactory.compare("syn123", "123"));
+		assertEquals(1, KeyFactory.compare("syn1234", "syn123"));
+		assertEquals(1, KeyFactory.compare("1234", "syn123"));
+		assertEquals(1, KeyFactory.compare("syn1234", "123"));
+		assertEquals(-1, KeyFactory.compare("syn123", "syn1234"));
+		assertEquals(-1, KeyFactory.compare("123", "syn1234"));
+		assertEquals(-1, KeyFactory.compare("syn123", "1234"));
+	}
+	
+	@Test
+	public void testIdAndVersionNullVersion() {
+		String entityId = "syn123";
+		Long versionNumber = null;
+		IdAndVersion result = KeyFactory.idAndVersion(entityId, versionNumber);
+		IdAndVersion expected = IdAndVersion.parse(entityId);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testIdAndVersionWithVersion() {
+		String entityId = "syn123";
+		Long versionNumber = 45L;
+		IdAndVersion result = KeyFactory.idAndVersion(entityId, versionNumber);
+		IdAndVersion expected = IdAndVersion.parse(entityId+"."+versionNumber);
+		assertEquals(expected, result);
 	}
 }

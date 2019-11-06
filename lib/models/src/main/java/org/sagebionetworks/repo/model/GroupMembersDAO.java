@@ -11,31 +11,39 @@ public interface GroupMembersDAO {
 	/**
 	 * Retrieves the IDs of direct members of the given principalId
 	 */
-	public List<UserGroup> getMembers(String principalId) 
+	List<UserGroup> getMembers(String principalId) 
 			throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Return the subset of groups in which the given principal is a member
+	 * @param principalId
+	 * @param groupIds
+	 * @return
+	 */
+	List<String> filterUserGroups(String principalId, List<String> groupIds);
 	
 	/**
 	 * Adds the list of principal IDs to the group
 	 */
-	public void addMembers(String groupId, List<String> memberIds) 
+	void addMembers(String groupId, List<String> memberIds) 
 			throws DatastoreException, NotFoundException, IllegalArgumentException;
 	
 	/**
 	 * Removes the list of principal IDs from the group
 	 */
-	public void removeMembers(String groupId, List<String> memberIds) 
+	void removeMembers(String groupId, List<String> memberIds) 
 			throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Retrieves the list of groups the given user belongs to
 	 */
-	public List<UserGroup> getUsersGroups(String principalId) 
+	List<UserGroup> getUsersGroups(String principalId) 
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Ensure the bootstrap users are in the correct bootstrap groups
 	 */
-	public void bootstrapGroups() throws Exception;
+	void bootstrapGroups() throws Exception;
 
 	/**
 	 * Returns all individual userIds from the given set of principalIds. For a
@@ -47,7 +55,7 @@ public interface GroupMembersDAO {
 	 * @param offset
 	 * @return
 	 */
-	public Set<String> getIndividuals(Set<String> principalIds, Long limit, Long offset);
+	Set<String> getIndividuals(Set<String> principalIds, Long limit, Long offset);
 
 	/**
 	 * Returns the count of all individual userIds from the given set of principalIds.
@@ -57,19 +65,26 @@ public interface GroupMembersDAO {
 	 * @param principalIds
 	 * @return
 	 */
-	public Long getIndividualCount(Set<String> principalIds);
+	Long getIndividualCount(Set<String> principalIds);
 
 	/**
 	 * 
 	 * @param userIds
 	 * @return true if all users are members of groupId; false otherwise.
 	 */
-	public boolean areMemberOf(String groupId, Set<String> userIds);
+	boolean areMemberOf(String groupId, Set<String> userIds);
 	
 	/**
 	 * Get the IDs of all members in this team.
 	 * @param teamId
 	 * @return
 	 */
-	public Set<Long> getMemberIds(Long teamId);
+	Set<Long> getMemberIds(Long teamId);
+
+	/**
+	 * Get the IDs of all members in the giving team locking for update.
+	 * @param teamId
+	 * @return
+	 */
+	Set<Long> getMemberIdsForUpdate(Long teamId);
 }

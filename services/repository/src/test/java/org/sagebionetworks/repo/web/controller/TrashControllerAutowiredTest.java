@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -25,8 +27,6 @@ import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import junit.framework.Assert;
-
-import static org.junit.Assert.*;
 
 public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
@@ -70,11 +70,10 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		child = new Folder();
 		child.setName("TrashControllerAutowiredTest.child");
 		child.setParentId(parent.getId());
-		child.setEntityType(Folder.class.getName());
 		child = servletTestHelper.createEntity(dispatchServlet, child, testUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
-		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId, null);
+		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId);
 		Assert.assertEquals(parent.getId(), benefactor.getId());
 	}
 
@@ -149,7 +148,6 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		child2 = new Link();
 		child2.setName("TrashControllerAutowiredTest.link");
 		child2.setParentId(parent.getId());
-		child2.setEntityType(Link.class.getName());
 		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserId);
 
 		// Move the Link to the trash can

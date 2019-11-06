@@ -4,19 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-import org.sagebionetworks.table.query.util.TableSqlProcessor;
 
 import com.google.common.collect.Lists;
 
@@ -275,6 +270,24 @@ public class SqlElementUntilsTest {
 	public void testCreateCountSimpleAggregateMultipleAggregate() throws ParseException, SimpleAggregateQueryException{
 		QuerySpecification model = new TableQueryParser("select sum(foo), max(bar) from syn123").querySpecification();
 		SqlElementUntils.createCountSql(model);
+	}
+	
+	@Test
+	public void testBuildSqlSelectRowIds() throws ParseException, SimpleAggregateQueryException {
+		long limit = 100;
+		QuerySpecification model = new TableQueryParser("select * from T123 WHERE _C2_ = 'BAR' ORDER BY _C1_").querySpecification();
+		// call under test
+		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
+		assertEquals("SELECT ROW_ID FROM T123 WHERE _C2_ = 'BAR' LIMIT 100", countSql);
+	}
+	
+	@Test
+	public void testBuildSqlSelectRowIdsInputWithLimit() throws ParseException, SimpleAggregateQueryException {
+		long limit = 100;
+		QuerySpecification model = new TableQueryParser("select * from T123 limit 200 offset 100").querySpecification();
+		// call under test
+		String countSql = SqlElementUntils.buildSqlSelectRowIds(model, limit);
+		assertEquals("SELECT ROW_ID FROM T123 LIMIT 100", countSql);
 	}
 	
 	@Test

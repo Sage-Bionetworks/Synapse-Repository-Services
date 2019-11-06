@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
@@ -20,6 +23,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartErrors;
 import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -44,6 +48,7 @@ public class MultipartUploadDAOImplTest {
 	Long userId;
 	String hash;
 	String uploadToken;
+	UploadType uploadType;
 	String bucket;
 	String key;
 	Integer numberOfParts;
@@ -74,11 +79,12 @@ public class MultipartUploadDAOImplTest {
 		request.setStorageLocationId(storageLocationId);
 		// Upload tokens can be large
 		uploadToken = "n0LRZqFh9zvMZAIY_PInQBJdKxrqRwbOa8W4JJ.X1DiiqI8bJsh.LOWMAENIemWgfLNwCrs0J2xYiIPcKvK6uW9igwCoaYWgSrkLuwIbaJ6au85CYlCGfK8oUcDByxiI";
+		uploadType = UploadType.S3;
 		bucket = "someBucket";
 		key = "someKey";
 		numberOfParts = 11;
 		requestJSON = EntityFactory.createJSONStringForEntity(request);
-		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, bucket, key,numberOfParts);
+		createRequest = new CreateMultipartRequest(userId, hash, requestJSON, uploadToken, uploadType, bucket, key,numberOfParts);
 	}
 
 	

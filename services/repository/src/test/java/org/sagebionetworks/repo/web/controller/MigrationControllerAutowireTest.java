@@ -4,10 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -21,23 +19,20 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MigrationControllerAutowireTest extends AbstractAutowiredControllerTestBase {
-	
-	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
-	
+
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -53,10 +48,9 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 	
 	Project entity;
 	S3FileHandle handleOne;
-	PreviewFileHandle preview;
+	S3FileHandle preview;
 	long startFileCount;
-	long startMinId;
-	
+
 	@Before
 	public void before() throws Exception{
 		// get user IDs
@@ -66,33 +60,16 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		startFileCount = fileHandleDao.getCount();
 
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
-		handleOne.setKey("mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
-		// Create a preview
-		preview = new PreviewFileHandle();
-		preview.setCreatedBy(adminUserIdString);
-		preview.setCreatedOn(new Date());
-		preview.setBucketName("bucket");
-		preview.setKey("previewFileKey");
-		preview.setEtag("etag");
-		preview.setFileName("bar.txt");
-		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		preview.setEtag(UUID.randomUUID().toString());
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(handleOne);
-		fileHandleToCreate.add(preview);
+		// Create a preview
+		preview = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+
+		List<FileHandle> fileHandleToCreate = Arrays.asList(handleOne, preview);
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		preview = (PreviewFileHandle) fileHandleDao.get(preview.getId());
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), preview.getId());
 	}
@@ -128,22 +105,6 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		expectedCount.setType(MigrationType.FILE_HANDLE);
 		MigrationTypeCount mtc = entityServletHelper.getMigrationTypeCount(adminUserId, MigrationType.FILE_HANDLE);
 		assertNotNull(mtc);
-	}
-	
-	@Test
-	public void testRowMetadata() throws Exception {
-		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadata(adminUserId, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startFileCount);
-		assertNotNull(results);
-		assertNotNull(results.getList());
-	}
-	
-	@Test
-	public void testRowMetadataByRange() throws Exception {
-		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadataByRange(adminUserId, MigrationType.FILE_HANDLE, Long.parseLong(handleOne.getId()), Long.parseLong(preview.getId()), Long.MAX_VALUE, 0L);
-		assertNotNull(results);
-		assertNotNull(results.getList());
 	}
 	
 	@Test

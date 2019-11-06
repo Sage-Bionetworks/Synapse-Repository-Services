@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
+import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,7 +12,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -27,10 +26,10 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
-import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadEntityReference;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -39,7 +38,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.discussion.MessageKeyUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -70,7 +69,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread createThread) throws IOException {
 		ValidateArgument.required(createThread, "createThread");
@@ -83,8 +82,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		if (authorizationManager.isAnonymousUser(userInfo)){
 			throw new UnauthorizedException(ANONYMOUS_ACCESS_DENIED_REASON);
 		}
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		Long id = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
@@ -96,7 +94,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		return thread;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
 		ValidateArgument.required(threadId, "threadId");
@@ -105,14 +103,12 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DEFAULT_FILTER);
 		if (thread.getIsDeleted()) {
 			try {
-				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-						authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+				authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.MODERATE).checkAuthorizationOrElseThrow();
 			} catch (UnauthorizedException e) {
 				throw new NotFoundException();
 			}
 		} else {
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+			authorizationManager.canAccess(userInfo, thread.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		}
 		threadDao.updateThreadView(threadIdLong, userInfo.getId());
 		transactionalMessenger.sendMessageAfterCommit(threadId, ObjectType.THREAD, thread.getEtag(),  ChangeType.UPDATE, userInfo.getId());
@@ -125,11 +121,10 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(accessType, "accessType");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = threadDao.getProjectId(threadId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType));
+		authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, accessType).checkAuthorizationOrElseThrow();
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle) {
 		ValidateArgument.required(threadId, "threadId");
@@ -147,7 +142,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public DiscussionThreadBundle updateMessage(UserInfo userInfo, String threadId,
 			UpdateThreadMessage newMessage) throws IOException {
@@ -167,14 +162,14 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void markThreadAsDeleted(UserInfo userInfo, String threadId) {
 		checkPermission(userInfo, threadId, ACCESS_TYPE.MODERATE);
 		threadDao.markThreadAsDeleted(Long.parseLong(threadId));
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void pinThread(UserInfo userInfo, String threadId) {
 		if (threadDao.isThreadDeleted(threadId)) {
@@ -184,7 +179,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		threadDao.pinThread(Long.parseLong(threadId));
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void unpinThread(UserInfo userInfo, String threadId) {
 		if (threadDao.isThreadDeleted(threadId)) {
@@ -211,11 +206,9 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
 		if (filter.equals(DiscussionFilter.EXCLUDE_DELETED)) {
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+			authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		} else {
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
+			authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE).checkAuthorizationOrElseThrow();
 		}
 		List<DiscussionThreadBundle> results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
@@ -236,8 +229,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.required(filter, "filter");
 		UserInfo.validateUserInfo(userInfo);
 		String projectId = forumDao.getForum(Long.parseLong(forumId)).getProjectId();
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		ThreadCount count = new ThreadCount();
 		count.setCount(threadDao.getThreadCountForForum(Long.parseLong(forumId), filter));
 		return count;

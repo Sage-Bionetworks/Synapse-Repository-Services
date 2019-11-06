@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
@@ -14,6 +13,12 @@ import org.springframework.transaction.support.TransactionSynchronization;
  *
  */
 public interface TransactionSynchronizationProxy {
+	
+	/**
+	 * @see http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#isActualTransactionActive()
+	 * @return
+	 */
+	boolean isActualTransactionActive();
 
 	/**
 	 * @see http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#isSynchronizationActive()

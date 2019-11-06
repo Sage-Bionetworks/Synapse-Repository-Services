@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -74,15 +73,24 @@ public class UserProfileManagerUtilsTest {
 		assertEquals("456", up.getProfilePicureFileHandleId());
 		assertNull(up.getRStudioUrl());
 	}
+	
+	/**
+	 * Test for PLFM-3925.
+	 */
+	@Test
+	public void testClearPrivateFieldsCreatedOn() {
+		UserInfo userInfo = new UserInfo(false);
+		UserProfile up = new UserProfile();
+		Date createdOn = new Date(123L);
+		up.setCreatedOn(createdOn);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		assertEquals(createdOn, up.getCreatedOn());
+	}
 
 	@Test
 	public void testClearPrivateFieldsAsAdmin() {
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
-		AttachmentData pic = new AttachmentData();
-		pic.setPreviewId("a preview ID");
-		up.setPic(pic);
-		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
 	}
 

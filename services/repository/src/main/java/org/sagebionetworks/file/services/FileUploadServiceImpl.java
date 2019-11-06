@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManagerV2;
+import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -22,14 +24,16 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -53,6 +57,9 @@ public class FileUploadServiceImpl implements FileUploadService {
 	
 	@Autowired
 	MultipartManagerV2 multipartManagerV2;
+	
+	@Autowired
+	BulkDownloadManager bulkDownloadManager;
 
 
 	@Override
@@ -140,13 +147,16 @@ public class FileUploadServiceImpl implements FileUploadService {
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId);
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
 	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId, FileHandleAssociateType fileAssociateType, String fileAssociateId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.getRedirectURLForFileHandle(userInfo, fileHandleId, fileAssociateType, fileAssociateId);
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(fileAssociateType, fileAssociateId);
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
@@ -192,7 +202,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
 	@Override
 	public MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, Boolean forceRestart) {
+			MultipartUploadRequest request, boolean forceRestart) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return multipartManagerV2.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 	}
@@ -229,5 +239,47 @@ public class FileUploadServiceImpl implements FileUploadService {
 	public BatchFileHandleCopyResult copyFileHandles(Long userId, BatchFileHandleCopyRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileHandleManager.copyFileHandles(userInfo, request);
+	}
+
+	@Override
+	public DownloadList addFilesToDownloadList(Long userId, FileHandleAssociationList request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.addFileHandleAssociations(user, request.getList());
+	}
+
+	@Override
+	public DownloadList removeFilesFromDownloadList(Long userId, FileHandleAssociationList request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.removeFileHandleAssociations(user, request.getList());
+	}
+
+	@Override
+	public DownloadList clearDownloadList(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.clearDownloadList(user);
+	}
+
+	@Override
+	public DownloadOrder createDownloadOrder(Long userId, String zipFileName) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.createDownloadOrder(user, zipFileName);
+	}
+
+	@Override
+	public DownloadOrder getDownloadOrder(Long userId, String orderId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.getDownloadOrder(user, orderId);
+	}
+
+	@Override
+	public DownloadOrderSummaryResponse getDownloadOrderHistory(Long userId, DownloadOrderSummaryRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.getDownloadHistory(user, request);
+	}
+
+	@Override
+	public DownloadList getDownloadList(Long userId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return bulkDownloadManager.getDownloadList(user);
 	}
 }

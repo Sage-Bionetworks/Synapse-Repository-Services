@@ -26,7 +26,6 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class FacetModel {
-	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	
 	private List<FacetRequestColumnModel> validatedFacets;
 	private boolean hasFilters;
@@ -98,7 +97,7 @@ public class FacetModel {
 		}
 		
 		if(!facetedColumnNames.containsAll(selectedFacetMap.keySet())){
-			throw new IllegalArgumentException("Requested facet column names must all be in the set: " + facetedColumnNames + " Requested set of column names: " + selectedFacets);
+				throw new InvalidTableQueryFacetColumnRequestException("Requested facet column names must all be in the set: " + facetedColumnNames + " Requested set of column names: " + selectedFacets);
 		}
 		
 		return validatedFacetsList;

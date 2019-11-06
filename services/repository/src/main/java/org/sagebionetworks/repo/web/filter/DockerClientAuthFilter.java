@@ -14,13 +14,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
-import org.sagebionetworks.auth.BasicAuthUtils;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,17 +36,17 @@ public class DockerClientAuthFilter implements Filter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 
 		Long userId = null;
 		if (up == null) {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		} else {
 			try {
-				LoginCredentials credential = new LoginCredentials();
-				credential.setEmail(up.getUserName());
+				LoginRequest credential = new LoginRequest();
+				credential.setUsername(up.getUserName());
 				credential.setPassword(up.getPassword());
-				authenticationService.authenticate(credential);
+				authenticationService.login(credential);
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {
@@ -58,7 +58,7 @@ public class DockerClientAuthFilter implements Filter {
 
 		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(httpRequest, modParams);
+		HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
 		chain.doFilter(modRqst, response);
 	}
 

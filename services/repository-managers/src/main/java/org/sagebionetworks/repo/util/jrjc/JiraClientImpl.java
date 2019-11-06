@@ -3,7 +3,8 @@ package org.sagebionetworks.repo.util.jrjc;
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
 
-import org.sagebionetworks.StackConfiguration;
+import io.atlassian.util.concurrent.Promise;
+import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
@@ -14,7 +15,6 @@ import com.atlassian.jira.rest.client.api.domain.Field;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
-import com.atlassian.util.concurrent.Promise;
 
 /**
  * An implementation of JiraClient using the Jira-Rest-Java-Client
@@ -45,8 +45,8 @@ public class JiraClientImpl implements JiraClient {
     	URI jiraServerUri = URI.create(JIRA_URL);
     	this.restClient = factory.createWithBasicHttpAuthentication(
     			jiraServerUri, 
-    			StackConfiguration.getJiraUserName(), 
-    			StackConfiguration.getJiraUserPassword());
+    			StackConfigurationSingleton.singleton().getJiraUserName(), 
+    			StackConfigurationSingleton.singleton().getJiraUserPassword());
 	}
 
 	@Override

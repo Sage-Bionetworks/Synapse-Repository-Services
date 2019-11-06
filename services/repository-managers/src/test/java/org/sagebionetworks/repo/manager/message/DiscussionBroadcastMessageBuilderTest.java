@@ -5,18 +5,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyCollectionOf;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyCollectionOf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,6 +33,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Sets;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DiscussionBroadcastMessageBuilderTest {
 	@Mock
 	MarkdownDao mockMarkdownDao;
@@ -49,8 +55,6 @@ public class DiscussionBroadcastMessageBuilderTest {
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-
 		actorUsername = "someone";
 		actorUserId = "1";
 		threadTitle = "How to use Synapse?";
@@ -162,13 +166,13 @@ public class DiscussionBroadcastMessageBuilderTest {
 	
 	@Test (expected = MarkdownClientException.class)
 	public void testBuildEmailForSubscriberFailure() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenThrow(new MarkdownClientException(500, ""));
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenThrow(new MarkdownClientException(500, ""));
 		builder.buildEmailForSubscriber(subscriber);
 	}
 	
 	@Test
 	public void testBuildEmailForSubscriberSuccess() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenReturn("content");
 		SendRawEmailRequest request = builder.buildEmailForSubscriber(subscriber);
 		assertNotNull(request);
 	}
@@ -247,7 +251,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 
 	@Test
 	public void testBuildEmailForNonSubscriber() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
+		when(mockMarkdownDao.convertMarkdown(anyString(), isNull())).thenReturn("content");
 		SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(user);
 		assertNotNull(emailRequest);
 	}

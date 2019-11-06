@@ -10,11 +10,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRecord;
 import org.sagebionetworks.repo.model.file.FileHandleCopyRequest;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FileHandleCopyUtils {
@@ -79,8 +79,8 @@ public class FileHandleCopyUtils {
 		newFileHandle.setEtag(UUID.randomUUID().toString());
 		newFileHandle.setCreatedOn(new Date());
 		newFileHandle.setCreatedBy(userId);
-		if (newFileHandle instanceof HasPreviewId) {
-			((HasPreviewId) newFileHandle).setPreviewId(null);
+		if (newFileHandle instanceof CloudProviderFileHandleInterface) {
+			((CloudProviderFileHandleInterface) newFileHandle).setPreviewId(null);
 		}
 		return newFileHandle;
 	}

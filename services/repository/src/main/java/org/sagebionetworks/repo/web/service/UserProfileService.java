@@ -12,7 +12,8 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
@@ -181,30 +182,33 @@ public interface UserProfileService {
 	 * @param limit
 	 * @param offset
 	 * @return
-	 * @throws NotFoundException
-	 * @throws InvalidModelException
 	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
 	 */
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 
 	/**
 	 * Get the pre-signed URL for a user's profile image.
 	 * 
+	 * @param userId The id of the user performing the request
 	 * @param profileId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public String getUserProfileImage(String profileId) throws NotFoundException;
+	public String getUserProfileImage(Long userId, String profileId) throws NotFoundException;
 
 	/**
 	 * Get a pre-signed URL for a user's profile image preview.
+	 * 
+	 * @param userId The id of the user performing the request
 	 * @param profileId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public String getUserProfileImagePreview(String profileId) throws NotFoundException;
+	public String getUserProfileImagePreview(Long userId, String profileId) throws NotFoundException;
 	
 	/**
 	 * Update notification settings in user profile.

@@ -1,18 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -24,17 +25,16 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOProjectSettingsDAOImplTest {
 
@@ -49,7 +49,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 	private String projectId;
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
@@ -63,7 +63,7 @@ public class DBOProjectSettingsDAOImplTest {
 		projectId = nodeDao.createNew(project);
 	}
 
-	@After
+	@AfterEach
 	public void teardown() throws Exception {
 		if (projectId != null) {
 			nodeDao.delete(projectId);
@@ -80,7 +80,7 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it
@@ -89,7 +89,7 @@ public class DBOProjectSettingsDAOImplTest {
 		assertNotNull(id);
 
 		// Fetch it
-		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
+		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload).get();
 		assertNotNull(clone);
 		assertEquals(setting, clone);
 
@@ -116,7 +116,7 @@ public class DBOProjectSettingsDAOImplTest {
 		// Delete it
 		projectSettingsDao.delete(id);
 
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 	}
 
@@ -135,28 +135,44 @@ public class DBOProjectSettingsDAOImplTest {
 		projectId = null;
 	}
 
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testProjectIdMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(null);
 		setting.setSettingsType(ProjectSettingsType.upload);
-		projectSettingsDao.create(setting);
+		
+		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("projectId must be specified", ex.getMessage());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testProjectIdMustBeValid() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId("123");
 		setting.setSettingsType(ProjectSettingsType.upload);
-		projectSettingsDao.create(setting);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
 	}
 
-	@Test(expected = InvalidModelException.class)
+	@Test
 	public void testTypeMustBeSet() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(null);
-		projectSettingsDao.create(setting);
+		
+		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("settingsType must be specified", ex.getMessage());
 	}
 
 	@Test
@@ -179,39 +195,24 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setLocations(Lists.newArrayList(l1, l2));
 		projectSettingsDao.create(setting);
 
-		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload);
+		ProjectSetting projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.upload).get();
 		assertEquals(l1, ((UploadDestinationListSetting) projectSetting).getLocations().get(0));
 		assertEquals(l2, ((UploadDestinationListSetting) projectSetting).getLocations().get(1));
 	}
 
 	@Test
-	public void testGetByType() {
-		int uploadBefore = projectSettingsDao.getByType(ProjectSettingsType.upload).size();
-		int extSyncBefore = projectSettingsDao.getByType(ProjectSettingsType.external_sync).size();
-
-		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setProjectId(projectId);
-		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setLocations(Lists.<Long> newArrayList());
-		projectSettingsDao.create(setting);
-		ExternalSyncSetting externalSyncSetting = new ExternalSyncSetting();
-		externalSyncSetting.setProjectId(projectId);
-		externalSyncSetting.setSettingsType(ProjectSettingsType.external_sync);
-		externalSyncSetting.setAutoSync(false);
-		externalSyncSetting.setLocationId(1L);
-		projectSettingsDao.create(externalSyncSetting);
-
-		assertEquals(uploadBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.upload).size());
-		assertEquals(extSyncBefore + 1, projectSettingsDao.getByType(ProjectSettingsType.external_sync).size());
-	}
-
-	@Test (expected=IllegalArgumentException.class)
 	public void testFailOnDuplicatEntry() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.<Long> newArrayList());
 		projectSettingsDao.create(setting);
-		projectSettingsDao.create(setting);
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			projectSettingsDao.create(setting);
+		});
+		
+		assertEquals("A project setting of type 'upload' for project " + projectId + " already exists.", ex.getMessage());
 	}
 }

@@ -1,0 +1,7 @@
+fileId,pairedEndId,sampleId,patientId,assay,dataType,dataSubtype,fileFormat,species,diagnosis,tumorType,cellType,isCellLine,organ,tissue,sex,consortium,matchedSample,stage,isTreated
+1,1,1,14,rnaSeq,geneExpression,raw,fastq,Human,skin cancer,melanoma,epithelial,FALSE,skin,epidermis,male,TESLA,,,FALSE
+1,2,1,14,rnaSeq,geneExpression,raw,fastq,Human,skin cancer,melanoma,epithelial,FALSE,skin,epidermis,male,TESLA,,,FALSE
+2,1,1,22,exomeSeq,genomicVariants,raw,fastq,Human,skin cancer,Not Applicable,epithelial,FALSE,skin,epidermis,female,TESLA,2,,FALSE
+2,2,1,22,exomeSeq,genomicVariants,raw,fastq,Human,skin cancer,Not Applicable,epithelial,FALSE,skin,epidermis,female,TESLA,2,,FALSE
+3,1,2,22,exomeSeq,genomicVariants,raw,fastq,Human,skin cancer,melanoma,epithelial,FALSE,skin,epidermis,female,TESLA,1,,FALSE
+3,2,2,22,exomeSeq,genomicVariants,raw,fastq,Human,skin cancer,melanoma,epithelial,FALSE,skin,epidermis,female,TESLA,1,,FALSE

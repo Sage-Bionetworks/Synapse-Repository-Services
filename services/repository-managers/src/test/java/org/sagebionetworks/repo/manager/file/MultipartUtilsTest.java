@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -28,7 +30,7 @@ public class MultipartUtilsTest {
 		StorageLocationSetting location = null;
 		//call under test
 		String bucket = MultipartUtils.getBucket(location);
-		assertEquals(StackConfiguration.getS3Bucket(), bucket);
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), bucket);
 	}
 	
 	@Test
@@ -36,7 +38,7 @@ public class MultipartUtilsTest {
 		location = new S3StorageLocationSetting();
 		//call under test
 		String bucket = MultipartUtils.getBucket(location);
-		assertEquals(StackConfiguration.getS3Bucket(), bucket);
+		assertEquals(StackConfigurationSingleton.singleton().getS3Bucket(), bucket);
 	}
 	
 	@Test

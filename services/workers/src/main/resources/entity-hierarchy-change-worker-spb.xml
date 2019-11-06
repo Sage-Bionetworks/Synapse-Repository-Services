@@ -22,8 +22,7 @@
 						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
@@ -34,16 +33,11 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
-									ref="stackConfiguration.workerQueueName[EntityHierarchyChangeWorker]" />
+									value="#{stackConfiguration.getQueueName('ENTITY_HIERARCHY_CHANGE')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="topicNamesToSubscribe">
-									<list>
-										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY_CONTAINER]" />
-									</list>
-								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

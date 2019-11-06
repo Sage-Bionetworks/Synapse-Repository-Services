@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 
@@ -14,6 +15,8 @@ import org.sagebionetworks.repo.model.table.TableStatus;
  */
 public class TableStatusUtils {
 
+	public static final int MAX_CHARS = 1000;
+
 	/**
 	 * Create the DBO from the DTO
 	 * @param dto
@@ -24,6 +27,11 @@ public class TableStatusUtils {
 		if(dto.getTableId() != null){
 			dbo.setTableId(Long.parseLong(dto.getTableId()));
 		}
+		if(dto.getVersion() == null) {
+			dbo.setVersion(-1L);
+		}else {
+			dbo.setVersion(dto.getVersion());
+		}
 		if(dto.getStartedOn() != null){
 			dbo.setStartedOn(dto.getStartedOn().getTime());
 		}
@@ -31,18 +39,19 @@ public class TableStatusUtils {
 			dbo.setChangedOn(dto.getChangedOn().getTime());
 		}
 		dbo.setErrorDetails(createErrorDetails(dto.getErrorDetails()));
-		dbo.setErrorMessage(dto.getErrorMessage());
+		dbo.setErrorMessage(StringUtils.abbreviate(dto.getErrorMessage(), MAX_CHARS));
 		if(dto.getState() != null){
-			dbo.setState(TableStateEnum.valueOf(dto.getState().name()));
+			dbo.setState(dto.getState().name());
 		}
 		dbo.setProgressCurrent(dto.getProgressCurrent());
 		dbo.setProgressTotal(dto.getProgressTotal());
-		dbo.setProgressMessage(dto.getProgressMessage());
+		dbo.setProgressMessage(StringUtils.abbreviate(dto.getProgressMessage(), MAX_CHARS));
 		dbo.setResetToken(dto.getResetToken());
 		dbo.setTotalRunTimeMS(dto.getTotalTimeMS());
 		dbo.setLastTableChangeEtag(dto.getLastTableChangeEtag());
 		return dbo;
 	}
+	
 	
 	/**
 	 * Create the DTO from the DBO.
@@ -63,7 +72,7 @@ public class TableStatusUtils {
 		dto.setErrorDetails(createErrorDetails(dbo.getErrorDetails()));
 		dto.setErrorMessage(dbo.getErrorMessage());
 		if(dbo.getState() != null){
-			dto.setState(TableState.valueOf(dbo.getState().name()));
+			dto.setState(TableState.valueOf(dbo.getState()));
 		}
 		dto.setProgressCurrent(dbo.getProgressCurrent());
 		dto.setProgressMessage(dbo.getProgressMessage());
@@ -71,6 +80,9 @@ public class TableStatusUtils {
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
 		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
+		if(dbo.getVersion() != null && dbo.getVersion() > 0 ) {
+			dto.setVersion(dbo.getVersion());
+		}
 		return dto;
 	}
 	

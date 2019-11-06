@@ -3,11 +3,14 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewScope;
 
 /**
  * Business logic for materialized table views.
@@ -23,7 +26,7 @@ public interface TableViewManager {
 	 * @param viewId
 	 */
 	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
-			List<String> scope, ViewType type, String viewId);
+			ViewScope scope, String viewId);
 	
 	 /**
 	  * Find Views that contain the given Entity.
@@ -40,7 +43,15 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @return
 	 */
-	public List<ColumnModel> getViewSchema(String tableId);
+	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
+	
+	/**
+	 * Get the column IDs for the given id and version pair.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	public List<String> getViewSchemaIds(IdAndVersion idAndVersion);
 
 
 	/**
@@ -72,5 +83,28 @@ public interface TableViewManager {
 	public void updateEntityInView(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row);
 
+	/**
+	 * Create a snapshot of the given view.
+	 * 
+	 * @param userInfo
+	 * @param tableId
+	 * @param snapshotOptions
+	 * @return
+	 */
+	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
+
+	/**
+	 * Delete the index associated with this view.
+	 * @param idAndVersion
+	 */
+	public void deleteViewIndex(IdAndVersion idAndVersion);
+
+	/**
+	 * Create or update the index for the given view.
+	 * @param idAndVersion
+	 * @param progressCallback
+	 * @throws Exception
+	 */
+	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
 
 }

@@ -1,0 +1,22 @@
+{
+    "description": "Public key used to verify JSON Web Token signatures",
+ 	"type": "interface",
+ 	"properties": {
+  		"kid":{
+ 			"type":"string",
+ 			"description":"The unique identifier for the JSON Web Token, https://tools.ietf.org/html/rfc7517#section-4.5"
+ 		},
+  		"kty":{
+ 			"type":"string",
+ 			"description":"The key type, https://tools.ietf.org/html/rfc7517#section-4.1"
+ 		},
+  		"use":{
+ 			"type":"string",
+ 			"description":"The public key use, https://tools.ietf.org/html/rfc7517#section-4.2"
+ 		},
+ 		"concreteType": {
+ 			"type": "string",
+ 			"description": "Indicates which kind of JSON Web Key the object is, following the Synapse standard."
+  		}
+ 	}
+}

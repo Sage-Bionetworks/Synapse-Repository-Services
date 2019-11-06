@@ -3,8 +3,11 @@ package org.sagebionetworks.repo.manager;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,8 +18,6 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -45,44 +46,30 @@ public class NodeTranslationUtils {
 	 */
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
-	private static Map<EntityType, Set<String>> primaryFieldsCache = new HashMap<EntityType, Set<String>>();
-	// fields that should be ignored while translating between node and entity
-	public static Set<String> ignoredFields;
+	private static Map<Class<? extends Entity>, Field[]> translatableEntityFieldsCache = new HashMap<>();
+	// fields in Node that should be ignored while translating between node and entity
+	public static Set<String> ignoredNodeFields;
 
 	static {
-		ignoredFields = new HashSet<String>();
-		ignoredFields.add(JSONEntity.EFFECTIVE_SCHEMA);
-		ignoredFields.add(ObjectSchema.EXTRA_FIELDS);
+		Set<String> temp = new HashSet<>();
+		temp.add(ObjectSchema.EXTRA_FIELDS);
+		ignoredNodeFields = Collections.unmodifiableSet(temp);
 	}
 
-	/**
-	 * Build up the cache of primary fields for each object type.
-	 * 
-	 * @return
-	 */
-	private static void buildPrimaryFieldCache() {
-		for (EntityType type : EntityType.values()) {
-			HashSet<String> set = new HashSet<String>();
-			// Add each field
-			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
-			for (Field field : fields) {
-				String name = field.getName();
-				// Add this name and the node name
-				set.add(name);
-				String nodeName = nameConvertion.get(name);
-				if (nodeName != null) {
-					set.add(nodeName);
-				}
-			}
-			primaryFieldsCache.put(type, set);
-		}
+	// fields in Entity that should be ignored while translating between node and entity
+	public static Set<String> ignoredEntityFields;
+
+	static {
+		Set<String> temp = new HashSet<>();
+		temp.add(ObjectSchema.CONCRETE_TYPE);
+		ignoredEntityFields = Collections.unmodifiableSet(temp);
 	}
 
 	static {
 		// Populate the nodeFieldNames
 		Field[] fields = Node.class.getDeclaredFields();
 		for (Field field : fields) {
-			if (ignoredFields.contains(field.getName())) {
+			if (ignoredNodeFields.contains(field.getName())) {
 				continue;
 			}
 			// make sure all are
@@ -95,8 +82,21 @@ public class NodeTranslationUtils {
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
 		nameConvertion.put("columnIds", "columnModelIds");
 		nameConvertion.put("linksTo", "reference");
-		// build the primary field cache
-		buildPrimaryFieldCache();
+	}
+
+	static <T extends Entity> Field[] getTranslatableEntityFields(T base){
+		Class<? extends Entity> entityClass =  base.getClass();
+		Field[] cachedFields = translatableEntityFieldsCache.get(entityClass);
+		if(cachedFields != null){
+			return cachedFields;
+		}
+
+		Field[] filteredFields = Arrays.stream(entityClass.getDeclaredFields())
+				.filter( field -> !ignoredEntityFields.contains(field.getName()) )
+				.toArray(Field[]::new);
+
+		translatableEntityFieldsCache.put(entityClass, filteredFields);
+		return filteredFields;
 	}
 
 	/**
@@ -122,7 +122,7 @@ public class NodeTranslationUtils {
 	 */
 	public static <T extends Entity> void updateNodeFromObject(T base, Node node) {
 		// First get the schema for this Entity
-		Field[] fields = base.getClass().getDeclaredFields();
+		Field[] fields = getTranslatableEntityFields(base);
 		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
@@ -137,8 +137,11 @@ public class NodeTranslationUtils {
 				nodeField.setAccessible(true);
 				Object value;
 				try {
-					value = field.get(base);
-					nodeField.set(node, value);
+					// only set non-static fields
+					if((field.getModifiers() & Modifier.STATIC) == 0) {
+						value = field.get(base);
+						nodeField.set(node, value);
+					}
 				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
@@ -168,8 +171,8 @@ public class NodeTranslationUtils {
 		if (schemaProperties == null) {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
-		Field[] fields = base.getClass().getDeclaredFields();
-		for (Field field : fields) {
+		Field[] entityFields = getTranslatableEntityFields(base);
+		for (Field field : entityFields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
 			if (nodeName == null) {
@@ -415,7 +418,7 @@ public class NodeTranslationUtils {
 		if (schemaProperties == null) {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
-		Field[] fields = base.getClass().getDeclaredFields();
+		Field[] fields = getTranslatableEntityFields(base);
 		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
@@ -430,9 +433,12 @@ public class NodeTranslationUtils {
 				nodeField.setAccessible(true);
 				Object value;
 				try {
-					value = nodeField.get(node);
-					if (value != null) {
-						field.set(base, value);
+					// only set non-static fields
+					if((field.getModifiers() & Modifier.STATIC)==0) {
+						value = nodeField.get(node);
+						if (value != null) {
+							field.set(base, value);
+						}
 					}
 				} catch (IllegalAccessException e) {
 					// This should never occur
@@ -462,7 +468,7 @@ public class NodeTranslationUtils {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
 		// Find the fields that are not on nodes.
-		Field[] fields = base.getClass().getDeclaredFields();
+		Field[] fields = getTranslatableEntityFields(base);
 		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
@@ -532,17 +538,6 @@ public class NodeTranslationUtils {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Is the given name a primary field for the given object type.
-	 * 
-	 * @param type
-	 * @param toTest
-	 * @return
-	 */
-	public static boolean isPrimaryFieldName(EntityType type, String toTest) {
-		return primaryFieldsCache.get(type).contains(toTest);
 	}
 
 }

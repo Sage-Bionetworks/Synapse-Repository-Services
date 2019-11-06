@@ -1,0 +1,27 @@
+{
+    "description": "Subscription sort by types.",
+    "name": "SortByType",
+    "type": "string",
+    "enum": [
+        {
+            "name": "SUBSCRIPTION_ID",
+            "description": "Sort by the subscription ID"
+        },
+        {
+            "name": "SUBSCRIBER_ID",
+            "description": "Sort by the subscriber ID"
+        },
+        {
+            "name": "OBJECT_ID",
+            "description": "Sort by the subscription object ID"
+        },
+        {
+            "name": "OBJECT_TYPE",
+            "description": "Sort by the subscription object type"
+        },
+        {
+            "name": "CREATED_ON",
+            "description": "Sort by the subscription creation date"
+        }
+    ]
+}

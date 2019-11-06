@@ -9,21 +9,21 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
-import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -75,7 +75,15 @@ public class BeanTest implements ApplicationContextAware {
 			"getEtagForUpdate",
 			"getForumByProjectId",
 			"getForUpdate",
-			"getAccessRequirementForUpdate");
+			"getAccessRequirementForUpdate",
+			"getThread",
+			"checkPasswordWithThrottling",
+			"getTableStatusOrCreateIfNotExists",
+			"getUsersDownloadListForUpdate",
+			"getDoiAssociationForUpdate",
+			"getUnsuccessfulLoginLockoutInfoIfExist",
+			"checkIsLockedOut",
+			"getTableIdWithLock");
 
 	@Test
 	public void testNoGetterWriteTransactions() {

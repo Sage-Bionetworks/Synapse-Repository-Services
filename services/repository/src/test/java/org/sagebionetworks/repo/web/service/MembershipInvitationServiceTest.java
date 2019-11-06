@@ -1,17 +1,21 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -20,55 +24,82 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
+@ExtendWith(MockitoExtension.class)
 public class MembershipInvitationServiceTest {
-	private MembershipInvitationServiceImpl membershipInvitationService;
+	@Mock
 	private MembershipInvitationManager mockMembershipInvitationManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private NotificationManager mockNotificationManager;
 	
+	@InjectMocks
+	private MembershipInvitationServiceImpl membershipInvitationService;
 	
-	@Before
-	public void before() throws Exception {
-		mockMembershipInvitationManager = Mockito.mock(MembershipInvitationManager.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockNotificationManager = Mockito.mock(NotificationManager.class);
+	private static final Long USER_ID = 111L;
+	private static final String ACCEPT_INVITATION_ENDPOINT = "acceptInvitationEndpoint:";
+	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "notificationUnsubscribeEndpoint:";
+	private UserInfo userInfo; 
 
-		this.membershipInvitationService = new MembershipInvitationServiceImpl(
-				mockMembershipInvitationManager,
-				mockUserManager,
-				mockNotificationManager);
+	
+	@BeforeEach
+	public void before() throws Exception {
+		userInfo = new UserInfo(false); 
+		userInfo.setId(USER_ID);
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 	}
 
 	@Test
 	public void testCreate() {
-		Long userId = 111L;
-		UserInfo userInfo = new UserInfo(false); 
-		userInfo.setId(userId);
-		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvitation mis = new MembershipInvitation();
 		mis.setInviteeId("1");
-		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
-		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
 		when(mockMembershipInvitationManager.createInvitationMessageToUser(
-				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
+				mis, ACCEPT_INVITATION_ENDPOINT, NOTIFICATION_UNSUBSCRIBE_ENDPOINT)).thenReturn(result);
 
-		membershipInvitationService.create(userId, mis,
-				acceptInvitationEndpoint,  notificationUnsubscribeEndpoint);
-		verify(mockUserManager).getUserInfo(userId);
+		// method under test
+		membershipInvitationService.create(USER_ID, mis,
+				ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		verify(mockUserManager).getUserInfo(USER_ID);
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
 		verify(mockMembershipInvitationManager).createInvitationMessageToUser(
-				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+				mis, ACCEPT_INVITATION_ENDPOINT, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
 		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);
-		verify(mockNotificationManager).
-			sendNotifications(eq(userInfo), messageArg.capture());
+		verify(mockNotificationManager).sendNotifications(eq(userInfo), messageArg.capture());
 		assertEquals(1, messageArg.getValue().size());		
 		assertEquals(result, messageArg.getValue().get(0));
+	}
+	
+	@Test
+	public void testBothEmailandId() throws Exception {
+		MembershipInvitation mis = new MembershipInvitation();
+		mis.setInviteeId("1");
+		mis.setInviteeEmail("me@domain.com");
+		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
+
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
+
+	}
+
+	@Test
+	public void testNeitherEmailNorId() throws Exception {
+		MembershipInvitation mis = new MembershipInvitation();
+		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
+
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
+
 	}
 
 }

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Docker Authorization Services", path="docker/v1")
 @Controller
 @RequestMapping(UrlHelpers.DOCKER_PATH)
-public class DockerAuthorizationController extends BaseController {
+public class DockerAuthorizationController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	

@@ -8,6 +8,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
 /**
  * A simple cache for schema objects.
@@ -39,7 +40,7 @@ public class SchemaCache {
 		ObjectSchema schema = cache.get(clazz);
 		if(schema == null){
 			try {
-				String jsonString = (String) clazz.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
+				String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
 				if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
 				schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 			} catch (Exception e) {

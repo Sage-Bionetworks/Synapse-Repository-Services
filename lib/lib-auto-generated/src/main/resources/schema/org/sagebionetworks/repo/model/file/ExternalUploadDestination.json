@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information to start an upload to different types of destinations.",
+	"description": "This upload destination contains information to start an upload to an SFTP or HTTPS destination. The destination is mapped from an <a href=\"${org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting}\">ExternalStorageLocationSetting</a>.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"

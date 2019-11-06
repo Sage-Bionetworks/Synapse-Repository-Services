@@ -5,9 +5,9 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class SubmissionTestUtils {
 

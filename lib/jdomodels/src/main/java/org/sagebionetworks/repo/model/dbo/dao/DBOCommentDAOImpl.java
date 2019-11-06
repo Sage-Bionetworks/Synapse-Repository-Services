@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.message.Comment;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 public class DBOCommentDAOImpl implements CommentDAO {

@@ -1,0 +1,13 @@
+{
+	"description": "An response to a DOI mint or update request.",
+	"implements":[
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"doi": {
+			"$ref":"org.sagebionetworks.repo.model.doi.v2.Doi"
+		}
+	}
+}

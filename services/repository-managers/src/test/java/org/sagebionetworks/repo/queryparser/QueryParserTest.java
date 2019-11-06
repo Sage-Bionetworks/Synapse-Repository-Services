@@ -15,8 +15,6 @@ import java.util.logging.Logger;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.EntityManagerImpl;
-import org.sagebionetworks.repo.manager.EntityQueryManagerImpl;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.query.QueryStatement;
@@ -228,7 +226,7 @@ public class QueryParserTest {
 	public void testDefaultLimit() throws Exception {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset");
-		assertEquals(EntityQueryManagerImpl.MAX_LIMIT, stmt.getLimit());
+		assertEquals((Long) 1000L, stmt.getLimit());
 	}
 
 	/**

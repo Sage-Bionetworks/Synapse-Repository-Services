@@ -1,6 +1,24 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_ALIAS;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
+import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -12,12 +30,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AbstractDouble;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -25,7 +41,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
@@ -47,13 +63,16 @@ import com.google.common.collect.Lists;
 public class SQLUtils {
 
 
+	private static final String EMPTY_STRING = "";
+	private static final String ABSTRACT_DOUBLE_ALIAS_PREFIX = "_DBL";
+	private static final String TEMPLATE_MAX_ANNOTATION_SELECT = ", MAX(IF(%1$s.%2$s ='%3$s', %1$s.%4$s, NULL)) AS %5$s%6$s";
+	private static final String TEMPLATE_MAX_ENTITY_SELECT = ", MAX(%1$s.%2$s) AS %2$s";
 	private static final String DROP_TABLE_IF_EXISTS = "DROP TABLE IF EXISTS %1$S";
 	private static final String SELECT_COUNT_FROM_TEMP = "SELECT COUNT(*) FROM ";
 	private static final String SQL_COPY_TABLE_TO_TEMP = "INSERT INTO %1$S SELECT * FROM %2$S ORDER BY "+ROW_ID;
 	private static final String CREATE_TABLE_LIKE = "CREATE TABLE %1$S LIKE %2$S";
 	private static final String TEMP = "TEMP";
 	private static final String IDX = "idx_";
-	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	public static final String FILE_ID_BIND = "bFIds";
 	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION_BIND = "bRV";
@@ -73,7 +92,7 @@ public class SQLUtils {
 		/**
 		 * The index tables
 		 */
-		INDEX(""),
+		INDEX(EMPTY_STRING),
 		/**
 		 * The status table that tracks the current state of the index table
 		 */
@@ -111,7 +130,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createTableSQL(String tableId, TableType type) {
+	public static String createTableSQL(IdAndVersion tableId, TableType type) {
 		ValidateArgument.required(tableId, "tableId");
 		StringBuilder columnDefinitions = new StringBuilder();
 		switch (type) {
@@ -129,11 +148,7 @@ public class SQLUtils {
 		return createTableSQL(tableId, type, columnDefinitions.toString());
 	}
 
-	public static String createTableSQL(Long tableId, TableType type) {
-		return createTableSQL(tableId.toString(), type);
-	}
-
-	private static String createTableSQL(String tableId, TableType type, String columnDefinitions) {
+	private static String createTableSQL(IdAndVersion tableId, TableType type, String columnDefinitions) {
 		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
 	}
 
@@ -191,15 +206,34 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableNameForId(String tableId, TableType type) {
-		if (tableId == null)
-			throw new IllegalArgumentException("Table ID cannot be null");
-		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + type.getTablePostFix();
+	public static String getTableNameForId(IdAndVersion id, TableType type) {
+		if (id == null) {
+			throw new IllegalArgumentException("Table ID cannot be null");			
+		}
+		StringBuilder builder = new StringBuilder();
+		appendTableNameForId(id, type, builder);
+		return builder.toString();
 	}
 
-	public static String getTableNameForId(Long tableId, TableType type) {
-		ValidateArgument.required(tableId, "Table ID");
-		return TABLE_PREFIX + tableId + type.getTablePostFix();
+	private static void appendTableNameForId(IdAndVersion id, TableType type, StringBuilder builder) {
+		builder.append(TABLE_PREFIX);
+		builder.append(id.getId());
+		if(id.getVersion().isPresent()) {
+			builder.append("_").append(id.getVersion().get());
+		}
+		builder.append(type.getTablePostFix());
+	}
+
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(columnId, "columnId");
+
+		StringBuilder builder = new StringBuilder();
+		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
+		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
+		builder.append("_INDEX");
+		appendColumnNameForId(columnId, builder);
+		return builder.toString();
 	}
 
 	/**
@@ -211,53 +245,60 @@ public class SQLUtils {
 	public static String getColumnNameForId(String columnId) {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
-		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
+		StringBuilder builder = new StringBuilder();
+		appendColumnNameForId(columnId, builder);
+		return builder.toString();
 	}
 
-	public static void appendColumnName(String subName, String columnId, StringBuilder builder) {
-		appendColumnName(null, subName, columnId, builder);
+	public static void appendColumnNameForId(String columnId, StringBuilder builder){
+		appendColumnName(null, columnId, builder);
 	}
 
-	private static void appendColumnName(String prefix, String subName, String columnId, StringBuilder builder) {
+	private static void appendColumnName(String prefix, String columnId, StringBuilder builder) {
 		if (prefix != null) {
 			builder.append(prefix);
 		}
-		builder.append(subName).append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
+		builder.append(COLUMN_PREFIX).append(columnId).append(COLUMN_POSTFIX);
 	}
 
 	/**
-	 * Append case statement for doubles, like:
-	 * 
+	 * Append the column name that stores abstract values for doubles (Infinity, NaN).
+	 * Example : _DBL_C1_
+	 * @param reference
+	 * @param builder
+	 */
+	static void appendDoubleAbstractColumnName(String columnId, StringBuilder builder){
+		appendColumnName(TableConstants.DOUBLE_PREFIX, columnId, builder);
+	}
+
+	static String getDoubleAbstractColumnName(String columnId){
+		StringBuilder builder = new StringBuilder();
+		appendDoubleAbstractColumnName(columnId, builder);
+		return builder.toString();
+	}
+	
+	/**
+	 * Create a double clause, like:
+	 *
 	 * <pre>
 	 * CASE
 	 * 	WHEN _DBL_C1_ IS NULL THEN _C1_
 	 * 	ELSE _DBL_C1_
 	 * END AS _C1_
 	 * </pre>
-	 * 
-	 * @param column
-	 * @param subName
-	 * @param builder
-	 */
-	public static void appendDoubleCase(String columnId, StringBuilder builder) {
-		String subName = "";
-		builder.append("CASE WHEN ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" IS NULL THEN ");
-		appendColumnName(subName, columnId, builder);
-		builder.append(" ELSE ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
-		builder.append(" END");
-	}
-	
-	/**
-	 * Create a double clause.
+	 *
 	 * @param columnId
 	 * @return
-	 */
-	public static String createDoubleCluase(String columnId){
+	 (*/
+	public static String createDoubleCase(String columnId){
 		StringBuilder builder = new StringBuilder();
-		appendDoubleCase(columnId, builder);
+		builder.append("CASE WHEN ");
+		appendDoubleAbstractColumnName( columnId, builder);
+		builder.append(" IS NULL THEN ");
+		appendColumnNameForId(columnId, builder);
+		builder.append(" ELSE ");
+		appendDoubleAbstractColumnName(columnId, builder);
+		builder.append(" END");
 		return builder.toString();
 	}
 
@@ -270,15 +311,14 @@ public class SQLUtils {
 	 * </pre>
 	 * 
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsNan(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsNan(String columnId, StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" = '").append(DOUBLE_NAN).append("')");
 	}
 
@@ -289,15 +329,14 @@ public class SQLUtils {
 	 * _DBL_C1_ IN ('Infinity', '-Infinity')
 	 * </pre>
 	 * 
-	 * @param column
-	 * @param subName
+	 * @param columnId
 	 * @param builder
 	 */
-	public static void appendIsInfinity(String columnId, String subName, StringBuilder builder) {
+	public static void appendIsInfinity(String columnId,  StringBuilder builder) {
 		builder.append("(");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IS NOT NULL AND ");
-		appendColumnName(TableConstants.DOUBLE_PREFIX, subName, columnId, builder);
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(" IN ('").append(DOUBLE_NEGATIVE_INFINITY).append("', '").append(DOUBLE_POSITIVE_INFINITY).append("'))");
 	}
 
@@ -306,36 +345,9 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropTableSQL(String tableId, TableType type) {
+	public static String dropTableSQL(IdAndVersion tableId, TableType type) {
 		String tableName = getTableNameForId(tableId, type);
 		return "DROP TABLE " + tableName;
-	}
-
-	public static String dropTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DROP TABLE " + tableName;
-	}
-
-	/**
-	 * Create the delete a batch of row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteBatchFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
-
-	/**
-	 * Create the delete a row Ids SQL.
-	 * 
-	 * @param tableId
-	 * @return
-	 */
-	public static String deleteFromTableSQL(Long tableId, TableType type) {
-		String tableName = getTableNameForId(tableId, type);
-		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " = ?";
 	}
 
 	/**
@@ -344,7 +356,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, String tableId){
+	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, IdAndVersion tableId){
 		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
 		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
@@ -384,8 +396,8 @@ public class SQLUtils {
 		for(ColumnModel cm: schema){
 			String columnName = getColumnNameForId(cm.getId());
 			names.add(columnName);
-			if(ColumnType.DOUBLE.equals(cm.getColumnType())){
-				names.add(TableConstants.DOUBLE_PREFIX + columnName);
+			if(cm.getColumnType() == ColumnType.DOUBLE){
+				names.add(getDoubleAbstractColumnName(cm.getId()));
 			}
 		}
 		return names;
@@ -398,7 +410,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildCreateOrUpdateStatusSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -414,7 +426,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusHashSQL(String tableId) {
+	public static String buildCreateOrUpdateStatusHashSQL(IdAndVersion tableId) {
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -430,7 +442,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 	
-	public static String buildCreateOrUpdateStatusVersionAndHashSQL(String tableId){
+	public static String buildCreateOrUpdateStatusVersionAndHashSQL(IdAndVersion tableId){
 		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
@@ -453,7 +465,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String buildDeleteSQL(String tableId){
+	public static String buildDeleteSQL(IdAndVersion tableId){
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
@@ -492,7 +504,7 @@ public class SQLUtils {
 					String columnName = getColumnNameForId(cm.getId());
 					switch (cm.getColumnType()) {
 					case DOUBLE:
-						String doubleEnumerationName = TableConstants.DOUBLE_PREFIX + columnName;
+						String doubleEnumerationName = getDoubleAbstractColumnName(cm.getId());
 						Double doubleValue = (Double) value;
 						if(AbstractDouble.isAbstractValue(doubleValue)){
 							// Abstract double include NaN and +/- Infinity.
@@ -546,7 +558,7 @@ public class SQLUtils {
 	 * 
 	 * @return
 	 */
-	public static String getCountSQL(String tableId){
+	public static String getCountSQL(IdAndVersion tableId){
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableType.INDEX));
 		return builder.toString();
@@ -556,7 +568,7 @@ public class SQLUtils {
 	 * Create the SQL used to get the max version number from a table.
 	 * @return
 	 */
-	public static String getStatusMaxVersionSQL(String tableId) {
+	public static String getStatusMaxVersionSQL(IdAndVersion tableId) {
 		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 
@@ -565,19 +577,16 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getSchemaHashSQL(String tableId) {
+	public static String getSchemaHashSQL(IdAndVersion tableId) {
 		return "SELECT " + SCHEMA_HASH + " FROM " + getTableNameForId(tableId, TableType.STATUS);
 	}
 	
-	public static String selectRowValuesForRowId(Long tableId) {
-		return "SELECT * FROM " + getTableNameForId(tableId, TableType.INDEX) + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
-	}
 	/**
 	 * Insert ignore file handle ids into a table's secondary file index.
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLInsertIgnoreFileHandleId(String tableId){
+	public static String createSQLInsertIgnoreFileHandleId(IdAndVersion tableId){
 		return "INSERT IGNORE INTO "+getTableNameForId(tableId, TableType.FILE_IDS)+" ("+FILE_ID+") VALUES(?)";
 	}
 	
@@ -586,7 +595,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createSQLGetBoundFileHandleId(String tableId){
+	public static String createSQLGetBoundFileHandleId(IdAndVersion tableId){
 		return "SELECT "+FILE_ID+" FROM "+getTableNameForId(tableId, TableType.FILE_IDS)+" WHERE "+FILE_ID+" IN( :"+FILE_ID_BIND+")";
 	}
 	
@@ -597,7 +606,7 @@ public class SQLUtils {
 	 * @param columnName
 	 * @return
 	 */
-	public static String createSQLGetDistinctValues(String tableId, String columnName){
+	public static String createSQLGetDistinctValues(IdAndVersion tableId, String columnName){
 		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 	
@@ -606,7 +615,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTableIfDoesNotExistSQL(String tableId, boolean isView){
+	public static String createTableIfDoesNotExistSQL(IdAndVersion tableId, boolean isView){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
@@ -632,7 +641,7 @@ public class SQLUtils {
 	 * @param changes
 	 * @return
 	 */
-	public static String createAlterTableSql(List<ColumnChangeDetails> changes, String tableId, boolean alterTemp){
+	public static String createAlterTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		if(alterTemp){
@@ -644,7 +653,8 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
-			boolean hasChange = appendAlterTableSql(builder, change, isFirst);
+			boolean useDepricatedUtf8ThreeBytes = isTableTooLargeForFourByteUtf8(tableId.getId());
+			boolean hasChange = appendAlterTableSql(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 			if(hasChange){
 				hasChanges = true;
 				isFirst = false;
@@ -661,16 +671,18 @@ public class SQLUtils {
 	 * Alter a single column for a given column change.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), isFirst);
+			appendAddColumn(builder, change.getNewColumn(), isFirst, useDepricatedUtf8ThreeBytes);
 			// change was added.
 			return true;
 		}
@@ -687,7 +699,7 @@ public class SQLUtils {
 			return false;
 		}
 		// update
-		appendUpdateColumn(builder, change, isFirst);
+		appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
 		// change was added.
 		return true;
 
@@ -697,15 +709,17 @@ public class SQLUtils {
 	 * Append an add column statement to the passed builder.
 	 * @param builder
 	 * @param newColumn
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn, boolean isFirst) {
+			ColumnModel newColumn, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(newColumn, "newColumn");
 		if(!isFirst){
 			builder.append(", ");
 		}
 		builder.append("ADD COLUMN ");
-		appendColumnDefinition(builder, newColumn);
+		appendColumnDefinition(builder, newColumn, useDepricatedUtf8ThreeBytes);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(newColumn.getColumnType())){
 			appendAddDoubleEnum(builder, newColumn.getId());
@@ -724,7 +738,7 @@ public class SQLUtils {
 		}
 		ValidateArgument.required(oldColumn, "oldColumn");
 		builder.append("DROP COLUMN ");
-		builder.append(getColumnNameForId(oldColumn.getId()));
+		appendColumnNameForId(oldColumn.getId(), builder);
 		// doubles use two columns.
 		if(ColumnType.DOUBLE.equals(oldColumn.getColumnType())){
 			appendDropDoubleEnum(builder, oldColumn.getId());
@@ -735,9 +749,11 @@ public class SQLUtils {
 	 * Append an update column statement to the passed builder.
 	 * @param builder
 	 * @param change
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFirst) {
+			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getOldColumnInfo(), "change.getOldColumnInfo()");
@@ -753,9 +769,9 @@ public class SQLUtils {
 			builder.append(", ");
 		}
 		builder.append("CHANGE COLUMN ");
-		builder.append(getColumnNameForId(change.getOldColumn().getId()));
+		appendColumnNameForId(change.getOldColumn().getId(), builder);
 		builder.append(" ");
-		appendColumnDefinition(builder, change.getNewColumn());
+		appendColumnDefinition(builder, change.getNewColumn(), useDepricatedUtf8ThreeBytes);
 		// Is this a type change?
 		if(!change.getOldColumn().getColumnType().equals(change.getNewColumn().getColumnType())){
 			if(ColumnType.DOUBLE.equals(change.getOldColumn().getColumnType())){
@@ -773,17 +789,19 @@ public class SQLUtils {
 		}
 	}
 	
+	
 	/**
 	 * Append a column type definition to the passed builder.
-	 * 
 	 * @param builder
 	 * @param column
+	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 */
-	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column){
-		builder.append(getColumnNameForId(column.getId()));
+	public static void appendColumnDefinition(StringBuilder builder, ColumnModel column , boolean useDepricatedUtf8ThreeBytes){
+		appendColumnNameForId(column.getId(), builder);
 		builder.append(" ");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(column.getColumnType());
-		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue()));
+		builder.append(info.toSql(column.getMaximumSize(), column.getDefaultValue(), useDepricatedUtf8ThreeBytes));
 	}
 
 	/**
@@ -794,8 +812,7 @@ public class SQLUtils {
 	public static void appendAddDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", ADD COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 
@@ -807,8 +824,7 @@ public class SQLUtils {
 	public static void appendDropDoubleEnum(StringBuilder builder,
 			String columnId) {
 		builder.append(", DROP COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(columnId));
+		appendDoubleAbstractColumnName(columnId, builder);
 	}
 	
 	/**
@@ -819,11 +835,9 @@ public class SQLUtils {
 	 */
 	public static void appendRenameDoubleEnum(StringBuilder builder, String oldId, String newId){
 		builder.append(", CHANGE COLUMN ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(oldId));
+		appendDoubleAbstractColumnName(oldId, builder);
 		builder.append(" ");
-		builder.append(TableConstants.DOUBLE_PREFIX );
-		builder.append(getColumnNameForId(newId));
+		appendDoubleAbstractColumnName(newId, builder);
 		builder.append(DOUBLE_ENUM_CLAUSE);
 	}
 
@@ -832,7 +846,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTruncateSql(String tableId) {
+	public static String createTruncateSql(IdAndVersion tableId) {
 		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
@@ -844,7 +858,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createCardinalitySql(List<DatabaseColumnInfo> list, String tableId){
+	public static String createCardinalitySql(List<DatabaseColumnInfo> list, IdAndVersion tableId){
 		if(list.isEmpty()){
 			return null;
 		}
@@ -875,7 +889,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static String createOptimizedAlterIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		IndexChange change = calculateIndexOptimization(list, tableId, maxNumberOfIndex);
 		return createAlterIndices(change, tableId);
 	}
@@ -890,7 +904,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, String tableId, int maxNumberOfIndex){
+	public static IndexChange calculateIndexOptimization(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex){
 		// us a copy of the list
 		list = new LinkedList<DatabaseColumnInfo>(list);
 		// sort by cardinality descending		
@@ -903,6 +917,14 @@ public class SQLUtils {
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
 			if(info.isMetadata()){
+				continue;
+			}
+			// do not index blobs.
+			if(MySqlColumnType.MEDIUMTEXT.equals(info.getType())) {
+				// remove the index if it has one
+				if(info.hasIndex()){
+					toRemove.add(info);
+				}
 				continue;
 			}
 			if(indexCount < maxNumberOfIndex){
@@ -935,7 +957,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createAlterIndices(IndexChange change, String tableId){
+	public static String createAlterIndices(IndexChange change, IdAndVersion tableId){
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(tableId, "tableId");
 		
@@ -1059,7 +1081,7 @@ public class SQLUtils {
 					if(info.getColumnType() != null){
 						long columnId = getColumnId(info);
 						ColumnModel cm = new ColumnModel();
-						cm.setId(""+columnId);
+						cm.setId(EMPTY_STRING+columnId);
 						cm.setColumnType(info.getColumnType());
 						if(info.getMaxSize() != null){
 							cm.setMaximumSize(info.getMaxSize().longValue());
@@ -1081,22 +1103,26 @@ public class SQLUtils {
 	public static long getColumnId(DatabaseColumnInfo info){
 		ValidateArgument.required(info, "DatabaseColumnInfo");
 		ValidateArgument.required(info.getColumnName(), "DatabaseColumnInfo.columnName()");
-		String columnName = info.getColumnName();
+		return getColumnId(info.getColumnName());
+	}
+
+	public static long getColumnId(String columnName) {
+		ValidateArgument.requiredNotEmpty(columnName, "columnName");
 		try {
 			return Long.parseLong(columnName.substring(COLUMN_PREFIX.length(), columnName.length()-COLUMN_POSTFIX.length()));
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Unexpected columnName: "+info.getColumnName());
+			throw new IllegalArgumentException("Unexpected columnName: "+columnName);
 		}
 	}
-	
+
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTemporaryTableName(String tableId){
-		return TEMP+KeyFactory.stringToKey(tableId);
+	public static String getTemporaryTableName(IdAndVersion tableId){
+		return TEMP+getTableNameForId(tableId, TableType.INDEX);
 	}
 
 	/**
@@ -1104,7 +1130,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTempTableSql(String tableId) {
+	public static String createTempTableSql(IdAndVersion tableId) {
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(CREATE_TABLE_LIKE, tempName, tableName);
@@ -1117,7 +1143,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String copyTableToTempSql(String tableId){
+	public static String copyTableToTempSql(IdAndVersion tableId){
 		String tableName = getTableNameForId(tableId, TableType.INDEX);
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(SQL_COPY_TABLE_TO_TEMP, tempName, tableName);
@@ -1128,7 +1154,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String countTempRowsSql(String tableId){
+	public static String countTempRowsSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return SELECT_COUNT_FROM_TEMP+tempName;
 	}
@@ -1138,7 +1164,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String deleteTempTableSql(String tableId){
+	public static String deleteTempTableSql(IdAndVersion tableId){
 		String tempName = getTemporaryTableName(tableId);
 		return String.format(DROP_TABLE_IF_EXISTS, tempName);
 	}
@@ -1232,30 +1258,53 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(String viewId, ViewType viewType,
+	public static String createSelectInsertFromEntityReplication(Long viewId, Long viewTypeMask,
 			List<ColumnModel> currentSchema) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(viewId, TableType.INDEX));
+		builder.append(getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX));
 		builder.append("(");
 		buildInsertValues(builder, metadata);
-		builder.append(") SELECT ");
-		buildSelect(builder, metadata);
+		builder.append(") ");
+		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		return builder.toString();
+	}
+	
+	/**
+	 * Generate the SQL to get all of the data for a view table from the entity replication tables.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param currentSchema
+	 * @return
+	 */
+	public static List<String> createSelectFromEntityReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
+			List<ColumnModel> currentSchema) {
+		List<ColumnMetadata> metadata = translateColumns(currentSchema);
+		builder.append("SELECT ");
+		List<String> headers = buildSelect(builder, metadata);
 		builder.append(" FROM ");
-		builder.append(TableConstants.ENTITY_REPLICATION_TABLE);
+		builder.append(ENTITY_REPLICATION_TABLE);
 		builder.append(" ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		buildJoins(metadata, builder);
+		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(" LEFT JOIN ");
+		builder.append(ANNOTATION_REPLICATION_TABLE);
+		builder.append(" ").append(ANNOTATION_REPLICATION_ALIAS);
+		builder.append(" ON(");
+		builder.append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
+		builder.append(" = ");
+		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_ENTITY_ID);
+		builder.append(")");
 		builder.append(" WHERE ");
 		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
-		builder.append(getViewScopeFilterColumnForType(viewType));
+		builder.append(getViewScopeFilterColumnForType(viewTypeMask));
 		builder.append(" IN (:");
 		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
-		builder.append(createViewTypeFilter(viewType));
-		return builder.toString();
+		builder.append(createViewTypeFilter(viewTypeMask));
+		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
+		return headers;
 	}
 	
 	/**
@@ -1263,110 +1312,119 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String createViewTypeFilter(ViewType type){
-		ValidateArgument.required(type, "type");
+	public static String createViewTypeFilter(Long viewTypeMask){
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		StringBuilder builder = new StringBuilder();
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
 		builder.append(" IN (");
-		switch(type){
-		case file:
-			builder.append("'");
-			builder.append(EntityType.file.name());
-			builder.append("'");
-			break;
-		case project:
-			builder.append("'");
-			builder.append(EntityType.project.name());
-			builder.append("'");
-			break;
-		case file_and_table:
-			builder.append("'");
-			builder.append(EntityType.file.name());
-			builder.append("'");
-			builder.append(",");
-			builder.append("'");
-			builder.append(EntityType.table.name());
-			builder.append("'");
-			break;
-			default:
-				throw new IllegalArgumentException("Unknown type: "+type.name());
+		// add all types that match the given mask
+		int count = 0;
+		for(ViewTypeMask type: ViewTypeMask.values()) {
+			if((type.getMask() & viewTypeMask) > 0) {
+				if(count > 0) {
+					builder.append(", ");
+				}
+				builder.append("'");
+				builder.append(type.getEntityType().name());
+				builder.append("'");
+				count++;
+			}
 		}
 		builder.append(")");
 		return builder.toString();
 	}
-
-	/**
-	 * Builds the left outer join section of the entity replication insert select.
-	 * @param metadata
-	 * @param builder
-	 */
-	public static void buildJoins(List<ColumnMetadata> metadata,
-			StringBuilder builder) {
-		for(ColumnMetadata meta: metadata){
-			if(meta.getEntityField() == null){
-				builder.append(" LEFT OUTER JOIN ");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_TABLE);
-				builder.append(" ");
-				builder.append(meta.getTableAlias());
-				builder.append(" ON (");
-				builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-				builder.append(".");
-				builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
-				builder.append(" = ");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID);
-				builder.append(" AND ");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_KEY);
-				builder.append(" = '");
-				builder.append(meta.getColumnModel().getName());
-				builder.append("')");
-			}
-		}
-	}
-
 	
 	/**
 	 * Build the select clause of the entity replication insert select.
 	 * @param builder
 	 * @param metadata
 	 */
-	public static void buildSelect(StringBuilder builder,
+	public static List<String> buildSelect(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_ID);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_ETAG);
-		builder.append(", ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
-		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		// select the standard entity columns.
+		List<String> headers = buildEntityReplicationSelectStandardColumns(builder);
 		for(ColumnMetadata meta: metadata){
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
-				// For doubles, the double-meta columns is also selected.
-				builder.append(", ");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT);
-				builder.append(" AS _DBL");
-				builder.append(meta.getColumnNameForId());
-			} 
-			builder.append(", ");
-			builder.append(meta.getTableAlias());
-			builder.append(".");
-			builder.append(meta.getSelectColumnName());
-			builder.append(" AS ");
-			builder.append(meta.getColumnNameForId());
+			headers.addAll(buildSelectMetadata(builder, meta));
 		}
+		return headers;
+	}
+	
+	/**
+	 * Build a entity replication select for the given ColumnMetadata.
+	 * 
+	 * @param builder
+	 * @param meta
+	 */
+	public static List<String> buildSelectMetadata(StringBuilder builder, ColumnMetadata meta) {
+		if (meta.getEntityField() != null) {
+			// entity field select
+			buildEntityReplicationSelect(builder, meta.getEntityField().getDatabaseColumnName());
+			return Lists.newArrayList(meta.getColumnNameForId());
+		}
+		List<String> headers = new LinkedList<>();
+		// annotation select
+		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			// For doubles, the double-meta columns is also selected.
+			boolean isDoubleAbstract = true;
+			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		}
+		// select the annotation
+		boolean isDoubleAbstract = false;
+		headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
+		return headers;
+
+	}
+	
+	/**
+	 * Build the select including the standard entity columns of, id, version, etag, and benefactor..
+	 * @param builder
+	 */
+	public static List<String> buildEntityReplicationSelectStandardColumns(StringBuilder builder) {
+
+		builder.append(ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(ENTITY_REPLICATION_COL_ID);
+		buildEntityReplicationSelect(builder,
+				ENTITY_REPLICATION_COL_VERSION,
+				ENTITY_REPLICATION_COL_ETAG,
+				ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		List<String> headers = new LinkedList<>();
+		headers.add(ROW_ID);
+		headers.add(ROW_VERSION);
+		headers.add(ROW_ETAG);
+		headers.add(ROW_BENEFACTOR);
+		return headers;
+	}
+	/**
+	 * For each provided name: ', MAX(R.name) AS name'
+	 * @param builder
+	 * @param names
+	 */
+	public static void buildEntityReplicationSelect(StringBuilder builder, String...names) {
+		for(String name: names) {
+			builder.append(String.format(TEMPLATE_MAX_ENTITY_SELECT, ENTITY_REPLICATION_ALIAS, name));
+		}
+	}
+	/**
+	 * If isDoubleAbstract = false then builds: ', MAX(IF(A.ANNO_KEY='keyValue', A.valueColumnName, NULL)) as _columnId_'
+	 * If isDoubleAbstract = true then builds: ', MAX(IF(A.ANNO_KEY='keyValue', A.DOUBLE_ABSTRACT, NULL)) as _DBL_columnId_'
+	 * @param builder
+	 * @param keyName
+	 * @param valueName
+	 * @param alias
+	 */
+	public static String buildAnnotationSelect(StringBuilder builder, ColumnMetadata meta, boolean isDoubleAbstract) {
+		String aliasPrefix =  isDoubleAbstract ? ABSTRACT_DOUBLE_ALIAS_PREFIX: EMPTY_STRING;
+		String valueColumnName = isDoubleAbstract ? ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT : meta.getSelectColumnName();
+		builder.append(String.format(TEMPLATE_MAX_ANNOTATION_SELECT,
+				ANNOTATION_REPLICATION_ALIAS,
+				ANNOTATION_REPLICATION_COL_KEY,
+				meta.getColumnModel().getName(),
+				valueColumnName,
+				aliasPrefix,
+				meta.getColumnNameForId()
+		));
+		return aliasPrefix+meta.getColumnNameForId();
 	}
 
 	/**
@@ -1401,8 +1459,8 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId){
-		String tableName = getTableNameForId(viewId, TableType.INDEX);
+	public static String buildTableViewCRC32Sql(Long viewId){
+		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX);
 		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
@@ -1426,9 +1484,9 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
-			builder.append("'");
+			builder.append("`");
 			builder.append(cm.getName());
-			builder.append("'");
+			builder.append("`");
 			first = false;
 		}
 		builder.append(" FROM ");
@@ -1466,7 +1524,7 @@ public class SQLUtils {
 		for(DatabaseColumnInfo info: currentIndexSchema){
 			if(!info.isMetadata()){
 				if(info.getColumnType() != null){
-					String columnId = ""+getColumnId(info);
+					String columnId = EMPTY_STRING+getColumnId(info);
 					currentColumnIdToInfo.put(columnId, info);
 				}
 			}
@@ -1516,10 +1574,17 @@ public class SQLUtils {
 	/**
 	 * Determine if an incompatibility between the passed two columns is the
 	 * cause of the passed exception.
-	 * 
+	 * <p>
+	 * The fix for PLFM-5348 was to change this method to only throw an exception
+	 * for the case where an annotation string value is too large for a view
+	 * string column.
+	 * </p>
 	 * @param exception
 	 * @param annotationMetadata
 	 * @param columnMetadata
+	 * @throws IllegalArgumentException if both the view column type and annotation type
+	 * are strings, and the annotation value size is larger than the view column size.
+	 * No other case will throw an exception.
 	 */
 	public static void determineCauseOfException(Exception exception,
 			ColumnModel columnModel, ColumnModel annotationModel) {
@@ -1547,18 +1612,6 @@ public class SQLUtils {
 										+ " characters.", exception);
 					}
 				}
-				// do the column types match?
-				if (!columnModel.getColumnType().equals(
-						annotationModel.getColumnType())) {
-					throw new IllegalArgumentException(
-							"Cannot insert an annotation value of type "
-									+ annotationType
-									+ " into column '"
-									+ columnModel.getName()
-									+ "' which is of type "
-									+ columnModel.getColumnType() + ".",
-							exception);
-				}
 			}
 		}
 	}
@@ -1571,15 +1624,11 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getViewScopeFilterColumnForType(ViewType type) {
-		switch (type) {
-		case project:
+	public static String getViewScopeFilterColumnForType(Long viewTypeMask) {
+		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
 			return TableConstants.ENTITY_REPLICATION_COL_ID;
-		case file:
-		case file_and_table:
+		}else {
 			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-		default:
-			throw new IllegalArgumentException("Unknown type: "+type.name());
 		}
 	}
 	
@@ -1590,8 +1639,8 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getDistinctAnnotationColumnsSql(ViewType type){
-		String filterColumln = getViewScopeFilterColumnForType(type);
+	public static String getDistinctAnnotationColumnsSql(Long viewTypeMask){
+		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
 		return String.format(TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
 	
@@ -1600,9 +1649,9 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getCalculateCRC32Sql(ViewType type){
-		String typeFilter = createViewTypeFilter(type);
-		String filterColumln = getViewScopeFilterColumnForType(type);
+	public static String getCalculateCRC32Sql(Long viewTypeMask){
+		String typeFilter = createViewTypeFilter(viewTypeMask);
+		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
 		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
 	}
 	
@@ -1665,6 +1714,59 @@ public class SQLUtils {
 		}else{
 			ps.setBoolean(parameterIndex, booleanValue);
 		}
+	}
+
+
+	/**
+	 * Create SQL to insert into a table for the IdAndVersion with the given headers.
+	 * @param idAndVersion
+	 * @param headers
+	 * @return
+	 */
+	public static String createInsertViewFromSnapshot(IdAndVersion idAndVersion, String[] headers) {
+		String tableName = getTableNameForId(idAndVersion, TableType.INDEX);
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(tableName);
+		boolean useBindVariables = false;
+		buildHeaders(builder, headers, useBindVariables);
+		builder.append(" VALUES ");
+		useBindVariables = true;
+		buildHeaders(builder, headers, useBindVariables);
+		return builder.toString();
+	}
+	
+	static void buildHeaders(StringBuilder builder, String[] headers, boolean useBindVariables) {
+		builder.append(" (");
+		boolean isFirst = true;
+		for(String header: headers) {
+			if(!isFirst) {
+				builder.append(",");
+			}
+			if(useBindVariables) {
+				builder.append("?");
+			}else {
+				builder.append(header);
+			}
+			isFirst = false;
+		}
+		builder.append(")");
+	}
+	
+	/**
+	 * Calculate the bytes of the given string array assuming 4 bytes per character.
+	 * 
+	 * @param row
+	 * @return
+	 */
+	public static long calculateBytes(String[] row) {
+		long rowSize = 0;
+		for(String cell: row) {
+			if(cell != null) {
+				rowSize += cell.length()*4L;
+			}
+		}
+		return rowSize;
 	}
 
 }

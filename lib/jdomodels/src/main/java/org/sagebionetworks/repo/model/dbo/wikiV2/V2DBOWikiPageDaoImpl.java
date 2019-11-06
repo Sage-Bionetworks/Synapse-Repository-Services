@@ -23,9 +23,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_OWNERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
-import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -55,6 +53,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -76,7 +75,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
@@ -106,7 +104,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private NamedParameterJdbcTemplate namedTemplate;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;	
@@ -288,7 +286,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		basicDao.createNew(markdownDbo);
 		
 		// Send the create message
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(new MessageToSend().withObservableEntity(dbo).withChangeType(ChangeType.CREATE).withUserId(dbo.getModifiedBy()));
 		
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 	}
@@ -678,7 +676,13 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override																	
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
-		return jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+		String currentEtag;
+		try {
+			currentEtag = jdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The wiki page to update could not be found.", e);
+		}
+		return currentEtag;
 	}
 	
 	/**

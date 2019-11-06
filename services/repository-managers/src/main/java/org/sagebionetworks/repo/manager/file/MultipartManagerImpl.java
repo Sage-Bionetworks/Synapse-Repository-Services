@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.File;
 import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -21,13 +21,12 @@ import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.event.ProgressListener;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
@@ -53,7 +52,7 @@ import com.amazonaws.util.BinaryUtils;
 public class MultipartManagerImpl implements MultipartManager {
 	
 	@Autowired
-	AmazonS3Client s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	FileHandleDao fileHandleDao;
 	@Autowired
@@ -113,7 +112,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		String key = MultipartUtils.createNewKey(userId, ccftr.getFileName(), storageLocationSetting);
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(contentType);
-		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(ccftr.getFileName()));
+		objMeta.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(ccftr.getFileName()));
 		if(ccftr.getContentMD5() != null){
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
@@ -220,31 +219,36 @@ public class MultipartManagerImpl implements MultipartManager {
 	}
 
 	@Override
-	public S3FileHandle multipartUploadLocalFile(Long storageLocationId, String userId, File fileToUpload,
-			String contentType, ProgressListener listener) {
+	public S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request) {
 		try {
-			StorageLocationSetting storageLocationSetting = getStorageLocationSetting(storageLocationId);
+			StorageLocationSetting storageLocationSetting = getStorageLocationSetting(request.getStorageLocationId());
+			// If the file name is provide then use it.
+			String fileName = request.getFileName();
+			if(fileName == null) {
+				// use the name of th passed file when the name is null.
+				fileName = request.getFileToUpload().getName();
+			}
 			// We let amazon's TransferManager do most of the heavy lifting
-			String key = MultipartUtils.createNewKey(userId, fileToUpload.getName(), storageLocationSetting);
-			String md5 = MD5ChecksumHelper.getMD5Checksum(fileToUpload);
+			String key = MultipartUtils.createNewKey(request.getUserId(), fileName, storageLocationSetting);
+			String md5 = MD5ChecksumHelper.getMD5Checksum(request.getFileToUpload());
 			// Start the fileHandle
 			// We can now create a FileHandle for this upload
 			S3FileHandle handle = new S3FileHandle();
 			handle.setBucketName(MultipartUtils.getBucket(storageLocationSetting));
 			handle.setKey(key);
 			handle.setContentMd5(md5);
-			handle.setContentType(contentType);
-			handle.setCreatedBy(userId);
+			handle.setContentType(request.getContentType());
+			handle.setCreatedBy(request.getUserId());
 			handle.setCreatedOn(new Date(System.currentTimeMillis()));
 			handle.setEtag(UUID.randomUUID().toString());
-			handle.setFileName(fileToUpload.getName());
-			
-			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, fileToUpload);
+			handle.setFileName(fileName);
+
+			PutObjectRequest por = new PutObjectRequest(MultipartUtils.getBucket(storageLocationSetting), key, request.getFileToUpload());
 			ObjectMetadata meta = TransferUtils.prepareObjectMetadata(handle);
 			por.setMetadata(meta);
 			Upload upload = transferManager.upload(por);
 			// Make sure the caller can watch the progress.
-			upload.addProgressListener(listener);
+			upload.addProgressListener(request.getListener());
 			// This will throw an exception if the upload fails for any reason.
 			UploadResult results = upload.waitForUploadResult();
 			// get the metadata for this file.

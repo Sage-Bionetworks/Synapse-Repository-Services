@@ -22,7 +22,7 @@
 
 	<!-- To enable @RequestMapping process on type level and method level -->
 	<bean id="jsonDefaultAnnotationHandler"
-		class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
 		<property name="interceptors">
 			<list>
 				<ref bean="stackStatusInterceptor" />
@@ -32,22 +32,18 @@
 	</bean>
 
 	<!-- Setup our own JSON processing. -->
-	<bean id="jsonAnnotationHandler"
-		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+	<bean id="platformMessageConverters"
+		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
 		<property name="messageConverters">
 			<list>
+				<ref bean="jwtTypeSerializer" />
 				<ref bean="objectTypeSerializer" />
-			</list>
-		</property>
-		<property name="customModelAndViewResolvers">
-			<list>
-				<bean class="org.sagebionetworks.repo.web.ResponseHeaderResolver" />
 			</list>
 		</property>
 	</bean>
 	<!-- Setup our own JSON processing. -->
-	<bean id="jsonAnnotationExceptionHandler"
-		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
+	<bean id="platformExceptionHandlers"
+		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">
 		<property name="messageConverters">
 			<list>
 				<ref bean="objectTypeSerializer" />

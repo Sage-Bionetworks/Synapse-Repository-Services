@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -16,17 +21,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -36,6 +42,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -48,8 +56,11 @@ public class DBOFileHandleDaoImplTest {
 	private IdGenerator idGenerator;
 	@Autowired
 	private DBOChangeDAO changeDAO;
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
 	
 	private List<String> toDelete;
+	private List<Long> storageLocationsToDelete;
 	private String creatorUserGroupId;
 	private String creatorUserGroupId2;
 	private Long creatorUserGroupIdL;
@@ -58,6 +69,7 @@ public class DBOFileHandleDaoImplTest {
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
+		storageLocationsToDelete = new LinkedList<>();
 		creatorUserGroupIdL = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		creatorUserGroupId = creatorUserGroupIdL.toString();
 		assertNotNull(creatorUserGroupId);
@@ -72,6 +84,9 @@ public class DBOFileHandleDaoImplTest {
 			for(String id: toDelete){
 				fileHandleDao.delete(id);
 			}
+		}
+		for (Long storageLocationId : storageLocationsToDelete) {
+			storageLocationDao.delete(storageLocationId);
 		}
 	}
 	
@@ -167,6 +182,70 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(expected, createdByIds);
 		
 	}
+	
+	@Test
+	public void testGetFileHandleIdsWithPreviewIds() {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		
+		fileHandleToCreate.add(meta1);
+		fileHandleToCreate.add(meta2);
+		fileHandleToCreate.add(preview);
+		
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		meta1 = (S3FileHandle) fileHandleDao.get(meta1.getId());
+		meta2 = (S3FileHandle) fileHandleDao.get(meta2.getId());
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
+		
+		fileHandleDao.setPreviewId(meta2.getId(), preview.getId());
+
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+		
+		List<String> allFileHandleIds = Arrays.asList(meta1.getId(), meta2.getId(), preview.getId());
+		
+		Map<String, String> fileHandleIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleIds);
+		
+		assertEquals(1, fileHandleIds.size());
+		assertEquals(Maps.immutableEntry(preview.getId(), meta2.getId()), fileHandleIds.entrySet().iterator().next());
+		
+	}
+	
+	@Test
+	public void testGetFileHandleIdsWithPreviewIdsWithEmptyInput() {
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(Collections.emptyList());
+		assertEquals(Collections.emptyMap(), previewIds);
+	}
+	
+	@Test
+	public void testGetFileHandleIdsWithPreviewIdsWithNoPreview() {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		
+		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
+		
+		fileHandleToCreate.add(meta1);
+		fileHandleToCreate.add(meta2);
+		
+		fileHandleDao.createBatch(fileHandleToCreate);
+		
+		meta1 = (S3FileHandle) fileHandleDao.get(meta1.getId());
+		meta2 = (S3FileHandle) fileHandleDao.get(meta2.getId());
+		
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+		
+		List<String> allFileHandleId = Arrays.asList(meta1.getId(),	meta2.getId());
+		
+		Map<String, String> previewIds = fileHandleDao.getFileHandlePreviewIds(allFileHandleId);
+		
+		assertEquals(Collections.emptyMap(), previewIds);
+		
+	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{
@@ -182,12 +261,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testExternalFileCRUD() throws DatastoreException, NotFoundException{
-		ExternalFileHandle meta = new ExternalFileHandle();
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setExternalURL("http://google.com");
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		ExternalFileHandle meta = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
 		meta = (ExternalFileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -201,9 +275,9 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileHandle meta = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
-		meta = (PreviewFileHandle) fileHandleDao.createFile(meta);
+		meta = (S3FileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
 		String id = meta.getId();
 		toDelete.add(id);
@@ -221,9 +295,10 @@ public class DBOFileHandleDaoImplTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
 		// Create a URL that is is 700 chars long
-		char[] chars = new char[700 - 9 - 4];
-		Arrays.fill(chars, 'a');
-		meta.setExternalURL("http://" + new String(chars) + ".com");
+		//according to HTTP specs each section in the domain name can have at most 63 characters
+		String domain = Strings.repeat("a", 63) + ".com" ;
+		String path = Strings.repeat("b", 700-7-domain.length() - 1 );
+		meta.setExternalURL("http://" + domain + "/" + path);
 		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta.setEtag(UUID.randomUUID().toString());
 		// Save it
@@ -299,16 +374,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testS3FileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
 		meta = (S3FileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -323,7 +389,7 @@ public class DBOFileHandleDaoImplTest {
 			// expected
 		}
 		// Now create a preview for this file.
-		PreviewFileHandle preview = new PreviewFileHandle();
+		S3FileHandle preview = new S3FileHandle();
 		preview.setBucketName("bucketName");
 		preview.setKey("key");
 		preview.setContentType("content type");
@@ -334,7 +400,7 @@ public class DBOFileHandleDaoImplTest {
 		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
 		// Save it
-		preview = (PreviewFileHandle) fileHandleDao.createFile(preview);
+		preview = (S3FileHandle) fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		String previewId = preview.getId();
 		assertNotNull(previewId);
@@ -342,11 +408,13 @@ public class DBOFileHandleDaoImplTest {
 		// Now set the preview for this file
 		fileHandleDao.setPreviewId(fileId, previewId);
 		FileHandle clone = fileHandleDao.get(fileId);
+		S3FileHandle previewClone = (S3FileHandle) fileHandleDao.get(previewId);
 		assertNotNull(clone);
 		assertTrue(clone instanceof S3FileHandle);
 		S3FileHandle s3Clone = (S3FileHandle) clone;
 		// The preview ID should be set
 		assertEquals(previewId, s3Clone.getPreviewId());
+		assertTrue(previewClone.getIsPreview());
 		// Lookup the preview id
 		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
 		assertEquals(previewId, previewIdLookup);
@@ -363,58 +431,11 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
-	@Test
-	public void testExternalFileWithPreview() throws DatastoreException, NotFoundException{
-		// Create the metadata
-		ExternalFileHandle meta = new ExternalFileHandle();
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setExternalURL("http://google.com");
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
-		// Save it
-		meta = (ExternalFileHandle) fileHandleDao.createFile(meta);
-		assertNotNull(meta);
-		String fileId = meta.getId();
-		assertNotNull(fileId);
-		toDelete.add(fileId);
-		// Now create a preview for this file.
-		PreviewFileHandle preview = new PreviewFileHandle();
-		preview.setBucketName("bucketName");
-		preview.setKey("key");
-		preview.setContentType("content type");
-		preview.setContentSize(123l);
-		preview.setContentMd5("md5");
-		preview.setCreatedBy(creatorUserGroupId);
-		preview.setFileName("fileName");
-		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		preview.setEtag(UUID.randomUUID().toString());
-		// Save it
-		preview = (PreviewFileHandle) fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		String previewId = preview.getId();
-		assertNotNull(previewId);
-		toDelete.add(previewId);
-		// Now set the preview for this file
-		fileHandleDao.setPreviewId(fileId, previewId);
-		FileHandle clone = fileHandleDao.get(fileId);
-		assertNotNull(clone);
-		assertTrue(clone instanceof ExternalFileHandle);
-		ExternalFileHandle s3Clone = (ExternalFileHandle) clone;
-		// The preview ID should be set
-		assertEquals(previewId, s3Clone.getPreviewId());
-	}
-	
 	@Test (expected=NotFoundException.class)
-	public void testSetPrevieWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
-		ExternalFileHandle meta = new ExternalFileHandle();
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setExternalURL("http://google.com");
-		meta.setFileName("fileName");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+	public void testSetPreviewWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save it
-		meta = (ExternalFileHandle) fileHandleDao.createFile(meta);
+		meta = (S3FileHandle) fileHandleDao.createFile(meta);
 		assertNotNull(meta);
 		String fileId = meta.getId();
 		assertNotNull(fileId);
@@ -426,7 +447,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testSetPreviewWhereFileDoesNotExist() throws DatastoreException, NotFoundException{
 		// Create a real preview.
-		PreviewFileHandle preview = new PreviewFileHandle();
+		S3FileHandle preview = new S3FileHandle();
 		preview.setBucketName("bucketName");
 		preview.setKey("key");
 		preview.setContentType("content type");
@@ -436,7 +457,8 @@ public class DBOFileHandleDaoImplTest {
 		preview.setFileName("fileName");
 		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
-		preview = (PreviewFileHandle) fileHandleDao.createFile(preview);
+		preview.setIsPreview(true);
+		preview = (S3FileHandle) fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		String previewId = preview.getId();
 		assertNotNull(previewId);
@@ -532,16 +554,17 @@ public class DBOFileHandleDaoImplTest {
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setFileName("preview.txt");
-		preview = (PreviewFileHandle) fileHandleDao.createFile(preview);
+		preview = (S3FileHandle) fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		toDelete.add(preview.getId());
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		// The etag should have changed
+		// The etags should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		
+		preview = (S3FileHandle) fileHandleDao.get(preview.getId());
+
 		// Now get all file handles without previews
 		List<String> toFetch = new ArrayList<String>();
 		toFetch.add(noPreviewHandle.getId());
@@ -578,9 +601,9 @@ public class DBOFileHandleDaoImplTest {
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setFileName("preview.txt");
-		preview = (PreviewFileHandle) fileHandleDao.createFile(preview);
+		preview = (S3FileHandle) fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		toDelete.add(preview.getId());
 		// Assign it as a preview
@@ -602,17 +625,17 @@ public class DBOFileHandleDaoImplTest {
 	public void testCountReferences() throws Exception {
 		S3FileHandle handle1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle1.setKey(UUID.randomUUID().toString());
-		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(0, fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, handle1.getBucketName(), handle1.getKey()));
 		handle1 = (S3FileHandle) fileHandleDao.createFile(handle1);
-		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(1, fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, handle1.getBucketName(), handle1.getKey()));
 		S3FileHandle handle2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle2.setKey(handle1.getKey());
 		handle2 = (S3FileHandle) fileHandleDao.createFile(handle2);
-		assertEquals(2, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(2, fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, handle1.getBucketName(), handle1.getKey()));
 		fileHandleDao.delete(handle2.getId());
-		assertEquals(1, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(1, fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, handle1.getBucketName(), handle1.getKey()));
 		fileHandleDao.delete(handle1.getId());
-		assertEquals(0, fileHandleDao.getS3objectReferenceCount(handle1.getBucketName(), handle1.getKey()));
+		assertEquals(0, fileHandleDao.getNumberOfReferencesToFile(FileHandleMetadataType.S3, handle1.getBucketName(), handle1.getKey()));
 	}
 
 	@Test
@@ -679,16 +702,9 @@ public class DBOFileHandleDaoImplTest {
 		Timestamp now = new Timestamp(System.currentTimeMillis()/1000*1000);
 		ArrayList<FileHandle> batch = new ArrayList<FileHandle>();
 		S3FileHandle s3 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		s3.setId(""+idGenerator.generateNewId(IdType.FILE_IDS));
-		s3.setEtag(UUID.randomUUID().toString());
 		s3.setCreatedOn(now);
 		batch.add(s3);
-		ExternalFileHandle external = new ExternalFileHandle();
-		external.setCreatedBy(creatorUserGroupId);
-		external.setExternalURL("http://google.com");
-		external.setFileName("fileName");
-		external.setId(""+idGenerator.generateNewId(IdType.FILE_IDS));
-		external.setEtag(UUID.randomUUID().toString());
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		external.setCreatedOn(now);
 		batch.add(external);
 		fileHandleDao.createBatch(batch);

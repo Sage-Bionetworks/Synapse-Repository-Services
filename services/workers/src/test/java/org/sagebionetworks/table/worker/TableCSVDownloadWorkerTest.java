@@ -1,26 +1,30 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -29,6 +33,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -37,9 +42,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.sqs.model.Message;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -60,7 +63,11 @@ public class TableCSVDownloadWorkerTest {
 
 	@Mock
 	ProgressCallback mockProgressCallback;
+	
+	@Captor
+	ArgumentCaptor<LocalFileUploadRequest> fileUploadCaptor;
 
+	@InjectMocks
 	TableCSVDownloadWorker worker;
 
 	Long userId;
@@ -76,14 +83,6 @@ public class TableCSVDownloadWorkerTest {
 
 	@Before
 	public void before() throws Exception {
-		worker = new TableCSVDownloadWorker();
-		ReflectionTestUtils.setField(worker, "asynchJobStatusManager", mockAsynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "tableQueryManager", mockTableQueryManager);
-		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "fileHandleManager", mockFileHandleManager);
-		ReflectionTestUtils.setField(worker, "clock", mockClock);
-		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
-
 		userId = 987L;
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
@@ -110,7 +109,7 @@ public class TableCSVDownloadWorkerTest {
 		QueryResultBundle countResults = new QueryResultBundle();
 		countResults.setQueryCount(100L);
 		when(mockTableQueryManager.querySinglePage(any(ProgressCallback.class),
-				any(UserInfo.class), any(Query.class), any(Boolean.class), any(Boolean.class), any(Boolean.class))).thenReturn(countResults);
+				any(UserInfo.class), any(Query.class), any(QueryOptions.class))).thenReturn(countResults);
 
 		doAnswer(new Answer<RuntimeException>() {
 
@@ -124,8 +123,7 @@ public class TableCSVDownloadWorkerTest {
 		
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("8888");
-		when(mockFileHandleManager.multipartUploadLocalFile(any(UserInfo.class), any(File.class), any(String.class),
-				any(ProgressListener.class))).thenReturn(fileHandle);
+		when(mockFileHandleManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(fileHandle);
 
 	}
 
@@ -134,6 +132,12 @@ public class TableCSVDownloadWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		verify(mockAsynchJobStatusManager).setComplete(jobId, results);
+		verify(mockFileHandleManager).multipartUploadLocalFile(fileUploadCaptor.capture());
+		LocalFileUploadRequest request = fileUploadCaptor.getValue();
+		assertNotNull(request);
+		assertEquals(userInfo.getId().toString(), request.getUserId());
+		assertEquals("text/csv", request.getContentType());
+		assertEquals(null, request.getFileName());
 	}
 
 	@Test

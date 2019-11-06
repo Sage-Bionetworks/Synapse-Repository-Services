@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,13 +13,11 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.subscription.Etag;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -117,10 +118,4 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(subscription, subscriptions.get(0));
 	}
 
-	@Test
-	public void testGetEtag() throws Exception {
-		Etag etag = servletTestHelper.getEtag(dispatchServlet, adminUserId, forum.getId(), ObjectType.FORUM);
-		assertNotNull(etag);
-		assertNotNull(etag.getEtag());
-	}
 }

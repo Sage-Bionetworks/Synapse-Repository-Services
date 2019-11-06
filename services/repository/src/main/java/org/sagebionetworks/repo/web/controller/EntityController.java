@@ -11,10 +11,11 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -82,9 +85,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <h6>Annotations</h6>
  * <p>
  * An Entity can be annotated using the <a
- * href="${PUT.entity.id.annotations}">PUT /entity/{id}/annotations</a> method.
- * Each annotation is a key-value pair. The <a href="${GET.entity.id.annotations}">GET
- * /entity/{id}/annotations</a> method can be used to get the current
+ * href="${PUT.entity.id.annotations2}">PUT /entity/{id}/annotations2</a> method.
+ * Each annotation is a key-value pair. The <a href="${GET.entity.id.annotations2}">GET
+ * /entity/{id}/annotations2</a> method can be used to get the current
  * annotations of an entity.
  * </p>
  * <h6>Authorization</h6>
@@ -147,7 +150,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
  * /entity/{id}/version/{versionNumber}</a> method. The Annotations of a
  * specific version of an FileEntity can be retrieved using the <a
- * href="${GET.entity.id.version.versionNumber.annotations}">GET
+ * href="${GET.entity.id.version.versionNumber.annotations2}">GET
  * /entity/{id}/version/{versionNumber}/annotations</a> method.
  * </p>
  * <p>
@@ -172,7 +175,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class EntityController extends BaseController {
+public class EntityController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -200,7 +203,19 @@ public class EntityController extends BaseController {
 	 * >ACCESS_TYPE.CREATE</a> on the parent Entity. Any authenticated caller
 	 * can create a new Project (with parentId=null).
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum number of children for a single parent entity</td>
+	 * <td>10 K</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 *            - The user that is doing the create.
 	 * @param header
@@ -240,7 +255,7 @@ public class EntityController extends BaseController {
 			IOException, JSONObjectAdapterException {
 		// Now create the entity
 		Entity createdEntity = serviceProvider.getEntityService().createEntity(
-				userId, entity, generatedBy, request);
+				userId, entity, generatedBy);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -275,7 +290,7 @@ public class EntityController extends BaseController {
 			DatastoreException, UnauthorizedException {
 		// Get the entity.
 		Entity entity = serviceProvider.getEntityService().getEntity(userId,
-				id, request);
+				id);
 		return entity;
 	}
 
@@ -304,7 +319,19 @@ public class EntityController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the Entity.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum number of children for a single parent entity</td>
+	 * <td>10 K</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param id
 	 *            The ID of the entity to update. This ID must match the ID of
 	 *            the passed Entity in the request body.
@@ -356,7 +383,7 @@ public class EntityController extends BaseController {
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId,
-				entity, newVersionBoolean, generatedBy, request);
+				entity, newVersionBoolean, generatedBy);
 		// Return the result
 		return entity;
 	}
@@ -419,15 +446,16 @@ public class EntityController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
+	@Deprecated
 	public @ResponseBody
-	Annotations getEntityAnnotations(
+	org.sagebionetworks.repo.model.Annotations getEntityAnnotations(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Pass it along
-		return serviceProvider.getEntityService().getEntityAnnotations(userId,
-				id, request);
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId,
+				id));
 	}
 
 	/**
@@ -463,8 +491,114 @@ public class EntityController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
+	@Deprecated
 	public @ResponseBody
-	Annotations updateEntityAnnotations(
+	org.sagebionetworks.repo.model.Annotations updateEntityAnnotations(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody org.sagebionetworks.repo.model.Annotations updatedAnnotations,
+			HttpServletRequest request) throws ConflictingUpdateException,
+			NotFoundException, DatastoreException, UnauthorizedException,
+			InvalidModelException {
+		// Pass it along
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService().updateEntityAnnotations(
+				userId, id, AnnotationsV2Translator.toAnnotationsV2(updatedAnnotations)));
+	}
+
+
+	/**
+	 * Get the annotations for an entity.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the Entity, to get its annotations.
+	 * </p>
+	 *
+	 * @param id
+	 *            - The id of the entity to update.
+	 * @param userId
+	 *            - The user that is doing the update.
+	 * @param request
+	 *            - Used to read the contents.
+	 * @return The annotations for the given entity.
+	 * @throws NotFoundException
+	 *             - Thrown if the given entity does not exist.
+	 * @throws DatastoreException
+	 *             - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.GET)
+	public @ResponseBody
+	Annotations getEntityAnnotationsV2(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		// Pass it along
+		return serviceProvider.getEntityService().getEntityAnnotations(userId,
+				id);
+	}
+
+	/**
+	 * Get an Entity's annotations for a specific version of a FileEntity.
+	 *
+	 * @param id
+	 *            The ID of the Entity.
+	 * @param versionNumber
+	 *            The version number of the Entity.
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS_V2 }, method = RequestMethod.GET)
+	public @ResponseBody
+	Annotations getEntityAnnotationsV2ForVersion(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Pass it along
+		return serviceProvider.getEntityService()
+				.getEntityAnnotationsForVersion(userId, id, versionNumber);
+	}
+
+
+	/**
+	 * Update an Entity's annotations.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the Entity, to update its annotations.
+	 * </p>
+	 *
+	 * @param id
+	 *            - The id of the entity to update.
+	 * @param userId
+	 *            - The user that is doing the update.
+	 * @param updatedAnnotations
+	 *            - The updated annotations
+	 * @param request
+	 * @return the updated annotations
+	 * @throws ConflictingUpdateException
+	 *             - Thrown when the passed etag does not match the current etag
+	 *             of an entity. This will occur when an entity gets updated
+	 *             after getting the current etag.
+	 * @throws NotFoundException
+	 *             - Thrown if the given entity does not exist.
+	 * @throws DatastoreException
+	 *             - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 *             - Thrown if the passed entity contents doe not match the
+	 *             expected schema.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.PUT)
+	public @ResponseBody
+	Annotations updateEntityAnnotationsV2(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Annotations updatedAnnotations,
@@ -473,8 +607,9 @@ public class EntityController extends BaseController {
 			InvalidModelException {
 		// Pass it along
 		return serviceProvider.getEntityService().updateEntityAnnotations(
-				userId, id, updatedAnnotations, request);
+				userId, id, updatedAnnotations);
 	}
+
 
 	/**
 	 * This is a duplicate method to update.
@@ -539,7 +674,7 @@ public class EntityController extends BaseController {
 				.getReader());
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId,
-				entity, newVersion, activityId, request);
+				entity, newVersion, activityId);
 		// Return the result
 		return entity;
 	}
@@ -601,7 +736,7 @@ public class EntityController extends BaseController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
 		Entity updatedEntity = serviceProvider.getEntityService()
-				.getEntityForVersion(userId, id, versionNumber, request);
+				.getEntityForVersion(userId, id, versionNumber);
 		// Return the results
 		return updatedEntity;
 	}
@@ -640,7 +775,7 @@ public class EntityController extends BaseController {
 	 * @param userId
 	 * @param batch
 	 *            A comma separated list of Entity IDs to get EntityHeaders for.
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -673,7 +808,7 @@ public class EntityController extends BaseController {
 	 *            -The user that is doing the get.
 	 * @param batch
 	 *            - The comma-separated list of IDs of the entity to fetch.
-	 * @param request
+	 * @param loginRequest
 	 * @return The requested Entity if it exists.
 	 * @throws DatastoreException
 	 *             - Thrown when an there is a server failure.
@@ -758,7 +893,7 @@ public class EntityController extends BaseController {
 			NotFoundException, UnauthorizedException {
 		// pass it along.
 		return new BooleanResult(serviceProvider.getEntityService().hasAccess(
-				id, userId, request, accessType));
+				id, userId, accessType));
 	}
 
 	/**
@@ -848,7 +983,7 @@ public class EntityController extends BaseController {
 					"ACL ID in the path cannot be null");
 		newAcl.setId(id);
 		AccessControlList acl = serviceProvider.getEntityService()
-				.createEntityACL(userId, newAcl, request);
+				.createEntityACL(userId, newAcl);
 		return acl;
 	}
 
@@ -926,7 +1061,7 @@ public class EntityController extends BaseController {
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		return serviceProvider.getEntityService().updateEntityACL(userId,
-				updatedACL, null, request);
+				updatedACL, null);
 	}
 
 	/**
@@ -1008,7 +1143,7 @@ public class EntityController extends BaseController {
 			throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
 		return serviceProvider.getEntityService().getEntityBenefactor(id,
-				userId, request);
+				userId);
 	}
 
 	/**
@@ -1022,7 +1157,7 @@ public class EntityController extends BaseController {
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
-	 * @param request
+	 * @param loginRequest
 	 * @return A paginated list of results.
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -1058,18 +1193,19 @@ public class EntityController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS }, method = RequestMethod.GET)
 	public @ResponseBody
-	Annotations getEntityAnnotationsForVersion(
+	org.sagebionetworks.repo.model.Annotations getEntityAnnotationsForVersion(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable Long versionNumber, HttpServletRequest request)
+			@PathVariable Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
-		return serviceProvider.getEntityService()
-				.getEntityAnnotationsForVersion(userId, id, versionNumber,
-						request);
+		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService()
+				.getEntityAnnotationsForVersion(userId, id, versionNumber
+				));
 	}
 
 	/**
@@ -1183,7 +1319,7 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
-				id, request);
+				id);
 	}
 
 	/**
@@ -1215,11 +1351,11 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
-				id, versionNumber, request);
+				id, versionNumber);
 	}
 
 	/**
-	 * Sets the genratedBy relationship for the current version of an Entity.
+	 * Sets the generatedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
 	 *            The ID of the entity to update.
@@ -1250,11 +1386,11 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().setActivityForEntity(userId,
-				id, generatedBy, request);
+				id, generatedBy);
 	}
 
 	/**
-	 * Deletes the genratedBy relationship for the current version of an Entity.
+	 * Deletes the generatedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
 	 *            - The ID of the activity to fetch.
@@ -1277,8 +1413,8 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		serviceProvider.getEntityService().deleteActivityForEntity(userId, id,
-				request);
+		serviceProvider.getEntityService().deleteActivityForEntity(userId, id
+		);
 	}
 
 	// Files
@@ -1495,7 +1631,7 @@ public class EntityController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 		List<EntityHeader> entityHeaders = serviceProvider.getEntityService()
-				.getEntityHeaderByMd5(userId, md5, request);
+				.getEntityHeaderByMd5(userId, md5);
 		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());
@@ -1548,6 +1684,29 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required=true) EntityLookupRequest request){
 		return serviceProvider.getEntityService().lookupChild(userId, request);
+	}
+	
+	/**
+	 * Change the <a href="${org.sagebionetworks.repo.model.DataType}" >DataType</a>
+	 * of the given entity. The entity's DataType controls how the entity can be
+	 * accessed. For example, an entity's DataType must be set to 'open_data' in
+	 * order for anonymous to be allowed to access its contents.
+	 * 
+	 * <p>
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
+	 * (id=464532) in order to change an Entity's type to 'OPEN_DATA'. The caller must be grated
+	 * UPDATED on the Entity to change the its type to any other value.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param dataType
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
+	public @ResponseBody DataTypeResponse changeEntityDataType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestParam(value = "type") DataType dataType) {
+		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
 	}
 }
 

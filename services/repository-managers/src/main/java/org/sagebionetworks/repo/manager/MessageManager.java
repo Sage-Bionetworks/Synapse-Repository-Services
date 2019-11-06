@@ -5,12 +5,15 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MessageManager {
@@ -28,12 +31,8 @@ public interface MessageManager {
 	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
-	 * Saves the message so that it can be processed by other queries.
-	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
-	 * and any failures will be propagated immediately.
-	 * </br> 
-	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
-	 * In case of failure, the user will be notified via bounce message.  
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
+	 * In case of failure, the user will be notified via bounce message.
 	 * </br>
 	 * This method also checks to see if file handles (message body) are accessible.  
 	 */
@@ -100,28 +99,35 @@ public interface MessageManager {
 	 * Deletes a message, only accessible to admins
 	 */
 	public void deleteMessage(UserInfo userInfo, String messageId);
+	
+	/**
+	 * Sends a password reset email based on a template via Amazon SES, using as potential destination
+	 * the email defined by the given alias if of type {@link AliasType#USER_EMAIL}, otherwise falling
+	 * back to the default notification email for the user identified by the given alias.
+	 * 
+	 * @param passwordResetPrefix The url prefix for the verification callback in the portal
+	 * @param passwordResetToken  The reset token generated for the user that needs the password reset
+	 * @param alias               The alias to use as the destination, if the alias is not of type
+	 *                            {@link AliasType#USER_EMAIL} falls back to the default notification
+	 *                            email of the user that owns the given alias. The principal id in the
+	 *                            alias must match the user id of the signed token
+	 */
+	public void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken,
+			PrincipalAlias alias) throws NotFoundException;
 
 	/**
-	 * Sends a password reset email based on a template via Amazon SES
+	 * Send an email confirming to user that their password has been changed
+	 * @param userId
 	 */
-	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException;
+	public void sendPasswordChangeConfirmationEmail(long userId);
 	
 	/**
-	 * Sends a welcome email based on a template via Amazon SES
-	 */
-	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException;
-	
-	/**
-	 * Sends a delivery failure notification based on a template
+	 * Sends a delivery failure notification based on a template unless the message is a notification message
 	 */
 	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
 
 	/**
-	 * Saves the message so that it can be processed by other queries.
-	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
-	 * and any failures will be propagated immediately.
-	 * </br> 
-	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
+	 * Saves the message so that it can be processed by other queries. A worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
 	 * </br>
 	 * This method also handles throttling of message creation 

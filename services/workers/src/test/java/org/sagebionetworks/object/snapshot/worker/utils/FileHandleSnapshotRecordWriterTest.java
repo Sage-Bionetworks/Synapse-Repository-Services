@@ -1,19 +1,25 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
@@ -25,15 +31,15 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
+@ExtendWith(MockitoExtension.class)
 public class FileHandleSnapshotRecordWriterTest {
 
 	@Mock
@@ -42,16 +48,11 @@ public class FileHandleSnapshotRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
 	private ProgressCallback mockCallback;
-	private FileHandleSnapshotRecordWriter writer;
-	private String id = "123";
 
-	@Before
-	public void setup() {
-		MockitoAnnotations.initMocks(this);
-		writer = new FileHandleSnapshotRecordWriter();
-		ReflectionTestUtils.setField(writer, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
-	}
+	@InjectMocks
+	private FileHandleSnapshotRecordWriter writer;
+
+	private String id = "123";
 
 	@Test
 	public void deleteFileMessageTest() throws IOException {
@@ -60,20 +61,20 @@ public class FileHandleSnapshotRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void invalidChangeMessageTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		assertThrows(IllegalArgumentException.class, () -> writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage)));
 	}
-	
+
 	@Test
 	public void validChangeMessageTest() throws IOException {
 		FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setEtag("etag");
 		when(mockFileHandleDao.get(id)).thenReturn(fileHandle);
-		
+
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.FILE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		FileHandleSnapshot record = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(fileHandle);
@@ -110,29 +111,29 @@ public class FileHandleSnapshotRecordWriterTest {
 	}
 
 	@Test
-	public void testBuildFileHandleSnapshotWithPreviewFileHandle() {
-		PreviewFileHandle previewFH = new PreviewFileHandle();
-		previewFH.setBucketName("bucket");
-		previewFH.setConcreteType(S3FileHandle.class.getName());
-		previewFH.setContentMd5("md5");
-		previewFH.setContentSize(1L);
-		previewFH.setCreatedBy("998");
-		previewFH.setCreatedOn(new Date());
-		previewFH.setFileName("fileName");
-		previewFH.setId("555");
-		previewFH.setKey("key");
-		previewFH.setStorageLocationId(900L);
-		FileHandleSnapshot snapshot = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(previewFH);
-		assertEquals(previewFH.getBucketName(), snapshot.getBucket());
-		assertEquals(previewFH.getConcreteType(), snapshot.getConcreteType());
-		assertEquals(previewFH.getContentMd5(), snapshot.getContentMd5());
-		assertEquals(previewFH.getContentSize(), snapshot.getContentSize());
-		assertEquals(previewFH.getCreatedBy(), snapshot.getCreatedBy());
-		assertEquals(previewFH.getCreatedOn(), snapshot.getCreatedOn());
-		assertEquals(previewFH.getFileName(), snapshot.getFileName());
-		assertEquals(previewFH.getId(), snapshot.getId());
-		assertEquals(previewFH.getKey(), snapshot.getKey());
-		assertEquals(previewFH.getStorageLocationId(), snapshot.getStorageLocationId());
+	public void testBuildFileHandleSnapshotWithGoogleCloudFileHandle() {
+		GoogleCloudFileHandle googleCloudFileHandle = new GoogleCloudFileHandle();
+		googleCloudFileHandle.setBucketName("bucket");
+		googleCloudFileHandle.setConcreteType(S3FileHandle.class.getName());
+		googleCloudFileHandle.setContentMd5("md5");
+		googleCloudFileHandle.setContentSize(1L);
+		googleCloudFileHandle.setCreatedBy("998");
+		googleCloudFileHandle.setCreatedOn(new Date());
+		googleCloudFileHandle.setFileName("fileName");
+		googleCloudFileHandle.setId("555");
+		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setStorageLocationId(900L);
+		FileHandleSnapshot snapshot = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(googleCloudFileHandle);
+		assertEquals(googleCloudFileHandle.getBucketName(), snapshot.getBucket());
+		assertEquals(googleCloudFileHandle.getConcreteType(), snapshot.getConcreteType());
+		assertEquals(googleCloudFileHandle.getContentMd5(), snapshot.getContentMd5());
+		assertEquals(googleCloudFileHandle.getContentSize(), snapshot.getContentSize());
+		assertEquals(googleCloudFileHandle.getCreatedBy(), snapshot.getCreatedBy());
+		assertEquals(googleCloudFileHandle.getCreatedOn(), snapshot.getCreatedOn());
+		assertEquals(googleCloudFileHandle.getFileName(), snapshot.getFileName());
+		assertEquals(googleCloudFileHandle.getId(), snapshot.getId());
+		assertEquals(googleCloudFileHandle.getKey(), snapshot.getKey());
+		assertEquals(googleCloudFileHandle.getStorageLocationId(), snapshot.getStorageLocationId());
 	}
 
 	@Test

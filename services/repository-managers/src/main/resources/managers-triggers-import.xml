@@ -4,5 +4,6 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
 	<import resource="classpath:private/audit-trigger.spb.xml" />
+	<import resource="classpath:private/events-queue-trigger.spb.xml" />
 
 </beans>

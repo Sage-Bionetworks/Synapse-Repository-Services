@@ -1,0 +1,18 @@
+{
+    "description": "JSON Web Key for the RSA algorithm",
+    "implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.oauth.JsonWebKey"
+		}
+	],
+ 	"properties": {
+ 		"e":{
+ 			"type":"string",
+ 			"description":"Exponent of RSA Public Key"
+ 		},
+ 		"n":{
+ 			"type":"string",
+ 			"description":"Modulus of RSA Public Key"
+ 		}
+ 	}
+}

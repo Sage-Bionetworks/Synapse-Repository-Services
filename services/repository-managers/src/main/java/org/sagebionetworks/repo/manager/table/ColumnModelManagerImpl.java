@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
+import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -7,15 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.entity.IdAndVersionBuilder;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -41,15 +49,13 @@ import com.google.common.collect.Lists;
 public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	public static final String COLUMN_TYPE_ERROR_TEMPLATE = "A %1$s column cannot be changed to %2$s";
-	/**
-	 * This is the maximum number of bytes for a single row in MySQL.
-	 * This determines the maximum schema size for a table.
-	 */
-	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
-	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
-	
+	public static final Set<ColumnType> TYPES_ALLOWED_AS_LISTS = Collections.unmodifiableSet(
+			EnumSet.of(ColumnType.STRING,ColumnType.DOUBLE,ColumnType.INTEGER, ColumnType.DATE));
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	
+	@Autowired
+	NodeDAO nodeDao;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -104,19 +110,35 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return results;
 	}
 
-	private void validateColumnModel(ColumnModel columnModel) {
-		checkColumnNaming(columnModel);
+	/**
+	 * Validate the column model.
+	 * 
+	 * @param columnModel
+	 */
+	static void validateColumnModel(ColumnModel columnModel) {
+		ValidateArgument.required(columnModel, "ColumnModel");
+		checkColumnNaming(columnModel.getName());
 		validateFacetType(columnModel);
+		validateColumnIsListSetting(columnModel);
 	}
 	
-	private void checkColumnNaming(ColumnModel columnModel) {
+	/**
+	 * Validate the column name.
+	 * 
+	 * @param columnModel
+	 */
+	static void checkColumnNaming(String name) {
+		ValidateArgument.required(name, "name");
+		if(name.length() > TableConstants.MAX_COLUMN_NAME_SIZE_CHARS) {
+			throw new IllegalArgumentException("Column name must be: "+TableConstants.MAX_COLUMN_NAME_SIZE_CHARS+" characters or less.");
+		}
 		// Validate the name
-		if (TableConstants.isReservedColumnName(columnModel.getName())) {
-			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		if (TableConstants.isReservedColumnName(name)) {
+			throw new IllegalArgumentException("The column name: " + name + " is a system reserved column name.");
 		}
 	}
 	
-	void validateFacetType(ColumnModel columnModel){
+	static void validateFacetType(ColumnModel columnModel){
 		//validate the facetType agains its d
 		FacetType facetType = columnModel.getFacetType();
 		ColumnType columnType = columnModel.getColumnType();
@@ -146,7 +168,15 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			}
 		}
 	}
-	
+
+	/**
+	 * Checks that isList is only set to true on for the allowed columnTypes
+	 */
+	static void validateColumnIsListSetting(ColumnModel columnModel){
+		if(BooleanUtils.isTrue(columnModel.getIsList()) && !TYPES_ALLOWED_AS_LISTS.contains(columnModel.getColumnType())){
+				throw new IllegalArgumentException("Column "+ columnModel.getName() + " is of type " +columnModel.getColumnType() + ", which cannot be a list.");
+		}
+	}
 
 	@Override
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {
@@ -155,23 +185,62 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.getColumnModel(columnId);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.ColumnModelManager#getColumnModels(java.util.List)
+	 */
 	@Override
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder)
+	public List<ColumnModel> getAndValidateColumnModels(List<String> ids)
 			throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		return columnModelDao.getColumnModel(ids, keepOrder);
+		ValidateArgument.required(ids, "ColumnModel IDs");
+		List<ColumnModel> fromDb =  columnModelDao.getColumnModels(ids);
+		Map<String, ColumnModel> resultMap = TableModelUtils.createIdToColumnModelMap(fromDb);
+		// column IDs must be unique.
+		Set<String> visitedIds = new HashSet<>(fromDb.size());
+		// column names must be unique.
+		Set<String> visitedNames = new HashSet<>(fromDb.size());
+		List<ColumnModel> results = new LinkedList<>();
+		for(String id: ids) {
+			ColumnModel cm = resultMap.get(id);
+			if (cm == null) {
+				throw new NotFoundException("Column does not exist for id: " + id);
+			}
+			if (!visitedIds.add(id)) {
+				throw new IllegalArgumentException("Duplicate column: '" + cm.getName() + "'");
+			}
+			if (!visitedNames.add(cm.getName())) {
+				throw new IllegalArgumentException("Duplicate column name: '" + cm.getName() + "'");
+			}
+			results.add(cm);
+		}
+		return results;
 	}
 	
 	@WriteTransaction
 	@Override
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
+	public List<ColumnModel> bindColumnsToDefaultVersionOfObject(List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
+		// Use null version to set the default schema of the table.
+		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(objectId)).setVersion(null)
+				.build();
+		return bindColumnsToVersionOfObject(columnIds, idAndVersion);
+	}
+	
+
+	@Override
+	public List<ColumnModel> bindCurrentColumnsToVersion(IdAndVersion idAndVersion) {
+		// Lookup the current columns for the given object
+		List<String> currentSchema = columnModelDao.getColumnModelIdsForObject(IdAndVersion.newBuilder().setId(idAndVersion.getId()).build());
+		// bind the current schema to the given id and version pair.
+		return bindColumnsToVersionOfObject(currentSchema, idAndVersion);
+	}
+	
+	@Override
+	public List<ColumnModel> bindColumnsToVersionOfObject(List<String> columnIds, IdAndVersion idAndVersion)
+			throws DatastoreException, NotFoundException {
 		// Get the columns and validate the size
-		validateSchemaSize(columnIds);
-		// pass it along to the DAO.
-		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
-		return count > 0;
+		List<ColumnModel> schema = validateSchemaSize(columnIds);
+		columnModelDao.bindColumnToObject(schema, idAndVersion);
+		return schema;
 	}
 	
 	/**
@@ -190,8 +259,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 							+ " columns per table");
 		}
 		// fetch the columns
-		List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds,
-				false);
+		List<ColumnModel> schema = getAndValidateColumnModels(columnIds);
 		// Calculate the max row size for this schema.
 		int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
 		if (shemaSize > MY_SQL_MAX_BYTES_PER_ROW) {
@@ -207,8 +275,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
 			List<String> orderedColumnIds) {
 		// lookup the current schema.
-		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
+		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(IdAndVersion.parse(tableId));
 		List<String> newSchemaIds = new LinkedList<>();
+		// start with all of the old Ids.
 		for(ColumnModel cm: oldSchema){
 			newSchemaIds.add(cm.getId());
 		}
@@ -307,21 +376,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@WriteTransaction
 	@Override
 	public void unbindAllColumnsAndOwnerFromObject(String objectId) {
-		columnModelDao.unbindAllColumnsFromObject(objectId);
 		columnModelDao.deleteOwner(objectId);
-	}
-
-	@Override
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<String> columnIds, boolean currentOnly, long limit, long offset) {
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		validateLimitOffset(limit, offset);
-		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		List<String> results = columnModelDao.listObjectsBoundToColumn(columnIds, currentOnly, limit, offset);
-		long totalCount = columnModelDao.listObjectsBoundToColumnCount(columnIds, currentOnly);
-		PaginatedIds page = new PaginatedIds();
-		page.setResults(results);
-		page.setTotalNumberOfResults(totalCount);
-		return page;
 	}
 
 	@Override
@@ -335,9 +390,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
 			String tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return columnModelDao.getColumnModelsForObject(tableId);
+		authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return columnModelDao.getColumnModelsForObject(IdAndVersion.parse(tableId));
 	}
 
 	@Override
@@ -372,13 +426,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				columnIds.add(change.getOldColumnId());
 			}
 		}
-		boolean keepOrder = false;
-		List<ColumnModel> models = columnModelDao.getColumnModel(columnIds, keepOrder);
-		// map the result
-		Map<String, ColumnModel> map = new HashMap<String, ColumnModel>(models.size());
-		for(ColumnModel cm: models){
-			map.put(cm.getId(), cm);
-		}
+		List<ColumnModel> models = columnModelDao.getColumnModels(columnIds);
+		Map<String, ColumnModel> map = TableModelUtils.createIdToColumnModelMap(models);
 		// Build up the results
 		List<ColumnChangeDetails> details = new LinkedList<>();
 		for(ColumnChange change: changes){
@@ -395,9 +444,48 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return details;
 	}
 
+	/**
+	 * The schema for the current version for any table/view only exists in the
+	 * database with a null version number. Therefore, calls to get the schema of
+	 * the current version are transformed to a representation with a null
+	 * version.
+	 * 
+	 * @param inputIdAndVersion
+	 * @return
+	 */
+	IdAndVersion removeVersionAsNeeded(IdAndVersion inputIdAndVersion) {
+		IdAndVersionBuilder resultBuilder = IdAndVersion.newBuilder();
+		resultBuilder.setId(inputIdAndVersion.getId());
+		if (inputIdAndVersion.getVersion().isPresent()) {
+			/*
+			 * The current version of any table is always 'in progress' and does not have a
+			 * schema bound to it. This means the schema for the current version always
+			 * matches the latest schema for the table. Therefore, when a caller explicitly
+			 * requests the schema of the current version, the latest schema is returned.
+			 */
+			long currentVersion = nodeDao.getCurrentRevisionNumber(inputIdAndVersion.getId().toString());
+			long inputVersion = inputIdAndVersion.getVersion().get();
+			if (inputVersion != currentVersion) {
+				// Only use the input version number when it is not the current version.
+				resultBuilder.setVersion(inputVersion);
+			}
+		}
+		return resultBuilder.build();
+	}
+	
 	@Override
-	public List<String> getColumnIdForTable(String id) {
-		return columnModelDao.getColumnIdsForObject(id);
+	public List<String> getColumnIdsForTable(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelIdsForObject(removeVersionAsNeeded(idAndVersion));
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForObject(IdAndVersion idAndVersion) {
+		return columnModelDao.getColumnModelsForObject(removeVersionAsNeeded(idAndVersion));
+	}
+
+	@Override
+	public ColumnModel createColumnModel(ColumnModel columnModel) {
+		return columnModelDao.createColumnModel(columnModel);
 	}
 	
 }

@@ -1,18 +1,26 @@
 {
-    "description":"A object that is used to request a list of Subscription",
-    "properties":{
+	"description": "A object that is used to request a list of Subscription",
+	"properties": {
 		"objectType": {
 			"type": "object",
 			"name": "SubscriptionObjectType",
 			"$ref": "org.sagebionetworks.repo.model.subscription.SubscriptionObjectType",
 			"description": "The type of the object that could be subscribed"
 		},
-		"idList":{
-			"description":"The list of objectId",
+		"idList": {
+			"description": "The list of objectId",
 			"type": "array",
 			"items": {
 				"type": "string"
 			}
+		},
+		"sortByType": {
+			"description": "Results will be sorted by this type.",
+			"$ref": "org.sagebionetworks.repo.model.subscription.SortByType"
+		},
+		"sortDirection": {
+			"description": "Results will be sorted in this direction.",
+			"$ref": "org.sagebionetworks.repo.model.subscription.SortDirection"
 		}
-    }
+	}
 }

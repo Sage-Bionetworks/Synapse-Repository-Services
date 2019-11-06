@@ -5,6 +5,7 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
+import java.util.Random;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -20,6 +21,8 @@ public class PBKDF2Utils {
 	private static final int HASHING_KEYLENGTH = 32; // bytes
 	private static final int PBEKEYSPEC_KEYLENGTH = HASHING_KEYLENGTH * 8; // bits
 	
+	private static final Random RANDOM = new SecureRandom();
+
 	/**
 	 * Returns the salt used to generate the password hash
 	 * @param passHash Must be exactly 73 characters long (9 for the prefix, 64 for the salt and checksum)
@@ -79,4 +82,12 @@ public class PBKDF2Utils {
 		// Convert to a string and add the prefix
 		return HASH_PREFIX + new String(Base64.encodeBase64(mashup));
 	}
+	
+	public static String generateClientSecret() {
+		byte[] randomBytes = new byte[32];
+		RANDOM.nextBytes(randomBytes);
+		return Base64.encodeBase64URLSafeString(randomBytes);
+	}
+
+
 }

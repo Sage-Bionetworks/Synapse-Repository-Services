@@ -10,11 +10,19 @@
 	],
 	"properties": {
 		"changes": {
-		    "description":"List of changes that describes column additions, deletions, and updates",
+			"description": "List of changes that describes schema and/or row changes to a table.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateRequest"
 			}
+		},
+		"createSnapshot": {
+			"description": "When set to 'true', a snapshot of the table will be created after the change from this transaction request are applied to the table.",
+			"type": "boolean"
+		},
+		"snapshotOptions": {
+			"description": "When 'createSnapshot' is set to true, these options will be used to create the new snapshot.",
+			"$ref": "org.sagebionetworks.repo.model.table.SnapshotRequest"
 		}
 	}
 }

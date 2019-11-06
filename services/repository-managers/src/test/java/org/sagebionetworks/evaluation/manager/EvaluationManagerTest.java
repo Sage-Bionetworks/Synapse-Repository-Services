@@ -4,17 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -26,18 +26,18 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -54,7 +54,8 @@ public class EvaluationManagerTest {
 	private EvaluationDAO mockEvaluationDAO;
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionEligibilityManager mockSubmissionEligibilityManager;
-	
+	private NodeDAO mockNodeDAO;
+
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
 	private UserInfo ownerInfo;
@@ -63,7 +64,7 @@ public class EvaluationManagerTest {
 	private final String EVALUATION_NAME = "test-evaluation";
     private final String EVALUATION_ID = "1234";
     private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
-    private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
+    private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
     private final String EVALUATION_ETAG = "etag";
     
     @Before
@@ -83,6 +84,8 @@ public class EvaluationManagerTest {
     	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 
     	mockSubmissionEligibilityManager = mock(SubmissionEligibilityManager.class);
+
+    	mockNodeDAO = mock(NodeDAO.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -114,7 +117,8 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
-    	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+		ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
+		ReflectionTestUtils.setField(evaluationManager, "nodeDAO", mockNodeDAO);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
@@ -122,14 +126,16 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
-    	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
+
+    	evaluations= Collections.singletonList(evalWithId);
     	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);    	
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+    	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
     }
 
 	@Test
@@ -185,7 +191,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied(""));
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
 		// TODO test activeOnly=true
 		assertEquals(evaluations, qr);
@@ -199,7 +205,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
-		// note that the Evaluation Manager relies on EntityNameValidation.java
+		// note that the Evaluation Manager relies on NameValidation.java
 		eval.setName("$ This is an invalid name");
 		try {
 			evaluationManager.createEvaluation(ownerInfo, eval);			
@@ -216,7 +222,7 @@ public class EvaluationManagerTest {
 	public void testGetTeamSubmissionEligibility() throws Exception {
 		when(mockEvaluationDAO.get(eval.getId())).thenReturn(eval);
 		when(mockPermissionsManager.canCheckTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID)).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
 		tse.setEvaluationId(eval.getId());
 		tse.setTeamId(TEAM_ID);
@@ -224,6 +230,24 @@ public class EvaluationManagerTest {
 			thenReturn(tse);
 		assertEquals(tse,
 				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));
+	}
+
+	@Test
+	public void testCannotCreateEvaluationForNonProject() {
+		for (EntityType t : EntityType.values()) {
+			when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(t);
+			if (t.equals(EntityType.project)) { // Should succeed
+				// Call under test, should not throw exception
+				evaluationManager.createEvaluation(ownerInfo, evalWithId);
+			} else { // Should get IllegalArgumentException
+				try { // Call under test
+					evaluationManager.createEvaluation(ownerInfo, evalWithId);
+					fail("Expected exception");
+				} catch (IllegalArgumentException e) {
+					// As expected
+				}
+			}
+		}
 	}
 
 }

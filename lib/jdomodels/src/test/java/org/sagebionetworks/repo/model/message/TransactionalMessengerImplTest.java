@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.model.message;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -121,7 +123,6 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
@@ -147,16 +148,12 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage first = new ChangeMessage();
 		first.setChangeNumber(new Long(123));
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
 		String json = EntityFactory.createJSONStringForEntity(first);
 		ChangeMessage second = EntityFactory.createEntityFromJSONString(json, ChangeMessage.class);
-		// Change the etag of the second
-		second.setObjectEtag("etagtwo");
-		
 		// Send the message first message
 		messenger.sendMessageAfterCommit(first);
 		messenger.sendMessageAfterCommit(second);
@@ -164,18 +161,14 @@ public class TransactionalMessengerImplTest {
 		assertEquals(1, stubProxy.getSynchronizations().size());
 		// Simulate the before commit
 		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		List<ChangeMessage> list = new ArrayList<ChangeMessage>();
-		// The second should get sent but not the fist.
-		list.add(second);
+		// The second should get sent.
+		List<ChangeMessage> list = Collections.singletonList(second);
 		verify(mockChangeDAO, times(1)).replaceChange(list);
-		list = new ArrayList<ChangeMessage>();
-		list.add(first);
-		verify(mockChangeDAO, never()).replaceChange(list);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// The second message should get sent but not the first
-		verify(mockObserver, times(1)).fireChangeMessage(second);
-		verify(mockObserver, never()).fireChangeMessage(first);
+		verify(mockObserver, times(1)).fireChangeMessage(refEq(second));
+		verify(mockObserver, never()).fireChangeMessage(refEq(first));
 	}
 	
 	@Test
@@ -226,7 +219,6 @@ public class TransactionalMessengerImplTest {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeNumber(new Long(123));
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
-		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);

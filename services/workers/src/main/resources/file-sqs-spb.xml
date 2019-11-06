@@ -21,8 +21,7 @@
 						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
@@ -33,18 +32,11 @@
 									value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="1800" />
-								<property name="queueName" ref="stackConfiguration.fileUpdateQueueName" />
-								<property name="topicNamesToSubscribe">
-									<list>
-										<ref bean="stackConfiguration.repositoryChangeTopic[FILE]" />
-									</list>
-								</property>
-								<property name="deadLetterQueueName" ref="stackConfiguration.fileUpdateDeadLetterQueueName"/>
-								<property name="deadLetterMaxFailureCount" value="5"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('FILE_UPDATE')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

@@ -64,7 +64,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Access Requirement Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class AccessRequirementController extends BaseController {
+public class AccessRequirementController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -175,7 +175,7 @@ public class AccessRequirementController extends BaseController {
 	 * @param userId
 	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
 	 * @param accessType the type of access to filter on
-	 * @param request
+	 * @param loginRequest
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -227,7 +227,7 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of ALL Access Requirements associated with a Team.
 	 * @param userId
 	 * @param id the ID of the Team whose Access Requirements are retrieved.
-	 * @param request
+	 * @param loginRequest
 	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
 	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
@@ -300,7 +300,7 @@ public class AccessRequirementController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS, method = RequestMethod.GET)
 	public @ResponseBody RestrictableObjectDescriptorResponse getSubjects(
 			@PathVariable String requirementId,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getAccessRequirementService().getSubjects(requirementId, nextPageToken);
 	}
 }

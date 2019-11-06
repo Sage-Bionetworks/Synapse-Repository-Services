@@ -3,6 +3,7 @@ package org.sagebionetworks.worker.entity;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -45,12 +46,14 @@ import com.amazonaws.services.sqs.model.Message;
  * is executed against a table view, an event is generated that includes that
  * IDs of the view's fully expanded scope. This worker 'listens' to these events
  * and performs delta checking for each container ID that has not been checked
- * in the past 10 minutes. When deltas are detected, change events are generated
+ * in the past 1000 minutes. When deltas are detected, change events are generated
  * to trigger the {@link EntityReplicationWorker} to create, update, or deleted
  * entity replicated data as needed.
  * </p>
  */
 public class EntityReplicationReconciliationWorker implements MessageDrivenRunner {
+
+	static final int MAX_MESSAGE_TO_RUN_RECONCILIATION = 100;
 
 	static private Logger log = LogManager
 			.getLogger(EntityReplicationReconciliationWorker.class);
@@ -58,7 +61,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	/**
 	 * Each container can only be re-synchronized at this frequency.
 	 */
-	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 10; // 10 minutes.
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 1000; // 1000 minutes.
 
 	/**
 	 * The frequency that progress events will propagate to out of this worker.
@@ -79,11 +82,27 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 
 	@Autowired
 	Clock clock;
+	
 
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) {
 		try {
+			/*
+			 * Entity replication reconciliation is expensive. It serves as a fail-safe for
+			 * lost messages and is not a replacement for the normal replication process.
+			 * Therefore, reconciliation should only be run during quite periods. See:
+			 * PLFM-5101 and PLFM-5051. The approximate number of message on the replication
+			 * queue is used to determine if this is a quite period.
+			 */
+			long messagesOnQueue = this.replicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue();
+			if (messagesOnQueue > MAX_MESSAGE_TO_RUN_RECONCILIATION) {
+				// do nothing during busy periods.
+				log.info("Ignoring reconciliation request since the replication queue has: " + messagesOnQueue
+						+ " messages");
+				return;
+			}
+			
 			// extract the containerIds to check from the message.
 			List<Long> containerIds = getContainerIdsFromMessage(message);
 			if (containerIds.isEmpty()) {
@@ -208,7 +227,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 			ProgressCallback progressCallback, TableIndexDAO firstIndex,
 			Long outOfSynchParentId, boolean isParentInTrash) {
 		List<ChangeMessage> changes = new LinkedList<>();
-		Set<IdAndEtag> replicaChildren = new HashSet<>(
+		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
 				firstIndex.getEntityChildren(outOfSynchParentId));
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
@@ -251,7 +270,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 		message.setChangeNumber(1L);
 		message.setChangeType(type);
 		message.setObjectId("" + info.getId());
-		message.setObjectEtag(info.getEtag());
 		message.setObjectType(ObjectType.ENTITY);
 		message.setTimestamp(new Date());
 		return message;

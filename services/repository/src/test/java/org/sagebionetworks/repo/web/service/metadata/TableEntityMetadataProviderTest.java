@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -25,6 +26,7 @@ public class TableEntityMetadataProviderTest  {
 	TableEntityMetadataProvider provider;
 	
 	String entityId;
+	IdAndVersion idAndVersion;
 	TableEntity table;
 	List<String> columnIds;
 	
@@ -40,6 +42,7 @@ public class TableEntityMetadataProviderTest  {
 		columnIds = Lists.newArrayList("123");
 		
 		entityId = "syn123";
+		idAndVersion = IdAndVersion.parse(entityId);
 		table = new TableEntity();
 		table.setId(entityId);
 		table.setColumnIds(columnIds);
@@ -62,9 +65,18 @@ public class TableEntityMetadataProviderTest  {
 	}
 	
 	@Test
-	public void testUpdate(){
+	public void testUpdateNoNewVersion(){
+		boolean wasNewVersionCreated = false;
 		// call under test
-		provider.entityUpdated(userInfo, table);
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
+		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateWithNewVersion(){
+		boolean wasNewVersionCreated = true;
+		// call under test
+		provider.entityUpdated(userInfo, table, wasNewVersionCreated);
 		verify(tableEntityManager).setTableSchema(userInfo, columnIds, entityId);
 	}
 	
@@ -72,9 +84,11 @@ public class TableEntityMetadataProviderTest  {
 	public void testAddTypeSpecificMetadata(){
 		TableEntity testEntity = new TableEntity();
 		testEntity.setId(entityId);
-		when(tableEntityManager.getTableSchema(entityId)).thenReturn(columnIds);
-		provider.addTypeSpecificMetadata(testEntity, null, null, null); //the other parameters are not used at all
-		verify(tableEntityManager).getTableSchema(entityId);
+		testEntity.setVersionNumber(33L);
+		IdAndVersion expectedId = IdAndVersion.parse("syn123.33");
+		when(tableEntityManager.getTableSchema(expectedId)).thenReturn(columnIds);
+		provider.addTypeSpecificMetadata(testEntity, null, null); //the other parameters are not used at all
+		verify(tableEntityManager).getTableSchema(expectedId);
 		assertEquals(columnIds, testEntity.getColumnIds());
 	}
 

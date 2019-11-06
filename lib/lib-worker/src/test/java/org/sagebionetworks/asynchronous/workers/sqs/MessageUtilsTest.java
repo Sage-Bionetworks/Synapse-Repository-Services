@@ -1,6 +1,7 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +21,6 @@ public class MessageUtilsTest {
 	public void testExtractQueueMessageBody() throws JSONObjectAdapterException{
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.DELETE);
-		message.setObjectEtag("123");
 		message.setObjectId("456");
 		message.setObjectId("synABC");
 		// Set the message
@@ -38,13 +38,11 @@ public class MessageUtilsTest {
 		//one
 		ChangeMessage one = new ChangeMessage();
 		one.setChangeType(ChangeType.DELETE);
-		one.setObjectEtag("etag1");
 		one.setObjectId("456");
 		one.setObjectId("synABC");
 		//two
 		ChangeMessage two = new ChangeMessage();
 		two.setChangeType(ChangeType.DELETE);
-		two.setObjectEtag("etag2");
 		two.setObjectId("789");
 		two.setObjectId("synXYZ");
 		ChangeMessages messages = new ChangeMessages();
@@ -64,7 +62,6 @@ public class MessageUtilsTest {
 	public void testExtractTopicMessageBody() throws JSONObjectAdapterException, JSONException{
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.DELETE);
-		message.setObjectEtag("123");
 		message.setObjectId("456");
 		message.setObjectId("synABC");
 		// Set the message
@@ -82,13 +79,11 @@ public class MessageUtilsTest {
 		//one
 		ChangeMessage one = new ChangeMessage();
 		one.setChangeType(ChangeType.DELETE);
-		one.setObjectEtag("etag1");
 		one.setObjectId("456");
 		one.setObjectId("synABC");
 		//two
 		ChangeMessage two = new ChangeMessage();
 		two.setChangeType(ChangeType.DELETE);
-		two.setObjectEtag("etag2");
 		two.setObjectId("789");
 		two.setObjectId("synXYZ");
 		ChangeMessages messages = new ChangeMessages();

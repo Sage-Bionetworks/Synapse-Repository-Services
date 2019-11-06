@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -29,9 +30,10 @@ public class ProjectSettingsServiceImpl implements ProjectSettingsService {
 
 	@Override
 	public ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, ProjectSettingsType type)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return projectSettingsManager.getProjectSettingByProjectAndType(userInfo, projectId, type);
+		Optional<ProjectSetting> setting = projectSettingsManager.getProjectSettingByProjectAndType(userInfo, projectId, type);
+		return setting.orElse(null);
 	}
 
 	@Override

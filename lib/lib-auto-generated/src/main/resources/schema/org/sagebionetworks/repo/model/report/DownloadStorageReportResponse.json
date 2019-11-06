@@ -1,0 +1,14 @@
+{
+	"description": "The response body of an asynchronous storage report CSV download job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"resultsFileHandleId": {
+			"type": "string",
+			"description": "The resulting file handle ID can be used to download the CSV file created by this job."
+		}
+	}
+}

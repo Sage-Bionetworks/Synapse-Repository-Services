@@ -13,12 +13,11 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,14 +49,10 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 		snapshot.setFileName(fileHandle.getFileName());
 		snapshot.setId(fileHandle.getId());
 		snapshot.setStorageLocationId(fileHandle.getStorageLocationId());
-		if (fileHandle instanceof S3FileHandle) {
-			S3FileHandle s3FH = (S3FileHandle) fileHandle;
+		if (fileHandle instanceof CloudProviderFileHandleInterface) {
+			CloudProviderFileHandleInterface s3FH = (CloudProviderFileHandleInterface) fileHandle;
 			snapshot.setBucket(s3FH.getBucketName());
 			snapshot.setKey(s3FH.getKey());
-		} else if (fileHandle instanceof PreviewFileHandle) {
-			PreviewFileHandle previewFH = (PreviewFileHandle) fileHandle;
-			snapshot.setBucket(previewFH.getBucketName());
-			snapshot.setKey(previewFH.getKey());
 		} else if (fileHandle instanceof ExternalFileHandle) {
 			ExternalFileHandle externalFH = (ExternalFileHandle) fileHandle;
 			snapshot.setKey(externalFH.getExternalURL());
@@ -86,9 +81,6 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 			}
 			try {
 				FileHandle fileHandle = fileHandleDao.get(message.getObjectId());
-				if (!fileHandle.getEtag().equals(message.getObjectEtag())) {
-					log.info("Ignoring old message.");
-				}
 				FileHandleSnapshot snapshot = buildFileHandleSnapshot(fileHandle);
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(snapshot, message.getTimestamp().getTime());
 				toWrite.add(objectRecord);

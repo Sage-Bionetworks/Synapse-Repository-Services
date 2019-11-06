@@ -1,19 +1,12 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.junit.Test;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;

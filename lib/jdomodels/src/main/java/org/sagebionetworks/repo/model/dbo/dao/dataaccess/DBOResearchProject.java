@@ -1,6 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_IDU;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_INSTITUTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESEARCH_PROJECT_PROJECT_LEAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_RESEARCH_PROJECT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESEARCH_PROJECT;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -11,6 +22,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -255,19 +267,7 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 
 	@Override
 	public MigratableTableTranslation<DBOResearchProject, DBOResearchProject> getTranslator() {
-		return new MigratableTableTranslation<DBOResearchProject, DBOResearchProject>(){
-
-			@Override
-			public DBOResearchProject createDatabaseObjectFromBackup(DBOResearchProject backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOResearchProject createBackupFromDatabaseObject(DBOResearchProject dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOResearchProject>();
 	}
 
 	@Override

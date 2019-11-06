@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * A stat for a project and user

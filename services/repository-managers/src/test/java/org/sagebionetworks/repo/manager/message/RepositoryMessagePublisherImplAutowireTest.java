@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -14,9 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -30,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
@@ -54,7 +55,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Autowired
 	DBOChangeDAO changeDao;
 	
-	AmazonSNSClient mockSNSClient;
+	AmazonSNS mockSNSClient;
 	
 	@Before
 	public void before(){
@@ -62,7 +63,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		this.changeDao.deleteAllChanges();
 		assertEquals("Failed to delete all change messages", 0, changeDao.getCurrentChangeNumber());
 		// We do not want to actually send messages as part of this test so we mock the client
-		mockSNSClient = Mockito.mock(AmazonSNSClient.class);
+		mockSNSClient = Mockito.mock(AmazonSNS.class);
 		messagePublisher.setAwsSNSClient(mockSNSClient);
 		when(mockSNSClient.createTopic(any(CreateTopicRequest.class))).thenReturn(new CreateTopicResult().withTopicArn("topicArn"));
 	}
@@ -102,7 +103,6 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectType(ObjectType.ENTITY);
 		message.setObjectId("123");
-		message.setObjectEtag("ABCDEFG");
 		message.setChangeNumber(1l);
 		message.setTimestamp(new Date());
 		message = changeDao.replaceChange(message);
@@ -132,7 +132,6 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			message.setChangeType(ChangeType.CREATE);
 			message.setObjectType(ObjectType.ENTITY);
 			message.setObjectId(""+i);
-			message.setObjectEtag("ABCDEFG"+i);
 			message.setChangeNumber(1l);
 			message.setTimestamp(new Date());
 			message = changeDao.replaceChange(message);

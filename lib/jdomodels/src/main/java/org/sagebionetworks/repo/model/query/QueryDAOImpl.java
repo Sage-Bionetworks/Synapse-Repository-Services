@@ -25,17 +25,14 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.SizeLimitRowMapper;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,8 +48,11 @@ public class QueryDAOImpl implements QueryDAO {
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
+	private static final String INNER_JOIN_TYPE = "inner";
+	private static final String LEFT_OUTER_JOIN_TYPE = "left outer";
+
 	private static final long MAX_BYTES_PER_QUERY = 
-			StackConfiguration.getMaximumBytesPerQueryResult();
+			StackConfigurationSingleton.singleton().getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
 	
 	private static final String ATTRIBUTE_PARAM = "ATTRIBUTE";
@@ -180,7 +180,7 @@ public class QueryDAOImpl implements QueryDAO {
 		String selectId = buildSelect(false);
 		
 		// <from>
-		StringBuilder from = buildFrom(objType, objId, aliases, userQuery, sortFieldType);
+		StringBuilder from = buildFrom(objType, objId, aliases, userQuery, sortFieldType, queryParams);
 
 		// <where>
 		StringBuilder where = buildWhere(objType, objId, aliases, userQuery, queryParams, includePrivate);
@@ -227,19 +227,20 @@ public class QueryDAOImpl implements QueryDAO {
 		}
 		return builder.toString();
 	}
-
+	
 	/**
 	 * Build the FROM clause
 	 */
 	private static StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
-			List<String> aliases, BasicQuery query, FieldType sortFieldType) {
+			List<String> aliases, BasicQuery query, FieldType sortFieldType, Map<String, Object> queryParams) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FROM");
 		String tablePrefix = queryObjType.tablePrefix();
 		
 		// Add the Owner and Blob Annotation tables
-		appendTable(builder, null, tablePrefix, ANNO_OWNER, ALIAS_ANNO_OWNER, true);
-		appendTable(builder, aliases, tablePrefix, ANNO_BLOB, ALIAS_ANNO_BLOB, false);
+		String joinColumn = queryObjType.joinColumn();
+		appendTable(builder, tablePrefix, ANNO_OWNER, ALIAS_ANNO_OWNER, joinColumn, INNER_JOIN_TYPE, true);
+		appendTable(builder, tablePrefix, ANNO_BLOB, ALIAS_ANNO_BLOB, joinColumn, INNER_JOIN_TYPE, false);
 		
 		if (query.getFilters() == null) {
 			query.setFilters(new ArrayList<Expression>());
@@ -255,13 +256,17 @@ public class QueryDAOImpl implements QueryDAO {
 			FieldType type = QueryTools.getFieldType(expression.getValue());
 			String tableName = QueryTools.getTableNameForFieldType(type);
 			String alias = ALIAS_EXPRESSION + i;
-			appendTable(builder, aliases, tablePrefix, tableName, alias, false);
+			appendTable(builder, tablePrefix, tableName, alias, joinColumn, INNER_JOIN_TYPE, false);
 		}
 		
 		// Add the typed table for the sort
 		if (query.getSort() != null) {
 			String tableName = QueryTools.getTableNameForFieldType(sortFieldType);
-			appendTable(builder, aliases, tablePrefix, tableName, ALIAS_SORT, false);
+			appendTable(builder, tablePrefix, tableName, ALIAS_SORT, joinColumn, LEFT_OUTER_JOIN_TYPE, false);
+			// Add the sort filter
+			String paramKey = "sortAttName";
+			appendFilter(builder, ALIAS_SORT, COL_ANNO_ATTRIBUTE, paramKey, false);
+			queryParams.put(paramKey, query.getSort());
 		}
 		return builder;
 	}
@@ -288,13 +293,6 @@ public class QueryDAOImpl implements QueryDAO {
 			appendJoin(builder, ALIAS_ANNO_OWNER, aliases.get(i), joinColumn, false);
 		}		
 		
-		// Add the sort filter
-		if (query.getSort() != null) {
-			String paramKey = "sortAttName";
-			appendFilter(builder, ALIAS_SORT, COL_ANNO_ATTRIBUTE, paramKey, false);
-			queryParams.put("sortAttName", query.getSort());
-		}
-
 		// Add each filter
 		if (query.getFilters() != null) {
 			for (int i = 0; i < query.getFilters().size(); i++) {
@@ -362,19 +360,21 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Helper to append a SQL table to the FROM clause. Defaults to INNER JOIN.
 	 */
-	private static void appendTable(StringBuilder builder, List<String> aliases, 
-			String prefix, String name, String alias, boolean isFirst) {
+	private static void appendTable(StringBuilder builder, 
+			String prefix, String name, String alias, String joinColumn, String joinType, boolean isFirst) {
 		if (!isFirst) {
 			builder.append(" ");
-			builder.append(" inner join ");
+			builder.append(joinType);
+			builder.append(" join ");
 		}
 		builder.append(" ");
 		builder.append(prefix);
 		builder.append(name);
 		builder.append(" ");
 		builder.append(alias);
-		if (aliases != null) {
-			aliases.add(alias);
+		if (!isFirst) {
+			builder.append(" on ");
+			appendJoin(builder, ALIAS_ANNO_OWNER, alias, joinColumn, true);
 		}
 	}
 

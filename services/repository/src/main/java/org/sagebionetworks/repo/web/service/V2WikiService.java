@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;

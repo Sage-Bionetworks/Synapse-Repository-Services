@@ -1,0 +1,66 @@
+{
+    "description": "Describes the general type of media that DOI Metadata refers to.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "Audiovisual",
+            "description": "A series of visual representations imparting an impression of motion when shown in succession. May or may not include sound."
+        },
+        {
+            "name": "Collection",
+            "description": "An aggregation of resources, which may encompass collections of one resourceType as well as those of mixed types. A collection is described as a group; its parts may also be separately described."
+        },
+        {
+            "name": "DataPaper",
+            "description": "A factual and objective publication with a focused intent to identify and describe specific data, sets of data, or data collections to facilitate discoverability."
+        },
+        {
+            "name": "Dataset",
+            "description": "Data encoded in a defined structure."
+        },
+        {
+            "name": "Event",
+            "description": "A non-persistent, time-based occurrence."
+        },
+        {
+            "name": "Image",
+            "description": "A visual representation other than text."
+        },
+        {
+            "name": "InteractiveResource",
+            "description": "A resource requiring interaction from the user to be understood, executed, or experienced."
+        },
+        {
+            "name": "Model",
+            "description": "An abstract, conceptual, graphical, mathematical or visualization model that represents empirical objects,  phenomena, or physical processes."
+        },
+        {
+            "name": "PhysicalObject",
+            "description": "An inanimate, three-dimensional object or substance."
+        },
+        {
+            "name": "Service",
+            "description": "An organized system of apparatus, appliances, staff, etc., for supplying some function(s) required by end users."
+        },
+        {
+            "name": "Software",
+            "description": "A computer program in source code (text) or compiled form. Use this type for all software components supporting scholarly research."
+        },
+        {
+            "name": "Sound",
+            "description": "A resource primarily intended to be heard."
+        },
+        {
+            "name": "Text",
+            "description": "A resource consisting primarily of words for reading."
+        },
+        {
+            "name": "Workflow",
+            "description": "A structured series of steps which can be executed to produce a final outcome, allowing users a means to specify and enact their work in a more reproducible manner."
+        },
+        {
+            "name": "Other",
+            "description": "If selected, supply a value for ResourceType."
+        }
+    ]
+}

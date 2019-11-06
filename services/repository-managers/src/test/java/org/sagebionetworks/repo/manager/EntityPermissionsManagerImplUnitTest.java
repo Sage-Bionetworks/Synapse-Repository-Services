@@ -1,25 +1,30 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySetOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -42,6 +47,8 @@ import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class EntityPermissionsManagerImplUnitTest {
 	
 	private EntityPermissionsManagerImpl entityPermissionsManager;
@@ -91,10 +98,8 @@ public class EntityPermissionsManagerImplUnitTest {
 	String newEtag;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-		MockitoAnnotations.initMocks(this);
-
 		entityPermissionsManager = new EntityPermissionsManagerImpl();
 		
 		nonCertifiedUserInfo = new UserInfo(false);
@@ -159,10 +164,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
 		thenReturn(true);
-		
+
 		// now let's apply an access requirement to "syn987" that does not apply to the benefactor
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(), 
+				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
@@ -181,7 +186,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		
 		newEtag = "newEtag";
-		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString())).thenReturn(newEtag);
+		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 	}
 
 	@Test
@@ -204,9 +209,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -229,9 +234,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
 	}
 
 	@Test
@@ -254,9 +259,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -289,9 +294,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
-		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -314,9 +319,14 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getAuthorized());
-		
-		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
+		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).isAuthorized());
+
+		assertThrows(UserCertificationRequiredException.class,
+				() -> entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).checkAuthorizationOrElseThrow()
+		);
+
+
+		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
 	}
 	
 	@Test
@@ -324,7 +334,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	UserInfo anonymousUser = new UserInfo(false);
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertFalse(entityPermissionsManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).getAuthorized());
+				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
 		
 	}
 	
@@ -371,19 +381,23 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertEquals(new HashSet<Long>(), results);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetNonvisibleChildrenNullUser(){
 		String parentId = "syn123";
 		mockUser = null;
 		// call under test
-		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		assertThrows(IllegalArgumentException.class,
+				() -> entityPermissionsManager.getNonvisibleChildren(mockUser, parentId)
+		);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetNonvisibleChildrenNullParentId(){
 		String parentId = null;
 		// call under test
-		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		assertThrows(IllegalArgumentException.class,
+				() -> entityPermissionsManager.getNonvisibleChildren(mockUser, parentId)
+		);
 	}
 	
 	@Test

@@ -47,37 +47,41 @@ public class DerivedColumn extends SQLElement {
 	 * @return
 	 */
 	public String getDisplayName() {
+		String name = null;
 		if(asClause != null){
-			return asClause.getFirstElementOfType(ActualIdentifier.class).toSqlWithoutQuotes();
+			name = asClause.getFirstElementOfType(ActualIdentifier.class).toSql();
+		}else {
+			name = this.toSql();
 		}
-		// For any aggregate without an as, use the function SQL.
-		if(hasAnyAggregateElements()){
-			return toSql();
-		}
-		// If this has a string literal, then we need the unquoted value.
-		ColumnNameReference hasQuotes = getFirstElementOfType(ColumnNameReference.class);
-		if(hasQuotes != null){
-			// For columns with signedLiterals the name is the unquoted value.
-			return hasQuotes.toSqlWithoutQuotes();
-		}else{
-			// For all all others the name is just the SQL.
-			return toSql();
-		}
+		return stripLeadingAndTailingQuotes(name);
 	}
 	
 	/**
-	 * If this select column is the results of a function, 
-	 * then return the type of the function.  Returns null for non-function
-	 * select columns.
+	 * Strip the leading and tailing quotes from the passes string.
 	 * 
+	 * @param input
 	 * @return
 	 */
-	public FunctionType getFunctionType(){
-		HasFunctionType hasFunction = valueExpression.getFirstElementOfType(HasFunctionType.class);
-		if(hasFunction != null){
-			return hasFunction.getFunctionType();
+	public static String stripLeadingAndTailingQuotes(String input) {
+		if(input == null) {
+			return null;
 		}
-		return null;
+		StringBuilder builder = new StringBuilder();
+		char[] chars = input.toCharArray();
+		for (int i = 0; i < chars.length; i++) {
+			char thisChar = chars[i];
+			if (i == 0 || i == chars.length - 1) {
+				switch (thisChar) {
+				case '"':
+				case '`':
+				case '\'':
+					// skip any leading or tailing quote.
+					continue;
+				}
+			}
+			builder.append(chars[i]);
+		}
+		return builder.toString();
 	}
 	
 	/**

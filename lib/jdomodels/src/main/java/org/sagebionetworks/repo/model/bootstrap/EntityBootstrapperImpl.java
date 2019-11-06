@@ -13,7 +13,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -139,10 +139,10 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			toCreate.setId(""+entityBoot.getEntityId());
-			String nodeId = nodeDao.createNew(toCreate);
+			toCreate = nodeDao.bootstrapNode(toCreate, entityBoot.getEntityId());
 
 			// Now create the ACL on the node
-			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
+			AccessControlList acl = createAcl(toCreate.getId(), entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			aclDAO.create(acl, ObjectType.ENTITY);
 

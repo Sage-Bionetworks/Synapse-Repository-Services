@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -13,12 +12,12 @@ import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -139,19 +138,6 @@ public interface EntityManager {
 	 */
 	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
 
-	
-	/**
-	 * Get the entity and annotations together.
-	 * @param <T>
-	 * @param userInfo
-	 * @param entityId
-	 * @param entityClass
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete an existing dataset.
@@ -218,39 +204,16 @@ public interface EntityManager {
 	 * @param updated
 	 * @param newVersion should a new version be created for this update?
 	 * @param activityId Activity id for version. Activity id for entity will not be updated if new version is false and activity id is null
-	 * @return
+	 * @return True if this update created a new version of the entity.  Note: There are cases where the provided newVersion is false, but a 
+	 * new version is automatically created anyway.
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
-	
-	/**
-	 * Update multiple children of a single parent within the same transaction.
-	 * @param <T>
-	 * @param userInfo
-	 * @param update
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 * @throws ConflictingUpdateException 
-	 * @throws InvalidModelException 
-	 */
-	public <T extends Entity> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
-	
-	/**
-	 * List all version numbers for an entity.
-	 * @param userInfo
-	 * @param entityId
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
+	public <T extends Entity> boolean updateEntity(UserInfo userInfo, T updated, boolean newVersion, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+
 	/**
 	 * Get a specific version of an entity.
 	 * @param <T>
@@ -358,7 +321,7 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws UnauthorizedException, NotFoundException;
 
 	/**
@@ -379,37 +342,6 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public Entity getEntity(UserInfo user, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * Return just the secondary properties of an entity, omitting primary ones.  
-	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
-	 * 
-	 * @param user
-	 * @param entityId
-	 * @param type
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	<T extends Entity> T getEntitySecondaryFields(UserInfo user, String entityId, Class<T> type)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Return just the secondary properties of an entity, omitting primary ones.  
-	 * This avoids making the database call to retrieve a Node when only its Revision is needed.
-	 * 
-	 * @param user
-	 * @param entityId
-	 * @param versionNumber
-	 * @param type
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	<T extends Entity> T getEntitySecondaryFieldsForVersion(UserInfo user, String entityId, Long versionNumber, Class<T> type)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Lookup an Entity ID using an alias.
@@ -435,4 +367,13 @@ public interface EntityManager {
 	 * @return
 	 */
 	public EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request);
+
+	/**
+	 * Change the given entity's {@link DataType}
+	 * @param userInfo
+	 * @param id
+	 * @param dataType
+	 * @return
+	 */
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
 }

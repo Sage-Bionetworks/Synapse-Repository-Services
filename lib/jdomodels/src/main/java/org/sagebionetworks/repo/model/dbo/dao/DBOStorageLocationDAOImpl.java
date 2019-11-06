@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
@@ -11,15 +13,14 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -30,17 +31,15 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
 
@@ -58,15 +57,24 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 	public static final Long DEFAULT_STORAGE_LOCATION_ID = 1L;
 
+	private static final int STORAGE_LOCATIONS_LIST_LIMIT = 100;
+
 	private static final String STORAGE_LOCATION_IDS_PARAM = "udl_ids";
 
-	private static final String SELECT_STORAGE_LOCATIONS = "SELECT " + COL_STORAGE_LOCATION_ID + ", " + COL_STORAGE_LOCATION_DESCRIPTION
-			+ ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM " + TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:"
-			+ STORAGE_LOCATION_IDS_PARAM + ")";
-	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION + " WHERE "
-			+ COL_STORAGE_LOCATION_CREATED_BY + " = ?";
+	private static final String SELECT_STORAGE_LOCATIONS_BY_IDS = "SELECT " + COL_STORAGE_LOCATION_ID + ", "
+			+ COL_STORAGE_LOCATION_DESCRIPTION + ", " + COL_STORAGE_LOCATION_UPLOAD_TYPE + " FROM "
+			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_ID + " IN (:" + STORAGE_LOCATION_IDS_PARAM
+			+ ")";
 
-	private static final RowMapper<DBOStorageLocation> StorageLocationRowMapper = (new DBOStorageLocation()).getTableMapping();
+	private static final String SELECT_STORAGE_LOCATIONS_BY_OWNER = "SELECT * FROM " + TABLE_STORAGE_LOCATION
+			+ " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON
+			+ " DESC LIMIT " + STORAGE_LOCATIONS_LIST_LIMIT;
+
+	private static final String SELECT_ID_BY_CREATOR_AND_HASH = "SELECT " + COL_STORAGE_LOCATION_ID + " FROM "
+			+ TABLE_STORAGE_LOCATION + " WHERE " + COL_STORAGE_LOCATION_CREATED_BY + " = ? AND "
+			+ COL_STORAGE_LOCATION_DATA_HASH + " = ? ORDER BY " + COL_STORAGE_LOCATION_CREATED_ON + " DESC LIMIT 1";
+
+	private static final RowMapper<DBOStorageLocation> ROW_MAPPER = new DBOStorageLocation().getTableMapping();
 
 	public static UploadDestination getDefaultUploadDestination() {
 		S3UploadDestination defaultUploadDestination = new S3UploadDestination();
@@ -84,34 +92,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		return storageLocationSetting;
 	}
 
-	private static final Function<DBOStorageLocation, StorageLocationSetting> CONVERT_DBO_TO_STORAGE_LOCATION = new Function<DBOStorageLocation, StorageLocationSetting>() {
-		@Override
-		public StorageLocationSetting apply(DBOStorageLocation dbo) {
-			StorageLocationSetting setting = dbo.getData();
-			setting.setStorageLocationId(dbo.getId());
-			setting.setDescription(dbo.getDescription());
-			setting.setUploadType(dbo.getUploadType());
-			setting.setEtag(dbo.getEtag());
-			setting.setCreatedBy(dbo.getCreatedBy());
-			setting.setCreatedOn(dbo.getCreatedOn());
-			return setting;
-		}
-	};
-	private static final Function<StorageLocationSetting, DBOStorageLocation> CONVERT_STORAGE_LOCATION_TO_DBO = new Function<StorageLocationSetting, DBOStorageLocation>() {
-		@Override
-		public DBOStorageLocation apply(StorageLocationSetting setting) {
-			DBOStorageLocation dbo = new DBOStorageLocation();
-			dbo.setId(setting.getStorageLocationId());
-			dbo.setDescription(setting.getDescription());
-			dbo.setUploadType(setting.getUploadType());
-			dbo.setEtag(setting.getEtag());
-			dbo.setData(setting);
-			dbo.setCreatedBy(setting.getCreatedBy());
-			dbo.setCreatedOn(setting.getCreatedOn());
-			return dbo;
-		}
-	};
-
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		SinglePrimaryKeySqlParameterSource params = new SinglePrimaryKeySqlParameterSource(
@@ -125,7 +105,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 						.getDefaultStorageLocationSetting();
 				defaultStorageLocationSetting.setCreatedOn(new Date());
 				defaultStorageLocationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-				defaultStorageLocationSetting.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+				defaultStorageLocationSetting
+						.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
 				create(defaultStorageLocationSetting);
 			} catch (DuplicateKeyException e2) {
 				// someone else got there first
@@ -140,7 +121,14 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	@WriteTransaction
 	@Override
 	public Long create(StorageLocationSetting dto) {
-		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
+		DBOStorageLocation dbo = StorageLocationUtils.convertDTOtoDBO(dto);
+
+		Optional<Long> existingLocationId = findByCreatorAndHash(dbo.getCreatedBy(), dbo.getDataHash());
+
+		if (existingLocationId.isPresent()) {
+			return existingLocationId.get();
+		}
+
 		if (dbo.getId() == null) {
 			dbo.setId(idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID));
 		}
@@ -151,26 +139,36 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		return dbo.getId();
 	}
 
+	@WriteTransaction
+	@Override
+	public void delete(Long id) {
+		basicDao.deleteObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(id));
+	}
+
 	@Override
 	public StorageLocationSetting get(Long storageLocationId) throws DatastoreException, NotFoundException {
 		if (storageLocationId == null || DEFAULT_STORAGE_LOCATION_ID.equals(storageLocationId)) {
 			return getDefaultStorageLocationSetting();
 		}
 
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class, new SinglePrimaryKeySqlParameterSource(
-				storageLocationId));
-		return CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
+		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
+				new SinglePrimaryKeySqlParameterSource(storageLocationId));
+
+		return StorageLocationUtils.convertDBOtoDTO(dbo);
 	}
 
 	@Override
 	public List<StorageLocationSetting> getByOwner(Long id) throws DatastoreException, NotFoundException {
-		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, StorageLocationRowMapper, id);
-		return Lists.newArrayList(Lists.transform(dboStorageLocations, CONVERT_DBO_TO_STORAGE_LOCATION));
+		List<DBOStorageLocation> dboStorageLocations = jdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_OWNER, ROW_MAPPER,
+				id);
+		return dboStorageLocations.stream().map(StorageLocationUtils::convertDBOtoDTO).collect(Collectors.toList());
 	}
 
 	@Override
-	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException {
-		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS, Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, locations),
+	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> storageLocationIds)
+			throws DatastoreException, NotFoundException {
+		return namedParameterJdbcTemplate.query(SELECT_STORAGE_LOCATIONS_BY_IDS,
+				Collections.singletonMap(STORAGE_LOCATION_IDS_PARAM, storageLocationIds),
 				new RowMapper<UploadDestinationLocation>() {
 					@Override
 					public UploadDestinationLocation mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -183,11 +181,12 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 				});
 	}
 
-	// temporary for migration
-	@Override
-	public List<StorageLocationSetting> getAllStorageLocationSettings() {
-		List<DBOStorageLocation> result = jdbcTemplate.query("select * from " + TABLE_STORAGE_LOCATION,
-				new DBOStorageLocation().getTableMapping());
-		return Transform.toList(result, CONVERT_DBO_TO_STORAGE_LOCATION);
+	private Optional<Long> findByCreatorAndHash(Long creatorId, String hash) throws DatastoreException {
+		try {
+			Long id = jdbcTemplate.queryForObject(SELECT_ID_BY_CREATOR_AND_HASH, Long.class, creatorId, hash);
+			return Optional.of(id);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 }

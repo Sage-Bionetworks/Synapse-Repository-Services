@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TeamFileHandleAssociationProviderTest {
@@ -23,6 +24,9 @@ public class TeamFileHandleAssociationProviderTest {
 	@Mock
 	private Team mockTeam;
 	private TeamFileHandleAssociationProvider provider;
+
+	String teamId = "1";
+	String fileHandleId = "2";
 	
 	@Before
 	public void before() {
@@ -33,11 +37,9 @@ public class TeamFileHandleAssociationProviderTest {
 
 	@Test
 	public void testGetFileHandleIdsAssociatedWithObject() {
-		String teamId = "1";
-		String fileHandleId = "2";
 		when(mockTeamDAO.get(teamId)).thenReturn(mockTeam);
 		when(mockTeam.getIcon()).thenReturn(fileHandleId);
-		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
 				Arrays.asList(fileHandleId, "4"), teamId);
 		assertEquals(Collections.singleton(fileHandleId), associated);
 	}
@@ -45,5 +47,13 @@ public class TeamFileHandleAssociationProviderTest {
 	@Test
 	public void testGetObjectTypeForAssociatedType() {
 		assertEquals(ObjectType.TEAM, provider.getAuthorizationObjectTypeForAssociatedObjectType());
+	}
+
+	@Test
+	public void testGetFileHandleIdsAssociatedWithObject_teamNotFoundException(){
+		when(mockTeamDAO.get(teamId)).thenThrow(NotFoundException.class);
+		Set<String> associated = provider.getFileHandleIdsDirectlyAssociatedWithObject(
+				Arrays.asList(fileHandleId, "4"), teamId);
+		assertEquals(Collections.emptySet(), associated);
 	}
 }

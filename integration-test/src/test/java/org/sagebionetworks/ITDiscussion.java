@@ -43,10 +43,11 @@ public class ITDiscussion {
 
 	@BeforeClass
 	public static void beforeClass() throws SynapseException, JSONObjectAdapterException {
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);

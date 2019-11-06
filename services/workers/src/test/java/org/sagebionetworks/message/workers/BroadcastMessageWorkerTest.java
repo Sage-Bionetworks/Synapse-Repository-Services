@@ -1,12 +1,21 @@
 package org.sagebionetworks.message.workers;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.amazonaws.services.mq.model.User;
 import org.apache.http.client.ClientProtocolException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -19,6 +28,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@RunWith(MockitoJUnitRunner.class)
 public class BroadcastMessageWorkerTest {
 
 	@Mock
@@ -27,14 +37,15 @@ public class BroadcastMessageWorkerTest {
 	private UserManager mockUserManager;
 	@Mock
 	private ProgressCallback mockCallback;
+	@InjectMocks
 	private BroadcastMessageWorker worker;
+
+	UserInfo adminUserInfo;
 
 	@Before
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		worker = new BroadcastMessageWorker();
-		ReflectionTestUtils.setField(worker, "broadcastManager", mockBroadcastManager);
-		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
+		adminUserInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())).thenReturn(adminUserInfo);
 	}
 
 	@Test
@@ -53,7 +64,7 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.CREATE);
 		fakeMessage.setObjectType(ObjectType.THREAD);
 		doThrow(new MarkdownClientException(500, ""))
-				.when(mockBroadcastManager).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+				.when(mockBroadcastManager).broadcastMessage(adminUserInfo, mockCallback, fakeMessage);
 		worker.run(mockCallback, fakeMessage);
 	}
 
@@ -63,10 +74,10 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.CREATE);
 		fakeMessage.setObjectType(ObjectType.THREAD);
 		doThrow(new ClientProtocolException())
-				.when(mockBroadcastManager).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+				.when(mockBroadcastManager).broadcastMessage(adminUserInfo, mockCallback, fakeMessage);
 		worker.run(mockCallback, fakeMessage);
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(mockBroadcastManager).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+		verify(mockBroadcastManager).broadcastMessage(adminUserInfo, mockCallback, fakeMessage);
 	}
 
 	@Test
@@ -75,8 +86,8 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.UPDATE);
 		fakeMessage.setObjectType(ObjectType.THREAD);
 		worker.run(mockCallback, fakeMessage);
-		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+		verify(mockUserManager, never()).getUserInfo(any());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(),any(),any());
 	}
 
 	@Test
@@ -85,8 +96,8 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.UPDATE);
 		fakeMessage.setObjectType(ObjectType.REPLY);
 		worker.run(mockCallback, fakeMessage);
-		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+		verify(mockUserManager, never()).getUserInfo(any());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(),any(),any());
 	}
 
 	@Test
@@ -95,8 +106,8 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.UPDATE);
 		fakeMessage.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION);
 		worker.run(mockCallback, fakeMessage);
-		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+		verify(mockUserManager, never()).getUserInfo(any());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(), any(), any());
 	}
 
 	@Test
@@ -105,7 +116,7 @@ public class BroadcastMessageWorkerTest {
 		fakeMessage.setChangeType(ChangeType.CREATE);
 		fakeMessage.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		worker.run(mockCallback, fakeMessage);
-		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+		verify(mockUserManager, never()).getUserInfo(any());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(),any(),any());
 	}
 }

@@ -1,0 +1,17 @@
+{
+	"description": "https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter",
+	"properties": {
+		"essential": {
+			"type": "boolean"
+		},
+		"value": {
+			"type": "string"
+		},
+		"values": {
+			"type": "array",
+			"items":{
+				"type": "string"
+			}
+		}
+	}
+}

@@ -3,30 +3,26 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
-import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
-
-	public enum FileHandleReason {
-		FOR_PREVIEW_DOWNLOAD, FOR_FILE_DOWNLOAD, FOR_HANDLE_VIEW
-	}
 
 	/**
 	 * Use: {@link #createNode(Node, UserInfo)}
@@ -58,7 +54,7 @@ public interface NodeManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Node createNewNode(Node newNode, NamedAnnotations annos, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public Node createNewNode(Node newNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Delete a node using its id.
@@ -115,58 +111,24 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 */
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Update a node using the provided node.
-	 * @param userName
-	 * @param updated
-	 * @return 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 * @throws Exception 
-	 */
-	public Node update(UserInfo userInfo, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
 	 * @param username
-	 * @param updatedNode
 	 * @param updatedAnnoations
+	 * @param updatedNode
 	 * @param newVersion - Should a new version be created for this update?
-	 * @throws UnauthorizedException 
+	 * @throws UnauthorizedException
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations annos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Node update(UserInfo userInfo, Node updatedNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Get the annotations for a node
-	 * @param username
-	 * @param nodeId
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Get the annotations for a given version number.
+	 * Update the user annotations of a node.
 	 * @param userInfo
-	 * @param nodeId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Update the annotations of a node.
-	 * @param username
 	 * @param nodeId
 	 * @return
 	 * @throws ConflictingUpdateException 
@@ -175,18 +137,17 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 * @throws InvalidModelException 
 	 */
-	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
-	
-	/**
-	 * Get a list of all of the version numbers for a node.
-	 * @param userInfo
-	 * @param nodeId
-	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 */
-	public List<Long> getAllVersionNumbersForNode(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public Annotations updateUserAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+
+	Annotations getUserAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	Annotations getUserAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException;
+
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get the node type of an entity
@@ -300,11 +261,6 @@ public interface NodeManager {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
-	/**
-	 * Copies the given version to be the current version.
-	 */
-	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
 	 * Get the FileHandleId of the file associated with a given version of the entity. The caller must have permission
@@ -313,13 +269,11 @@ public interface NodeManager {
 	 * @param userInfo
 	 * @param id
 	 * @param versionNumber if null, use current version
-	 * @param reason the reason the caller requests this filehanlde, used for authorization and capability checks
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber, FileHandleReason reason)
-			throws NotFoundException, UnauthorizedException;
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a reference for the current version of the given node ids
@@ -366,6 +320,15 @@ public interface NodeManager {
 	 */
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude, SortBy sortBy, Direction sortDirection, long limit, long offset);
+	
+	/**
+	 * Get the statistics for the given parentId and types.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public ChildStatsResponse getChildrenStats(ChildStatsRequest request);
+	
 
 	/**
 	 * Retrieve the entityId for a given parentId and entityName
@@ -375,5 +338,28 @@ public interface NodeManager {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
+	
+	
+	/**
+	 * Request to create a new snapshot of a table or view. The provided comment,
+	 * label, and activity ID will be applied to the current version thereby
+	 * creating a snapshot and locking the current version. After the snapshot is
+	 * created a new version will be started with an 'in-progress' label.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @param comment  Optional. Version comment.
+	 * @param label    Optional. Version label.
+	 * @param activity Optional. Associate an activity with the new version.
+	 * @return The version number that represents the snapshot/
+	 */
+	public long createSnapshotAndVersion(UserInfo userInfo, String nodeId, SnapshotRequest request);
+
+	/**
+	 * Get the current revision number for the given Entity Id.
+	 * @param entityId
+	 * @return
+	 */
+	long getCurrentRevisionNumber(String entityId);
 
 }

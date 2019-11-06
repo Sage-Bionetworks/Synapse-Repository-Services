@@ -1,6 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -12,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -205,19 +214,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 
 	@Override
 	public MigratableTableTranslation<DBOSubmission, DBOSubmission> getTranslator() {
-		return new MigratableTableTranslation<DBOSubmission, DBOSubmission>(){
-
-			@Override
-			public DBOSubmission createDatabaseObjectFromBackup(DBOSubmission backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSubmission createBackupFromDatabaseObject(DBOSubmission dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOSubmission>();
 	}
 
 	@Override

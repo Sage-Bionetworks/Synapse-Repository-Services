@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Date;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +36,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityHierarchyChangeWorkerIntegrationTest {
 	
-	private static final int MAX_WAIT_MS = 30*1000;
+	private static final int MAX_WAIT_MS = 60*1000*3;
 	
 	@Autowired
 	StackConfiguration config;
@@ -61,8 +60,6 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	
 	@Before
 	public void before(){
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		
 		// this is still an integration test even though a mock progress is used.
 		MockitoAnnotations.initMocks(this);
@@ -102,7 +99,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		assertNotNull(replicatedChild);
 		assertEquals(KeyFactory.stringToKey(project.getId()), replicatedChild.getBenefactorId());
 		// Delete the replicated data
-		indexDao.deleteEntityData(mockProgressCallback , Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
+		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(child.getId())));
 		// Add an ACL to the folder to trigger a hierarchy change
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folder.getId(), adminUser, new Date());
 		entityPermissionsManager.overrideInheritance(acl, adminUser);

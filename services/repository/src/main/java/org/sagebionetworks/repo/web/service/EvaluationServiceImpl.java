@@ -44,6 +44,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EvaluationServiceImpl implements EvaluationService {
+	
 	@Autowired
 	private ServiceProvider serviceProvider;
 	@Autowired
@@ -158,9 +159,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@WriteTransaction
 	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
-			String submissionEligibilityHash, HttpServletRequest request, String challengeEndpoint, String notificationUnsubscribeEndpoint)
+			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
@@ -168,12 +168,15 @@ public class EvaluationServiceImpl implements EvaluationService {
 		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
-		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
+		
 		List<MessageToUserAndBody> messages = submissionManager.
 				createSubmissionNotifications(userInfo,created,submissionEligibilityHash,
 						challengeEndpoint, notificationUnsubscribeEndpoint);
+		
 		notificationManager.sendNotifications(userInfo, messages);
+		
 		return created;
 	}
 	
@@ -302,16 +305,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType)).getAuthorized();
-	}
-
-	@Override
-	public AccessControlList createAcl(Long userId, AccessControlList acl)
-			throws NotFoundException, DatastoreException,
-			InvalidModelException, UnauthorizedException,
-			ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return evaluationPermissionsManager.createAcl(userInfo, acl);
+		return evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.valueOf(accessType)).isAuthorized();
 	}
 
 	@Override
@@ -321,15 +315,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationPermissionsManager.updateAcl(userInfo, acl);
-	}
-
-	@Override
-	public void deleteAcl(Long userId, String evalId)
-			throws NotFoundException, DatastoreException,
-			InvalidModelException, UnauthorizedException,
-			ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		evaluationPermissionsManager.deleteAcl(userInfo, evalId);
 	}
 
 	@Override

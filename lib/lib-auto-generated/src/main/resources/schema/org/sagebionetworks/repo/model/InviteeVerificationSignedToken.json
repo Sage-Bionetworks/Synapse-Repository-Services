@@ -14,11 +14,6 @@
     "membershipInvitationId": {
       "type": "string",
       "description": "The ID of the MembershipInvitation to update."
-    },
-    "expiresOn": {
-      "type": "string",
-      "format": "date-time",
-      "description": "The date on which this token expires."
     }
   }
 }

@@ -5,16 +5,18 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.UserInfoHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.VerificationHelper;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -22,34 +24,28 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ResponseMessage;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
-import org.sagebionetworks.repo.model.verification.VerificationState;
-import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,9 +61,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
-	@Autowired
-	private VerificationDAO verificationDao;
 	
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
@@ -88,7 +81,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	PrincipalPrefixDAO principalPrefixDAO;
 	
 	@Autowired
-	UserGroupDAO userGroupDao;
+	TokenGenerator tokenGenerator;
 	
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -216,7 +209,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()) 
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized())
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
@@ -238,42 +231,32 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public ProjectHeaderList getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, String nextPageToken) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserInfo userToGetInfoFor = userInfo;
 
-		ValidateArgument.required(type, "type");
-
-		// validate for different types of lists
-		switch (type) {
-		case OTHER_USER_PROJECTS:
-			ValidateArgument.required(otherUserId, "user");
-			break;
-		case TEAM_PROJECTS:
-			ValidateArgument.required(teamId, "team");
-			break;
-		default:
-			break;
+		ValidateArgument.required(otherUserId, "subject");
+		
+		UserInfo userToGetInfoFor;
+		if (otherUserId.equals(userId)) {
+			userToGetInfoFor = userInfo;
+		} else {
+			userToGetInfoFor = userManager.getUserInfo(otherUserId);
+		}
+		
+		if (type==null) {
+			type = ProjectListType.ALL;
 		}
 
-		if(sortColumn ==null){
+		if(sortColumn==null){
 			sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
 		}
-		if (sortDirection == null) {
+		if (sortDirection==null) {
 			sortDirection = SortDirection.DESC;
 		}
 
-		if (otherUserId != null) {
-			userToGetInfoFor = userManager.getUserInfo(otherUserId);
-		}
-		Team teamToFetch = null;
-		if (teamId != null) {
-			teamToFetch = teamManager.get(teamId.toString());
-		}
-
-		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
+		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamId, type, sortColumn, sortDirection, nextPageToken);
 	}
 	
 	/*
@@ -281,8 +264,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImage(java.lang.String)
 	 */
 	@Override
-	public String getUserProfileImage(String profileId) throws NotFoundException {
-		return userProfileManager.getUserProfileImageUrl(profileId);
+	public String getUserProfileImage(Long userId, String profileId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getUserProfileImageUrl(userInfo, profileId);
 	}
 
 	/*
@@ -290,13 +274,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileImagePreview(java.lang.String)
 	 */
 	@Override
-	public String getUserProfileImagePreview(String profileId) throws NotFoundException {
-		return userProfileManager.getUserProfileImagePreviewUrl(profileId);
+	public String getUserProfileImagePreview(Long userId, String profileId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getUserProfileImagePreviewUrl(userInfo, profileId);
 	}
 	
 	@Override
 	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken) {
-		SignedTokenUtil.validateToken(notificationSettingsSignedToken);
+		tokenGenerator.validateToken(notificationSettingsSignedToken);
 		String userId = notificationSettingsSignedToken.getUserId();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
 
@@ -340,31 +325,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		UserInfo userInfo = userManager.getUserInfo(profileId);
 		if ((mask&IS_ACT_MEMBER_MASK)!=0) {
-			result.setIsACTMember(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID));
+			result.setIsACTMember(UserInfoHelper.isACTMember(userInfo));
 		}
 		if ((mask&IS_CERTIFIED_MASK)!=0) {
-			result.setIsCertified(userInfo.getGroups().contains(
-					BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+			result.setIsCertified(UserInfoHelper.isCertified(userInfo));
 		}
 		VerificationSubmission verificationSubmission = null;
 		if ((mask&(VERIFICATION_MASK|IS_VERIFIED_MASK))!=0) {
-			verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(profileId);
-		}
-		if ((mask&IS_VERIFIED_MASK)!=0) {
-			result.setIsVerified(false);
-			if (verificationSubmission!=null) {
-				List<VerificationState> list = verificationSubmission.getStateHistory();
-				VerificationStateEnum currentState = list.get(list.size()-1).getState();
-				result.setIsVerified(currentState==VerificationStateEnum.APPROVED);
-			}
-		}
-		if ((mask&ORCID_MASK)!=0) {
-			List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(profileId, AliasType.USER_ORCID);
-			if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
-			result.setORCID(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+			verificationSubmission = userProfileManager.getCurrentVerificationSubmission(profileId);
 		}
 		if ((mask&VERIFICATION_MASK)!=0) {
 			result.setVerificationSubmission(verificationSubmission);
+		}
+		if ((mask&IS_VERIFIED_MASK)!=0) {
+			result.setIsVerified(VerificationHelper.isVerified(verificationSubmission));
+		}
+		if ((mask&ORCID_MASK)!=0) {
+			result.setORCID(userProfileManager.getOrcid(profileId));
 		}
 		return result;
 		
@@ -377,7 +354,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfileManagerUtils.clearPrivateFields(userInfo, result.getUserProfile());
 		if (!UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, profileId)) {
-			if (result.getIsVerified()) {
+			if (BooleanUtils.isTrue(result.getIsVerified())) {
 				UserProfileManagerUtils.clearPrivateFields(result.getVerificationSubmission());
 			} else {
 				// public doesn't get to see the VerificationSubmission unless it's 'APPROVED'

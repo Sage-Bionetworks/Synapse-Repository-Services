@@ -11,6 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+
 	<bean id="tableQueryQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
@@ -21,23 +22,22 @@
 						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
 									<bean class="org.sagebionetworks.table.worker.TableQueryWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableQueryWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[QUERY]" />
+									value="#{stackConfiguration.getQueueName('QUERY')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>
@@ -61,19 +61,18 @@
 						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
 									<bean class="org.sagebionetworks.table.worker.TableQueryNextPageWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableQueryNextPageWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreMaxLockCount" ref="stackConfiguration.writeReadSemaphoreRunnerMaxReaders" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="120" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" />
+									value="#{stackConfiguration.getQueueName('QUERY_NEXT_PAGE')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>

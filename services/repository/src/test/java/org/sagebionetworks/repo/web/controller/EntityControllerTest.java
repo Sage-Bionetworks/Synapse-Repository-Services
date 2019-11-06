@@ -1,30 +1,28 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -35,19 +33,22 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
+public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	@Autowired
 	private FileHandleDao fileHandleDao;
@@ -63,14 +64,16 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private List<String> toDelete;
 	private S3FileHandle handleOne;
-	private PreviewFileHandle previewOne;
+	private S3FileHandle previewOne;
 	private S3FileHandle handleTwo;
-	private PreviewFileHandle previewTwo;
+	private S3FileHandle previewTwo;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
 	
-	@Before
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
+	@BeforeEach
 	public void setUp() throws Exception {
 		assertNotNull(fileHandleDao);
 		assertNotNull(userManager);
@@ -79,61 +82,32 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		
-		toDelete = new ArrayList<String>();
+		toDelete = new ArrayList<>();
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
+		handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleOne.setBucketName(S3_BUCKET_NAME);
 		handleOne.setKey("EntityControllerTest.mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setContentMd5("handleOneContentMd5");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
-		previewOne = new PreviewFileHandle();
-		previewOne.setCreatedBy(adminUserIdString);
-		previewOne.setCreatedOn(new Date());
-		previewOne.setBucketName("bucket");
+		previewOne = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		previewOne.setBucketName(S3_BUCKET_NAME);
 		previewOne.setKey("EntityControllerTest.previewFileKey");
-		previewOne.setEtag("etag");
-		previewOne.setFileName("bar.txt");
-		previewOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewOne.setEtag(UUID.randomUUID().toString());
-		
-		// Create a file handle
-		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName("bucket");
-		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("foo2.bar");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
-		// Create a preview
-		previewTwo = new PreviewFileHandle();
-		previewTwo.setCreatedBy(adminUserIdString);
-		previewTwo.setCreatedOn(new Date());
-		previewTwo.setBucketName("bucket");
-		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
-		previewTwo.setEtag("etag");
-		previewTwo.setFileName("bar2.txt");
-		previewTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		previewTwo.setEtag(UUID.randomUUID().toString());
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(handleOne);
-		fileHandleToCreate.add(handleTwo);
-		fileHandleToCreate.add(previewOne);
-		fileHandleToCreate.add(previewTwo);
+		// Create a file handle
+		handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleTwo.setBucketName(S3_BUCKET_NAME);
+		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
+		// Create a preview
+		previewTwo = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		previewTwo.setBucketName(S3_BUCKET_NAME);
+		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
+
+		List<FileHandle> fileHandleToCreate = Arrays.asList(handleOne, handleTwo, previewOne, previewTwo);
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		handleOne = (S3FileHandle) fileHandleDao.get(handleOne.getId());
-		previewOne = (PreviewFileHandle) fileHandleDao.get(previewOne.getId());
+		previewOne = (S3FileHandle) fileHandleDao.get(previewOne.getId());
 		handleTwo = (S3FileHandle) fileHandleDao.get(handleTwo.getId());
-		previewTwo = (PreviewFileHandle) fileHandleDao.get(previewTwo.getId());
+		previewTwo = (S3FileHandle) fileHandleDao.get(previewTwo.getId());
 		// Set two as the preview of one
 		fileHandleDao.setPreviewId(handleOne.getId(), previewOne.getId());
 
@@ -141,7 +115,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		fileHandleDao.setPreviewId(handleTwo.getId(), previewTwo.getId());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
 		for(String id: toDelete){
@@ -161,7 +135,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testCRUDEntity() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());		
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -193,18 +166,17 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testAnnotationsCRUD() throws Exception {
 		Project p = new Project();
 		p.setName("AnnotCrud");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
 		// Updte them
-		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -218,18 +190,17 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testNaNAnnotationsCRUD() throws Exception {
 		Project p = new Project();
 		p.setName("AnnotCrud");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(Double.NaN));
 		annos.addAnnotation("string", "A string");
 		// Update them
-		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
+		org.sagebionetworks.repo.model.Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -238,12 +209,59 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(new Double(Double.NaN), annosClone.getSingleValue("doubleAnno"));
 		
 	}
+
+
+	@Test
+	public void testAnnotationsV2CRUD() throws Exception {
+		Project p = new Project();
+		p.setName("AnnotCrud");
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		String id = clone.getId();
+		toDelete.add(id);
+		// Get the annotaions for this entity
+		Annotations annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		assertNotNull(annos);
+		// Change the values
+		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsValueType.STRING);
+		// Updte them
+		Annotations annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
+		assertNotNull(annosClone);
+		assertEquals(id, annosClone.getId());
+		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
+		String value = AnnotationsV2Utils.getSingleValue(annosClone, "string");
+		assertEquals("A string", value);
+		assertEquals("45.0001", AnnotationsV2Utils.getSingleValue(annosClone, "doubleAnno"));
+
+	}
+
+	@Test
+	public void testNaNAnnotationsV2CRUD() throws Exception {
+		Project p = new Project();
+		p.setName("AnnotCrud");
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		String id = clone.getId();
+		toDelete.add(id);
+		// Get the annotaions for this entity
+		Annotations annos = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		assertNotNull(annos);
+		// Change the values
+		AnnotationsV2TestUtils.putAnnotations(annos,"doubleAnno", "nan", AnnotationsValueType.DOUBLE);
+		AnnotationsV2TestUtils.putAnnotations(annos,"string", "A string", AnnotationsValueType.STRING);
+		// Update them
+		Annotations annosClone = entityServletHelper.updateAnnotationsV2(annos, adminUserId);
+		assertNotNull(annosClone);
+		assertEquals(id, annosClone.getId());
+		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
+		String value = AnnotationsV2Utils.getSingleValue(annosClone, "string");
+		assertEquals("A string", value);
+		assertEquals("nan", AnnotationsV2Utils.getSingleValue(annosClone, "doubleAnno"));
+	}
 	
 	@Test
 	public void testGetUserEntityPermissions() throws Exception{
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -258,7 +276,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		for(int i = 0; i < 12; i++) {
 			Project p = new Project();
 			p.setName("EntityTypeBatchItem" + i);
-			p.setEntityType(p.getClass().getName());
 			Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 			String id = clone.getId();
 			toDelete.add(id);
@@ -280,7 +297,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityPath() throws Exception{
 		Project p = new Project();
 		p.setName("EntityPath");
-		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
@@ -319,44 +335,41 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(full.getImplements().length > 0);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetRegistry() throws Exception {
-		EntityRegistry registry = entityServletHelper.getEntityRegistry();
-		assertNotNull(registry);
-		assertNotNull(registry.getEntityTypes());
-		assertTrue(registry.getEntityTypes().size() > 0);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			entityServletHelper.getEntityRegistry();
+		});
 	}
 	
-	@Test (expected=NameConflictException.class)
+	@Test
 	public void testPLFM_449NameConflict() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
 		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		toDelete.add(p.getId());
 		
 		Folder one = new Folder();
 		one.setName("one");
 		one.setParentId(p.getId());
-		one.setEntityType(Folder.class.getName());
 		one = (Folder) entityServletHelper.createEntity(one, adminUserId, null);
 		// Now try to re-use the name
 		Folder two = new Folder();
 		two.setName("one");
 		two.setParentId(p.getId());
-		two.setEntityType(Folder.class.getName());
-		two = (Folder) entityServletHelper.createEntity(two, adminUserId, null);
+		assertThrows(NameConflictException.class, ()-> {
+			entityServletHelper.createEntity(two, adminUserId, null);
+		});
 	}
 
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testActivityId404() throws Exception{
 		Project p = new Project();
-		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
+		p.setName("My Project");
 		String activityId = "123456789";
-		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, activityId);
-		String id = clone.getId();
-		toDelete.add(id);
+		assertThrows(NotFoundException.class, ()-> {
+			entityServletHelper.createEntity(p, adminUserId, activityId);
+		});
 	}
 
 	/**
@@ -373,14 +386,12 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		// Create a project
 		Project parent = new Project();
 		parent.setName("project");
-		parent.setEntityType(Project.class.getName());
 		Project parentClone = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		String parentId = parentClone.getId();
 		toDelete.add(parentId);
 		// Create a file entity
 		FileEntity file = new FileEntity();
 		file.setName("FileName");
-		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		// Save it
@@ -402,31 +413,31 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		// First get the URL for the current version
 		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), null);
 		assertNotNull(url);
-		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleTwo.getKey()) > 0);
+		assertTrue(url.toString().indexOf(handleTwo.getKey()) > 0, "Url did not contain the expected key");
 		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleTwo.getKey()) > 0);
+		assertTrue(urlNoRedirect.toString().indexOf(handleTwo.getKey()) > 0, "Url did not contain the expected key");
 		// Now the first version
 		url = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, null);
 		assertNotNull(url);
-		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+		assertTrue(url.toString().indexOf(handleOne.getKey()) > 0, "Url did not contain the expected key");
 		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleOne.getKey()) > 0);
+		assertTrue(urlNoRedirect.toString().indexOf(handleOne.getKey()) > 0, "Url did not contain the expected key");
 		// Get the preview of the current version
 		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), null);
 		assertNotNull(url);
-		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewTwo.getKey()) > 0);
+		assertTrue(url.toString().indexOf(previewTwo.getKey()) > 0, "Url did not contain the expected key");
 		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewTwo.getKey()) > 0);
+		assertTrue(urlNoRedirect.toString().indexOf(previewTwo.getKey()) > 0, "Url did not contain the expected key");
 		// Get the preview of the first version
 		url = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, null);
 		assertNotNull(url);
-		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+		assertTrue(url.toString().indexOf(previewOne.getKey()) > 0, "Url did not contain the expected key");
 		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0);
+		assertTrue(urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0, "Url did not contain the expected key");
 		
 		// Validate that we can get the files handles
 		FileHandleResults fhr = entityServletHelper.geEntityFileHandlesForCurrentVersion(adminUserId, file.getId());
@@ -456,7 +467,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
 		Project parent = new Project();
 		parent.setName("testGetEntityHeaderByMd5");
-		parent.setEntityType(Project.class.getName());
 		parent = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		assertNotNull(parent);
 		String parentId = parent.getId();
@@ -464,7 +474,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
 		FileEntity file = new FileEntity();
 		file.setName("testGetEntityHeaderByMd5 file");
-		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);

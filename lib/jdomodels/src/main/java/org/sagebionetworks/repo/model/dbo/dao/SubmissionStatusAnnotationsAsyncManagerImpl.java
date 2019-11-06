@@ -10,7 +10,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.CancelControl;
-import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -55,34 +54,25 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		this.evaluationSubmissionsDAO=evaluationSubmissionsDAO;
 	}
 
-	private boolean isSubmissionsEtagValid(String evalId, String submissionsEtag) throws NumberFormatException {
-		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluationIfExists(Long.parseLong(evalId));
-		if (evalSubs == null) {
-			return false;
-		}
-		return evalSubs.getEtag()!=null && evalSubs.getEtag().equals(submissionsEtag);
+	@WriteTransaction
+	@Override
+	public void createEvaluationSubmissionStatuses(String evalId)
+			throws NotFoundException, DatastoreException,
+			JSONObjectAdapterException {
+		createOrUpdateEvaluationSubmissionStatuses(evalId);
 	}
 
 	@WriteTransaction
 	@Override
-	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
+	public void updateEvaluationSubmissionStatuses(String evalId)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
-		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
-	}
-
-	@WriteTransaction
-	@Override
-	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
-			throws NotFoundException, DatastoreException,
-			JSONObjectAdapterException {
-		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
+		createOrUpdateEvaluationSubmissionStatuses(evalId);
 	}
 	
-	private void createOrUpdateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+	private void createOrUpdateEvaluationSubmissionStatuses(String evalId)
 			throws NumberFormatException, NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
-		if (!isSubmissionsEtagValid(evalId, submissionsEtag)) return;
 		replaceAnnotationsForEvaluation(evalId);
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
 		// delete any annotations for which the SubmissionStatus has been deleted
@@ -105,7 +95,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@WriteTransaction
 	@Override
-	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
+	public void deleteEvaluationSubmissionStatuses(String evalIdString) {
 		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");
 		Long evalId = KeyFactory.stringToKey(evalIdString);
 		annotationsDAO.deleteAnnotationsByScope(evalId);

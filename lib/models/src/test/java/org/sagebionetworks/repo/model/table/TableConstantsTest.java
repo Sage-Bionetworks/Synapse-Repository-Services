@@ -20,9 +20,15 @@ public class TableConstantsTest {
 	public void testIsReservedColumnNameRowIdCaseInsensitive(){
 		assertTrue("The isReservedColumnName() method should be case insensitive.", TableConstants.isReservedColumnName("row_id"));
 	}
-	
+
 	@Test
 	public void testIsReservedColumnNameRowVersion(){
 		assertTrue(TableConstants.isReservedColumnName("ROW_VERSION"));
+	}
+
+
+	@Test
+	public void testIsReservedColumnNameRowBenefactor(){
+		assertTrue(TableConstants.isReservedColumnName("row_benefactor"));
 	}
 }

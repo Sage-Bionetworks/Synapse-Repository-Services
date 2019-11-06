@@ -44,8 +44,8 @@ public class ITBroadcastMessage {
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		synapseTwo = new SynapseClientImpl();
@@ -69,8 +69,8 @@ public class ITBroadcastMessage {
 
 	@Before
 	public void before() throws SynapseException {
-		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapseOne.getNotificationEmail());
-		bucketKeyTwo = EmailValidationUtil.getBucketKeyForEmail(synapseTwo.getNotificationEmail());
+		bucketKeyOne = EmailValidationUtil.getBucketKeyForEmail(synapseOne.getNotificationEmail().getEmail());
+		bucketKeyTwo = EmailValidationUtil.getBucketKeyForEmail(synapseTwo.getNotificationEmail().getEmail());
 		project = new Project();
 		project = synapseOne.createEntity(project);
 		assertNotNull(project);
@@ -85,13 +85,13 @@ public class ITBroadcastMessage {
 		synapseTwo.subscribe(toSubscribe);
 	}
 
-	private void grantREADPermission(SynapseClient synapseOne, String projectId, SynapseClient synpaseTwo) throws SynapseException {
+	private void grantREADPermission(SynapseClient synapseOne, String projectId, SynapseClient synapseTwo) throws SynapseException {
 		AccessControlList acl = synapseOne.getACL(projectId);
 		Set<ResourceAccess> rs = acl.getResourceAccess();
-		ResourceAccess synpaseTwoAccess = new ResourceAccess();
-		synpaseTwoAccess.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
-		synpaseTwoAccess.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
-		rs.add(synpaseTwoAccess );
+		ResourceAccess synapseTwoAccess = new ResourceAccess();
+		synapseTwoAccess.setPrincipalId(Long.parseLong(ITBroadcastMessage.synapseTwo.getMyProfile().getOwnerId()));
+		synapseTwoAccess.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ)));
+		rs.add(synapseTwoAccess );
 		acl.setResourceAccess(rs);
 		synapseOne.updateACL(acl);
 	}

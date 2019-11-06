@@ -4,29 +4,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -40,36 +34,37 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.migration.BackupTypeListRequest;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -89,7 +84,7 @@ public class MigrationManagerImplTest {
 	@Mock
 	BackupFileStream mockBackupFileStream;
 	@Mock
-	AmazonS3Client mockS3Client;
+	SynapseS3Client mockS3Client;
 	@Mock
 	FileProvider mockFileProvider;
 	@Mock
@@ -117,7 +112,6 @@ public class MigrationManagerImplTest {
 	DBORevision revTwo;
 	
 	BackupAliasType backupAlias;
-	BackupTypeListRequest listRequest;
 	BackupTypeRangeRequest rangeRequest;
 	Long batchSize;
 	List<Long> backupIds;
@@ -126,6 +120,8 @@ public class MigrationManagerImplTest {
 	List<MigratableDatabaseObject<?, ?>> nodeStream;
 	List<MigratableDatabaseObject<?, ?>> revisionStream;
 	RestoreTypeRequest restoreTypeRequest;
+	CalculateOptimalRangeRequest optimalRangeRequest;
+	List<IdRange> ranges;
 	
 	@Before
 	public void before() throws IOException{
@@ -156,6 +152,7 @@ public class MigrationManagerImplTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		
 		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
+		when(mockDao.getObjectForType(MigrationType.PRINCIPAL)).thenReturn(new DBOUserGroup());
 		
 		nodeOne = new DBONode();
 		nodeOne.setId(123L);;
@@ -170,18 +167,11 @@ public class MigrationManagerImplTest {
 		revTwo.setRevisionNumber(0L);
 		
 		backupAlias = BackupAliasType.MIGRATION_TYPE_NAME;
-		listRequest = new BackupTypeListRequest();
-		listRequest.setAliasType(backupAlias);
-		listRequest.setMigrationType(MigrationType.NODE);
 		batchSize = 2L;
-		listRequest.setBatchSize(batchSize);
 		backupIds = Lists.newArrayList(123L,456L);
-		listRequest.setRowIdsToBackup(backupIds);
 		
 		nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
 		revisionStream = Lists.newArrayList(revOne, revTwo);
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE, backupIds, batchSize)).thenReturn(nodeStream);
-		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, backupIds, batchSize)).thenReturn(revisionStream);
 		
 		rangeRequest = new BackupTypeRangeRequest();
 		rangeRequest.setAliasType(backupAlias);
@@ -216,200 +206,25 @@ public class MigrationManagerImplTest {
 		restoreTypeRequest.setBackupFileKey("backupFileKey");
 		restoreTypeRequest.setBatchSize(batchSize);
 		restoreTypeRequest.setMigrationType(MigrationType.NODE);
-	}
-	
-	@Test
-	public void testGetBackupDataBatched(){
-		// Set the batch size to be two for this test
-		manager.setBackupBatchMax(2);
-		// This is the full list of data we expect
-		List<Long> fullList = Arrays.asList(1l,2l,3l,4l,5l);
-		List<StubDatabaseObject> expected = createExpected(fullList);
-		List<Long> batchOne = Arrays.asList(1l,2l);
-		List<Long> batchTwo = Arrays.asList(3l,4l);
-		List<Long> batchThree = Arrays.asList(5l);
-		// We expect the dao to be called three times, once for each batch.
-		when(mockDao.getBackupBatch(StubDatabaseObject.class, batchOne)).thenReturn(expected.subList(0, 2));
-		when(mockDao.getBackupBatch(StubDatabaseObject.class, batchTwo)).thenReturn(expected.subList(2, 4));
-		when(mockDao.getBackupBatch(StubDatabaseObject.class, batchThree)).thenReturn(expected.subList(4, 5));
-		// Make the real call
-		List<StubDatabaseObject> resutls = manager.getBackupDataBatched(StubDatabaseObject.class, fullList);
-		assertNotNull(resutls);
-		// The result should match the expected
-		assertEquals(expected, resutls);
-	}
-	
-	/**
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testSubjectAccessRequirementRoundTrip() throws Exception {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		Writer writer = new OutputStreamWriter(out, "UTF-8");
-		DBOSubjectAccessRequirement sar1 = new DBOSubjectAccessRequirement();
-		sar1.setAccessRequirementId(101L);
-		sar1.setSubjectId(987L);
-		sar1.setSubjectType("ENTITY");
-		{
-			List<DBOSubjectAccessRequirement> databaseList = Arrays.asList(new DBOSubjectAccessRequirement[]{sar1});
-			// Translate to the backup objects
-			MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> translator = 
-				sar1.getTranslator();
-			List<DBOSubjectAccessRequirementBackup> backupList = new LinkedList<DBOSubjectAccessRequirementBackup>();
-			for(DBOSubjectAccessRequirement dbo: databaseList){
-				backupList.add(translator.createBackupFromDatabaseObject(dbo));
-			}
-			// Now write the backup list to the stream
-			// we use the table name as the Alias
-			String alias = sar1.getTableMapping().getTableName();
-			// Now write the backup to the stream
-			BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
-			writer.close();
-		}
 		
-		// now read back in
-		{
-			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-			DBOSubjectAccessRequirement sar2 = new DBOSubjectAccessRequirement();
-			String alias = sar2.getTableMapping().getTableName();
-			List<DBOSubjectAccessRequirementBackup> backupList = 
-				(List<DBOSubjectAccessRequirementBackup>) BackupMarshalingUtils.readBackupFromStream(sar2.getBackupClass(), alias, in);
-			assertTrue(backupList!=null);
-			assertTrue(!backupList.isEmpty());
-			// Now translate from the backup objects to the database objects.
-			MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> translator = sar2.getTranslator();
-			List<DBOSubjectAccessRequirement> databaseList = new LinkedList<DBOSubjectAccessRequirement>();
-			for(DBOSubjectAccessRequirementBackup backup: backupList){
-				databaseList.add(translator.createDatabaseObjectFromBackup(backup));
-			}
-			// check content
-			assertEquals(1, databaseList.size());
-			assertEquals(sar1, databaseList.iterator().next());
-		}
+		optimalRangeRequest = new CalculateOptimalRangeRequest();
+		optimalRangeRequest.setMigrationType(MigrationType.NODE);
+		optimalRangeRequest.setMinimumId(1L);
+		optimalRangeRequest.setMaximumId(99L);
+		optimalRangeRequest.setOptimalRowsPerRange(11L);
 		
-	}
-
-	/**
-	 * This test is used during migrating the DBORevision from stack 99 to stack 100.
-	 * The old DBORevision contains reference and references.
-	 * The new DBORevision only contains reference and does not contain references.
-	 * The purpose of this test is to make sure that MigrationManagerImpl.createOrUpdateBatch()
-	 * successfully migrates the old object to the new one.
-	 * 
-	 * For more information, please see PLFM-3499.
-	 * @throws IOException 
-	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@Test
-	public void createOrUpdateBatchOfDBORevisionTestPLFM3499() throws IOException {
-		MigratableDatabaseObject mdo = new DBORevision();
-		String alias = mdo.getTableMapping().getTableName();
-
-		Reference ref = new Reference();
-		ref.setTargetId("123");
-		ref.setTargetVersionNumber(1L);
-
-		String xml = 
-				"<linked-list>" +
-					"<JDOREVISION>" +
-						"<owner>4490</owner>" +
-						"<revisionNumber>1</revisionNumber>" +
-						"<label>0.0.0</label>" +
-						"<comment>0.0.0</comment>" +
-						"<modifiedBy>273954</modifiedBy>" +
-						"<modifiedOn>1312679694610</modifiedOn>" +
-						"<annotations>H4sIAAAAAAAAALPJS8xN1S0uSExOteNSULDJTSwA0UBWal5JUSWEDeQVlxRl5qXbObq4eIZ4+vs5" +
-								"+tjoQ4VgKhLz8vJLEksy8/OKYWJwfY4IOX0kyZT80qScVBySOfm49SWW4NKVlJOfhE3KRh/DfTb6" +
-								"SF7E7t2AIE9fx6DIYeVXG31wHNvoI8U8AD9tTV8GAgAA</annotations>" +
-						"<reference>H4sIAAAAAAAAALPJL0rXK05MT03KzM9LLSnPL8ou1itKLcjXy81PSc3RC0pNSy1KzUtOteNSULAp" +
-								"SSxKTy3xTLEzNDK20YfzEFJhqUXFQIP8SnOTUovsDGFqUIW5bPSJthUA9SLq6KAAAAA=</reference>" +
-					"</JDOREVISION>" +
-				"</linked-list>";
-		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-
-		List<DBORevision> backupList = (List<DBORevision>) BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), alias, in);
-		assertNotNull(backupList);
-		assertEquals(backupList.size(), 1);
-
-		MigratableTableTranslation<DBORevision, DBORevision> translator = mdo.getTranslator();
-		DBORevision backup = backupList.get(0);
-		assertNotNull(backup.getReference());
-
-		DBORevision databaseObject = translator.createDatabaseObjectFromBackup(backup);
-		assertNotNull(databaseObject);
-		assertEquals(ref, JDOSecondaryPropertyUtils.decompressedReference(databaseObject.getReference()));
-	}
-	
-	/**
-	 * Build a list of objects from a list of IDs
-	 * @param fullList
-	 * @return
-	 */
-	private List<StubDatabaseObject> createExpected(List<Long> fullList) {
-		List<StubDatabaseObject> result = new LinkedList<StubDatabaseObject>();
-		for(Long id: fullList){
-			result.add(new StubDatabaseObject(id));
-		}
-		return result;
-	}
-
-	/**
-	 * Simple Stub DatabaseObject for testing.
-	 * @author jmhill
-	 *
-	 */
-	public static class StubDatabaseObject implements DatabaseObject<StubDatabaseObject>{
+		IdRange range = new IdRange();
+		range.setMinimumId(1L);
+		range.setMaximumId(100L);
+		ranges = Lists.newArrayList(range);
 		
-		Long id;
+		when(mockDao.calculateRangesForType(any(MigrationType.class), anyLong(),  anyLong(),  anyLong())).thenReturn(ranges);
 		
-		public StubDatabaseObject(Long id) {
-			this.id = id;
-		}
-
-		public Long getId() {
-			return id;
-		}
-
-		public void setId(Long id) {
-			this.id = id;
-		}
-
-		@Override
-		public TableMapping<StubDatabaseObject> getTableMapping() {
-			return null;
-		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + ((id == null) ? 0 : id.hashCode());
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			StubDatabaseObject other = (StubDatabaseObject) obj;
-			if (id == null) {
-				if (other.id != null)
-					return false;
-			} else if (!id.equals(other.id))
-				return false;
-			return true;
-		}
-
-		@Override
-		public String toString() {
-			return "StubDatabaseObject [id=" + id + "]";
-		}
+		RangeChecksum sum = new RangeChecksum();
+		sum.setBinNumber(1L);
+		when(mockDao.calculateBatchChecksums(any(BatchChecksumRequest.class))).thenReturn(Lists.newArrayList(sum));
 		
+		manager.initialize();
 	}
 	
 	@Test(expected=RuntimeException.class)
@@ -433,16 +248,16 @@ public class MigrationManagerImplTest {
 	public void testValidateForeignKeysRefrenceWithinPrimaryGroup() {		
 		// Call under test
 		manager.validateForeignKeys();
-		verify(mockDao).listNonRestrictedForeignKeys();
-		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+		verify(mockDao, times(2)).listNonRestrictedForeignKeys();
+		verify(mockDao, times(2)).mapSecondaryTablesToPrimaryGroups();
 	}
 	
 	@Test
 	public void testInitialize() {
 		manager.initialize();
 		// should trigger foreign key validation
-		verify(mockDao).listNonRestrictedForeignKeys();
-		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+		verify(mockDao, times(2)).listNonRestrictedForeignKeys();
+		verify(mockDao, times(2)).mapSecondaryTablesToPrimaryGroups();
 	}
 	
 	/**
@@ -549,74 +364,6 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testBackupListRequest() throws IOException {
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-		verify(mockBackupFileStream).writeBackupFile(eq(mockOutputStream), iterableCator.capture(), eq(backupAlias), eq(batchSize));
-		List<MigratableDatabaseObject<?, ?>> results = new LinkedList<>();
-		for(MigratableDatabaseObject<?, ?> object: iterableCator.getValue()) {
-			results.add(object);
-		}
-		assertEquals(allObjects,results);
-	}
-	
-	@Test (expected=UnauthorizedException.class)
-	public void testBackupListRequestNonAdmin() throws IOException {
-		when(mockUser.isAdmin()).thenReturn(false);
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullUser() throws IOException {
-		mockUser = null;
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullRequset() throws IOException {
-		listRequest  = null;
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullAliasType() throws IOException {
-		listRequest.setAliasType(null);
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullMigrationType() throws IOException {
-		listRequest.setMigrationType(null);
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullBatchSize() throws IOException {
-		listRequest.setBatchSize(null);
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestNullRowIds() throws IOException {
-		listRequest.setRowIdsToBackup(null);
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testBackupListRequestEmptyRowIds() throws IOException {
-		listRequest.setRowIdsToBackup(new LinkedList<>());
- 		// call under test
-		manager.backupRequest(mockUser, listRequest);
-	}
-	
-	@Test
 	public void testBackupRangeRequest() throws IOException {
  		// call under test
 		manager.backupRequest(mockUser, rangeRequest);
@@ -712,97 +459,15 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testDeleteByIdAndFireEvent() {
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = Lists.newArrayList(123L,345L);
-		int count = 1;
-		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(count);
-		int result = this.manager.deleteByIdAndFireEvent(type, toDelete);
-		assertEquals(count, result);
-		verify(mockDao).deleteById(type, toDelete);
-		verify(mockMigrationListener).beforeDeleteBatch(type, toDelete);
-	}
-	
-	@Test
-	public void testDeleteByIdAndFireEventFiltered() {
-		MigrationType type = MigrationType.PRINCIPAL;
-		// include a bootstrap princpal
-		List<Long> toDelete = Lists.newArrayList(
-				123L,
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()
-		);
-		// call under test
-		this.manager.deleteByIdAndFireEvent(type, toDelete);
-		List<Long> expectedId = Lists.newArrayList(123L);
-		verify(mockDao).deleteById(type, expectedId);
-		verify(mockMigrationListener).beforeDeleteBatch(type, expectedId);
-	}
-	
-	@Test
 	public void testPrincipalTypes() {
-		assertEquals(3, MigrationManagerImpl.PRINCIPAL_TYPES.size());
+		DBOUserGroup dbo = new DBOUserGroup();
+		List<MigratableDatabaseObject<?, ?>> secondaries = dbo.getSecondaryTypes();
+		// includes principal plus principal's secondaries
+		assertEquals(secondaries.size()+1, MigrationManagerImpl.PRINCIPAL_TYPES.size());
 		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.PRINCIPAL));
-		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.CREDENTIAL));
-		assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(MigrationType.GROUP_MEMBERS));
-	}
-	
-	@Test
-	public void testDeleteByIdAuthorized() {
-		when(mockUser.isAdmin()).thenReturn(true);
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = Lists.newArrayList(123L,345L);
-		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2,3);
-		// call under test
-		int count = manager.deleteById(mockUser, type, toDelete);
-		assertEquals(3, count);
-		// should delete secondary types
-		verify(mockDao).deleteById(MigrationType.NODE_REVISION, toDelete);
-		verify(mockDao).deleteById(MigrationType.NODE, toDelete);
-	}
-	
-	@Test (expected=UnauthorizedException.class)
-	public void testDeleteByIdUnAuthorized() {
-		when(mockUser.isAdmin()).thenReturn(false);
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = Lists.newArrayList(123L,345L);
-		when(mockDao.deleteById(any(MigrationType.class), anyListOf(Long.class))).thenReturn(1,2,3);
-		// call under test
-		manager.deleteById(mockUser, type, toDelete);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteByIdNullUser() {
-		mockUser = null;
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = Lists.newArrayList(123L,345L);
-		// call under test
-		manager.deleteById(mockUser, type, toDelete);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteByIdNullType() {
-		MigrationType type = null;
-		List<Long> toDelete = Lists.newArrayList(123L,345L);
-		// call under test
-		manager.deleteById(mockUser, type, toDelete);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteByIdNullIds() {
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = null;
-		// call under test
-		manager.deleteById(mockUser, type, toDelete);
-	}
-	
-	@Test
-	public void testDeleteByIdEmptyList() {
-		MigrationType type = MigrationType.NODE;
-		List<Long> toDelete = new LinkedList<>();
-		// call under test
-		int count = manager.deleteById(mockUser, type, toDelete);
-		assertEquals(0, count);
-		verify(mockDao, never()).deleteById(any(MigrationType.class), anyListOf(Long.class));
+		for(MigratableDatabaseObject<?, ?> secondary: secondaries) {
+			assertTrue(MigrationManagerImpl.PRINCIPAL_TYPES.contains(secondary.getMigratableTableType()));
+		}
 	}
 	
 	@Test
@@ -816,8 +481,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener).afterCreateOrUpdate(currentType, currentBatch);
-		// secondary data should be deleted.
-		verify(mockMigrationListener).beforeDeleteBatch(MigrationType.NODE_REVISION, idList);
 	}
 	
 	@Test
@@ -835,8 +498,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener).afterCreateOrUpdate(MigrationType.NODE_REVISION, currentBatch);
-		// no secondary deletes.
-		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyListOf(Long.class));
 	}
 	
 	@Test
@@ -852,7 +513,6 @@ public class MigrationManagerImplTest {
 		// call under test
 		manager.restoreBatch(currentType, primaryType, secondaryTypes, currentBatch);
 		verify(mockMigrationListener, never()).afterCreateOrUpdate(any(MigrationType.class), anyList());
-		verify(mockMigrationListener, never()).beforeDeleteBatch(any(MigrationType.class), anyList());
 	}
 	
 	/**
@@ -923,7 +583,9 @@ public class MigrationManagerImplTest {
 	}
 	
 	@Test
-	public void testRestoreRequest() throws IOException {
+	public void testRestoreRequestNoRange() throws IOException {
+		restoreTypeRequest.setMaximumRowId(null);
+		restoreTypeRequest.setMinimumRowId(null);
 		// call under test
 		RestoreTypeResponse response = manager.restoreRequest(mockUser, restoreTypeRequest);
 		assertNotNull(response);
@@ -937,7 +599,38 @@ public class MigrationManagerImplTest {
 		verify(mockS3Client).deleteObject(MigrationManagerImpl.backupBucket, restoreTypeRequest.getBackupFileKey());
 		verify(mockFileInputStream).close();
 		verify(mockFile).delete();
+		
+		// delete by range should not occur when the range is missing.
+		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
 	}
+	
+	
+	@Test
+	public void testRestoreRequestWithRange() throws IOException {
+		long max = 99L;
+		long min = 3L;
+		restoreTypeRequest.setMaximumRowId(max);
+		restoreTypeRequest.setMinimumRowId(min);
+		// call under test
+		RestoreTypeResponse response = manager.restoreRequest(mockUser, restoreTypeRequest);
+		assertNotNull(response);
+		// the file should be fetched from S3
+		verify(mockS3Client).getObject(getObjectRequestCaptor.capture(), eq(mockFile));
+		GetObjectRequest gor = getObjectRequestCaptor.getValue();
+		assertNotNull(gor);
+		assertEquals(MigrationManagerImpl.backupBucket, gor.getBucketName());
+		assertEquals(restoreTypeRequest.getBackupFileKey(), gor.getKey());
+		// the file should be deleted
+		verify(mockS3Client).deleteObject(MigrationManagerImpl.backupBucket, restoreTypeRequest.getBackupFileKey());
+		verify(mockFileInputStream).close();
+		verify(mockFile).delete();
+		
+		// should delete the primary
+		verify(mockDao).deleteByRange(MigrationType.NODE, min, max);
+		// should delete the secondary
+		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, min, max);
+	}
+	
 	
 	@Test
 	public void testRestoreRequestCleanup() throws IOException {
@@ -1007,5 +700,129 @@ public class MigrationManagerImplTest {
 		restoreTypeRequest.setBatchSize(null);
 		// call under test
 		manager.restoreRequest(mockUser, restoreTypeRequest);
+	}
+	
+	@Test
+	public void testDeleteByRange() {
+		MigrationType type = MigrationType.NODE;
+		long minimumId = 3L;
+		long maximumId = 45L;
+		// call under test
+		manager.deleteByRange(type, minimumId, maximumId);
+		// should delete the primary
+		verify(mockDao).deleteByRange(type, minimumId, maximumId);
+		// should delete the secondary
+		verify(mockDao).deleteByRange(MigrationType.NODE_REVISION, minimumId, maximumId);
+	}
+	
+	@Test
+	public void testDeleteByRangeNotRegistered() {
+		MigrationType type = MigrationType.NODE;
+		when(mockDao.isMigrationTypeRegistered(type)).thenReturn(false);
+		long minimumId = 3L;
+		long maximumId = 45L;
+		// call under test
+		manager.deleteByRange(type, minimumId, maximumId);
+		// deletes should not occur
+		verify(mockDao, never()).deleteByRange(any(MigrationType.class), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testCalculateOptimalRanges() {
+		// call under test
+		CalculateOptimalRangeResponse response = manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+		assertNotNull(response);
+		assertEquals(optimalRangeRequest.getMigrationType(), response.getMigrationType());
+		assertEquals(ranges, response.getRanges());
+		verify(mockDao).calculateRangesForType(
+				optimalRangeRequest.getMigrationType(),
+				optimalRangeRequest.getMinimumId(),
+				optimalRangeRequest.getMaximumId(),
+				optimalRangeRequest.getOptimalRowsPerRange());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCalculateOptimalRangesUnauthorized() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullRequest() {
+		optimalRangeRequest = null;
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullType() {
+		optimalRangeRequest.setMigrationType(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullMin() {
+		optimalRangeRequest.setMinimumId(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullMax() {
+		optimalRangeRequest.setMaximumId(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateOptimalRangesNullOptimalSize() {
+		optimalRangeRequest.setOptimalRowsPerRange(null);
+		// call under test
+		manager.calculateOptimalRanges(mockUser, optimalRangeRequest);
+	}
+	
+	@Test
+	public void testCalculateBatchChecksums() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		BatchChecksumResponse response = manager.calculateBatchChecksums(mockUser, request);
+		verify(mockDao).calculateBatchChecksums(request);
+		assertNotNull(response);
+		assertEquals(request.getMigrationType(), response.getMigrationType());
+		assertNotNull(response.getCheksums());
+		assertEquals(1, response.getCheksums().size());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCalculateBatchChecksumsNonAdmin() {
+		when(mockUser.isAdmin()).thenReturn(false);
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		// call under test
+		manager.calculateBatchChecksums(mockUser, request);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCalculateBatchChecksumsNullUser() {
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		request.setMigrationType(MigrationType.FILE_HANDLE);
+		mockUser = null;
+		// call under test
+		manager.calculateBatchChecksums(mockUser, request);
 	}
 }

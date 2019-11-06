@@ -19,15 +19,14 @@
 		</property>
 		<property name="triggers">
 			<list>
-				<ref bean="stackConfigurationReloadTrigger" />
 	           	<ref bean="repoLogSweeperTrigger" />
 				<ref bean="cloudwatchTrigger" />
- 				<ref bean="performanceLogTrigger" />
 				<ref bean="accessRecorderTrigger" />
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="throttleRulesCacheTrigger" />
 				<ref bean="objectRecordQueueTrigger" />
 				<ref bean="memoryLoggerTrigger" />
+				<ref bean="eventsQueueTrigger" />
 			</list>
 		</property>
 	</bean>

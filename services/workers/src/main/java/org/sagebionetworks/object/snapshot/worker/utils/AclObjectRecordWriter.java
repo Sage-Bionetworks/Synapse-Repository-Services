@@ -45,7 +45,6 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 		record.setModifiedOn(acl.getModifiedOn());
 		record.setOwnerType(ownerType);
 		record.setResourceAccess(acl.getResourceAccess());
-		record.setUri(acl.getUri());
 		return record;
 	}
 
@@ -62,9 +61,6 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 			}
 			try {
 				AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
-				if (!acl.getEtag().equals(message.getObjectEtag())) {
-					log.info("Ignoring old message.");
-				}
 				AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
 				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 				toWrite.add(objectRecord);

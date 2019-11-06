@@ -8,6 +8,7 @@ import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
@@ -15,8 +16,11 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -26,9 +30,18 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.TableSqlProcessor;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -162,10 +175,15 @@ public class TableServicesImpl implements TableServices {
 	public String getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
 
-		String fileHandleId = getFileHandleId(userId, tableId, rowRef, columnId);
-		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		String fileHandleId = getFileHandleId(userInfo, tableId, rowRef, columnId);
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
@@ -174,10 +192,17 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
 		
-		String fileHandleId = getFileHandleId(userId, tableId, rowRef, columnId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
+		String fileHandleId = getFileHandleId(userInfo, tableId, rowRef, columnId);
+	
 		// Use the FileHandle ID to get the URL
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
-		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, previewFileHandleId)
+				.withAssociation(FileHandleAssociateType.TableEntity, tableId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 	
 	/**
@@ -190,10 +215,9 @@ public class TableServicesImpl implements TableServices {
 	 * @return
 	 * @throws IOException
 	 */
-	public String getFileHandleId(Long userId, String tableId,
+	String getFileHandleId(UserInfo userInfo, String tableId,
 			RowReference rowRef, String columnId) throws IOException {
 		// Get the file handles
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		ColumnModel model = columnModelManager.getColumnModel(userInfo, columnId);
 		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
 			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
@@ -204,26 +228,53 @@ public class TableServicesImpl implements TableServices {
 		}
 		return row.getValues().get(0);
 	}
-
-
+	
 	@Override
-	public Long getMaxRowsPerPage(List<ColumnModel> models) {
-		return tableQueryManager.getMaxRowsPerPage(models);
-	}
-
-	@Override
-	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType) {
-		return tableManagerSupport.getDefaultTableViewColumns(viewType);
+	public List<ColumnModel> getDefaultViewColumnsForType(Long viewTypeMask) {
+		return tableManagerSupport.getDefaultTableViewColumns(viewTypeMask);
 	}
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewId, nextPageToken);
+		Long viewIdLong = KeyFactory.stringToKey(viewId);
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewIdLong, nextPageToken);
+	}
+
+	@Override
+	public ColumnModelPage getPossibleColumnModelsForScopeIds(ViewScope scope, String nextPageToken) {
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scope, nextPageToken);
+	}
+
+	@Override
+	public SqlTransformResponse transformSqlRequest(SqlTransformRequest request) throws ParseException {
+		ValidateArgument.required(request, "request");
+		String transformedSql = null;
+		if (request instanceof TransformSqlWithFacetsRequest) {
+			TransformSqlWithFacetsRequest facetRequest = (TransformSqlWithFacetsRequest) request;
+			transformedSql = TableSqlProcessor.generateSqlWithFacets(facetRequest.getSqlToTransform(),
+					facetRequest.getSelectedFacets(), facetRequest.getSchema());
+		} else {
+			throw new IllegalArgumentException("Unknown request type: " + request.getClass().getName());
+		}
+		SqlTransformResponse response = new SqlTransformResponse();
+		response.setTransformedSql(transformedSql);
+		return response;
+	}
+
+	@Override
+	public SnapshotResponse createTableSnapshot(Long userId, String tableId, SnapshotRequest request) {
+		Validate.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return tableEntityManager.createTableSnapshot(userInfo, tableId, request);
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type, String nextPageToken){
-		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scopeIds, type, nextPageToken);
-	}
-	
+	public TableBundle getTableBundle(IdAndVersion idAndVersion) {
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		List<ColumnModel> tableSchema = columnModelManager.getColumnModelsForObject(idAndVersion);
+		TableBundle bundle = new TableBundle();
+		bundle.setColumnModels(tableSchema);
+		bundle.setMaxRowsPerPage(tableQueryManager.getMaxRowsPerPage(tableSchema));
+		return bundle;
+	}	
 }

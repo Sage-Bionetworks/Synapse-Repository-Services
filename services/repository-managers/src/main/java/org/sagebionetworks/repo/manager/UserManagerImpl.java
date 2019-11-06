@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,18 +28,18 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Lists;
 
 public class UserManagerImpl implements UserManager {
-	
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	private UserProfileManager userProfileManger;
 	
@@ -58,28 +58,11 @@ public class UserManagerImpl implements UserManager {
 	/**
 	 * Testing purposes only
 	 * Do NOT use in non-test code
-	 * i.e. {@link #createUser(UserInfo, String, UserProfile, DBOCredential)}
+	 * i.e. {@link #createOrGetTestUser(UserInfo, String, UserProfile, DBOCredential)}
 	 */
 	@Autowired
 	private DBOBasicDao basicDAO;
-	
-	public UserManagerImpl() { }
-	
-	public UserManagerImpl(UserGroupDAO userGroupDAO, 
-			UserProfileManager userProfileManger, 
-			GroupMembersDAO groupMembersDAO, 
-			AuthenticationDAO authDAO, 
-			DBOBasicDao basicDAO, 
-			PrincipalAliasDAO principalAliasDAO,
-			NotificationEmailDAO notificationEmailDao) {
-		this.userGroupDAO = userGroupDAO;
-		this.userProfileManger = userProfileManger;
-		this.groupMembersDAO = groupMembersDAO;
-		this.authDAO = authDAO;
-		this.basicDAO = basicDAO;
-		this.principalAliasDAO = principalAliasDAO;
-		this.notificationEmailDao = notificationEmailDao;
-	}
+
 	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
@@ -158,36 +141,42 @@ public class UserManagerImpl implements UserManager {
 
 	@WriteTransaction
 	@Override
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
-		return createUser(adminUserInfo, user, credential, touAgreement, null);
+		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement, null);
 	}
 
 	@WriteTransaction
 	@Override
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
 			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
 		// Create the user
-		Long principalId = createUser(user);
-		
-		// Update the credentials
-		if (credential == null) {
-			credential = new DBOCredential();
-		}
-		credential.setPrincipalId(principalId);
-		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
-		basicDAO.update(credential);
-		
-		if (touAgreement != null) {
-			touAgreement.setPrincipalId(principalId);
-			basicDAO.createOrUpdate(touAgreement);
-		}
-		if (token != null) {
-			token.setPrincipalId(principalId);
-			basicDAO.createOrUpdate(token);
+		Long principalId;
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(user.getUserName());
+		if (alias==null) {
+			principalId = createUser(user);
+
+			// Update the credentials
+			if (credential == null) {
+				credential = new DBOCredential();
+			}
+			credential.setPrincipalId(principalId);
+			credential.setSecretKey(HMACUtils.newHMACSHA1Key());
+			basicDAO.update(credential);
+
+			if (touAgreement != null) {
+				touAgreement.setPrincipalId(principalId);
+				basicDAO.createOrUpdate(touAgreement);
+			}
+			if (token != null) {
+				token.setPrincipalId(principalId);
+				basicDAO.createOrUpdate(token);
+			}
+		} else {
+			principalId = alias.getPrincipalId();
 		}
 		return getUserInfo(principalId);
 	}
@@ -252,8 +241,13 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public PrincipalAlias lookupPrincipalByAlias(String alias) {
-		return this.principalAliasDAO.findPrincipalWithAlias(alias);
+	public PrincipalAlias lookupUserByUsernameOrEmail(String alias) {
+		// Lookup the user
+		PrincipalAlias pa = this.principalAliasDAO.findPrincipalWithAlias(alias, AliasType.USER_EMAIL, AliasType.USER_NAME);
+		if(pa == null) {
+			throw new NotFoundException("Did not find a user with alias: "+alias);
+		}
+		return pa;
 	}
 
 	@Override

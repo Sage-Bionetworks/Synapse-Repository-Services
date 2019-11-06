@@ -15,9 +15,9 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  */
 public class SynapseClientHelper {
 	public static void setEndpoints(SynapseClient client) {
-		client.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		client.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		client.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
+		client.setAuthEndpoint(StackConfigurationSingleton.singleton().getAuthenticationServicePrivateEndpoint());
+		client.setRepositoryEndpoint(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
+		client.setFileEndpoint(StackConfigurationSingleton.singleton().getFileServiceEndpoint());
 	}
 	
 	/**
@@ -31,7 +31,7 @@ public class SynapseClientHelper {
 	}
 
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username) throws SynapseException, JSONObjectAdapterException {
-		return createUser(client, newUserClient, username, "password");
+		return createUser(client, newUserClient, username, "password"+UUID.randomUUID().toString());
 	}
 	
 	public static Long createUser(SynapseAdminClient client, SynapseClient newUserClient, String username, String password) throws SynapseException, JSONObjectAdapterException {

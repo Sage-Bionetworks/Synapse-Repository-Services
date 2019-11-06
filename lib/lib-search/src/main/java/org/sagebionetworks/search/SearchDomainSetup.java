@@ -2,7 +2,6 @@ package org.sagebionetworks.search;
 
 import java.util.List;
 
-import com.amazonaws.services.cloudsearchv2.model.AccessPoliciesStatus;
 import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
 
@@ -34,12 +33,6 @@ public interface SearchDomainSetup {
 	 * @return
 	 */
 	List<IndexFieldStatus> getIndexFieldStatus();
-	
-	/**
-	 * The JSON of the current access policy.
-	 * @return
-	 */
-	 AccessPoliciesStatus getAccessPoliciesStatus();
 
 	/**
 	 * Get the CloudSearch domain endpoint for search service.

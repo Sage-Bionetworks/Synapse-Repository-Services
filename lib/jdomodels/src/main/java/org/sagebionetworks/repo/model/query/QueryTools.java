@@ -30,7 +30,7 @@ public class QueryTools {
 	/**
 	 * Construct a limit-offset SQL clause.
 	 */
-	protected static String buildPaging(long offset, long limit,
+	public static String buildPaging(long offset, long limit,
 			Map<String, Object> parameters) {
 		// We need to convert from offset and limit to "fromIncl" and "toExcl"
 		if (offset < 0) {

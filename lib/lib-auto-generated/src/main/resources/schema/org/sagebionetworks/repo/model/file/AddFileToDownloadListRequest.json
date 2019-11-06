@@ -1,0 +1,18 @@
+{
+	"description": "Request to add either the children of a folder or the files of a view query to the user's download list.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"folderId": {
+			"type": "string",
+			"description": "The ID of the folder containing the files to add to the user's download list. Note: Only the files in this folder will be added to the download list, files in sub-folders will not be added. Should be null if setting a 'query'."
+		},
+		"query": {
+			"description": "A view query that lists the files to be added to a user's download list. Should be null if setting a 'folderId'.",
+			"$ref": "org.sagebionetworks.repo.model.table.Query"
+		}
+	}
+}

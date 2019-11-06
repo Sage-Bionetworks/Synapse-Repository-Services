@@ -2,12 +2,10 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,15 +14,23 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -36,13 +42,16 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
+
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 /**
  * Unit test for AsynchJobStatusManagerImpl
@@ -50,6 +59,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  * @author John
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class AsynchJobStatusManagerImplTest {
 	
 	@Mock
@@ -64,23 +74,26 @@ public class AsynchJobStatusManagerImplTest {
 	JobHashProvider mockJobHashProvider;
 	@Mock
 	ObjectRecordDAO mockObjectRecordDAO;
+	@Mock
+	StackConfiguration mockStackConfig;
+	@Mock
+	Consumer mockConsumer;
+	@Captor
+	ArgumentCaptor<ProfileData> profileCaptor;
+	
+	@InjectMocks
+	AsynchJobStatusManagerImpl manager;
+	
 	UserInfo user = null;
-	AsynchJobStatusManager manager;
+
 	String startedJobId;
+	String instance;
+	long runtimeMS;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
-		MockitoAnnotations.initMocks(this);
-		manager = new AsynchJobStatusManagerImpl();
-		
-		ReflectionTestUtils.setField(manager, "asynchJobStatusDao", mockAsynchJobStatusDao);
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
-		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
-		ReflectionTestUtils.setField(manager, "jobHashProvider", mockJobHashProvider);
-		ReflectionTestUtils.setField(manager, "objectRecordDAO", mockObjectRecordDAO);
 		startedJobId = "99999";
-		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
+		when(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
@@ -103,9 +116,16 @@ public class AsynchJobStatusManagerImplTest {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
+		status.setRequestBody(new BulkFileDownloadRequest());
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
 		
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		
+		instance = "test1";
+		when(mockStackConfig.getStackInstance()).thenReturn(instance);
+		
+		runtimeMS = 567L;
+		when(mockAsynchJobStatusDao.setComplete(any(String.class), any(AsynchronousResponseBody.class),  any(String.class))).thenReturn(runtimeMS);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -320,22 +340,51 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
+	public void testGetMetricNamespace() {
+		// call under test
+		String metricNamespace = manager.getMetricNamespace();
+		assertEquals("Asynchronous-Jobs-test1", metricNamespace);
+	}
+	
+	@Test
+	public void testPushCloudwatchMetric() {
+		// call under test
+		manager.pushCloudwatchMetric(runtimeMS, AsynchJobType.ADD_FILES_TO_DOWNLOAD_LIST);
+		verify(mockConsumer).addProfileData(profileCaptor.capture());
+		ProfileData profile = profileCaptor.getValue();
+		assertNotNull(profile);
+		assertEquals(new Double(runtimeMS), profile.getValue());
+		assertEquals(manager.getMetricNamespace(), profile.getNamespace());
+		assertEquals(AsynchJobStatusManagerImpl.METRIC_NAME, profile.getName());
+		assertNotNull(profile.getTimestamp());
+		Map<String, String> dimension = profile.getDimension();
+		assertNotNull(dimension);
+		assertEquals(AsynchJobType.ADD_FILES_TO_DOWNLOAD_LIST.name(), dimension.get(AsynchJobStatusManagerImpl.JOB_TYPE));
+		assertEquals(StandardUnit.Milliseconds.name(), profile.getUnit());
+	}
+	
+	@Test
 	public void testSetCompleteHappy() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		UploadToTableResult body = new UploadToTableResult();
 		body.setRowsProcessed(101L);
 		body.setEtag("etag");
-		String result = manager.setComplete("456", body);
-		assertEquals("etag", result);
+		// call under test
+		manager.setComplete("456", body);
 		String requestHash = null;
 		verify(mockAsynchJobStatusDao).setComplete("456", body, requestHash);
+		verify(mockConsumer).addProfileData(profileCaptor.capture());
+		ProfileData profile = profileCaptor.getValue();
+		assertNotNull(profile);
+		Map<String, String> dimension = profile.getDimension();
+		assertNotNull(dimension);
+		assertEquals(AsynchJobType.BULK_FILE_DOWNLOAD.name(), dimension.get(AsynchJobStatusManagerImpl.JOB_TYPE));
 	}
+
 	
 	@Test
 	public void testSetCompleteCacheable() throws Exception{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class), anyString())).thenReturn("etag");
 		
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());
@@ -349,9 +398,9 @@ public class AsynchJobStatusManagerImplTest {
 		
 		DownloadFromTableResult resultBody = new DownloadFromTableResult();
 		resultBody.setTableId("syn123");
-		String result = manager.setComplete("456", resultBody);
-		assertEquals("etag", result);
+		manager.setComplete("456", resultBody);
 		verify(mockAsynchJobStatusDao).setComplete("456", resultBody, requestHash);
+		verify(mockConsumer).addProfileData(any(ProfileData.class));
 	}
 	
 	/**

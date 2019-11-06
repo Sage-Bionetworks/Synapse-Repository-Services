@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -60,26 +61,37 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<TeamMember> listMembers(String teamId, long limit, long offset) throws DatastoreException;
-	
+	public PaginatedResults<TeamMember> listMembers(String teamId, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws DatastoreException;
+
+	/**
+	 *
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<TeamMember> listMembersForPrefix(String fragment, String teamId, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws DatastoreException;
+
 	/**
 	 * 
 	 * @param teamId
 	 * @return
 	 */
 	public Count countMembers(String teamId);
+
 	/**
 	 * 
-	 * @param teamId
+	 * @param teamIds
 	 * @param memberIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
-	
+
 	/**
-	 * 
+	 *
 	 * @param teamId
 	 * @param principalId
 	 * @return
@@ -218,11 +230,13 @@ public interface TeamManager {
 	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * return the URL for the icon of the given Team
+	 * Return the pre-signed URL for the icon of the given Team
+	 * 
+	 * @param userInfo The info about the user that is requesting the pre-signed URL
 	 * @param teamId
 	 * @return
 	 */
-	public String getIconURL(String teamId) throws NotFoundException;
+	public String getIconURL(UserInfo userInfo, String teamId) throws NotFoundException;
 
 	/**
 	 * Create the notification content

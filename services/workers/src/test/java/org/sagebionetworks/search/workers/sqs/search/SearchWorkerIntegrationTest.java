@@ -6,13 +6,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -39,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.google.common.base.Predicate;
 
 /**
@@ -53,7 +52,7 @@ import com.google.common.base.Predicate;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchWorkerIntegrationTest {
 	
-	private static final long MAX_WAIT = 60*1000; // one minute
+	private static final long MAX_WAIT = 10 * 60*1000; // 10 minutes
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -77,7 +76,7 @@ public class SearchWorkerIntegrationTest {
 	private SemaphoreManager semphoreManager;
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	@Autowired
 	private SearchManager searchManager;
@@ -136,7 +135,7 @@ public class SearchWorkerIntegrationTest {
 		uuid = UUID.randomUUID().toString();
 		
 		// Zip up the markdown into a file with UUID
-		String markdown = "markdown contents " + uuid;
+		String markdown = "markdown contents \u000c\f\u0019with control characters " + uuid;
 		markdownOne = fileHandleManager.createCompressedFileFromString(""+adminUserInfo.getId(), new Date(), markdown);
 	}
 

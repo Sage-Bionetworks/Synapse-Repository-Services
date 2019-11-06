@@ -2,13 +2,11 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.RawRowSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -55,6 +53,13 @@ public interface TableRowTruthDAO {
 	public TableRowChange getLastTableRowChange(String tableId);
 	
 	/**
+	 * Get the last transaction ID associated with the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public Optional<Long> getLastTransactionId(String tableId);
+	
+	/**
 	 * Get the latest TableRowChange of a given type.
 	 * 
 	 * @param tableId
@@ -62,19 +67,6 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public TableRowChange getLastTableRowChange(String tableId, TableChangeType changeType);
-
-	/**
-	 * Append a RowSet to a table.
-	 * 
-	 * @param tableId
-	 * @param models
-	 * @param delta
-	 * @return
-	 * @throws IOException
-	 */
-	@Deprecated
-	public void appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, RawRowSet delta)
-			throws IOException;
 	
 	/**
 	 * Append a SpareChangeSet to the given table.
@@ -86,8 +78,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 */
-	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta)
-			throws IOException;
+	public String appendRowSetToTable(String userId, String tableId, String etag, long versionNumber, List<ColumnModel> columns, SparseChangeSetDto delta, long transactionId);
 	
 	/**
 	 * Append a schema change to the table's changes.
@@ -98,7 +89,7 @@ public interface TableRowTruthDAO {
 	 * @param changes
 	 * @throws IOException 
 	 */
-	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes) throws IOException;
+	public long appendSchemaChangeToTable(String userId, String tableId, List<String> current, List<ColumnChange> changes, long transactionId);
 	
 	/**
 	 * Get the schema change for a given version.
@@ -108,18 +99,6 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 */
 	public List<ColumnChange> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException;
-		
-	/**
-	 * Fetch a change set for a given table and
-	 * 
-	 * @param rowsToGet
-	 * @param key
-	 * @return
-	 * @throws IOException
-	 * @throws NotFoundException
-	 */
-	public RowSet getRowSet(String tableId, long rowVersion, List<ColumnModel> columns) throws IOException,
-			NotFoundException;
 	
 	/**
 	 * Fetch a sparse change set for a given table.
@@ -147,6 +126,7 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return
 	 */
+	@Deprecated
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
 	
 	/**
@@ -182,14 +162,36 @@ public interface TableRowTruthDAO {
 	public void truncateAllRowData();
 
 	/**
-	 * Upgrade and existing change set using the new SparseChangeSetDto.
+	 * Get a single page of changes for the given table, limit, and offset.
+	 * 
 	 * @param tableId
-	 * @param rowVersion
-	 * @param writeToDto
-	 * @return The new key of the change set.
-	 * @throws IOException 
+	 * @param limit
+	 * @param offset
+	 * @return
 	 */
-	public TableRowChange upgradeToNewChangeSet(String tableId, long rowVersion,
-			SparseChangeSetDto newDto) throws IOException;	
+	public List<TableRowChange> getTableChangePage(String tableId, long limit, long offset);
+
+	/**
+	 * Get the last change number applied to the given table.
+	 * @param tableId
+	 * @return Will return an empty Optional if no changes have been applied to the table.
+	 */
+	public Optional<Long> getLastTableChangeNumber(long tableId);
+	
+	/**
+	 * Get the last change number applied to the given table and version number combination.
+	 * @param tableId
+	 * @param tableVersion
+	 * @return
+	 */
+	public Optional<Long> getLastTableChangeNumber(long tableId, long tableVersion);
+
+	/**
+	 * Does the given table have at least one change of the provided type?
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public boolean hasAtLeastOneChangeOfType(String tableId, TableChangeType type);
 	
 }

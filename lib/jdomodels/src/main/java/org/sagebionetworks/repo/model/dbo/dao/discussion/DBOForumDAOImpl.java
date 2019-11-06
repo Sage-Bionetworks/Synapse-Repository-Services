@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 
 	private static RowMapper<DBOForum> ROW_MAPPER = new DBOForum().getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public Forum createForum(String projectId) {
 		ValidateArgument.required(projectId, "projectId");
@@ -80,7 +80,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 		return ForumUtils.createDTOFromDBO(results.get(0));
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public int deleteForum(long id) {
 		return jdbcTemplate.update(SQL_DELETE_FORUM, id);

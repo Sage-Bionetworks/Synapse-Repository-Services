@@ -20,7 +20,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * A sparsely populated matrix of data representing a single table change set.
  *
  */
-public class SparseChangeSet {
+public class SparseChangeSet implements TableChange {
 
 	String tableId;
 	String etag;
@@ -242,7 +242,7 @@ public class SparseChangeSet {
 				ColumnModel cm = getColumnModel(columnId);
 				models.add(cm);
 			}
-			Grouping group = new Grouping(models, groupRows, tableId);
+			Grouping group = new Grouping(models, groupRows);
 			grouping.add(group);
 		}
 		return grouping;
@@ -403,7 +403,6 @@ public class SparseChangeSet {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
 			result = prime * result + rowIndex;
@@ -455,9 +454,6 @@ public class SparseChangeSet {
 					+ valueMap + "]";
 		}
 
-		private SparseChangeSet getOuterType() {
-			return SparseChangeSet.this;
-		}
 	}
 
 

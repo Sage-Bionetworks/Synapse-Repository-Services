@@ -1,15 +1,11 @@
 package org.sagebionetworks.search;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Abstraction for interacting with the search index.
@@ -25,29 +21,18 @@ public interface SearchDao {
 	 * @param toCreate
 	 */
 	void createOrUpdateSearchDocument(Document toCreate);
-	 
-	 /**
-	 * Create or update a batch of search documents
-	 * 
-	 * @param batch
-	 */
-	void createOrUpdateSearchDocument(List<Document> batch);
-	 
-	 /**
-	 * Delete a document using its id.
-	 * 
-	 * @param docIdToDelete
-	 */
-	void deleteDocument(String docIdToDelete);
-	 
-	 /**
+
+	/**
 	 * Delete all documents with the passed set of document ids.
-	 * 
+	 *
 	 * @param docIdsToDelete
 	 */
+	@Deprecated
 	void deleteDocuments(Set<String> docIdsToDelete);
-	 
-	 /**
+
+	void sendDocuments(Iterator<Document> documentIterator);
+
+	/**
 	 * Execute a query.
 	 * 
 	 * @param search
@@ -63,7 +48,7 @@ public interface SearchDao {
 	 * @param etag
 	 * @return
 	 */
-	boolean doesDocumentExist(String id, String etag);
+	boolean doesDocumentExistInSearchIndex(String id, String etag);
 
 	 
 	 /**

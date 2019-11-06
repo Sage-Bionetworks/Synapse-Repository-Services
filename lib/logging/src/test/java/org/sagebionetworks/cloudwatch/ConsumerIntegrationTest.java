@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
@@ -59,7 +59,7 @@ public class ConsumerIntegrationTest {
 		consumer.executeCloudWatchPut();
 		
 		// now let's see if we can find the result
-		AmazonCloudWatchClient client = consumer.getCW();
+		AmazonCloudWatch client = consumer.getCW();
 		GetMetricStatisticsRequest metricStatisticsRequest = new GetMetricStatisticsRequest();
 		metricStatisticsRequest.setNamespace(namespace);
 		metricStatisticsRequest.setMetricName(metricName);

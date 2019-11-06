@@ -3,12 +3,10 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Date;
+import java.util.Collections;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
-
-import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
@@ -20,10 +18,14 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import junit.framework.Assert;
 
 /**
  * Autowired test for AsynchronousJobController
@@ -55,15 +57,7 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 		table.setParentId(parent.getId());
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		// Create a file handle
-		fileHandle = new S3FileHandle();
-		fileHandle.setCreatedBy(adminUserId.toString());
-		fileHandle.setCreatedOn(new Date());
-		fileHandle.setBucketName("bucket");
-		fileHandle.setKey("mainFileKey");
-		fileHandle.setEtag("etag");
-		fileHandle.setFileName("foo.bar");
-		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle = TestUtils.createS3FileHandle(adminUserId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle = (S3FileHandle) fileMetadataDao.createFile(fileHandle);
 	}
 	
@@ -81,9 +75,11 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 	
 	@Test
 	public void testStartUploadJob() throws ServletException, Exception{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId(table.getId());
-		body.setUploadFileHandleId(fileHandle.getId());
+		TableUpdateTransactionRequest body = new TableUpdateTransactionRequest();
+		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
+		uploadToTableRequest.setTableId(table.getId());
+		uploadToTableRequest.setUploadFileHandleId(fileHandle.getId());
+		body.setChanges(Collections.singletonList(uploadToTableRequest));
 		// Start the job
 		AsynchronousJobStatus status = servletTestHelper.startAsynchJob(dispatchServlet, adminUserId, body);
 		assertNotNull(status);

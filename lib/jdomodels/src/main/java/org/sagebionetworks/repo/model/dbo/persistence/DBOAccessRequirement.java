@@ -7,8 +7,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
@@ -22,6 +22,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -278,19 +279,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
-
-			@Override
-			public DBOAccessRequirement createDatabaseObjectFromBackup(
-					DBOAccessRequirement backup) {
-				return backup;
-			}
-			
-			@Override
-			public DBOAccessRequirement createBackupFromDatabaseObject(
-					DBOAccessRequirement dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOAccessRequirement>();
 	}
 
 	@Override

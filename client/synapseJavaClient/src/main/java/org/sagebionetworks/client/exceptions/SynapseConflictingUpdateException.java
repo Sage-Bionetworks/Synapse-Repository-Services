@@ -1,6 +1,6 @@
 package org.sagebionetworks.client.exceptions;
 
-import org.apache.http.HttpStatus;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
 
 /**
  * Thrown when a conflict occurs on an update. This typically, means the object
@@ -8,29 +8,28 @@ import org.apache.http.HttpStatus;
  * The client is expected to get the latest value of the object, apply their
  * changes and then attempt the update again.
  * 
- * @author jmhill
- * 
  */
 public class SynapseConflictingUpdateException extends SynapseServerException {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final int PRECONDITION_FAILED = HttpStatus.SC_PRECONDITION_FAILED;
-
 	public SynapseConflictingUpdateException() {
-		super(PRECONDITION_FAILED);
+		super();
 	}
 
 	public SynapseConflictingUpdateException(String message, Throwable cause) {
-		super(PRECONDITION_FAILED, message, cause);
+		super(message, cause);
 	}
 
 	public SynapseConflictingUpdateException(String message) {
-		super(PRECONDITION_FAILED, message);
+		super(message);
 	}
 
 	public SynapseConflictingUpdateException(Throwable cause) {
-		super(PRECONDITION_FAILED, cause);
+		super(cause);
 	}
 
+	public SynapseConflictingUpdateException(String message, ErrorResponseCode errorResponseCode) {
+		super(message, errorResponseCode);
+	}
 }

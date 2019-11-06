@@ -4,22 +4,23 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.model.Hit;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.util.Strings;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,12 +43,6 @@ public class SearchDaoImpl implements SearchDao {
 
 
 	@Override
-	public void deleteDocument(String docIdToDelete) {
-		// This is just a batch delete of size one.
-		deleteDocuments(Sets.newHashSet(docIdToDelete));
-	}
-
-	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) {
 		ValidateArgument.required(docIdsToDelete,"docIdsToDelete");
 
@@ -66,18 +61,18 @@ public class SearchDaoImpl implements SearchDao {
 			documentBatch.add(document);
 		}
 		// Delete the batch.
-		createOrUpdateSearchDocument(documentBatch);
+		sendDocuments(documentBatch.iterator());
 	}
 
 	@Override
 	public void createOrUpdateSearchDocument(Document document){
 		ValidateArgument.required(document, "document");
-		createOrUpdateSearchDocument(Collections.singletonList(document));
+		cloudSearchClientProvider.getCloudSearchClient().sendDocument(document);
 	}
 
 	@Override
-	public void createOrUpdateSearchDocument(List<Document> document){
-		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(document);
+	public void sendDocuments(Iterator<Document> documentIterator){
+		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(documentIterator);
 	}
 
 	@Override
@@ -86,13 +81,22 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag){
+	public boolean doesDocumentExistInSearchIndex(String id, String etag){
  		ValidateArgument.required(id, "id");
 
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
-		SearchResult results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
-		return results.getHits().getFound() > 0;
+		try {
+			SearchResult results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
+			return results.getHits().getFound() > 0;
+		}catch (IllegalArgumentException e){
+			Throwable cause = e.getCause();
+			if (cause instanceof SearchException && StringUtils.contains(cause.getMessage(), "Syntax error in query: field")){
+				//This exception is very likely caused by a race condition on the search index's schema. It should be resolved later
+				throw new TemporarilyUnavailableException(e);
+			}
+			throw e;
+		}
 	}
 
 	/**

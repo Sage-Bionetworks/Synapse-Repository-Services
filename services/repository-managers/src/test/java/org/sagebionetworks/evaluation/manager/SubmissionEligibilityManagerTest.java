@@ -5,10 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl.STATUSES_COUNTED_TOWARD_QUOTA;
 
 import java.util.ArrayList;
@@ -114,39 +114,39 @@ public class SubmissionEligibilityManagerTest {
 		// no challenge for evaluation
 		when(mockChallengeDAO.getForProject(CHALLENGE_PROJECT_ID)).thenThrow(new NotFoundException());
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
 	public void testIsIndividualEligibleNotRegistered() throws Exception {
 		// starts out as a happy case
 		assertTrue(submissionEligibilityManager.
-				isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+				isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 		// but if you're not registered for the challenge you're ineligible to submit
 		userInfo.setGroups(Collections.EMPTY_SET);
 		assertFalse(submissionEligibilityManager.
-				isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+				isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
 	public void testIsIndividualEligibleNoQuota() throws Exception {
 		evaluation.setQuota(null);
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
 	public void testIsIndividualEligibleRoundsButNoQuota() throws Exception {
 		evaluation.getQuota().setSubmissionLimit(null);
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
 	public void testIsIndividualEligibleSubmissionNotAllowed() throws Exception {
 		long longTimeAgo = System.currentTimeMillis()-1000000L;
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date(longTimeAgo)).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date(longTimeAgo)).isAuthorized());
 	}
 
 	@Test
@@ -157,7 +157,7 @@ public class SubmissionEligibilityManagerTest {
 						any(Date.class), any(Date.class), 
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND+1L);
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	@Test
@@ -172,7 +172,7 @@ public class SubmissionEligibilityManagerTest {
 				any(Date.class), any(Date.class), 
 				eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(true);
 		assertFalse(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 		
 		verify(mockSubmissionDAO).hasContributedToTeamSubmission(eq(Long.parseLong(EVAL_ID)), 
 				eq(Long.parseLong(SUBMITTER_PRINCIPAL_ID)), 
@@ -188,7 +188,7 @@ public class SubmissionEligibilityManagerTest {
 						any(Date.class), any(Date.class), 
 						eq(STATUSES_COUNTED_TOWARD_QUOTA))).thenReturn(MAX_SUBMISSIONS_PER_ROUND-1L);
 		assertTrue(submissionEligibilityManager.
-			isIndividualEligible(EVAL_ID, userInfo, new Date()).getAuthorized());
+			isIndividualEligible(EVAL_ID, userInfo, new Date()).isAuthorized());
 	}
 
 	private void createValidTeamSubmissionState() throws Exception {
@@ -395,7 +395,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 	}
 
 	@Test
@@ -410,7 +410,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		// ... but if we're outside the allowed submission interval then submission isn't allowed
 		long longTimeAgo = System.currentTimeMillis()-1000000L;
 		assertFalse(submissionEligibilityManager.
@@ -418,7 +418,7 @@ public class SubmissionEligibilityManagerTest {
 								SUBMITTING_TEAM_ID, 
 								Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 								""+tseHash, 
-								new Date(longTimeAgo)).getAuthorized());
+								new Date(longTimeAgo)).isAuthorized());
 	}
 
 	
@@ -434,28 +434,28 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		// but if the hash is missing then submission isn't allowed
 		assertFalse(submissionEligibilityManager.
 				isTeamEligible(EVAL_ID, 
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						null, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		// ditto for an incorrect hash
 		assertFalse(submissionEligibilityManager.
 				isTeamEligible(EVAL_ID, 
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						"gobbldygook", 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		
 		assertFalse(submissionEligibilityManager.
 				isTeamEligible(EVAL_ID, 
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+(tseHash+1), 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 	}
 
 	@Test
@@ -470,7 +470,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		// ... but if the team is unregistered it is no longer eligible
 		when(mockChallengeTeamDAO.isTeamRegistered(
 				Long.parseLong(CHALLENGE_ID), 
@@ -484,7 +484,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 	}
 
 	@Test
@@ -499,7 +499,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 		// ... but if the contributor is unregistered she is no longer eligible
 		challengeParticipants.clear();
 		tse = submissionEligibilityManager.
@@ -510,7 +510,7 @@ public class SubmissionEligibilityManagerTest {
 						SUBMITTING_TEAM_ID, 
 						Collections.singletonList(SUBMITTER_PRINCIPAL_ID), 
 						""+tseHash, 
-						new Date()).getAuthorized());
+						new Date()).isAuthorized());
 	}
 
 }

@@ -21,8 +21,7 @@
 						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
@@ -33,11 +32,11 @@
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
 									value="300" />
 								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[TABLE_UPDATE_TRANSACTION]" />
+									value="#{stackConfiguration.getQueueName('TABLE_UPDATE_TRANSACTION')}" />
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
 								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

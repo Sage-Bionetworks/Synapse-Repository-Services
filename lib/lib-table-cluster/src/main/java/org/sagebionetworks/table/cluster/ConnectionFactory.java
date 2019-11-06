@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+
 /**
  * The connection factory provides database connections to the cluster of database used to support the Table feature.
  * @author jmhill
@@ -17,13 +19,7 @@ public interface ConnectionFactory {
 	 * @param tableId
 	 * @return
 	 */
-	TableIndexDAO getConnection(String tableId);
-	
-	/**
-	 * Drop all tables in every database connections.
-	 * 
-	 */
-	void dropAllTablesForAllConnections();
+	TableIndexDAO getConnection(IdAndVersion tableId);
 	
 	/**
 	 * Get all connections.

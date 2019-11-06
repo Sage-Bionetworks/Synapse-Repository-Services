@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -35,8 +33,8 @@ public class IT960TermsOfUse {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -76,12 +74,6 @@ public class IT960TermsOfUse {
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteAndPurgeEntity(project);
 		adminSynapse.deleteUser(userToDelete);
-	}
-
-	@Test
-	public void testGetTermsOfUse() throws Exception {
-		String responseBody = synapse.getSynapseTermsOfUse();
-		assertTrue(responseBody.length()>100);
 	}
 	
 	@Test

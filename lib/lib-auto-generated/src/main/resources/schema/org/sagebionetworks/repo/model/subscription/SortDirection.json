@@ -1,0 +1,15 @@
+{
+	"description": "Subscription sort directions.",
+	"name": "SortDirection",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ASC",
+			"description": "Sort ascending."
+		},
+		{
+			"name": "DESC",
+			"description": "Sort decending"
+		}
+	]
+}

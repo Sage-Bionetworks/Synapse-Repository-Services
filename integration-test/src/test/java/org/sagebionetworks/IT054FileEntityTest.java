@@ -23,14 +23,22 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.manager.S3TestUtils;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -39,13 +47,10 @@ import org.sagebionetworks.repo.model.file.FileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.file.FileResultFailureCode;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Lists;
 
 public class IT054FileEntityTest {
@@ -57,10 +62,12 @@ public class IT054FileEntityTest {
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
 
-	private static AmazonS3Client s3Client;
 	private File imageFile;
-	private S3FileHandle fileHandle;
+	private CloudProviderFileHandleInterface fileHandle;
 	private Project project;
+	private Folder folder;
+	private FileEntity file;
+	private FileHandleAssociation association;
 	private List<String> fileHandlesToDelete = Lists.newArrayList();
 	
 	@BeforeClass
@@ -68,13 +75,11 @@ public class IT054FileEntityTest {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-		s3Client = new AmazonS3Client(new BasicAWSCredentials(StackConfiguration.getIAMUserId(), StackConfiguration.getIAMUserKey()));
-		s3Client.createBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
 	}
 	
 	@Before
@@ -91,6 +96,26 @@ public class IT054FileEntityTest {
 
 		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		fileHandlesToDelete.add(fileHandle.getId());
+		
+		// create a folder
+		folder = new Folder();
+		folder.setName("someFolder");
+		folder.setParentId(project.getId());
+		folder = this.synapse.createEntity(folder);
+		// Add a file to the folder
+		file = new FileEntity();
+		file.setName("someFile");
+		file.setParentId(folder.getId());
+		file.setDataFileHandleId(this.fileHandle.getId());
+		file = this.synapse.createEntity(file);
+		
+		// Association for this file.
+		association = new FileHandleAssociation();
+		association.setAssociateObjectId(file.getId());
+		association.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+		association.setFileHandleId(file.getDataFileHandleId());
+		
+		synapse.clearDownloadList();
 	}
 
 	@After
@@ -103,7 +128,6 @@ public class IT054FileEntityTest {
 				synapse.deleteFileHandle(handle);
 			} catch (Exception e) {}
 		}
-		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	@AfterClass
@@ -116,15 +140,7 @@ public class IT054FileEntityTest {
 	@Test
 	public void testFileEntityRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
 		// Before we start the test wait for the preview to be created
-		PreviewFileHandle previewFileHandle = waitForPreviewToBeCreated(fileHandle);
-		// Now create a FileEntity
-		FileEntity file = new FileEntity();
-		file.setName("IT054FileEntityTest.testFileEntityRoundTrip");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		// Create it
-		file = synapse.createEntity(file);
-		assertNotNull(file);
+		CloudProviderFileHandleInterface previewFileHandle = waitForPreviewToBeCreated(fileHandle);
 		// Get the file handles
 		FileHandleResults fhr = synapse.getEntityFileHandlesForCurrentVersion(file.getId());
 		assertNotNull(fhr);
@@ -252,25 +268,113 @@ public class IT054FileEntityTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 
-		FileEntity file = new FileEntity();
-		file.setName("IT054FileEntityTest.testGetEntityHeaderByMd5");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		file = synapse.createEntity(file);
-		assertNotNull(file);
-
 		md5 = fileHandle.getContentMd5();
 		results = synapse.getEntityHeaderByMd5(md5);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 	}
+	
+	@Test
+	public void testAddFilesToDownloadListAsynch() throws Exception {
+		// Start a job to add this file to the user's download list
+		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
+		request.setFolderId(folder.getId());
+		AddFileToDownloadListResponse response = startAndWaitForAddfileJob(request);
+		assertNotNull(response);
+		assertNotNull(response.getDownloadList());
+		DownloadList list = response.getDownloadList();
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+	}
+	
+	@Test
+	public void testDownloadListAddRemoveClearGet() throws Exception {
+		// call under test
+		DownloadList list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+		// call under test
+		DownloadList fromGet = synapse.getDownloadList();
+		assertEquals(list, fromGet);
+		
+		// call under test
+		list = synapse.removeFilesFromDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+		// add it back
+		list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(1, list.getFilesToDownload().size());
+		
+		// call under test
+		synapse.clearDownloadList();
+		list = synapse.getDownloadList();
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+	}
+	
+	@Test
+	public void testCreateDownloadOrder() throws Exception {
+		DownloadList list = synapse.addFilesToDownloadList(Lists.newArrayList(association));
+		String zipName = "theNameOfTheZip.zip";
+		// call under test
+		DownloadOrder order = synapse.createDownloadOrderFromUsersDownloadList(zipName);
+		assertNotNull(order);
+		assertNotNull(order.getFiles());
+		assertEquals(1, order.getFiles().size());
+		// the dowload list should be empty
+		list = synapse.getDownloadList();
+		assertNotNull(list);
+		assertNotNull(list.getFilesToDownload());
+		assertEquals(0, list.getFilesToDownload().size());
+		
+		// call under test
+		DownloadOrder fromGet = synapse.getDownloadOrder(order.getOrderId());
+		assertEquals(order, fromGet);
+		
+		// call under test
+		DownloadOrderSummaryResponse summary = synapse.getDownloadOrderHistory(new DownloadOrderSummaryRequest());
+		assertNotNull(summary);
+		assertNotNull(summary.getPage());
+		assertEquals(1, summary.getPage().size());
+		assertEquals(order.getOrderId(), summary.getPage().get(0).getOrderId());
+	}
+	
+	
+	/**
+	 * Helper to start and wait for an asynch job to add files to a user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	private AddFileToDownloadListResponse startAndWaitForAddfileJob(AddFileToDownloadListRequest request) throws SynapseException, InterruptedException {
+		String jobId = this.synapse.startAddFilesToDownloadList(request);
+		long start = System.currentTimeMillis();
+		while(true) {
+			try {
+				return this.synapse.getAddFilesToDownloadListResponse(jobId);
+			} catch (SynapseResultNotReadyException e) {
+				long elapse = start -System.currentTimeMillis();
+				assertTrue("Timed out waiting for AddFileToDownloadListRequest", elapse < MAX_WAIT_MS*2);
+				Thread.sleep(1000);
+			}
+		}
+	}
+	
 
 	/**
 	 * Wait for a preview to be generated for the given file handle.
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	private PreviewFileHandle waitForPreviewToBeCreated(S3FileHandle fileHandle) throws InterruptedException,
+	private CloudProviderFileHandleInterface waitForPreviewToBeCreated(CloudProviderFileHandleInterface fileHandle) throws InterruptedException,
 			SynapseException {
 		long start = System.currentTimeMillis();
 		while(fileHandle.getPreviewId() == null){
@@ -280,7 +384,7 @@ public class IT054FileEntityTest {
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
 		// Fetch the preview file handle
-		PreviewFileHandle previewFileHandle = (PreviewFileHandle) synapse.getRawFileHandle(fileHandle.getPreviewId());
+		CloudProviderFileHandleInterface previewFileHandle = (CloudProviderFileHandleInterface) synapse.getRawFileHandle(fileHandle.getPreviewId());
 		fileHandlesToDelete.add(previewFileHandle.getId());
 		return previewFileHandle;
 	}

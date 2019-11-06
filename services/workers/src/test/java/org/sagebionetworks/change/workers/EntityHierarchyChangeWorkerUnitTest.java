@@ -1,5 +1,18 @@
 package org.sagebionetworks.change.workers;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,10 +22,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
@@ -67,7 +76,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		message = new ChangeMessage();
 		message.setTimestamp(new Date(1));
 		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectEtag("etag");
 		message.setObjectId("syn123");
 		
 		when(mockClock.currentTimeMillis()).thenReturn(1L, 2L,3L,4L,5L);

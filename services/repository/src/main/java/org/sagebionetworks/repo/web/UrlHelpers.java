@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,13 +11,9 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.VersionableEntity;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -41,7 +36,7 @@ public class UrlHelpers {
 	public static final String REPO_PATH			= "/repo/v1";
 	public static final String DOCKER_PATH			= "/docker/v1";
 	public static final String DOCKER_REGISTRY_PATH	= "/dockerRegistryListener/v1";
-	
+
 	/**
 	 * Used for batch requests
 	 */
@@ -54,10 +49,14 @@ public class UrlHelpers {
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
 	
 	public static final String BUNDLE				= "/bundle";
+
+	public static final String BUNDLE_V2			= "/bundle2";
 	
 	public static final String GENERATED_BY			= "/generatedBy";
 	
 	public static final String GENERATED			= "/generated";
+
+	public static final String CREATE				= "/create";
 
 	/**
 	 * All administration URLs must start with this URL or calls will be
@@ -107,6 +106,12 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String ANNOTATIONS = "/annotations";
+
+	/**
+	 * URL suffix for entity annotations
+	 *
+	 */
+	public static final String ANNOTATIONS_V2 = "/annotations2";
 
 	/**
 	 * URL suffix for locationable entity S3Token
@@ -184,6 +189,8 @@ public class UrlHelpers {
 	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
 	public static final String ADMIN_ASYNCHRONOUS_JOB = ADMIN + ASYNCHRONOUS_JOB;
 	public static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN + ASYNCHRONOUS_JOB_ID;
+	
+	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -202,6 +209,9 @@ public class UrlHelpers {
 	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
+	public static final String ENTITY_BUNDLE_V2 = ENTITY+BUNDLE_V2;
+	public static final String ENTITY_ID_BUNDLE_V2 = ENTITY_ID+BUNDLE_V2;
+	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE_V2+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 
@@ -216,11 +226,22 @@ public class UrlHelpers {
 	public static final String S3_FILE_COPY_ASYNC_GET = S3_FILE_COPY + ASYNC_GET_REQUEST;
 	public static final String COPY = "/copy";
 	public static final String FILE_HANDLES_COPY = FILE_HANDLES + COPY;
+	public static final String ENTITY_DATA_TYPE = ENTITY_ID+"/datatype";
 	
 	public static final String BULK_FILE_DOWNLOAD = FILE + "/bulk";
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_START = BULK_FILE_DOWNLOAD + ASYNC_START_REQUEST;
 	public static final String BULK_FILE_DOWNLOAD_ASYNC_GET = BULK_FILE_DOWNLOAD + ASYNC_GET_REQUEST;
 	public static final String FILE_DOWNLOAD = FILE+ID;
+	
+	public static final String DOWNLOAD_LIST = "/download/list";
+	public static final String DOWNLOAD_LIST_ADD = DOWNLOAD_LIST+"/add";
+	public static final String DOWNLOAD_LIST_REMOVE = DOWNLOAD_LIST+"/remove";
+	public static final String DOWNLOAD_LIST_ADD_START_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_START_REQUEST;
+	public static final String DOWNLOAD_LIST_ADD_GET_ASYNCH = DOWNLOAD_LIST_ADD+ASYNC_GET_REQUEST;
+	
+	public static final String DOWNLOAD_ORDER = "/download/order";
+	public static final String DOWNLOAD_ORDER_ID = DOWNLOAD_ORDER+"/{orderId}";
+	public static final String DOWNLOAD_ORDER_HISTORY = DOWNLOAD_ORDER+"/history";
 	
 	// multipart upload v2
 	public static final String FILE_MULTIPART = FILE+"/multipart";
@@ -264,6 +285,11 @@ public class UrlHelpers {
 	public static final String PROJECT_SETTINGS_BY_ID = "/projectSettings" + ID;
 	public static final String PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE = "/projectSettings/{projectId}/type/{type}";
 
+	// Synapse storage report
+	public static final String STORAGE_REPORT = "/storageReport";
+	public static final String STORAGE_REPORT_ASYNC_START = STORAGE_REPORT + ASYNC_START_REQUEST;
+	public static final String STORAGE_REPORT_ASYNC_GET = STORAGE_REPORT + ASYNC_GET_REQUEST;
+
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)
 	 */
@@ -273,6 +299,11 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse objects's Annotations.
 	 */
 	public static final String ENTITY_ANNOTATIONS 	= ENTITY_ID+ANNOTATIONS;
+
+	/**
+	 * All of the base URLs for Synapse objects's Annotations.
+	 */
+	public static final String ENTITY_ANNOTATIONS_V2 	= ENTITY_ID+ANNOTATIONS_V2;
 
 	/**
 	 * All of the base URLs for locationable entity s3Tokens
@@ -300,9 +331,19 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_ANNOTATIONS =		ENTITY_VERSION_NUMBER+ANNOTATIONS;
 
 	/**
+	 * Get the annotations of a specific version of an AnnotaitonV2
+	 */
+	public static final String ENTITY_VERSION_ANNOTATIONS_V2 =		ENTITY_VERSION_NUMBER+ANNOTATIONS_V2;
+
+	/**
 	 * Get the bundle for a specific version of an entity
 	 */
 	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
+
+	/**
+	 * Get the bundle for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_NUMBER_BUNDLE_V2 = ENTITY_VERSION_NUMBER+BUNDLE_V2;
 
 	/**
 	 * Get the generating activity for the current version of an entity
@@ -318,6 +359,26 @@ public class UrlHelpers {
 	 * DOI (Digital Object Identifier).
 	 */
 	public static final String DOI = "/doi";
+	public static final String DOI_ASSOCIATION = DOI + "/association";
+	public static final String DOI_LOCATE = DOI + "/locate";
+	public static final String DOI_ASYNC_START = DOI + ASYNC_START_REQUEST;
+	public static final String DOI_ASYNC_GET = DOI + ASYNC_GET_REQUEST;
+	
+	/**
+	 * Form  API URIs
+	 * 
+	 */
+	public static final String FORM = "/form";
+	public static final String FORM_DATA = FORM+"/data";
+	public static final String FORM_GROUP = FORM+"/group";
+	public static final String FORM_GROUP_ACL = FORM_GROUP+"/{id}/acl";
+	public static final String FORM_DATA_ID = FORM_DATA+"/{id}";
+	public static final String FORM_DATA_SUBMIT = FORM_DATA+"/{id}/submit";
+	public static final String FORM_LIST = FORM_DATA+"/list";
+	public static final String FORM_LIST_REVIEWER = FORM_DATA+"/list/reviewer";
+	
+	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
+	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
 
 	/**
 	 * Clears the Synapse DOI table (by administrators only).
@@ -483,13 +544,6 @@ public class UrlHelpers {
 	public static final String USER_MIRROR = "/userMirror";
 
 	/**
-	 * These are the new more RESTful backup/restore URLS.
-	 */
-	public static final String DAEMON 						= ADMIN+"/daemon";
-	public static final String DAEMON_ID					= "/{daemonId}";
-	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
-
-	/**
 	 * Storage usage summary for the current user.
 	 */
 	public static final String STORAGE_SUMMARY = "/storageSummary";
@@ -563,8 +617,9 @@ public class UrlHelpers {
 	/**
 	 * The stack status of synapse 
 	 */
-	public static final String STACK_STATUS					= ADMIN+"/synapse/status";
-	
+	public static final String ADMIN_STACK_STATUS	= ADMIN+"/synapse/status";
+	public static final String STACK_STATUS			=  "/status";
+
 	/**
 	 * List change messages.
 	 */
@@ -612,13 +667,7 @@ public class UrlHelpers {
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
 	public static final String MIGRATION_COUNT = MIGRATION+"/count";
-	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
-	public static final String MIGRATION_ROWS_BY_RANGE = MIGRATION+"/rowsbyrange";
 	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
-	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
-	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
-	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
-	public static final String MIGRATION_STATUS = MIGRATION+"/status";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 	public static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	public static final String MIGRATION_TYPES = MIGRATION+"/types";
@@ -754,7 +803,8 @@ public class UrlHelpers {
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String COLUMN_BATCH = COLUMN + "/batch";
-	public static final String COLUMN_TABLE_IVEW = COLUMN + "/tableview/defaults/{viewtype}";
+	public static final String COLUMN_TABLE_VIEW_DEFAULT = COLUMN + "/tableview/defaults";
+	public static final String COLUMN_TABLE_VIEW_DEFAULT_TYPE = COLUMN_TABLE_VIEW_DEFAULT+"/{viewtype}";
 	public static final String ROW_ID = "/row/{rowId}";
 	public static final String ROW_VERSION = "/version/{versionNumber}";
 	public static final String TABLE = "/table";
@@ -804,6 +854,8 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_START = ENTITY_TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET = ENTITY_TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
 	public static final String TABLE_COLUMNS_OF_SCOPE = COLUMN+"/view/scope";
+	public static final String TABLE_SQL_TRANSFORM = TABLE+"/sql/transform";
+	public static final String TABLE_SNAPSHOT = ENTITY_TABLE+"/snapshot";
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
@@ -816,6 +868,7 @@ public class UrlHelpers {
 	public static final String USER_TEAM = USER+ID+TEAM;
 	public static final String USER_TEAM_IDS = USER+ID+TEAM+"/id";
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
+	public static final String MEMBER_TYPE_FILTER = "memberType";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
 	private static final String MEMBER = "/member";
 	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
@@ -890,9 +943,11 @@ public class UrlHelpers {
 	@Deprecated
 	public static final String PROJECTS_FOR_TEAM = PrefixConst.PROJECT + TEAM + "/{teamId}";
 
-	public static final String PROJECTS = "/projects/{type}";
+	public static final String PROJECTS = "/projects";
 	public static final String PROJECTS_USER = PROJECTS + USER + "/{principalId}";
-	public static final String PROJECTS_TEAM = PROJECTS + TEAM + "/{teamId}";
+	public static final String PROJECTS_DEPRECATED = "/projects/{deprecatedType}";
+	public static final String PROJECTS_USER_DEPRECATED = PROJECTS_DEPRECATED + USER + "/{principalId}";
+	public static final String PROJECTS_TEAM_DEPRECATED = PROJECTS_DEPRECATED + TEAM + "/{teamId}";
 	public static final String PROJECTS_SORT_PARAM = "sort";
 	public static final String PROJECTS_SORT_DIRECTION_PARAM = "sortDirection";
 
@@ -967,6 +1022,7 @@ public class UrlHelpers {
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
+	public static final String ENTITY_ID_DOCKER_TAG = ENTITY_ID+"/dockerTag";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
 	// Data Access Services
@@ -989,6 +1045,9 @@ public class UrlHelpers {
 	public static final String RESTRICTION_INFORMATION = "/restrictionInformation";
 	public static final String DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS = DATA_ACCESS_SUBMISSION+"/openSubmissions";
 	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
+	
+	// Statistics Services
+	public static final String STATISTICS = "/statistics";
 
 	/**
 	 * APIs for DynamoDB related operations.
@@ -1009,15 +1068,34 @@ public class UrlHelpers {
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_USER = "/user";
 	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_CHANGE_PASSWORD = AUTH_USER + "/changePassword";
+
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
+
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
-	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 	
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
+	public static final String WELL_KNOWN = "/.well-known";
+	public static final String WELL_KNOWN_OPENID_CONFIGURATION = WELL_KNOWN+"/openid-configuration";
+
+	/**
+	 * OpenID Connect URL constants
+	 */
+	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
+	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;
+	public static final String OAUTH_2_CONSENT = AUTH_OAUTH_2+"/consent";
+	public static final String OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
+	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
+	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
+	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	
 
 	public static final String AUTH_LOGIN = "/login";
 	
@@ -1033,112 +1111,22 @@ public class UrlHelpers {
 	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	/**
-	 * API for testing throttling
-	 */
-	public static final String ADMIN_WAIT = ADMIN + "/wait";
-	
-	/**
-	 * API for testing exception handling
-	 */
-	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
-
-	/**
 	 * API for updating a file
 	 * @see PLFM-4108
 	 */
-	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";;
+	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";
+	
+	/**
+	 * Request parameter to get the next page of a paginated query response.
+	 */
+	public static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken";
+
 
 	static {
 		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
-	}
-
-	/**
-	 * Determine the controller URL prefix for a given model class
-	 * 
-	 * @param theModelClass
-	 * @return the URL for the model class
-	 */
-//	@SuppressWarnings("unchecked")
-//	public static String getUrlForModel(Class theModelClass) {
-//		EntityType type =  EntityType.getNodeTypeForClass(theModelClass);
-//		return type.getUrlPrefix();
-//	}
-
-	
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityAnnotationsUri(String entityId) {
-		return ENTITY + "/" + entityId + ANNOTATIONS;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's ACL
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityACLUri(String entityId) {
-		return ENTITY + "/" + entityId + ACL;
-	}
-	
-	/**
-	 * Helper function to create a relative URL for an entity's dependent
-	 * property
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(HttpServletRequest request) {
-		return request.getRequestURI();
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity's annotations
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param entity
-	 * @param propertyClass
-	 * @param request
-	 * @return the uri for this entity's annotations
-	 */
-	public static String makeEntityPropertyUri(Entity entity,
-			Class propertyClass, HttpServletRequest request) {
-
-		String urlPrefix = getUrlPrefixFromRequest(request);
-
-		String uri = null;
-		try {
-			uri = urlPrefix + UrlHelpers.ENTITY
-					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8")
-					+ PROPERTY2URLSUFFIX.get(propertyClass);
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
 	}
 
 	/**
@@ -1176,123 +1164,8 @@ public class UrlHelpers {
 				: request.getServletPath();
 		return urlPrefix;
 	}
-	
-	/**
-	 * Set the URI for any entity.
-	 * @param entityId 
-	 * @param entityClass 
-	 * @param urlPrefix
-	 * @return the entity uri
-	 */
-	public static String createEntityUri(String entityId, Class<? extends Entity> entityClass, String urlPrefix){
-		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
-		if(entityClass == null) throw new IllegalArgumentException("Entity class cannot be null");
-		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append(urlPrefix);
-		builder.append(UrlHelpers.REPO_PATH);
-		builder.append(UrlHelpers.ENTITY);
-		builder.append("/");
-		builder.append(entityId);
-		return builder.toString();
-	}
-	
-	/**
-	 * Set the base uri for any entity.
-	 * @param entity
-	 * @param request
-	 */
-	public static void setBaseUriForEntity(Entity entity, HttpServletRequest request){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(request == null) throw new IllegalArgumentException("Request cannot be null");
-		// First get the prefix
-		String prefix = UrlHelpers.getUrlPrefixFromRequest(request);
-		// Now build the uri.
-		String uri = UrlHelpers.createEntityUri(entity.getId(), entity.getClass(), prefix);
-		entity.setUri(uri);
-	}
-	
-	/**
-	 * Set the all of the Entity URLs (annotations, ACL)
-	 * @param entity
-	 */
-	public static void setAllEntityUrls(Entity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		// Add the annotations
-		entity.setAnnotations(entity.getUri()+ANNOTATIONS);
-		// Add the acl
-		entity.setAccessControlList(entity.getUri()+ACL);
-	}
-	
-	
-	/**
-	 * Set the URL of a versionable entity.
-	 * @param entity 
-	 */
-	public static void setVersionableUrl(VersionableEntity entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		if(entity.getVersionNumber() == null) throw new IllegalArgumentException("Entity version number cannot be null");
-		// This URL wil list all version for this entity.
-		entity.setVersions(entity.getUri()+VERSION);
-		// This URL will reference this specific version of the entity.
-		entity.setVersionUrl(entity.getUri()+VERSION+"/"+entity.getVersionNumber());
-	}
-	
-	/**
-	 * 
-	 * @param entity
-	 * @param request
-	 */
-	public static void setAllUrlsForEntity(Entity entity, HttpServletRequest request){
-		// First set the base url
-		setBaseUriForEntity(entity, request);
-		// Set the Entity types
-		setAllEntityUrls(entity);
-		// Set the specialty types
-		// Versions
-		if(entity instanceof VersionableEntity){
-			setVersionableUrl((VersionableEntity)entity);
-		}
-		// Set the entity type
-		entity.setEntityType(entity.getClass().getName());
-	}
-	
-	/**
-	 * Helper method to validate all urs.
-	 * @param object
-	 */
-	public static void validateAllUrls(Entity object) {
-		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(object.getClass());
-		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
-		if(!object.getUri().endsWith(expectedBaseSuffix)){
-			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
-		}
-		String expected = object.getUri()+UrlHelpers.ANNOTATIONS;
-		if(!expected.equals(object.getAnnotations())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAnnotations());
-		}
-		expected =  object.getUri()+UrlHelpers.ACL;
-		if(!expected.equals(object.getAccessControlList())){
-			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAccessControlList());
-		}
-		// Versionable
-		if(object instanceof VersionableEntity){
-			VersionableEntity able = (VersionableEntity) object;
-			expected = object.getUri()+UrlHelpers.VERSION;
-			if(!expected.equals(able.getVersions())){
-				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
-			}
-			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
-			if(!expected.equals(able.getVersionUrl())){
-				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
-			}
-		}
-	}
-	
+
+
 	/**
 	 * Create an ACL redirect URL.
 	 * @param request - The initial request.

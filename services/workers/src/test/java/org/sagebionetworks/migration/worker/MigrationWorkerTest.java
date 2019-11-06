@@ -1,16 +1,13 @@
 package org.sagebionetworks.migration.worker;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,8 +21,18 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.migration.*;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -140,21 +147,10 @@ public class MigrationWorkerTest {
 	@Test
 	public void testProcessAsyncMigrationRangeCountRequest() throws Throwable {
 		AsyncMigrationRangeChecksumRequest mReq = new AsyncMigrationRangeChecksumRequest();
-		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
-		
+		mReq.setMigrationType(MigrationType.ACCESS_APPROVAL);
 		migrationWorker.processRequest(user, mReq, "JOBID");
 		
 		verify(mockMigrationManager).processAsyncMigrationRangeChecksumRequest(user, mReq);
-	}
-	
-	@Test
-	public void testProcessAsyncMigrationRowMetatdaRequest() throws Throwable {
-		AsyncMigrationRowMetadataRequest mReq = new AsyncMigrationRowMetadataRequest();
-		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
-		
-		migrationWorker.processRequest(user, mReq, "JOBID");
-		
-		verify(mockMigrationManager).processAsyncMigrationRowMetadataRequest(user, mReq);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -167,16 +163,7 @@ public class MigrationWorkerTest {
 		migrationWorker.processRequest(userInfo, mri, jobId);
 		
 	}
-	
-	@Test
-	public void testProcessRequestBackupList() throws Exception {
-		String jobId = "123";
-		BackupTypeListRequest request = new BackupTypeListRequest();
-		// call under test
-		migrationWorker.processRequest(user, request, jobId);
-		verify(mockMigrationManager).backupRequest(user, request);
-	}
-	
+
 	@Test
 	public void testProcessRequestBackupRange() throws Exception {
 		String jobId = "123";
@@ -184,5 +171,27 @@ public class MigrationWorkerTest {
 		// call under test
 		migrationWorker.processRequest(user, request, jobId);
 		verify(mockMigrationManager).backupRequest(user, request);
+	}
+	
+	@Test
+	public void testProcessRequestCalculateOptimalRanges() throws Exception {
+		String jobId = "123";
+		CalculateOptimalRangeRequest request = new CalculateOptimalRangeRequest();
+		// call under test
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).calculateOptimalRanges(user, request);
+	}
+	
+	@Test
+	public void  testProcessRequestBatchChecksumRequest() throws DatastoreException, NotFoundException, IOException {
+		String jobId = "123";
+		BatchChecksumRequest request = new BatchChecksumRequest();
+		request.setBatchSize(3L);
+		request.setMinimumId(0L);
+		request.setMaximumId(0L);
+		request.setSalt("some salt");
+		// call under tes
+		migrationWorker.processRequest(user, request, jobId);
+		verify(mockMigrationManager).calculateBatchChecksums(user, request);
 	}
 }

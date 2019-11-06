@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
+
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.BooleanUtils;
+import org.sagebionetworks.evaluation.model.SubmissionContributor;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -13,17 +16,21 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -44,91 +51,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class AdministrationController extends BaseController {
+public class AdministrationController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
 	
 	/**
-	 * Get the status of a running daemon (either a backup or restore)
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
+	 * @return the current status of the stack
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_DAEMON_ID
-			}, method = RequestMethod.GET)
-	public @ResponseBody
-	BackupRestoreStatus getStatus(
-			@PathVariable String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		return serviceProvider.getAdministrationService().getStatus(daemonId, userId, header, request);
-	}
-	
-	/**
-	 * Terminate a running daemon.  This has no effect if the daemon is already terminated.
-	 * @param daemonId
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_DAEMON_ID
-			}, method = RequestMethod.DELETE)
-	public @ResponseBody
-	void terminateDaemon(
-			@PathVariable String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		serviceProvider.getAdministrationService().terminateDaemon(daemonId, userId, header, request);
-	}
-	
-	
-	/**
-	 * Get the current status of the stack
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
+	@RequestMapping(value = {
+			UrlHelpers.ADMIN_STACK_STATUS,
 			UrlHelpers.STACK_STATUS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	StackStatus getStackStatus() {
-
 		return serviceProvider.getAdministrationService().getStackStatus();
 	}
 	
@@ -148,7 +85,7 @@ public class AdministrationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
-			UrlHelpers.STACK_STATUS
+			UrlHelpers.ADMIN_STACK_STATUS
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	StackStatus updateStatusStackStatus(
@@ -249,15 +186,16 @@ public class AdministrationController extends BaseController {
 	}
 
 	/**
-	 * Creates a user with specific state to be used for integration testing
+	 * Creates a user with specific state to be used for integration testing.
+	 * If the user already exists, just returns the existing one.
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody EntityId createIntegrationTestUser(
+	public @ResponseBody EntityId createOrGetIntegrationTestUser(
 			@RequestBody NewIntegrationTestUser userSpecs,
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
 	        		throws NotFoundException {
-		return serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
+		return serviceProvider.getAdministrationService().createOrGetTestUser(userId, userSpecs);
 	}
 
 	/**
@@ -286,48 +224,7 @@ public class AdministrationController extends BaseController {
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().clearAllLocks(userId);
 	}
-	
 
-
-	/**
-	 * Wait for a while or release all waiters
-	 */
-	@RequestMapping(value = { UrlHelpers.ADMIN_WAIT }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.OK)
-	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = false) Boolean release) throws Exception {
-		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
-	}
-
-	/**
-	 * throw an expected exception
-	 * 
-	 * @throws Throwable
-	 */
-	@RequestMapping(value = { UrlHelpers.ADMIN_EXCEPTION }, method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.OK)
-	public void throwException(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(required = true) String exception, @RequestParam(required = true) Boolean inTransaction,
-			@RequestParam(required = true) Boolean inBeforeCommit) throws Throwable {
-		try {
-			if (inTransaction) {
-				if (inBeforeCommit) {
-					serviceProvider.getAdministrationService().throwExceptionTransactionalBeforeCommit(exception);
-				} else {
-					serviceProvider.getAdministrationService().throwExceptionTransactional(exception);
-				}
-			} else {
-				serviceProvider.getAdministrationService().throwException(exception);
-			}
-		} catch (Throwable t) {
-			t.printStackTrace();
-			if (!t.getClass().getName().equals(exception)) {
-				// this is an error, so return 200 which will make the test fail
-				return;
-			}
-			throw t;
-		}
-	}
 	
 	/**
 	 * 
@@ -362,5 +259,21 @@ public class AdministrationController extends BaseController {
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
-
+	
+	/**
+	 * Create an export script for the ID generator database.  The script can be used to setup a new ID generator.
+	 * 
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_ID_GEN_EXPORT, method = RequestMethod.GET)
+	public @ResponseBody
+	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
+	}
 }

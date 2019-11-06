@@ -1,17 +1,21 @@
 {
 	"description": "An AsynchronousResponseBody returned from a table update transaction.",
-	"implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
-        }
-    ],
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
 	"properties": {
 		"results": {
-		    "description":"List of responses. There will be one response for each request in the transaction.",
+			"description": "List of responses. There will be one response for each request in the transaction.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.TableUpdateResponse"
 			}
+		},
+		"snapshotVersionNumber": {
+			"description": "The version number of the snapshot.  Returned only, if a new snapshot was requested.",
+			"type": "integer"
 		}
 	}
 }

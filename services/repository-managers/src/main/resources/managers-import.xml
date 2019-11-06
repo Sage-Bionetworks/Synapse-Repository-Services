@@ -9,5 +9,6 @@
 	<import resource="classpath:cloudwatch-spb.xml" />
 	<!-- Markdown service -->
 	<import resource="classpath:markdown-dao.spb.xml" />
+	<import resource="classpath:doi-spb.xml" />
 
 </beans>

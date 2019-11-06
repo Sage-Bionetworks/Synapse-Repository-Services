@@ -25,6 +25,28 @@ public interface BaseClient {
 	 * Authenticate the Synapse client with an existing session token
 	 */
 	public void setSessionToken(String sessionToken);
+	
+	/**
+	 * Set a uname and password as a Basic Authorization header.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param uname
+	 * @param password
+	 */
+	public void setBasicAuthorizationCredentials(String uname, String password);
+	
+	/**
+	 * Remove the Authorization Header
+	 */
+	public void removeAuthorizationHeader();
+	
+	/**
+	 * Set a bearer authorization token.
+	 * This should be used exclusively of the Synapse session token
+	 * or any other authorization scheme.
+	 * @param bearerToken
+	 */
+	public void setBearerAuthorizationToken(String bearerToken);
 
 	/**
 	 * Get the current session token used by this client.
@@ -95,4 +117,15 @@ public interface BaseClient {
 	public void logout() throws SynapseException;
 
 	public void invalidateApiKey() throws SynapseException;
+
+	/**
+	 * Set the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint
+	 * @param sessionId
+	 */
+	public void setSessionId(String sessionId);
+
+	/**
+	 * Get the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint
+	 */
+	public String getSessionId();
 }

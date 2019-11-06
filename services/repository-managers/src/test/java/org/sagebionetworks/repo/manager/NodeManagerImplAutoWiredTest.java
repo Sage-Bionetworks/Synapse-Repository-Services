@@ -17,8 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -26,12 +24,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -101,7 +101,7 @@ public class NodeManagerImplAutoWiredTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
@@ -162,8 +162,8 @@ public class NodeManagerImplAutoWiredTest {
 				assertNotNull(acl);
 				assertEquals(id, acl.getId());
 				// Make sure the user can do everything
-				for(ACCESS_TYPE accessType : ModelConstants.ENITY_ADMIN_ACCESS_PERMISSIONS) {
-					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getAuthorized());
+				for(ACCESS_TYPE accessType : ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS) {
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).isAuthorized());
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);
@@ -172,68 +172,73 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testCreateWithAnnotations() throws Exception {
+	public void testCreateWithEntityPropertyAnnotations() throws Exception {
 		// We do not want an admin for this test
 		
 		// Create a node
 		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
+		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithEntityPropertyAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
 		newNode.setNodeType(EntityType.project);
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations annos = named.getAdditionalAnnotations();
+		org.sagebionetworks.repo.model.Annotations annos = new org.sagebionetworks.repo.model.Annotations();
 		annos.addAnnotation("stringKey", "stringValue");
 		annos.addAnnotation("longKey", new Long(120));
 		// We are not using the admin to create this node.
-		newNode = nodeManager.createNewNode(newNode, named, userInfo);
+		newNode = nodeManager.createNewNode(newNode, annos, userInfo);
 		String id = newNode.getId();
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// Validate the node's annotations
-		named = nodeManager.getAnnotations(userInfo, id);
-		assertNotNull(named);
-		annos = named.getAdditionalAnnotations();
+		annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertEquals("stringValue", annos.getSingleValue("stringKey"));
-		assertEquals(new Long(120), annos.getSingleValue("longKey"));
+		assertEquals(120L, annos.getSingleValue("longKey"));
 	}
 	
+	/**
+	 * Extended for PLFM-5178.
+	 * 
+	 */
 	@Test
-	public void testCreateAndUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	public void testCreateAndUpdate() throws Exception {
 		// Create a node
-		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
+		Node start = new Node();
+		start.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(EntityType.project);
-		String id = nodeManager.createNewNode(newNode, adminUserInfo);
-		assertNotNull(id);
-		nodesToDelete.add(id);
+		start.setNodeType(EntityType.project);
+		start = nodeManager.createNode(start, userInfo);
+		assertNotNull(start);
+		nodesToDelete.add(start.getId());
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(adminUserInfo, id);
+		Node fetched = nodeManager.get(adminUserInfo, start.getId());
 		assertNotNull(fetched);
-		assertEquals(adminUserInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
-		assertEquals(adminUserInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
+		assertEquals(start, fetched);
+		assertEquals(userInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
+		assertEquals(userInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
-		assertEquals(id, fetched.getId());
-		assertEquals(newNode.getName(), fetched.getName());
-		assertEquals(newNode.getNodeType(), fetched.getNodeType());
 		assertNotNull(fetched.getETag());
 		
 		// Now try to update the node
 		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
-		Node updated = nodeManager.update(adminUserInfo, fetched);
+		// ensure modified on changes
+		Thread.sleep(10);
+		// update as a different user.
+		Node updated = nodeManager.update(adminUserInfo, fetched, null, false);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
-		Node fetchedAgain = nodeManager.get(adminUserInfo, id);
-		assertNotNull(fetchedAgain);
-		assertEquals("mySecondName", fetchedAgain.getName());
-		assertEquals(updated.getETag(), fetchedAgain.getETag());
-
+		Node fetchedAfterUpdate = nodeManager.get(adminUserInfo, start.getId());
+		assertNotNull(fetchedAfterUpdate);
+		assertEquals(updated, fetchedAfterUpdate);
+		assertEquals("mySecondName", fetchedAfterUpdate.getName());
+		assertEquals(userInfo.getId().toString(), fetchedAfterUpdate.getCreatedByPrincipalId().toString());
+		assertEquals(start.getCreatedOn(), fetchedAfterUpdate.getCreatedOn());
+		assertEquals(adminUserInfo.getId(), fetchedAfterUpdate.getModifiedByPrincipalId());
+		assertTrue(start.getModifiedOn().getTime() < fetchedAfterUpdate.getModifiedOn().getTime());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -248,110 +253,109 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = nodeManager.get(adminUserInfo, id);
 		// Now update
 		node.setName("newName");
-		nodeManager.update(adminUserInfo, node);
+		nodeManager.update(adminUserInfo, node, null, false);
 		// Now update again without a new eTag
 		node.setName("Not going to take");
-		nodeManager.update(adminUserInfo, node);
+		nodeManager.update(adminUserInfo, node, null, false);
 	}
 	
 	@Test
-	public void testUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUpdateUserAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException, InterruptedException{
 		// Create a node
-		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(EntityType.project);
+		Node startNode = new Node();
+		startNode.setName("NodeManagerImplAutoWiredTest.updateUserAnnotations");
+		startNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
-		String id = nodeManager.createNewNode(newNode, userInfo);
+		String id = nodeManager.createNewNode(startNode, userInfo);
+		startNode = nodeManager.get(userInfo, id);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
-		NamedAnnotations named = nodeManager.getAnnotations(userInfo, id);
-		Annotations annos = named.getAdditionalAnnotations();
+		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		String eTagBeforeUpdate = annos.getEtag();
 		// Add some values
-		annos.addAnnotation("longKey", new Long(1));
+		AnnotationsV2TestUtils.putAnnotations(annos, "longKey", "1", AnnotationsValueType.LONG);
+		// sleep to ensure modifiedOn changes.
+		Thread.sleep(10);
 		// Now update the node
-		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, AnnotationNameSpace.ADDITIONAL);
+		Annotations updated = nodeManager.updateUserAnnotations(adminUserInfo, id, annos);
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
-		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
-		Annotations copy = namedCopy.getAdditionalAnnotations();
+		Annotations copy = nodeManager.getUserAnnotations(userInfo, id);
 		assertEquals(updated,copy);
 		// Make sure the eTag has changed
 		assertEquals(updated.getEtag(), copy.getEtag());
-		Node nodeCopy = nodeManager.get(userInfo, id);
-		assertNotNull(nodeCopy);
-		assertNotNull(nodeCopy.getETag());
-		assertEquals(updated.getEtag(), nodeCopy.getETag());
+		Node updatedNode = nodeManager.get(userInfo, id);
+		assertNotNull(updatedNode);
+		assertNotNull(updatedNode.getETag());
+		assertEquals(updated.getEtag(), updatedNode.getETag());
+		assertFalse(startNode.getETag().equals(updatedNode.getETag()));
+		// modified on/by should be updated.
+		assertTrue(updatedNode.getModifiedOn().getTime() > startNode.getModifiedOn().getTime());
+		assertEquals(adminUserInfo.getId(), updatedNode.getModifiedByPrincipalId());
+		// created on/by should not change.
+		assertEquals(userInfo.getId(), updatedNode.getCreatedByPrincipalId());
+		assertEquals(startNode.getCreatedOn(), updatedNode.getCreatedOn());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
-	public void testAnnotationsUpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+	public void testUpdateUserAnnotations_UpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
-		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
+		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateUserAnnotations_UpdateConflict");
 		newNode.setNodeType(EntityType.project);
 		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node
-		NamedAnnotations named = nodeManager.getAnnotations(userInfo, id);
-		Annotations annos = named.getAdditionalAnnotations();
-		annos.addAnnotation("stringKey", "should take");
+		Annotations annos = nodeManager.getUserAnnotations(userInfo, id);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should take", AnnotationsValueType.STRING);
 		String startingEtag = annos.getEtag();
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		nodeManager.updateUserAnnotations(userInfo, id, annos);
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
-		annos.addAnnotation("stringKey", "should not take");
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
+		AnnotationsV2TestUtils.putAnnotations(annos, "stringKey", "should not take", AnnotationsValueType.STRING);
+		nodeManager.updateUserAnnotations(userInfo, id, annos);
 	}
-	
+
 	@Test
 	public void testUpdateWithVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		// First create a node with 
+		// First create a node with
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
 		newNode.setNodeType(EntityType.table);
 		newNode.setVersionLabel("0.0.1");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = adminUserInfo;
-		String id = nodeManager.createNewNode(newNode, userInfo);
+		newNode = nodeManager.createNode(newNode, userInfo);
+		String id = newNode.getId();
 		assertNotNull(id);
 		nodesToDelete.add(id);
-		
-		// There should be one version for this node
-		List<Long> versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(1, versions.size());
-		assertEquals(new Long(1), versions.get(0));
-		
-		
+
 		// Add some annotations to this version
-		NamedAnnotations named = nodeManager.getAnnotations(userInfo, id);
-		Annotations annos = named.getAdditionalAnnotations();
+		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		String firstVersionValue = "Value on the first version.";
 		annos.addAnnotation("stringKey", firstVersionValue);
-		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
-		
+		nodeManager.update(userInfo, newNode, annos, false);
+
 		// In a typical new version scenario we will update a the node and annotations at the same
 		// times as creating a new version.
 		Node updatedNode = nodeManager.get(userInfo, id);
 		// The current version for this node should be one
 		assertEquals(new Long(1), updatedNode.getVersionNumber());
-		NamedAnnotations namedToUpdate = nodeManager.getAnnotations(userInfo, id);
-		Annotations annosToUpdate = namedToUpdate.getAdditionalAnnotations();
-		assertEquals(firstVersionValue, annos.getSingleValue("stringKey"));
-		// Now attempt to update both the node and the annotations without changing the 
+		org.sagebionetworks.repo.model.Annotations annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
+		assertEquals(firstVersionValue, annosToUpdate.getSingleValue("stringKey"));
+		// Now attempt to update both the node and the annotations without changing the
 		// the version label.  This should cause the update to fail
 		updatedNode.setVersionComment("This comment should never get applied because we did not change the version label");
 		annosToUpdate.addAnnotation("longKey", new Long(12));
 		String eTagBeforeUpdate = updatedNode.getETag();
 		// Now try the update
 		try{
-			nodeManager.update(userInfo, updatedNode, namedToUpdate, true);
+			nodeManager.update(userInfo, updatedNode, annosToUpdate, true);
 			fail("Creating a new version without creating a new versoin label should have caused an IllegalArgumentException");
 		}catch(IllegalArgumentException e){
 			// expected
@@ -359,14 +363,10 @@ public class NodeManagerImplAutoWiredTest {
 		// Validate that the changes were not applied to the node or the annotations
 		updatedNode = nodeManager.get(userInfo, id);
 		assertEquals("Since updating failed, the eTag should not have changed",eTagBeforeUpdate, updatedNode.getETag());
-		namedToUpdate = nodeManager.getAnnotations(userInfo, id);
-		annosToUpdate = namedToUpdate.getAdditionalAnnotations();
+		annosToUpdate = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertEquals("The version comment should have rolled back to its origianl value on a failure.",newNode.getVersionComment(), updatedNode.getVersionComment());
 		assertEquals("The annoations should have rolled back to its origianl value on a failure.",null, annosToUpdate.getSingleValue("longKey"));
-		versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(1, versions.size());
-		
+
 		// Now try the update again but with a new version label so the update should take.
 		updatedNode.setVersionComment("This this comment should get applied this time.");
 		updatedNode.setVersionLabel("0.0.2");
@@ -374,27 +374,21 @@ public class NodeManagerImplAutoWiredTest {
 		annosToUpdate.getStringAnnotations().clear();
 		String valueOnSecondVersion = "Value on the second version.";
 		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
-		Node afterUpdate = nodeManager.update(userInfo, updatedNode, namedToUpdate, true);
+		// call under test
+		Node afterUpdate = nodeManager.update(adminUserInfo, updatedNode,  annosToUpdate, true);
 		assertNotNull(afterUpdate);
 		assertNotNull(afterUpdate.getETag());
 		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
-		
+
 		// Now check that the update went through
 		Node currentNode = nodeManager.get(userInfo, id);
 		assertNotNull(currentNode);
-		NamedAnnotations currentNamed = nodeManager.getAnnotations(userInfo, id);
-		Annotations currentAnnos = currentNamed.getAdditionalAnnotations();
+		org.sagebionetworks.repo.model.Annotations currentAnnos = nodeManager.getEntityPropertyAnnotations(userInfo, id);
 		assertNotNull(currentAnnos);
 		// The version number should have incremented
 		assertEquals(new Long(2), currentNode.getVersionNumber());
 		assertEquals(annosToUpdate, currentAnnos);
-		// There should be two versions
-		versions = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versions);
-		assertEquals(2, versions.size());
-		// The first on the list should be the current
-		assertEquals(new Long(2), versions.get(0));
-		
+
 		// Now get the first version of the node and annotations
 		Node nodeZero = nodeManager.getNodeForVersionNumber(userInfo, id, new Long(1));
 		assertNotNull(nodeZero);
@@ -403,24 +397,54 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(nodeZero.getModifiedOn());
 		assertEquals("This is the comment on the first version.", nodeZero.getVersionComment());
 		// Now get the annotations for the first version.
-		NamedAnnotations namedZero = nodeManager.getAnnotationsForVersion(userInfo, id, new Long(1));
-		Annotations annosZero = namedZero.getAdditionalAnnotations();
+		org.sagebionetworks.repo.model.Annotations annosZero = nodeManager.getEntityPropertyForVersion(userInfo, id, new Long(1));
 		assertNotNull(annosZero);
 		assertFalse(currentAnnos.equals(annosZero));
 		assertEquals(null, annosZero.getSingleValue("longKey"));
 		assertNotNull(annosZero.getStringAnnotations());
 		assertEquals(1, annosZero.getStringAnnotations().size());
 		assertEquals(firstVersionValue, annosZero.getSingleValue("stringKey"));
+	}
+
+	/**
+	 * Test added for PLFM-5178
+	 */
+	@Test
+	public void testUpdateVersionModifiedByModifiedOn() throws Exception {
+		Node node = new Node();
+		node.setName("startName");
+		node.setNodeType(EntityType.project);
+		// call under test
+		node = nodeManager.createNode(node, userInfo);
+		assertNotNull(node);
+		nodesToDelete.add(node.getId());
+		assertNotNull(node.getETag());
+		assertEquals(userInfo.getId(), node.getCreatedByPrincipalId());
+		assertEquals(userInfo.getId(), node.getModifiedByPrincipalId());
+		assertNotNull(node.getCreatedOn());
+		assertEquals(node.getCreatedOn(), node.getModifiedOn());
 		
-		// Finally, make sure we can fetch each version of the node and annotations
-		for(Long versionNumber: versions){
-			Node thisNodeVersion = nodeManager.getNodeForVersionNumber(userInfo, id, versionNumber);
-			assertNotNull(thisNodeVersion);
-			assertEquals(versionNumber,thisNodeVersion.getVersionNumber());
-			NamedAnnotations thisNamedVersion = nodeManager.getAnnotationsForVersion(userInfo, id, versionNumber);
-			Annotations thisAnnosVersoin = thisNamedVersion.getAdditionalAnnotations();
-			assertNotNull(thisAnnosVersoin);
-		}
+		Node updated = nodeManager.get(userInfo, node.getId());
+		updated.setName("nameChanged");
+		updated.setVersionLabel("v2");
+		Annotations annos = nodeManager.getUserAnnotations(adminUserInfo, node.getId());
+		Thread.sleep(10);
+		boolean newVersion = true;
+		// create new version
+		updated = nodeManager.update(adminUserInfo, updated, null, newVersion);
+		assertNotNull(updated);
+		assertEquals(node.getCreatedByPrincipalId(), updated.getCreatedByPrincipalId());
+		assertEquals(node.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(adminUserInfo.getId(), updated.getModifiedByPrincipalId());
+		assertTrue(updated.getModifiedOn().getTime() > node.getModifiedOn().getTime());
+		
+		// the first version should remain unchanged.
+		Node firstVersion = nodeManager.getNodeForVersionNumber(userInfo, node.getId(), node.getVersionNumber());
+		assertNotNull(firstVersion);
+		assertEquals(node.getCreatedByPrincipalId(), firstVersion.getCreatedByPrincipalId());
+		assertEquals(node.getCreatedOn(), firstVersion.getCreatedOn());
+		assertEquals(node.getModifiedByPrincipalId(), firstVersion.getModifiedByPrincipalId());
+		assertEquals(node.getModifiedOn(), firstVersion.getModifiedOn());
 	}
 	
 	@Test
@@ -444,10 +468,6 @@ public class NodeManagerImplAutoWiredTest {
 			node.setVersionLabel("0.0."+i+1);
 			nodeManager.update(userInfo, node, null, true);
 		}
-		// List the versions
-		List<Long> versionNumbers = nodeManager.getAllVersionNumbersForNode(userInfo, id);
-		assertNotNull(versionNumbers);
-		assertEquals(numberVersions+1, versionNumbers.size());
 		// Get the eTag before the delete
 		Node beforeDelete = nodeManager.get(userInfo, id);
 		assertNotNull(beforeDelete);
@@ -501,7 +521,7 @@ public class NodeManagerImplAutoWiredTest {
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
-		Node updatedChild = nodeManager.update(adminUserInfo, fetchedChild);
+		Node updatedChild = nodeManager.update(adminUserInfo, fetchedChild, null, false);
 		assertNotNull(updatedChild);
 		assertEquals(childId, updatedChild.getId());
 		assertEquals(newProjectId, updatedChild.getParentId());
@@ -554,7 +574,7 @@ public class NodeManagerImplAutoWiredTest {
 		String childStartEtag = child.getETag();
 		// Now change the parent
 		folder.setName("MyNewName");
-		folder = nodeManager.update(adminUserInfo, folder);
+		folder = nodeManager.update(adminUserInfo, folder, null, false);
 		// Validate that the child etag did not change
 		child = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(child);

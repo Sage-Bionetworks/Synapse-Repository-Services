@@ -11,19 +11,14 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<bean id="cloudSearchLogger"
+		  class="org.sagebionetworks.search.CloudSearchLoggerImpl"/>
+
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="awsSearchClient"
-		class="com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<bean id="awsCloudSearchDomainClient"
-		  class="com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient"
-		  scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
+		class="org.sagebionetworks.aws.AwsClientFactory"
+		factory-method="createAmazonCloudSearchClient"
+		scope="singleton"/>
 
 	<!-- Create the AWS search client using the current credentials. -->
 	<bean id="cloudSearchClientProvider"
@@ -31,6 +26,18 @@
 		  scope="singleton">
 		<property name="searchEnabled" ref="stackConfiguration.searchEnabled"/>
 	</bean>
+
+	<bean id="fileProvider"
+		  class="org.sagebionetworks.util.FileProviderImpl"
+	/>
+
+	<bean id="cloudSearchDocumentBatchBuilderProvider"
+		  class="org.sagebionetworks.search.CloudSearchDocumentBuilderProvider"
+	/>
+
+	<bean id="cloudSearchDocumentBatchIteratorProvider"
+		  class="org.sagebionetworks.search.CloudSearchDocumentBatchIteratorProvider"
+	/>
 
 	<!-- The search DAO -->
 	<bean id="searchDomainSetup"

@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.model.audit;
 
 import java.io.IOException;
 
-import org.sagebionetworks.repo.model.audit.AccessRecord;
-
 /**
  * Abstraction for recording access events.
  * @author jmhill

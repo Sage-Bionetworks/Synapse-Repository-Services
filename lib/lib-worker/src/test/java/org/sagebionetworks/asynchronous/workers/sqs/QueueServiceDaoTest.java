@@ -2,8 +2,8 @@ package org.sagebionetworks.asynchronous.workers.sqs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.stub;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -18,7 +18,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.Message;
@@ -27,7 +27,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 public class QueueServiceDaoTest {
 	
-	AmazonSQSClient mockSQSClient;
+	AmazonSQS mockSQSClient;
 	QueueServiceDaoImpl queueServiceDao;
 	int maxRequestSize;
 	int messageIdSequence;
@@ -35,10 +35,10 @@ public class QueueServiceDaoTest {
 	
 	@Before
 	public void before(){
-		mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+		mockSQSClient = Mockito.mock(AmazonSQS.class);
 		queueServiceDao = new QueueServiceDaoImpl();
 		maxRequestSize = 2;
-		ReflectionTestUtils.setField(queueServiceDao, "amazonSQSClient", mockSQSClient);
+		ReflectionTestUtils.setField(queueServiceDao, "AmazonSQS", mockSQSClient);
 		ReflectionTestUtils.setField(queueServiceDao, "maxSQSRequestSize", maxRequestSize);
 		messageIdSequence = 0;
 		// Create messages for the queue
@@ -46,7 +46,7 @@ public class QueueServiceDaoTest {
 		for(int i=0; i<10; i++){
 			messageQueue.push(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
 		}
-		stub(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).toAnswer(new Answer<ReceiveMessageResult>() {
+		when(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).thenAnswer(new Answer<ReceiveMessageResult>() {
 
 			@Override
 			public ReceiveMessageResult answer(InvocationOnMock invocation)

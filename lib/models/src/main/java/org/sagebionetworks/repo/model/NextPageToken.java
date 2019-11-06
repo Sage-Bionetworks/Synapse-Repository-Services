@@ -71,14 +71,6 @@ public class NextPageToken {
 		return limit + DELIMITER + offset;
 	}
 
-	/**
-	 * The limit for the next page.
-	 * 
-	 * @return
-	 */
-	public long getLimit() {
-		return limit;
-	}
 
 	/**
 	 * The limit that is used to query for a page of result. 

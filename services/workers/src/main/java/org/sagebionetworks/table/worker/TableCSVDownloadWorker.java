@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -66,11 +68,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
-			boolean runQuery = false;
-			boolean runCount = true;
-			boolean returnFacets = false;
+			// only run the count
+			QueryOptions queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, runQuery, runCount, returnFacets);
+			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, queryOptions);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -99,18 +100,14 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
 			UploadProgressListener uploadListener = new UploadProgressListener(progressCallback, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
-			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, CSVUtils.guessContentType(request
-					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()), uploadListener);
+			String contentType = CSVUtils.guessContentType(request
+					.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator());
+			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(new LocalFileUploadRequest().withUserId(user.getId().toString()).withFileToUpload(temp).withContentType(contentType).withListener(uploadListener));
 			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
-		}catch (TableUnavailableException e){
-			// This just means we cannot do this right now.  We can try again later.
-			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
-			// Throwing this will put the message back on the queue in 5 seconds.
-			throw new RecoverableMessageException();
-		} catch (LockUnavilableException e){
+		}catch (TableUnavailableException | LockUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// Throwing this will put the message back on the queue in 5 seconds.

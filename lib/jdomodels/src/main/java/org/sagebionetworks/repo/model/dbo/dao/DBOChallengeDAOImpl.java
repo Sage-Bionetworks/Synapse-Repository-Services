@@ -31,12 +31,14 @@ import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,7 +48,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeDAOImpl implements ChallengeDAO {
 
@@ -153,7 +154,10 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	
 	private static final String SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_COUNT =
 			"SELECT COUNT(*) "+SELECT_PARTICIPANTS_IN_REGISTERED_TEAM_CORE;
-	
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Challenge.class).build();
+
+
 	@WriteTransaction
 	@Override
 	public Challenge create(Challenge dto) throws DatastoreException {
@@ -192,7 +196,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		dbo.setParticipantTeamId(Long.parseLong(dto.getParticipantTeamId()));
 		dbo.setEtag(dto.getEtag());
 		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -201,7 +205,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	public static Challenge copyDBOtoDTO(DBOChallenge dbo) {
 		Challenge dto;
 		try {
-			dto = (Challenge)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+			dto = (Challenge)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

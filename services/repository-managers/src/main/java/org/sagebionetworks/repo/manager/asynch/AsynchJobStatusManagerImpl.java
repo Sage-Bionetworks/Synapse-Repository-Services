@@ -2,12 +2,17 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Snapshotable;
@@ -22,16 +27,24 @@ import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	
+	public static final String JOB_TYPE = "JobType";
+
+	public static final String METRIC_NAME = "Job elapse time";
+
 	private static final String CACHED_MESSAGE_TEMPLATE = "Returning a cached job for user: %d, requestHash: %s, and jobId: %s";
 
+	public static final String METRIC_NAMESPACE_PREFIX = "Asynchronous-Jobs-";
 
 	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);	
 	
@@ -50,7 +63,11 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	JobHashProvider jobHashProvider;
 	@Autowired
 	ObjectRecordDAO objectRecordDAO;
-	
+	@Autowired
+	StackConfiguration stackConfig;
+	@Autowired
+	Consumer cloudeWatch;
+	String metricNamespace;
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager#lookupJobStatus(java.lang.String)
@@ -154,7 +171,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@RequiresNewReadCommitted
+	@NewWriteTransaction
 	@Override
 	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		// Progress can only be updated if the stack is in read-write mode.
@@ -188,7 +205,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
 	@WriteTransaction
 	@Override
-	public String setComplete(String jobId, AsynchronousResponseBody body)
+	public void setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException, IOException {
 		/*
 		 *  For a cacheable requests we need to calculate a request hash.
@@ -205,7 +222,34 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(body, System.currentTimeMillis());
 			objectRecordDAO.saveBatch(Arrays.asList(record), record.getJsonClassName());
 		}
-		return asynchJobStatusDao.setComplete(jobId, body, requestHash);
+		long runtimeMS = asynchJobStatusDao.setComplete(jobId, body, requestHash);
+		// Record the runtime for this job.
+		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
+		pushCloudwatchMetric(runtimeMS, type);
+	}
+	
+
+	/**
+	 * Push a cloudwatch metric to recored the elapse time of the given job type.
+	 * @param runtimeMS
+	 * @param type
+	 */
+	void pushCloudwatchMetric(long runtimeMS, AsynchJobType type) {
+		ProfileData profileData = new ProfileData();
+		profileData.setNamespace(getMetricNamespace());
+		profileData.setName(METRIC_NAME);
+		profileData.setValue((double) runtimeMS);
+		profileData.setUnit(StandardUnit.Milliseconds.name());
+		profileData.setTimestamp(new Date());
+		profileData.setDimension(Collections.singletonMap(JOB_TYPE, type.name()));
+		this.cloudeWatch.addProfileData(profileData);
+	}
+	
+	public String getMetricNamespace() {
+		if(this.metricNamespace == null) {
+			this.metricNamespace = METRIC_NAMESPACE_PREFIX+stackConfig.getStackInstance();
+		}
+		return this.metricNamespace;
 	}
 
 	@Override

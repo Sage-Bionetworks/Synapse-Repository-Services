@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_OWNER;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +12,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -58,20 +61,7 @@ public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundCol
 
 	@Override
 	public MigratableTableTranslation<DBOBoundColumnOwner, DBOBoundColumnOwner> getTranslator() {
-		return new MigratableTableTranslation<DBOBoundColumnOwner, DBOBoundColumnOwner>(){
-
-			@Override
-			public DBOBoundColumnOwner createDatabaseObjectFromBackup(
-					DBOBoundColumnOwner backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOBoundColumnOwner createBackupFromDatabaseObject(
-					DBOBoundColumnOwner dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOBoundColumnOwner>();
 	}
 
 	@Override
@@ -87,8 +77,39 @@ public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundCol
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> seconday = new LinkedList<MigratableDatabaseObject<?,?>>();
-		seconday.add(new DBOBoundColumn());
 		seconday.add(new DBOBoundColumnOrdinal());
 		return seconday;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOBoundColumnOwner other = (DBOBoundColumnOwner) obj;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (objectId == null) {
+			if (other.objectId != null)
+				return false;
+		} else if (!objectId.equals(other.objectId))
+			return false;
+		return true;
+	}
+	
 }

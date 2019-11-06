@@ -2,13 +2,13 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_THREAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_IS_DELETED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_IS_EDITED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MESSAGE_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_THREAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_REPLY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_REPLY;
 
@@ -20,6 +20,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -256,18 +257,7 @@ public class DBODiscussionReply implements MigratableDatabaseObject<DBODiscussio
 
 	@Override
 	public MigratableTableTranslation<DBODiscussionReply, DBODiscussionReply> getTranslator() {
-		return new MigratableTableTranslation<DBODiscussionReply, DBODiscussionReply>(){
-
-			@Override
-			public DBODiscussionReply createDatabaseObjectFromBackup(DBODiscussionReply backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODiscussionReply createBackupFromDatabaseObject(DBODiscussionReply dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBODiscussionReply>();
 	}
 
 	@Override

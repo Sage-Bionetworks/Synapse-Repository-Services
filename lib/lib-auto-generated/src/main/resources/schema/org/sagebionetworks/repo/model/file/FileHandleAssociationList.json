@@ -1,0 +1,11 @@
+{
+	"description": "List of FileHandleAssociation.",
+	"properties": {
+		"list": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation"
+			}
+		}
+	}
+}

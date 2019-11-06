@@ -130,9 +130,111 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void selectRowIdAndVersionStar() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionSingleColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionDistinct() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select distinct foo from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionCount() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select count(*) from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionAggregateFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select max(foo) from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionNonAggreageFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select concat('a',foo) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionConstant() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 'a constant' from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionConstantPlusColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, 'a constant' from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticNoColumns() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div 2 from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticAndColumn() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div 2, foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionArithmeticOfColumns() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select 5 div foo from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionGroupBy() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, count(*) from syn123 group by foo", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndVersionAggregateFunctionNoGroup() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, max(bar) from syn123", tableSchema).build();
+		assertFalse(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndNonAggregateFunction() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo, DAYOFMONTH(bar) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndNonAggregateFunctionColumnRef() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select DAYOFMONTH(bar) from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndNonAggregateFunctionOnly() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select DAYOFMONTH('2017-12-12') from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
+	public void selectRowIdAndAs() throws ParseException {
+		SqlQuery translator = new SqlQueryBuilder("select foo as \"cats\" from syn123", tableSchema).build();
+		assertTrue(translator.includesRowIdAndVersion());
+	}
+	
+	@Test
 	public void testSelectConstant() throws ParseException {
 		SqlQuery translator = new SqlQueryBuilder("select 'not a foo' from syn123", tableSchema).build();
-		assertEquals("SELECT 'not a foo' FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT 'not a foo', ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
 				.getSelectColumns());
 		assertEquals("not a foo", translator.getSelectColumns().get(0).getName());
@@ -191,204 +293,7 @@ public class SQLQueryTest {
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(DISTINCT foo)", ColumnType.INTEGER, null)), translator
 				.getSelectColumns());
 	}
-	
-	@Test
-	public void testComparisonPredicate() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo <> 1");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ <> :b0", predicate.toSql());
-		assertEquals("1", parameters.get("b0"));
-	}
-	
-	@Test
-	public void testStringComparisonPredicate() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("foo <> 'aaa'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ <> :b0", predicate.toSql());
-		assertEquals("aaa", parameters.get("b0"));
-	}
 
-	@Test
-	public void testStringComparisonBooleanPredicate() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("foo = true");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ = TRUE", predicate.toSql());
-		assertEquals(0, parameters.size());
-	}
-
-	@Test
-	public void testComparisonPredicateDateNumber() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("datetype <> 1");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C666_ <> :b0", predicate.toSql());
-		assertEquals(new Long(1), parameters.get("b0"));
-	}
-
-	@Test
-	public void testComparisonPredicateDateString() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("datetype <> '2011-11-11'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C666_ <> :b0", predicate.toSql());
-		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
-	}
-
-	@Test
-	public void testComparisonPredicateDateParsing() throws ParseException {
-		for (String date : new String[] { DATE1, "2011-11-11", "2011-11-11 0:00", "2011-11-11 0:00:00", "2011-11-11 0:00:00.0",
-				"2011-11-11 0:00:00.00", "2011-11-11 0:00:00.000" }) {
-			HashMap<String, Object> parameters = new HashMap<String, Object>();
-
-			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
-			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-			assertEquals("_C666_ <> :b0", predicate.toSql());
-			assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
-		}
-		for (String date : new String[] { "2001-01-01", "2001-01-01", "2001-1-1", "2001-1-01", "2001-01-1" }) {
-			HashMap<String, Object> parameters = new HashMap<String, Object>();
-
-			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
-			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-			assertEquals("_C666_ <> :b0", predicate.toSql());
-			assertEquals(Long.parseLong("978307200000"), parameters.get("b0"));
-		}
-		for (String date : new String[] { "2011-11-11 01:01:01.001", "2011-11-11 1:01:1.001", "2011-11-11 1:1:1.001" }) {
-			HashMap<String, Object> parameters = new HashMap<String, Object>();
-
-			Predicate predicate =  SqlElementUntils.createPredicate("datetype <> '" + date + "'");
-			HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-			SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-			assertEquals("_C666_ <> :b0", predicate.toSql());
-			assertEquals(Long.parseLong("1320973261001"), parameters.get("b0"));
-		}
-	}
-
-	@Test
-	public void testInPredicateOne() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo in(1)");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ IN ( :b0 )", predicate.toSql());
-		assertEquals("1", parameters.get("b0"));
-	}
-	
-	@Test
-	public void testInPredicateMore() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo in(1,2,3)");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ IN ( :b0, :b1, :b2 )", predicate.toSql());
-		assertEquals("1", parameters.get("b0"));
-		assertEquals("2", parameters.get("b1"));
-		assertEquals("3", parameters.get("b2"));
-	}
-	
-	@Test
-	public void testInPredicateDate() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("datetype in('" + DATE1 + "','" + DATE2 + "')");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C666_ IN ( :b0, :b1 )", predicate.toSql());
-		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
-		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b1"));
-	}
-
-	@Test
-	public void testBetweenPredicate() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo between 1 and 2");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ BETWEEN :b0 AND :b1", predicate.toSql());
-		assertEquals("1", parameters.get("b0"));
-		assertEquals("2", parameters.get("b1"));
-	}
-	
-	@Test
-	public void testBetweenPredicateDate() throws ParseException {
-		Predicate predicate = SqlElementUntils.createPredicate("datetype between '" + DATE1 + "' and '" + DATE2 + "'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C666_ BETWEEN :b0 AND :b1", predicate.toSql());
-		assertEquals(Long.parseLong(DATE1TIME), parameters.get("b0"));
-		assertEquals(Long.parseLong(DATE2TIME), parameters.get("b1"));
-	}
-
-	@Test
-	public void testBetweenPredicateNot() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo not between 1 and 2");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ NOT BETWEEN :b0 AND :b1", predicate.toSql());
-		assertEquals("1", parameters.get("b0"));
-		assertEquals("2", parameters.get("b1"));
-	}
-	
-	@Test
-	public void testLikePredicate() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar%'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ LIKE :b0", predicate.toSql());
-		assertEquals("bar%",parameters.get("b0"));
-	}
-	
-	@Test
-	public void testLikePredicateEscape() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar|_' escape '|'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ LIKE :b0 ESCAPE :b1", predicate.toSql());
-		assertEquals("bar|_",parameters.get("b0"));
-		assertEquals("|",parameters.get("b1"));
-	}
-	
-	@Test
-	public void testLikePredicateNot() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo not like 'bar%'");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ NOT LIKE :b0", predicate.toSql());
-		assertEquals("bar%",parameters.get("b0"));
-	}
-	
-	@Test
-	public void testNullPredicate() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo is null");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ IS NULL", predicate.toSql());
-	}
-	
-	@Test
-	public void testNullPredicateNot() throws ParseException{
-		Predicate predicate = SqlElementUntils.createPredicate("foo is not null");
-		HashMap<String, Object> parameters = new HashMap<String, Object>();
-		HasPredicate hasPredicate = predicate.getFirstElementOfType(HasPredicate.class);
-		SQLTranslatorUtils.translate(hasPredicate, parameters, columnNameToModelMap);
-		assertEquals("_C111_ IS NOT NULL", predicate.toSql());
-	}
-	
 	@Test
 	public void testWhereSimple() throws ParseException{
 		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where foo = 1", tableSchema).build();
@@ -615,8 +520,9 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder(
 				"select doubletype as f1 from syn123", tableSchema).build();
 		assertEquals("SELECT"
-				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
-				+ "FROM T123", translator.getOutputSQL());
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1"
+				+ ", ROW_ID, ROW_VERSION"
+				+ " FROM T123", translator.getOutputSQL());
 	}
 	
 	/**
@@ -628,8 +534,9 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder(
 				"select doubletype as f1 from syn123 order by f1", tableSchema).build();
 		assertEquals("SELECT"
-				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
-				+ "FROM T123 ORDER BY f1", translator.getOutputSQL());
+				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1"
+				+ ", ROW_ID, ROW_VERSION"
+				+ " FROM T123 ORDER BY f1", translator.getOutputSQL());
 	}
 	
 	/**
@@ -664,29 +571,25 @@ public class SQLQueryTest {
 	}
 	
 	/**
-	 * We should be throwing 'column a not found' for this case but for backwards compatibility
-	 * we still support it.
+	 * We should be throwing 'column a not found' for this case.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3866">3866</a>
 	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_3866() throws ParseException{
 		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo in (\"a\")", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( :b0 )", translator.getOutputSQL());
-		assertEquals("a", translator.getParameters().get("b0"));
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( `a` )", translator.getOutputSQL());
 	}
 	
 	/**
-	 * We should be throwing 'column a not found' for this case but for backwards compatibility
-	 * we still support it.
+	 * We should be throwing 'column a not found' for this case.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
 	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_3867() throws ParseException{
 		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo = \"a\"", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
-		assertEquals("a", translator.getParameters().get("b0"));
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = `a`", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -725,12 +628,11 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQueryBuilder("select sum(doubletype) from syn123", tableSchema).build();
 		assertEquals("SELECT SUM(_C777_) FROM T123", translator.getOutputSQL());
 	}
-	
-	@Ignore // not sure if we are going to suppor this yet.
+
 	@Test
-	public void testTranslateRightHandSideNaN() throws ParseException{
-		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where aDouble <> 'NaN'", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
+	public void testTranslateIsNaN() throws ParseException{
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where not isNaN(doubletype)", tableSchema).build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -841,8 +743,8 @@ public class SQLQueryTest {
 		newModel.replaceSelectList(newSelectList);
 		
 		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
-		assertEquals("SELECT _C111_ AS bar FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
-		assertEquals(3L, copy.getParameters().get("b0"));
+		assertEquals("SELECT _C111_ AS bar, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
+		assertEquals(2L, copy.getParameters().get("b0"));
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());
 		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
@@ -955,6 +857,20 @@ public class SQLQueryTest {
 		.includeEntityEtag(true)
 		.build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
+	}
+	
+	/**
+	 * This is a test for PLFM-4736.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testAliasGroupByOrderBy() throws ParseException {
+		sql = "select \"foo\" as \"f\", sum(inttype) as \"i` sum\" from syn123 group by \"f\" order by \"i` sum\" DESC";
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(tableSchema)
+		.tableType(EntityType.table)
+		.build();
+		assertEquals("SELECT _C111_ AS `f`, SUM(_C888_) AS `i`` sum` FROM T123 GROUP BY `f` ORDER BY `i`` sum` DESC", query.getOutputSQL());
 	}
 
 }

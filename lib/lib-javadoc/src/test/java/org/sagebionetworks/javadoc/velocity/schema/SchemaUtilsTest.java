@@ -8,13 +8,20 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.Parameter;
+import com.sun.javadoc.Type;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -22,23 +29,26 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
-
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.Parameter;
-import com.sun.javadoc.Type;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
 public class SchemaUtilsTest {
 
 	@Test
-	public void testGetEffectiveSchema(){
+	public void testGetEffectiveSchema() throws IOException{
 		// One case where it should exist
-		WikiPage wp = new WikiPage();
 		String schema = SchemaUtils.getEffectiveSchema(WikiPage.class.getName());
-		assertEquals(wp.getJSONSchema(), schema);
+		String expectedSchema = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(WikiPage.class);
+		assertEquals(expectedSchema, schema);
 		// Another where it should not
 		schema = SchemaUtils.getEffectiveSchema("not.a.real.Object");
 		assertNull(schema);
+	}
+	
+	@Test
+	public void testGetEffectiveSchemaHasEffectiveSchema() throws IOException{
+		String schema = SchemaUtils.getEffectiveSchema(GenericList.class.getName());
+		String expectedSchema = new GenericList().getEffectiveSchema();
+		assertEquals(expectedSchema, schema);
 	}
 	
 	@Test
@@ -208,8 +218,8 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTypeToLinkStringMapPrimitives() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+	public void testTypeToLinkString_TupleArrayMapPrimitives() {
+		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.STRING));
 		schema.setValue(new ObjectSchema(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
@@ -221,8 +231,8 @@ public class SchemaUtilsTest {
 	}
 
 	@Test
-	public void testTypeToLinkStringMapObjects() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+	public void testTypeToLinkString_TupleArrayMapObjects() {
+		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
 		schema.setKey(new ObjectSchema(TYPE.OBJECT));
 		schema.setValue(new ObjectSchema(TYPE.OBJECT));
 		String name1 = "Example1";
@@ -236,6 +246,34 @@ public class SchemaUtilsTest {
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { name1, name2 }, result.getDisplay());
 		assertArrayEquals(new String[] { "${" + id1 + "}", "${" + id2 + "}" }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
+	@Test
+	public void testTypeToLinkString_MapPrimitives() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		schema.setValue(new ObjectSchema(TYPE.STRING));
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { TYPE.STRING.name(), TYPE.STRING.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null, null }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
+	@Test
+	public void testTypeToLinkString_MapObjects() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		schema.setValue(new ObjectSchema(TYPE.OBJECT));
+		String name2 = "Example2";
+		String id2 = "org.sagebionetworks.test." + name2;
+		schema.getValue().setId(id2);
+		schema.getValue().setName(name2);
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { TYPE.STRING.name(), name2 }, result.getDisplay());
+		assertArrayEquals(new String[] { null, "${" + id2 + "}" }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 		assertTrue(result.getIsMap());
@@ -312,5 +350,33 @@ public class SchemaUtilsTest {
 				"someString", null), model.getFields().get(0));
 		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
 				"someBoolean", null), model.getFields().get(1));
+	}
+
+	//PLFM-5723
+	@Test
+	public void testRecursiveAddTypes_listOfEnums(){
+		//PLFM-5723
+		//create enum object
+		String enumId = "org.sagebionetworks.test.TestEnum";
+		ObjectSchema enumSchema = new ObjectSchema(TYPE.STRING);
+		enumSchema.setId(enumId);
+		enumSchema.setEnum(new EnumValue[]{ new EnumValue("ENUM_VAL1"), new EnumValue("ENUM_VAL2")});
+
+		//create array of enums
+		ObjectSchema arrayOfEnum = new ObjectSchema(TYPE.ARRAY);
+		arrayOfEnum.setItems(enumSchema);
+
+		//create object schema with a list containing enums
+		String schemaToTestId = "org.sagebionetworks.test.TestEnumList";
+		ObjectSchema schemaToTest = new ObjectSchema(TYPE.OBJECT);
+		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myEnumList", arrayOfEnum)));
+
+		Map<String, ObjectSchema> resultMap = new HashMap<>();
+		//method under test
+		SchemaUtils.recursiveAddTypes(resultMap, schemaToTestId, schemaToTest);
+
+		assertEquals(2, resultMap.size());
+		assertNotNull(resultMap.get(schemaToTestId));
+		assertNotNull(resultMap.get(enumId));
 	}
 }

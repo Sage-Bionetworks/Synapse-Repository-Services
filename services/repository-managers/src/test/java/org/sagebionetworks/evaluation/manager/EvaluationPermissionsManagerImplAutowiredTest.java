@@ -1,22 +1,23 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -38,9 +40,9 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EvaluationPermissionsManagerImplAutowiredTest {
 
@@ -61,12 +63,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
+	private UserInfo anonymousUserInfo;
 
 	private List<String> aclsToDelete;
 	private List<String> evalsToDelete;
 	private List<String> nodesToDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -74,13 +77,14 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
 		evalsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id : aclsToDelete) {
 			aclDAO.delete(id, ObjectType.EVALUATION);
@@ -111,12 +115,12 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(dateTime.after(acl.getCreationDate()) || dateTime.equals(acl.getCreationDate()));
 
 		// Has access
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
 		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, PARTICIPATE
 		ResourceAccess ra = new ResourceAccess();
@@ -127,8 +131,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.SUBMIT);
 		ra.setAccessType(accessType);
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
@@ -144,12 +147,12 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertEquals(1, acl.getResourceAccess().size());
 
 		// Has access
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
 		// Make sure ACL is deleted when the evaluation is deleted
 		evaluationManager.deleteEvaluation(adminUserInfo, evalId);
@@ -174,27 +177,27 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		AccessControlList acl = evaluationPermissionsManager.getAcl(userInfo, evalId);
 		assertNotNull(acl);
 		assertEquals(evalId, acl.getId());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).isAuthorized());
 
 		// Update ACL
 		acl = evaluationPermissionsManager.updateAcl(userInfo, acl);
 		assertNotNull(acl);
 		assertEquals(evalId, acl.getId());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION).isAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION).isAuthorized());
 	}
 
 	@Test
@@ -421,8 +424,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(acl);
 
 		// Admin can SUBMIT but user cannot
-		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
 		// Update the ACL to add ('user', SUBMIT)
 		Long principalId = userInfo.getId();
@@ -436,7 +439,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).getAuthorized());
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 	}
 	
 	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
@@ -458,7 +461,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		
 		// false if user is on team but lacks submit privilege
 		assertFalse(evaluationPermissionsManager.
-				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).getAuthorized());
+				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).isAuthorized());
 		
 		// add SUBMIT privilege to ACL
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
@@ -475,15 +478,194 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// true if user is on team and has submit privilege
 		assertTrue(evaluationPermissionsManager.
-				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).getAuthorized());
+				canCheckTeamSubmissionEligibility(userInfo, evalId, teamId).isAuthorized());
 		
 		// false if user is NOT on team and has submit privilege
 		assertFalse(evaluationPermissionsManager.
-				canCheckTeamSubmissionEligibility(userInfo, evalId, "999").getAuthorized());
+				canCheckTeamSubmissionEligibility(userInfo, evalId, "999").isAuthorized());
 		
 		// true for admin
 		assertTrue(evaluationPermissionsManager.
-				canCheckTeamSubmissionEligibility(adminUserInfo, evalId, "999").getAuthorized());
+				canCheckTeamSubmissionEligibility(adminUserInfo, evalId, "999").isAuthorized());
+	}
+
+	@Test
+	public void publicUserGrantAndRevokeRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// Ensure the user does not have access before granting read and submit
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+
+		// add READ, SUBMIT privilege to ACL for public
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after granting)
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+
+		// Revoke access
+		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		raSet = new HashSet<>();
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after revoking)
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+	}
+
+	@Test
+	public void publicUserCannotBeGrantedNonRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for public users
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
+				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+				ResourceAccess ra = new ResourceAccess();
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+				ra.setAccessType(Collections.singleton(type));
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
+				acl.setResourceAccess(raSet);
+				try {
+					// Call under test
+					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
+					// as expected
+				}
+			}
+		}
+	}
+
+	@Test
+	public void authenticatedUserGrantAndRevokeRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// Ensure the user does not have access before granting read and submit
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
+
+		// add READ, SUBMIT privilege to ACL for authenticated user
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after granting)
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+
+		// Revoke access
+		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		raSet = new HashSet<>();
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after revoking)
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+	}
+
+	@Test
+	public void authenticatedUserCannotBeGrantedNonRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for authenticated users
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
+				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+				ResourceAccess ra = new ResourceAccess();
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+				ra.setAccessType(Collections.singleton(type));
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
+				acl.setResourceAccess(raSet);
+				try {
+					// Call under test
+					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
+					// as expected
+				}
+			}
+		}
+	}
+
+	@Test
+	public void anonymousUserGrantAndRevokeRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// Ensure the user does not have access before granting read and submit
+		assertFalse(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+
+		// add READ privilege to ACL for anonymous
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after granting)
+		assertTrue(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+
+		// Revoke access
+		acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		raSet = new HashSet<>();
+		acl.setResourceAccess(raSet);
+		evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+
+		// Call under test (after revoking)
+		assertFalse(evaluationPermissionsManager.hasAccess(anonymousUserInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
+	}
+
+	@Test
+	public void anonymousUserCannotBeGrantedNonRead() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for anonymous
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.READ)) {
+				AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+				ResourceAccess ra = new ResourceAccess();
+				ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				ra.setAccessType(Collections.singleton(type));
+				Set<ResourceAccess> raSet = Collections.singleton(ra);
+				acl.setResourceAccess(raSet);
+				try {
+					// Call under test
+					evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+					fail("Expected InvalidModelException");
+				} catch (InvalidModelException e) {
+					// as expected
+				}
+			}
+		}
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

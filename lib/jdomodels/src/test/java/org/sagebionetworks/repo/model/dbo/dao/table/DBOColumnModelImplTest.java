@@ -6,7 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,18 +15,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Hex;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
-import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -44,6 +43,8 @@ public class DBOColumnModelImplTest {
 	ColumnModel one;
 	ColumnModel two;
 	ColumnModel three;
+	
+	IdAndVersion idAndVersion;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
@@ -65,6 +66,8 @@ public class DBOColumnModelImplTest {
 		three.setName("three");
 		three.setColumnType(ColumnType.STRING);
 		three = columnModelDao.createColumnModel(three);
+		
+		idAndVersion  = IdAndVersion.parse("syn123");
 	}
 	
 	@After
@@ -120,180 +123,108 @@ public class DBOColumnModelImplTest {
 		// ask for the rows out of order.
 		ids.add(three.getId());
 		ids.add(one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids, false);
+		List<ColumnModel> list = columnModelDao.getColumnModels(ids);
 		assertNotNull(list);
 		assertEquals(2, list.size());
-		// The rows should be alphabetical order by name.
-		assertEquals(one, list.get(0));
-		assertEquals(three, list.get(1));
+		assertTrue(list.contains(one));
+		assertTrue(list.contains(three));
 	}
 	
 	@Test
 	public void testGetListEmpty() throws DatastoreException, NotFoundException{
-		List<ColumnModel> list = columnModelDao.getColumnModel(new LinkedList<String>(), false);
+		List<ColumnModel> list = columnModelDao.getColumnModels(new LinkedList<String>());
 		assertNotNull(list);
 		assertTrue(list.isEmpty());
-	}
-	
-	@Test
-	public void testGetListInOrder() throws DatastoreException, NotFoundException {
-		// Get the list
-		List<String> ids = Lists.newArrayList(two.getId(), three.getId(), one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids, true);
-		assertNotNull(list);
-		assertEquals(3, list.size());
-		// The rows should be alphabetical order by name.
-		assertEquals(two, list.get(0));
-		assertEquals(three, list.get(1));
-		assertEquals(one, list.get(2));
 	}
 
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
-		List<String> ids = columnModelDao.getColumnIdsForObject("syn123");
+		List<String> ids = columnModelDao.getColumnModelIdsForObject(idAndVersion);
 		assertNotNull(ids);
 		assertTrue(ids.isEmpty());
 		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(two.getId());
-		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
-		assertTrue(count > 0);
-		String ownerEtag = columnModelDao.lockOnOwner("syn123");
+		List<ColumnModel> toBind = Lists.newArrayList(two);
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
+		String ownerEtag = columnModelDao.lockOnOwner(idAndVersion.getId().toString());
 		assertNotNull(ownerEtag);
 		// Now bind the next two
 		toBind.clear();
-		toBind.add(one.getId());
-		toBind.add(three.getId());
-		count = columnModelDao.bindColumnToObject(toBind, "syn123");
-		assertTrue(count > 0);
+		toBind.add(one);
+		toBind.add(three);
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
 		
-		ids = columnModelDao.getColumnIdsForObject("syn123");
+		ids = columnModelDao.getColumnModelIdsForObject(idAndVersion);
 		List<String> expected = Lists.newArrayList(one.getId(), three.getId());
 		assertEquals(expected, ids);
 	}
 	
 	@Test
-	public void testBindColumnsDoesNotExist() throws Exception {
-		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		// This should not exist
-		String fakeId = "999999999999";
-		toBind.add(fakeId);
-		try{
-			columnModelDao.bindColumnToObject(toBind, "syn123");
-			fail("Should have thrown an exception");
-		}catch(NotFoundException e){
-			System.out.println(e.getMessage());
-			assertTrue(e.getMessage().contains(fakeId));
-		}
+	public void testBindColumnsMultipleVersion() {
+		IdAndVersion defaultId = IdAndVersion.parse("syn123");
+		IdAndVersion versionOne = IdAndVersion.parse("syn123.1");
+		IdAndVersion versionTwo = IdAndVersion.parse("syn123.2");
+		IdAndVersion versionThree = IdAndVersion.parse("syn123.3");
+		
+		List<ColumnModel> defaultSchema = Lists.newArrayList(two, three);
+		List<ColumnModel> vOneSchema = Lists.newArrayList(one, three);
+		List<ColumnModel> vTwoSchema = Lists.newArrayList(one, two);
+		List<ColumnModel> vThreeSchema = Collections.emptyList();
+		
+		// call under test
+		columnModelDao.bindColumnToObject(defaultSchema, defaultId);
+		columnModelDao.bindColumnToObject(vOneSchema, versionOne);
+		columnModelDao.bindColumnToObject(vTwoSchema, versionTwo);
+		columnModelDao.bindColumnToObject(vThreeSchema, versionThree);
+		
+		// call under test
+		List<ColumnModel> defaultResults = columnModelDao.getColumnModelsForObject(defaultId);
+		List<ColumnModel> vOneResults = columnModelDao.getColumnModelsForObject(versionOne);
+		List<ColumnModel> vTwoResults = columnModelDao.getColumnModelsForObject(versionTwo);
+		List<ColumnModel> vThreeResults = columnModelDao.getColumnModelsForObject(versionThree);
+		
+		assertEquals(defaultSchema, defaultResults);
+		assertEquals(vOneSchema, vOneResults);
+		assertEquals(vTwoSchema, vTwoResults);
+		assertEquals(vThreeSchema, vThreeResults);
+		
+	}
+	
+	@Test
+	public void testGetColumnIdsMultipleVersion() {
+		IdAndVersion defaultId = IdAndVersion.parse("syn123");
+		IdAndVersion versionOne = IdAndVersion.parse("syn123.1");
+		
+		List<ColumnModel> defaultSchema = Lists.newArrayList(two, three);
+		List<ColumnModel> vOneSchema = Lists.newArrayList(one, three);
+	
+		columnModelDao.bindColumnToObject(defaultSchema, defaultId);
+		columnModelDao.bindColumnToObject(vOneSchema, versionOne);
+		
+		// call under test
+		List<String> defaultResults = columnModelDao.getColumnModelIdsForObject(defaultId);
+		List<String> vOneResults = columnModelDao.getColumnModelIdsForObject(versionOne);
+		//
+		List<String> defaultExpected = Lists.newArrayList(two.getId(), three.getId());
+		assertEquals(defaultExpected, defaultResults);
+		List<String> vOneExpected = Lists.newArrayList(one.getId(), three.getId());
+		assertEquals(vOneExpected, vOneResults);
 	}
 	
 	@Test
 	public void testUnbindColumnsAndDeleteOwner() throws DatastoreException, NotFoundException {
 		// Now bind one column
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(one.getId());
-		toBind.add(two.getId());
-		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
-		assertTrue(count > 0);
+		List<ColumnModel> toBind = Lists.newArrayList(one, two);
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
 		columnModelDao.lockOnOwner("syn123");
-		columnModelDao.unbindAllColumnsFromObject("syn123");
 		columnModelDao.deleteOwner("syn123");
 		try {
 			columnModelDao.lockOnOwner("syn123");
 			fail("owner should no longer exist");
 		} catch (EmptyResultDataAccessException e) {
 		}
-		List<ColumnModel> columnModelsForObject = columnModelDao.getColumnModelsForObject("syn123");
+		List<ColumnModel> columnModelsForObject = columnModelDao.getColumnModelsForObject(idAndVersion);
 		assertEquals(0, columnModelsForObject.size());
 	}
-
-	@Test
-	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
-		// bind two columns to two objects
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(two.getId());
-		toBind.add(one.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn123");
-		// make only one the current
-		toBind.clear();
-		toBind.add(one.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn123");
-		
-		// bind to the other object
-		toBind.clear();
-		toBind.add(two.getId());
-		toBind.add(three.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn456");
-		// make only two the current
-		toBind.clear();
-		toBind.add(two.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn456");
-		
-		// None are bound to all three
-		Set<String> filter = new HashSet<String>();
-		filter.add(one.getId());
-		filter.add(two.getId());
-		filter.add(three.getId());
-		List<String> results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
-		long count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-		assertEquals(0, count);
-		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
-		assertEquals(0, count);
-		assertNotNull(results);
-		assertEquals(0, results.size());
-		
-		// Two is is used by both but is is only current for syn456;
-		filter.clear();
-		filter.add(two.getId());
-		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
-		assertEquals(2, count);
-		assertEquals(2, results.size());
-		// The should be in order by object id.
-		assertEquals("syn123", results.get(0));
-		assertEquals("syn456", results.get(1));
-		// Now for current only we should only get syn456
-		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, true);
-		assertEquals(1, count);
-		assertEquals(1, results.size());
-		assertEquals("syn456", results.get(0));
-		
-		// now bind one to syn456
-		// make only two the current
-		toBind.clear();
-		toBind.add(one.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn456");
-		
-		// now filter one and two.
-		filter.clear();
-		filter.add(one.getId());
-		filter.add(two.getId());
-		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
-		assertEquals(2, count);
-		assertEquals(2, results.size());
-		// The should be in order by object id.
-		assertEquals("syn123", results.get(0));
-		assertEquals("syn456", results.get(1));
-		
-		// with limit and offset
-		results = columnModelDao.listObjectsBoundToColumn(filter, false, 1, 0l);
-		assertEquals(1, results.size());
-		assertEquals("syn123", results.get(0));
-		results = columnModelDao.listObjectsBoundToColumn(filter, false, 1, 1l);
-		assertEquals(1, results.size());
-		assertEquals("syn456", results.get(0));
-		
-		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
-		assertEquals(0, results.size());
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, true);
-		assertEquals(0, count);
- 	}
 	
 	@Test
 	public void testListColumnModels() throws DatastoreException, NotFoundException{
@@ -343,50 +274,49 @@ public class DBOColumnModelImplTest {
 		}
 		// Shuffle the results so the order they are bound to does not match the natural order
 		Collections.shuffle(models);
-		List<String> ids = TableModelUtils.getIds(models);
 		// Now bind them to the table in this shuffled order
-		String tableId = "syn123";
-		columnModelDao.bindColumnToObject(ids, tableId);
+		columnModelDao.bindColumnToObject(models, idAndVersion);
 		// Now make sure we can fetch this back in the same order that we bound the columns
-		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
+		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(idAndVersion);
 		assertNotNull(fetched);
 		assertEquals(models, fetched);
+		List<String> columnIds = columnModelDao.getColumnModelIdsForObject(idAndVersion);
+		assertEquals(models.size(), columnIds.size());
+		for(int i=0; i<models.size(); i++) {
+			ColumnModel cm = models.get(i);
+			String columnId = columnIds.get(i);
+			assertEquals(cm.getId(), columnId);
+		}
+		
 		// Now if we update the columns bound to the object the order should change
 		models.remove(0);
 		Collections.shuffle(models);
-		ids = TableModelUtils.getIds(models);
 		// Bind the new columns in a new order
-		columnModelDao.bindColumnToObject(ids, tableId);
+		columnModelDao.bindColumnToObject(models, idAndVersion);
 		// Get them back in the same order with the same columns
-		fetched = columnModelDao.getColumnModelsForObject(tableId);
+		fetched = columnModelDao.getColumnModelsForObject(idAndVersion);
 		assertNotNull(fetched);
 		assertEquals(models, fetched);
 	}
 	
 	@Test
 	public void testBindNull() throws NotFoundException{
-		String tableId = "syn123";
-		int count = columnModelDao.bindColumnToObject(null, tableId);
-		assertEquals(0, count);
-		// Now bind some columns
-		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
-		// Create each one
-		List<ColumnModel> models = new LinkedList<ColumnModel>();
-		for(ColumnModel cm: raw){
-			models.add(columnModelDao.createColumnModel(cm));
-		}
-		List<String> ids = TableModelUtils.getIds(models);
-		count = columnModelDao.bindColumnToObject(ids, tableId);
-		assertEquals(ids.size(), count);
-		// Now if we set it back to empty the update should include 5 rows
-		List<String> empty = new LinkedList<String>();
-		count = columnModelDao.bindColumnToObject(empty, tableId);
-		assertEquals(ids.size(), count);
-		
-		// The bound list should not be null
-		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
+		List<ColumnModel> toBind = null;
+		// call under test
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
+		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(idAndVersion);
 		assertNotNull(results);
-		assertEquals(0,  results.size());
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testBindEmpty() throws NotFoundException{
+		List<ColumnModel> toBind = new LinkedList<>();
+		// call under test
+		columnModelDao.bindColumnToObject(toBind, idAndVersion);
+		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(idAndVersion);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 	
 	@Test
@@ -408,36 +338,7 @@ public class DBOColumnModelImplTest {
 		secondId = columnModelDao.createColumnModel(second).getId();
 		assertFalse("Two columns that differ only by case should not get the same",firstId.equals(secondId));
 	}
-	
-	/**
-	 *  Should not be able to bind two columns with the same name to the same object
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Test
-	public void testBindWithNameConflict() throws DatastoreException, NotFoundException{
-		// Should not be able to bind two columns with the same name to the same object
-		ColumnModel first = new ColumnModel();
-		first.setName("AbbB");
-		first.setColumnType(ColumnType.STRING);
-		first.setMaximumSize(10L);
-		first = columnModelDao.createColumnModel(first);
-		// The second has the same name but different type.
-		ColumnModel second = new ColumnModel();
-		second.setName(first.getName());
-		second.setColumnType(ColumnType.INTEGER);
-		second = columnModelDao.createColumnModel(second);
-		// They should not have the same id
-		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));
-		// now try to bind both columns to an object
-		try{
-			columnModelDao.bindColumnToObject(Arrays.asList(first.getId(), second.getId()), "syn123");
-			fail("Should not be able to bind two columns with the same name to the same object");
-		}catch(IllegalArgumentException e){
-			// expected
-			assertTrue("The error should contain the duplicate name",e.getMessage().contains(first.getName()));
-		}
-	}
+
 	
 	@Test
 	public void testDeleteColumnModel() throws DatastoreException, NotFoundException {
@@ -450,8 +351,6 @@ public class DBOColumnModelImplTest {
 		// Verify that not bound
 		Set<String> boundColModelIds = new HashSet<String>();
 		boundColModelIds.add(m.getId());
-		List<String> colBindings = columnModelDao.listObjectsBoundToColumn(boundColModelIds, true, 10L, 0);
-		assertEquals(0, colBindings.size());
 		// Delete the column model should succeed
 		columnModelDao.deleteColumModel(m.getId());
 		// Check that not found
@@ -462,29 +361,7 @@ public class DBOColumnModelImplTest {
 			// expected
 		}
 	}
-	
-	/**
-	 * Test to validate the a new ColumnModel hash is created each time 
-	 * a ColumnModel is restored from a Backup.
-	 */
-	@Test
-	public void testPLFM_4710() {
-		int maxNumberEnums = 10;
-		ColumnModel dto = new ColumnModel();
-		dto.setName("foo");
-		dto.setColumnType(ColumnType.STRING);
-		dto.setId("123");
-		dto.setMaximumSize(50L);
-		DBOColumnModel backup = ColumnModelUtils.createDBOFromDTO(dto, maxNumberEnums);
-		// clear the hash
-		backup.setHash(null);
-		// call under test
-		DBOColumnModel databaseDbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-		// the database DBO should receive a new hash.
-		assertNotNull(databaseDbo.getHash());
-	}
-	
-	
+		
 	@Test
 	public void testGetColumnNames() {
 		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
@@ -527,6 +404,26 @@ public class DBOColumnModelImplTest {
 			results.add(cm);
 		}
 		return results;
+	}
+	
+	/**
+	 * Ensure we can write a UTF-8 column name to the database.
+	 * 
+	 * @throws UnsupportedEncodingException
+	 */
+	@Test
+	public void testPLFM_5429() throws UnsupportedEncodingException {
+		String name = "Aβ ELISA/WB";
+		byte[] latin = name.getBytes("ISO-8859-1");
+		System.out.println("Latin: "+Hex.encodeHexString(latin));
+		byte[] utf8 = name.getBytes("UTF-8");
+		System.out.println("utf-8: "+Hex.encodeHexString(utf8));
+		
+		ColumnModel column = new ColumnModel();
+		column.setName(name);
+		column.setColumnType(ColumnType.STRING);
+		column.setMaximumSize(10L);
+		columnModelDao.createColumnModel(column).getId();
 	}
 
 }

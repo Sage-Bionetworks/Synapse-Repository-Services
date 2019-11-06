@@ -1,0 +1,25 @@
+{
+	"description": "The calculated checksum for a single batch of rows.",
+	"properties": {
+		"binNumber": {
+			"description": "The bin number for this batch.",
+			"type": "integer"
+		},
+		"count": {
+			"description": "The total number of rows included in this range checksum.",
+			"type": "integer"
+		},
+		"checksum": {
+			"description": "The checksum result for this range.",
+			"type": "string"
+		},
+		"minimumId": {
+			"description": "The ID of the minimum row in this checksum range (inclusive).",
+			"type": "integer"
+		},
+		"maximumId": {
+			"description": "The ID of the maximum row in this checksum range (inclusive).",
+			"type": "integer"
+		}
+	}
+}

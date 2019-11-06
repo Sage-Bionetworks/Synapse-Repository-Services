@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.auth.services.OpenIDConnectService;
 import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 
@@ -21,8 +23,6 @@ public interface ServiceProvider {
 	
 	public EntityBundleService getEntityBundleService();
 	
-	public NodeQueryService getNodeQueryService();
-	
 	public UserGroupService getUserGroupService();
 	
 	public UserProfileService getUserProfileService();
@@ -41,8 +41,8 @@ public interface ServiceProvider {
 
 	public TrashService getTrashService();
 
-	public DoiService getDoiService();
-	
+	public DoiServiceV2 getDoiServiceV2();
+
 	public MigrationService getMigrationService();
 
 	public TableServices getTableServices();
@@ -68,11 +68,17 @@ public interface ServiceProvider {
 	public VerificationService getVerificationService();
 
 	public DiscussionService getDiscussionService();
+	
+	public FormService getFormService();
 
 	public SubscriptionService getSubscriptionService();
 	
 	public DockerService getDockerService();
 
-	DataAccessService getDataAccessService();
+	public DataAccessService getDataAccessService();
+	
+	public OpenIDConnectService getOpenIDConnectService();
+	
+	public StatisticsService getStatisticsService();
 	
 }

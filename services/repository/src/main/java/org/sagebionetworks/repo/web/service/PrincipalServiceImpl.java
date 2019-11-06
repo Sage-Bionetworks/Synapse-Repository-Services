@@ -1,16 +1,22 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.Date;
 
 /**
  * Basic implementation of the PrincipalService.
@@ -59,7 +65,7 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+	public LoginResponse createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
 		return principalManager.createNewAccount(accountSetupInfo);
 	}
 	
@@ -118,7 +124,7 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * 
 	 * @param userId
 	 */
-	public Username getNotificationEmail(Long userId) throws NotFoundException {
+	public NotificationEmail getNotificationEmail(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return principalManager.getNotificationEmail(userInfo);
 	}

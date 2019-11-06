@@ -5,11 +5,11 @@
 	<div id="container">
 		#parse( "bannerHeader.html" )
 		<div id="main">
-			<div class="ym-wrapper">
+			<div id="mainWrapper" class="ym-wrapper">
 				<div class="ym-wbox">
-					<div id="rootPanel" class="ym-grid linearize-level-1">
-						<div class="ym-grid">
-							<div class="ym-gbox">
+					<div id="rootPanel" class="ym-grid linearize-level-1 allServicesList">
+						<div class="ym-grid sidebar">
+							<div class="ym-gbox tableOfContents">
 								<h2>Table of Contents</h2>
 								<ul>
 									#foreach( $controller in $controllers.controllers )
@@ -18,7 +18,7 @@
 								</ul>
 							</div>
 						</div>
-						<div class="ym-grid">
+						<div class="ym-grid content">
 							<div class="ym-gbox">
 								#foreach( $controller in $controllers.controllers )
 								<h2 id="${controller.fullClassName}">${controller.displayName}</h2>

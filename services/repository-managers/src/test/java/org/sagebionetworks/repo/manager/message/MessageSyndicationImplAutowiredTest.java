@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -12,7 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -24,13 +23,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -45,12 +42,12 @@ public class MessageSyndicationImplAutowiredTest {
 	MessageSyndication messageSyndication;
 	
 	@Autowired
-	AmazonSQSClient awsSQSClient;
+	AmazonSQS awsSQSClient;
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
-	private String queueName = StackConfiguration.singleton().getStack()+"-"+StackConfiguration.getStackInstance()+"-test-syndication";
+	private String queueName = StackConfigurationSingleton.singleton().getStack()+"-"+StackConfigurationSingleton.singleton().getStackInstance()+"-test-syndication";
 	private String queueUrl;
 	
 	@Before
@@ -130,7 +127,6 @@ public class MessageSyndicationImplAutowiredTest {
 			message.setObjectId(""+i);
 			// Use all types
 			message.setChangeType(ChangeType.values()[i%ChangeType.values().length]);
-			message.setObjectEtag("etag"+i);
 			results.add(changeDAO.replaceChange(message));
 		}
 		return results;

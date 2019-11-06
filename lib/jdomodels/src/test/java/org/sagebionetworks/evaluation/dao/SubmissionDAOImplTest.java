@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -50,11 +49,12 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -174,16 +174,7 @@ public class SubmissionDAOImplTest {
     	userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
     	
     	// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy("" + userId);
-		meta.setFileName("preview.jpg");
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta.setEtag(UUID.randomUUID().toString());
+		S3FileHandle meta = TestUtils.createS3FileHandle(userId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node

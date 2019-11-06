@@ -8,15 +8,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -79,32 +76,31 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 */
 	private List<TransactionalMessengerObserver> observers = new LinkedList<TransactionalMessengerObserver>();
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType) {
 		String etag = null;
 		sendMessageAfterCommit(objectId, objectType, etag, ChangeType.DELETE);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
 		Long userId = null;
 		sendMessageAfterCommit(objectId, objectType, etag, changeType, userId);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType) {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectType(entity.getObjectType());
 		message.setObjectId(entity.getIdString());
-		message.setObjectEtag(entity.getEtag());
 		sendMessageAfterCommit(message);
 	}
 	
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
@@ -116,16 +112,21 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	}
 
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId) {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(objectId);
-		message.setObjectEtag(etag);
 		message.setUserId(userId);
 		sendMessageAfterCommit(message);
+	}
+	
+	@WriteTransaction
+	@Override
+	public void sendMessageAfterCommit(MessageToSend toSend) {
+		sendMessageAfterCommit(toSend.buildChangeMessage());
 	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
@@ -136,7 +137,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Get the bound list of messages if it already exists.
 		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
-		// If an object's etag changes multiple times, only the final etag should be in the message.
 		currentMessages.put(new MessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();

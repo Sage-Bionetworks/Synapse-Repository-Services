@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.NextPageToken;
 
 public class NextPageTokenTest {
 
@@ -16,11 +17,11 @@ public class NextPageTokenTest {
 		long limit = 10;
 		long offset = 2;
 		NextPageToken token = new NextPageToken(limit, offset);
-		assertEquals(limit, token.getLimit());
+		assertEquals(limit+1, token.getLimitForQuery());
 		assertEquals(offset, token.getOffset());
 		String tokenString = token.toToken();
 		NextPageToken clone = new NextPageToken(tokenString);
-		assertEquals(limit, clone.getLimit());
+		assertEquals(limit+1, clone.getLimitForQuery());
 		assertEquals(offset, clone.getOffset());
 	}
 	
@@ -29,7 +30,7 @@ public class NextPageTokenTest {
 		String tokenString = null;
 		NextPageToken token = new NextPageToken(tokenString);
 		assertNotNull(token);
-		assertEquals(NextPageToken.DEFAULT_LIMIT, token.getLimit());
+		assertEquals(NextPageToken.DEFAULT_LIMIT+1, token.getLimitForQuery());
 		assertEquals(NextPageToken.DEFAULT_OFFSET, token.getOffset());
 	}
 	
@@ -70,7 +71,7 @@ public class NextPageTokenTest {
 	public void testConstructorWithProvidedDefaultLimitAndMaxLimit() {
 		NextPageToken token = new NextPageToken("10a5", 100L, 100L);
 		assertNotNull(token);
-		assertEquals(10L, token.getLimit());
+		assertEquals(10L+1L, token.getLimitForQuery());
 		assertEquals(5L, token.getOffset());
 	}
 

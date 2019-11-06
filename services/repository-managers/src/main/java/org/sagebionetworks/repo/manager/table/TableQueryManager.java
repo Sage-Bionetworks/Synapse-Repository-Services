@@ -8,13 +8,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -45,7 +44,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle querySinglePage(ProgressCallback progressCallback, UserInfo user, Query query,	boolean runQuery, boolean runCount, boolean returnFacets) throws DatastoreException, NotFoundException, TableUnavailableException,
+	public QueryResultBundle querySinglePage(ProgressCallback progressCallback, UserInfo user, Query query,	QueryOptions options) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
 	/**

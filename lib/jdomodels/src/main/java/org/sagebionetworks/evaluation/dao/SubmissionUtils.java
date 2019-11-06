@@ -10,10 +10,13 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class SubmissionUtils {
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionStatus.class).build();
+
 	/**
 	 * Copy a Submission data transfer object to a SubmissionDBO database object
 	 * 
@@ -138,7 +141,7 @@ public class SubmissionUtils {
 	
 	public static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
 		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -146,7 +149,7 @@ public class SubmissionUtils {
 	
 	public static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
 		try {
-			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 
@@ -29,14 +29,14 @@ import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
  */
 public class MessageSyndicationImplTest {
 	RepositoryMessagePublisher mockMsgPublisher;
-	AmazonSQSClient mockSqsClient;
+	AmazonSQS mockSqsClient;
 	DBOChangeDAO mockChgDAO;
 	MessageSyndicationImpl msgSyndicationImpl;
 	
 	@Before
 	public void before() {
 		mockMsgPublisher = Mockito.mock(RepositoryMessagePublisher.class);
-		mockSqsClient = Mockito.mock(AmazonSQSClient.class);
+		mockSqsClient = Mockito.mock(AmazonSQS.class);
 		mockChgDAO = Mockito.mock(DBOChangeDAO.class);
 		msgSyndicationImpl = new MessageSyndicationImpl(mockMsgPublisher, mockSqsClient, mockChgDAO);
 	}

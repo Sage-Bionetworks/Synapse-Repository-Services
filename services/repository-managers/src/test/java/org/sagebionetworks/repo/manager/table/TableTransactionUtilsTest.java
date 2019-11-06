@@ -1,18 +1,21 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 
+@ExtendWith(MockitoExtension.class)
 public class TableTransactionUtilsTest {
 
 	String tableId;
@@ -21,8 +24,7 @@ public class TableTransactionUtilsTest {
 
 	TableUpdateTransactionResponse response;
 
-	@SuppressWarnings("unchecked")
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 
@@ -52,39 +54,84 @@ public class TableTransactionUtilsTest {
 		assertEquals(tableId, uploadRequest.getEntityId());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateRequestChangeIdDoesNotMatch() {
 		uploadRequest.setEntityId("doesNotMatch");
-		// call under test.
-		TableTransactionUtils.validateRequest(request);
-		// the root table ID is passed to each change if null
-		assertEquals(tableId, uploadRequest.getEntityId());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateRequestNullRequest() {
 		request = null;
-		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateRequestEntityIdNull() {
 		request.setEntityId(null);
-		// call under test.
-		TableTransactionUtils.validateRequest(request);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		});
 	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesNull() {
+	
+	@Test
+	public void testValidateRequestNullChagnesNulSnapshot() {
 		request.setChanges(null);
+		request.setCreateSnapshot(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		}).getMessage();
+		assertEquals("Must include be at least one change or create a snapshot.", message);
+	}
+
+	@Test
+	public void testValidateRequestChagnesEmptySnapshotFalse() {
+		request.setChanges(new LinkedList<TableUpdateRequest>());
+		request.setCreateSnapshot(false);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		}).getMessage();
+		assertEquals("Must include be at least one change or create a snapshot.", message);
+	}
+	
+	@Test
+	public void testValidateRequestChagnesEmptySnapshotNull() {
+		request.setChanges(new LinkedList<TableUpdateRequest>());
+		request.setCreateSnapshot(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test.
+			TableTransactionUtils.validateRequest(request);
+		}).getMessage();
+		assertEquals("Must include be at least one change or create a snapshot.", message);
+	}
+	
+	/**
+	 * Test added for PLFM-5912.
+	 */
+	@Test
+	public void testValidateRequestChagnesEmptyWithSnapshot() {
+		request.setChanges(new LinkedList<TableUpdateRequest>());
+		request.setCreateSnapshot(true);
 		// call under test.
 		TableTransactionUtils.validateRequest(request);
 	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testValidateRequestChagnesEmpty() {
-		request.setChanges(new LinkedList<TableUpdateRequest>());
+	
+	/**
+	 * Test added for PLFM-5912.
+	 */
+	@Test
+	public void testValidateRequestNullChagnesEmptyWithSnapshot() {
+		request.setChanges(null);
+		request.setCreateSnapshot(true);
 		// call under test.
 		TableTransactionUtils.validateRequest(request);
 	}

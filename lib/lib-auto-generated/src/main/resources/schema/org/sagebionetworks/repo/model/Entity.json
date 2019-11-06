@@ -1,11 +1,6 @@
 {
 	"description": "This is the base interface that all Entities implement.",
 	"type": "interface",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.HasAttachments"
-		}
-	],
 	"properties": {
 		"name": {
 			"type": "string",
@@ -20,11 +15,6 @@
 		"id": {
 			"type": "string",
 			"description": "The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued",
-			"transient": true
-		},
-		"uri": {
-			"type": "string",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"transient": true
 		},
 		"etag": {
@@ -58,37 +48,13 @@
 			"title": "Modified By",
 			"transient": true
 		},
-		"annotations": {
-			"type": "string",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
-			"transient": true
-		},
-		"accessControlList": {
-			"type": "string",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
-			"transient": true
-		},
 		"parentId": {
 			"type": "string",
 			"description": "The ID of the Entity that is the parent of this Entity."
 		},
-		"entityType": {
-			"type": "string",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
-			"transient": true
-		},
         "concreteType":{
             "type":"string",
             "description":"Indicates which implementation of Entity this object represents. It should be set to one of the following: org.sagebionetworks.repo.model.Project, org.sagebionetworks.repo.model.Folder, or org.sagebionetworks.repo.model.FileEntity."
-        },
-		"attachments": {
-			"type": "array",
-			"description": "This field is deprecated and will be removed in future versions of Synapse",
-			"uniqueItems": false,
-			"contentEncoding": "binary",
-			"items": {
-				"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"
-			}
-		}
+        }
 	}
 }

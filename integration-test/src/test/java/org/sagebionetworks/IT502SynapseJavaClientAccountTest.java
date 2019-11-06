@@ -17,11 +17,19 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountCreationToken;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.util.SerializationUtils;
 
 public class IT502SynapseJavaClientAccountTest {
@@ -35,8 +43,8 @@ public class IT502SynapseJavaClientAccountTest {
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
@@ -133,9 +141,9 @@ public class IT502SynapseJavaClientAccountTest {
 		UserProfile up = synapseOne.getMyProfile();
 		assertEquals(1, up.getEmails().size());
 		String myEmail = up.getEmails().get(0);
-		String notificationEmail = synapseOne.getNotificationEmail();
+		NotificationEmail notificationEmail = synapseOne.getNotificationEmail();
 		// the current notification email is the one/only email that I have
-		assertEquals(myEmail, notificationEmail);
+		assertEquals(myEmail, notificationEmail.getEmail());
 		// no-op, just checking that everything's wired up right
 		synapseOne.setNotificationEmail(myEmail);
 	}

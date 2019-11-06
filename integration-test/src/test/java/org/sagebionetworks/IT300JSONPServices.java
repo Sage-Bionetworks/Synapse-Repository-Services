@@ -4,19 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -25,8 +16,6 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
@@ -52,8 +41,8 @@ public class IT300JSONPServices {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -80,7 +69,7 @@ public class IT300JSONPServices {
 	@Test
 	public void testTeamJSONP() throws Exception {
 		// Make a simple call to the repository service 
-		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
 		urlBuilder.append("/teams"+"?callback="); 
 		urlBuilder.append(callbackName);
@@ -116,7 +105,7 @@ public class IT300JSONPServices {
 	@Test
 	public void testTeamMembershipJSONP() throws Exception {
 		// Make a simple call to the repository service 
-		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
 		String teamId = makeATeam();
 		urlBuilder.append("/teamMembers/"+teamId+"?callback="); 

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dao.discussion;
 
 import java.util.List;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;

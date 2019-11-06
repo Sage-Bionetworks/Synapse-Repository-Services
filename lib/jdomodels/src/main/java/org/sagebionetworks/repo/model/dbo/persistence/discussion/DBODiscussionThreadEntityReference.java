@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ENTITY_REFERENCE_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_THREAD_ENTITY_REFERENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -116,20 +120,7 @@ public class DBODiscussionThreadEntityReference implements MigratableDatabaseObj
 
 	@Override
 	public MigratableTableTranslation<DBODiscussionThreadEntityReference, DBODiscussionThreadEntityReference> getTranslator() {
-		return new MigratableTableTranslation<DBODiscussionThreadEntityReference, DBODiscussionThreadEntityReference>() {
-
-			@Override
-			public DBODiscussionThreadEntityReference createDatabaseObjectFromBackup(
-					DBODiscussionThreadEntityReference backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODiscussionThreadEntityReference createBackupFromDatabaseObject(
-					DBODiscussionThreadEntityReference dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBODiscussionThreadEntityReference>();
 	}
 
 	@Override

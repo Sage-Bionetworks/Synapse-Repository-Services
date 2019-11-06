@@ -1,54 +1,43 @@
 package org.sagebionetworks.search;
 
-import static org.junit.Assert.*;
-
-import com.amazonaws.services.cloudsearchdomain.model.Hit;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import com.google.common.collect.Sets;
-import org.apache.commons.collections.ArrayStack;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyLong;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
-import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
-
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-
-import javax.print.Doc;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import com.amazonaws.services.cloudsearchdomain.model.Hit;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
+import com.amazonaws.services.cloudsearchdomain.model.SearchException;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -66,6 +55,9 @@ public class SearchDaoImplTest {
 
 	@Spy
 	private SearchDaoImpl dao = new SearchDaoImpl(); //variable must be initialized here for Spy to work
+
+	@Captor
+	ArgumentCaptor<Iterator<Document>> iteratorArgumentCaptor;
 
 	private SearchResult searchResult;
 
@@ -95,7 +87,7 @@ public class SearchDaoImplTest {
 	public void testDeleteDocumentsEmptyIdSet(){
 		dao.deleteDocuments(new HashSet<>());
 		verify(mockCloudSearchClientProvider, never()).getCloudSearchClient();
-		verify(mockCloudSearchDomainClient, never()).sendDocuments(any());
+		verify(mockCloudSearchDomainClient, never()).sendDocuments(any(Iterator.class));
 	}
 
 	@Test
@@ -114,7 +106,9 @@ public class SearchDaoImplTest {
 		//method under test
 		dao.deleteDocuments(new LinkedHashSet<>(Arrays.asList(id1, id2)));
 
-		verify(dao, times(1)).createOrUpdateSearchDocument(Arrays.asList(expectedDoc1, expectedDoc2));
+
+		verify(dao, times(1)).sendDocuments(iteratorArgumentCaptor.capture());
+		assertEquals(Arrays.asList(expectedDoc1, expectedDoc2), Lists.newArrayList(iteratorArgumentCaptor.getValue()));
 	}
 
 	/////////////////////////////////////////
@@ -130,15 +124,7 @@ public class SearchDaoImplTest {
 	public void testCreateOrUpdateSearchDocumentSingleDocument(){
 		Document doc = new Document();
 		dao.createOrUpdateSearchDocument(doc);
-		verify(dao, times(1)).createOrUpdateSearchDocument(Collections.singletonList(doc));
-	}
-
-	@Test
-	public void testCreateOrUpdateSearchDocumentUsingList(){
-		List<Document> docList = new LinkedList<>();
-		dao.createOrUpdateSearchDocument(docList);
-		verify(mockCloudSearchClientProvider,times(1)).getCloudSearchClient();
-		verify(mockCloudSearchDomainClient, times(1)).sendDocuments(docList);
+		verify(mockCloudSearchDomainClient, times(1)).sendDocument(doc);
 	}
 
 	/////////////////////////
@@ -159,7 +145,7 @@ public class SearchDaoImplTest {
 	///////////////////////
 	@Test(expected = IllegalArgumentException.class)
 	public void testDoesDocumentExistNullId()  {
-		dao.doesDocumentExist(null, "etag");
+		dao.doesDocumentExistInSearchIndex(null, "etag");
 	}
 
 	@Test
@@ -175,12 +161,30 @@ public class SearchDaoImplTest {
 	private void helperTestDoesDocumentExist(long numFoundHits, boolean expectedBooleanResult){
 		searchResult.withHits(new Hits().withFound(numFoundHits));
 
-		boolean result = dao.doesDocumentExist("syn123", "etagerino");
+		boolean result = dao.doesDocumentExistInSearchIndex("syn123", "etagerino");
 		assertEquals(expectedBooleanResult, result);
 
 		SearchRequest capturedRequest = requestArgumentCaptor.getValue();
 		verify(dao,times(1)).executeSearch(capturedRequest);
-		assertEquals("(and id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
+		assertEquals("(and _id:'syn123' etag:'etagerino')", capturedRequest.getQuery());
+	}
+
+	@Test (expected = TemporarilyUnavailableException.class)
+	public void testDoesDocumentExist_IllegalArgumentCausedBySearchIndexFieldSchemaRaceCondition(){
+		SearchException searchExceptionCause = new SearchException("Syntax error in query: field (anyFieldDoesntMatter) does not exist.");
+		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
+
+		//method under test
+		dao.doesDocumentExistInSearchIndex("syn123", "EEEEEEEEEtag");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDoesDocumentExist_IllegalArgumentCausedByOtherErrors(){
+		SearchException searchExceptionCause = new SearchException("Some unrelated error message");
+		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenThrow(new IllegalArgumentException(searchExceptionCause));
+
+		//method under test
+		dao.doesDocumentExistInSearchIndex("syn123", "EEEEEEEEEtag");
 	}
 
 	//////////////////////////////

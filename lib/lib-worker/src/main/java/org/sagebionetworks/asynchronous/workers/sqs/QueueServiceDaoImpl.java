@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
@@ -28,7 +28,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 	
 	private static final int LONG_POLL_WAIT_TIME = 20;
 	@Autowired
-	AmazonSQSClient amazonSQSClient;
+	AmazonSQS AmazonSQS;
 	private int maxSQSRequestSize = 10;
 	
 	/**
@@ -52,7 +52,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 		int remaining = maxMessages;
 		while(remaining > 0){
 			int toFetch = Math.min(maxSQSRequestSize, remaining);
-			ReceiveMessageResult rmr = amazonSQSClient.receiveMessage(new ReceiveMessageRequest().withQueueUrl(queueUrl).withVisibilityTimeout(visibilityTimeoutSec).withMaxNumberOfMessages(toFetch));
+			ReceiveMessageResult rmr = AmazonSQS.receiveMessage(new ReceiveMessageRequest().withQueueUrl(queueUrl).withVisibilityTimeout(visibilityTimeoutSec).withMaxNumberOfMessages(toFetch));
 			if(rmr.getMessages() != null){
 				// Add all of the messages to the results.
 				results.addAll(rmr.getMessages());
@@ -81,7 +81,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 				receiveMessageRequest.withWaitTimeSeconds(LONG_POLL_WAIT_TIME);
 				firstTime = false;
 			}
-			ReceiveMessageResult rmr = amazonSQSClient.receiveMessage(receiveMessageRequest);
+			ReceiveMessageResult rmr = AmazonSQS.receiveMessage(receiveMessageRequest);
 			if (rmr.getMessages() != null) {
 				// Add all of the messages to the results.
 				results.addAll(rmr.getMessages());
@@ -110,7 +110,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 		// Make batches that are the max allowed size for SQS calls.
 		List<List<DeleteMessageBatchRequestEntry>> batchedEntries = Lists.partition(allEntries, maxSQSRequestSize);
 		for(List<DeleteMessageBatchRequestEntry> batch: batchedEntries){
-			amazonSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
+			AmazonSQS.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
 		}
 	}
 
@@ -128,7 +128,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 		// Make batches that are the max allowed size for SQS calls.
 		List<List<ChangeMessageVisibilityBatchRequestEntry>> batchedEntries = Lists.partition(allEntries, maxSQSRequestSize);
 		for(List<ChangeMessageVisibilityBatchRequestEntry> batch: batchedEntries){
-			amazonSQSClient.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(queueUrl, batch));
+			AmazonSQS.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(queueUrl, batch));
 		}
 	}
 

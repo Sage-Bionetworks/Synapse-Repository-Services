@@ -3,16 +3,17 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_SENT_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.Table;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 /**
@@ -20,27 +21,56 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author John
  *
  */
-@Table(name = TABLE_SENT_MESSAGES, constraints={"CONSTRAINT `SENT_MESS_CH_NUM_FK` FOREIGN KEY (`"+COL_SENT_MESSAGES_OBJECT_ID+"`,`"+COL_SENT_MESSAGES_OBJECT_TYPE+"`) REFERENCES `"+TABLE_CHANGES+"` (`"+COL_CHANGES_OBJECT_ID+"`,`"+COL_CHANGES_OBJECT_TYPE+"`) ON DELETE CASCADE"
-,"UNIQUE KEY `SENT_UNIQUE_CHANG_NUM` (`"+COL_CHANGES_CHANGE_NUM+"`)"})
 public class DBOSentMessage implements DatabaseObject<DBOSentMessage> {
+
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("changeNumber", COL_SENT_MESSAGES_CHANGE_NUM).withIsBackupId(true),
+			new FieldColumn("timeStamp", COL_SENT_MESSAGES_TIME_STAMP),
+			new FieldColumn("objectId", COL_SENT_MESSAGES_OBJECT_ID, true),
+			new FieldColumn("objectVersion", COL_SENT_MESSAGES_OBJECT_VERSION, true),
+			new FieldColumn("objectType", COL_SENT_MESSAGES_OBJECT_TYPE, true),
+		};
 	
-	private static TableMapping<DBOSentMessage> tableMapping = AutoTableMapping.create(DBOSentMessage.class);
-	
-	@Field(name = COL_SENT_MESSAGES_CHANGE_NUM, nullable = true, primary=false, backupId = true)
 	private Long changeNumber;
-	
-	@Field(name = COL_SENT_MESSAGES_TIME_STAMP, sql="DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
 	private Timestamp timeStamp;
-	
-	@Field(name = COL_SENT_MESSAGES_OBJECT_ID,nullable = false, primary=true)
     private Long objectId;
-	
-	@Field(name = COL_SENT_MESSAGES_OBJECT_TYPE,nullable = false, primary=true)
-    private ObjectType objectType;
+    private Long objectVersion;
+    private String objectType;
 
 	@Override
 	public TableMapping<DBOSentMessage> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOSentMessage>(){
+
+			@Override
+			public DBOSentMessage mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOSentMessage dbo = new DBOSentMessage();
+				dbo.setChangeNumber(rs.getLong(COL_SENT_MESSAGES_CHANGE_NUM));
+				dbo.setObjectId(rs.getLong(COL_SENT_MESSAGES_OBJECT_ID));
+				dbo.setObjectVersion(rs.getLong(COL_SENT_MESSAGES_OBJECT_VERSION));
+				dbo.setObjectType(rs.getString(COL_SENT_MESSAGES_OBJECT_TYPE));
+				dbo.setTimeStamp(rs.getTimestamp(COL_SENT_MESSAGES_TIME_STAMP));
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_SENT_MESSAGES;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_SENT_MESSAGE;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBOSentMessage> getDBOClass() {
+				return DBOSentMessage.class;
+			}};
 	}
 
 	public Long getChangeNumber() {
@@ -67,26 +97,31 @@ public class DBOSentMessage implements DatabaseObject<DBOSentMessage> {
 		this.objectId = objectId;
 	}
 
-	public ObjectType getObjectType() {
+	public String getObjectType() {
 		return objectType;
 	}
 
-	public void setObjectType(ObjectType objectType) {
+	public void setObjectType(String objectType) {
 		this.objectType = objectType;
+	}
+
+	public Long getObjectVersion() {
+		return objectVersion;
+	}
+
+	public void setObjectVersion(Long objectVersion) {
+		this.objectVersion = objectVersion;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((changeNumber == null) ? 0 : changeNumber.hashCode());
-		result = prime * result
-				+ ((objectId == null) ? 0 : objectId.hashCode());
-		result = prime * result
-				+ ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result
-				+ ((timeStamp == null) ? 0 : timeStamp.hashCode());
+		result = prime * result + ((changeNumber == null) ? 0 : changeNumber.hashCode());
+		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
+		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
+		result = prime * result + ((timeStamp == null) ? 0 : timeStamp.hashCode());
 		return result;
 	}
 
@@ -109,7 +144,15 @@ public class DBOSentMessage implements DatabaseObject<DBOSentMessage> {
 				return false;
 		} else if (!objectId.equals(other.objectId))
 			return false;
-		if (objectType != other.objectType)
+		if (objectType == null) {
+			if (other.objectType != null)
+				return false;
+		} else if (!objectType.equals(other.objectType))
+			return false;
+		if (objectVersion == null) {
+			if (other.objectVersion != null)
+				return false;
+		} else if (!objectVersion.equals(other.objectVersion))
 			return false;
 		if (timeStamp == null) {
 			if (other.timeStamp != null)
@@ -117,6 +160,12 @@ public class DBOSentMessage implements DatabaseObject<DBOSentMessage> {
 		} else if (!timeStamp.equals(other.timeStamp))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "DBOSentMessage [changeNumber=" + changeNumber + ", timeStamp=" + timeStamp + ", objectId=" + objectId
+				+ ", objectVersion=" + objectVersion + ", objectType=" + objectType + "]";
 	}
 
 }

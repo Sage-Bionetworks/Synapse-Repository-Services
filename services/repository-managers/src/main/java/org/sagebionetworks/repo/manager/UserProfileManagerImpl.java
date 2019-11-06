@@ -7,9 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -18,25 +19,27 @@ import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Sets;
 
 public class UserProfileManagerImpl implements UserProfileManager {
@@ -54,7 +57,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private FileHandleManager fileHandleManager;
-	
+	@Autowired
+	private VerificationDAO verificationDao;
 
 	@Override
 	public UserProfile getUserProfile(String ownerId)
@@ -63,6 +67,18 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return getUserProfilePrivate(ownerId);
 	}
 
+	@Override
+	public VerificationSubmission getCurrentVerificationSubmission(Long userId) {
+		return verificationDao.getCurrentVerificationSubmissionForUser(userId);
+	}	
+	
+	@Override
+	public String getOrcid(Long userId) {
+		List<PrincipalAlias> orcidAliases = principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_ORCID);
+		if (orcidAliases.size()>1) throw new IllegalStateException("Cannot have multiple ORCIDs.");
+		return(orcidAliases.isEmpty() ? null : orcidAliases.get(0).getAlias());
+	}
+	
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
@@ -157,7 +173,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		
 		if(updated.getProfilePicureFileHandleId() != null){
 			// The user must own the file handle to set it as a picture.
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()));
+			authorizationManager.canAccessRawFileHandleById(userInfo, updated.getProfilePicureFileHandleId()).checkAuthorizationOrElseThrow();
 		}
 		// Update the DAO first
 		userProfileDAO.update(updated);
@@ -190,31 +206,33 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
-			UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+	public ProjectHeaderList getProjects(UserInfo caller,
+			UserInfo userToGetInfoFor, Long teamId, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Long limit, Long offset) throws DatastoreException,
+			String nextPageTokenString) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		/*
-		 * The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, /*
-		 * and CERTIFIED_USERS
-		 */
+		
+		if (type!=ProjectListType.TEAM && teamId!=null) {
+			throw new IllegalArgumentException("Cannot specify 'teamId' when filter is not TEAM.");
+		}
+		
 		Set<Long> userToGetPrincipalIds;
 		switch (type) {
-		case MY_PROJECTS:
-		case OTHER_USER_PROJECTS:
-		case MY_CREATED_PROJECTS:
-		case MY_PARTICIPATED_PROJECTS:
+		case ALL:
+		case CREATED:
+		case PARTICIPATED:
+			// The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
 			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
 			break;
-		case MY_TEAM_PROJECTS:
-			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			break;
-		case TEAM_PROJECTS:
-			// this case requires a team
-			ValidateArgument.required(teamToFetch, "teamToFetch");
-			long teamId = Long.parseLong(teamToFetch.getId());
-			userToGetPrincipalIds = Sets.newHashSet(teamId);
+		case TEAM:
+			if (teamId==null) {
+				userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+			} else {
+				if (!userToGetInfoFor.getGroups().contains(teamId)) {
+					throw new IllegalArgumentException("User "+userToGetInfoFor.getId()+" is not a member of team "+teamId);
+				}
+				userToGetPrincipalIds = Sets.newHashSet(teamId);
+			}
 			break;
 		default:
 			throw new NotImplementedException("project list type " + type
@@ -241,11 +259,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			 */
 			projectIdsToFilterBy = userToGetAccessibleProjectIds;
 		}
+		NextPageToken nextPageToken = new NextPageToken(nextPageTokenString);
+		long limit = nextPageToken.getLimitForQuery();
+		long offset = nextPageToken.getOffset();
 		// run the query.
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(userToGetInfoFor.getId(),
 				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
 				offset);
-		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+		ProjectHeaderList result = new ProjectHeaderList();
+		result.setResults(page);
+		result.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+		return result;
 	}
 
 	/**
@@ -255,9 +279,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	public static Set<Long> getGroupsMinusPublic(Set<Long> usersGroups){
 		Set<Long> groups = Sets.newHashSet(usersGroups);
-		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue());
-		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue());
-		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
+		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		return groups;
 	}
 
@@ -311,18 +335,26 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public String getUserProfileImageUrl(String userId)
+	public String getUserProfileImageUrl(UserInfo userInfo, String userId)
 			throws NotFoundException {
-		String handleId = userProfileDAO.getPictureFileHandleId(userId);
-		return fileHandleManager.getRedirectURLForFileHandle(handleId);
+		String fileHandleId = userProfileDAO.getPictureFileHandleId(userId);
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.UserProfileAttachment, userId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
-	public String getUserProfileImagePreviewUrl(String userId)
+	public String getUserProfileImagePreviewUrl(UserInfo userInfo, String userId)
 			throws NotFoundException {
-		String handleId = userProfileDAO.getPictureFileHandleId(userId);
-		String privewId = fileHandleManager.getPreviewFileHandleId(handleId);
-		return fileHandleManager.getRedirectURLForFileHandle(privewId);
+		String fileHandleId = userProfileDAO.getPictureFileHandleId(userId);
+		String fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.UserProfileAttachment, userId);
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 }

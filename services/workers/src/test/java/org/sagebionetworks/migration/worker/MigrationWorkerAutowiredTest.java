@@ -1,14 +1,13 @@
 package org.sagebionetworks.migration.worker;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -19,7 +18,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
@@ -30,9 +28,9 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MigrationWorkerAutowiredTest {
 
@@ -49,7 +47,7 @@ public class MigrationWorkerAutowiredTest {
 
 	private UserInfo adminUserInfo;
 
-	@Before
+	@BeforeEach
 	public void before() throws NotFoundException {
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
@@ -58,12 +56,13 @@ public class MigrationWorkerAutowiredTest {
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
+		
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_ONLY);
 		stackStatusDao.updateStatus(status);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
@@ -76,7 +75,7 @@ public class MigrationWorkerAutowiredTest {
 		req.setMinId(0L);
 		req.setMaxId(Long.MAX_VALUE);
 		req.setSalt("salt");
-		req.setType(MigrationType.NODE.name());
+		req.setMigrationType(MigrationType.NODE);
 		AsyncMigrationRequest request = new AsyncMigrationRequest();
 		request.setAdminRequest(req);		
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);

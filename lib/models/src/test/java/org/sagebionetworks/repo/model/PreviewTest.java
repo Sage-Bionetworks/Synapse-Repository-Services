@@ -19,9 +19,7 @@ public class PreviewTest {
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
 		Date d = new Date();
-		
-		p1.setAccessControlList("/acl");
-		p1.setAnnotations("/annotations");
+
 		p1.setCreatedBy("createdBy");
 		p1.setCreatedOn(d);
 		p1.setDescription("description");
@@ -31,7 +29,6 @@ public class PreviewTest {
 		p1.setModifiedOn(d);
 		p1.setName("name");
 		p1.setParentId("0");
-		p1.setUri("uri");
 
 		List<String> headers = new ArrayList<String>();
 		headers.add("header1");

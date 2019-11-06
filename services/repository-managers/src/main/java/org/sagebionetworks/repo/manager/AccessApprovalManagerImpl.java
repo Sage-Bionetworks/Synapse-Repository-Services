@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,12 +29,11 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +74,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.get(approvalId);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -114,8 +114,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, Long limit, Long offset)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ));
+		authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 
 		if (limit == null) {
 			limit = DEFAULT_LIMIT;
@@ -136,20 +135,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	}
 
 	@Deprecated
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), 
-						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE));
+		authorizationManager.canAccess(userInfo, accessApproval.getId().toString(),
+						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)
+				.checkAuthorizationOrElseThrow();
 			
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
 	@Deprecated
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
 			throws UnauthorizedException {
@@ -183,7 +182,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return response;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");

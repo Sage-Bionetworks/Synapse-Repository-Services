@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.query.entity;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
 
 /**
  * Represents a single join with the annotations table

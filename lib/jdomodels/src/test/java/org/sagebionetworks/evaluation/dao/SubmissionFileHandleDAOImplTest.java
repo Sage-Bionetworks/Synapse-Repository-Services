@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,17 +24,18 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.UnexpectedRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -76,36 +76,9 @@ public class SubmissionFileHandleDAOImplTest {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	
     	// create a file handle
-		PreviewFileHandle meta1 = new PreviewFileHandle();
-		meta1.setBucketName("bucketName");
-		meta1.setKey("key");
-		meta1.setContentType("content type");
-		meta1.setContentSize(123l);
-		meta1.setContentMd5("md5");
-		meta1.setCreatedBy("" + userId);
-		meta1.setFileName("preview.jpg");
-		meta1.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta1.setEtag(UUID.randomUUID().toString());
-		PreviewFileHandle meta2 = new PreviewFileHandle();
-		meta2.setBucketName("bucketName");
-		meta2.setKey("key");
-		meta2.setContentType("content type");
-		meta2.setContentSize(123l);
-		meta2.setContentMd5("md5");
-		meta2.setCreatedBy("" + userId);
-		meta2.setFileName("preview.jpg");
-		meta2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta2.setEtag(UUID.randomUUID().toString());
-		PreviewFileHandle meta3 = new PreviewFileHandle();
-		meta3.setBucketName("bucketName");
-		meta3.setKey("key");
-		meta3.setContentType("content type");
-		meta3.setContentSize(123l);
-		meta3.setContentMd5("md5");
-		meta3.setCreatedBy("" + userId);
-		meta3.setFileName("preview.jpg");
-		meta3.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		meta3.setEtag(UUID.randomUUID().toString());
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(userId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(userId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta3 = TestUtils.createS3FileHandle(userId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(meta1);
@@ -217,7 +190,7 @@ public class SubmissionFileHandleDAOImplTest {
         try {
 	        // delete should fail (due to ON DELETE RESTRICT constraint)
 	        fileHandleDAO.delete(fileHandleId1);
-        } catch (UnexpectedRollbackException e) {
+        } catch (DataIntegrityViolationException e) {
         	assertNotNull("File handle should not have been deleted!", fileHandleDAO.get(fileHandleId1));
         	assertEquals(count, submissionFileHandleDAO.getCount());
         	return;

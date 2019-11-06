@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -15,16 +15,16 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.WikiModelTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class WikiServiceImpl implements WikiService {
 	
@@ -112,23 +112,29 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public String getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException,
 			NotFoundException {
-		UserInfo user = userManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First lookup the FileHandle from V2
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
-		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(userInfo, wikiPageKey, fileName, null);
+		
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandleId)
+				.withAssociation(FileHandleAssociateType.WikiAttachment, wikiPageKey.getWikiPageId());
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override
 	public String getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException,
 			NotFoundException {
-		UserInfo user = userManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First lookup the FileHandle
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(userInfo, wikiPageKey, fileName, null);
 		// Get FileHandle from V2
-		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
-		// Get the URL of the preview.
-		return fileHandleManager.getRedirectURLForFileHandle(previewId);
+		String fileHandlePreviewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+
+		FileHandleUrlRequest urlRequest = new FileHandleUrlRequest(userInfo, fileHandlePreviewId)
+				.withAssociation(FileHandleAssociateType.WikiAttachment, wikiPageKey.getWikiPageId());
+		
+		return fileHandleManager.getRedirectURLForFileHandle(urlRequest);
 	}
 
 	@Override

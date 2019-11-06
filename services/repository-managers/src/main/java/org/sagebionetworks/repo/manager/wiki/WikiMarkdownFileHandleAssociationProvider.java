@@ -14,7 +14,7 @@ public class WikiMarkdownFileHandleAssociationProvider implements FileHandleAsso
 	V2WikiPageDao wikiPageDaoV2;
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithObject(
+	public Set<String> getFileHandleIdsDirectlyAssociatedWithObject(
 			List<String> fileHandleIds, String objectId) {
 		return wikiPageDaoV2.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, objectId);
 	}

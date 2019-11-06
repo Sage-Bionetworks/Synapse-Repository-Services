@@ -122,12 +122,6 @@ public class EntityBundleCreate implements JSONEntity {
 		return writeTo;
 	}
 
-	@Override
-	public String getJSONSchema() {
-		// Auto-generated method stub
-		return null;
-	}
-
 	/**
 	 * Get the Entity in this bundle.
 	 */

@@ -1,10 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -30,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 @ControllerInfo(displayName = "Principal Services", path = "repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class PrincipalController extends BaseController {
+public class PrincipalController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -102,7 +110,8 @@ public class PrincipalController extends BaseController {
 	@ResponseBody
 	public Session createNewAccount(
 			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
+		LoginResponse response = serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
+		return DeprecatedUtils.createSession(response);
 	}
 	
 	/**
@@ -205,7 +214,7 @@ public class PrincipalController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
 	public @ResponseBody
-	Username getNotificationEmail(
+	NotificationEmail getNotificationEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
 		return serviceProvider.getPrincipalService().getNotificationEmail(userId);
 	}

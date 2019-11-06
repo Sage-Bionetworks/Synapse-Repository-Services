@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
@@ -20,14 +18,13 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
-import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -36,7 +33,6 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 
 /**
@@ -91,15 +87,28 @@ public interface FileHandleManager {
 	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
 	
 	/**
-	 * Get the redirect URL for a given FileHandle ID.  The UserInfo is not needed as Authorization should have already been
-	 * checked before attempting this call.
-	 * @param handleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws MalformedURLException 
+	 * Get the redirect URL for the file handle provided in the given request. If no associate object is provided in the request
+	 * only the user that created the file handle or the admin are allowed to get the URL.
+	 * <p>
+	 * If an associate object is present the user authorization is checked against the associate object.
+	 * <p>
+	 * To avoid performing the authorization check the url request should be explicitly set to bypass the authorization check 
+	 * (See {@link FileHandleUrlRequest#withBypassAuthCheck(boolean)}.
+	 * 
+	 * @param urlRequest The request context to get the pre-signed URL
+	 * @return A pre-signed URL for the handle specified in the given request that can be used to download the content
 	 */
-	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
+	String getRedirectURLForFileHandle(FileHandleUrlRequest urlRequest) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	
+	/**
+	 * Get a batch of FileHandles and URL
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo, BatchFileRequest request);
+
 
 	/**
 	 * Get all file handles on the list.
@@ -225,24 +234,10 @@ public interface FileHandleManager {
 	/**
 	 * Multi-part upload a local file to S3.  This is used by workers.
 	 * 
-	 * @param userInfo
-	 * @param fileToUpload
-	 * @param contentType
-	 * @param listener
+	 * @param request
 	 * @return
 	 */
-	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
-
-	/**
-	 * Only the creator of a FileHandle can call this method.
-	 * 
-	 * @param userInfo
-	 * @param fileHandleId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
+	S3FileHandle multipartUploadLocalFile(LocalFileUploadRequest request);
 
 	/**
 	 * Get the list of upload destinations for this parent
@@ -362,9 +357,6 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType);
 
-	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId,
-			FileHandleAssociateType fileAssociateType, String fileAssociateId);
-
 	/**
 	 * Create an external ProxyFileHandle.
 	 * @param userInfo
@@ -372,15 +364,6 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle fileHandle);
-
-	/**
-	 * Get a batch of FileHandles and URL
-	 * @param userInfo
-	 * @param request
-	 * @return
-	 */
-	BatchFileResult getFileHandleAndUrlBatch(UserInfo userInfo,
-			BatchFileRequest request);
 
 	/**
 	 * Make copy of a batch of FileHandles

@@ -1,310 +1,362 @@
 {
-    "description": "JSON enum for the types of objects which can be migrated. NOTE: The order of this enumeration determines the migration order.",
-    "type": "string",
-    "enum": [
-        {
-            "name": "PRINCIPAL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "GROUP_MEMBERS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "CREDENTIAL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TERMS_OF_USE_AGREEMENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SESSION_TOKEN",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "PRINCIPAL_ALIAS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "NOTIFICATION_EMAIL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "USER_PROFILE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "STORAGE_LOCATION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "FILE_HANDLE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MULTIPART_UPLOAD",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MULTIPART_UPLOAD_PART_STATE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MESSAGE_CONTENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MESSAGE_TO_USER",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MESSAGE_RECIPIENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MESSAGE_STATUS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "COMMENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "V2_WIKI_PAGE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "V2_WIKI_ATTACHMENT_RESERVATION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "V2_WIKI_MARKDOWN",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "V2_WIKI_OWNERS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACTIVITY",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "NODE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "NODE_REVISION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "NODE_ACCESS_REQUIRMENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DOCKER_REPOSITORY_NAME",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DOCKER_COMMIT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TEAM",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MEMBERSHIP_INVITATION_SUBMISSION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "MEMBERSHIP_REQUEST_SUBMISSION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "EVALUATION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "EVALUATION_SUBMISSIONS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SUBMISSION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SUBMISSION_CONTRIBUTOR",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SUBMISSION_FILE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SUBMISSION_STATUS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "PROJECT_SETTINGS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "PROJECT_STATS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACCESS_REQUIREMENT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACCESS_REQUIREMENT_REVISION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACCESS_APPROVAL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACL_ACCESS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "ACL_ACCESS_TYPE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "FAVORITE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TRASH_CAN",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DOI",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "CHALLENGE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "CHALLENGE_TEAM",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "COLUMN_MODEL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "BOUND_COLUMN_OWNER",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "BOUND_COLUMN",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "BOUND_COLUMN_ORDINAL",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TABLE_SEQUENCE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "TABLE_CHANGE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "QUIZ_RESPONSE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "VERIFICATION_SUBMISSION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "VERIFICATION_STATE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "VERIFICATION_FILE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "FORUM",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DISCUSSION_THREAD",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DISCUSSION_THREAD_VIEW",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DISCUSSION_THREAD_ENTITY_REFERENCE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DISCUSSION_REPLY",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "SUBSCRIPTION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "BROADCAST_MESSAGE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "VIEW_TYPE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "VIEW_SCOPE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "AUTHENTICATION_RECEIPT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "THROTTLE_RULE",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "RESEARCH_PROJECT",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DATA_ACCESS_REQUEST",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DATA_ACCESS_SUBMISSION",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DATA_ACCESS_SUBMISSION_SUBMITTER",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "DATA_ACCESS_SUBMISSION_STATUS",
-            "description": "TODO: Auto-generated description"
-        },
-        {
-            "name": "CHANGE",
-            "description": "TODO: Auto-generated description"
-        }
-    ]
+	"description": "JSON enum for the types of objects which can be migrated. NOTE: The order of this enumeration determines the migration order.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "PRINCIPAL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "GROUP_MEMBERS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "CREDENTIAL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "TERMS_OF_USE_AGREEMENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SESSION_TOKEN",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "PRINCIPAL_ALIAS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "NOTIFICATION_EMAIL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "USER_PROFILE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "STORAGE_LOCATION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "FILE_HANDLE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MULTIPART_UPLOAD",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MULTIPART_UPLOAD_PART_STATE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MULTIPART_UPLOAD_COMPOSER_PART_STATE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MESSAGE_CONTENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MESSAGE_TO_USER",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MESSAGE_RECIPIENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MESSAGE_STATUS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "COMMENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "V2_WIKI_PAGE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "V2_WIKI_ATTACHMENT_RESERVATION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "V2_WIKI_MARKDOWN",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "V2_WIKI_OWNERS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACTIVITY",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "NODE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "NODE_REVISION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "NODE_ACCESS_REQUIRMENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DOCKER_REPOSITORY_NAME",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DOCKER_COMMIT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "TEAM",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MEMBERSHIP_INVITATION_SUBMISSION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "MEMBERSHIP_REQUEST_SUBMISSION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "EVALUATION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "EVALUATION_SUBMISSIONS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SUBMISSION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SUBMISSION_CONTRIBUTOR",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SUBMISSION_FILE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SUBMISSION_STATUS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "PROJECT_SETTINGS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "PROJECT_STATS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACCESS_REQUIREMENT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACCESS_REQUIREMENT_REVISION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACCESS_APPROVAL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACL_ACCESS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "ACL_ACCESS_TYPE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "FAVORITE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "TRASH_CAN",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DOI",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "CHALLENGE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "CHALLENGE_TEAM",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "COLUMN_MODEL",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "BOUND_COLUMN_OWNER",
+			"description": "Primary table for all table to column binding."
+		},
+		{
+			"name": "BOUND_COLUMN_ORDINAL",
+			"description": "Tracks the binding of columns to tables."
+		},
+		{
+			"name": "TABLE_TRANSACTION",
+			"description": "Tracks all table transactions."
+		},
+		{
+			"name": "TABLE_TRANSACTION_TO_VERSION",
+			"description": "Links a table transaction to a table version."
+		},
+		{
+			"name": "TABLE_SEQUENCE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "TABLE_CHANGE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "QUIZ_RESPONSE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VERIFICATION_SUBMISSION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VERIFICATION_STATE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VERIFICATION_FILE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "FORUM",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DISCUSSION_THREAD",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DISCUSSION_THREAD_VIEW",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DISCUSSION_THREAD_ENTITY_REFERENCE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DISCUSSION_REPLY",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "SUBSCRIPTION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "BROADCAST_MESSAGE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VIEW_TYPE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VIEW_SCOPE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "VIEW_SNAPSHOT",
+			"description": "Table of metadata about view snapshots."
+		},
+		{
+			"name": "AUTHENTICATION_RECEIPT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "THROTTLE_RULE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "RESEARCH_PROJECT",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DATA_ACCESS_REQUEST",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DATA_ACCESS_SUBMISSION",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DATA_ACCESS_SUBMISSION_SUBMITTER",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "DATA_ACCESS_SUBMISSION_STATUS",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "FORM_GROUP",
+			"description": "Grouping of form data."
+		},
+		{
+			"name": "FORM_DATA",
+			"description": "Form data."
+		},
+		{
+			"name": "DOWNLOAD_LIST",
+			"description": "The root object for a user's download list."
+		},
+		{
+			"name": "DOWNLOAD_LIST_ITEM",
+			"description": "The items of a user's download list."
+		},
+		{
+			"name": "DOWNLOAD_ORDER",
+			"description": "Historical record of files download by users."
+		},
+		{
+			"name": "DATA_TYPE",
+			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "OAUTH_SECTOR_IDENTIFIER",
+			"description": "Parameters for an Oauth/OIDC Sector Identifier"
+		},
+		{
+			"name": "OAUTH_CLIENT",
+			"description": "Metadata for an Oauth client"
+		},
+		{
+			"name": "SES_NOTIFICATIONS",
+			"description": "Bounce and Complaint notifications received from SES"
+		},
+		{
+			"name": "QUARANTINED_EMAILS",
+			"description": "Email addresses that are quarantined and emails are not sent to"
+		},
+		{
+			"name": "CHANGE",
+			"description": "TODO: Auto-generated description"
+		}
+	]
 }

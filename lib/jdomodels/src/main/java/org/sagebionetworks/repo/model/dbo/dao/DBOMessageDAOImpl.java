@@ -27,13 +27,13 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -233,7 +233,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(ObjectType.MESSAGE);
 		change.setObjectId(messageId.toString());
-		change.setObjectEtag(content.getEtag());
 		transactionalMessenger.sendMessageAfterCommit(change);
 		
 		// Insert the message info
@@ -383,20 +382,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@NewWriteTransaction
-	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
-		createMessageStatus(messageId, userId, status);
-	}
-
-	@Override
-	@WriteTransaction
-	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
-		createMessageStatus(messageId, userId, status);
-	}
-	
-	/**
-	 * Helper method for both the exposed methods that create a message status
-	 */
-	private void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
 		if (status == null) {
 			status = MessageStatusType.UNREAD;
 		}
@@ -409,21 +395,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		basicDAO.createNew(dbo);
 		
 		touch(messageId);
+		
 	}
 
 	@Override
 	@NewWriteTransaction
-	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
-		return updateMessageStatus(status);
-	}
-	
-	@Override
-	@WriteTransaction
-	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
-		return updateMessageStatus(status);
-	}
-	
-	private boolean updateMessageStatus(MessageStatus status) {
+	public boolean updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);

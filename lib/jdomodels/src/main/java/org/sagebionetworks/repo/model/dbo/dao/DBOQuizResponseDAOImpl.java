@@ -16,18 +16,19 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	
@@ -72,6 +73,9 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	private static final String SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT = "SELECT COUNT(ID) "+SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE;
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(PassingRecord.class).build();
+
 
 	@WriteTransaction
 	@Override
@@ -165,7 +169,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		try {
 			DBOQuizResponse dbo = namedJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, param, QUIZ_RESPONSE_ROW_MAPPER);
 			byte[] prSerizalized = dbo.getPassingRecord();
-			PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
+			PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, prSerizalized);
 			passingRecord.setResponseId(dbo.getId());
 			return passingRecord;
 		} catch (EmptyResultDataAccessException e) {
@@ -186,7 +190,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			List<DBOQuizResponse> dbos = namedJdbcTemplate.query(SELECT_RESPONSES_FOR_USER_AND_QUIZ_PAGINATED, param, QUIZ_RESPONSE_ROW_MAPPER);
 			for (DBOQuizResponse dbo : dbos) {
 				byte[] prSerizalized = dbo.getPassingRecord();
-				PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
+				PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, prSerizalized);
 				passingRecord.setResponseId(dbo.getId());
 				dtos.add(passingRecord);
 			}

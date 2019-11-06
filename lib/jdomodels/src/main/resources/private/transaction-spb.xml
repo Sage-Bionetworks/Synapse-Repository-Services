@@ -13,7 +13,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This is serving as the JDBC connection pool -->
-	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp2.BasicDataSource"
 		destroy-method="close" depends-on="stackConfiguration">
 		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
 		<property name="url"
@@ -26,7 +26,7 @@
 		<property name="minIdle"
 			ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
 		<!-- The maximum number of connections in the pool -->
-		<property name="maxActive"
+		<property name="maxTotal"
 			ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections" />
 		<!-- This will test a connection to see if it is alive when a connection 
 			is fetched from the pool -->
@@ -50,27 +50,17 @@
 		will ensure that we rollback for all exceptions -->
 	<tx:advice id="defaultWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="REPEATABLE_READ" />
-		</tx:attributes>
-	</tx:advice>
-	<tx:advice id="readCommittedWriteTxRollbackAdvice" transaction-manager="txManager">
-		<tx:attributes>
 			<tx:method name="*" propagation="REQUIRED" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
-	<tx:advice id="requiresNewReadCommittedRollbackAdvice" transaction-manager="txManager">
-		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="READ_COMMITTED" />
-		</tx:attributes>
-	</tx:advice>	
 	<tx:advice id="defaultNewWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="REPEATABLE_READ" />
+			<tx:method name="*" propagation="REQUIRES_NEW" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 	<tx:advice id="defaultMandatoryWriteTxRollbackAdvice" transaction-manager="txManager">
 		<tx:attributes>
-			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="REPEATABLE_READ" />
+			<tx:method name="*" propagation="MANDATORY" rollback-for="Throwable" isolation="READ_COMMITTED" />
 		</tx:attributes>
 	</tx:advice>
 
@@ -81,17 +71,7 @@
 		<aop:pointcut id="defaultWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultWrites" advice-ref="defaultWriteTxRollbackAdvice" />
-	</aop:config>
-	<aop:config>
-		<aop:pointcut id="readCommittedWrites"
-			expression="@annotation(org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted)" />
-		<aop:advisor pointcut-ref="readCommittedWrites" advice-ref="readCommittedWriteTxRollbackAdvice" />
-	</aop:config>
-	<aop:config>
-		<aop:pointcut id="requiresNewReadCommitted"
-			expression="@annotation(org.sagebionetworks.repo.transactions.RequiresNewReadCommitted)" />
-		<aop:advisor pointcut-ref="requiresNewReadCommitted" advice-ref="requiresNewReadCommittedRollbackAdvice" />
-	</aop:config>			
+	</aop:config>		
 	<aop:config>
 		<aop:pointcut id="defaultNewWrites"
 			expression="@annotation(org.sagebionetworks.repo.transactions.NewWriteTransaction)" />
@@ -99,7 +79,7 @@
 	</aop:config>
 	<aop:config>
 		<aop:pointcut id="defaultMandatoryWrites"
-			expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
+					  expression="@annotation(org.sagebionetworks.repo.transactions.MandatoryWriteTransaction)" />
 		<aop:advisor pointcut-ref="defaultMandatoryWrites" advice-ref="defaultMandatoryWriteTxRollbackAdvice" />
 	</aop:config>
 
@@ -113,20 +93,23 @@
 		class="org.springframework.jdbc.core.JdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
+
+	<!-- By default, the MySQL driver will load the entire result set of a query 
+		into memory. In order to stream over the results without loading them into 
+		memory, the MySQL driver requires the the fetchSize to be set to Integer.MIN_VALUE. 
+		This template is initialized for streaming. 
+		See: https://dev.mysql.com/doc/connector-j/5.1/en/connector-j-reference-implementation-notes.html -->
+	<bean id="streamingJdbcTemplate"
+		class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="dataSourcePool"></constructor-arg>
+		<property name="fetchSize">
+			<util:constant
+				static-field="java.lang.Integer.MIN_VALUE" />
+		</property>
+	</bean>
 	
 	<bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
 		<constructor-arg ref="jdbcTemplate"></constructor-arg>
-	</bean>
-	
-	<!-- By default the MySQL JDBC template will load all ResultsSets into memory 
-		which can cause out-of-memory errors for queries that stream over large results 
-		sets. In order to change this behavior a fetch size of Integer.MIN_VALUE 
-		must be used. However, the default version of JdbcTempalte will not allow 
-		a fetch size less than one. Therefore, we use an overloaded version of JdbcTempalte 
-		that allows a fetch size of of Integer.MIN_VALUE. -->
-	<bean id="streamingJdbcTemplate"
-		class="org.sagebionetworks.spring.transaction.StreamingJdbcTemplate">
-		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
 	
 	<bean id="readCommitedTransactionTemplate"

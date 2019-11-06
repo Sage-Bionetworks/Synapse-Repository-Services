@@ -1,31 +1,23 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
@@ -33,11 +25,10 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,9 +41,6 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
-
-	@Autowired
-	IdGenerator idGenerator;
 
 	@Autowired
 	UserManager userManager;
@@ -68,6 +56,9 @@ public class DockerManagerImpl implements DockerManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
+	StackConfiguration stackConfiguration;
 	
 	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
@@ -106,7 +97,7 @@ public class DockerManagerImpl implements DockerManager {
 		long now = System.currentTimeMillis();
 		String uuid = UUID.randomUUID().toString();
 
-		String token = DockerTokenUtil.createToken(userInfo.getId().toString(), service, accessPermissions, now, uuid);
+		String token = DockerTokenUtil.createDockerAuthorizationToken(userInfo.getId().toString(), service, accessPermissions, now, uuid);
 		DockerAuthorizationToken result = new DockerAuthorizationToken();
 		result.setToken(token);
 		return result;
@@ -118,7 +109,7 @@ public class DockerManagerImpl implements DockerManager {
 	 * Process (push, pull) event notifications from Docker Registry
 	 * @param registryEvents
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void dockerRegistryNotification(DockerRegistryEventList registryEvents) {
 		for (DockerRegistryEvent event : registryEvents.getEvents()) {
@@ -132,7 +123,7 @@ public class DockerManagerImpl implements DockerManager {
 				
 				// need to make sure this is a registry we support
 				String host = event.getRequest().getHost();
-				if (!StackConfiguration.getDockerRegistryHosts().contains(host)) continue;
+				if (!stackConfiguration.getDockerRegistryHosts().contains(host)) continue;
 				// note the user ID was authenticated in the authorization check
 				Long userId = Long.parseLong(event.getActor().getName());
 				// the 'repository path' does not include the registry host or the tag
@@ -162,11 +153,7 @@ public class DockerManagerImpl implements DockerManager {
 					entity.setParentId(parentId);
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
-					// Create a new id for this entity
-					long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
-					entity.setId(KeyFactory.keyToString(newId));
-					entityManager.createEntity(userInfo, entity, null);
-					entityId =  KeyFactory.keyToString(newId);
+					entityId = entityManager.createEntity(userInfo, entity, null);
 					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
 				// Add commit to entity
@@ -193,23 +180,23 @@ public class DockerManagerImpl implements DockerManager {
 			throw new IllegalArgumentException("Commits for managed Docker repositories are created using the Docker client rather than the Synapse client.");
 		}
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		commit.setCreatedOn(new Date());
 		String newEntityEtag = dockerCommitDao.createDockerCommit(entityId, userInfo.getId(), commit);
 		transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY, newEntityEtag, ChangeType.UPDATE);
 	}
 
 	@Override
-	public PaginatedResults<DockerCommit> listDockerCommits(UserInfo userInfo,
+	public PaginatedResults<DockerCommit> listDockerTags(UserInfo userInfo,
 			String entityId, DockerCommitSortBy sortBy, boolean ascending,
 			long limit, long offset) {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(sortBy, "sortBy");
 		AuthorizationStatus authStatus = authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
+		authStatus.checkAuthorizationOrElseThrow();
 		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
 		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
-		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
+		List<DockerCommit> commits = dockerCommitDao.listDockerTags(entityId, sortBy, ascending, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(commits, limit, offset);
 	}
 }

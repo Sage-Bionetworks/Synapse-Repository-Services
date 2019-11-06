@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -77,12 +78,13 @@ public interface TeamService {
 	
 	/**
 	 * 
+	 * @param userId
 	 * @param teamId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public String getIconURL(String teamId) throws DatastoreException, NotFoundException;
+	public String getIconURL(Long userId, String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -117,7 +119,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public boolean addMember(Long userId, String teamId, String principalId, String teamEndpoint, String notificationUnsubscribeEndpoint) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Add a member to a Team, based on a JoinedTeamSignedToken object
@@ -141,7 +143,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

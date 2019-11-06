@@ -10,6 +10,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.RestResourceList;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -55,12 +56,9 @@ public class SchemaManagerImpl implements SchemaManager {
 		// Look up this resource
 		try {
 			JSONEntity entity = serverSideFactory.newInstance(resourceId);
-			return EntityFactory.createEntityFromJSONString(
-					entity.getJSONSchema(), ObjectSchema.class);
+			return SchemaCache.getSchema(entity);
 		} catch (IllegalArgumentException e) {
 			throw new NotFoundException("Could not find a schema for resourceId = " + resourceId, e);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException(e);
 		}
 	}
 
@@ -72,7 +70,9 @@ public class SchemaManagerImpl implements SchemaManager {
 		resourceId = resourceId.replaceAll("\\.", "/");
 		String fileName = "schema/" + resourceId + ".json";
 		InputStream stream = ServerSideOnlyFactory.class.getClassLoader().getResourceAsStream(fileName);
-		if (stream == null) throw new NotFoundException("JSON Schema cannot be found for: "+ fileName);
+		if (stream == null) {
+			throw new NotFoundException("JSON Schema cannot be found for: "+ fileName);
+		}
 		String json;
 		try {
 			json = readStringFromStream(stream);

@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<bean id="bulkDownloadManager" class="org.sagebionetworks.file.worker.BulkDownloadManagerImpl" />
+	<bean id="fileHandleSupport" class="org.sagebionetworks.file.worker.FileHandleSupportImpl" />
 
 	<bean id="fileBulkDownloadMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
@@ -23,8 +23,7 @@
 						class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
@@ -33,11 +32,11 @@
 								<property name="semaphoreLockKey" value="fileBulkDownload" />
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
-								<property name="queueName" ref="stackConfiguration.asyncQueueName[BULK_FILE_DOWNLOAD]"/>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('BULK_FILE_DOWNLOAD')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

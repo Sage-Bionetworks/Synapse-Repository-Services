@@ -17,11 +17,11 @@ import java.util.Map;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -35,10 +35,12 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,10 @@ public class MembershipInvitationManagerImpl implements
 	private SynapseEmailService sesClient;
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private TokenGenerator tokenGenerator;
+	@Autowired
+	private EmailQuarantineDao emailQuarantineDao;
 
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
@@ -87,13 +93,13 @@ public class MembershipInvitationManagerImpl implements
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvitation)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MembershipInvitation create(UserInfo userInfo,
 	                                   MembershipInvitation mi) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		validateForCreate(mi);
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.CREATE).getAuthorized())
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.CREATE).isAuthorized())
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
 		populateCreationFields(userInfo, mi, now);
@@ -117,7 +123,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mi.getTeamId()).getName());
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-				acceptInvitationEndpoint, mi.getInviteeId(), mi.getInviteeId(), mi.getTeamId(), mi.getCreatedOn()));
+				acceptInvitationEndpoint, mi.getInviteeId(), mi.getInviteeId(), mi.getTeamId(), mi.getCreatedOn(), tokenGenerator));
 		if (mi.getMessage()==null || mi.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {
@@ -134,12 +140,15 @@ public class MembershipInvitationManagerImpl implements
 		if (acceptInvitationEndpoint == null) {
 			acceptInvitationEndpoint = ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT;
 		}
+		if (emailQuarantineDao.isQuarantined(mi.getInviteeEmail())) {
+			throw new QuarantinedEmailException("Cannot send membership invitation email to address: " + mi.getInviteeEmail());
+		}
 		String teamName = teamDAO.get(mi.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId()));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId(), tokenGenerator));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mi.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -158,7 +167,7 @@ public class MembershipInvitationManagerImpl implements
 	public MembershipInvitation get(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException {
 		MembershipInvitation mi = membershipInvitationDAO.get(id);
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.READ).getAuthorized())
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.READ).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitation.");
 		return mi;
 	}
@@ -166,16 +175,14 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MembershipInvitation get(String miId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		status.checkAuthorizationOrElseThrow();
 		return membershipInvitationDAO.get(miId);
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#delete(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -185,7 +192,7 @@ public class MembershipInvitationManagerImpl implements
 		} catch (NotFoundException e) {
 			return;
 		}
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.DELETE).getAuthorized()) {
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.DELETE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete membership invitation.");
 		}
 		membershipInvitationDAO.delete(id);
@@ -236,17 +243,15 @@ public class MembershipInvitationManagerImpl implements
 		response.setInviteeId(userId.toString());
 		response.setMembershipInvitationId(membershipInvitationId);
 		response.setExpiresOn(new Date(new Date().getTime() + TWENTY_FOUR_HOURS_IN_MS));
-		SignedTokenUtil.signToken(response);
+		tokenGenerator.signToken(response);
 		return response;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void updateInviteeId(Long userId, String miId, InviteeVerificationSignedToken token) {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE);
-		if (!status.getAuthorized()) {
-			throw new UnauthorizedException(status.getReason());
-		}
+		status.checkAuthorizationOrElseThrow();
 		if (!miId.equals(token.getMembershipInvitationId())) {
 			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
 		}
@@ -285,7 +290,7 @@ public class MembershipInvitationManagerImpl implements
 	public PaginatedResults<MembershipInvitation> getOpenSubmissionsForTeamInRange(
 			UserInfo userInfo, String teamId, long limit, long offset) throws NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
@@ -302,7 +307,7 @@ public class MembershipInvitationManagerImpl implements
 			UserInfo userInfo, String inviteeId, String teamId, long limit,
 			long offset) throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).isAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);

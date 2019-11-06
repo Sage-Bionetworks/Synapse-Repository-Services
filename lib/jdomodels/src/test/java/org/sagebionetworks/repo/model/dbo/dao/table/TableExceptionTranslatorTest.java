@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
@@ -15,14 +15,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
-import com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TableExceptionTranslatorTest {
@@ -60,7 +59,7 @@ public class TableExceptionTranslatorTest {
 		
 		task = "PreparedStatementCallback";
 		sql = "SELECT _C36450_, _C36451_, _C36452_, _C36453_, ROW_ID, ROW_VERSION FROM T3079449 WHERE parentld = Clinical_Data LIMIT ? OFFSET ?";
-		MySQLSyntaxErrorException syntaxException = new MySQLSyntaxErrorException("Unknown column '_C123_' in 'where clause'");
+		SQLException syntaxException = new SQLException("Unknown column '_C123_' in 'where clause'");
 		badSqlException = new BadSqlGrammarException(task, sql, syntaxException);
 	}
 	

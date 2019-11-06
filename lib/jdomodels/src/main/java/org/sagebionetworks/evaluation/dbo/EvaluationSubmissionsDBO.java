@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -45,19 +46,7 @@ public class EvaluationSubmissionsDBO implements MigratableDatabaseObject<Evalua
 
 	@Override
 	public MigratableTableTranslation<EvaluationSubmissionsDBO, EvaluationSubmissionsDBO> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<EvaluationSubmissionsDBO, EvaluationSubmissionsDBO>() {
-
-			@Override
-			public EvaluationSubmissionsDBO createDatabaseObjectFromBackup(EvaluationSubmissionsDBO backup) {
-				return backup;
-			}
-
-			@Override
-			public EvaluationSubmissionsDBO createBackupFromDatabaseObject(EvaluationSubmissionsDBO dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<EvaluationSubmissionsDBO>();
 	}
 
 	@Override

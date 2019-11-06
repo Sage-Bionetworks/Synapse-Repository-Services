@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -15,35 +14,31 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	 * Update the query tables with any Annotations included in the created Evaluation's SubmissionStatuses.
 	 * 
 	 * @param evalId
-	 * @param submissionsEtag
-	 * 
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws JSONObjectAdapterException
 	 */
-	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+	public void createEvaluationSubmissionStatuses(String evalId)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Update the query tables with any Annotations included in the updated Evaluation's SubmissionStatuses.
 	 * 
 	 * @param evalId
-	 * @param submissionsEtag
 	 * @return
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException 
 	 * @throws DatastoreException 
 	 */
-	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+	public void updateEvaluationSubmissionStatuses(String evalId)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Delete all entries in the query tables for the deleted Evaluation.
 	 * 
 	 * @param evalId
-	 * @param submissionsEtag
 	 * @return
 	 */
-	public void deleteEvaluationSubmissionStatuses(String evalId, String submissionsEtag);
+	public void deleteEvaluationSubmissionStatuses(String evalId);
 
 }

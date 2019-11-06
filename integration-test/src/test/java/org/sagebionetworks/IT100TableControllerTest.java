@@ -22,7 +22,6 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -34,12 +33,16 @@ import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.client.exceptions.UnknownSynapseServerException;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -47,6 +50,8 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -56,14 +61,18 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -91,13 +100,11 @@ public class IT100TableControllerTest {
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(new StackConfiguration().getTableEnabled());
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -188,6 +195,12 @@ public class IT100TableControllerTest {
 		// now create a table entity
 		TableEntity table = createTable(Lists.newArrayList(one.getId(), two.getId()));
 		String tableId = table.getId();
+		
+		// Set the table's type to sensitive (add with PLFM-5240)
+		DataType dataType = DataType.SENSITIVE_DATA;
+		DataTypeResponse typeResponse = synapse.changeEntitysDataType(tableId, dataType);
+		assertNotNull(typeResponse);
+		assertEquals(dataType, typeResponse.getDataType());
 		
 		assertNotNull(table);
 		assertNotNull(table.getId());
@@ -513,7 +526,20 @@ public class IT100TableControllerTest {
 	
 	@Test
 	public void testgetDefaultColumnsForView() throws SynapseException{
+		// test for the deprecated method.
 		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(ViewType.file);
+		assertNotNull(defaults);
+		assertTrue(defaults.size() > 1);
+		ColumnModel cm = defaults.get(0);
+		assertNotNull(cm);
+		assertNotNull(cm.getName());
+		assertNotNull(cm.getId());
+	}
+	
+	@Test
+	public void testgetDefaultColumnsForViewTypeMask() throws SynapseException{
+		Long mask = ViewTypeMask.File.getMask();
+		List<ColumnModel> defaults = synapse.getDefaultColumnsForView(mask);
 		assertNotNull(defaults);
 		assertTrue(defaults.size() > 1);
 		ColumnModel cm = defaults.get(0);
@@ -665,7 +691,7 @@ public class IT100TableControllerTest {
 		
 		try {
 			synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT, table.getId());
-		} catch (SynapseServerException e) {
+		} catch (UnknownSynapseServerException e) {
 			// this should result in a 413 "Payload Too Large"
 			assertEquals(413, e.getStatusCode());
 		}
@@ -673,7 +699,7 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void testQueryAsync() throws Exception {
-		int columnCount = 20;
+		int columnCount = 16;
 		int stringSize = 1000;
 		int rowsNeeded = 40;
 
@@ -719,7 +745,7 @@ public class IT100TableControllerTest {
 			}
 		});
 		
-		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
+		assertTrue(result.getMaxRowsPerPage().intValue() >= result.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(rowsNeeded, result.getQueryCount().intValue());
 		assertNotNull(result.getQueryResult().getNextPageToken());
 		
@@ -774,6 +800,34 @@ public class IT100TableControllerTest {
 		assertEquals(Lists.newArrayList(cm), response.getSchema());
 	}
 	
+	@Test
+	public void testCreateTableSnapshot() throws SynapseException {
+		ColumnModel cm = new ColumnModel();
+		cm.setName("aString");
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(100L);
+		cm = synapse.createColumnModel(cm);
+		
+		// create a table
+		TableEntity table = createTable(Lists.newArrayList(cm.getId()), synapse);
+		
+		SnapshotRequest request = new SnapshotRequest();
+		request.setSnapshotLabel("snapshot label");
+		request.setSnapshotComment("snapshot comment");
+		// call under test
+		SnapshotResponse response = synapse.createTableSnapshot(table.getId(), request);
+		assertNotNull(response);
+		assertNotNull(response.getSnapshotVersionNumber());
+		
+		Entity version = synapse.getEntityByIdForVersion(table.getId(), response.getSnapshotVersionNumber());
+		assertNotNull(version);
+		assertTrue(version instanceof TableEntity);
+		TableEntity tableVersion = (TableEntity) version;
+		assertEquals(request.getSnapshotLabel(), tableVersion.getVersionLabel());
+		assertEquals(request.getSnapshotComment(), tableVersion.getVersionComment());
+	}
+	
+	
 	@Test (timeout=60000)
 	public void testGetPossibleColumnModelsForViewScope() throws Exception {
 		// Create a project to contain it all
@@ -786,24 +840,38 @@ public class IT100TableControllerTest {
 		folder.setName(UUID.randomUUID().toString());
 		folder.setParentId(project.getId());
 		folder = synapse.createEntity(folder);
-		Annotations annos = synapse.getAnnotations(folder.getId());
-		annos.addAnnotation("keyA", "someValue");
-		annos.addAnnotation("keyB", "123456");
-		annos.addAnnotation("keyC", "45678");
-		synapse.updateAnnotations(folder.getId(), annos);
+		Annotations annos = synapse.getAnnotationsV2(folder.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder.getId(), annos);
 		
-		// Now find the columns for this scope
+		// Now find the columns for this scope with mask
 		ViewScope scope = new ViewScope();
 		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		String nextPageToken = null;
 		ColumnModelPage page = waitForColumnModelPage(scope, nextPageToken, 3);
 		assertNotNull(page);
 		assertNotNull(page.getResults());
 		assertNull(page.getNextPageToken());
-		assertEquals(4, page.getResults().size());
+		assertEquals(3, page.getResults().size());
+		
+		// find the scope with the old type
+		// Now find the columns for this scope
+		scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewType(ViewType.file);
+		nextPageToken = null;
+		page = waitForColumnModelPage(scope, nextPageToken, 3);
+		assertNotNull(page);
+		assertNotNull(page.getResults());
+		assertNull(page.getNextPageToken());
+		assertEquals(3, page.getResults().size());
+		
 		// make another call with a next page token.
 		long limit = 1;
-		long offset = 2;
+		long offset = 1;
 		nextPageToken = new NextPageToken(limit, offset).toToken();
 		page = waitForColumnModelPage(scope, nextPageToken, 1);
 		assertNotNull(page);
@@ -812,6 +880,25 @@ public class IT100TableControllerTest {
 		assertEquals(1, page.getResults().size());
 		ColumnModel cm = page.getResults().get(0);
 		assertEquals("keyB", cm.getName());
+	}
+	
+	@Test
+	public void tesSqlTransformRequest() throws SynapseException {
+		TransformSqlWithFacetsRequest request = new TransformSqlWithFacetsRequest();
+		request.setSqlToTransform("select * from syn123");
+		FacetColumnRangeRequest facet = new FacetColumnRangeRequest();
+		facet.setColumnName("foo");
+		facet.setMax("100");
+		facet.setMin("0");
+		request.setSelectedFacets(Lists.newArrayList(facet));
+		ColumnModel column = new ColumnModel();
+		column.setName("foo");
+		column.setFacetType(FacetType.range);
+		column.setColumnType(ColumnType.INTEGER);
+		request.setSchema(Lists.newArrayList(column));
+		// Call under test
+		String resultSql = synapse.transformSqlRequest(request);
+		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

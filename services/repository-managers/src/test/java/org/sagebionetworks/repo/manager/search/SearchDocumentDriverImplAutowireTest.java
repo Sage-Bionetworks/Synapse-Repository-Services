@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,25 +21,26 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
@@ -56,8 +57,6 @@ import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * @author deflaux
@@ -84,7 +83,7 @@ public class SearchDocumentDriverImplAutowireTest {
 	@Autowired
 	FileHandleDao fileMetadataDao;	
 	@Autowired
-	AmazonS3Client s3Client;
+	SynapseS3Client s3Client;
 	
 	private UserInfo adminUserInfo;
 	private Project project;
@@ -187,29 +186,16 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("species", "Dragon");
-		primaryAnnos.addAnnotation("numSamples", 999L);
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("Species", "Unicorn");
-		additionalAnnos
-				.addAnnotation("stringKey",
-						"a multi-word annotation gets underscores so we can exact-match find it");
-		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("number_of_samples", "42");
-		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
-		additionalAnnos.addAnnotation("platform", "synapse");
+		Annotations additionalAnnos = new Annotations();
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "stringKey",
+						"a multi-word annotation gets underscores so we can exact-match find it", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "longKey", "10", AnnotationsValueType.LONG);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "tissue", "ear lobe", AnnotationsValueType.STRING);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "consortium", "C O N S O R T I U M", AnnotationsValueType.STRING);
 		// PLFM-4438
-		additionalAnnos.addAnnotation("disease", 1L);
-		Date dateValue = new Date();
-		additionalAnnos.addAnnotation("dateKey", dateValue);
-		additionalAnnos
-				.addAnnotation("blobKey", new String("bytes").getBytes());
-		Reference ref = new Reference();
-		ref.setTargetId("123");
-		ref.setTargetVersionNumber(1L);
-		node.setReference(ref);
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "diagnosis", "1", AnnotationsValueType.LONG);
+		String dateValue = Long.toString(System.currentTimeMillis());
+		AnnotationsV2TestUtils.putAnnotations(additionalAnnos, "dateKey", dateValue, AnnotationsValueType.TIMESTAMP_MS);
 		
 		String wikiPageText = "title\nmarkdown";
 
@@ -237,14 +223,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, fakeEntityPath, wikiPageText);
+				additionalAnnos, acl, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals(node.getId(), document.getId());
 
 		DocumentFields fields = document.getFields();
 
 		// Check entity property fields
-		assertEquals(node.getId(), fields.getId());
 		assertEquals(node.getETag(), fields.getEtag());
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
@@ -260,26 +245,14 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(new Long(node.getModifiedOn().getTime() / 1000), fields
 				.getModified_on());
 
-		// Check boost field
-		assertTrue(fields.getBoost().contains(node.getId()));
-		assertTrue(fields.getBoost().contains(node.getName()));
-
 		// Check the faceted fields
-		assertEquals(2, fields.getNum_samples().size());
-		assertTrue(fields.getNum_samples().contains(new Long(42)));
-		assertTrue(fields.getNum_samples().contains(new Long(999L)));
-		assertEquals(2, fields.getSpecies().size());
-		assertEquals("Dragon", fields.getSpecies().get(0));
-		assertEquals("Unicorn", fields.getSpecies().get(1));
-		assertEquals("ear lobe", fields.getTissue().get(0));
-		assertEquals("synapse", fields.getPlatform().get(0));
+		assertNull(fields.getOrgan());
+		assertEquals("ear lobe", fields.getTissue());
+		assertEquals("C O N S O R T I U M", fields.getConsortium());
 
 		// Check ACL fields
 		assertEquals(2, fields.getAcl().size());
 		assertEquals(1, fields.getUpdate_acl().size());
-
-		assertNotNull(fields.getReferences());
-		assertEquals(1, fields.getReferences().size());
 	}
 
 	private EntityPath createFakeEntityPath() {
@@ -297,40 +270,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		EntityPath fakeEntityPath = new EntityPath();
 		fakeEntityPath.setPath(fakePath);
 		return fakeEntityPath;
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testCleanOutControlCharacters() throws Exception {
-		// Cloud Search cannot handle control characters, strip them out of the
-		// search document
-		Node node = new Node();
-		node.setId("5678");
-		node.setParentId("1234");
-		node.setETag("0");
-		node.setNodeType(EntityType.folder);
-		Long nonexistantPrincipalId = 42L;
-		node.setCreatedByPrincipalId(nonexistantPrincipalId);
-		node.setCreatedOn(new Date());
-		node.setModifiedByPrincipalId(nonexistantPrincipalId);
-		node.setModifiedOn(new Date());
-		NamedAnnotations named = new NamedAnnotations();
-		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("stringKey", "a");
-		primaryAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		additionalAnnos.addAnnotation("stringKey", "a");
-		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(resourceAccess);
-		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				named, acl, new EntityPath(), null);
-		byte[] cloudSearchDocument = SearchDocumentDriverImpl
-				.cleanSearchDocument(document);
-		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
 	}
 	
 	@Test
@@ -357,15 +296,12 @@ public class SearchDocumentDriverImplAutowireTest {
 
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
-		FileInputStream stream = new FileInputStream(file);
-		try {
+		try (FileInputStream stream = new FileInputStream(file)) {
 			FileChannel fc = stream.getChannel();
 			MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc
 					.size());
 			/* Instead of using default, pass in a decoder. */
 			return Charset.forName("UTF-8").decode(bb).toString();
-		} finally {
-			stream.close();
 		}
 	}
 

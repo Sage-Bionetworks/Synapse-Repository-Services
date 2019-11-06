@@ -3,8 +3,10 @@ package org.sagebionetworks.upload.discussion;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -16,9 +18,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -28,7 +30,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 public class UploadContentToS3DAOImplTest {
 
 	@Mock
-	private AmazonS3Client mockS3Client;
+	private SynapseS3Client mockS3Client;
 	@Mock
 	private S3Object mockS3Object;
 	@Mock
@@ -50,7 +52,6 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadThreadMessage() throws Exception {
 		dao.initialize();
-		verify(mockS3Client).createBucket(Mockito.anyString());
 		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";
@@ -68,7 +69,6 @@ public class UploadContentToS3DAOImplTest {
 	@Test
 	public void testUploadReplyMessage() throws Exception {
 		dao.initialize();
-		verify(mockS3Client).createBucket(Mockito.anyString());
 		verify(mockS3Client).setBucketCrossOriginConfiguration(Mockito.anyString(), (BucketCrossOriginConfiguration) Mockito.any());
 
 		String content = "this is a message";

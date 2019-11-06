@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Membership Request Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class MembershipRequestController extends BaseController {
+public class MembershipRequestController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
@@ -69,7 +69,19 @@ public class MembershipRequestController extends BaseController {
 	/**
 	 * Retrieve the open requests submitted to a Team, optionally filtering by the requester.
 	 * An request is only open if it has not expired and if the requester has not been added the Team.
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>40 calls per minute</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param id Team ID
 	 * @param userId
 	 * @param requestorId the ID of the user requesting admission to the Team

@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -28,7 +27,10 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
+import org.sagebionetworks.repo.model.table.SqlTransformResponse;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -40,12 +42,14 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -60,11 +64,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * A Synapse <a
- * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
+ * A Synapse
+ * <a href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
  * model object represents the metadata of a table. Each TableEntity is defined
- * by a list of <a
- * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
+ * by a list of
+ * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
  * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
  * objects. Each ColumnModel object is immutable, so to change a column of a
  * table a new column must be added and the old column must be removed.
@@ -86,40 +90,115 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * 
  * Once the columns for a TableEntity have been created and assigned to the
- * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>. 
- * Each <a href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
+ * TableEntity, rows can be added to the table using
+ * <a href="${POST.entity.id.table.transaction.async.start}">POST
+ * /entity/{id}/table/transaction/async/start</a>. Each
+ * <a href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
  * table will automatically be assigned a rowId and a versionNumber and can be
- * found in the resulting <a
- * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
+ * found in the resulting
+ * <a href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
  * >RowReferenceSet</a>. To update a row, simply include the row's rowId in the
  * passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>.
  * Any row without a rowId will be treated as a new row. When a row is updated a
  * new versionNumber will automatically be assigned the Row. While previous
  * versions of any row are kept, only the current version of any row will appear
- * in the table index used to support the query service: <a
- * href="${POST.entity.id.table.query.async.start}">POST /entity/{id}/table/query/async/start</a> </p>
- * <p>
- * Use the <a href="${POST.entity.id.table.query.async.start}">POST
- * /entity/{id}/table/query/async/start</a> services to query for the current rows of a
- * table. The returned <a
- * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
- * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>.
+ * in the table index used to support the query service:
+ * <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a>
  * </p>
  * <p>
- * There is also an <a
- * href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}"
- * >asynchronous service</a> to <a
- * href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}"
- * >upload</a> and <a
- * href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}"
+ * Use the <a href="${POST.entity.id.table.query.async.start}">POST
+ * /entity/{id}/table/query/async/start</a> services to query for the current
+ * rows of a table. The returned
+ * <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the
+ * table query can be modified and returned to update the rows of a table using
+ * <a href="${POST.entity.id.table.transaction.async.start}">POST
+ * /entity/{id}/table/transaction/async/start</a>.
+ * </p>
+ * <p>
+ * There is also an <a href=
+ * "${org.sagebionetworks.repo.web.controller.AsynchronousJobController}"
+ * >asynchronous service</a> to
+ * <a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}"
+ * >upload</a> and
+ * <a href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}"
  * >download</a> csv files, suitable for large datasets.
+ * </p>
+ * <p>
+ * <b>Table Service Limits</b>
+ * <table border="1">
+ * <tr>
+ * <th>resource</th>
+ * <th>limit</th>
+ * <th>notes</th>
+ * </tr>
+ * <tr>
+ * <td>Maximum size of column names</td>
+ * <td>256 characters</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of enumeration values for a single column</td>
+ * <td>100</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of columns per table/view</td>
+ * <td>152</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>The maximum possible width of a table/view</td>
+ * <td>64 KB</td>
+ * <td>Each
+ * <a href="${org.sagebionetworks.repo.model.table.ColumnType}" >ColumnType</a>
+ * has a maximum possible size. The total width of a table/view is the sum of
+ * the maximum size of each of its columns</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of LARG_TEXT columns per table/view</td>
+ * <td>30</td>
+ * <td></td>
+ * </tr>
+ * <td>Maximum table size</td>
+ * <td>~146 GB</td>
+ * <td>All row changes applied to a table are automatically batched into changes
+ * sets with a maximum size of 5242880 bytes (5 MB). Currently, there is a limit
+ * of 30,000 change sets per table. Therefore, the theoretical maximum size of
+ * table is 5242880 bytes * 30,000 = ~ 146 GB.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of projects/folder per view scope</td>
+ * <td>10 K</td>
+ * <td>Recursive sub-folders count towards this limit. For example, if a project
+ * contains more than 10 K sub-folders then it cannot be included in a view's
+ * scope.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum number of rows per view</td>
+ * <td>100 M</td>
+ * <td>A single folder cannot contain more then 10 K files/folders. Since a
+ * view's scope is limited to 10 K project/folders, the maximum number of rows
+ * per view is 10 K * 10 K = 100 M.</td>
+ * </tr>
+ * <tr>
+ * <td>The maximum file size of a CSV that can be appended to a table</td>
+ * <td>1 GB</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>The maximum size of a single query result</td>
+ * <td>512000 bytes</td>
+ * <td></td>
+ * </tr>
+ * </table>
+ * 
+ * 
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class TableController extends BaseController {
+public class TableController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -220,7 +299,19 @@ public class TableController extends BaseController {
 	 * >TableEntity</a>, get its list of <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
 	 * >ColumnModels</a> that are currently assigned to the table.
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>6 calls per minute</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to get the ColumnModels for.
@@ -278,27 +369,55 @@ public class TableController extends BaseController {
 	}
 	
 	/**
-	 * Get the list of default <a
-	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
-	 * </a> that are available for a <a
-	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
-	 * </a>.
+	 * Get the list of default
+	 * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
+	 * </a> that are available based on the types included in the view.
 	 * 
-	 * @param viewtype Must be a value from <a
-	 * href="${org.sagebionetworks.repo.model.table.ViewType}">ViewType
-	 * </a> enumeration.
+	 * @param viewtype
+	 *            Deprecated. Use: 'viewTypeMask'. Must be a value from <a href=
+	 *            "${org.sagebionetworks.repo.model.table.ViewType}">ViewType </a>
+	 *            enumeration. 
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 *  
+	 */
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT_TYPE, method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
+			@PathVariable String viewtype)
+			throws DatastoreException, NotFoundException {
+		ViewType type = ViewType.valueOf(viewtype);
+		Long viewTypeMaks = ViewTypeMask.getMaskForDepricatedType(type);
+		List<ColumnModel> results = serviceProvider.getTableServices()
+				.getDefaultViewColumnsForType(viewTypeMaks);
+		return ListWrapper.wrap(results, ColumnModel.class);
+	}
+	
+	/**
+	 * Get the list of default
+	 * <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels
+	 * </a> for the given viewTypeMask.
+	 * 
+	 * @param viewTypeMask
+	 *            Bit mask representing the types to include in the view. The
+	 *            following are the possible types (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+	 * 
 	 * @return -
 	 * @throws DatastoreException
 	 *             - Synapse error.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_IVEW, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.COLUMN_TABLE_VIEW_DEFAULT, method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<ColumnModel> getDefaultColumnsForViewType(
-			@PathVariable String viewtype)
+			@RequestParam(value = "viewTypeMask") Long viewTypeMask)
 			throws DatastoreException, NotFoundException {
 		List<ColumnModel> results = serviceProvider.getTableServices()
-				.getDefaultViewColumnsForType(ViewType.valueOf(viewtype));
+				.getDefaultViewColumnsForType(viewTypeMask);
 		return ListWrapper.wrap(results, ColumnModel.class);
 	}
 	
@@ -311,7 +430,23 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a PartialRow change </td>
+	 * <td>2 MB</td>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a CSV that can be appended to a table</td>
+	 * <td>1 GB</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to update.
@@ -543,7 +678,19 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param userId
 	 * @param id
 	 *            The ID of the TableEntity to append rows to.
@@ -695,17 +842,20 @@ public class TableController extends BaseController {
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * any desired part. As of this writing, the mask is defined as follows (see <a href="${org.sagebionetworks.repo.model.table.QueryBundleRequest}">QueryBundleRequest</a>):
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
 	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
 	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * <li>The Table Columns <i>(columnModels)</i> = 0x10</li>
+	 * <li>Facet statistics for each faceted column <i>(facetStatistics)</i> = 0x20</li>
+	 * <li>The sum of the file sizes <i>(sumFileSizesBytes)</i> = 0x40</li>
 	 * </ul>
 	 * </p>
 	 * <p>
 	 * For example, to request all parts, the request mask value should be: <br>
-	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0xF.
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 OR 0x10 OR 0x20 OR 0x40 = 0x7F.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a
@@ -808,6 +958,7 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -847,6 +998,7 @@ public class TableController extends BaseController {
 	 * @throws AsynchJobFailedException
 	 * @throws NotReadyException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1035,13 +1187,27 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a csv upload. Use the returned job id and <a
-	 * href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
+	 * <p>
+	 * Asynchronously start a csv upload. Use the returned job id and
+	 * <a href="${GET.entity.id.table.upload.csv.async.get.asyncToken}">GET
 	 * /entity/{id}/table/upload/csv/async/get</a> to get the results of the query
+	 * </p>
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum size of a CSV that can be appended to a table</td>
+	 * <td>1 GB</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity.
+	 * @param id            The ID of the TableEntity.
 	 * @param uploadRequest
 	 * @return
 	 * @throws DatastoreException
@@ -1123,11 +1289,55 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	ColumnModelPage getPossibleColumnModelsForView(
 			@RequestBody ViewScope viewScope,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		ValidateArgument.required(viewScope, "viewScope");
 		return serviceProvider.getTableServices()
-				.getPossibleColumnModelsForScopeIds(viewScope.getScope(), viewScope.getViewType(),
+				.getPossibleColumnModelsForScopeIds(viewScope,
 						nextPageToken);
 	}
 
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a <a href=
+	 * "${org.sagebionetworks.repo.model.table.TransformSqlWithFacetsRequest}"
+	 * >TransformSqlWithFacetsRequest</a> can be used to alter the where clause
+	 * of the provided SQL based on the provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws ParseException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_SQL_TRANSFORM, method = RequestMethod.POST)
+	public @ResponseBody SqlTransformResponse transformSqlRequest(@RequestBody SqlTransformRequest request) throws ParseException {
+		return serviceProvider.getTableServices().transformSqlRequest(request);
+	}
+	
+	/**
+	 * Request to create a new snapshot of a table. The provided comment, label, and
+	 * activity ID will be applied to the current version thereby creating a
+	 * snapshot and locking the current version. After the snapshot is created a new
+	 * version will be started with an 'in-progress' label.
+	 * <p>
+	 * NOTE: This service is for
+	 * <a href= "${org.sagebionetworks.repo.model.table.TableEntity}"
+	 * >TableEntities</a> only. Snapshots of
+	 * <a href= "${org.sagebionetworks.repo.model.table.EntityView}"
+	 * >EntityViews</a> require asynchronous processing and can be created via:
+	 * <a href="${POST.entity.id.table.transaction.async.start}">POST
+	 * /entity/{id}/table/transaction/async/start</a>
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_SNAPSHOT, method = RequestMethod.POST)
+	public @ResponseBody SnapshotResponse createSnapshot(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestBody SnapshotRequest request) {
+		return serviceProvider.getTableServices().createTableSnapshot(userId, id, request);
+	}
 }

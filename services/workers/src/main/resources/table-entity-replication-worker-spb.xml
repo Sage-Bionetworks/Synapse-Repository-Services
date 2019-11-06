@@ -21,8 +21,7 @@
 						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
 						<constructor-arg index="0" ref="countingSemaphore" />
 						<constructor-arg index="1" ref="awsSQSClient" />
-						<constructor-arg index="2" ref="awsSNSClient" />
-						<constructor-arg index="3">
+						<constructor-arg index="2">
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
@@ -31,20 +30,11 @@
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
-								<property name="queueName" ref="stackConfiguration.workerQueueName[TableEntityReplicationWorker]"/>
-								<property name="topicNamesToSubscribe">
-									<list>
-										<ref
-											bean="stackConfiguration.repositoryChangeTopic[ENTITY]" />
-									</list>
-								</property>
+								<property name="queueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}"/>
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
-								<property name="deadLetterQueueName"
-									ref="stackConfiguration.workerQueueName[TableEntityReplicationWorkerDeadLetter]" />
-								<property name="deadLetterMaxFailureCount" value="100" />
-								<property name="useProgressHeartbeat" value="true"/>
+
 							</bean>
 						</constructor-arg>
 					</bean>

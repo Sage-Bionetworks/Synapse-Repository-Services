@@ -10,8 +10,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
+import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
@@ -41,9 +41,9 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	
 	@Autowired
 	Clock clock;
-
-	private String instancePrefix = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
-	private String stack = StackConfiguration.singleton().getStack();
+	
+	@Autowired
+	StackConfiguration stackConfiguration;
 
 	/**
 	 * This is called before a controller runs.
@@ -72,8 +72,8 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setXForwardedFor(IpAddressUtil.getIpAddress(request));
 		data.setVia(request.getHeader("Via"));
 		data.setDate(KeyGeneratorUtil.getDateString(data.getTimestamp()));
-		data.setStack(this.stack);
-		data.setInstance(this.instancePrefix);
+		data.setStack(stackConfiguration.getStack());
+		data.setInstance(KeyGeneratorUtil.getInstancePrefix(stackConfiguration.getStackInstanceNumber()));
 		data.setVmId(VirtualMachineIdProvider.getVMID());
 		data.setQueryString(request.getQueryString());
 		// push the session id to the logging thread context

@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_VIEW_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_VIEW_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DISCUSSION_THREAD_VIEW;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_VIEW;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,6 +12,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -116,20 +120,7 @@ public class DBODiscussionThreadView implements MigratableDatabaseObject<DBODisc
 
 	@Override
 	public MigratableTableTranslation<DBODiscussionThreadView, DBODiscussionThreadView> getTranslator() {
-		return new MigratableTableTranslation<DBODiscussionThreadView, DBODiscussionThreadView>() {
-
-			@Override
-			public DBODiscussionThreadView createDatabaseObjectFromBackup(
-					DBODiscussionThreadView backup) {
-				return backup;
-			}
-
-			@Override
-			public DBODiscussionThreadView createBackupFromDatabaseObject(
-					DBODiscussionThreadView dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBODiscussionThreadView>();
 	}
 
 	@Override

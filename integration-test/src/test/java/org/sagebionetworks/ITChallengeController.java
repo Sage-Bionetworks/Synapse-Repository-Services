@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 
 public class ITChallengeController {
 
@@ -54,8 +55,8 @@ public class ITChallengeController {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		
 		adminUserId = adminSynapse.getMyProfile().getOwnerId();
 		
@@ -92,7 +93,7 @@ public class ITChallengeController {
 		// Note:  since the 'admin' user is the one who created the 
 		// team, he's the only one in that team initially
 		PaginatedResults<TeamMember> initialMembers = 
-				synapse.getTeamMembers(participantTeam.getId(), null, 50L, 0L);
+				synapse.getTeamMembers(participantTeam.getId(), null, TeamMemberTypeFilterOptions.ALL,50L, 0L);
 		assertEquals(1L, initialMembers.getTotalNumberOfResults());
 		assertEquals(adminUserId, initialMembers.getResults().get(0).getMember().getOwnerId());
 	}

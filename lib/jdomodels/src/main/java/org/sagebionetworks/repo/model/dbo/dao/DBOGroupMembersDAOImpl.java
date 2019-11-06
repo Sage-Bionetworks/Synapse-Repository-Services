@@ -64,6 +64,12 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" AND ug."+SqlConstants.COL_USER_GROUP_ID+"="+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 	
+	private static final String SELECT_GROUPS_FOR_USER = 
+			"SELECT "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+
+			" FROM "+SqlConstants.TABLE_GROUP_MEMBERS+
+			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
+			" AND "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+" in (:"+GROUP_ID_PARAM_NAME+")";
+	
 	private static final String SELECT_DIRECT_PARENTS_OF_GROUP = 
 			"SELECT ug.* FROM "+SqlConstants.TABLE_USER_GROUP+" ug"+
 			" INNER JOIN "+SqlConstants.TABLE_GROUP_MEMBERS+
@@ -121,6 +127,16 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		UserGroupUtils.copyDboToDto(dbos, members);
 		return members;
+	}
+	
+	@Override
+	public List<String> filterUserGroups(String principalId, List<String> groupIds) {
+		ValidateArgument.required(principalId, "userId");
+		if (groupIds==null || groupIds.isEmpty()) return Collections.emptyList();
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
+		param.addValue(GROUP_ID_PARAM_NAME, groupIds);
+		return namedJdbcTemplate.queryForList(SELECT_GROUPS_FOR_USER, param, String.class);
 	}
 
 	@WriteTransaction
@@ -260,12 +276,25 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		Integer count = namedJdbcTemplate.queryForObject(SQL_COUNT_MEMBERS, params, Integer.class);
 		return count.equals(userIds.size());
 	}
+	
+	@Override
+	public Set<Long> getMemberIdsForUpdate(Long teamId) {
+		return getMemberIds(teamId, true);
+	}
 
 	@Override
 	public Set<Long> getMemberIds(Long teamId) {
+		return getMemberIds(teamId, false);
+	}
+	
+	private Set<Long> getMemberIds(Long teamId, boolean forUpdate) {
 		ValidateArgument.required(teamId, "teamId");
 		final HashSet<Long> results = new HashSet<Long>();
-		jdbcTemplate.query(SELECT_MEMBER_IDS, new RowCallbackHandler(){
+		StringBuilder sql = new StringBuilder(SELECT_MEMBER_IDS);
+		if (forUpdate) {
+			sql.append(" FOR UPDATE");
+		}
+		jdbcTemplate.query(sql.toString(), new RowCallbackHandler(){
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				results.add(rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));

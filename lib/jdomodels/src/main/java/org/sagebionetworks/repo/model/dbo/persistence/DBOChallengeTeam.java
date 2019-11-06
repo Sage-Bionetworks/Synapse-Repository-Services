@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_CHALLENGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_TEAM_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -64,18 +65,7 @@ public class DBOChallengeTeam implements MigratableDatabaseObject<DBOChallengeTe
 	@Override
 	public MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOChallengeTeam, DBOChallengeTeam>(){
-
-			@Override
-			public DBOChallengeTeam createDatabaseObjectFromBackup(
-					DBOChallengeTeam backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOChallengeTeam createBackupFromDatabaseObject(DBOChallengeTeam dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOChallengeTeam>();
 	}
 
 

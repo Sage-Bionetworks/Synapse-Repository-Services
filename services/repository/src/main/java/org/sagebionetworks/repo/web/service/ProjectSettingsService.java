@@ -13,8 +13,7 @@ public interface ProjectSettingsService {
 
 	ProjectSetting getProjectSetting(Long userId, String id) throws DatastoreException, NotFoundException;
 
-	ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, ProjectSettingsType type) throws DatastoreException,
-			NotFoundException;
+	ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, ProjectSettingsType type) throws DatastoreException;
 
 	ProjectSetting createProjectSetting(Long userId, ProjectSetting projectSetting) throws DatastoreException, NotFoundException;
 
@@ -25,6 +24,7 @@ public interface ProjectSettingsService {
 	StorageLocationSetting createStorageLocationSetting(Long userId, StorageLocationSetting storageLocationSetting)
 			throws DatastoreException, NotFoundException, IOException;
 
+	@Deprecated
 	List<StorageLocationSetting> getMyStorageLocations(Long userId) throws DatastoreException, NotFoundException;
 
 	StorageLocationSetting getMyStorageLocation(Long userId, Long storageLocationId) throws DatastoreException, NotFoundException;

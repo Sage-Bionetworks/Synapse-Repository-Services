@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Before;
@@ -31,6 +30,7 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -86,7 +86,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.create(challenge)).thenReturn(created);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		assertEquals(created, challengeManager.createChallenge(USER_INFO, challenge));
 		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
@@ -98,7 +98,7 @@ public class ChallengeManagerImplTest {
 		Challenge challenge = newChallenge();
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.createChallenge(USER_INFO, challenge);
 	}
 	
@@ -109,7 +109,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.get(111)).thenReturn(created);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		assertEquals(created, challengeManager.getChallenge(USER_INFO, 111L));
 		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
@@ -123,7 +123,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.get(111)).thenReturn(created);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.getChallenge(USER_INFO, 111);
 	}
 	
@@ -134,7 +134,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.getForProject(PROJECT_ID)).thenReturn(created);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		assertEquals(created, challengeManager.getChallengeByProjectId(USER_INFO, PROJECT_ID));
 		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
@@ -145,7 +145,7 @@ public class ChallengeManagerImplTest {
 	public void getChallengeForProjectIdUnathorized() throws Exception {
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.getChallengeByProjectId(USER_INFO, PROJECT_ID);
 	}
 	
@@ -192,7 +192,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.update(challenge)).thenReturn(updated);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		assertEquals(updated, challengeManager.updateChallenge(USER_INFO, challenge));
 		verify(mockAuthorizationManager).canAccess(USER_INFO, PROJECT_ID, 
@@ -204,7 +204,7 @@ public class ChallengeManagerImplTest {
 		Challenge challenge = newChallenge();
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.updateChallenge(USER_INFO, challenge);
 	}
 	
@@ -216,7 +216,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		challengeManager.deleteChallenge(USER_INFO, challengeId);
 		verify(mockChallengeDAO).get(challengeId);
@@ -233,7 +233,7 @@ public class ChallengeManagerImplTest {
 		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.deleteChallenge(USER_INFO, challengeId);
 	}
 	
@@ -254,7 +254,7 @@ public class ChallengeManagerImplTest {
 		
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		
 		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
 		when(mockChallengeDAO.listParticipants(challengeId, affiliated, limit, offset)).
@@ -277,7 +277,7 @@ public class ChallengeManagerImplTest {
 		
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		
 		when(mockChallengeDAO.get(challengeId)).thenReturn(challenge);
 		
@@ -296,7 +296,7 @@ public class ChallengeManagerImplTest {
 	@Test
 	public void testCanCUDChallengeTeam_Admin() throws Exception {
 		// admin is always authorized
-		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(ADMIN_USER, null).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(ADMIN_USER, null).isAuthorized());
 	}
 	
 	@Test
@@ -314,7 +314,7 @@ public class ChallengeManagerImplTest {
 		TeamMember registeredTeamMember = new TeamMember();
 		registeredTeamMember.setIsAdmin(true);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
-		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertTrue(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).isAuthorized());
 	}
 	
 	@Test
@@ -329,7 +329,7 @@ public class ChallengeManagerImplTest {
 
 		// if you are not in the challenge then you are not authorized
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
-		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).isAuthorized());
 	}
 	
 	@Test
@@ -347,7 +347,7 @@ public class ChallengeManagerImplTest {
 				ModelConstants.TEAM_ADMIN_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).isAuthorized());
 		
 	}
 
@@ -367,7 +367,7 @@ public class ChallengeManagerImplTest {
 				ModelConstants.TEAM_MESSENGER_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).getAuthorized());
+		assertFalse(challengeManager.isRegisteredAndIsAdminForChallengeTeam(USER_INFO, challengeTeam).isAuthorized());
 	}
 	
 	@Test
@@ -405,7 +405,7 @@ public class ChallengeManagerImplTest {
 		expected.setTotalNumberOfResults((long)teams.size());
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		assertEquals(expected,
 		challengeManager.listChallengeTeams(USER_INFO, challengeId, 10L, 0L));
 	}
@@ -418,7 +418,7 @@ public class ChallengeManagerImplTest {
 		long challengeId = Long.parseLong(challenge.getId());
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.listChallengeTeams(USER_INFO, challengeId, 10L, 0L);
 	}
 	
@@ -436,7 +436,7 @@ public class ChallengeManagerImplTest {
 		expected.setTotalNumberOfResults((long)teamIds.size());
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.AUTHORIZED);
+						AuthorizationStatus.authorized());
 		assertEquals(expected,
 		challengeManager.listRegistratableTeams(USER_INFO, challengeId, 10L, 0L));
 	}
@@ -449,7 +449,7 @@ public class ChallengeManagerImplTest {
 		long challengeId = Long.parseLong(challenge.getId());
 		when(mockAuthorizationManager.canAccess(USER_INFO, PROJECT_ID, 
 				ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(
-						AuthorizationManagerUtil.ACCESS_DENIED);
+						AuthorizationStatus.accessDenied(""));
 		challengeManager.listRegistratableTeams(USER_INFO, challengeId, 10L, 0L);
 	}
 

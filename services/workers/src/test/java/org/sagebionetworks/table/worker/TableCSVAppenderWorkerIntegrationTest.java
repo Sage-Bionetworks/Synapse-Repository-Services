@@ -14,11 +14,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -51,9 +51,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
-import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -62,7 +60,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.google.common.collect.Lists;
 
@@ -90,7 +87,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AmazonS3Client s3Client;
+	SynapseS3Client s3Client;
 	@Autowired
 	SemaphoreManager semphoreManager;
 	@Autowired
@@ -106,8 +103,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 
 	@Before
 	public void before() throws NotFoundException {
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
@@ -119,18 +114,16 @@ public class TableCSVAppenderWorkerIntegrationTest {
 
 	@After
 	public void after() {
-		if (config.getTableEnabled()) {
-			if (adminUserInfo != null) {
-				for (String id : toDelete) {
-					try {
-						entityManager.deleteEntity(adminUserInfo, id);
-					} catch (Exception e) {
-					}
+		if (adminUserInfo != null) {
+			for (String id : toDelete) {
+				try {
+					entityManager.deleteEntity(adminUserInfo, id);
+				} catch (Exception e) {
 				}
 			}
-			for (File tempFile : tempFiles)
-				tempFile.delete();
 		}
+		for (File tempFile : tempFiles)
+			tempFile.delete();
 		for (S3FileHandle fileHandle : fileHandles) {
 			s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
 			fileHandleDao.delete(fileHandle.getId());
@@ -203,11 +196,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		UploadToTableResult response = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), UploadToTableResult.class);
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
-		// There should be one change set applied to the table
+		// There should be two change set applied to the table
 		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
-		assertEquals(1, changes.size());
-		TableRowChange change = changes.get(0);
+		assertEquals(2, changes.size());
+		TableRowChange change = changes.get(1);
 		assertEquals(new Long(rowCount), change.getRowCount());
 		// the etag of the change should match what the job returned.
 		assertEquals(change.getEtag(), response.getEtag());
@@ -309,7 +302,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// There should be two change sets applied to the table
 		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
-		assertEquals(2, changes.size());
+		assertEquals(3, changes.size());
 	}
 	
 	/**
@@ -537,7 +530,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	 */
 	private S3FileHandle uploadFile(File tempFile){
 		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
+		fileHandle.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		fileHandle.setKey(UUID.randomUUID() + ".csv");
 		fileHandle.setContentType("text/csv");
 		fileHandle.setCreatedBy("" + adminUserInfo.getId());
@@ -545,6 +538,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle.setPreviewId(fileHandle.getId());
+		fileHandle.setContentSize(tempFile.length());
 		// Upload the File to S3
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandles.add(fileHandle);

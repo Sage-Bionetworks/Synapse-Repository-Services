@@ -11,16 +11,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 
 /**
  * descriptor of what's in a column of a participant data record
@@ -150,19 +151,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 
 	@Override
 	public MigratableTableTranslation<DBOProjectSetting, DBOProjectSetting> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOProjectSetting, DBOProjectSetting>() {
-
-			@Override
-			public DBOProjectSetting createDatabaseObjectFromBackup(DBOProjectSetting backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOProjectSetting createBackupFromDatabaseObject(DBOProjectSetting dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<DBOProjectSetting>();
 	}
 
 	@Override

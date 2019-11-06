@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;

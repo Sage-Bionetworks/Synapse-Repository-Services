@@ -24,8 +24,6 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	AccessRequirementManager accessRequirementManager;	
 	@Autowired
 	UserManager userManager;
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 
 	@WriteTransaction
 	@Override

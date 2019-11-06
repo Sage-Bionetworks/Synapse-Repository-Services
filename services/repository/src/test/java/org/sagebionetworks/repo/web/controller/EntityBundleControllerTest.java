@@ -7,10 +7,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +29,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -94,21 +93,18 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
-		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
 		
 		Folder s2 = new Folder();
 		s2.setName(DUMMY_STUDY_2);
-		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
 		s2 = (Folder) entityServletHelper.createEntity(s2, adminUserId, null);
 		toDelete.add(s2.getId());
@@ -130,6 +126,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
+		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 		
 		Annotations a3 = eb.getAnnotations();
@@ -157,14 +154,12 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
-		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
 		toDelete.add(s1.getId());
@@ -186,7 +181,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
@@ -203,6 +197,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
+		p2.setModifiedOn(p3.getModifiedOn());
 		assertEquals(p2, p3);
 		
 		Annotations a3 = eb.getAnnotations();
@@ -227,27 +222,11 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 	@Test
 	public void testGetFileHandle() throws Exception{
 		
-		S3FileHandle handleOne = new S3FileHandle();
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminUserIdString);
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
+		S3FileHandle handleOne = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setKey("EntityControllerTest.testGetFileHandle1");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleOne.setEtag(UUID.randomUUID().toString());
-		
-		S3FileHandle handleTwo = new S3FileHandle();
-		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(adminUserIdString);
-		handleTwo.setCreatedOn(new Date());
-		handleTwo.setBucketName("bucket");
+
+		S3FileHandle handleTwo = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setKey("EntityControllerTest.testGetFileHandle2");
-		handleTwo.setEtag("etag");
-		handleTwo.setFileName("fo2o.bar");
-		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		handleTwo.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
 		fileHandleToCreate.add(handleOne);
@@ -262,7 +241,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = p2.getId();
 		toDelete.add(id);
@@ -270,7 +248,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		FileEntity file = new FileEntity();
 		file.setParentId(p2.getId());
 		file.setDataFileHandleId(handleOne.getId());
-		file.setEntityType(FileEntity.class.getName());
 		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		toDelete.add(file.getId());
 		

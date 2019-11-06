@@ -8,7 +8,8 @@ package org.sagebionetworks.table.cluster;
  */
 public class InstanceInfo {
 	
-	public static final String DATABASE_URL_NAME_TEMPALTE = "jdbc:mysql://%1$s/%2$s?rewriteBatchedStatements=true";
+	public static final String DATABASE_URL_NAME_TEMPALTE = "jdbc:mysql://%1$s/%2$s?rewriteBatchedStatements=true%3$s";
+	public static final String SSl_CONNECTION_PARAMETRES = "&verifyServerCertificate=false&useSSL=true&requireSSL=true";
 	
 	private String endpoint;
 	private String schema;
@@ -18,12 +19,17 @@ public class InstanceInfo {
 	 * New from endpoint and schema.
 	 * @param endpoint
 	 * @param schema
+	 * @param useSSL 
 	 */
-	public InstanceInfo(String endpoint, String schema) {
+	public InstanceInfo(String endpoint, String schema, boolean useSSL) {
 		super();
 		this.endpoint = endpoint;
 		this.schema = schema;
-		this.url = String.format(DATABASE_URL_NAME_TEMPALTE, endpoint, schema);
+		String additionalParameters = "";
+		if(useSSL) {
+			additionalParameters = SSl_CONNECTION_PARAMETRES;
+		}
+		this.url = String.format(DATABASE_URL_NAME_TEMPALTE, endpoint, schema, additionalParameters);
 	}
 	
 	/**

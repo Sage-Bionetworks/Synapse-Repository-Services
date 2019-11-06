@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,9 +18,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -34,8 +35,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class SubmissionFileHandleDBOTest {
- 
-    @Autowired
+	private static final UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionDBO.class).build();
+
+	@Autowired
     private DBOBasicDao dboBasicDao;
     
 	@Autowired
@@ -48,7 +50,7 @@ public class SubmissionFileHandleDBOTest {
     private IdGenerator idGenerator;
     
     private String nodeId;
-    private long userId;
+    private Long userId;
     
     private long submissionId;
     private long evalId;
@@ -60,16 +62,7 @@ public class SubmissionFileHandleDBOTest {
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
     	
     	// create a file handle
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy("" + userId);
-		meta.setFileName("preview.jpg");
-		meta.setEtag(UUID.randomUUID().toString());
-		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		S3FileHandle meta = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node
@@ -99,7 +92,7 @@ public class SubmissionFileHandleDBOTest {
         submission.setUserId(userId);
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
-        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(TEST_X_STREAM, submission));
         submissionId = dboBasicDao.createNew(submission).getId();
         
     }

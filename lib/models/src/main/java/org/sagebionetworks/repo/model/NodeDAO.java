@@ -5,11 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -30,7 +35,7 @@ public interface NodeDAO {
 	 * use: {@link #createNewNode(Node)}
 	 */
 	@Deprecated 
-	public String createNew(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	public String createNew(Node node);
 	
 	/**
 	 * Create a new node.
@@ -40,7 +45,16 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public Node createNewNode(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
+	public Node createNewNode(Node node);
+	
+	/**
+	 * Create a bootstrap node.
+	 * 
+	 * @param node
+	 * @param id
+	 * @return
+	 */
+	public Node bootstrapNode(Node node, long id);
 	
 	/**
 	 * Create a new version of an existing node.
@@ -49,7 +63,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException;
+	public Long createNewVersion(Node newVersion);
 	
 	/**
 	 * Fetch a node using its id.
@@ -58,7 +72,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public Node getNode(String id) throws NotFoundException, DatastoreException;
+	public Node getNode(String id);
 	
 	/**
 	 * Get the node for a given version number.
@@ -68,7 +82,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public Node getNodeForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	public Node getNodeForVersion(String id, Long versionNumber);
 	
 	/**
 	 * Delete a node using its id.
@@ -94,27 +108,24 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public void deleteVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
+	public void deleteVersion(String id, Long versionNumber);
+
 	/**
-	 * Get the Annotations for a node. 
+	 * Update user annotations.
 	 * @param id
-	 * @return the current annotations
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @param annotationsV2
 	 */
-	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException;
-	
+	void updateUserAnnotations(String id, Annotations annotationsV2);
+
 	/**
-	 * Get the annotations for a given version number
-	 * @param id
-	 * @param versionNumber 
-	 * @return the version-specific annotations
+	 * Update annotations for the node's additional entity properties
+	 * @param nodeId
+	 * @param updatedAnnos
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
+	void updateEntityPropertyAnnotations(String nodeId, org.sagebionetworks.repo.model.Annotations updatedAnnos) throws NotFoundException, DatastoreException;
+
 	/**
 	 * Get all of the version numbers for this node.
 	 * @param id
@@ -122,17 +133,40 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
-	
+	public List<Long> getVersionNumbers(String id);
+
 	/**
-	 * Get all of the IDs for a given node's children
+	 * Get user annotations associated with the current version of the entity
 	 * @param id
-	 * @return the set of child ids
+	 * @return
 	 * @throws NotFoundException
-	 * @throws DatastoreException 
 	 */
-	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException;
-	
+	Annotations getUserAnnotations(String id);
+
+	/**
+	 * Get user annotations for a specific version of the entity
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Annotations getUserAnnotationsForVersion(String id, Long versionNumber);
+
+	/**
+	 * Get Entity properties that could not be stored as a Node
+	 * @param id
+	 * @return Annotations containing the extra properties for the Entity
+	 */
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(String id);
+
+	/**
+	 * Get Entity properties for a specific version that could not be stored as a Node
+	 * @param id
+	 * @param versionNumber
+	 * @return Annotations containing the extra properties for the Entity
+	 */
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotationsForVersion(String id, Long versionNumber);
+
 	/**
 	 * Look at the current eTag without locking or changing anything.
 	 * @param id
@@ -140,33 +174,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag) throws NotFoundException, ConflictingUpdateException, DatastoreException;
-
-	/**
-	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
-	 * @param id
-	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
-	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return the new etag
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
-	 * This exception indicates that the node has changed since the last time the user fetched it.
-	 * @throws DatastoreException 
-	 */
-	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType) throws NotFoundException, ConflictingUpdateException, DatastoreException;
+	public String peekCurrentEtag(String id);
 
 	/**
 	 * Make changes to an existing node.
@@ -174,29 +182,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException;
-	
-	/**
-	 * Update a nodes annotations.
-	 * @param nodeId 
-	 * @param updatedAnnos 
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Replace the annotations and fileHandle ID of a specific version of a node.
-	 * This is used to convert one entity type to another.
-	 * @param nodeId
-	 * @param versionNumber
-	 * @param updatedAnnos
-	 * @param fileHandleId
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public void replaceVersion(String nodeId, Long versionNumber, NamedAnnotations updatedAnnos, String fileHandleId) throws NotFoundException, DatastoreException;
-
+	public void updateNode(Node updatedNode);
 	
 	/**
 	 * Does a given node exist?
@@ -260,7 +246,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public EntityType getNodeTypeById(String nodeId) throws NotFoundException, DatastoreException;
+	public EntityType getNodeTypeById(String nodeId);
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
@@ -310,7 +296,7 @@ public interface NodeDAO {
 	 * @throws NumberFormatException 
 	 * @throws DatastoreException 
 	 */
-	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException;
+	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException;
 	
 	/**
 	 * Get the current revision number for a node.
@@ -319,14 +305,14 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
+	public Long getCurrentRevisionNumber(String nodeId);
 	
 	/**
 	 * Get the activity id for the current version of the node. 
 	 * @param nodeId
 	 * @return
 	 */
-	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException;
+	public String getActivityId(String nodeId);
 	
 	/**
 	 * Get the activity id for a specific version of the node.
@@ -334,13 +320,13 @@ public interface NodeDAO {
 	 * @param revNumber
 	 * @return
 	 */
-	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException;
+	public String getActivityId(String nodeId, Long revNumber);
 	
 	/**
 	 * Get the Synapse ID of the creator of a node.
 	 * @throws DatastoreException 
 	 */
-	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException;
+	public Long getCreatedBy(String nodeId);
 	
 	/**
 	 * returns true iff the given node is root
@@ -350,8 +336,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public boolean isNodeRoot(String nodeId) throws NotFoundException,
-	DatastoreException;
+	public boolean isNodeRoot(String nodeId);
 
 	/**
 	 * returns true iff the parent of the given node is root
@@ -361,7 +346,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-    public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException;
+    public boolean isNodesParentRoot(String nodeId);
 
     /**
      * Does this given node have any children?
@@ -371,18 +356,7 @@ public interface NodeDAO {
 	public boolean doesNodeHaveChildren(String nodeId);
 
 	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
-			long limit) throws NotFoundException, DatastoreException;
-
-	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get a node's reference.
-	 * @param nodeId - The id of the node.
-	 * @return
-	 * @throws NotFoundException - Thrown if the node does not exist.
-	 * @throws DatastoreException - Thrown if there is a database error.
-	 */
-	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
+			long limit);
 
 	/**
 	 * Get the FileHandle Id for a given version number.
@@ -392,6 +366,17 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);
+	
+	/**
+	 * Get the FileHandleAssociation for the current version of the given entity IDs.
+	 * 
+	 * Note: If any of the provided entity IDs are not files or do not have a file handle ID,
+	 * then a result will not be included for that entity.
+	 * 
+	 * @param entityIds
+	 * @return
+	 */
+	public List<FileHandleAssociation> getFileHandleAssociationsForCurrentVersion(List<String> entityIds);
 
 	/**
 	 * Get a reference for the current version of the given node ids
@@ -405,27 +390,24 @@ public interface NodeDAO {
 	 * @param longId
 	 * @return
 	 */
-	public String lockNode(Long longId);
-	
-	/**
-	 * Lock on a list of node IDs.
-	 * Note: The locks will be acquired in the numeric order of the entity IDs to prevent deadlock.
-	 * @param longIds
-	 * @return
-	 */
-	public List<String> lockNodes(List<String> nodeIds);
+	public String lockNode(String nodeId);
 
 	/**
-	 * get a list of projects
+	 * Return one page of ProjectHeader information, based on a (long) list of project IDs,
+	 * sorted according to the sortColumn and sortDirection param's.  The project metadata
+	 * includes when it was last accessed by the given user.
 	 * 
-	 * @param userInfo
-	 * @param userToGetInfoFor user to get listing for
-	 * @param teamToFetch optional team to get the listing for
-	 * @param type type of list
-	 * @param sortColumn sort column
+	 * 
+	 * if type is CREATED then return only projects created by the given user.
+	 * if type is PARTICIPATED then return only projects NOT created by the given user.
+	 * 
+	 * @param userId user whose activity is to be returned
+	 * @param projectIds list of IDs to filter
+	 * @param type filter criterion
+	 * @param sortColumn sort criterion (last activity time or project name)
 	 * @param sortDirection sort direction
-	 * @param limit
-	 * @param offset
+	 * @param limit (>=0)
+	 * @param offset (>=0)
 	 * @return
 	 */
 	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
@@ -513,6 +495,14 @@ public interface NodeDAO {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset);
+	
+	/**
+	 * Get the statistics about the given parentID and types.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	ChildStatsResponse getChildernStats(ChildStatsRequest request);
 
 	/**
 	 * Count the number of children in this container.
@@ -556,4 +546,32 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<IdAndEtag> getChildren(long parentId);
+	
+	/**
+	 * Touch the node and change the etag, modified on, and modified by.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId);
+	
+	/**
+	 * Touch the node and change the etag, modifiedOn, and modifiedBy.
+	 * 
+	 * @param userId
+	 * @param nodeId
+	 * @param changeType The type of change that triggered this update.
+	 * @return
+	 */
+	public String touch(Long userId, String nodeId, ChangeType changeType);
+	
+	/**
+	 * Create a snapshot of the current version, by applying the comment, label, and activity to the 
+	 * current version.
+	 * @param nodeId
+	 * @param request
+	 * @return The version number of the the snapshot (will always be the current version number).
+	 */
+	public long snapshotVersion(Long userId, String nodeId, SnapshotRequest request);
 }

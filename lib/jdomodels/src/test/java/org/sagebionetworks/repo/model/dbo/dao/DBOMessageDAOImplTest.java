@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static junit.framework.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,11 +12,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.MessageDAO;
@@ -37,11 +38,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMessageDAOImplTest {
 	private static final String EMAIL_POST_FIX = "@synapse.org";
@@ -82,7 +83,7 @@ public class DBOMessageDAOImplTest {
 	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
 
 	@SuppressWarnings("serial")
-	@Before
+	@BeforeEach
 	public void spamMessages() throws Exception {
 		cleanup = new ArrayList<String>();
 
@@ -117,12 +118,12 @@ public class DBOMessageDAOImplTest {
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, groupReplyToUser.getId());
 
 		// Send all the messages
-		messageDAO.createMessageStatus_SameTransaction(userToUser.getId(), maliciousUser.getId(), null);
-		messageDAO.createMessageStatus_NewTransaction(userToUserAndGroup.getId(), maliciousUser.getId(), null);
-		messageDAO.createMessageStatus_SameTransaction(userToUserAndGroup.getId(), maliciousGroup.getId(), null);
-		messageDAO.createMessageStatus_NewTransaction(userToGroup.getId(), maliciousGroup.getId(), null);
-		messageDAO.createMessageStatus_SameTransaction(groupReplyToUser.getId(), maliciousUser.getId(), null);
-		messageDAO.createMessageStatus_NewTransaction(userReplyToGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus(userToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus(userToGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus(groupReplyToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus(userReplyToGroup.getId(), maliciousGroup.getId(), null);
 
 		// to simulate sending we also have to set the 'sent' flag to 'true'
 		messageDAO.updateMessageTransmissionAsComplete(userToUser.getId());
@@ -132,7 +133,7 @@ public class DBOMessageDAOImplTest {
 		messageDAO.updateMessageTransmissionAsComplete(userReplyToGroup.getId());
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() throws Exception {
 		for (String id : cleanup) {
 			messageDAO.deleteMessage(id);
@@ -165,12 +166,12 @@ public class DBOMessageDAOImplTest {
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
-		try {
-			dto = messageDAO.createMessage(dto);
-			fail("Expecting expection");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("CC"));
-		}
+		
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			messageDAO.createMessage(dto);
+		});
+		
+		assertTrue(e.getMessage().contains("CC"));
 	}
 
 	@Test
@@ -193,12 +194,12 @@ public class DBOMessageDAOImplTest {
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
-		try {
-			dto = messageDAO.createMessage(dto);
-			fail("Expecting expection");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("To"));
-		}
+
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			messageDAO.createMessage(dto);
+		});
+		
+		assertTrue(e.getMessage().contains("To"));
 	}
 
 	@Test
@@ -221,12 +222,12 @@ public class DBOMessageDAOImplTest {
 		dto.setCc(cc);
 		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
-		try {
-			dto = messageDAO.createMessage(dto);
-			fail("Expecting expection");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("BCC"));
-		}
+
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			messageDAO.createMessage(dto);
+		});
+		
+		assertTrue(e.getMessage().contains("BCC"));
 	}
 
 	@Test
@@ -263,9 +264,11 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userReplyToGroup, messageDAO.getMessage(userReplyToGroup.getId()));
 	}
 	
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetNonexistentMessage() throws Exception {
-		messageDAO.getMessage("-1");
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			messageDAO.getMessage("-1");
+		});
 	}
 	
 	@Test
@@ -283,11 +286,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetUserInbox_AscendDate() throws Exception {
-		assertEquals("User has 3 messages", 3L, messageDAO.getNumReceivedMessages(maliciousUser.getId(), unreadMessageInboxFilter));
+		assertEquals(3L, messageDAO.getNumReceivedMessages(maliciousUser.getId(), unreadMessageInboxFilter), "User has 3 messages");
 		
 		List<MessageBundle> messages = messageDAO.getReceivedMessages(maliciousUser.getId(), 
 				unreadMessageInboxFilter, MessageSortBy.SEND_DATE, false, 100, 0);
-		assertEquals("Should get back all messages", 3, messages.size());
+		assertEquals(3, messages.size(), "Should get back all messages");
 		
 		// Order of messages should be ascending by creation time
 		assertEquals(userToUser, messages.get(0).getMessage());
@@ -300,11 +303,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetGroupInbox_DescendDate() throws Exception {
-		assertEquals("Group has 3 messages", 3L, messageDAO.getNumReceivedMessages(maliciousGroup.getId(), unreadMessageInboxFilter));
+		assertEquals(3L, messageDAO.getNumReceivedMessages(maliciousGroup.getId(), unreadMessageInboxFilter), "Group has 3 messages");
 		
 		List<MessageBundle> messages = messageDAO.getReceivedMessages(maliciousGroup.getId(), 
 				unreadMessageInboxFilter, MessageSortBy.SEND_DATE, true, 100, 0);
-		assertEquals("Should get back all messages", 3, messages.size());
+		assertEquals(3, messages.size(), "Should get back all messages");
 		
 		// Order of messages should be descending by creation time
 		assertEquals(userReplyToGroup, messages.get(0).getMessage());
@@ -316,11 +319,11 @@ public class DBOMessageDAOImplTest {
 	}
 	@Test
 	public void testGetUserOutbox_AscendSubject() throws Exception {
-		assertEquals("User has sent 4 messages", 4L, messageDAO.getNumSentMessages(maliciousUser.getId()));
+		assertEquals(4L, messageDAO.getNumSentMessages(maliciousUser.getId()), "User has sent 4 messages");
 		
 		List<MessageToUser> messages = messageDAO.getSentMessages(maliciousUser.getId(), 
 				MessageSortBy.SUBJECT, false, 100, 0);
-		assertEquals("Should get back all messages", 4, messages.size());
+		assertEquals(4, messages.size(), "Should get back all messages");
 		
 		// Order of messages should be ascending by subject
 		assertEquals(userReplyToGroup, messages.get(0));
@@ -331,11 +334,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetGroupOutbox_AscendDate() throws Exception {
-		assertEquals("Group has sent message", 1L, messageDAO.getNumSentMessages(maliciousGroup.getId()));
+		assertEquals(1L, messageDAO.getNumSentMessages(maliciousGroup.getId()), "Group has sent message");
 		
 		List<MessageToUser> messages = messageDAO.getSentMessages(maliciousGroup.getId(), 
 				MessageSortBy.SEND_DATE, false, 100, 0);
-		assertEquals("Should get back the message", 1, messages.size());
+		assertEquals(1, messages.size(), "Should get back the message");
 		
 		// Order of messages should be ascending by time
 		assertEquals(groupReplyToUser, messages.get(0));
@@ -343,11 +346,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetConversation_AscendDate() throws Exception {
-		assertEquals("There are 3 messages in the conversation", 3L, messageDAO.getConversationSize(userToGroup.getId(), maliciousUser.getId()));
+		assertEquals(3L, messageDAO.getConversationSize(userToGroup.getId(), maliciousUser.getId()), "There are 3 messages in the conversation");
 		
 		List<MessageToUser> messages = messageDAO.getConversation(userToGroup.getId(), maliciousUser.getId(), 
 				MessageSortBy.SEND_DATE, false, 100, 0);
-		assertEquals("Should get back all messages", 3, messages.size());
+		assertEquals(3, messages.size(), "Should get back all messages");
 		
 		// Order of messages should be ascending by creation time
 		assertEquals(userToGroup, messages.get(0));
@@ -367,7 +370,7 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testUpdateMessageStatus() throws Exception {
-		assertEquals("User has 3 unread messages", 3L, messageDAO.getNumReceivedMessages(maliciousUser.getId(), unreadMessageInboxFilter));
+		assertEquals(3L, messageDAO.getNumReceivedMessages(maliciousUser.getId(), unreadMessageInboxFilter), "User has 3 unread messages");
 		
 		// Get the original etag
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -380,7 +383,7 @@ public class DBOMessageDAOImplTest {
 		status.setMessageId(userToUser.getId());
 		status.setRecipientId(maliciousUser.getId());
 		status.setStatus(MessageStatusType.READ);
-		messageDAO.updateMessageStatus_SameTransaction(status);
+		messageDAO.updateMessageStatus(status);
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
@@ -388,7 +391,7 @@ public class DBOMessageDAOImplTest {
 		
 		List<MessageBundle> messages = messageDAO.getReceivedMessages(maliciousUser.getId(), 
 				unreadMessageInboxFilter, MessageSortBy.SEND_DATE, false, 100, 0);
-		assertEquals("Should get back 2 messages", 2, messages.size());
+		assertEquals(2, messages.size(), "Should get back 2 messages");
 		
 		// Order of messages should be ascending by creation time
 		assertEquals(userToUserAndGroup, messages.get(0).getMessage());

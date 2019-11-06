@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.StringWriter;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -16,9 +16,12 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.util.ValidateArgument;
 
-import com.thoughtworks.xstream.XStream;
-
 public class TableQueryUtils {
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.alias("Query", Query.class)
+			.allowTypes(Query.class)
+			.build();
 
 	/**
 	 * Extract a query from a next page token.
@@ -30,9 +33,7 @@ public class TableQueryUtils {
 			throw new IllegalArgumentException("Next page token cannot be empty");
 		}
 		try {
-			XStream xstream = new XStream();
-			xstream.alias("Query", Query.class);
-			Query query = (Query) xstream.fromXML(nextPageToken.getToken(), new Query());
+			Query query = (Query) X_STREAM.fromXML(nextPageToken.getToken(), new Query());
 			return query;
 		} catch (Throwable t) {
 			throw new IllegalArgumentException("Not a valid next page token", t);
@@ -57,10 +58,7 @@ public class TableQueryUtils {
 		query.setSelectedFacets(selectedFacets);
 
 		StringWriter writer = new StringWriter(sql.length() + 50);
-		XStream xstream = new XStream();
-		xstream.alias("Query", Query.class);
-		xstream.toXML(query, writer);
-		IOUtils.closeQuietly(writer);
+		X_STREAM.toXML(query, writer);
 		QueryNextPageToken nextPageToken = new QueryNextPageToken();
 		nextPageToken.setToken(writer.toString());
 		return nextPageToken;

@@ -4,14 +4,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,7 +183,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -191,7 +191,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AccessApproval create(AccessApproval dto) throws DatastoreException {
 		createOrUpdateBatch(Arrays.asList((AccessApproval)dto));
@@ -223,7 +223,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dto;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void revokeAll(String accessRequirementId, String accessorId, String revokedBy) {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
@@ -238,7 +238,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		namedJdbcTemplate.update(REVOKE_ACCESSOR, params);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy) {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
@@ -253,7 +253,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		namedJdbcTemplate.update(REVOKE_GROUP, params);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void revokeBySubmitter(String accessRequirementId, String submitterId, List<String> accessors, String revokedBy) {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
@@ -289,7 +289,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return requirementIdSet.size() > namedJdbcTemplate.queryForObject(SELECT_MET_ACCESS_REQUIREMENT_COUNT, params, Integer.class);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void createOrUpdateBatch(List<AccessApproval> dtos) {
 		final List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(dtos, true/*for creation*/, idGenerator);

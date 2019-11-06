@@ -5,17 +5,16 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.PartMD5;
-import org.sagebionetworks.upload.UploadUtils;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
@@ -28,13 +27,16 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.util.BinaryUtils;
 
-public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
+/**
+ * This class handles the interaction with S3 during the steps of a multi-part upload
+ */
+public class S3MultipartUploadDAOImpl implements CloudServiceMultipartUploadDAO {
 
 	// 15 minute.
 	private static final int PRE_SIGNED_URL_EXPIRATION_MS = 1000 * 60 * 15;
 
 	@Autowired
-	private AmazonS3Client s3Client;
+	private SynapseS3Client s3Client;
 
 	/*
 	 * (non-Javadoc)
@@ -47,12 +49,12 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	public String initiateMultipartUpload(String bucket, String key,
 			MultipartUploadRequest request) {
 		String contentType = request.getContentType();
-		if (contentType == null) {
+		if (StringUtils.isEmpty(contentType)) {
 			contentType = "application/octet-stream";
 		}
 		ObjectMetadata objectMetadata = new ObjectMetadata();
 		objectMetadata.setContentType(contentType);
-		objectMetadata.setContentDisposition(UploadUtils
+		objectMetadata.setContentDisposition(ContentDispositionUtils
 				.getContentDispositionValue(request.getFileName()));
 		objectMetadata.setContentMD5(BinaryUtils.toBase64(BinaryUtils
 				.fromHex(request.getContentMD5Hex())));
@@ -75,12 +77,7 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
 				new Date(expiration));
-		/*
-		 * Adding 'Expires' to the signed url is a hack we were forced to 
-		 * add due to SYNPY-409 (see also PLFM-4183)
-		 */
-		request.addRequestParameter("Expires", ""+(expiration/1000));
-		if(contentType != null){
+		if(StringUtils.isNotEmpty(contentType)){
 			request.setContentType(contentType);
 		}
 		return s3Client.generatePresignedUrl(request);
@@ -94,14 +91,14 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	 * .sagebionetworks.upload.multipart.AddPartRequest)
 	 */
 	@Override
-	public void addPart(AddPartRequest request) {
+	public void validateAndAddPart(AddPartRequest request) {
 		CopyPartRequest cpr = new CopyPartRequest();
 		cpr.setSourceBucketName(request.getBucket());
 		cpr.setSourceKey(request.getPartKey());
 		cpr.setDestinationKey(request.getKey());
 		cpr.setDestinationBucketName(request.getBucket());
 		cpr.setUploadId(request.getUploadToken());
-		cpr.setPartNumber(request.getPartNumber());
+		cpr.setPartNumber((int) request.getPartNumber());
 		// only add if the etag matches.
 		cpr.withMatchingETagConstraint(request.getPartMD5Hex());
 		CopyPartResult result = s3Client.copyPart(cpr);
@@ -109,19 +106,8 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 			throw new IllegalArgumentException(
 					"The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.");
 		}
-	}
-
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.upload.multipart.S3MultipartUploadDAO#deleteObject
-	 * (java.lang.String, java.lang.String)
-	 */
-	@Override
-	public void deleteObject(String bucket, String key) {
-		s3Client.deleteObject(bucket, key);
+		// After copying the part we can delete the old part file.
+		s3Client.deleteObject(request.getBucket(), request.getPartKey());
 	}
 
 	/*

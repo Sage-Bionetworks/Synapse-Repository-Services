@@ -5,7 +5,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -54,24 +56,23 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private static final String TYPE_PARAM_NAME = "type_param";
 	private static final String PARENT_IDS_PARAM_NAME = "parent_ids_param";
 
-	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_PROJECT_ID
-			+ " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
+	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
+			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
-	private static final String SELECT_SETTINGS_BY_TYPE = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE " + COL_PROJECT_SETTING_TYPE
-			+ " = ?";
 
 	private static final String SELECT_SETTING_FROM_PARENTS = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
-			+ COL_PROJECT_SETTING_PROJECT_ID + " IN ( :" + PARENT_IDS_PARAM_NAME + " ) and " + COL_PROJECT_SETTING_TYPE + " = :"
-			+ TYPE_PARAM_NAME + " ORDER BY FIELD( " + COL_PROJECT_SETTING_PROJECT_ID + ", :" + PARENT_IDS_PARAM_NAME + " ) LIMIT 1";
+			+ COL_PROJECT_SETTING_PROJECT_ID + " IN ( :" + PARENT_IDS_PARAM_NAME + " ) and " + COL_PROJECT_SETTING_TYPE
+			+ " = :" + TYPE_PARAM_NAME + " ORDER BY FIELD( " + COL_PROJECT_SETTING_PROJECT_ID + ", :"
+			+ PARENT_IDS_PARAM_NAME + " ) LIMIT 1";
 
-	private static final RowMapper<DBOProjectSetting> projectSettingRowMapper = (new DBOProjectSetting()).getTableMapping();
+	private static final RowMapper<DBOProjectSetting> ROW_MAPPER = new DBOProjectSetting().getTableMapping();
 
-	public DBOProjectSettingsDAOImpl(){}
+	public DBOProjectSettingsDAOImpl() {
+	}
 
 	// for test only
-	public DBOProjectSettingsDAOImpl(DBOBasicDao mockBasicDao,
-			IdGenerator mockIdGenerator,
+	public DBOProjectSettingsDAOImpl(DBOBasicDao mockBasicDao, IdGenerator mockIdGenerator,
 			TransactionalMessenger mockTransactionalMessenger) {
 		this.basicDao = mockBasicDao;
 		this.idGenerator = mockIdGenerator;
@@ -89,33 +90,34 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
-		try{
+		try {
 			dbo = basicDao.createNew(dbo);
 		} catch (IllegalArgumentException e) {
 			// we want to catch the common case of an existing setting and tell the user nicely about that
 			if (e.getCause() instanceof DuplicateKeyException) {
-				throw new IllegalArgumentException("A project setting of type '" + dto.getSettingsType().name() + "' for project "
-						+ dto.getProjectId() + " already exists.");
+				throw new IllegalArgumentException("A project setting of type '" + dto.getSettingsType().name()
+						+ "' for project " + dto.getProjectId() + " already exists.");
 			} else {
 				throw e;
 			}
 		}
 		String projectSettingsId = dbo.getId().toString();
-		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(),
+				ChangeType.CREATE);
 
 		return projectSettingsId;
 	}
 
 	@Override
-	public ProjectSetting get(String projectId, ProjectSettingsType type) throws DatastoreException {
+	public Optional<ProjectSetting> get(String projectId, ProjectSettingsType type) throws DatastoreException {
 		try {
-			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, projectSettingRowMapper,
+			DBOProjectSetting projectSetting = jdbcTemplate.queryForObject(SELECT_SETTING, ROW_MAPPER,
 					KeyFactory.stringToKey(projectId), type.name());
 			ProjectSetting dto = convertDboToDto(projectSetting);
-			return dto;
+			return Optional.of(dto);
 		} catch (EmptyResultDataAccessException e) {
 			// not having a setting is normal
-			return null;
+			return Optional.empty();
 		}
 	}
 
@@ -125,8 +127,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			MapSqlParameterSource parameterSource = new MapSqlParameterSource();
 			parameterSource.addValue(TYPE_PARAM_NAME, type.name());
 			parameterSource.addValue(PARENT_IDS_PARAM_NAME, Lists.reverse(parentIds));
-			DBOProjectSetting projectSetting = namedParameterJdbcTemplate.queryForObject(SELECT_SETTING_FROM_PARENTS, parameterSource,
-					projectSettingRowMapper);
+			DBOProjectSetting projectSetting = namedParameterJdbcTemplate.queryForObject(SELECT_SETTING_FROM_PARENTS,
+					parameterSource, ROW_MAPPER);
 			ProjectSetting dto = convertDboToDto(projectSetting);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {
@@ -137,32 +139,17 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	@Override
 	public ProjectSetting get(String id) throws DatastoreException, NotFoundException {
-		DBOProjectSetting projectSetting = basicDao
-				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
+		DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
+				new SinglePrimaryKeySqlParameterSource(id));
 		ProjectSetting dto = convertDboToDto(projectSetting);
 		return dto;
 	}
 
 	@Override
 	public List<ProjectSetting> getAllForProject(String projectId) throws DatastoreException, NotFoundException {
-		List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_PROJECT, projectSettingRowMapper,
+		List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_PROJECT, ROW_MAPPER,
 				KeyFactory.stringToKey(projectId));
-		List<ProjectSetting> result = Lists.newArrayListWithCapacity(projectSettings.size());
-		for (DBOProjectSetting projectSetting : projectSettings) {
-			result.add(convertDboToDto(projectSetting));
-		}
-		return result;
-	}
-
-	@Override
-	public List<ProjectSetting> getByType(ProjectSettingsType projectSettingsType) throws DatastoreException, NotFoundException {
-		List<DBOProjectSetting> projectSettings = jdbcTemplate.query(SELECT_SETTINGS_BY_TYPE, projectSettingRowMapper,
-				projectSettingsType.name());
-		List<ProjectSetting> result = Lists.newArrayListWithCapacity(projectSettings.size());
-		for (DBOProjectSetting projectSetting : projectSettings) {
-			result.add(convertDboToDto(projectSetting));
-		}
-		return result;
+		return projectSettings.stream().map(DBOProjectSettingsDAOImpl::convertDboToDto).collect(Collectors.toList());
 	}
 
 	@WriteTransaction
@@ -174,8 +161,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	@WriteTransaction
 	@Override
-	public ProjectSetting update(ProjectSetting dto) throws DatastoreException, InvalidModelException, NotFoundException,
-			ConflictingUpdateException {
+	public ProjectSetting update(ProjectSetting dto)
+			throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
 		DBOProjectSetting dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
 				new SinglePrimaryKeySqlParameterSource(dto.getId()));
 
@@ -202,8 +189,10 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating project setting in database.");
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
-		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.UPDATE);
+		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
+				new SinglePrimaryKeySqlParameterSource(dto.getId()));
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(),
+				ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}
 

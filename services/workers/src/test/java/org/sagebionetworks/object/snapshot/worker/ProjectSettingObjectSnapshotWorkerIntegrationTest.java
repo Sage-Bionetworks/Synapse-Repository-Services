@@ -1,6 +1,9 @@
 package org.sagebionetworks.object.snapshot.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -10,13 +13,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -62,7 +65,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		projectId = nodeDao.createNew(project);
 
 		type = UploadDestinationListSetting.class.getSimpleName().toLowerCase();
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName(QUEUE_NAME));
 	}
 
 	@After
@@ -84,7 +87,7 @@ public class ProjectSettingObjectSnapshotWorkerIntegrationTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 
 		// there should not be a settings to begin with
-		assertNull(projectSettingsDao.get(projectId, ProjectSettingsType.upload));
+		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
 		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
 
 		// Create it

@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.util.Date;
 import java.util.List;
@@ -11,6 +16,7 @@ import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -60,18 +66,7 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 
 	@Override
 	public MigratableTableTranslation<DBOSessionToken, DBOSessionToken> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOSessionToken, DBOSessionToken>(){
-			@Override
-			public DBOSessionToken createDatabaseObjectFromBackup(DBOSessionToken backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSessionToken createBackupFromDatabaseObject(DBOSessionToken dbo) {
-				return dbo;
-			}
-		};	
+		return new BasicMigratableTableTranslation<DBOSessionToken>();	
 	}
 
 	@Override

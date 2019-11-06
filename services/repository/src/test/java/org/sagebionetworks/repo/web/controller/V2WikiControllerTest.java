@@ -8,14 +8,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
@@ -30,11 +29,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -64,8 +62,14 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	private S3FileHandle fileOneHandle;
 	private S3FileHandle markdownOneHandle;
 	private S3FileHandle markdownTwoHandle;
-	private PreviewFileHandle fileOnePreviewHandle;
-	
+	private S3FileHandle fileOnePreviewHandle;
+	private String fileOneKey = "mainFileKey";
+	private String markdownOneKey = "markdownKey";
+	private String markdownTwoKey = "markdownKey2";
+	private String fileOnePreviewKey = "previewFileKey";
+
+	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
+
 	@Before
 	public void before() throws Exception{
 		// get user IDs
@@ -75,56 +79,28 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		toDelete = new LinkedList<WikiPageKey>();
 		
 		// Create a file handle
-		fileOneHandle = new S3FileHandle();
-		fileOneHandle.setCreatedBy(adminUserIdString);
-		fileOneHandle.setCreatedOn(new Date());
-		fileOneHandle.setBucketName("bucket");
-		fileOneHandle.setKey("mainFileKey");
-		fileOneHandle.setEtag("etag");
-		fileOneHandle.setFileName("foo.bar");
-		fileOneHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fileOneHandle.setEtag(UUID.randomUUID().toString());
-	
-		// Create a preview
-		fileOnePreviewHandle = new PreviewFileHandle();
-		fileOnePreviewHandle.setCreatedBy(adminUserIdString);
-		fileOnePreviewHandle.setCreatedOn(new Date());
-		fileOnePreviewHandle.setBucketName("bucket");
-		fileOnePreviewHandle.setKey("previewFileKey");
-		fileOnePreviewHandle.setEtag("etag");
-		fileOnePreviewHandle.setFileName("bar.txt");
-		fileOnePreviewHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		fileOnePreviewHandle.setEtag(UUID.randomUUID().toString());
-		
-		markdownOneHandle = new S3FileHandle();
-		markdownOneHandle.setCreatedBy(adminUserIdString);
-		markdownOneHandle.setCreatedOn(new Date());
-		markdownOneHandle.setBucketName("bucket");
-		markdownOneHandle.setKey("markdownKey");
-		markdownOneHandle.setEtag("etag");
-		markdownOneHandle.setFileName("markdown");
-		markdownOneHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		markdownOneHandle.setEtag(UUID.randomUUID().toString());
-		
-		markdownTwoHandle = new S3FileHandle();
-		markdownTwoHandle.setCreatedBy(adminUserIdString);
-		markdownTwoHandle.setCreatedOn(new Date());
-		markdownTwoHandle.setBucketName("bucket");
-		markdownTwoHandle.setKey("markdownKey2");
-		markdownTwoHandle.setEtag("etag2");
-		markdownTwoHandle.setFileName("markdown2");
-		markdownTwoHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		markdownTwoHandle.setEtag(UUID.randomUUID().toString());
+		fileOneHandle = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fileOneHandle.setBucketName(S3_BUCKET_NAME);
+		fileOneHandle.setKey(fileOneKey);
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(fileOneHandle);
-		fileHandleToCreate.add(fileOnePreviewHandle);
-		fileHandleToCreate.add(markdownOneHandle);
-		fileHandleToCreate.add(markdownTwoHandle);
+		// Create a preview
+		fileOnePreviewHandle = TestUtils.createPreviewFileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		fileOnePreviewHandle.setBucketName(S3_BUCKET_NAME);
+		fileOnePreviewHandle.setKey(fileOnePreviewKey);
+
+		markdownOneHandle = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		markdownOneHandle.setBucketName(S3_BUCKET_NAME);
+		markdownOneHandle.setKey(markdownOneKey);
+
+		markdownTwoHandle = TestUtils.createS3FileHandle(adminUserIdString, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		markdownTwoHandle.setBucketName(S3_BUCKET_NAME);
+		markdownTwoHandle.setKey(markdownTwoKey);
+
+		List<FileHandle> fileHandleToCreate = Arrays.asList(fileOneHandle, fileOnePreviewHandle, markdownOneHandle, markdownTwoHandle);
 		fileHandleDao.createBatch(fileHandleToCreate);
 
 		fileOneHandle = (S3FileHandle) fileHandleDao.get(fileOneHandle.getId());
-		fileOnePreviewHandle = (PreviewFileHandle) fileHandleDao.get(fileOnePreviewHandle.getId());
+		fileOnePreviewHandle = (S3FileHandle) fileHandleDao.get(fileOnePreviewHandle.getId());
 		markdownOneHandle = (S3FileHandle) fileHandleDao.get(markdownOneHandle.getId());
 		markdownTwoHandle = (S3FileHandle) fileHandleDao.get(markdownTwoHandle.getId());
 		fileHandleDao.setPreviewId(fileOneHandle.getId(), fileOnePreviewHandle.getId());
@@ -162,7 +138,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityWikiCRUD() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
@@ -170,10 +145,13 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
+		entity = new Project();
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+
 		// create an entity
 		evaluation = new Evaluation();
 		evaluation.setName("testCompetitionWikiCRUD");
-		evaluation.setContentSource(KeyFactory.SYN_ROOT_ID);
+		evaluation.setContentSource(entity.getId());
 		evaluation.setDescription("a test descrption");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletHelper.createEvaluation(evaluation, adminUserId);
@@ -206,7 +184,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		URL markdownPresigned = entityServletHelper.getV2WikiMarkdownFileURL(adminUserId, key, null, null);
 		assertNotNull(markdownPresigned);
-		assertTrue(markdownPresigned.toString().indexOf("markdownKey") > 0);
+		assertTrue(markdownPresigned.toString().indexOf(markdownOneKey) > 0);
 		
 		PaginatedResults<V2WikiHistorySnapshot> startHistory = entityServletHelper.getV2WikiHistory(key, adminUserId, new Long(0), new Long(10));
 		assertNotNull(startHistory);
@@ -256,11 +234,11 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		
 		URL markdownPresignedUpdated = entityServletHelper.getV2WikiMarkdownFileURL(adminUserId, key, new Long(0), null);
 		assertNotNull(markdownPresignedUpdated);
-		assertTrue(markdownPresignedUpdated.toString().indexOf("markdownKey") > 0);
+		assertTrue(markdownPresignedUpdated.toString().indexOf(markdownOneKey) > 0);
 		Boolean redirectMarkdown = Boolean.FALSE;
 		markdownPresignedUpdated  = entityServletHelper.getV2WikiMarkdownFileURL(adminUserId, key, new Long(0), redirectMarkdown);
 		assertNotNull(markdownPresignedUpdated);
-		assertTrue(markdownPresignedUpdated.toString().indexOf("markdownKey") > 0);
+		assertTrue(markdownPresignedUpdated.toString().indexOf(markdownOneKey) > 0);
 		
 		// Get history (there should be three snapshots returned)
 		PaginatedResults<V2WikiHistorySnapshot> historyResults = entityServletHelper.getV2WikiHistory(key, adminUserId, new Long(0), new Long(10));
@@ -288,7 +266,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// Get its attachment's URL
 		URL versionOneAttachment = entityServletHelper.getV2WikiAttachmentFileURL(adminUserId, key, fileOneHandle.getFileName(), null, new Long(1));
 		assertNotNull(versionOneAttachment);
-		assertTrue(versionOneAttachment.toString().indexOf("mainFileKey") > 0);
+		assertTrue(versionOneAttachment.toString().indexOf(fileOneKey) > 0);
 		
 		assertEquals("Version 1 title", versionOne.getTitle());
 		assertEquals(cloneUpdated.getModifiedOn(), versionOne.getModifiedOn());
@@ -386,7 +364,6 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity.setEntityType(Project.class.getName());
 		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
 		
 		String ownerId = entity.getId();

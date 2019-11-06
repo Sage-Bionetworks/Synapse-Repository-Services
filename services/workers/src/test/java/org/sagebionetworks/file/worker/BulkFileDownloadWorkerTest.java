@@ -1,11 +1,17 @@
 package org.sagebionetworks.file.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.AuthorizationManagerUtil.AUTHORIZED;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,42 +21,58 @@ import java.util.zip.ZipOutputStream;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
+import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileDownloadCode;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
-
+@RunWith(MockitoJUnitRunner.class)
 public class BulkFileDownloadWorkerTest {
 
+	@Mock
 	AsynchJobStatusManager mockAsynchJobStatusManager;
+	@Mock
 	UserManager mockUserManger;
-	BulkDownloadManager mockBulkDownloadManager;
-
+	@Mock
+	FileHandleSupport mockBulkDownloadManager;
+	@Mock
 	ProgressCallback mockProgress;
+	@Mock
+	EventsCollector mockStatisticsCollector;
 
+	@InjectMocks
 	BulkFileDownloadWorker worker;
+	
+	@Captor
+	ArgumentCaptor<LocalFileUploadRequest> localFileRequestCaptor;
 
 	ZipOutputStream mockZipOut;
 	FileHandleAssociation fha1;
@@ -71,19 +93,6 @@ public class BulkFileDownloadWorkerTest {
 
 	@Before
 	public void before() throws Exception {
-		// dependencies
-		mockAsynchJobStatusManager = Mockito.mock(AsynchJobStatusManager.class);
-		mockUserManger = Mockito.mock(UserManager.class);
-		mockBulkDownloadManager = Mockito.mock(BulkDownloadManager.class);
-		mockProgress = Mockito.mock(ProgressCallback.class);
-
-		worker = new BulkFileDownloadWorker();
-		ReflectionTestUtils.setField(worker, "asynchJobStatusManager",
-				mockAsynchJobStatusManager);
-		ReflectionTestUtils.setField(worker, "userManger", mockUserManger);
-		ReflectionTestUtils.setField(worker, "bulkDownloadManager",
-				mockBulkDownloadManager);
-
 		// test objects
 		fha1 = new FileHandleAssociation();
 		fha1.setFileHandleId("1");
@@ -123,7 +132,7 @@ public class BulkFileDownloadWorkerTest {
 		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
-								fha1, AUTHORIZED)));
+								fha1, AuthorizationStatus.authorized())));
 		when(mockBulkDownloadManager.getS3FileHandle(fha1.getFileHandleId()))
 				.thenReturn(fileHandle1);
 		when(mockBulkDownloadManager.getS3FileHandle(fha2.getFileHandleId()))
@@ -167,27 +176,13 @@ public class BulkFileDownloadWorkerTest {
 		// setup the result handle
 		resultHandle = new S3FileHandle();
 		resultHandle.setId("1111");
-		when(
-				mockBulkDownloadManager.multipartUploadLocalFile(
-						any(UserInfo.class), any(File.class), anyString(),
-						any(ProgressListener.class))).thenReturn(resultHandle);
+		when(mockBulkDownloadManager.multipartUploadLocalFile(any(LocalFileUploadRequest.class))).thenReturn(resultHandle);
 		when(mockAsynchJobStatusManager.lookupJobStatus(jobStatus.getJobId())).thenReturn(jobStatus);
 	}
 
 	@Test
-	public void testCreateZipEntryName() {
-		assertEquals("321/321321/foo.txt",
-				BulkFileDownloadWorker.createZipEntryName("foo.txt", 321321));
-	}
-
-	@Test
-	public void testCreateZipEntrySmall() {
-		assertEquals("1/1/foo.txt",
-				BulkFileDownloadWorker.createZipEntryName("foo.txt", 1L));
-	}
-
-	@Test
 	public void testRunHappy() throws Exception {
+		// call under test
 		worker.run(mockProgress, message);
 		verify(mockAsynchJobStatusManager, times(1)).updateJobProgress(
 				anyString(), anyLong(), anyLong(), anyString());
@@ -201,9 +196,15 @@ public class BulkFileDownloadWorkerTest {
 		verifyAllStreamsClosedAndFilesDeleted();
 		
 		// The zip should get uploaded
-		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
-				any(UserInfo.class), any(File.class), anyString(),
-				any(ProgressListener.class));
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(localFileRequestCaptor.capture());
+		LocalFileUploadRequest request = localFileRequestCaptor.getValue();
+		assertNotNull(request);
+		// file name is null by default
+		assertEquals(null, request.getFileName());
+		assertEquals(BulkFileDownloadWorker.APPLICATION_ZIP, request.getContentType());
+		assertEquals(user.getId().toString(), request.getUserId());
+		assertNotNull(request.getListener());
+		assertNotNull(request.getFileToUpload());
 		
 		ArgumentCaptor<String> entryCapture = ArgumentCaptor
 				.forClass(String.class);
@@ -222,9 +223,29 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
+	
+	@Test
+	public void testRunHappyWithName() throws Exception {
+		String fileName = "aRealFileName.zip";
+		this.requestBody.setZipFileName(fileName);
+		// call under test
+		worker.run(mockProgress, message);
+		// The zip should get uploaded
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(localFileRequestCaptor.capture());
+		LocalFileUploadRequest request = localFileRequestCaptor.getValue();
+		assertNotNull(request);
+		// file name is null by default
+		assertEquals(fileName, request.getFileName());
+		assertEquals(BulkFileDownloadWorker.APPLICATION_ZIP, request.getContentType());
+		assertEquals(user.getId().toString(), request.getUserId());
+		assertNotNull(request.getListener());
+		assertNotNull(request.getFileToUpload());
+	}
+	
 
 	/**
 	 * If no files are added to the zip then the zip should not get uploaded and
@@ -239,16 +260,14 @@ public class BulkFileDownloadWorkerTest {
 		when(mockBulkDownloadManager.canDownLoadFile(user, Arrays.asList(fha1)))
 				.thenReturn(
 						Arrays.asList(new FileHandleAssociationAuthorizationStatus(
-								fha1, AuthorizationManagerUtil
+								fha1, AuthorizationStatus
 										.accessDenied(deniedReason))));
 		// call under test.
 		worker.run(mockProgress, message);
 		
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should not get uploaded
-		verify(mockBulkDownloadManager, never()).multipartUploadLocalFile(
-				any(UserInfo.class), any(File.class), anyString(),
-				any(ProgressListener.class));
+		verify(mockBulkDownloadManager, never()).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
 		// expect the job to be completed with the response body.
 		FileDownloadSummary summary = new FileDownloadSummary();
 		summary.setFileHandleId(fha1.getFileHandleId());
@@ -261,6 +280,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -284,10 +304,10 @@ public class BulkFileDownloadWorkerTest {
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
-								AuthorizationManagerUtil
+								AuthorizationStatus
 										.accessDenied(deniedReason)),
 						new FileHandleAssociationAuthorizationStatus(fha2,
-								AUTHORIZED)));
+								AuthorizationStatus.authorized())));
 		// call under test.
 		worker.run(mockProgress, message);
 		verify(mockAsynchJobStatusManager, times(2)).updateJobProgress(
@@ -295,9 +315,7 @@ public class BulkFileDownloadWorkerTest {
 		
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should get uploaded
-		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
-				any(UserInfo.class), any(File.class), anyString(),
-				any(ProgressListener.class));
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
 		// expect the job to be completed with the response body.
 		// 1
 		FileDownloadSummary summary1 = new FileDownloadSummary();
@@ -319,6 +337,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -350,6 +369,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -381,6 +401,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -391,7 +412,7 @@ public class BulkFileDownloadWorkerTest {
 	 */
 	@Test
 	public void testRunFileTooLarge() throws Exception {
-		fileHandle1.setContentSize(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
+		fileHandle1.setContentSize(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
 		// call under test
 		worker.run(mockProgress, message);
 
@@ -410,6 +431,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -423,7 +445,7 @@ public class BulkFileDownloadWorkerTest {
 		// temp file for the zip should be created
 		File mockZip = Mockito.mock(File.class);
 		when(mockBulkDownloadManager.createTempFile(anyString(), anyString())).thenReturn(mockZip);
-		when(mockZip.length()).thenReturn(BulkFileDownloadWorker.MAX_TOTAL_FILE_SIZE_BYTES+1);
+		when(mockZip.length()).thenReturn(FileConstants.BULK_FILE_DOWNLOAD_MAX_SIZE_BYTES+1);
 		fileHandle1.setContentSize(1L);
 		// call under test
 		worker.run(mockProgress, message);
@@ -440,6 +462,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(null);
 		expectedResponse.setFileSummary(Arrays.asList(summary));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, never()).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -462,17 +485,15 @@ public class BulkFileDownloadWorkerTest {
 						Arrays.asList(fha1, fha2))).thenReturn(
 				Arrays.asList(
 						new FileHandleAssociationAuthorizationStatus(fha1,
-								AUTHORIZED),
+								AuthorizationStatus.authorized()),
 						new FileHandleAssociationAuthorizationStatus(fha2,
-								AUTHORIZED)));
+								AuthorizationStatus.authorized())));
 		// call under test.
 		worker.run(mockProgress, message);
 
 		verifyAllStreamsClosedAndFilesDeleted();
 		// The zip should get uploaded
-		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(
-				any(UserInfo.class), any(File.class), anyString(),
-				any(ProgressListener.class));
+		verify(mockBulkDownloadManager, times(1)).multipartUploadLocalFile(any(LocalFileUploadRequest.class));
 		// expect the job to be completed with the response body.
 		// 1
 		FileDownloadSummary summary1 = new FileDownloadSummary();
@@ -494,6 +515,7 @@ public class BulkFileDownloadWorkerTest {
 		expectedResponse.setResultZipFileHandleId(resultHandle.getId());
 		expectedResponse.setFileSummary(Arrays.asList(summary1, summary2));
 		expectedResponse.setUserId(""+user.getId());
+		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 		verify(mockAsynchJobStatusManager).setComplete(jobStatus.getJobId(),
 				expectedResponse);
 	}
@@ -516,6 +538,31 @@ public class BulkFileDownloadWorkerTest {
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobStatus.getJobId(),
 				exception);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderCommandLine() {
+		ZipFileFormat format = ZipFileFormat.CommandLineCache;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderFlat() {
+		ZipFileFormat format = ZipFileFormat.Flat;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof FlatZipEntryNameProvider);
+	}
+	
+	@Test
+	public void testCreateZipEntryNameProviderDefault() {
+		// when null the default should be used.
+		ZipFileFormat format = null;
+		ZipEntryNameProvider provider = BulkFileDownloadWorker.createZipEntryNameProvider(format);
+		assertNotNull(provider);
+		assertTrue(provider instanceof CommandLineCacheZipEntryNameProvider);
 	}
 	
 	/**

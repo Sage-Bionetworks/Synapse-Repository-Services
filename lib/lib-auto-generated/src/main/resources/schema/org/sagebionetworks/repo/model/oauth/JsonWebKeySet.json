@@ -1,0 +1,11 @@
+{
+    "description": "List of JSON Web Keys",
+    "properties":{
+    	"keys": {
+  			"type": "array",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.oauth.JsonWebKey"
+			}
+		}  	
+    }
+}

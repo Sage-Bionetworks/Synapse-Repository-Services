@@ -1,6 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
 
 import java.util.Date;
 import java.util.List;
@@ -10,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -18,7 +27,8 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 /**
  * descriptor of what's in a column of a participant data record
  */
-@Table(name = TABLE_STORAGE_LOCATION)
+@Table(name = TABLE_STORAGE_LOCATION, constraints = {
+		"INDEX `CREATED_BY_DATA_HASH_INDEX` (`" + COL_STORAGE_LOCATION_CREATED_BY + "`, `" + COL_STORAGE_LOCATION_DATA_HASH + "`)" })
 public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLocation, DBOStorageLocation> {
 
 	@Field(name = COL_STORAGE_LOCATION_ID, backupId = true, primary = true, nullable = false)
@@ -35,6 +45,9 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	@Field(name = COL_STORAGE_LOCATION_DATA, serialized = "mediumblob")
 	private StorageLocationSetting data;
+
+	@Field(name = COL_STORAGE_LOCATION_DATA_HASH, varchar = 36, nullable = false)
+	private String dataHash;
 
 	@Field(name = COL_STORAGE_LOCATION_CREATED_BY, nullable = false)
 	private Long createdBy;
@@ -94,6 +107,14 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		this.data = data;
 	}
 
+	public String getDataHash() {
+		return dataHash;
+	}
+
+	public void setDataHash(String dataHash) {
+		this.dataHash = dataHash;
+	}
+
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -117,6 +138,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((data == null) ? 0 : data.hashCode());
+		result = prime * result + ((dataHash == null) ? 0 : dataHash.hashCode());
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -148,6 +170,11 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 				return false;
 		} else if (!data.equals(other.data))
 			return false;
+		if (dataHash == null) {
+			if (other.dataHash != null)
+				return false;
+		} else if (!dataHash.equals(other.dataHash))
+			return false;
 		if (description == null) {
 			if (other.description != null)
 				return false;
@@ -170,20 +197,25 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	@Override
 	public String toString() {
-		return "DBOStorageLocation [id=" + id + ", description=" + description + ", uploadType=" + uploadType + ", etag=" + etag + ", data="
-				+ data + ", createdBy=" + createdBy + ", createdOn=" + createdOn + "]";
+		return "DBOStorageLocation [id=" + id + ", description=" + description + ", uploadType=" + uploadType
+				+ ", etag=" + etag + ", data=" + data + ", dataHash=" + dataHash + ", createdBy=" + createdBy
+				+ ", createdOn=" + createdOn + "]";
 	}
 
 	@Override
 	public MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> getTranslator() {
-		// We do not currently have a backup for this object.
 		return new MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation>() {
-
+			
 			@Override
 			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
+				if (backup.getDataHash() == null && backup.getData() != null) {
+					StorageLocationSetting setting = backup.getData();
+					String settingHash = StorageLocationUtils.computeHash(setting);
+					backup.setDataHash(settingHash);
+				}
 				return backup;
 			}
-
+			
 			@Override
 			public DBOStorageLocation createBackupFromDatabaseObject(DBOStorageLocation dbo) {
 				return dbo;
@@ -202,7 +234,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	}
 
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 }

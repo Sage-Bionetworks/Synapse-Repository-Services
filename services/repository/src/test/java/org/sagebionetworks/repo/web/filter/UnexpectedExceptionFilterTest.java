@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -16,23 +20,30 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
+@RunWith(MockitoJUnitRunner.class)
 public class UnexpectedExceptionFilterTest {
-	
+
+	@Mock
 	HttpServletRequest mockRequest;
+	@Mock
 	HttpServletResponse mockResponse;
+	@Mock
 	FilterChain mockChain;
-	UnexpectedExceptionFilter filter;
+	@Mock
 	PrintWriter mockWriter;
-	
+
+	UnexpectedExceptionFilter filter;
+
+
 	@Before
 	public void before() throws IOException{
-		mockRequest = Mockito.mock(HttpServletRequest.class);
-		mockResponse = Mockito.mock(HttpServletResponse.class);
-		mockChain = Mockito.mock(FilterChain.class);
-		mockWriter = Mockito.mock(PrintWriter.class);
 		filter = new UnexpectedExceptionFilter();
 		when(mockResponse.getWriter()).thenReturn(mockWriter);
 	}
@@ -57,6 +68,7 @@ public class UnexpectedExceptionFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockChain);
 		// The response should not be changed
 		verify(mockResponse).setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		verify(mockResponse).setContentType(MediaType.APPLICATION_JSON_VALUE);
 		verify(mockWriter).println("{\"reason\":\"Server error, try again later: Exception\"}");
 	}
 	

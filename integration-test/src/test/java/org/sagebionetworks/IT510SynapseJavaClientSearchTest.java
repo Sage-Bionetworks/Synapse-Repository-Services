@@ -32,7 +32,7 @@ public class IT510SynapseJavaClientSearchTest {
 	private static SynapseClient synapse;
 	private static Long userToDelete;
 	
-	private static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min
+	private static final long MAX_WAIT_TIME_MS = 15*60*1000; // 15 min
 	
 	/**
 	 * All objects are added to this project.
@@ -41,15 +41,15 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
 		
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.setUsername(config.getMigrationAdminUsername());
+		adminSynapse.setApiKey(config.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
@@ -63,7 +63,7 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		StackConfiguration config = new StackConfiguration();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		// There's nothing to do if search is disabled
 		if (!config.getSearchEnabled()) {
 			return;
@@ -95,7 +95,7 @@ public class IT510SynapseJavaClientSearchTest {
 		SearchQuery searchQuery = new SearchQuery();
 		searchQuery.setBooleanQuery(new LinkedList<KeyValue>());
 		KeyValue kv = new KeyValue();
-		kv.setKey("id");
+		kv.setKey("_id");
 		kv.setValue(id);
 		searchQuery.getBooleanQuery().add(kv);
 		long start = System.currentTimeMillis();

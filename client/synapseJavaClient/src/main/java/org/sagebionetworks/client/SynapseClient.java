@@ -19,7 +19,6 @@ import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.Challenge;
@@ -38,9 +36,9 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -56,6 +54,7 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectHeaderList;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
@@ -66,6 +65,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -75,9 +75,11 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -109,10 +111,15 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
-import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.doi.v2.Doi;
+import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
+import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
@@ -122,6 +129,11 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -133,6 +145,12 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.form.FormChangeRequest;
+import org.sagebionetworks.repo.model.form.FormData;
+import org.sagebionetworks.repo.model.form.FormGroup;
+import org.sagebionetworks.repo.model.form.FormRejection;
+import org.sagebionetworks.repo.model.form.ListRequest;
+import org.sagebionetworks.repo.model.form.ListResponse;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -140,14 +158,26 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
+import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
+import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
@@ -160,10 +190,14 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
+import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
+import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
@@ -182,6 +216,9 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
+import org.sagebionetworks.repo.model.table.SnapshotResponse;
+import org.sagebionetworks.repo.model.table.SqlTransformRequest;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -202,6 +239,11 @@ import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+
 
 /**
  * Abstraction for Synapse.
@@ -282,10 +324,12 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * This gets the email used for user notifications, i.e. when a Synapse message is
 	 * sent and if the user has elected to receive messages by email, then this is the email
-	 * address at which the user will receive the message.
+	 * address at which the user will receive the message. If the email if currently in quarantine it will include
+	 * the quarantine status
+	 * 
 	 * @throws SynapseException
 	 */
-	public String getNotificationEmail() throws SynapseException;
+	public NotificationEmail getNotificationEmail() throws SynapseException;
 
 	public Entity getEntityById(String entityId) throws SynapseException;
 
@@ -369,26 +413,26 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException;
 
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
-			throws SynapseException;
-
-	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
-			throws SynapseException;
-
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
-			throws SynapseException;
-
-	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
-			String activityId) throws SynapseException;
-
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	public EntityBundle getEntityBundle(String entityId, int partsMask)
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc)
 			throws SynapseException;
 
-	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
-			int partsMask) throws SynapseException;
+	public EntityBundle createEntityBundleV2(EntityBundleCreate ebc, String activityId)
+			throws SynapseException;
+
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc)
+			throws SynapseException;
+
+	public EntityBundle updateEntityBundleV2(String entityId, EntityBundleCreate ebc,
+											 String activityId) throws SynapseException;
+
+	public EntityBundle getEntityBundleV2(String entityId, EntityBundleRequest bundleV2Request)
+			throws SynapseException;
+
+	public EntityBundle getEntityBundleV2(String entityId, Long versionNumber,
+										  EntityBundleRequest bundleV2Request) throws SynapseException;
 
 	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
 			int offset, int limit) throws SynapseException;
@@ -494,9 +538,9 @@ public interface SynapseClient extends BaseClient {
 	public UserEntityPermissions getUsersEntityPermissions(String entityId)
 			throws SynapseException;
 
-	public Annotations getAnnotations(String entityId) throws SynapseException;
+	public Annotations getAnnotationsV2(String entityId) throws SynapseException;
 
-	public Annotations updateAnnotations(String entityId, Annotations updated)
+	public Annotations updateAnnotationsV2(String entityId, Annotations updated)
 			throws SynapseException;
 
 	public <T extends AccessRequirement> T createAccessRequirement(T ar)
@@ -527,7 +571,7 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessRequirement(Long arId) throws SynapseException;
 
-	public <T extends Entity> T putEntity(T entity, String activityId)
+	public <T extends Entity> T putEntity(T entity, String activityId, Boolean newVersion)
 			throws SynapseException;
 
 	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
@@ -557,9 +601,6 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
-
-	@Deprecated
-	public JSONObject query(String query) throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException;
@@ -735,8 +776,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
-	
-	public String getSynapseTermsOfUse() throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -812,12 +851,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void updateMessageStatus(MessageStatus status)
 			throws SynapseException;
-	
-	/**
-	 * Deletes a message.  Used for test cleanup only.  Admin only.
-	 */
-	public void deleteMessage(String messageId) throws SynapseException;
-	
+
 	/**
 	 * Downloads the body of a message and returns it in a String
 	 */
@@ -921,14 +955,6 @@ public interface SynapseClient extends BaseClient {
 	public Submission createTeamSubmission(Submission sub, String etag, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException;
-	
-	/**
-	 * Add a contributor to an existing submission.  This is available to Synapse administrators only.
-	 * @param submissionId
-	 * @param contributor
-	 * @return
-	 */
-	public SubmissionContributor addSubmissionContributor(String submissionId, SubmissionContributor contributor) throws SynapseException ;
 
 	public Submission getSubmission(String subId) throws SynapseException;
 
@@ -1005,23 +1031,34 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
 
-	public PaginatedResults<ProjectHeader> getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+	public ProjectHeaderList getMyProjects(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException;
+
+	public ProjectHeaderList getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException;
+
+	public ProjectHeaderList getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			String nextPageToken) throws SynapseException;
+
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getMyProjectsDeprecated(ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException;
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsFromUserDeprecated(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Integer limit, Integer offset) throws SynapseException;
+	@Deprecated
+	public PaginatedResults<ProjectHeader> getProjectsForTeamDeprecated(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Integer limit, Integer offset) throws SynapseException;
+	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
-			Integer limit, Integer offset) throws SynapseException;
+	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public void createEntityDoi(String entityId) throws SynapseException;
+	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
 
-	public void createEntityDoi(String entityId, Long entityVersion)
-			throws SynapseException;
+	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
-	public Doi getEntityDoi(String entityId) throws SynapseException;
-
-	public Doi getEntityDoi(String s, Long entityVersion) throws SynapseException;
+	public String getPortalUrl(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
 
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
@@ -1329,6 +1366,19 @@ public interface SynapseClient extends BaseClient {
 	 */
 	List<ColumnModel> getDefaultColumnsForView(ViewType viewType) throws SynapseException;
 	
+	/**
+	 * Get the default columns for a given view type mask.
+	 * 
+	 * @param viewTypeMask
+	 *            Bit mask representing the types to include in the view. The
+	 *            following are the possible types (type=<mask_hex>): File=0x01,
+	 *            Project=0x02, Table=0x04, Folder=0x08, View=0x10, Docker=0x20.
+
+	 * @return
+	 * @throws SynapseException
+	 */
+	List<ColumnModel> getDefaultColumnsForView(Long viewTypeMask) throws SynapseException;
+	
 	// Team services
 	
 	/**
@@ -1435,10 +1485,10 @@ public interface SynapseClient extends BaseClient {
 	ResponseMessage addTeamMember(JoinTeamSignedToken joinTeamSignedToken, 
 			String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException;
-	
+
 	/**
 	 * Return the members of the given team matching the given name fragment.
-	 * 
+	 *
 	 * @param teamId
 	 * @param fragment if null then return all members in the team
 	 * @param limit
@@ -1447,6 +1497,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+
+	/**
+	 * Return the members of the given team matching the given name fragment.
+	 * 
+	 * @param teamId
+	 * @param fragment if null then return all members in the team
+	 * @param memberType if null then return all members in the team (that match the fragment)
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, TeamMemberTypeFilterOptions memberType, long limit, long offset) throws SynapseException;
 	
 	/**
 	 * 
@@ -1703,22 +1766,32 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
-	
+
+	public void sendNewPasswordResetEmail(String passwordResetEndpoint, String email) throws SynapseException;
+
 	/**
-	 * Changes the registering user's password
+	 * Change password for a user
+	 * @param username username to identify the user
+	 * @param currentPassword the user's current password
+	 * @param newPassword the new password for the user
+	 * @param authenticationReceipt Optional. Authentication receipt from a previous, successful login.
+	 * @throws SynapseException
 	 */
-	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
-	
+	public void changePassword(String username, String currentPassword, String newPassword, String authenticationReceipt)
+			throws SynapseException;
+
+	/**
+	 * Change password for user
+	 * @param changePasswordRequest the request object for changing the user's password
+	 * @throws SynapseException
+	 */
+	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
+
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the given user as if request came from Synapse.
-	 */
-	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
+
 	/**
 	 * The first step in OAuth authentication involves sending the user to
 	 * authenticate on an OAuthProvider's web page. Use this method to get a
@@ -1754,6 +1827,28 @@ public interface SynapseClient extends BaseClient {
 	Session validateOAuthAuthenticationCode(OAuthValidationRequest request)
 			throws SynapseException;
 	
+
+	/**
+	 * 
+	 * After a user has been authenticated at an OAuthProvider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represent the authorization code for the user. This method will use the
+	 * authorization code to validate the user and fetch the user's email address
+	 * from the OAuthProvider. If there is no existing account using the email address
+	 * from the provider then a new account will be created, the user will be authenticated,
+	 * and a session will be returned.
+	 * 
+	 * If the email address from the provider is already associated with an account or
+	 * if the passed user name is used by another account then the request will
+	 * return HTTP Status 409 Conflict.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Session createAccountViaOAuth2(OAuthAccountCreationRequest request) throws SynapseException;
+	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
@@ -1780,6 +1875,156 @@ public interface SynapseClient extends BaseClient {
 	void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException;
 	
 	/**
+	 * Get the Open ID Configuration ("Discovery Document") for the Synapse OIDC service.
+	 * 
+	 * @return the configuration
+	 * @throws SynapseException
+	 */
+	OIDConnectConfiguration getOIDConnectConfiguration() throws SynapseException;
+	
+	/**
+	 * Get the JSON Web Key Set for the Synapse OIDC service.  This is the set of public keys
+	 * used to verify signed JSON Web tokens generated by Synapse.
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	JsonWebKeySet getOIDCJsonWebKeySet() throws SynapseException;
+	
+	/**
+	 * Create an OAuth 2.0 client.
+	 * 
+	 * @param oauthClient
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthClient createOAuthClient(OAuthClient oauthClient) throws SynapseException;
+	
+	/**
+	 * Get a secret credential to use when requesting an access token.  Only the creator
+	 * of a client can (re)set its secret.
+	 * 
+	 * <br>
+	 * See https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+	 * <br>
+	 * Synapse supports 'client_secret_basic'.
+	 * <br>
+	 * <em>NOTE:  This request will invalidate any previously issued secrets.</em>
+	 * 
+	 * @param clientId
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthClientIdAndSecret createOAuthClientSecret(String clientId) throws SynapseException;
+	
+	/**
+	 * Get an existing OAuth 2.0 client.  Note: If the request is made by anyone other
+	 * than the creator, only 'public' fields are returned.
+	 * 
+	 * @param clientId
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthClient getOAuthClient(String clientId) throws SynapseException;
+	
+	/**
+	 * List the OAuth 2.0 clients created by the given user.
+	 * 
+	 * @param nextPageToken returned along with a page of results, this is passed to 
+	 * the server to retrieve the next page.
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthClientList listOAuthClients(String nextPageToken) throws SynapseException;
+	
+	/**
+	 * Update the metadata for an existing OAuth 2.0 client
+	 * 
+	 * @param oauthClient
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthClient updateOAuthClient(OAuthClient oauthClient) throws SynapseException;
+	
+	/**
+	 * Delete OAuth 2.0 client
+	 * 
+	 * @param id
+	 * @throws SynapseException
+	 */
+	void deleteOAuthClient(String id) throws SynapseException;
+	
+	/**
+	 * Get a user-readable description of the authentication request.
+	 * This request does not need to be authenticated.
+	 * 
+	 * @param authorizationRequest
+	 * @return
+	 * @throws SynapseException
+	 */
+	OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
+			OIDCAuthorizationRequest authorizationRequest) throws SynapseException;
+	
+	/**
+	 * get access code for a given client, scopes, response type(s), and extra claim(s).
+	 * This request does not need to be authenticated.
+	 * 
+	 * See:
+	 * https://openid.net/specs/openid-connect-core-1_0.html#Consent
+	 * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	 * 
+	 * @param authorizationRequest
+	 * @return
+	 * @throws SynapseException
+	 */
+	OAuthAuthorizationResponse authorizeClient(OIDCAuthorizationRequest authorizationRequest) throws SynapseException;
+			
+	 /** 
+	 *  Get access, refresh and id tokens, as per https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
+	 *  
+	 *  Request must include client ID and Secret in Basic Authentication header, i.e. the 'client_secret_basic' authentication method: 
+	 *  https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+	 *  
+	 * @param grant_type  authorization_code or refresh_token
+	 * @param code required if grant_type is authorization_code
+	 * @param redirectUri required if grant_type is authorization_code
+	 * @param refresh_token required if grant_type is refresh_token
+	 * @param scope required if grant_type is refresh_token
+	 * @param claims optional if grant_type is refresh_token
+	*/
+	OIDCTokenResponse getTokenResponse(
+			OAuthGrantType grant_type,
+			String code,
+			String redirectUri,
+			String refresh_token,
+			String scope,
+			String claims) throws SynapseException;
+	
+	/**
+	 * Get the user information for the user specified by the authorization
+	 * bearer token (which must be included as the authorization header).
+	 * 
+	 * The result is expected to be a JWT token, which is invoked by the 
+	 * client having registered a 'user info signed response algorithm'.
+	 * 
+	 * @return
+	 */
+	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException;
+	
+	/**
+	 * Get the user information for the user specified by the authorization
+	 * bearer token (which must be included as the authorization header).
+	 * 
+	 * The result is expected to be a Map, which is invoked by the 
+	 * client having omitted a 'user info signed response algorithm'.
+	 * 
+	 * @return
+	 */
+	JSONObject getUserInfoAsJSON() throws SynapseException;
+	
+	/**
 	 * Get the Quiz specifically intended to be the Certified User test
 	 * @return
 	 * @throws SynapseException 
@@ -1795,36 +2040,6 @@ public interface SynapseClient extends BaseClient {
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
 	
 	/**
-	 * For integration testing only:  This allows an administrator to set the Certified user status
-	 * of a user.
-	 * @param prinicipalId
-	 * @param status
-	 * @throws SynapseException
-	 */
-	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
-	
-	/**
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param offset
-	 * @param limit
-	 * @param principalId (optional)
-	 * @return the C.U. test responses in the system, optionally filtered by principalId
-	 * @throws SynapseException 
-	 */
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
-	
-	/**
-	 * Delete the Test Response indicated by the given id
-	 * 
-	 * Must be a Synapse admin to make this request
-	 * 
-	 * @param id
-	 * @throws SynapseException 
-	 */
-	public void deleteCertifiedUserTestResponse(String id) throws SynapseException;
-	
-	/**
 	 * Get the Passing Record on the Certified User test for the given user
 	 * 
 	 * @param principalId
@@ -1833,11 +2048,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
-	/**
-	 * Get all Passing Records on the Certified User test for the given user
-	 */
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
-	
 	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody
@@ -1910,6 +2120,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public <T extends StorageLocationSetting> List<T> getMyStorageLocationSettings() throws SynapseException;
 
 	/**
@@ -1991,16 +2202,7 @@ public interface SynapseClient extends BaseClient {
 	 */
 	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
-	
-	/**
-	 * Execute a query to find entities that meet the conditions provided query.
-	 * @param query
-	 * @return
-	 * @throws SynapseException 
-	 */
-	@Deprecated
-	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
-	
+
 	/**
 	 * Creates and returns a new Challenge.  Caller must have CREATE
 	 * permission on the associated Project.
@@ -2523,7 +2725,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	S3FileHandle multipartUpload(InputStream input, long fileSize, String fileName, String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException;
+	CloudProviderFileHandleInterface multipartUpload(InputStream input, long fileSize, String fileName, String contentType, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException;
 	
 	/**
 	 * Upload the passed file with mutli-part upload.
@@ -2536,7 +2738,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws FileNotFoundException 
 	 * @throws IOException 
 	 */
-	S3FileHandle multipartUpload(File file, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException, FileNotFoundException, IOException;
+	CloudProviderFileHandleInterface multipartUpload(File file, Long storageLocationId, Boolean generatePreview, Boolean forceRestart) throws SynapseException, FileNotFoundException, IOException;
 
 	/**
 	 * Subscribe to a topic
@@ -2565,7 +2767,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	SubscriptionPagedResults getAllSubscriptions(SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException;
+	SubscriptionPagedResults getAllSubscriptions(SubscriptionObjectType objectType, Long limit, Long offset, SortByType sortByType, org.sagebionetworks.repo.model.subscription.SortDirection sortDirection) throws SynapseException;
 
 	/**
 	 * List all subscriptions one has based on a list of topic
@@ -2619,16 +2821,6 @@ public interface SynapseClient extends BaseClient {
 	SubscriberCount getSubscriberCount(Topic topic) throws SynapseException;
 
 
-	/**
-	 * Retrieve the current etag for a given object.
-	 * 
-	 * @param objectId
-	 * @param objectType
-	 * @return
-	 * @throws SynapseException
-	 */
-	Etag getEtag(String objectId, ObjectType objectType) throws SynapseException;
-	
 	/**
 	 * Get the entity ID assigned to a given alias.
 	 * 
@@ -2690,19 +2882,19 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void addDockerCommit(String entityId, DockerCommit dockerCommit) throws SynapseException;
-	
+
 	/**
-	 * Return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * Return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 *
 	 * @param entityId the ID of the Docker repository entity
 	 * @param limit pagination parameter, optional (default is 20)
 	 * @param offset pagination parameter, optional (default is 0)
 	 * @param sortBy TAG or CREATED_ON, optional (default is CREATED_ON)
 	 * @param ascending, optional (default is false)
-	 * @return a paginated list of commits (tag/digest pairs) for the given Docker repository.
+	 * @return a paginated list of tagged commits (tag/digest pairs) for the given Docker repository.
 	 * @throws SynapseException
 	 */
-	PaginatedResults<DockerCommit> listDockerCommits(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
+	PaginatedResults<DockerCommit> listDockerTags(String entityId, Long limit, Long offset, DockerCommitSortBy sortBy, Boolean ascending) throws SynapseException;
 
 	/**
 	 * Get threads that reference the given entity
@@ -2952,4 +3144,323 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) throws SynapseException;
+	
+	/**
+	 * Start an asynchronous job to add files to a user's download list.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startAddFilesToDownloadList(AddFileToDownloadListRequest request)
+			throws SynapseException;
+
+
+	/**
+	 * Get the results of the asynchronous job to add files to a user's download list.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	AddFileToDownloadListResponse getAddFilesToDownloadListResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Add the given list of files to the user's download list.
+	 * 
+	 * @param toAdd
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList addFilesToDownloadList(List<FileHandleAssociation> toAdd) throws SynapseException;
+	
+	/**
+	 * Remove the given list of files from the user's download list.
+	 * 
+	 * @param toRemove
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList removeFilesFromDownloadList(List<FileHandleAssociation> toRemove) throws SynapseException;
+	
+	/**
+	 * Clear the user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	void clearDownloadList() throws SynapseException;
+	
+	/**
+	 * Get a user's download list.
+	 * 
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadList getDownloadList() throws SynapseException;
+	
+	/**
+	 * Create a download Order from the user's current download list. Only files that
+	 * the user has permission to download will be added to the download order. Any
+	 * file that cannot be added to the order will remain in the user's download
+	 * list.
+	 * <p>
+	 * The resulting download order can then be downloaded using
+	 * {@link #startBulkFileDownload(BulkFileDownloadRequest)}.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: A single download order is limited to 1 GB of uncompressed file data.
+	 * This method will attempt to create the largest possible order that is within
+	 * the limit. Any file that cannot be added to the order will remain in the
+	 * user's download list.
+	 * </p>
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder createDownloadOrderFromUsersDownloadList(String zipFileName) throws SynapseException;
+	
+	/**
+	 * Get a download order given the order's ID
+	 * @param orderId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrder getDownloadOrder(String orderId) throws SynapseException;
+	
+	/**
+	 * Get the download order history for a user in reverse chronological order.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DownloadOrderSummaryResponse getDownloadOrderHistory(DownloadOrderSummaryRequest request) throws SynapseException;
+	
+	/**
+	 * Change the {@link DataType} of the given Entity.
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team' to change
+	 * an Entity's data type to OPEN_DATA.  The caller must be grated the UPDATE permission
+	 * to change an Entity's data type to any value other than  OPEN_DATA.
+	 * @param entityId
+	 * @param newDataType
+	 * @return
+	 * @throws SynapseException 
+	 */
+	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
+	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
+
+	DownloadStorageReportResponse generateStorageReportAsyncGet(String asyncJobToken) throws SynapseException;
+
+	/**
+	 * Request to transform the provided SQL based on the request parameters. For
+	 * example, a
+	 * {@linkplain org.sagebionetworks.repo.model.tabe.TransformSqlWithFacetsRequest}
+	 * can be used to alter the where clause of the provided SQL based on the
+	 * provided selected facets.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public String transformSqlRequest(SqlTransformRequest request) throws SynapseException;
+	
+	/**
+	 * Request to create a new snapshot of a table or view. The provided comment,
+	 * label, and activity ID will be applied to the current version thereby
+	 * creating a snapshot and locking the current version. After the snapshot is
+	 * created a new version will be started with an 'in-progress' label.
+	 * @param tableId
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public SnapshotResponse createTableSnapshot(String tableId, SnapshotRequest request) throws SynapseException;
+	
+	/**
+	 * Request to retrieve statistics about specific objects. The user should have
+	 * {@link ACCESS_TYPE#READ} access on the {@link ObjectStatisticsRequest#getObjectId()
+	 * objectId} referenced by the request.
+	 * 
+	 * @param request The request body
+	 * @return The statistics according to the given request
+	 * @throws SynapseException
+	 */
+	public ObjectStatisticsResponse getStatistics(ObjectStatisticsRequest request) throws SynapseException;
+
+	/**
+	 * Create a FormGroup with provided name. This method is idempotent. If a group
+	 * with the provided name already exists and the caller has ACCESS_TYPE.READ
+	 * permission the existing FormGroup will be returned.
+	 * </p>
+	 * The created FormGroup will have an Access Control
+	 * List (ACL) with the creator listed as an administrator.
+	 * 
+	 * @param userId
+	 * @param name   A globally unique name for the group. Required. Between 3 and
+	 *               256 characters.
+	 * @param name
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormGroup createFormGroup(String name) throws SynapseException;
+	
+	/**
+	 * Get the Access Control List (ACL) for a FormGroup.
+	 * </p>
+	 * Note: The caller must have the ACCESS_TYPE.READ permission on the identified group.
+	 * @param formGroupId The identifier of the group.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList getFormGroupAcl(String formGroupId) throws SynapseException;
+	
+	/**
+	 * Update the Access Control List (ACL) for a FormGroup.
+	 * <p>
+	 * The following define the permissions in this context:
+	 * <ul>
+	 * <li>ACCESS_TYPE.READ - Grants read access to the group. READ does <b>not</b>
+	 * grant access to FormData of the group.</li>
+	 * <li>ACCESS_TYPE.CHANGE_PERMISSIONS - Grants access to update the group's
+	 * ACL.</li>
+	 * <li>ACCESS_TYPE.SUBMIT - Grants access to both create and submit FormData to
+	 * the group.</li>
+	 * <li>ACCESS_TYPE.READ_PRIVATE_SUBMISSION - Grants administrator's access to
+	 * the submitted FormData, including both FormData reads and status updates.
+	 * This permission should be reserved for the service account that evaluates
+	 * submissions.</li>
+	 * </ul>
+	 * 
+	 * Users automatically have read/update access to FormData that they create.
+	 * </p>
+	 * 
+	 * 
+	 * Note: The caller must have the ACCESS_TYPE.CHANGE_PERMISSIONS permission on
+	 * the identified group to update the group's ACL.
+	 * 
+	 * @param userId
+	 * @param id     The identifier of the FormGroup.
+	 * @param acl    The updated ACL.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList updateFormGroupAcl(AccessControlList acl) throws SynapseException;
+
+	/**
+	 * Create a new FormData object. The caller will own the resulting object and
+	 * will have access to read, update, and delete the FormData object.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
+	 * to create/update/submit FormData.
+	 * 
+	 * @param groupId The identifier of the group that manages this data. Required.
+	 * @param name    User provided name for this submission. Required. Between 3
+	 *                and 256 characters.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormData createFormData(String groupId, FormChangeRequest request) throws SynapseException;
+	
+	/**
+	 * Update an existing FormData object. The caller must be the creator of the
+	 * FormData object. Once a FormData object has been submitted, it cannot be
+	 * updated until it has been processed. If the submission is accepted it becomes
+	 * immutable. Rejected submission are editable. Updating a rejected submission
+	 * will change its status back to waiting_for_submission.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the FormGrup
+	 * to create/update/submit FormData.
+	 * 
+	 * @param formId  The identifier of the FormData to update.
+	 * @param name    Rename this submission. Optional. Between 3 and 256
+	 *                characters.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormData updateFormData(String formId, FormChangeRequest request) throws SynapseException;
+	
+	/**
+	 * Delete an existing FormData object. The caller must be the creator of the
+	 * FormData object.
+	 * <p>
+	 * Note: Cannot delete a FormData object once it has been submitted and caller
+	 * must have the ACCESS_TYPE.SUBMIT permission on the identified group to update
+	 * the group's ACL.
+	 * 
+	 * @param formId Id of the FormData object to delete
+	 * @return
+	 * @throws SynapseException 
+	 */
+	void deleteFormData(String formId) throws SynapseException;
+	
+	/**
+	 * Submit the identified FormData from review.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.SUBMIT permission on the
+	 * identified group to update the group's ACL.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData submitFormData(String formId) throws SynapseException;
+	
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request that are owned by the caller. Note: Only objects owned
+	 * by the caller will be returned.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ListResponse listFormStatusForCreator(ListRequest request) throws SynapseException;
+	
+	/**
+	 * List FormData objects and their associated status that match the filters of
+	 * the provided request for the entire group. This is used by service accounts
+	 * to review submissions. Filtering by WAITING_FOR_SUBMISSION is not allowed for
+	 * this call.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission
+	 * on the identified group to update the group's ACL.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ListResponse listFormStatusForReviewer(ListRequest request) throws SynapseException;
+	
+	/**
+	 * Called by the form reviewing service to accept a submitted data.
+	 * <p>
+	 * ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission on the identified group to
+	 * update the group's ACL.
+	 * 
+	 * @param formDataId Identifier of the FormData to accept.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData reviewerAcceptFormData(String formDataId) throws SynapseException;
+	
+	/**
+	 * Called by the form reviewing service to reject a submitted data.
+	 * <p>
+	 * Note: The caller must have the ACCESS_TYPE.READ_PRIVATE_SUBMISSION permission
+	 * on the identified group to update the group's ACL.
+	 * 
+	 * @param formDataId Identifier of the FormData to accept.
+	 * @param reason     The reason for the rejection. Limit 500 characters or less.
+	 * @return
+	 * @throws SynapseException 
+	 */
+	FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException;
+	
 }

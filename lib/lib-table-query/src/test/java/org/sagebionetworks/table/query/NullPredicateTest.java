@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BooleanPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.IsPredicate;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUntils;

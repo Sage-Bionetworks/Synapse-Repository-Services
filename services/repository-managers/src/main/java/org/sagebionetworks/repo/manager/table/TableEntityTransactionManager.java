@@ -6,6 +6,8 @@ import java.util.List;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -21,7 +23,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 public class TableEntityTransactionManager implements TableTransactionManager {
 	
-	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000*60;
+	/**
+	 * See: PLFM-5456
+	 */
+	private static final int EXCLUSIVE_LOCK_TIMEOUT_SECONDS = 5*60;
 	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
@@ -31,6 +36,8 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TableEntityManager tableEntityManager;
 	@Autowired
 	TableIndexConnectionFactory tableIndexConnectionFactory;
+	@Autowired
+	TableTransactionDao transactionDao;
 
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
@@ -42,10 +49,11 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		TableTransactionUtils.validateRequest(request);
 		String tableId = request.getEntityId();
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// Validate the user has permission to edit the table before locking.
-		tableManagerSupport.validateTableWriteAccess(userInfo, tableId);
+		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
 		try {
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<TableUpdateTransactionResponse>() {
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<TableUpdateTransactionResponse>() {
 
 				@Override
 				public TableUpdateTransactionResponse call(ProgressCallback callback) throws Exception {
@@ -108,13 +116,14 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		// setup a temporary table if needed.
 		if(isTemporaryTableNeeded){
 			String tableId = request.getEntityId();
-			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(tableId);
-			indexManager.createTemporaryTableCopy(tableId, callback);
+			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(idAndVersion);
+			indexManager.createTemporaryTableCopy(idAndVersion, callback);
 			try{
 				// validate while the temp table exists.
 				validateEachUpdateRequest(callback, userInfo, request, indexManager);
 			}finally{
-				indexManager.deleteTemporaryTableCopy(tableId, callback);
+				indexManager.deleteTemporaryTableCopy(idAndVersion, callback);
 			}
 		}else{
 			// we do not need a temporary copy to validate this request.
@@ -168,13 +177,23 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	TableUpdateTransactionResponse doIntransactionUpdateTable(TransactionStatus status,
 			ProgressCallback callback, UserInfo userInfo,
 			TableUpdateTransactionRequest request) {
+		// Start a new table transaction and get a transaction number.
+		long transactionId = transactionDao.startTransaction(request.getEntityId(), userInfo.getId());
 		// execute each request
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		response.setResults(results);
-		for(TableUpdateRequest change: request.getChanges()){
-			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change);
-			results.add(changeResponse);
+		if(request.getChanges() != null) {
+			for(TableUpdateRequest change: request.getChanges()){
+				TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change, transactionId);
+				results.add(changeResponse);
+			}
+		}
+		if (request.getCreateSnapshot() != null
+				&& Boolean.TRUE.equals(request.getCreateSnapshot())) {
+			Long snapshotVersion = tableEntityManager.createSnapshotAndBindToTransaction(userInfo, request.getEntityId(),
+					request.getSnapshotOptions(), transactionId);
+			response.setSnapshotVersionNumber(snapshotVersion);
 		}
 		return response;
 	}

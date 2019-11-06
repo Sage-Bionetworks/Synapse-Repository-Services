@@ -1,0 +1,16 @@
+{
+  "description": "JSON schema for DOI Metadata Creator.",
+  "properties": {
+    "creatorName":{
+      "type":"string",
+      "description":"Required. May be a corporate/institutional or personal name (\"Family, Given\")."
+    },
+    "nameIdentifiers": {
+      "description": "Optional. Uniquely identifies an individual or legal entity, according to various schemas.",
+      "type": "array",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier"
+      }
+    }
+  }
+}

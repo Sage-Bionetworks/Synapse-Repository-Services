@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -35,12 +36,16 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.jdo.NameValidation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.upload.multipart.S3MultipartUploadDAO;
+import org.sagebionetworks.upload.multipart.CloudServiceMultipartUploadDAOProvider;
+import org.sagebionetworks.upload.multipart.MultipartUploadUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -48,7 +53,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 	@Autowired
-	S3MultipartUploadDAO s3multipartUploadDAO;
+	CloudServiceMultipartUploadDAOProvider cloudServiceMultipartUploadDAOProvider;
 
 	@Autowired
 	MultipartUploadDAO multipartUploadDAO;
@@ -70,21 +75,24 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * org.sagebionetworks.repo.model.file.MultipartUploadRequest,
 	 * java.lang.Boolean)
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus startOrResumeMultipartUpload(UserInfo user,
-			MultipartUploadRequest request, Boolean forceRestart) {
+															  MultipartUploadRequest request, boolean forceRestart) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(user.getId(), "UserInfo.getId");
 		ValidateArgument.required(request, "MultipartUploadRequest");
-		ValidateArgument.required(request.getFileName(),
+		ValidateArgument.requiredNotEmpty(request.getFileName(),
 				"MultipartUploadRequest.fileName");
 		ValidateArgument.required(request.getFileSizeBytes(),
 				"MultipartUploadRequest.fileSizeBytes");
 		ValidateArgument.required(request.getPartSizeBytes(),
 				"MultipartUploadRequest.PartSizeBytes");
-		ValidateArgument.required(request.getContentMD5Hex(),
+		ValidateArgument.requiredNotEmpty(request.getContentMD5Hex(),
 				"MultipartUploadRequest.MD5Hex");
+
+		//validate file name
+		NameValidation.validateName(request.getFileName());
 
 		// anonymous cannot upload. See: PLFM-2621.
 		if (AuthorizationUtils.isUserAnonymous(user)) {
@@ -94,7 +102,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// this user.
 		String requestMD5Hex = calculateMD5AsHex(request);
 		// Clear all data if this is a forced restart
-		if (forceRestart != null && forceRestart.booleanValue()) {
+		if (forceRestart) {
 			multipartUploadDAO.deleteUploadStatus(user.getId(), requestMD5Hex);
 		}
 
@@ -112,7 +120,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	}
 
 	/**
-	 * Create a new multi-part upload both in S3 and the database.
+	 * Create a new multi-part upload both in the cloud service and the database.
 	 * 
 	 * @param user
 	 * @param request
@@ -122,15 +130,21 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	private CompositeMultipartUploadStatus createNewMultipartUpload(
 			UserInfo user, MultipartUploadRequest request, String requestMD5Hex) {
 		// This is the first time we have seen this request.
-		StorageLocationSetting locationSettings = getStorageLocationSettions(request
-				.getStorageLocationId());
+		StorageLocationSetting locationSettings = getStorageLocationSettings(request.getStorageLocationId());
+		UploadType uploadType;
+		if (locationSettings == null) { // Null location represents Synapse S3 storage.
+			uploadType = UploadType.S3;
+		} else {
+			uploadType = locationSettings.getUploadType();
+		}
 		// the bucket depends on the upload location used.
 		String bucket = MultipartUtils.getBucket(locationSettings);
 		// create a new key for this file.
 		String key = MultipartUtils.createNewKey(user.getId().toString(),
 				request.getFileName(), locationSettings);
-		String uploadToken = s3multipartUploadDAO.initiateMultipartUpload(
-				bucket, key, request);
+		String uploadToken = cloudServiceMultipartUploadDAOProvider
+				.getCloudServiceMultipartUploadDao(uploadType)
+				.initiateMultipartUpload(bucket, key, request);
 		String requestJson = createRequestJSON(request);
 		// How many parts will be needed to upload this file?
 		int numberParts = PartUtils.calculateNumberOfParts(request.getFileSizeBytes(),
@@ -138,8 +152,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		// Start the upload
 		return multipartUploadDAO
 				.createUploadStatus(new CreateMultipartRequest(user.getId(),
-						requestMD5Hex, requestJson, uploadToken, bucket, key,
-						numberParts));
+						requestMD5Hex, requestJson, uploadToken, uploadType,
+						bucket, key, numberParts));
 	}
 
 	/**
@@ -188,7 +202,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	private StorageLocationSetting getStorageLocationSettions(Long storageId) {
+	private StorageLocationSetting getStorageLocationSettings(Long storageId) {
 		if (storageId == null) {
 			return null;
 		}
@@ -208,11 +222,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			MessageDigest messageDigest = MessageDigest.getInstance("MD5");
 			byte[] md5Bytes = messageDigest.digest(jsonBytes);
 			return new String(Hex.encodeHex(md5Bytes));
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		} catch (NoSuchAlgorithmException e) {
+		} catch (JSONObjectAdapterException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -242,14 +252,15 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 
 		// validate the caller is the user that started this upload.
 		validateStartedBy(user, status);
-		List<PartPresignedUrl> partUrls = new LinkedList<PartPresignedUrl>();
+		List<PartPresignedUrl> partUrls = new LinkedList<>();
 		for (Long partNumberL : request.getPartNumbers()) {
 			ValidateArgument.required(partNumberL, "PartNumber cannot be null");
 			int partNumber = partNumberL.intValue();
 			validatePartNumber(partNumber, numberOfParts);
-			String partKey = createPartKey(status.getKey(), partNumber);
-			URL url = s3multipartUploadDAO.createPreSignedPutUrl(
-					status.getBucket(), partKey, request.getContentType());
+			String partKey = MultipartUploadUtils.createPartKey(status.getKey(), partNumber);
+			URL url = cloudServiceMultipartUploadDAOProvider
+					.getCloudServiceMultipartUploadDao(status.getUploadType())
+					.createPreSignedPutUrl(status.getBucket(), partKey, request.getContentType());
 			PartPresignedUrl part = new PartPresignedUrl();
 			part.setPartNumber((long) partNumber);
 			part.setUploadPresignedUrl(url.toString());
@@ -258,17 +269,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		BatchPresignedUploadUrlResponse response = new BatchPresignedUploadUrlResponse();
 		response.setPartPresignedUrls(partUrls);
 		return response;
-	}
-
-	/**
-	 * Create a part key using the base and part number.
-	 * 
-	 * @param baseKey
-	 * @param partNumber
-	 * @return
-	 */
-	public static String createPartKey(String baseKey, int partNumber) {
-		return String.format("%1$s/%2$d", baseKey, partNumber);
 	}
 
 	/**
@@ -298,7 +298,6 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * Validate the caller started the given upload.
 	 * 
 	 * @param user
-	 * @param startedBy
 	 */
 	public static void validateStartedBy(UserInfo user,
 			CompositeMultipartUploadStatus composite) {
@@ -317,7 +316,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		}
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public AddPartResponse addMultipartPart(UserInfo user, String uploadId,
 			Integer partNumber, String partMD5Hex) {
@@ -335,21 +334,21 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		validatePartNumber(partNumber, composite.getNumberOfParts());
 		// validate the user started this upload.
 		validateStartedBy(user, composite);
-		String partKey = createPartKey(composite.getKey(), partNumber);
+		String partKey = MultipartUploadUtils.createPartKey(composite.getKey(), partNumber);
 
 		AddPartResponse response = new AddPartResponse();
 		response.setPartNumber(new Long(partNumber));
 		response.setUploadId(uploadId);
 		try {
-			s3multipartUploadDAO.addPart(new AddPartRequest(composite
-					.getUploadToken(), composite.getBucket(), composite
-					.getKey(), partKey, partMD5Hex, partNumber));
+			cloudServiceMultipartUploadDAOProvider
+					.getCloudServiceMultipartUploadDao(composite.getUploadType())
+					.validateAndAddPart(new AddPartRequest(uploadId, composite
+							.getUploadToken(), composite.getBucket(), composite
+							.getKey(), partKey, partMD5Hex, partNumber, composite.getNumberOfParts()));
 			// added the part successfully.
 			multipartUploadDAO
 					.addPartToUpload(uploadId, partNumber, partMD5Hex);
 			response.setAddPartState(AddPartState.ADD_SUCCESS);
-			// after a part is added we can delete the part file
-			s3multipartUploadDAO.deleteObject(composite.getBucket(), partKey);
 		} catch (Exception e) {
 			response.setErrorMessage(e.getMessage());
 			response.setAddPartState(AddPartState.ADD_FAILED);
@@ -360,7 +359,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		return response;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public MultipartUploadStatus completeMultipartUpload(UserInfo user,
 			String uploadId) {
@@ -382,20 +381,22 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		validateParts(composite.getNumberOfParts(), addedParts);
 		// complete the upload
 		CompleteMultipartRequest request = new CompleteMultipartRequest();
+		request.setUploadId(Long.valueOf(uploadId));
+		request.setNumberOfParts(composite.getNumberOfParts().longValue());
 		request.setAddedParts(addedParts);
 		request.setBucket(composite.getBucket());
 		request.setKey(composite.getKey());
 		request.setUploadToken(composite.getUploadToken());
-		// This will create the object in S3
-		long fileContentSize = s3multipartUploadDAO
+		long fileContentSize = cloudServiceMultipartUploadDAOProvider
+				.getCloudServiceMultipartUploadDao(composite.getUploadType())
 				.completeMultipartUpload(request);
 
 		// Get the original request
 		MultipartUploadRequest originalRequest = getRequestForUpload(uploadId);
 		// create a file handle to represent this file.
-		S3FileHandle resultFileHandle = createFileHandle(fileContentSize, composite, originalRequest);
+		String resultFileHandleId = createFileHandle(fileContentSize, composite, originalRequest).getId();
 		// complete the upload.
-		composite = multipartUploadDAO.setUploadComplete(uploadId, resultFileHandle.getId());
+		composite = multipartUploadDAO.setUploadComplete(uploadId, resultFileHandleId);
 		return prepareCompleteStatus(composite);
 	}
 
@@ -462,11 +463,18 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 	 * @param request
 	 * @return
 	 */
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
-	public S3FileHandle createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
+	public CloudProviderFileHandleInterface createFileHandle(long fileSize, CompositeMultipartUploadStatus composite, MultipartUploadRequest request){
 		// Convert all of the data to a file handle.
-		S3FileHandle fileHandle = new S3FileHandle();
+		CloudProviderFileHandleInterface fileHandle;
+		if (composite.getUploadType().equals(UploadType.S3)) {
+			fileHandle = new S3FileHandle();
+		} else if (composite.getUploadType().equals(UploadType.GOOGLECLOUDSTORAGE)) {
+			fileHandle = new GoogleCloudFileHandle();
+		} else {
+			throw new IllegalArgumentException("Cannot create a FileHandle from a multipart upload with upload type " + composite.getUploadType());
+		}
 		fileHandle.setFileName(request.getFileName());
 		fileHandle.setContentType(request.getContentType());
 		fileHandle.setBucketName(composite.getBucket());
@@ -477,13 +485,13 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		fileHandle.setContentMd5(request.getContentMD5Hex());
 		fileHandle.setStorageLocationId(request.getStorageLocationId());
 		fileHandle.setContentSize(fileSize);
-		// By default a preview should be created.	
+		// By default a preview should be created.
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		if(request.getGeneratePreview() != null && !request.getGeneratePreview()){
 			fileHandle.setPreviewId(fileHandle.getId());
 		}
 		// dao creates the files handle.
-		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
+		return (CloudProviderFileHandleInterface) fileHandleDao.createFile(fileHandle);
 	}
 
 	@Override

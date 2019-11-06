@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,9 +14,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.database.StreamingJdbcTemplate;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -21,19 +29,19 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
+import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.RangeChecksum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -57,33 +65,28 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			+ " DELETE_RULE != 'RESTRICT' AND UNIQUE_CONSTRAINT_SCHEMA = ?";
 
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
+	private static final String SET_UNIQUE_KEY_CHECKS = "SET UNIQUE_CHECKS = ?";
+
+	private static UnmodifiableXStream TABLE_NAME_ALIAS_X_STREAM;
+	private static UnmodifiableXStream MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
-	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private StackConfiguration stackConfiguration;
-	
-	/**
-	 * For unit testing
-	 */
-	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate,
-			List<MigratableDatabaseObject> databaseObjectRegister) {
-		super();
-		this.jdbcTemplate = jdbcTemplate;
-		this.databaseObjectRegister = databaseObjectRegister;
-	}
 
-	/**
-	 * Default used by Spring
-	 */
-	public MigratableTableDAOImpl() { }
+	private StackConfiguration stackConfiguration;
+
+	@Autowired
+	public MigratableTableDAOImpl(JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.stackConfiguration = stackConfiguration;
+	}
 	
 	/**
 	 * Injected via Spring
 	 */
-	private List<MigratableDatabaseObject> databaseObjectRegister;
+	List<MigratableDatabaseObject> databaseObjectRegister;
 
 	/**
 	 * Injected via Spring
@@ -97,7 +100,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
-	
+
+	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
+		return Collections.unmodifiableList(this.databaseObjectRegister);
+	}
+
+
 	/**
 	 * Injected via Spring
 	 */
@@ -106,23 +114,19 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	// SQL
-	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> deleteByRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> minSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> listByRangeSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
-	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlRangeMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumRangeSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
 	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
 	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
-	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
 	
 	private List<MigrationType> rootTypes = new LinkedList<MigrationType>();
 	
@@ -141,6 +145,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public void initialize() {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
+
 		// Create the schema for each 
 		// This index is used to validate the order of migration.
 		int lastIndex = 0;
@@ -160,6 +165,28 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
+
+		initializeAliasTypeToXStreamMap(databaseObjectRegister);
+	}
+
+	static void initializeAliasTypeToXStreamMap(List<MigratableDatabaseObject> databaseObjectRegister) {
+		//create maps for alias type to xstream
+		UnmodifiableXStream.Builder tableNameXStreamBuilder = UnmodifiableXStream.builder();
+		tableNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+		UnmodifiableXStream.Builder migrationTypeNameXStreamBuilder = UnmodifiableXStream.builder();
+		migrationTypeNameXStreamBuilder.allowTypeHierarchy(MigratableDatabaseObject.class);
+
+		for(MigratableDatabaseObject dbo: databaseObjectRegister){
+			// Add aliases to XStream for each alias type
+			//BackupAliasType.TABLE_NAME
+			tableNameXStreamBuilder.alias(dbo.getTableMapping().getTableName(), dbo.getBackupClass());
+			//BackupAliasType.MIGRATION_TYPE_NAME
+			migrationTypeNameXStreamBuilder.alias(dbo.getMigratableTableType().name(), dbo.getBackupClass());
+		}
+
+		//add map entries once the builders are done
+		TABLE_NAME_ALIAS_X_STREAM =  tableNameXStreamBuilder.build();
+		MIGRATION_TYPE_NAME_ALIAS_X_STREAM = migrationTypeNameXStreamBuilder.build();
 	}
 	
 	/*
@@ -214,8 +241,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
 		// Build up the SQL cache.
-		String delete = DMLUtils.createBatchDelete(mapping);
-		deleteSqlMap.put(type, delete);
+		String deleteByRange = DMLUtils.createDeleteByBackupIdRange(mapping);
+		deleteByRangeMap.put(type, deleteByRange);
 		String count = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		countSqlMap.put(type, count);
 		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
@@ -228,12 +255,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		checksumRangeSqlMap.put(type, sumCrc);
 		String checksumTable = DMLUtils.createChecksumTableStatement(mapping);
 		checksumTableSqlMap.put(type, checksumTable);
-		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
-		listSqlMap.put(type, listRowMetadataSQL);
-		String listRowMetaDataByIdSQL = DMLUtils.listRowMetadataByRange(mapping);
-		listByRangeSqlMap.put(type, listRowMetaDataByIdSQL);
-		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
-		deltaListSqlMap.put(type, deltalistRowMetadataSQL);
+		String batchChecksumSql = DMLUtils.createSelectBatchChecksumStatement(mapping);
+		this.batchChecksumSqlMap.put(type, batchChecksumSql);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
@@ -242,11 +265,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 		FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
 		this.backupIdColumns.put(type, backupId);
-		RowMapper<RowMetadata> rowMetadataMapper = DMLUtils.getRowMetadataRowMapper(mapping);
-		rowMetadataMappers.put(type, rowMetadataMapper);
-		// Backup batch SQL
-		String batchBackup = DMLUtils.getBackupBatch(mapping);
-		backupSqlMap.put(type, batchBackup);
 		
 		String backupRangeSql = DMLUtils.getBackupRangeBatch(mapping);
 		this.backupSqlRangeMap.put(type, backupRangeSql);
@@ -254,7 +272,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
 		if (typeTpObject.containsKey(type)) {
-			throw new IllegalArgumentException("Each DBO should has its own MigrationType. Found duplicated type for: "+dbo.getClass().getName());
+			throw new IllegalArgumentException("Each DBO should have its own MigrationType. Found duplicated type for: "+dbo.getClass().getName());
 		}
 		this.typeTpObject.put(type, dbo);
 		// The batch insert or update sql
@@ -294,6 +312,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * 
 	 * Note: This requirement does NOT extend to secondary tables.
 	 * 
+	 * Additionally the data type of a backup column must be a bigint.
+	 * 
 	 * @param mapping
 	 */
 	public void validateBackupColumn(TableMapping mapping) {
@@ -320,7 +340,19 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 					+ mapping.getTableName() + ":");
 			log.debug("\t" + names.toString());
 		}
+		
+		sql = DMLUtils.getColumnDataType(mapping.getTableName(), backupColumnName);
+		
+		String dataType = jdbcTemplate.queryForObject(sql, String.class);
+		
+		if (!"bigint".equalsIgnoreCase(dataType)) {
+			throw new IllegalArgumentException("Backup columns must be of \"bigint\" type. Found " + dataType + " for table: " 
+					+ mapping.getTableName()
+					+ " column: "
+					+ backupColumnName);
+		}
 	}
+	
 	
 	@Override
 	public long getCount(MigrationType type) {
@@ -356,168 +388,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		}
 	}
 
-	@Override
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		String sql = this.getListSql(type);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, limit, offset);
-		long count = this.getCount(type);
-		RowMetadataResult result = new RowMetadataResult();
-		result.setList(page);
-		result.setTotalCount(count);
-		return result;
-	}
-	
-	@Override
-	public RowMetadataResult listRowMetadataByRange(MigrationType type, long minId, long maxId, long limit, long offset) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		String sql = this.getListSqlByRange(type);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		List<RowMetadata> page = jdbcTemplate.query(sql, mapper, minId, maxId, limit, offset);
-		long count = this.getCount(type);
-		RowMetadataResult result = new RowMetadataResult();
-		result.setList(page);
-		result.setTotalCount(count);
-		return result;
-	}
-	
-	@Override
-	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		// Fix for PLFM-1978
-		if(idList.size() < 1) return new LinkedList<RowMetadata>();
-		String sql = this.getDeltaListSql(type);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(DMLUtils.BIND_VAR_ID_lIST, idList);
-		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
-		final List<RowMetadata> result = namedTemplate.query(sql, params, mapper);
-		return result;
-	}
-
-
-
-	@Deprecated
-	@WriteTransaction
-	@Override
-	public int deleteObjectsById(MigrationType type, List<Long> idList) {
-		if (type == null) {
-			throw new IllegalArgumentException("type cannot be null");
-		}
-		if (idList == null) {
-			throw new IllegalArgumentException("idList cannot be null");
-		}
-		
-		// Migration should not delete the user handling the migration
-		if (type == MigrationType.PRINCIPAL 
-				|| type == MigrationType.CREDENTIAL
-				|| type == MigrationType.GROUP_MEMBERS) {
-			idList.removeAll(userGroupIdsExemptFromDeletion);
-		}
-		
-		if (idList.size() < 1) {
-			return 0;
-		}
-		
-		String deleteSQL = this.deleteSqlMap.get(type);
-		if (deleteSQL == null) {
-			throw new IllegalArgumentException(
-					"Cannot find batch delete SQL for " + type);
-		}
-		SqlParameterSource params = new MapSqlParameterSource(
-				DMLUtils.BIND_VAR_ID_lIST, idList);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		return namedTemplate.update(deleteSQL, params);
-	}
-	
-
-	@Override
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds) {
-		if(clazz == null) throw new IllegalArgumentException("clazz cannot be null");
-		if(rowIds == null) throw new IllegalArgumentException("idList cannot be null");
-		if(rowIds.size() < 1) return new LinkedList<D>();
-		MigrationType type = getTypeForClass(clazz);
-		String sql = getBatchBackupSql(type);
-		
-		@SuppressWarnings("unchecked")
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
-		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		List<D> page = namedTemplate.query(sql, params, object.getTableMapping());
-		return page;
-	}
-
-	@WriteTransaction
-	@Override
-	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
-		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
-		if(batch.size() <1) return new LinkedList<Long>();
-		List<Long> createOrUpdateIds = new LinkedList<Long>();
-		// nothing to do with an empty batch
-		if(batch.size() < 1) return createOrUpdateIds;
-
-		MigrationType type = getTypeForClass(batch.get(0).getClass());
-		FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
-		String sql = getInsertOrUpdateSql(type);
-		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
-		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = getSqlParameterSource(batch.get(i), batch.get(i).getTableMapping());
-			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
-			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
-			Long id = (Long) obj;
-			createOrUpdateIds.add(id);
-		}
-		// execute the batch
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		namedTemplate.batchUpdate(sql, namedParameters);
-		return createOrUpdateIds;
-	}
-
 	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
 		}
 		return new BeanPropertySqlParameterSource(toCreate);
-	}
-
-	/**
-	 * The the list sql for this type.
-	 * @param type
-	 * @return
-	 */
-	private String getListSql(MigrationType type){
-		String sql = this.listSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find list SQL for type: "+type);
-		return sql;
-	}
-	
-	private String getListSqlByRange(MigrationType type) {
-		String sql = this.listByRangeSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find listByRange SQL for type: "+type);
-		return sql;
-	}
-	
-	/**
-	 * The the list sql for this type.
-	 * @param type
-	 * @return
-	 */
-	private String getDeltaListSql(MigrationType type){
-		String sql = this.deltaListSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find delta list SQL for type: "+type);
-		return sql;
-	}
-	
-	/**
-	 * The  RowMapper<RowMetadata> for this type.
-	 * @param type
-	 * @return
-	 */
-	private RowMapper<RowMetadata> getRowMetadataRowMapper(MigrationType type){
-		RowMapper<RowMetadata> mapper = this.rowMetadataMappers.get(type);
-		if(mapper == null) throw new IllegalArgumentException("Cannot find RowMetadataRowMapper for type: "+type);
-		return mapper;
 	}
 	
 	/**
@@ -530,12 +405,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		MigrationType type = this.classToMapping.get(clazz);
 		if(type == null) throw new IllegalArgumentException("Cannot find the Type for Class: "+clazz.getName());
 		return type;
-	}
-
-	private String getBatchBackupSql(MigrationType type){
-		String sql = this.backupSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
-		return sql;
 	}
 	
 	private String getBatchBackupRangeSql(MigrationType type) {
@@ -573,10 +442,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
 	 */
 	@Override
-	public <T> T runWithForeignKeyIgnored(Callable<T> call) {
+	public <T> T runWithKeyChecksIgnored(Callable<T> call) {
 		try{
 			// unconditionally turn off foreign key checks.
-			setForeignKeyChecks(false);
+			setGlobalKeyChecks(false);
 			try {
 				return call.call();
 			} catch (Exception e) {
@@ -584,7 +453,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			}
 		}finally{
 			// unconditionally turn on foreign key checks.
-			setForeignKeyChecks(true);
+			setGlobalKeyChecks(true);
 		}
 	}
 	
@@ -592,7 +461,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * Helper to enable/disable foreign keys.
 	 * @param enabled
 	 */
-	private void setForeignKeyChecks(boolean enabled) {
+	private void setGlobalKeyChecks(boolean enabled) {
 		int value;
 		if(enabled){
 			// trun it on.
@@ -602,6 +471,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			value = 0;
 		}
 		jdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
+		jdbcTemplate.update(SET_UNIQUE_KEY_CHECKS, value);
 	}
 
 
@@ -671,17 +541,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				return info;
 			}}, schema);
 	}
-
-	@Override
-	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds,
-			long batchSize) {
-		String sql = getBatchBackupSql(type);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		MigratableDatabaseObject object = getMigratableObject(type);
-		Map<String, Object> parameters = new HashMap<>(3);
-		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
-	}
 	
 	@Override
 	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, Long minimumId,
@@ -695,7 +554,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
@@ -703,7 +562,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return new LinkedList<>();
 		}
 		// Foreign Keys must be ignored for this operation.
-		return this.runWithForeignKeyIgnored(() -> {
+		return this.runWithKeyChecksIgnored(() -> {
 			List<Long> createOrUpdateIds = new LinkedList<>();
 			FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
 			String sql = getInsertOrUpdateSql(type);
@@ -725,23 +584,100 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return createOrUpdateIds;
 		});
 	}
-	
-	@WriteTransactionReadCommitted
+
+	@WriteTransaction
 	@Override
-	public int deleteById(final MigrationType type, final List<Long> idList) {
+	public int deleteByRange(final MigrationType type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type,"MigrationType");
-		ValidateArgument.required(idList,"idList");
-		if(idList.isEmpty()) {
-			return 0;
-		}
 		// Foreign Keys must be ignored for this operation.
-		return this.runWithForeignKeyIgnored(() -> {
-			String deleteSQL = this.deleteSqlMap.get(type);
-			SqlParameterSource params = new MapSqlParameterSource(
-					DMLUtils.BIND_VAR_ID_lIST, idList);
+		return this.runWithKeyChecksIgnored(() -> {
+			String deleteSQL = this.deleteByRangeMap.get(type);
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-			return namedTemplate.update(deleteSQL, params);
+			Map<String, Object> parameters = new HashMap<>(2);
+			parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
+			parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
+			return namedTemplate.update(deleteSQL, parameters);
 		});
 	}
-	
+
+	@Override
+	public List<IdRange> calculateRangesForType(MigrationType migrationType, long minimumId, long maximumId,
+			long optimalNumberOfRows) {
+		// Build the ranges by scanning each primary ID and its secondary cardinality.
+		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
+		String sql = getPrimaryCardinalitySql(migrationType);
+		// need to use a streaming template for this case.
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(new StreamingJdbcTemplate(jdbcTemplate.getDataSource()));
+		Map<String, Object> parameters = new HashMap<>(2);
+		parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
+		parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
+		// Stream over each primary row ID and its associated secondary cardinality.
+		namedTemplate.query(sql, parameters, new RowCallbackHandler() {
+
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				// pass each row to the builder
+				long primaryRowId = rs.getLong(1);
+				long cardinality = rs.getLong(2);
+				builder.addRow(primaryRowId, cardinality);
+			}});
+		// The build collates the results
+		return builder.collateResults();
+	}
+
+	/**
+	 * Get the SQL for a primary cardinality.
+	 * @param primaryType
+	 * @return
+	 */
+	public String getPrimaryCardinalitySql(MigrationType primaryType) {
+		MigratableDatabaseObject primaryObject = getMigratableObject(primaryType);
+		TableMapping primaryMapping = primaryObject.getTableMapping();
+		List<TableMapping> secondaryMapping = new LinkedList<>();
+		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
+		if(secondaryTypes != null) {
+			for(MigratableDatabaseObject secondary: secondaryTypes) {
+				secondaryMapping.add(secondary.getTableMapping());
+			}
+		}
+		return DMLUtils.createPrimaryCardinalitySql(primaryMapping, secondaryMapping);
+	}
+
+	@Override
+	public List<RangeChecksum> calculateBatchChecksums(BatchChecksumRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getMigrationType(), "request.migrationType");
+		ValidateArgument.required(request.getMinimumId(), "request.minimumId");
+		ValidateArgument.required(request.getMaximumId(), "request.maximumId");
+		ValidateArgument.required(request.getBatchSize(), "request.batchSize");
+		ValidateArgument.required(request.getSalt(), "request.salt");
+		// Lookup the SQL for this type
+		String sql = this.batchChecksumSqlMap.get(request.getMigrationType());
+		return this.jdbcTemplate.query(sql, new RowMapper<RangeChecksum>() {
+
+			@Override
+			public RangeChecksum mapRow(ResultSet rs, int rowNum) throws SQLException {
+				RangeChecksum result = new RangeChecksum();
+				result.setBinNumber(rs.getLong(1));
+				result.setCount(rs.getLong(2));
+				result.setMinimumId(rs.getLong(3));
+				result.setMaximumId(rs.getLong(4));
+				result.setChecksum(rs.getString(5));
+				return result;
+			}
+		}, request.getBatchSize(), request.getSalt(), request.getSalt(), request.getMinimumId(),
+				request.getMaximumId());
+	}
+
+	@Override
+	public UnmodifiableXStream getXStream(BackupAliasType backupAliasType) {
+		switch (backupAliasType){
+			case TABLE_NAME:
+				return TABLE_NAME_ALIAS_X_STREAM;
+			case MIGRATION_TYPE_NAME:
+				return MIGRATION_TYPE_NAME_ALIAS_X_STREAM;
+			default:
+				throw new IllegalArgumentException("Unknown type: " + backupAliasType);
+		}
+	}
 }

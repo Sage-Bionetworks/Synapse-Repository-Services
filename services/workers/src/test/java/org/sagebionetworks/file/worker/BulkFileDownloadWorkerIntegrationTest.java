@@ -1,14 +1,13 @@
 package org.sagebionetworks.file.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -17,21 +16,17 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
@@ -40,7 +35,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -58,11 +53,12 @@ public class BulkFileDownloadWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	AsynchJobStatusManager asynchJobStatusManager;
-	@Autowired
-	BulkDownloadManager bulkDownloadManager;
+	FileHandleSupport bulkDownloadManager;
 	@Autowired
 	EntityManager entityManager;
+	
+	@Autowired
+	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 	
 	S3FileHandle fileHandleOne;
 	S3FileHandle fileHandleTwo;
@@ -104,12 +100,12 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		
 		// upload two files.
 		fileHandleOne = fileUploadManager.createFileFromByteArray(adminUserInfo
-				.getId().toString(), now, fileOneContents.getBytes("UTF-8"), "foo.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, fileOneContents.getBytes(StandardCharsets.UTF_8), "foo.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleOne.getId());
 		fileHandleTwo = fileUploadManager.createFileFromByteArray(adminUserInfo
-				.getId().toString(), now, fileTwoContents.getBytes("UTF-8"), "bar.txt",
-				ContentType.TEXT_PLAIN, null);
+				.getId().toString(), now, fileTwoContents.getBytes(StandardCharsets.UTF_8), "bar.txt",
+				ContentTypeUtil.TEXT_PLAIN_UTF8, null);
 		fileHandlesToDelete.add(fileHandleTwo.getId());
 		
 	}
@@ -148,13 +144,8 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		BulkFileDownloadRequest request = new BulkFileDownloadRequest();
 		request.setRequestedFiles(Arrays.asList(fha1, fha2));
 		// Start the job to create the zip.
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
-		// wait for the job
-		status = waitForStatus(status);
-		// Read the results
-		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof BulkFileDownloadResponse);
-		BulkFileDownloadResponse response = (BulkFileDownloadResponse) status.getResponseBody();
+		BulkFileDownloadResponse response = this.asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request,
+				MAX_WAIT_MS, BulkFileDownloadResponse.class);
 		assertNotNull(response.getFileSummary());
 		assertEquals(2, response.getFileSummary().size());
 		// one
@@ -195,7 +186,8 @@ public class BulkFileDownloadWorkerIntegrationTest {
 			// Read the first entry
 			ZipEntry entry = zipIn.getNextEntry();
 			assertNotNull(entry);
-			String entryName = BulkFileDownloadWorker.createZipEntryName(fileHandleOne.getFileName(), Long.parseLong(fileHandleOne.getId()));
+			CommandLineCacheZipEntryNameProvider nameProvider = new CommandLineCacheZipEntryNameProvider();
+			String entryName = nameProvider.createZipEntryName(fileHandleOne.getFileName(), Long.parseLong(fileHandleOne.getId()));
 			assertEquals(entryName, entry.getName());
 			// does the file contents match?
 			assertEquals(fileOneContents, IOUtils.toString(zipIn));
@@ -203,7 +195,7 @@ public class BulkFileDownloadWorkerIntegrationTest {
 			// next entry
 			entry = zipIn.getNextEntry();
 			assertNotNull(entry);
-			entryName = BulkFileDownloadWorker.createZipEntryName(fileHandleTwo.getFileName(), Long.parseLong(fileHandleTwo.getId()));
+			entryName = nameProvider.createZipEntryName(fileHandleTwo.getFileName(), Long.parseLong(fileHandleTwo.getId()));
 			assertEquals(entryName, entry.getName());
 			// does the file contents match?
 			assertEquals(fileTwoContents, IOUtils.toString(zipIn));
@@ -214,24 +206,4 @@ public class BulkFileDownloadWorkerIntegrationTest {
 		}
 	}
 	
-	/**
-	 * Helper to wait for the job to finish.
-	 * @param status
-	 * @return
-	 * @throws InterruptedException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
-		long start = System.currentTimeMillis();
-		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
-			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
-			System.out.println("Waiting for job to complete: Message: "+status.getProgressMessage()+" progress: "+status.getProgressCurrent()+"/"+status.getProgressTotal());
-			assertTrue("Timed out waiting for table status",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
-			Thread.sleep(1000);
-			// Get the status again 
-			status = this.asynchJobStatusManager.getJobStatus(adminUserInfo, status.getJobId());
-		}
-		return status;
-	}
 }

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberTypeFilterOptions;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -65,7 +66,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Team Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class TeamController extends BaseController {
+public class TeamController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
@@ -185,6 +186,25 @@ public class TeamController extends BaseController {
 		return result;
 	}
 	
+	/**
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
+	 * @param id
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -197,7 +217,19 @@ public class TeamController extends BaseController {
 	
 	/**
 	 * Retrieve the metadata for a specified Team.
-	 * 
+	 * <p>
+	 * <b>Service Limits</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>resource</th>
+	 * <th>limit</th>
+	 * </tr>
+	 * <tr>
+	 * <td>The maximum frequency this method can be called</td>
+	 * <td>1 calls per second</td>
+	 * </tr>
+	 * </table>
+	 * </p>
 	 * @param id the ID of the Team of interest
 	 * @return
 	 * @throws NotFoundException
@@ -223,10 +255,11 @@ public class TeamController extends BaseController {
 	public
 	void fileRedirectURLForTeamIcon(
 			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
-		String redirectUrl = serviceProvider.getTeamService().getIconURL(id);
+		String redirectUrl = serviceProvider.getTeamService().getIconURL(userId, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -367,6 +400,7 @@ public class TeamController extends BaseController {
 	 * 'jsMethod' is any function name you wish), then the response body will be wrapped in "jsMethod(...);".
 	 * @param id the id of the Team of interest
 	 * @param fragment a prefix of the user's first or last name or email address (optional)
+	 * @param memberType the type of team user to retrieve (optional; default "ALL")
 	 * @param limit the maximum number of members to return (default 10, max limit 50)
 	 * @param offset the starting index of the returned results (default 0)
 	 * @return
@@ -378,10 +412,11 @@ public class TeamController extends BaseController {
 	PaginatedResults<TeamMember> getTeamMembers(
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
+			@RequestParam(value = UrlHelpers.MEMBER_TYPE_FILTER, required = false) TeamMemberTypeFilterOptions memberType,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
-		return serviceProvider.getTeamService().getMembers(id, fragment, limit, offset);
+		return serviceProvider.getTeamService().getMembers(id, fragment, memberType, limit, offset);
 	}
 	
 	/**
@@ -429,15 +464,14 @@ public class TeamController extends BaseController {
 	
 	/**
 	 * Returns the TeamMember info for a user and a given list of Team IDs.
-	 * 
-	 * Invalid IDs in the list are ignored:  The results list is simply
-	 * smaller than the list of IDs passed in.
+	 * Not Found status is returned if the user ID is invalid, any of the Team IDs 
+	 * are invalid, or the user is not in any of the given teams.
 	 *
 	 * @param id user's ID
 	 * @param ids Team IDs
 	 * @return
 	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * @throws NotFoundException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_TEAM_MEMBER_LIST, method = RequestMethod.POST)

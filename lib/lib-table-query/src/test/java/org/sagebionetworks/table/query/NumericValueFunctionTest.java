@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.NumericValueExpression;
@@ -12,7 +13,7 @@ public class NumericValueFunctionTest {
 	public void testMySqlFunction() throws ParseException{
 		NumericValueExpression element = new TableQueryParser("unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)").numericValueExpression();
 		assertEquals("UNIX_TIMESTAMP(CURRENT_TIMESTAMP-INTERVAL 1 MONTH)", element.toSql());
-		assertTrue(element.hasAnyAggregateElements());
+		assertFalse(element.hasAnyAggregateElements());
 	}
 
 }

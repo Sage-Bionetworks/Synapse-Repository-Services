@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -24,17 +21,22 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -43,6 +45,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -73,13 +76,14 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthorizationManagerImplUnitTest {
 
 	@Mock
@@ -122,6 +126,12 @@ public class AuthorizationManagerImplUnitTest {
 	private GroupMembersDAO mockGroupMembersDao;
 	@Mock
 	private Set<String> accessors;
+	@Mock
+	private TokenGenerator mockTokenGenerator;
+
+	@InjectMocks
+	private AuthorizationManagerImpl authorizationManager;
+
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -149,7 +159,6 @@ public class AuthorizationManagerImplUnitTest {
 	private static final String CATALOG_NAME = "catalog";
 	private static final String ALL_ACCESS_TYPES = "*";
 	
-	private AuthorizationManagerImpl authorizationManager;
 	private UserInfo userInfo;
 	private UserInfo anonymousUserInfo;
 	private UserInfo adminUser;
@@ -164,30 +173,8 @@ public class AuthorizationManagerImplUnitTest {
 	HasAccessorRequirement req;
 
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
-
-		MockitoAnnotations.initMocks(this);
-
-		authorizationManager = new AuthorizationManagerImpl();
-		ReflectionTestUtils.setField(authorizationManager, "dockerNodeDao", mockDockerNodeDao);
-		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
-		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
-		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
-		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
-		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
-		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(authorizationManager, "fileHandleAssociationSwitch", mockFileHandleAssociationManager);
-		ReflectionTestUtils.setField(authorizationManager, "verificationDao", mockVerificationDao);
-		ReflectionTestUtils.setField(authorizationManager, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(authorizationManager, "forumDao", mockForumDao);
-		ReflectionTestUtils.setField(authorizationManager, "wikiPageDaoV2", mockWikiPageDaoV2);
-		ReflectionTestUtils.setField(authorizationManager, "submissionDAO", mockSubmissionDAO);
-		ReflectionTestUtils.setField(authorizationManager, "evaluationPermissionsManager", mockEvaluationPermissionsManager);
-		ReflectionTestUtils.setField(authorizationManager, "messageManager", mockMessageManager);
-		ReflectionTestUtils.setField(authorizationManager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
-		ReflectionTestUtils.setField(authorizationManager, "groupMembersDao", mockGroupMembersDao);
-
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
 		
@@ -233,13 +220,13 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(REPO_ENTITY_ID);  // mocked to return something other than trash can
 		
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.READ), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		thenReturn(AuthorizationStatus.authorized());
 	
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		thenReturn(AuthorizationStatus.authorized());
 	
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 			
 		when(mockEvaluationPermissionsManager.
 				isDockerRepoNameInEvaluationWithAccess(anyString(), (Set<Long>)any(), (ACCESS_TYPE)any())).
@@ -279,7 +266,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+limit)).thenReturn(results2);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+(2*limit))).thenReturn(results3);
 
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).getAuthorized();
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+limit);
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+(2*limit));
@@ -299,7 +286,7 @@ public class AuthorizationManagerImplUnitTest {
 		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
 
-		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).getAuthorized();
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
 		assertFalse(canAccess);
 	}
@@ -308,11 +295,11 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessRawFileHandleByCreator(){
 		// The admin can access anything
 		String creator = userInfo.getId().toString();
-		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandleByCreator(adminUser, "101", creator).getAuthorized());
-		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).getAuthorized());
+		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(adminUser, "101", creator).isAuthorized(), "Admin should have access to all FileHandles");
+		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).isAuthorized(), "Creator should have access to their own FileHandles");
 		// Set the creator to be the admin this time.
 		creator = adminUser.getId().toString();
-		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).getAuthorized());
+		assertFalse(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
 	}
 
 	@Test
@@ -321,11 +308,11 @@ public class AuthorizationManagerImplUnitTest {
 		String creator = userInfo.getId().toString();
 		String fileHandlId = "3333";
 		when(mockFileHandleDao.getHandleCreator(fileHandlId)).thenReturn(creator);
-		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId).getAuthorized());
-		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId).getAuthorized());
+		assertTrue(authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId).isAuthorized(), "Admin should have access to all FileHandles");
+		assertTrue(authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId).isAuthorized(), "Creator should have access to their own FileHandles");
 		// change the users id
 		UserInfo notTheCreatoro = new UserInfo(false, "999999");
-		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId).getAuthorized());
+		assertFalse(authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
 		verify(mockFileHandleDao, times(2)).getHandleCreator(fileHandlId);
 	}
 
@@ -340,22 +327,22 @@ public class AuthorizationManagerImplUnitTest {
 		Set<String> allowed = Sets.newHashSet();
 		Set<String> disallowed = Sets.newHashSet();
 		authorizationManager.canAccessRawFileHandlesByIds(adminUser, fileHandlIds, allowed, disallowed);
-		assertEquals("Admin should have access to all FileHandles", 2, allowed.size());
-		assertEquals("Admin should have access to all FileHandles", 0, disallowed.size());
+		assertEquals(2, allowed.size(), "Admin should have access to all FileHandles");
+		assertEquals(0, disallowed.size(), "Admin should have access to all FileHandles");
 
 		allowed.clear();
 		disallowed.clear();
 		authorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandlIds, allowed, disallowed);
-		assertEquals("Creator should have access to their own FileHandles", 2, allowed.size());
-		assertEquals("Creator should have access to their own FileHandles", 0, disallowed.size());
+		assertEquals(2, allowed.size(), "Creator should have access to their own FileHandles");
+		assertEquals(0, disallowed.size(), "Creator should have access to their own FileHandles");
 
 		// change the users id
 		UserInfo notTheCreator = new UserInfo(false, "999999");
 		allowed.clear();
 		disallowed.clear();
 		authorizationManager.canAccessRawFileHandlesByIds(notTheCreator, fileHandlIds, allowed, disallowed);
-		assertEquals("Only the creator (or admin) should have access a FileHandle", 0, allowed.size());
-		assertEquals("Only the creator (or admin) should have access a FileHandle", 2, disallowed.size());
+		assertEquals(0, allowed.size(), "Only the creator (or admin) should have access a FileHandle");
+		assertEquals(2, disallowed.size(), "Only the creator (or admin) should have access a FileHandle");
 
 		verify(mockFileHandleDao, times(2)).getHandleCreators(fileHandlIds);
 	}
@@ -369,27 +356,35 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeEntityAllow() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertTrue("User should have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
+		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationStatus.authorized());
+		assertTrue(authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).isAuthorized(), "User should have acces to do anything with this entity");
 	}
 
 	@Test
 	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		assertFalse("User should not have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
+		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationStatus.accessDenied(""));
+		assertFalse(authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).isAuthorized(), "User should not have acces to do anything with this entity");
 	}
 
-	@Test(expected=EntityInTrashCanException.class)
+	@Test
 	public void testCanAccessWithTrashCanException() throws DatastoreException, NotFoundException{
 		when(mockEntityPermissionsManager.hasAccess(eq("syn123"), any(ACCESS_TYPE.class), eq(userInfo))).thenThrow(new EntityInTrashCanException(""));
-		authorizationManager.canAccess(userInfo, "syn123", ObjectType.ENTITY, ACCESS_TYPE.READ);
+		assertThrows(EntityInTrashCanException.class, ()-> {
+			authorizationManager.canAccess(userInfo, "syn123", ObjectType.ENTITY, ACCESS_TYPE.READ);
+		});
 	}
 
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdmin_Admin() {
 		UserInfo adminInfo = new UserInfo(true);
 		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
+	}
+	
+	@Test
+	public void testVerifyACTTeamMembershipOrIsAdminNullGroups() {
+		UserInfo adminInfo = new UserInfo(false);
+		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
 	}
 
 	@Test
@@ -401,6 +396,29 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdmin_NONE() {
 		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_Admin() {
+		UserInfo adminInfo = new UserInfo(true);
+		assertTrue(authorizationManager.isReportTeamMemberOrAdmin(adminInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdminNullGroups() {
+		UserInfo adminInfo = new UserInfo(false);
+		assertFalse(authorizationManager.isReportTeamMemberOrAdmin(adminInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_ReportTeam() {
+		userInfo.getGroups().add(TeamConstants.SYNAPSE_REPORT_TEAM_ID);
+		assertTrue(authorizationManager.isReportTeamMemberOrAdmin(userInfo));
+	}
+
+	@Test
+	public void testVerifyReportTeamMembershipOrIsAdmin_NONE() {
+		assertFalse(authorizationManager.isReportTeamMemberOrAdmin(userInfo));
 	}
 
 	private static RestrictableObjectDescriptor createEntitySubjectId() {
@@ -436,46 +454,46 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessEntityAccessRequirement() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
-		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
 		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
-		assertTrue(authorizationManager.canAccess(userInfo, "1234", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, "1234", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEntityAccessRequirementWithDownload() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
-		assertTrue(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEvaluationAccessRequirement() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
-		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
 		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
 		// only ACT may update an access requirement
-		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEntityAccessApproval() throws Exception {
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).isAuthorized());
 		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
-		assertTrue(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEntityAccessApprovalsForSubject() throws Exception {
-		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ).isAuthorized());
 		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
-		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ).getAuthorized());
+		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEvaluationAccessApprovalsForSubject() throws Exception {
-		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).isAuthorized());
 		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
 		// only ACT may review access approvals
-		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).isAuthorized());
 	}
 	
 	@Test
@@ -483,18 +501,18 @@ public class AuthorizationManagerImplUnitTest {
 		String teamId = "123";
 		ACCESS_TYPE accessType = ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE;
 		// admin can always access
-		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType).getAuthorized());
+		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType).isAuthorized());
 		// non admin can access if acl says so
 		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
-		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).isAuthorized());
 		// otherwise not
 		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
-		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType).isAuthorized());
 	}
 
 	@Test
 	public void testCanDownloadTeamIcon() throws Exception {
-		assertTrue(authorizationManager.canAccess(userInfo, "123", ObjectType.TEAM, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, "123", ObjectType.TEAM, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
@@ -506,8 +524,8 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+				.thenReturn(AuthorizationStatus.authorized());
+		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
@@ -519,8 +537,8 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.UPDATE).getAuthorized());
+				.thenReturn(AuthorizationStatus.authorized());
+		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.UPDATE).isAuthorized());
 	}
 	
 	/**
@@ -537,16 +555,16 @@ public class AuthorizationManagerImplUnitTest {
 		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, anonymousUserInfo))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertTrue(authorizationManager.canAccess(anonymousUserInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+				.thenReturn(AuthorizationStatus.authorized());
+		assertTrue(authorizationManager.canAccess(anonymousUserInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessUserProfile() throws Exception {
-		assertTrue(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
-				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.USER_PROFILE, type).getAuthorized());
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.USER_PROFILE, type).isAuthorized());
 			}
 		}
 	}
@@ -557,8 +575,8 @@ public class AuthorizationManagerImplUnitTest {
 		String evalId = "2";
 		when(mockSubmissionDAO.get(submissionId)).thenReturn(mockSubmission);
 		when(mockSubmission.getEvaluationId()).thenReturn(evalId);
-		when(mockEvaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		assertFalse(authorizationManager.canAccess(userInfo, submissionId, ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		when(mockEvaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(AuthorizationStatus.accessDenied(""));
+		assertFalse(authorizationManager.canAccess(userInfo, submissionId, ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
@@ -567,15 +585,15 @@ public class AuthorizationManagerImplUnitTest {
 		String evalId = "2";
 		when(mockSubmissionDAO.get(submissionId)).thenReturn(mockSubmission);
 		when(mockSubmission.getEvaluationId()).thenReturn(evalId);
-		when(mockEvaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		assertTrue(authorizationManager.canAccess(userInfo, submissionId, ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		when(mockEvaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(AuthorizationStatus.authorized());
+		assertTrue(authorizationManager.canAccess(userInfo, submissionId, ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessEvaluationSubmissionNonDownload() throws Exception {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
-				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, type).getAuthorized());
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, type).isAuthorized());
 			}
 		}
 	}
@@ -584,58 +602,58 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessMessageAccessDenied() throws Exception {
 		String messageId = "1";
 		when(mockMessageManager.getMessage(userInfo, messageId)).thenThrow(new UnauthorizedException());
-		assertFalse(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessMessageAuthorized() throws Exception {
 		String messageId = "1";
-		assertTrue(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, messageId, ObjectType.MESSAGE, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessMessageNonDownload() throws Exception {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
-				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, type).getAuthorized());
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, type).isAuthorized());
 			}
 		}
 	}
 
 	@Test
 	public void testCanAccessDataAccessRequestUnauthorized() throws Exception {
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessRequestAuthorized() throws Exception {
-		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessRequestNonDownload() throws Exception {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
-				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, type).getAuthorized());
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, type).isAuthorized());
 			}
 		}
 	}
 
 	@Test
 	public void testCanAccessDataAccessSubmissionUnauthorized() throws Exception {
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessSubmissionAuthorized() throws Exception {
-		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 
 	@Test
 	public void testCanAccessDataAccessSubmissionNonDownload() throws Exception {
 		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
 			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
-				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, type).getAuthorized());
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, type).isAuthorized());
 			}
 		}
 	}
@@ -647,25 +665,25 @@ public class AuthorizationManagerImplUnitTest {
 		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
 		ObjectType ot = ObjectType.VERIFICATION_SUBMISSION;
 		// admin can always access
-		assertTrue(authorizationManager.canAccess(adminUser, verificationId, ot, accessType).getAuthorized());
+		assertTrue(authorizationManager.canAccess(adminUser, verificationId, ot, accessType).isAuthorized());
 		
 		// owner can access
 		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId());
-		assertTrue(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).isAuthorized());
 		
 		// non-owner can't access
 		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId()*13);
-		assertFalse(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).isAuthorized());
 		
 		// ACT can access
 		UserInfo actInfo = new UserInfo(false);
 		actInfo.setId(999L);
 		actInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
 		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId()*13);
-		assertTrue(authorizationManager.canAccess(actInfo, verificationId, ot, accessType).getAuthorized());
+		assertTrue(authorizationManager.canAccess(actInfo, verificationId, ot, accessType).isAuthorized());
 		
 		// can't do other operations though
-		assertFalse(authorizationManager.canAccess(actInfo, verificationId, ot, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccess(actInfo, verificationId, ot, ACCESS_TYPE.UPDATE).isAuthorized());
 
 	}
 	
@@ -702,16 +720,16 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockAccessRequirementDAO.getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(new LinkedList<String>());
 		
 		// since 'ars' list doesn't change, will return true
-		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).getAuthorized());
+		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).isAuthorized());
 		verify(mockNodeDao).getEntityPath(parentId);
 		verify(mockAccessRequirementDAO).getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY);
 
 		// but making less restrictive is NOT OK
 		when(mockAccessRequirementDAO.getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(diff);
-		assertFalse(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).getAuthorized());
+		assertFalse(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).isAuthorized());
 		
 		// but if the user is an admin, will be true
-		assertTrue(authorizationManager.canUserMoveRestrictedEntity(adminUser, parentId, newParentId).getAuthorized());
+		assertTrue(authorizationManager.canUserMoveRestrictedEntity(adminUser, parentId, newParentId).isAuthorized());
 	}
 	
 	@Test
@@ -723,8 +741,8 @@ public class AuthorizationManagerImplUnitTest {
 		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(adminUser, fileHandleIds, associatedObjectId, associationType);
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.AUTHORIZED),
-				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.AUTHORIZED)
+				new FileHandleAuthorizationStatus("1", AuthorizationStatus.authorized()),
+				new FileHandleAuthorizationStatus("2", AuthorizationStatus.authorized())
 		);
 		
 		assertEquals(expected, results);
@@ -736,7 +754,7 @@ public class AuthorizationManagerImplUnitTest {
 		String associatedObjectId = "456";
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		//the user is not authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationStatus.accessDenied("cause"));
 		// user is the creator of "2"
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet("2"));
 		// neither file is associated with the object.
@@ -746,10 +764,10 @@ public class AuthorizationManagerImplUnitTest {
 		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
 						associationType)),
 						// The user is the creator of this file so they can download it.
-				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.AUTHORIZED)
+				new FileHandleAuthorizationStatus("2", AuthorizationStatus.authorized())
 		);
 		
 		assertEquals(expected, results);
@@ -762,7 +780,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		// the user has download on the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationStatus.authorized());
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// neither file is associated with the object.
@@ -771,9 +789,9 @@ public class AuthorizationManagerImplUnitTest {
 		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
+				new FileHandleAuthorizationStatus("1", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("1", associatedObjectId,
 						associationType)),
-				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
 						associationType))
 		);
 		assertEquals(expected, results);
@@ -786,7 +804,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		//the user is authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationStatus.authorized());
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// the first file is associated with the object.
@@ -796,8 +814,8 @@ public class AuthorizationManagerImplUnitTest {
 		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.AUTHORIZED),
-				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+				new FileHandleAuthorizationStatus("1", AuthorizationStatus.authorized()),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
 						associationType))
 		);
 		assertEquals(expected, results);
@@ -810,7 +828,7 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.TableEntity;
 		Set<String> emptySet = Sets.newHashSet();
 		//the user is not authorized to download the associated object.
-		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationManagerUtil.accessDenied("cause"));
+		when(mockEntityPermissionsManager.hasAccess(associatedObjectId, ACCESS_TYPE.DOWNLOAD, userInfo)).thenReturn(AuthorizationStatus.accessDenied("cause"));
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(emptySet);
 		// the first file is associated with the object.
@@ -820,8 +838,8 @@ public class AuthorizationManagerImplUnitTest {
 		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
-				new FileHandleAuthorizationStatus("1", AuthorizationManagerUtil.accessDenied("cause")),
-				new FileHandleAuthorizationStatus("2", AuthorizationManagerUtil.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+				new FileHandleAuthorizationStatus("1", AuthorizationStatus.accessDenied("cause")),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
 						associationType))
 		);
 		assertEquals(expected, results);
@@ -865,50 +883,50 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeForumUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
-		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
+		assertEquals(AuthorizationStatus.accessDenied(""),
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 
 	@Test
 	public void testCanSubscribeForumAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 
 	@Test
 	public void testCanSubscribeThreadUnauthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockThreadDao.getProjectId(threadId)).thenReturn(projectId);
-		assertEquals(AuthorizationManagerUtil.ACCESS_DENIED,
+		assertEquals(AuthorizationStatus.accessDenied(""),
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
 	}
 
 	@Test
 	public void testCanSubscribeThreadAuthorized() {
-		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(projectId, ACCESS_TYPE.READ, userInfo)).thenReturn(AuthorizationStatus.authorized());
 		when(mockThreadDao.getProjectId(threadId)).thenReturn(projectId);
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
 	}
 
 	@Test
 	public void testCanSubscribeDataAccessSubmissionUnauthorized() {
-		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION).getAuthorized());
+		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION).isAuthorized());
 	}
 
 	@Test
 	public void testCanSubscribeDataAccessSubmissionAdminAuthorized() {
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(adminUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
 	}
 
 	@Test
 	public void testCanSubscribeDataAccessSubmissionACTAuthorized() {
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(mockACTUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
 	}
 
@@ -916,14 +934,14 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanSubscribeDataAccessSubmissionStatusUnauthorized() {
 		when(mockDataAccessSubmissionDao.isAccessor(submissionId, userInfo.getId().toString()))
 				.thenReturn(false);
-		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS).getAuthorized());
+		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS).isAuthorized());
 	}
 
 	@Test
 	public void testCanSubscribeDataAccessSubmissionStatusAuthorized() {
 		when(mockDataAccessSubmissionDao.isAccessor(submissionId, userInfo.getId().toString()))
 				.thenReturn(true);
-		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+		assertEquals(AuthorizationStatus.authorized(),
 				authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
 	}
 
@@ -945,12 +963,14 @@ public class AuthorizationManagerImplUnitTest {
 		verify(mockAclDAO, never()).getAccessibleProjectIds(any(Set.class), any(ACCESS_TYPE.class));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetAccessibleProjectIdsNullPrincipals(){
 		Set<Long> principalIds = null;
-		authorizationManager.getAccessibleProjectIds(principalIds);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.getAccessibleProjectIds(principalIds);
+		});
 	}
-	
+
 	@Test
 	public void testValidParentProjectIdInvalidRepoName() {
 		assertEquals(null, authorizationManager.validDockerRepositoryParentId("/invalid/"));
@@ -973,24 +993,32 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
-		authorizationManager.getPermittedDockerActions(null, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.getPermittedDockerActions(null, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPermittedAccessTypesNullService() throws Exception{
-		authorizationManager.getPermittedDockerActions(USER_INFO, null, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.getPermittedDockerActions(USER_INFO, null, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
-		authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, null, ACCESS_TYPES_STRING);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, null, ACCESS_TYPES_STRING);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetPermittedAccessTypesNullAction() throws Exception{
-		authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, null);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, null);
+		});
 	}
 	
 	@Test
@@ -1045,7 +1073,7 @@ public class AuthorizationManagerImplUnitTest {
 		String repositoryPath = PARENT_ID+"/non-existent-repo";
 
 		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 	
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
@@ -1060,26 +1088,26 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessRepoExistsAccessUnauthorized() throws Exception {
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
 				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
-		assertTrue(permitted.toString(), permitted.isEmpty());
+		assertTrue(permitted.isEmpty(), permitted.toString());
 	}
 
 	@Test
 	public void testGetPermittedAccessRepoExistsAccessUnauthorizedBUTWasSubmitted() throws Exception {
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 
 		when(mockEvaluationPermissionsManager.
 				isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
@@ -1097,10 +1125,10 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			thenReturn(AuthorizationStatus.authorized());
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
@@ -1118,17 +1146,17 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationStatus.accessDenied(""));
 		
 		// method under test:
 		Set<String> permitted = authorizationManager.
 				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
-		assertTrue(permitted.toString(), permitted.isEmpty());
+		assertTrue(permitted.isEmpty(), permitted.toString());
 	}
 	
 	@Test
@@ -1139,7 +1167,7 @@ public class AuthorizationManagerImplUnitTest {
 		Set<String> permitted = authorizationManager.
 				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
-		assertTrue(permitted.toString(), permitted.isEmpty());
+		assertTrue(permitted.isEmpty(), permitted.toString());
 	}
 
 
@@ -1157,10 +1185,10 @@ public class AuthorizationManagerImplUnitTest {
 				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we can pull (but not push!) since we have admin access to evaluation
-		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
+		assertEquals(Collections.singleton(pull.name()), permitted);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateWithCertifiedUserRequiredNotSatisfied() {
 		req.setIsCertifiedUserRequired(true);
 		req.setIsValidatedProfileRequired(false);
@@ -1168,16 +1196,20 @@ public class AuthorizationManagerImplUnitTest {
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 				accessors))
 				.thenReturn(false);
-		authorizationManager.validateHasAccessorRequirement(req, accessors);
+		assertThrows(UserCertificationRequiredException.class, ()-> {
+			authorizationManager.validateHasAccessorRequirement(req, accessors);
+		});
 		verifyZeroInteractions(mockVerificationDao);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testValidateWithValidatedProfileRequiredNotSatisfied() {
 		req.setIsCertifiedUserRequired(false);
 		req.setIsValidatedProfileRequired(true);
 		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(false);
-		authorizationManager.validateHasAccessorRequirement(req, accessors);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			authorizationManager.validateHasAccessorRequirement(req, accessors);
+		});
 		verifyZeroInteractions(mockGroupMembersDao);
 	}
 

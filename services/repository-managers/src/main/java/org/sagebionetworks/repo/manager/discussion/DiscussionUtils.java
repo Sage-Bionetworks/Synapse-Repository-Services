@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class DiscussionUtils {
-	private static final Pattern USER_MENTION_PATTERN = Pattern.compile("@\\S+");
+	private static final Pattern USER_MENTION_PATTERN = Pattern.compile("@[a-zA-Z0-9_.-]+"); //characters allowable in a username (any letter, digit, underscore, period, dash)
 	private static final Pattern ENTITY_REF_PATTERN = Pattern.compile("([\\W&&\\D]*)(syn\\d+)([\\W&&\\D]*)(\\s|$)", Pattern.CASE_INSENSITIVE);
 	private static final int SYN_ID_GROUP_NUMBER = 2;
 

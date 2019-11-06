@@ -6,12 +6,12 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
-import com.amazonaws.services.cloudsearchv2.model.AccessPoliciesStatus;
+import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
 import com.amazonaws.services.cloudsearchv2.model.CreateDomainRequest;
 import com.amazonaws.services.cloudsearchv2.model.DefineIndexFieldRequest;
 import com.amazonaws.services.cloudsearchv2.model.DeleteIndexFieldRequest;
@@ -19,27 +19,21 @@ import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsRequest;
 import com.amazonaws.services.cloudsearchv2.model.DescribeDomainsResult;
 import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsRequest;
 import com.amazonaws.services.cloudsearchv2.model.DescribeIndexFieldsResult;
-import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesRequest;
-import com.amazonaws.services.cloudsearchv2.model.DescribeServiceAccessPoliciesResult;
 import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
 import com.amazonaws.services.cloudsearchv2.model.IndexDocumentsRequest;
 import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
-import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesRequest;
 
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
-
-	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";
-
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2013-01-01";
 
-	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.singleton().getStack(),	StackConfiguration.getStackInstance());
+	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfigurationSingleton.singleton().getStack(),	StackConfigurationSingleton.singleton().getStackInstance());
 
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
 	@Autowired
-	AmazonCloudSearchClient awsSearchClient;
+	AmazonCloudSearch awsSearchClient;
 
 
 	@Override
@@ -73,28 +67,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		// we have to keep waiting
 		log.debug("Must keep waiting.");
 		return false;
-	}
-
-	/**
-	 * @param domainName
-	 */
-	public void setPolicyIfNeeded(String domainName) {
-		DescribeServiceAccessPoliciesResult dsapr = awsSearchClient
-				.describeServiceAccessPolicies(new DescribeServiceAccessPoliciesRequest()
-						.withDomainName(domainName));
-		// Set the policy.
-		// Until we figure out a better plan, we are opening this up to 0.0.0.0
-		String policyJson = String.format(POLICY_TEMPLATE,"0.0.0.0/0");
-		log.debug("Expected Policy: " + policyJson);
-		String actualPolicyJson = dsapr.getAccessPolicies().getOptions();
-		log.info("Actual Policy: " + actualPolicyJson);
-		if (!policyJson.equals(actualPolicyJson)) {
-			log.info("Updateing the Search Access policy as it does not match the expected policy");
-			// Add the policy.
-			awsSearchClient.updateServiceAccessPolicies(new UpdateServiceAccessPoliciesRequest().withDomainName(domainName).withAccessPolicies(policyJson));
-		} else {
-			log.info("Search Access policy is already set.");
-		}
 	}
 
 	/**
@@ -145,7 +117,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			currentFieldsMap.put(field.getIndexFieldName(), field);
 		}
 		// The the expected schema.
-		List<IndexField> indexList = SearchSchemaLoader.loadSearchDomainSchema();
+		List<IndexField> indexList = SynapseToCloudSearchField.loadSearchDomainSchema();
 		for (IndexField field : indexList) {
 			// Determine if this field already exists
 			IndexField currentField = currentFieldsMap.get(field.getIndexFieldName());
@@ -202,13 +174,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 				.describeIndexFields(new DescribeIndexFieldsRequest()
 						.withDomainName(getSearchDomainName()));
 		return difr.getIndexFields();
-	}
-
-	public AccessPoliciesStatus getAccessPoliciesStatus() {
-		DescribeServiceAccessPoliciesResult dsapr = awsSearchClient
-				.describeServiceAccessPolicies(new DescribeServiceAccessPoliciesRequest()
-						.withDomainName(getSearchDomainName()));
-		return dsapr.getAccessPolicies();
 	}
 
 	/**

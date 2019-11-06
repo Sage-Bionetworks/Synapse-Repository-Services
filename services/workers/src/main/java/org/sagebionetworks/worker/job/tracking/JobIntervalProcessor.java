@@ -6,11 +6,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.IntervalStatistics;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
@@ -31,7 +32,7 @@ public class JobIntervalProcessor {
 	public static final String METRIC_NAME_PERCENT_TIMET_RUNNING = "% Time Running";
 	public static final String METRIC_CUMULATIVE_RUNTIME = "Cumulative runtime";
 	public static final String METRIC_COMPLETED_JOB_COUNT = "Completed Job Count";
-	public static final String NAMESPACE_WORKER_STATISTICS = "Worker-Statistics-"+ StackConfiguration.getStackInstance();
+	public static final String NAMESPACE_WORKER_STATISTICS = "Worker-Statistics-"+ StackConfigurationSingleton.singleton().getStackInstance();
 
 	@Autowired
 	JobTracker jobTracker;

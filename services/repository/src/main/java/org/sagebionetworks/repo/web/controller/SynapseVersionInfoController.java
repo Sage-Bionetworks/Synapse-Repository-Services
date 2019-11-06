@@ -6,7 +6,7 @@ import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.pdfbox.io.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class SynapseVersionInfoController extends BaseController {
+public class SynapseVersionInfoController {
 	
 	private static class Holder {
 		private static String versionInfo = "";

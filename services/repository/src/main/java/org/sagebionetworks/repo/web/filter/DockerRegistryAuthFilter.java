@@ -13,7 +13,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.auth.BasicAuthUtils;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 
 public class DockerRegistryAuthFilter implements Filter {
@@ -22,8 +23,9 @@ public class DockerRegistryAuthFilter implements Filter {
 	private String dockerRegistryPassword;
 
 	public DockerRegistryAuthFilter() {
-		dockerRegistryUser = StackConfiguration.getDockerRegistryUser();
-		dockerRegistryPassword = StackConfiguration.getDockerRegistryPassword();
+		StackConfiguration config = StackConfigurationSingleton.singleton();
+		dockerRegistryUser = config.getDockerRegistryUser();
+		dockerRegistryPassword = config.getDockerRegistryPassword();
 	}
 
 	@Override
@@ -32,7 +34,7 @@ public class DockerRegistryAuthFilter implements Filter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest)request;
 
-		UserNameAndPassword up = BasicAuthUtils.getBasicAuthenticationCredentials(httpRequest);
+		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
 
 		if (up!=null && 
 				dockerRegistryUser.equals(up.getUserName()) && 

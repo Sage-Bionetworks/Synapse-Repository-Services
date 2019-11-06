@@ -1,6 +1,5 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -9,10 +8,12 @@ import java.util.Map;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.schema.EnumValue;
+import org.sagebionetworks.schema.HasEffectiveSchema;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.server.ServerSideOnlyFactory;
 
 import com.sun.javadoc.ClassDoc;
@@ -109,7 +110,8 @@ public class SchemaUtils {
 				}else if(TYPE.ARRAY == sub.getType()){
 					if(sub.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 					ObjectSchema arrayItems = sub.getItems();
-					if (TYPE.OBJECT == arrayItems.getType()) {
+					if (TYPE.OBJECT == arrayItems.getType()
+						/*PLFM-5723*/ || arrayItems.getEnum() != null) {
 						if(arrayItems.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
 					}
@@ -194,8 +196,18 @@ public class SchemaUtils {
 		Class<JSONEntity> clazz;
 		try {
 			clazz = (Class<JSONEntity>) Class.forName(name);
-			Field f = clazz.getField("EFFECTIVE_SCHEMA");
-			String json = (String)f.get(null);
+			String json = null;
+			try {
+				json = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
+			} catch (IllegalArgumentException e) {
+				if(!clazz.isInterface()) {
+					JSONEntity entity = clazz.newInstance();
+					if(entity instanceof HasEffectiveSchema) {
+						HasEffectiveSchema hasSchema = (HasEffectiveSchema) entity;
+						json = hasSchema.getEffectiveSchema();
+					}
+				}
+			}
 			if(json == null) return null;
 			if(!json.startsWith("{")) return null;
 			return json;
@@ -291,7 +303,7 @@ public class SchemaUtils {
 		if(TYPE.ARRAY == type.getType()){
 			isArray = true;
 			isUnique = type.getUniqueItems();
-		} else if (TYPE.MAP == type.getType()) {
+		} else if (TYPE.TUPLE_ARRAY_MAP == type.getType() || TYPE.MAP == type.getType()) {
 			isMap = true;
 		}
 		return new TypeReference(isArray, isUnique, isMap, display, href);
@@ -312,14 +324,14 @@ public class SchemaUtils {
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeHref(type.getItems());
 		}
-		if (TYPE.MAP == type.getType()) {
+		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
 			ObjectSchema valueSchema = type.getValue();
 			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] keyHref = getTypeHref(keySchema);
 			String[] valueHref = getTypeHref(valueSchema);
@@ -329,7 +341,17 @@ public class SchemaUtils {
 			if (valueHref.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
-			return new String[] { keyHref[0], valueHref[0] };
+			return new String[]{keyHref[0], valueHref[0]};
+		}else if (TYPE.MAP == type.getType()) {
+			ObjectSchema valueSchema = type.getValue();
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
+			}
+			String[] valueHref = getTypeHref(valueSchema);
+			if (valueHref.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			return new String[]{null, valueHref[0]};
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
 			String typeName = type.getId();
 			return new String[] { "${" + typeName + "}" };
@@ -346,14 +368,14 @@ public class SchemaUtils {
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeDisplay(type.getItems());
 		}
-		if (TYPE.MAP == type.getType()) {
+		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
 			ObjectSchema valueSchema = type.getValue();
 			if (keySchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			if (valueSchema == null) {
-				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
 			String[] keyDisplay = getTypeDisplay(keySchema);
 			String[] valueDisplay = getTypeDisplay(valueSchema);
@@ -363,7 +385,17 @@ public class SchemaUtils {
 			if (valueDisplay.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
-			return new String[] { keyDisplay[0], valueDisplay[0] };
+			return new String[]{keyDisplay[0], valueDisplay[0]};
+		} else if (TYPE.MAP == type.getType()){
+			ObjectSchema valueSchema = type.getValue();
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
+			}
+			String[] valueDisplay = getTypeDisplay(valueSchema);
+			if (valueDisplay.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.value not a single type");
+			}
+			return new String[]{TYPE.STRING.name(), valueDisplay[0]};
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
 			return new String[] { type.getName() };
 		}else{

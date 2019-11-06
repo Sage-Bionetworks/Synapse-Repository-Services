@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -39,7 +39,7 @@ public class TableFileHandleAssociationProviderTest {
 		Set<String> results = Sets.newHashSet("2");
 		when(tableEntityManager.getFileHandleIdsAssociatedWithTable(tableId, fileHandleIds)).thenReturn(results);
 		//call under test
-		Set<String> out = provider.getFileHandleIdsAssociatedWithObject(fileHandleIds, tableId);
+		Set<String> out = provider.getFileHandleIdsDirectlyAssociatedWithObject(fileHandleIds, tableId);
 		assertEquals(results, out);
 	}
 

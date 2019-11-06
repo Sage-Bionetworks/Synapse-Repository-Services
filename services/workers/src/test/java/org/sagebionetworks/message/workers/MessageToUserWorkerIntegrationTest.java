@@ -1,18 +1,13 @@
 package org.sagebionetworks.message.workers;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.fileupload.FileItemStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,35 +72,6 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
-		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
-		FileItemStream fis = new FileItemStream() {
-
-			@Override
-			public InputStream openStream() throws IOException {
-				return url.openStream();
-			}
-
-			@Override
-			public String getContentType() {
-				return "application/text";
-			}
-
-			@Override
-			public String getName() {
-				return "Message.txt";
-			}
-
-			@Override
-			public String getFieldName() {
-				return "none";
-			}
-
-			@Override
-			public boolean isFormField() {
-				return false;
-			}
-			
-		};
 		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(fromUserInfo.getId().toString(), new Date(), "my dog has fleas");
 		fileHandleId = handle.getId();
 		

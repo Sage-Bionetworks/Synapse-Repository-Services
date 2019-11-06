@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION_SUBMITTER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,6 +15,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -19,7 +26,7 @@ public class DBOSubmissionSubmitter implements MigratableDatabaseObject<DBOSubmi
 			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID, true),
 			new FieldColumn("submitterId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID, true),
 			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID),
-			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG).withIsEtag(true)
+			new FieldColumn("etag", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG).withIsEtag(true),
 		};
 
 	private Long currentSubmissionId;
@@ -168,20 +175,7 @@ public class DBOSubmissionSubmitter implements MigratableDatabaseObject<DBOSubmi
 
 	@Override
 	public MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter> getTranslator() {
-		return new MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter>(){
-
-			@Override
-			public DBOSubmissionSubmitter createDatabaseObjectFromBackup(
-					DBOSubmissionSubmitter backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOSubmissionSubmitter createBackupFromDatabaseObject(DBOSubmissionSubmitter dbo) {
-				return dbo;
-			}
-			
-		};
+		return new BasicMigratableTableTranslation<DBOSubmissionSubmitter>();
 	}
 
 	@Override

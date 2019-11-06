@@ -19,13 +19,16 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.DownloadList;
+import org.sagebionetworks.repo.model.file.DownloadOrder;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryRequest;
+import org.sagebionetworks.repo.model.file.DownloadOrderSummaryResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
-import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -246,7 +249,7 @@ public interface FileUploadService {
 	 * @return
 	 */
 	MultipartUploadStatus startMultipartUpload(Long userId,
-			MultipartUploadRequest request, Boolean forceRestart);
+			MultipartUploadRequest request, boolean forceRestart);
 
 	/**
 	 * Get a batch of pre-signed urls.
@@ -293,4 +296,61 @@ public interface FileUploadService {
 	 * @return
 	 */
 	BatchFileHandleCopyResult copyFileHandles(Long userId, BatchFileHandleCopyRequest request);
+
+	/**
+	 * Add the given files to the user's download list.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	DownloadList addFilesToDownloadList(Long userId, FileHandleAssociationList request);
+
+	/**
+	 * Remove the given list of files from the user's download list.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	DownloadList removeFilesFromDownloadList(Long userId, FileHandleAssociationList request);
+
+	/**
+	 * Clear the user's download list.
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	DownloadList clearDownloadList(Long userId);
+
+	/**
+	 * Create a DownloadOrder from the user's current download list.
+	 * @param userId
+	 * @param zipFileName 
+	 * @return
+	 */
+	DownloadOrder createDownloadOrder(Long userId, String zipFileName);
+
+	/**
+	 * Get a download order given its ID.
+	 * @param userId
+	 * @param orderId
+	 * @return
+	 */
+	DownloadOrder getDownloadOrder(Long userId, String orderId);
+
+	/**
+	 * Get a user's download history in reverse chronological order.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	DownloadOrderSummaryResponse getDownloadOrderHistory(Long userId, DownloadOrderSummaryRequest request);
+
+	/**
+	 * Get the user's current download list.
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	DownloadList getDownloadList(Long userId);
 }

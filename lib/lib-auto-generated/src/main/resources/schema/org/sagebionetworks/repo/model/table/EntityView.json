@@ -1,31 +1,40 @@
 {
-    "description": "A view of Entities within a defined scope.",
-    "implements": [{"$ref": "org.sagebionetworks.repo.model.table.Table"}],
-    "properties": {
-        "scopeIds": {
-            "description": "The list of container IDs (projects or folders) that define the scope of this view.",
-            "type": "array",
-            "items": {"type": "string"}
-        },
-        "type": {
-            "type": "string",
-            "description": "The type of the entities to be shown in this view.",
-            "name": "ViewType",
-            "id": "org.sagebionetworks.repo.model.table.ViewType",
-            "enum": [
-                {
-                    "name": "file",
-                    "description": "TODO: Auto-generated description"
-                },
-                {
-                    "name": "project",
-                    "description": "TODO: Auto-generated description"
-                },
-                {
-                    "name": "file_and_table",
-                    "description": "TODO: Auto-generated description"
-                }
-            ]
-        }
-    }
+	"description": "A view of Entities within a defined scope.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.Table"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasViewTypeMask"
+		}
+	],
+	"properties": {
+		"scopeIds": {
+			"description": "The list of container IDs (projects or folders) that define the scope of this view.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"type": {
+			"type": "string",
+			"description": "Deprecated. Use: 'viewTypeMask'",
+			"name": "ViewType",
+			"id": "org.sagebionetworks.repo.model.table.ViewType",
+			"enum": [
+				{
+					"name": "file",
+					"description": "Deprecated. For files only use: 'viewTypeMask'=0x01'"
+				},
+				{
+					"name": "project",
+					"description": "Deprecated. For projects only use: 'viewTypeMask'=0x02'"
+				},
+				{
+					"name": "file_and_table",
+					"description": "Deprecated. For files and tables use: 'viewTypeMask'=0x05'"
+				}
+			]
+		}
+	}
 }

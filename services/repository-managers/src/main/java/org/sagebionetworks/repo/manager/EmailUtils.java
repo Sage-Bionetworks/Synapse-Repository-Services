@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,14 +16,15 @@ import java.util.Map;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeUtility;
 
-import org.sagebionetworks.StackConfiguration;
+import com.google.common.net.InternetDomainName;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -97,7 +100,7 @@ public class EmailUtils {
 	public static String getEmailAddressForPrincipalName(String principalAlias) {
 		String actEmailAddress = 
 				AliasUtils.getUniqueAliasName(principalAlias)+
-				StackConfiguration.getNotificationEmailSuffix();
+				StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		try {
 			return (new InternetAddress(actEmailAddress, principalAlias)).toString();
 		} catch (UnsupportedEncodingException e) {
@@ -162,23 +165,32 @@ public class EmailUtils {
 		ValidateArgument.required(template, "input");
 		ValidateArgument.required(fieldValues, "fieldValues");
 		for (String fieldMarker : fieldValues.keySet()) {
-			template = template.replaceAll(fieldMarker, fieldValues.get(fieldMarker));
+			String replacementValue = fieldValues.get(fieldMarker);
+			if (replacementValue==null) replacementValue = "";
+			template = template.replaceAll(fieldMarker, replacementValue);
 		}
 		return template;
 	}
 	
 	public static void validateSynapsePortalHost(String urlString) {
-		URL url = null;
+		URI uri = null;
 		try {
-			url = new URL(urlString);
-		} catch (MalformedURLException e) {
+			uri = new URI(urlString);
+		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
 		}
-		String portalHost = url.getHost();
-		portalHost = portalHost.toLowerCase().trim();
-		if (portalHost.endsWith("synapse.org")) return;
-		if (portalHost.endsWith("sagebase.org")) return;
+
+		//check for local build endpoints
+		final String portalHost = uri.getHost().toLowerCase().trim();
 		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
+
+		// If not for local build, find the host's base domain.
+		// For example, the base domain for "staging.synapse.org" would be "synapse.org"
+		// It is VERY IMPORTANT to use .equals() and NOT .endsWith().
+		// Otherwise a domain such as notsynapse.org would pass the validation
+		final String baseDomain = InternetDomainName.from(portalHost).topPrivateDomain().toString();
+		if (baseDomain.equals("synapse.org") || baseDomain.equals("sagebase.org")) return;
+
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	
@@ -187,7 +199,7 @@ public class EmailUtils {
 	 */
 	public static String createSource(String senderDisplayName, String senderUserName) {
 		if (senderUserName==null) senderUserName=DEFAULT_EMAIL_ADDRESS_LOCAL_PART;
-		String senderEmailAddress = senderUserName+StackConfiguration.getNotificationEmailSuffix();
+		String senderEmailAddress = senderUserName+StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		// Construct whom the email is from 
 		String source;
 		if (senderDisplayName==null) {
@@ -204,30 +216,30 @@ public class EmailUtils {
 	
 
 	
-	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn) {
+	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn, TokenGenerator tokenGenerator) {
 		JoinTeamSignedToken token = new JoinTeamSignedToken();
 		token.setCreatedOn(createdOn);
 		token.setUserId(userId);
 		token.setMemberId(memberId);
 		token.setTeamId(teamId);
-		SignedTokenUtil.signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
 	}
 
-	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId) {
+	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, TokenGenerator tokenGenerator) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId(membershipInvitationId);
-		SignedTokenUtil.signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);
 		return result;
 	}
 
-	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
+	public static String createOneClickUnsubscribeLink(String endpoint, String userId, TokenGenerator tokenGenerator) {
 		if (endpoint==null || userId==null) throw new IllegalArgumentException("endpoint and userId are required.");
 		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
 		token.setCreatedOn(new Date());
@@ -235,7 +247,7 @@ public class EmailUtils {
 		Settings settings = new Settings();
 		settings.setSendEmailNotifications(false);
 		token.setSettings(settings);
-		SignedTokenUtil.signToken(token);
+		tokenGenerator.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;
 		validateSynapsePortalHost(result);

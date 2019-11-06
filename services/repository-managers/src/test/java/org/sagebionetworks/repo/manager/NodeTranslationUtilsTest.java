@@ -1,27 +1,27 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Test;
+import com.google.common.collect.Lists;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
@@ -30,15 +30,11 @@ import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 
-import com.google.common.collect.Lists;
-
 public class NodeTranslationUtilsTest {
-	
-	
+
 	@Test
 	public void testBinaryRoundTripString(){
 		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
@@ -53,15 +49,13 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testBinaryRoundTripJSONEntity(){
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
 		ObjectSchema schema = SchemaCache.getSchema(example);
 		byte[] bytes = NodeTranslationUtils.objectToBytes(example, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		Example back = (Example) NodeTranslationUtils.bytesToObject(bytes, schema);
+		Project back = (Project) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(example, back);
 	}
@@ -70,26 +64,21 @@ public class NodeTranslationUtilsTest {
 	public void testBinaryRoundTripListJSONEntity(){
 		ObjectSchema schema = new ObjectSchema();
 		schema.setType(TYPE.ARRAY);
-		schema.setItems(SchemaCache.getSchema(new Example()));
-		schema.setUniqueItems(false);
+		schema.setItems(SchemaCache.getSchema(new Project()));
 		
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
-		List<Example> list = new ArrayList<Example>();
+		List<Project> list = new ArrayList<Project>();
 		list.add(example);
 		// Add one more
-		example = new Example();
+		example = new Project();
 		example.setName("Example 2");
-		example.setType("The best type ever 2");
-		example.setQuantifier("Totally not quantifyable 2!");
 		list.add(example);
 		
 		byte[] bytes = NodeTranslationUtils.objectToBytes(list, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		List<Example> back = (List<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		List<Project> back = (List<Project>) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(list, back);
 	}
@@ -98,26 +87,22 @@ public class NodeTranslationUtilsTest {
 	public void testBinaryRoundTripSetJSONEntity(){
 		ObjectSchema schema = new ObjectSchema();
 		schema.setType(TYPE.ARRAY);
-		schema.setItems(SchemaCache.getSchema(new Example()));
+		schema.setItems(SchemaCache.getSchema(new Project()));
 		schema.setUniqueItems(true);
 		
-		Example example = new Example();
+		Project example = new Project();
 		example.setName("Example name");
-		example.setType("The best type ever");
-		example.setQuantifier("Totally not quantifyable!");
-		Set<Example> set = new HashSet<Example>();
+		Set<Project> set = new HashSet<Project>();
 		set.add(example);
 		// Add one more
-		example = new Example();
+		example = new Project();
 		example.setName("Example 2");
-		example.setType("The best type ever 2");
-		example.setQuantifier("Totally not quantifyable 2!");
 		set.add(example);
 		
 		byte[] bytes = NodeTranslationUtils.objectToBytes(set, schema);
 		assertNotNull(bytes);
 		// Now convert it back to a string
-		Set<Example> back = (Set<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		Set<Project> back = (Set<Project>) NodeTranslationUtils.bytesToObject(bytes, schema);
 		assertNotNull(back);
 		assertEquals(set, back);
 	}
@@ -146,7 +131,7 @@ public class NodeTranslationUtilsTest {
 			}
 			// Only compare non-transient fields
 			if(!propSchema.isTransient()){
-				assertEquals("Name: "+field.getName(),field.get(one), field.get(two));
+				assertEquals(field.get(one), field.get(two), "Name: "+field.getName());
 			}
 		}
 	}
@@ -188,21 +173,7 @@ public class NodeTranslationUtilsTest {
 		FileEntity clone = cloneUsingNodeTranslation(code);
 		assertEquals(code, clone);
 	}
-	
-	@Test
-	public void testIsPrimaryFieldNames(){
-		// check all of the fields for each object type.
-		for(EntityType type: EntityType.values()){
-			Field[] fields = EntityTypeUtils.getClassForType(type).getDeclaredFields();
-			for(Field field: fields){
-				String name = field.getName();
-				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
-				String notName = name+"1";
-				assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, notName));
-			}
-		}
-	}
-	
+
 	/**
 	 * Will clone an object by first creating a node and annotations for the passed object.
 	 * A new object will then be created and populated using the node and annotations.
@@ -238,14 +209,14 @@ public class NodeTranslationUtilsTest {
 		Node node = NodeTranslationUtils.createFromEntity(link);
 		// Set the type for this object
 		node.setNodeType(EntityType.link);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations annos = new Annotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos);
 		assertNotNull(node.getReference());
 		assertEquals(ref, node.getReference());
 		// Make sure we can make the round trip
 		Link newLink = new Link();
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos);
 		NodeTranslationUtils.updateObjectFromNode(newLink, node);
 		assertNotNull(newLink.getLinksTo());
 		assertEquals("123", newLink.getLinksTo().getTargetId());
@@ -260,10 +231,9 @@ public class NodeTranslationUtilsTest {
 		ExampleEntity example = new ExampleEntity();
 		example.setSingleInteger(123l);
 		Node node = NodeTranslationUtils.createFromEntity(example);
-		NamedAnnotations annos = new NamedAnnotations();
+		Annotations primaryAnnos = new Annotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
-		Annotations primaryAnnos = annos.getPrimaryAnnotations();
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, primaryAnnos);
 		// First make sure it is set correctly.
 		assertNotNull(primaryAnnos.getSingleValue("singleInteger"));
 		Long value = (Long) primaryAnnos.getSingleValue("singleInteger");
@@ -271,7 +241,7 @@ public class NodeTranslationUtilsTest {
 		
 		// Now the second update we want to clear it out.
 		example.setSingleInteger(null);
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, primaryAnnos);
 		// The value should now be cleared out.
 		assertEquals(null, primaryAnnos.getSingleValue("singleInteger"));
 
@@ -325,5 +295,21 @@ public class NodeTranslationUtilsTest {
 		assertNotNull(clone);
 		assertEquals(view, clone);
 	}
-	
+
+	@Test
+	public void testUpdateNodeSecondaryFieldsFromObject_ConcreteTypeNotInAnnotations(){
+		Annotations annotations = new Annotations();
+		FileEntity fileEntity = new FileEntity();
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(fileEntity, annotations);
+		assertNull(annotations.getAllValues(ObjectSchema.CONCRETE_TYPE));
+	}
+
+
+	@Test
+	public void testGetTranslatableEntityFields(){
+		TableEntity entity = new TableEntity();
+		Field[] translatableFields = NodeTranslationUtils.getTranslatableEntityFields(entity);
+
+		assertTrue(Arrays.stream(translatableFields).noneMatch( field -> ObjectSchema.CONCRETE_TYPE.equals(field.getName())) );
+	}
 }

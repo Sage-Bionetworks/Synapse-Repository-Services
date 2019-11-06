@@ -13,7 +13,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.base.Function;
@@ -24,6 +25,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class DBOBuilder<T> {
+
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypeHierarchy(Object.class).build();
 
 	public interface RowMapper {
 		public void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
@@ -166,7 +169,7 @@ public class DBOBuilder<T> {
 			if (blobValue != null) {
 				byte[] bytes = blobValue.getBytes(1, (int) blobValue.length());
 				try {
-					return clazz.cast(JDOSecondaryPropertyUtils.decompressedObject(bytes));
+					return clazz.cast(JDOSecondaryPropertyUtils.decompressObject(X_STREAM, bytes));
 				} catch (IOException e) {
 					throw new SQLException("Error converting type " + clazz.getName() + ": " + e.getMessage(), e);
 				}
@@ -287,7 +290,7 @@ public class DBOBuilder<T> {
 					@Override
 					public Object convert(Object result) {
 						try {
-							return JDOSecondaryPropertyUtils.compressObject(result);
+							return JDOSecondaryPropertyUtils.compressObject(X_STREAM, result);
 						} catch (IOException e) {
 							throw new IllegalStateException(e.getMessage(), e);
 						}
@@ -360,7 +363,7 @@ public class DBOBuilder<T> {
 			String fkName = StringUtils.isEmpty(entry.annotation.name()) ? makeFkName(fieldName, tableName) : entry.annotation.name();
 			lines.add("constraint " + fkName + " foreign key (" + escapeName(fieldName) + ") references "
 					+ escapeName(entry.annotation.table()) + " (" + escapeName(entry.annotation.field()) + ")"
-					+ (entry.annotation.cascadeDelete() ? " on delete cascade" : ""));
+					+ (entry.annotation.cascadeDelete() ? " on delete cascade" : " on delete restrict"));
 		}
 
 		Table tableAnnotation = clazz.getAnnotation(Table.class);
@@ -392,7 +395,7 @@ public class DBOBuilder<T> {
 				type = "bigint(20)";
 			} else if (fieldClazz == String.class) {
 				if (fieldAnnotation.varchar() != 0) {
-					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET latin1 COLLATE latin1_bin";
+					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";
 				} else if (fieldAnnotation.fixedchar() != 0) {
 					type = "CHAR(" + fieldAnnotation.fixedchar() + ")";
 				} else if (fieldAnnotation.etag()) {

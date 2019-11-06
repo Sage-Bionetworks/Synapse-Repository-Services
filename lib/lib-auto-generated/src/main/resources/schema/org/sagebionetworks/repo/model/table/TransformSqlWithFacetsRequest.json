@@ -1,0 +1,24 @@
+{
+	"description": "Request to transform the provided SQL by adding a WHERE clause that is based on the provided selected facets.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.SqlTransformRequest"
+		}
+	],
+	"properties": {
+		"selectedFacets": {
+			"description": "The facets that should be selected in the resulting SQL",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnRequest"
+			}
+		},
+		"schema": {
+			"description": "The schema assciated with this request",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		}
+	}
+}

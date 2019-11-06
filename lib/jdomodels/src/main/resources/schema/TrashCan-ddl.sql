@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS `TRASH_CAN` (
 	`NODE_ID`     bigint(20)    NOT NULL,
-	`NODE_NAME`   varchar(256)  CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
+	`NODE_NAME`   varchar(256)  CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
 	`DELETED_BY`  bigint(20)    NOT NULL,
 	`DELETED_ON`  TIMESTAMP     NOT NULL,
 	`PARENT_ID`   bigint(20)    NOT NULL,

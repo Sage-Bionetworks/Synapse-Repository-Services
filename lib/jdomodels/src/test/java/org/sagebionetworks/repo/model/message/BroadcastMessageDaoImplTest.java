@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -41,7 +40,6 @@ public class BroadcastMessageDaoImplTest {
 		
 		changeMessage = new ChangeMessage();
 		changeMessage.setChangeType(ChangeType.CREATE);
-		changeMessage.setObjectEtag("etag");
 		changeMessage.setObjectId("123");
 		changeMessage.setObjectType(ObjectType.THREAD);
 		changeMessage = changeDao.replaceChange(changeMessage);

@@ -4,6 +4,7 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.gwt.client.schema.adapter.GwtAdapterFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -22,7 +23,7 @@ public class GwtTestSuite extends GWTTestCase {
 	 * Must refer to a valid module that sources this class.
 	 */
 	public String getModuleName() { 
-		return "org.sagebionetworks.repo.SharedSynpaseDTOs";
+		return "org.sagebionetworks.repo.SharedSynapseDTOs";
 	}
 	
 	String registerJson = null;
@@ -40,7 +41,6 @@ public class GwtTestSuite extends GWTTestCase {
 	@Test
 	public void testAnnotationsRoundTrip() throws JSONObjectAdapterException {
 		Annotations annos = new Annotations();
-		annos.setCreationDate(new Date(100));
 		annos.addAnnotation("string", "one");
 		annos.addAnnotation("string", "two");
 		annos.addAnnotation("long", new Long(123));
@@ -58,6 +58,25 @@ public class GwtTestSuite extends GWTTestCase {
 		Annotations clone = new Annotations();
 		clone.initializeFromJSONObject(adapter);
 		assertEquals(annos, clone);		
+	}
+	
+	/**
+	 * Test that extra fields are preserved.
+	 * 
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test
+	public void testExtraFields() throws JSONObjectAdapterException {
+		GwtAdapterFactory factory = new GwtAdapterFactory();
+		JSONObjectAdapter adapter = factory.createNew();
+		adapter.put("junk", "junkValue");
+		adapter.put("name", "columnName");
+		ColumnModel cm = new ColumnModel(adapter);
+		
+		JSONObjectAdapter cloneAdapter = factory.createNew();
+		cm.writeToJSONObject(cloneAdapter);
+		assertEquals("columnName", cloneAdapter.get("name"));
+		assertEquals("junkValue", cloneAdapter.get("junk"));
 	}
 	
 	@Test

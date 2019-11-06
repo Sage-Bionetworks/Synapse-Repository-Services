@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -21,9 +21,9 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -93,7 +93,7 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	    userInfo = new UserInfo(true);
 	    userInfo.setId(userId);
 		semphoreManager.releaseAllLocksAsAdmin(userInfo);
-		queueCleaner.purgeQueue(StackConfiguration.singleton().getSubmissionAnnotationsUpdateQueueName());
+		queueCleaner.purgeQueue(StackConfigurationSingleton.singleton().getQueueName("EVALUATION_SUBMISSION_UPDATE"));
 		
 		// create a node
   		Node node = new Node();

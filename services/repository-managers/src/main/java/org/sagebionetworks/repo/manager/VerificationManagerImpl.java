@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class VerificationManagerImpl implements VerificationManager {
@@ -88,7 +88,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		this.transactionalMessenger = transactionalMessenger;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			UserInfo userInfo, VerificationSubmission verificationSubmission) {
@@ -186,7 +186,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		return result;
 	}
 
-	@WriteTransactionReadCommitted
+	@WriteTransaction
 	@Override
 	public void changeSubmissionState(UserInfo userInfo,
 			long verificationSubmissionId, VerificationState newState) {

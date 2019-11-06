@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -43,13 +41,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> Annotations <i>(Annotations)</i> = 0x2 </li>
  * <li> Permissions <i>(UserEntityPermissions)</i> = 0x4 </li>
  * <li> Entity Path <i>(EntityPath)</i> = 0x8 </li>
- * <li> Entity References <i>(List&lt;EntityHeader&gt;)</i> = 0x10 </li>
  * <li> HasChildren <i>(Boolean)</i> = 0x20 </li>
  * <li> ACL <i>(AccessControlList)</i> = 0x40 </li>
- * <li> Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x200 </li>
- * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
  * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
  * <li> TableEntity Metadata <i>(TableBundle)</i> = 0x1000</li>
+ * <li> Root Wiki ID <i>(String)</i> = 0x2000</li>
+ * <li> Benefactor ACL <i>(AccessControlList)</i> = 0x4000</li>
+ * <li> DOI Association <i>(DoiAssociation)</i> = 0x8000</li>
+ * <li> File Name <i>(String)</i> = 0x10000</li>
+ * <li> Thread Count <i>(Long)</i> = 0x20000</li>
+ * <li> Restriction Information <i>(RestrictionInformationResponse)</i> = 0x40000</li>
  * </ul>
  * </p>
  * <p>
@@ -57,17 +58,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 0x1 + 0x2 = 0x3.
  * </p>
  */
-@ControllerInfo(displayName="Entity Bundle Services", path="repo/v1")
+@Deprecated
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class EntityBundleController extends BaseController {
+public class EntityBundleController {
 	
 	@Autowired
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * Get an entity and related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity and related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
@@ -80,21 +80,20 @@ public class EntityBundleController extends BaseController {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
-			@RequestParam int mask, HttpServletRequest request
-			)
+			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask);
 	}	
 
 	/**
-	 * Get an entity at a specific version and its related data with a single GET. Note that childCount is
-	 * calculated in the QueryController.
+	 * Get an entity at a specific version and its related data with a single GET.
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
@@ -108,6 +107,7 @@ public class EntityBundleController extends BaseController {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException - Thrown if the childCount query failed
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -115,10 +115,9 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
-			@RequestParam int mask, HttpServletRequest request
-			)
+			@RequestParam int mask)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask);
 	}	
 	
 	/**
@@ -141,18 +140,17 @@ public class EntityBundleController extends BaseController {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
-			@RequestBody EntityBundleCreate ebc,
-			HttpServletRequest request
-			)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy, request);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
 	}
 	
 	/**
@@ -175,6 +173,7 @@ public class EntityBundleController extends BaseController {
 	 * @throws ParseException 
 	 * @throws ACLInheritanceException 
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -182,12 +181,9 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
-			@RequestBody EntityBundleCreate ebc,
-			HttpServletRequest request
-			)
+			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
 	}
-
 }

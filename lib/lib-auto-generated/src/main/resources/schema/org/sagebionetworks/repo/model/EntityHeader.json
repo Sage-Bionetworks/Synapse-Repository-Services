@@ -1,29 +1,47 @@
 {
-    "description":"JSON schema for EntityHeader POJO",
-    "properties":{
-        "name":{
-            "type":"string",
-            "description":"The  name of the entity"            
-        },
-        "id":{
-            "type":"string",
-            "description":"The id of the entity"            
-        },
-        "type":{
-            "type":"string",
-            "description":"The type of the entity"            
-        },
-        "versionNumber":{
-            "type":"integer",
-            "description":"The version number of the entity"            
-        },
-        "versionLabel":{
-            "type":"string",
-            "description":"The user defined version label of the entity"            
-        },
-        "benefactorId":{
-            "type":"integer",
-            "description":"The ID of the entity that this Entity's ACL is inherited from."  
-        }
-    }
+	"description": "JSON schema for EntityHeader POJO",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The  name of the entity"
+		},
+		"id": {
+			"type": "string",
+			"description": "The id of the entity"
+		},
+		"type": {
+			"type": "string",
+			"description": "The type of the entity"
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The version number of the entity"
+		},
+		"versionLabel": {
+			"type": "string",
+			"description": "The user defined version label of the entity"
+		},
+		"benefactorId": {
+			"type": "integer",
+			"description": "The ID of the entity that this Entity's ACL is inherited from."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this entity was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this entity was last modified."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this entity."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this entity."
+		}
+	}
 }

@@ -1,16 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_MD5_HEX;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_PART_UPLOAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MULTIPART_UPLOAD_PART_STATE_DDL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MULTIPART_UPLOAD_PART_STATE;
+
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -113,19 +119,7 @@ public class DBOMultipartUploadPartState implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigratableTableTranslation<DBOMultipartUploadPartState, DBOMultipartUploadPartState> getTranslator() {
-		return new  MigratableTableTranslation<DBOMultipartUploadPartState, DBOMultipartUploadPartState>(){
-
-			@Override
-			public DBOMultipartUploadPartState createDatabaseObjectFromBackup(
-					DBOMultipartUploadPartState backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOMultipartUploadPartState createBackupFromDatabaseObject(
-					DBOMultipartUploadPartState dbo) {
-				return dbo;
-			}};
+		return new BasicMigratableTableTranslation<DBOMultipartUploadPartState>();
 	}
 
 	@Override

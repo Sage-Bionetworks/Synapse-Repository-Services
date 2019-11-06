@@ -33,13 +33,15 @@ interface TransactionValidator {
 
 	public String mandatory(Callable<String> callable) throws Exception;
 
+	public String mandatoryReadCommitted(Callable<String> callable) throws Exception;
+
 	public String required(Callable<String> callable) throws Exception;
 
 	public String requiresNew(Callable<String> callable) throws Exception;
 	
 	public String writeReadCommitted(Callable<String> callable) throws Exception;
 
-	public String requiresNewReadCommitted(Callable<String> callable) throws Exception;
+	public String NewWriteTransaction(Callable<String> callable) throws Exception;
 
 
 }

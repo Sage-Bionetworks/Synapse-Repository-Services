@@ -1,0 +1,23 @@
+{
+	"description": "The enumeration of possible FormData submission states.",
+	"name": "StateEnum",
+	"type": "string",
+	"enum": [
+		{
+			"name": "WAITING_FOR_SUBMISSION",
+			"description": "Indicates that the FormData is waiting for the creator to submit it."
+		},
+		{
+			"name": "SUBMITTED_WAITING_FOR_REVIEW",
+			"description": "Indicates the FormData has been submitted and is now awaiting review."
+		},
+		{
+			"name": "ACCEPTED",
+			"description": "The submitted FormData has been reviewed and accepted."
+		},
+		{
+			"name": "REJECTED",
+			"description": "The submitted FormData has been reviewed but was not accepted.  See the reason for more details."
+		}
+	]
+}

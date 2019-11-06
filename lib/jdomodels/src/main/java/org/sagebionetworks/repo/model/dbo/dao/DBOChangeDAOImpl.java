@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_TIME_STAMP;
@@ -40,9 +39,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,11 +97,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			"SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+
 			" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
 
-	private static final String SELECT_ETAG_FOR_OBJECT_ID_AND_TYPE = 
-			"SELECT "+COL_CHANGES_OBJECT_ETAG+" FROM "+TABLE_CHANGES+
-			" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
-
-	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE = 
+	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE =
 			"SELECT * FROM "+TABLE_CHANGES+
 			" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?"+
 			" ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
@@ -138,7 +131,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
+		
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 	
@@ -157,8 +150,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(change.getObjectId() == null) throw new IllegalArgumentException("change.getObjectId() cannot be null");
 		if(change.getChangeType() == null) throw new IllegalArgumentException("change.getChangeTypeEnum() cannot be null");
 		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
-		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
-		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		return attemptReplaceChange(change);
 	}
 
@@ -180,10 +171,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// create or update the change.
 		basicDao.createOrUpdate(changeDbo);
 		// Setup and clear the sent message
-		DBOSentMessage sentDBO = new DBOSentMessage();
+		DBOSentMessage sentDBO = ChangeMessageUtils.createSentDBO(change, null);
 		sentDBO.setChangeNumber(null);
-		sentDBO.setObjectId(changeDbo.getObjectId());
-		sentDBO.setObjectType(ObjectType.valueOf(changeDbo.getObjectType()));
 		basicDao.createOrUpdate(sentDBO);
 		return ChangeMessageUtils.createDTO(changeDbo);
 	}
@@ -294,11 +283,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			if(message.getChangeNumber() == null){
 				throw new IllegalArgumentException("Change.changeNumber cannot be null");
 			}
-			DBOSentMessage sent = new DBOSentMessage();
-			sent.setChangeNumber(message.getChangeNumber());
-			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
-			sent.setObjectType(message.getObjectType());
-			sent.setTimeStamp(now);
+			DBOSentMessage sent = ChangeMessageUtils.createSentDBO(message, now);
 			dboBatch.add(sent);
 		}
 		// batch insert all.
@@ -392,15 +377,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	@Override
-	public String getEtag(Long objectId, ObjectType objectType) {
-		try {
-			return jdbcTemplate.queryForObject(SELECT_ETAG_FOR_OBJECT_ID_AND_TYPE, new Object[]{objectId, objectType.name()}, String.class);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException(e.getMessage());
-		}
-	}
-
-	@Override
 	public List<ChangeMessage> getChangesForObjectIds(ObjectType objectType,
 			Set<Long> objectIds) {
 		ValidateArgument.required(objectType, "objectType");
@@ -418,10 +394,11 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	@Override
-	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType) {
+	public DBOSentMessage getSentMessage(String objectId, Long objectVersion, ObjectType objectType) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("objectId", objectId);
 		params.addValue("objectType", objectType.name());
+		params.addValue("objectVersion", objectVersion);
 		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params);
 	}
 

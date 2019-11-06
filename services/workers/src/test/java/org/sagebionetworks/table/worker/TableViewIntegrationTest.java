@@ -16,12 +16,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -30,14 +28,12 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -48,11 +44,16 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -67,9 +68,12 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -78,7 +82,9 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -95,10 +101,8 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
-	public static final int MAX_WAIT_MS = 1000 * 60 * 2;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 3;
 	
-	@Autowired
-	private StackConfiguration config;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -148,8 +152,6 @@ public class TableViewIntegrationTest {
 	
 	@Before
 	public void before(){
-		// Only run this test if the table feature is enabled.
-		Assume.assumeTrue(config.getTableEnabled());
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		NewUser user = new NewUser();
@@ -193,7 +195,7 @@ public class TableViewIntegrationTest {
 			fileIds.add(fileId);
 		}
 		
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewTypeMask.File.getMask());
 		// add an annotation column
 		anno1Column = new ColumnModel();
 		anno1Column.setColumnType(ColumnType.INTEGER);
@@ -253,7 +255,10 @@ public class TableViewIntegrationTest {
 		view.setType(type);
 		String viewId = entityManager.createEntity(adminUserInfo, view, null);
 		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), view.getScopeIds(), view.getType(), viewId);
+		ViewScope viewScope = new ViewScope();
+		viewScope.setScope(view.getScopeIds());
+		viewScope.setViewType(view.getType());
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
 		entitiesToDelete.add(view.getId());
 		return viewId;
 	}
@@ -283,7 +288,6 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testFileView() throws Exception{
 		createFileView();
-		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
@@ -346,6 +350,25 @@ public class TableViewIntegrationTest {
 		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
 		assertEquals(fileCount, rows.size());
 		validateRowsMatchFiles(rows);
+	}
+	
+	@Test
+	public void testSumFileSizes() throws Exception{
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+
+		// run the query again
+		int expectedRowCount = fileCount;
+		QueryOptions options = new QueryOptions().withRunSumFileSizes(true).withRunQuery(true);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results);
+		assertNotNull(results.getSumFileSizes());
+		assertFalse(results.getSumFileSizes().getGreaterThan());
+		assertNotNull(results.getSumFileSizes().getSumFileSizesBytes());
+		assertTrue(results.getSumFileSizes().getSumFileSizesBytes() > 0L);
 	}
 	
 	/**
@@ -484,7 +507,7 @@ public class TableViewIntegrationTest {
 		
 		// is the annotation changed?
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
-		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
 	@Test
@@ -535,7 +558,7 @@ public class TableViewIntegrationTest {
 		
 		// is the annotation changed?
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
-		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
 	}
 	
 	
@@ -554,7 +577,7 @@ public class TableViewIntegrationTest {
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		waitForEntityReplication(fileViewId, file.getId());
 		
-		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = "+fileId;
+		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = '"+fileId+"'";
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
 		List<Row> rows  = extractRows(results);
 		assertEquals(1, rows.size());
@@ -587,13 +610,16 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewType(ViewType.file);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+				scope, fileViewId);
 
 		// Add an annotation with the same name and a value larger than the size
 		// of the column.
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "too big");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "too big", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		waitForEntityReplication(fileViewId, fileId);
 
@@ -607,10 +633,10 @@ public class TableViewIntegrationTest {
 					expected.getStatus().getErrorMessage());
 		}
 	}
-	
+
 	/**
 	 * See PLFM-4371.
-	 * 
+	 *
 	 */
 	@Test
 	public void testPLFM_4371() throws Exception {
@@ -624,17 +650,20 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		scope.setViewTypeMask(ViewTypeMask.File.getMask());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
-				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+				scope, fileViewId);
 
 		// Add an annotation with a duplicate name as a primary annotation.
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "this is a duplicate value");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "this is a duplicate value", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// For PLFM-4371 the replication was failing due to the duplicate name
 		waitForEntityReplication(fileViewId, fileId);
 	}
-	
+
 	/**
 	 * Test for PLFM-4366. To reproduce:
 	 * <ol>
@@ -655,13 +684,14 @@ public class TableViewIntegrationTest {
 		String sql = "select * from "+fileViewId;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
+		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
 		// Set the view to processing without making any real changes
-		tableManagerSupport.setTableToProcessingAndTriggerUpdate(fileViewId);
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
 		// The view should become available again.
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
 	}
-	
+
 	@Test
 	public void testProjectView() throws Exception{
 		// Create some projects
@@ -691,11 +721,11 @@ public class TableViewIntegrationTest {
 		List<Row> rows  = extractRows(results);
 		assertEquals("Should have one row for each scope.",scope.size(), rows.size());
 	}
-	
+
 	/**
 	 * PLFM-4413 and PLFM-4410 are both bugs where view contents are incorrect after
 	 * ACLs are added/removed to the scopes of a view.  This test covers both issues.
-	 * @throws InterruptedException 
+	 * @throws InterruptedException
 	 */
 	@Test
 	public void testPLFM_4413() throws Exception {
@@ -719,14 +749,14 @@ public class TableViewIntegrationTest {
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query for the file that inherits from the folder.
-		String sql = "select * from "+fileViewId+" where benefactorId="+folderId+" and id = "+fileId;
+		String sql = "select * from "+fileViewId+" where benefactorId='"+folderId+"' and id = '"+fileId+"'";
 		int expectedRowCount = 1;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		List<Row> rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		Row row = rows.get(0);
 		assertEquals(fileIdLong, row.getRowId());
-		
+
 		/*
 		 * Removing the ACL on the folder should set the file's benefactor to be
 		 * the project. This should be reflected in the view.
@@ -734,7 +764,7 @@ public class TableViewIntegrationTest {
 		entityPermissionsManager.restoreInheritance(folderId, adminUserInfo);
 
 		// Query for the the file with the project as its benefactor.
-		sql = "select * from "+fileViewId+" where benefactorId="+project.getId()+" and id = "+fileId;
+		sql = "select * from "+fileViewId+" where benefactorId='"+project.getId()+"' and id = '"+fileId+"'";
 		expectedRowCount = 1;
 		results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		rows  = extractRows(results);
@@ -742,14 +772,14 @@ public class TableViewIntegrationTest {
 		row = rows.get(0);
 		assertEquals(fileIdLong, row.getRowId());
 	}
-	
+
 	/**
-	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * The fix for PLFM-4399 involved adding a worker to reconcile
 	 * entity replication with the truth.  This test ensure that when
 	 * replication data is missing for a FileView, a query of the
 	 * view triggers the reconciliation.
-	 * @throws Exception 
-	 * 
+	 * @throws Exception
+	 *
 	 */
 	@Test
 	public void testFileViewReconciliation() throws Exception{
@@ -759,28 +789,29 @@ public class TableViewIntegrationTest {
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, firstFileId);
 		// query the view as a user that does not permission
-		String sql = "select * from "+fileViewId+" where id ="+firstFileId;
+		String sql = "select * from "+fileViewId+" where id ='"+firstFileId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		
+
 		// manually delete the replicated data the file to simulate a data loss.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(fileViewId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(fileViewId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		indexDao.deleteEntityData(Lists.newArrayList(firtFileIdLong));
 		indexDao.truncateReplicationSyncExpiration();
-		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(firtFileIdLong));
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 	}
 
-	
+
 	/**
-	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * The fix for PLFM-4399 involved adding a worker to reconcile
 	 * entity replication with the truth.  This test ensure that when
 	 * replication data is missing for a ProjectView, a query of the
 	 * view triggers the reconciliation.
-	 * @throws Exception 
-	 * 
+	 * @throws Exception
+	 *
 	 */
 	@Test
 	public void testProjectViewReconciliation() throws Exception{
@@ -791,24 +822,25 @@ public class TableViewIntegrationTest {
 		// wait for the view.
 		waitForEntityReplication(viewId, projectId);
 		// query the view as a user that does not permission
-		String sql = "select * from "+viewId+" where id ="+projectId;
+		String sql = "select * from "+viewId+" where id ='"+projectId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
-		
+
 		// manually delete the replicated data of the project to simulate a data loss.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(viewId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(viewId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
 		indexDao.truncateReplicationSyncExpiration();
-		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(projectIdLong));
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 	}
-	
+
 	/**
 	 * For PLFM-4446, users want to add boolean annotation with 'true' and 'false'
 	 * and view the annotations with a column of type boolean.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4446() throws Exception{
@@ -816,24 +848,24 @@ public class TableViewIntegrationTest {
 		// one
 		String fileId = fileIds.get(0);
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(), "true");
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "true", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(), "false");
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(), "false", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(booleanColumn.getName(),"");
+		AnnotationsV2TestUtils.putAnnotations(annos, booleanColumn.getName(),"", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(booleanColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+booleanColumn.getName()+" from "+fileViewId;
@@ -845,12 +877,12 @@ public class TableViewIntegrationTest {
 		assertEquals("false", rows.get(1).getValues().get(0));
 		assertEquals(null, rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
 	 * Part of PLFM-4521 states that viewing a 'Float point' annotation with a string column
 	 * shows a null even when the value is not null.  This is unexpected, as any annotation
 	 * type should be visible as a string.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4521FloatToString() throws Exception{
@@ -858,24 +890,24 @@ public class TableViewIntegrationTest {
 		String fileId = fileIds.get(0);
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		annos.addAnnotation(stringColumn.getName(), 1.3);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.3", AnnotationsValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "not a double");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "not a double", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+stringColumn.getName()+" from "+fileViewId;
@@ -887,11 +919,11 @@ public class TableViewIntegrationTest {
 		assertEquals("not a double", rows.get(1).getValues().get(0));
 		assertEquals("", rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
-	 * Part of PLFM-4521 states that a non-entity ID string annotation breaks a view that includes 
+	 * Part of PLFM-4521 states that a non-entity ID string annotation breaks a view that includes
 	 * a column of type entity ID.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4521StringToEntityId() throws Exception{
@@ -900,25 +932,25 @@ public class TableViewIntegrationTest {
 		String fileId = fileIds.get(0);
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// save a double with the string name
-		annos.addAnnotation(entityIdColumn.getName(), "syn123");
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "syn123", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
 		// a long can be used as an entity ID.
-		annos.addAnnotation(entityIdColumn.getName(), 456L);
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "456", AnnotationsValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		// two
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(entityIdColumn.getName(), "");
+		AnnotationsV2TestUtils.putAnnotations(annos, entityIdColumn.getName(), "", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(entityIdColumn.getId());
 		createFileView();
-		
+
 		// This query should trigger the reconciliation to repair the lost data.
 		// If the query returns a single row, then the deleted data was restored.
 		String sql = "select "+entityIdColumn.getName()+" from "+fileViewId;
@@ -930,13 +962,13 @@ public class TableViewIntegrationTest {
 		assertEquals("syn456", rows.get(1).getValues().get(0));
 		assertEquals(null, rows.get(2).getValues().get(0));
 	}
-	
+
 	/**
-	 * For PLFM-4517 updating file entity annotations using a view update 
+	 * For PLFM-4517 updating file entity annotations using a view update
 	 * would add duplicate annotations with the same name but different type.
 	 * Duplicate annotation names are no longer supported.  Therefore, updates
 	 * to annotations using a view should replace annotations, not add duplicates.
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_4517() throws Exception{
@@ -944,23 +976,23 @@ public class TableViewIntegrationTest {
 		// one
 		String fileId = fileIds.get(0);
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), 1.23);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1.23", AnnotationsValueType.DOUBLE);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// two
 		fileId = fileIds.get(1);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), 456L);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "456", AnnotationsValueType.LONG);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		// three
 		fileId = fileIds.get(2);
 		annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), new Date(789));
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "789", AnnotationsValueType.TIMESTAMP_MS);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
-		
+
 		// Create the view
 		defaultColumnIds = Lists.newArrayList(stringColumn.getId(), etagColumn.getId());
 		createFileView();
-		
+
 		// Query for the values as strings.
 		String sql = "select "+stringColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
 		int rowCount = 3;
@@ -971,7 +1003,7 @@ public class TableViewIntegrationTest {
 		assertEquals("1.23", rows.get(0).getValues().get(0));
 		assertEquals("456", rows.get(1).getValues().get(0));
 		assertEquals("789", rows.get(2).getValues().get(0));
-		
+
 		// use the results to update the annotations.
 		RowSet rowSet = results.getQueryResult().getQueryResults();
 		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
@@ -989,7 +1021,7 @@ public class TableViewIntegrationTest {
 		// one
 		String fileId = fileIds.get(0);
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
-		annos.addAnnotation(stringColumn.getName(), "1");
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsValueType.STRING);
 		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
 		
 		// the view does not have an etag column
@@ -1045,7 +1077,7 @@ public class TableViewIntegrationTest {
 	@Test
 	public void testViewWithFilesAndTables() throws Exception{
 		// use the default columns for this type.
-		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file_and_table);
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
 		// Add a table to the project
 		TableEntity table = new TableEntity();
 		table.setName("someTable");
@@ -1131,6 +1163,63 @@ public class TableViewIntegrationTest {
 		}
 	}
 	
+	@Test
+	public void testViewSnapshot() throws Exception {
+		createFileView();
+		// add a column to the view.
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange addColumn = new ColumnChange();
+		addColumn.setNewColumnId(stringColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(addColumn));
+		// Add a string annotation to each file in the view
+		List<PartialRow> rowsToAdd = new LinkedList<>();
+		int counter = 0;
+		for (String fileId : fileIds) {
+			PartialRow row = new PartialRow();
+			row.setRowId(KeyFactory.stringToKey(fileId));
+			Map<String, String> values = new HashMap<>(1);
+			values.put(stringColumn.getId(), "string value:" + counter++);
+			FileEntity file = entityManager.getEntity(adminUserInfo, fileId, FileEntity.class);
+			row.setEtag(file.getEtag());
+			row.setValues(values);
+			rowsToAdd.add(row);
+		}
+		PartialRowSet rowChange = new PartialRowSet();
+		rowChange.setTableId(fileViewId);
+		rowChange.setRows(rowsToAdd);
+		AppendableRowSetRequest rowSetRequest = new AppendableRowSetRequest();
+		rowSetRequest.setToAppend(rowChange);
+
+		// create a snapshot after the change
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("the first view snapshot ever!");
+
+		// Add all of the parts
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setChanges(Lists.newArrayList(schemaChangeRequest, rowSetRequest));
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+
+		// Start the job that will change the schema and annotations to each file and
+		// then snapshot the view.
+		// call under test
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
+				TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getSnapshotVersionNumber());
+
+		// Query the snapshot
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId + "." + response.getSnapshotVersionNumber());
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		QueryResultBundle queryResults = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		assertNotNull(queryResults);
+		List<Row> rows = extractRows(queryResults);
+		assertEquals(rowCount, rows.size());
+	}
+	
 	/**
 	 * Helper to update a view using a result set.
 	 * @param rowSet
@@ -1213,6 +1302,11 @@ public class TableViewIntegrationTest {
 		return waitForConsistentQuery(user, query, rowCount);
 	}
 	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
+		return waitForConsistentQuery(user, query, options, rowCount);
+	}
+	
 	/**
 	 * Wait for a query to return the expected number of rows.
 	 * @param user
@@ -1221,10 +1315,10 @@ public class TableViewIntegrationTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options, int rowCount) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
-			QueryResultBundle results = waitForConsistentQuery(user, query);
+			QueryResultBundle results = waitForConsistentQuery(user, query, options);
 			List<Row> rows = extractRows(results);
 			if(rows.size() == rowCount){
 				return results;
@@ -1252,13 +1346,18 @@ public class TableViewIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query) throws Exception {
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
+		return waitForConsistentQuery(user, query, options);
+	}
+	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				boolean runQuery = true;
-				boolean runCount = true;
-				boolean returnFacets = false;
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+				QueryBundleRequest request = new QueryBundleRequest();
+				request.setPartMask(options.getPartMask());
+				request.setQuery(query);
+				return tableQueryManger.queryBundle(mockProgressCallbackVoid, user, request);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
@@ -1281,7 +1380,8 @@ public class TableViewIntegrationTest {
 	private EntityDTO waitForEntityReplication(String tableId, String entityId) throws InterruptedException{
 		Entity entity = entityManager.getEntity(adminUserInfo, entityId);
 		long start = System.currentTimeMillis();
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		while(true){
 			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){

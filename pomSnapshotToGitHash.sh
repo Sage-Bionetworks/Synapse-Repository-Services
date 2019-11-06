@@ -4,8 +4,7 @@
 # to
 #<version>yyyy-mm-dd-hash</version>
 # The new version number is <date>-<hash>.  The <hash> is the abbreviated hash of the last commit
-args=("$@")
-buildNumber=${args[0]}
+buildNumber=$1
 if [ -z "$buildNumber" ] ;
   then buildNumber="??"
 fi

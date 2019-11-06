@@ -63,7 +63,6 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 		//Setup: create a project
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());		
 		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		cleanupIdList.add(id);

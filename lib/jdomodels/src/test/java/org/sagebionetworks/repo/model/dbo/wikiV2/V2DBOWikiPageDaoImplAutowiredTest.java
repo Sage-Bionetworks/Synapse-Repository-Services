@@ -18,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +30,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -106,56 +106,18 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
 		
 		// Create a few files
-		attachOne = new S3FileHandle();
-		attachOne.setBucketName("bucketName");
-		attachOne.setKey("key");
-		attachOne.setContentType("content type");
-		attachOne.setContentSize(123l);
-		attachOne.setContentMd5("md5");
-		attachOne.setCreatedBy(creatorUserGroupId);
+		attachOne = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		attachOne.setFileName(longFileNamePrefix+".txt1");
-		attachOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		attachOne.setEtag(UUID.randomUUID().toString());
 
-		attachTwo = new S3FileHandle();
-		attachTwo.setBucketName("bucketName2");
-		attachTwo.setKey("key2");
-		attachTwo.setContentType("content type2");
-		attachTwo.setContentSize(123l);
-		attachTwo.setContentMd5("md52");
-		attachTwo.setCreatedBy(creatorUserGroupId);
+		attachTwo = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		attachTwo.setFileName(longFileNamePrefix+".txt2");
-		attachTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		attachTwo.setEtag(UUID.randomUUID().toString());
-		
-		//Create different markdown content
-		markdownOne = new S3FileHandle();
-		markdownOne.setBucketName("markdownBucketName");
-		markdownOne.setKey("key3");
-		markdownOne.setContentType("content type3");
-		markdownOne.setContentSize((long) 1231);
-		markdownOne.setContentMd5("md53");
-		markdownOne.setCreatedBy(creatorUserGroupId);
-		markdownOne.setFileName("markdown1");
-		markdownOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		markdownOne.setEtag(UUID.randomUUID().toString());
-		
-		markdownTwo = new S3FileHandle();
-		markdownTwo.setBucketName("markdownBucketName2");
-		markdownTwo.setKey("key4");
-		markdownTwo.setContentType("content type4");
-		markdownTwo.setContentSize((long) 1231);
-		markdownTwo.setContentMd5("md54");
-		markdownTwo.setCreatedBy(creatorUserGroupId);
-		markdownTwo.setFileName("markdown2");
-		markdownTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
-		markdownTwo.setEtag(UUID.randomUUID().toString());
 
-		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
-		fileHandleToCreate.add(attachOne);
-		fileHandleToCreate.add(attachTwo);
-		fileHandleToCreate.add(markdownOne);
-		fileHandleToCreate.add(markdownTwo);
+		//Create different markdown content
+		markdownOne = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+
+		markdownTwo = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
+
+		List<FileHandle> fileHandleToCreate = Arrays.asList(attachOne, attachTwo, markdownOne, markdownTwo);
 		fileMetadataDao.createBatch(fileHandleToCreate);
 
 		attachOne = (S3FileHandle) fileMetadataDao.get(attachOne.getId());
@@ -1129,7 +1091,18 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
-	
+
+	@Test
+	public void lockForUpdateNonexistentWikiNotFoundException(){
+		try {
+			// Lock for update on a WikiPage that should not exist.
+			wikiPageDao.lockForUpdate("123");
+			fail("Expected exception");
+		} catch (NotFoundException e) {
+			// As expected.
+		}
+	}
+
 	// Just create versions with modified page title
 	private V2WikiPage createVersions(V2WikiPage page, String ownerId, ObjectType ownerType, int numVersions) {
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();

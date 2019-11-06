@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.query.entity;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
+
 import java.util.LinkedList;
 import java.util.List;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
  * Represents tables and joins for a query.

@@ -1,17 +1,24 @@
 package org.sagebionetworks.file.worker;
 
+import java.time.Instant;
+import java.time.Period;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Set;
+
+import javax.imageio.IIOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.file.preview.PreviewGenerationNotSupportedException;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.ProxyFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -19,7 +26,8 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.imageio.IIOException;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.google.common.collect.Sets;
 
 /**
  * This worker process file create messages. When a file is created without a
@@ -29,6 +37,13 @@ import javax.imageio.IIOException;
  *
  */
 public class PreviewWorker implements ChangeMessageDrivenRunner {
+
+	private static final Set<String> IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES = Collections.unmodifiableSet(
+			Sets.newHashSet(
+					"NoSuchKey", //ignore because key was deleted
+					"AccessDenied" //ignore because we no longer have access to that bucket
+			)
+	);
 
 	static private Logger log = LogManager.getLogger(PreviewWorker.class);
 
@@ -46,33 +61,33 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 			// Ignore all non-file messages.
 			if (ObjectType.FILE == changeMessage.getObjectType()
 					&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage
-							.getChangeType())) {
+					.getChangeType()) && changeMessage.getTimestamp().after(Date.from(Instant.now().minus(Period.ofDays(1)))) 	) {
 				// This is a file message so look up the file
 				FileHandle metadata = previewManager
 						.getFileMetadata(changeMessage.getObjectId());
-				if (metadata instanceof PreviewFileHandle) {
-					// We do not make previews of previews
-				} else if (metadata instanceof S3FileHandle) {
-					S3FileHandle s3fileMeta = (S3FileHandle) metadata;
-					// Only generate a preview if we do not already have one.
-					if (s3fileMeta.getPreviewId() == null) {
-						// Generate a preview.
-						previewManager.generatePreview(s3fileMeta);
-					}
-				} else if (metadata instanceof ExternalFileHandle) {
-					// we need to add support for this
-					log.warn("Currently do not support previews for ExternalFileHandles");
-				} else if (metadata instanceof ProxyFileHandle) {
-					// we need to add support for this
-					log.warn("Currently do not support previews for ProxyFileHandles");
+				if (!(metadata instanceof CloudProviderFileHandleInterface)) {
+					log.warn("Currently do not support previews for " + metadata.getClass().getName());
 				} else {
-					// We will never be able to process such a message.
-					throw new IllegalArgumentException("Unknown file type: "
-							+ metadata.getClass().getName());
+					CloudProviderFileHandleInterface cloudFHMetadata = (CloudProviderFileHandleInterface) metadata;
+					if (cloudFHMetadata.getIsPreview()) {
+						// We do not make previews of previews
+						return;
+					}
+					// Only generate a preview if we do not already have one.
+					if (cloudFHMetadata.getPreviewId() == null) {
+						// Generate a preview.
+						previewManager.generatePreview(cloudFHMetadata);
+					}
 				}
 			}
+		} catch (PreviewGenerationNotSupportedException e){
+			//preview was not able to be generated for the file
+			log.info("Preview generator determined it was impossible to generate a preview for this because "
+					+ e.getMessage() + " " + changeMessage);
 		} catch (NotFoundException e) {
 			// we can ignore messages for files that no longer exist.
+		} catch (CannotDetermineBucketLocationException e){
+			//nothing to do because the bucket no longer exists
 		} catch (IllegalArgumentException e) {
 			// We cannot recover from this exception so log the error
 			// and treat the message as processed.
@@ -88,18 +103,29 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 		} catch (TemporarilyUnavailableException e) {
 			// When this occurs we want the message to go back on the queue, so
 			// we can try again later.
-			log.info("Failed to process message: " + changeMessage.toString(), e);
+			log.warn("Failed to process message: " + changeMessage.toString(), e);
 			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
 					true);
 			throw new RecoverableMessageException();
-		} catch (Throwable e) {
-			if (e.getCause() instanceof IIOException) {
-				log.info("Failed to process message: " + changeMessage.getChangeNumber() + ". Unable to read file (IIOException).");
+		} catch (AmazonS3Exception e) {
+			if (IGNORED_AMAZON_S3_EXCEPTION_ERROR_CODES.contains(e.getErrorCode())) {
+				//nothing to do because the file no longer exists
+				log.warn("Unable to process message: " + changeMessage.toString() + " because received " + e.getStatusCode() +  " Error Code: " + e.getErrorCode() + " from Amazon S3");
 			} else {
-				// If we do not know what went wrong then we do no re-try
-				log.error("Failed to process message: " + changeMessage.toString(), e);
-				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
+				handleThrowable(changeMessage, e);
 			}
+		} catch (Throwable e) {
+			handleThrowable(changeMessage, e);
+		}
+	}
+
+	private void handleThrowable(ChangeMessage changeMessage, Throwable e) {
+		if (e.getCause() instanceof IIOException) {
+			log.info("Failed to process message: " + changeMessage.getChangeNumber() + ". Unable to read file (IIOException).");
+		} else {
+			// If we do not know what went wrong then we do no re-try
+			log.error("Failed to process message: " + changeMessage.toString(), e);
+			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
 		}
 	}
 

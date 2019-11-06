@@ -1,12 +1,27 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CANCELING;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_EXCEPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_CURRENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_MESSAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_PROGRESS_TOTAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_REQUEST_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_RUNTIME_MS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STARTED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_STATE;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,10 +48,16 @@ import org.springframework.jdbc.core.RowMapper;
  */
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
-	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_REQUEST_HASH+" = ? AND "+COL_ASYNCH_JOB_STARTED_BY+" = ? AND "+COL_ASYNCH_JOB_STATE+" = ? LIMIT 5";
-	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, "
-			+ COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, " + COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON
-			+ " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
+	private static final String SQL_SELECT_BY_HASH_ETAG_STARTED_BY = "SELECT * FROM " + ASYNCH_JOB_STATUS + " WHERE "
+			+ COL_ASYNCH_JOB_REQUEST_HASH + " = ? AND " + COL_ASYNCH_JOB_STARTED_BY + " = ? AND " + COL_ASYNCH_JOB_STATE
+			+ " = ? LIMIT 5";
+	
+	private static final String SQL_UPDATE_PROGRESS = "UPDATE " + ASYNCH_JOB_STATUS + " SET "
+			+ COL_ASYNCH_JOB_PROGRESS_CURRENT + " = ?, " + COL_ASYNCH_JOB_PROGRESS_TOTAL + " = ?, "
+			+ COL_ASYNCH_JOB_PROGRESS_MESSAGE + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON + " = ?, " + COL_ASYNCH_JOB_RUNTIME_MS
+			+ " = ? - " + COL_ASYNCH_JOB_STARTED_ON + " WHERE " + COL_ASYNCH_JOB_ID
+			+ " = ? AND " + COL_ASYNCH_JOB_STATE + " = 'PROCESSING'";
+	
 	private static final String SQL_SET_FAILED = "UPDATE " + ASYNCH_JOB_STATUS + " SET " + COL_ASYNCH_JOB_EXCEPTION + " = ?, "
 			+ COL_ASYNCH_JOB_ERROR_MESSAGE + " = ?, " + COL_ASYNCH_JOB_ERROR_DETAILS + " = ?, " + COL_ASYNCH_JOB_STATE + " = ?, "
 			+ COL_ASYNCH_JOB_ETAG + " = ?, " + COL_ASYNCH_JOB_CHANGED_ON + " = ?  WHERE " + COL_ASYNCH_JOB_ID + " = ?";
@@ -109,7 +130,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		progressMessage = AsynchJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
 		long now = System.currentTimeMillis();
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, jobId);
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, now, now, jobId);
 	}
 
 	@WriteTransaction
@@ -145,7 +166,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 	@WriteTransaction
 	@Override
-	public String setComplete(String jobId, AsynchronousResponseBody body,
+	public long setComplete(String jobId, AsynchronousResponseBody body,
 			String requestHash) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
@@ -167,7 +188,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		dbo.setResponseBody(AsynchJobStatusUtils.getBytesForResponseBody(dbo.getJobType(), body));
 		dbo.setRequestHash(requestHash);
 		basicDao.update(dbo);
-		return newEtag;
+		return runtimeMS;
 	}
 
 	/*
