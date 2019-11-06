@@ -4,11 +4,11 @@
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": "The name of this entity.",
+			"description": "The name of this entity.  Must be 256 characters or less.",
 			"title": "Name"
 		},
 		"description": {
-			"description": "The description of this entity.",
+			"description": "The description of this entity.  Must be 1000 characters or less.",
 			"type": "string",
 			"title": "Description"
 		},
