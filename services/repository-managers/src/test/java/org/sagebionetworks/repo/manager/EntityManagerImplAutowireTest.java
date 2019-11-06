@@ -369,17 +369,14 @@ public class EntityManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testDescriptionLimit() {
+	public void testNameAtLimit() {
 		Project project = new Project();
-		project.setName("some project");
-		int limit = 1000;
-		String description = StringUtils.repeat("b", limit);
-		project.setDescription(description);
-		//folder.setParentId(parentId);
+		String name = StringUtils.repeat("b", EntityManagerImpl.MAX_NAME_CHARS);
+		project.setName(name);
 		String id = entityManager.createEntity(userInfo, project, null);
 		toDelete.add(id);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
-		assertEquals(description, project.getDescription());
+		assertEquals(name, project.getName());
 	}
 	
 }

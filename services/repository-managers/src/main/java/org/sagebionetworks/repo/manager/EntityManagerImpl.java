@@ -52,6 +52,9 @@ public class EntityManagerImpl implements EntityManager {
 	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
 	
+	public static final int MAX_NAME_CHARS  = 256;
+	public static final int MAX_DESCRIPTION_CHARS  = 1000;
+	
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
@@ -80,8 +83,7 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
-		if (newEntity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
+		validateEntity(newEntity);
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
@@ -270,9 +272,7 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
-		if (updated == null) {
-			throw new IllegalArgumentException("Entity cannot be null");
-		}
+		validateEntity(updated);
 		
 		if (updated.getId() == null) {
 			throw new IllegalArgumentException("The id of the entity should be present");
@@ -553,5 +553,24 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+	}
+	
+	/**
+	 * Validate entity is not null and all values are within limit.
+	 * 
+	 * @param entity
+	 */
+	public static void validateEntity(Entity entity) {
+		ValidateArgument.required(entity, "entity");
+		if(entity.getName() != null) {
+			if(entity.getName().length() > MAX_NAME_CHARS) {
+				throw new IllegalArgumentException("Name must be "+MAX_NAME_CHARS+" characters or less");				
+			}
+		}
+		if(entity.getDescription() != null) {
+			if(entity.getDescription().length() > MAX_DESCRIPTION_CHARS) {
+				throw new IllegalArgumentException("Description must be "+MAX_DESCRIPTION_CHARS+" characters or less");
+			}
+		}
 	}
 }
