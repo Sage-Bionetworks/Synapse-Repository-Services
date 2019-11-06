@@ -145,7 +145,7 @@ public class ColumnModelUtils {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	public static ColumnModel createNormalizedClone(ColumnModel toClone, int maxEnumValues) {//TODO: handle list and test
+	public static ColumnModel createNormalizedClone(ColumnModel toClone, int maxEnumValues) {
 		if(toClone == null) throw new IllegalArgumentException("ColumnModel cannot be null");
 		if(toClone.getName() == null) throw new IllegalArgumentException("ColumnModel.name cannot be null");
 		if(toClone.getColumnType() == null) throw new IllegalArgumentException("ColumnModel.columnType cannot be null");
