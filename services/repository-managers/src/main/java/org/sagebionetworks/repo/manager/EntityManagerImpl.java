@@ -47,6 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class EntityManagerImpl implements EntityManager {
 
+	public static final int MAX_NUMBER_OF_REVISIONS = 40000;
 	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
 	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
@@ -311,6 +312,13 @@ public class EntityManagerImpl implements EntityManager {
 		}
 
 		final boolean newVersionFinal = newVersion;
+		
+		if(newVersion) {
+			long currentRevisionNumber = nodeManager.getCurrentRevisionNumber(updated.getId());
+			if(currentRevisionNumber + 1 > MAX_NUMBER_OF_REVISIONS) {
+				throw new IllegalArgumentException("Exceeded the maximum number of "+MAX_NUMBER_OF_REVISIONS+" versions for a single Entity");
+			}
+		}
 		
 		// Set activityId if new version or if not changing versions and activityId is defined
 		if(newVersionFinal || (!newVersionFinal && activityId != null)) {

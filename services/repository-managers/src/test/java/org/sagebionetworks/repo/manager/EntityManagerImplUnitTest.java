@@ -15,7 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
 import static org.sagebionetworks.repo.model.NextPageToken.DEFAULT_LIMIT;
@@ -613,5 +613,57 @@ public class EntityManagerImplUnitTest {
 			entityManager.updateEntity(mockUser, project, newVersion, activityId);
 		}).getMessage();
 		assertTrue(message.startsWith("Description must be"));
+	}
+	
+	@Test
+	public void testEntityUpdateUnderVersionLimit() {
+		String activityId = null;
+		boolean newVersion = true;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// still have room for one more version
+		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS-1);
+		// call under test
+		entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		verify(mockNodeManager).update(eq(mockUser),any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
+	}
+	
+	@Test
+	public void testEntityUpdateUnderVersionOverLimit() {
+		String activityId = null;
+		boolean newVersion = true;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// still have room for one more version
+		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		}).getMessage();
+		assertEquals("Exceeded the maximum number of "+EntityManagerImpl.MAX_NUMBER_OF_REVISIONS+" versions for a single Entity", message);
+		verify(mockNodeManager, never()).update(any(UserInfo.class),any(Node.class), any(Annotations.class), any(Boolean.class));
+		verify(mockNodeManager).getCurrentRevisionNumber(project.getId());
+	}
+	
+	@Test
+	public void testEntityUpdateAtLimitNewVersionFalse() {
+		String activityId = null;
+		boolean newVersion = false;
+		Project project = new Project();
+		project.setId("syn123");
+		project.setParentId("syn456");
+		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		// call under test
+		entityManager.updateEntity(mockUser, project, newVersion, activityId);
+		verify(mockNodeManager).update(eq(mockUser),any(Node.class), any(Annotations.class), eq(newVersion));
+		verify(mockNodeManager, never()).getCurrentRevisionNumber(project.getId());
 	}
 }

@@ -190,6 +190,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td>1000 characters</td>
  * <td></td>
  * </tr>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of versions for a single Entity</td>
+ * <td>40,000</td>
+ * <td></td>
+ * </tr>
  * </table>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
