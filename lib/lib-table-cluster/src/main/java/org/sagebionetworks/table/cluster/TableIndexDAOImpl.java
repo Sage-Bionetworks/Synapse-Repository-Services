@@ -436,8 +436,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// apply the update
 		template.update(sql);
 
+		//TODO: add create statement here
 
-		//for any columns that have list columns delete their table indexes //TODO: test
+		//for any columns that have list columns delete their table indexes
 		SQLUtils.createListColumnDropIndexTableSql(changes, tableId)
 				//apply DROP sql if generated
 				.ifPresent(template::update);
@@ -759,7 +760,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				//TODO: TEST
 				dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE)).toList());
 				return dto;
 			}}, entityId);
@@ -854,7 +854,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
-		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask); //TODO: handle multiple values? automatically suggest list types?
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
 		List<ColumnAggregation> results = namedTemplate.query(sql, param, new RowMapper<ColumnAggregation>() {
 
 			@Override

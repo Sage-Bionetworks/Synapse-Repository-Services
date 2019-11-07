@@ -946,7 +946,8 @@ public class TableIndexDAOImplTest {
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setColumnType(ColumnType.STRING_LIST);
-		newColumn.setId("1337");
+		String columnId = "1337";
+		newColumn.setId(columnId);
 		newColumn.setName("StringList");
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// Create the table
@@ -956,6 +957,9 @@ public class TableIndexDAOImplTest {
 		//add column to list
 		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
+//todo: finish
+		//check table is deleted
+		tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class);
 	}
 	
 	
@@ -1439,7 +1443,7 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException { //TODO: fix table creation sql to include json types
+	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException {
 		isView = true;
 		// delete all data
 		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
