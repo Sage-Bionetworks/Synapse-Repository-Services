@@ -50,7 +50,7 @@ public class EvaluationDBOUtil {
 			try {
 				SubmissionQuota quota = dto.getQuota();
 				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(X_STREAM, quota));
-				Long startTime = quota.getFirstRoundStart().getTime();
+				Long startTime = quota.getFirstRoundStart()==null ? null : quota.getFirstRoundStart().getTime();
 				dbo.setStartTimestamp(startTime);
 				dbo.setEndTimestamp(getEndTimeOrNull(startTime, quota.getRoundDurationMillis(), quota.getNumberOfRounds()));
 			} catch (IOException e) {

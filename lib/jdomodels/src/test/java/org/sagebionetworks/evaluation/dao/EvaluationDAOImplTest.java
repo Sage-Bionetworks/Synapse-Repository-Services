@@ -309,28 +309,5 @@ public class EvaluationDAOImplTest {
 		// TODO test with timestamp param
 
    }
-    
-    @Test
-    public void testDtoToDbo() {
-    	Evaluation evalDTO = new Evaluation();
-    	Evaluation evalDTOclone = new Evaluation();
-    	EvaluationDBO evalDBO = new EvaluationDBO();
-    	EvaluationDBO evalDBOclone = new EvaluationDBO();
-    	
-    	evalDTO.setContentSource("syn123");
-    	evalDTO.setCreatedOn(new Date());
-    	evalDTO.setDescription("description");
-    	evalDTO.setEtag("eTag");
-    	evalDTO.setId("123");
-    	evalDTO.setName("name");
-    	evalDTO.setOwnerId("456");
-    	evalDTO.setStatus(EvaluationStatus.OPEN);
-    	    	
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTO, evalDBO);
-    	EvaluationDAOImpl.copyDboToDto(evalDBO, evalDTOclone);
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTOclone, evalDBOclone);
-    	
-    	assertEquals(evalDTO, evalDTOclone);
-    	assertEquals(evalDBO, evalDBOclone);
-    }
+
 }
