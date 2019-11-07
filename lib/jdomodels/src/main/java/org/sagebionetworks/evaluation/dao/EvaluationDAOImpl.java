@@ -127,11 +127,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		
 		// Generate a new eTag and CREATE message
 		dto.setEtag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 				
 		// serialize
 		EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
 		
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+
 		// create DBO
 		try {
 			dbo = basicDao.createNew(dbo);

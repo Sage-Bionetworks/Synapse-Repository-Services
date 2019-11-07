@@ -20,7 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -110,6 +109,7 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
+		String originalEtag = created.getEtag();
 		
 		// Update it
 		created.setName(EVALUATION_NAME_2);
@@ -117,7 +117,7 @@ public class EvaluationDAOImplTest {
 		Evaluation updated = evaluationDAO.get(evalId);
 		assertEquals(evalId, updated.getId());
 		assertFalse("Evaluation name update failed.", eval.getName().equals(updated.getName()));
-		assertFalse("eTag was not updated.", created.getEtag().equals(updated.getEtag()));
+		assertFalse("eTag was not updated.", originalEtag.equals(updated.getEtag()));
 		
 		// Delete it
 		assertNotNull(evaluationDAO.get(evalId));
