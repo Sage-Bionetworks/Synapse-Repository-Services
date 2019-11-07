@@ -1707,13 +1707,12 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C8_,"
 				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_,"
 				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C10_,"
-				+ " MAX(IF(A.ANNO_KEY ='double_list', A.DOUBLE_LIST_VALUE, NULL)) AS _C11_,"
-				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C12_,"
-				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C13_,"
-				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C14_"
+				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C11_,"
+				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C12_,"
+				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C13_"
 				, builder.toString());
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
-				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_", "_C14_"), headers);
+				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_"), headers);
 	}
 
 	@Test
@@ -2421,6 +2420,27 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testWriteAnnotationDtoToPreparedStatementStringList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("abc", "def"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+		// all others should be set to null since the string cannot be converted to any other type.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+
+		verify(mockPreparedStatement).setString(9, "[\"abc\",\"def\"]");
+		verify(mockPreparedStatement).setString(10, null);
+		verify(mockPreparedStatement).setString(11, null);
+	}
+
+	@Test
 	public void testWriteAnnotationDtoToPreparedStatementBooleanTrue() throws SQLException{
 		// string value
 		annotationDto.setValue("True");
@@ -2444,6 +2464,29 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setBoolean(8, Boolean.FALSE);
+	}
+
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementBooleanList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("false", "true", "false"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+
+		// type can be set as a boolean.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setBoolean(8, Boolean.FALSE);
+
+		verify(mockPreparedStatement).setString(9, "[\"false\",\"true\",\"false\"]");
+		verify(mockPreparedStatement).setString(10, null);
+		verify(mockPreparedStatement).setString(11, "[false,true,false]");
 	}
 
 	@Test
@@ -2483,6 +2526,29 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setDouble(6, 123);
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+
+
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementLongList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("123", "456", "789"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+
+		// can be a long or a double
+		verify(mockPreparedStatement).setLong(5, 123L);
+		verify(mockPreparedStatement).setDouble(6, 123);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+
+		verify(mockPreparedStatement).setString(9, "[\"123\",\"456\",\"789\"]");
+		verify(mockPreparedStatement).setString(10, "[123,456,789]");
+		verify(mockPreparedStatement).setString(11, null);
 	}
 
 	@Test

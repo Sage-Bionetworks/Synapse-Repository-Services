@@ -1747,8 +1747,6 @@ public class SQLUtils {
 			doubleList.add((Double) doubleParser.parseValueForDatabaseWrite(value));
 		}
 
-		//todo: writing double list to json need to convert abstract values to string
-
 		Double doubleValue = doubleList == null || doubleList.isEmpty() ? null : doubleList.get(0);
 		AbstractDouble abstractDoubleType = null;
 		if(AbstractDouble.isAbstractValue(doubleValue)){
@@ -1784,8 +1782,6 @@ public class SQLUtils {
 		}else{
 			ps.setBoolean(parameterIndex++, booleanValue);
 		}
-
-		//TODO: test
 
 		ps.setString(parameterIndex++, stringList == null ? null : new JSONArray(stringList).toString());
 		ps.setString(parameterIndex++, longList == null ? null : new JSONArray(longList).toString());
