@@ -26,8 +26,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -126,10 +124,6 @@ public class IT500SynapseJavaClientTeamTest {
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo, UUID.randomUUID().toString(), "password"+UUID.randomUUID(), TEST_EMAIL);
-
-		// Update this user's profile to contain a display name
-		UserProfile profile = synapseTwo.getMyProfile();
-		synapseTwo.updateMyProfile(profile);
 	}
 	
 	@BeforeEach
@@ -328,21 +322,21 @@ public class IT500SynapseJavaClientTeamTest {
 		String myPrincipalId = myProfile.getOwnerId();
 
 		// query for team members.  should get just the creator
-		PaginatedResults<TeamMember> members = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 1, 0);
+		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ALL, 1, 0);
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(team.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 
 		// check that if we get admin team members, we get the creator
-		PaginatedResults<TeamMember> adminMembers = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ADMIN, 1, 0);
+		PaginatedResults<TeamMember> adminMembers = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.ADMIN, 1, 0);
 		tm = adminMembers.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(team.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 
 		// check that if we get nonadmin team members, we get no one
-		PaginatedResults<TeamMember> nonAdminMembers = waitForTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.MEMBER, 1, 0);
+		PaginatedResults<TeamMember> nonAdminMembers = synapseOne.getTeamMembers(team.getId(), null, TeamMemberTypeFilterOptions.MEMBER, 1, 0);
 		assertEquals(0, nonAdminMembers.getTotalNumberOfResults());
 
 		// check that if we get members with the fragment, we get the creator
@@ -450,6 +444,7 @@ public class IT500SynapseJavaClientTeamTest {
 		synapseOne.setTeamMemberPermissions(team.getId(), otherPrincipalId, true);
 
 		PaginatedResults<TeamMember> members = waitForTeamMembers(team.getId(), otherDName.substring(0,otherDName.length()-4), TeamMemberTypeFilterOptions.ALL,1, 0);
+		assertFalse(members.getResults().isEmpty());
 		// now the other member is an admin
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -495,15 +490,15 @@ public class IT500SynapseJavaClientTeamTest {
 	private PaginatedResults<TeamMember> waitForTeamMembers(String teamId, String prefix, TeamMemberTypeFilterOptions memberType, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while (true){
-			long count = synapseOne.countTeamMembers(teamId, prefix);
-			if(count < 1L){
+			PaginatedResults<TeamMember> teamMembers = synapseOne.getTeamMembers(teamId, prefix, memberType, limit, offset);
+			if (teamMembers.getResults().isEmpty()) {
 				System.out.println("Waiting for principal prefix worker");
 				Thread.sleep(1000);
 				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
 					fail("Timed out waiting for principal prefix worker.");
 				}
-			}else{
-				return synapseOne.getTeamMembers(teamId, prefix, memberType, limit, offset);
+			} else{
+				return teamMembers;
 			}
 		}
 	}
