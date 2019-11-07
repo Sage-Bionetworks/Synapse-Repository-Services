@@ -641,8 +641,9 @@ public class EntityManagerImplUnitTest {
 		project.setParentId("syn456");
 		when(mockNodeManager.get(mockUser, project.getId())).thenReturn(new Node());
 		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, project.getId())).thenReturn(new Annotations());
+		long currentRevisionNumber = (long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS;
 		// still have room for one more version
-		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS);
+		when(mockNodeManager.getCurrentRevisionNumber(project.getId())).thenReturn(currentRevisionNumber);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			entityManager.updateEntity(mockUser, project, newVersion, activityId);
