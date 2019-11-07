@@ -47,7 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class EntityManagerImpl implements EntityManager {
 
-	public static final int MAX_NUMBER_OF_REVISIONS = 40000;
+	public static final int MAX_NUMBER_OF_REVISIONS = 15000;
 	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
 	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();

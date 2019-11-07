@@ -178,23 +178,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <tr>
  * <th>resource</th>
  * <th>limit</th>
- * <th>notes</th>
  * </tr>
  * <tr>
  * <td>Maximum size of an Entity.name</td>
  * <td>256 characters</td>
- * <td></td>
  * </tr>
  * <tr>
  * <td>Maximum size of an Entity.desciption</td>
  * <td>1000 characters</td>
- * <td></td>
  * </tr>
  * </tr>
  * <tr>
  * <td>Maximum number of versions for a single Entity</td>
- * <td>40,000</td>
- * <td></td>
+ * <td>15,000</td>
  * </tr>
  * </table>
  */
