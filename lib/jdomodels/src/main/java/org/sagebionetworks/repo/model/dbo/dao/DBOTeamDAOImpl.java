@@ -574,8 +574,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<TeamMember> teamMembers = namedJdbcTemplate.query(SELECT_MEMBERS_OF_TEAMS_GIVEN_MEMBER_IDS, param,
 				TEAM_MEMBER_ROW_MAPPER);
 		
-		setAdminStatus(teamMembers);
-		
 		Map<TeamMemberId,TeamMember> map = setAdminStatus(teamMembers);
 
 		List<TeamMember> result = new ArrayList<TeamMember>();
