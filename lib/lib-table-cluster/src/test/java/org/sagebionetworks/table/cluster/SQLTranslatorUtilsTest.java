@@ -1637,19 +1637,19 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_HASKeyword() throws ParseException {
-		columnDouble.setColumnType(ColumnType.DOUBLE_LIST);
+		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
 		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//need to recreate the translation reference
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1.1,2.2,3.3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C777_ WHERE _C777_ IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
-		assertEquals(1.1, parameters.get("b0"));
-		assertEquals(2.2, parameters.get("b1"));
-		assertEquals(3.3, parameters.get("b2"));
+		assertEquals(1, parameters.get("b0"));
+		assertEquals(2, parameters.get("b1"));
+		assertEquals(3, parameters.get("b2"));
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
 	}

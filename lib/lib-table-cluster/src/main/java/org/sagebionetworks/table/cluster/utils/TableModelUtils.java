@@ -763,8 +763,6 @@ public class TableModelUtils {
 					throw new IllegalArgumentException("maxSize cannot be null for String List types");
 				}
 				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST);
-			case DOUBLE_LIST:
-				return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
 			case INTEGER_LIST:
 			case DATE_LIST:
 				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;

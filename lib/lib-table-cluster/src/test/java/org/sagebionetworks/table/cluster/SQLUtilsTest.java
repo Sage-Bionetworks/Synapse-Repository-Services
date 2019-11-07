@@ -1673,24 +1673,6 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testbuildInsertValues_DoubleList(){
-		ColumnModel one = EntityField.benefactorId.getColumnModel();
-		one.setId("1");
-		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		ColumnModel three = new ColumnModel();
-		three.setId("3");
-		three.setColumnType(ColumnType.DOUBLE_LIST);
-		three.setName("three");
-		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
-		StringBuilder builder = new StringBuilder();
-		// call under test
-		SQLUtils.buildInsertValues(builder, metaList);
-		//for List of doubles, no abstract cloumn is added
-		assertEquals("ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_, _C3_", builder.toString());
-	}
-
-	@Test
 	public void testBuildSelectEachColumnType(){
 		// Build a select for each type.
 		List<ColumnModel> allTypes = new LinkedList<>();
@@ -1894,19 +1876,19 @@ public class SQLUtilsTest {
 	}
 
 	@Test
-	public void testBuildSelectMetadataDoubleListAnnotation() {
+	public void testBuildSelectMetadataListAnnotation() {
 		//list columns do not have an abstract column
 		StringBuilder builder = new StringBuilder();
 		ColumnModel cm = new ColumnModel();
 		cm.setName("foo");
-		cm.setColumnType(ColumnType.DOUBLE_LIST);
+		cm.setColumnType(ColumnType.STRING_LIST);
 		cm.setId("456");
 		int index = 4;
 		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
 		// call under test
 		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
 		// Should include two selects, one for the abstract double and the other for the double value.
-		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_LIST_VALUE, NULL)) AS _C456_", builder.toString());
+		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.STRING_LIST_VALUE, NULL)) AS _C456_", builder.toString());
 		assertEquals(Lists.newArrayList("_C456_"), headers);
 	}
 

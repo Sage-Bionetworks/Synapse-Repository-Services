@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.doubleThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -149,7 +148,7 @@ public class TableViewManagerImplTest {
 	ColumnModel anno1;
 	ColumnModel anno2;
 	ColumnModel dateColumn;
-	ColumnModel doubleListColumn;
+	ColumnModel intListColumn;
 	SparseRowDto row;
 	SnapshotRequest snapshotOptions;
 	
@@ -198,10 +197,10 @@ public class TableViewManagerImplTest {
 		dateColumn.setColumnType(ColumnType.DATE);
 		dateColumn.setId("3");
 
-		doubleListColumn = new ColumnModel();
-		doubleListColumn.setColumnType(ColumnType.DOUBLE_LIST);
-		doubleListColumn.setName("doubleList");
-		doubleListColumn.setId("4");
+		intListColumn = new ColumnModel();
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setName("stringList");
+		intListColumn.setId("4");
 
 		
 		etagColumn = EntityField.etag.getColumnModel();
@@ -211,7 +210,7 @@ public class TableViewManagerImplTest {
 		viewSchema.add(etagColumn);
 		viewSchema.add(anno1);
 		viewSchema.add(anno2);
-		viewSchema.add(doubleListColumn);
+		viewSchema.add(intListColumn);
 		
 		Map<String, String> values = new HashMap<>();
 		values.put(etagColumn.getId(), "anEtag");
@@ -449,16 +448,16 @@ public class TableViewManagerImplTest {
 		Map<String, String> values = new HashMap<>();
 		values.put(EntityField.etag.name(), "anEtag");
 		values.put(anno1.getId(), "[\"asdf\", \"qwerty\"]");
-		values.put(doubleListColumn.getId(), "[123.2, \"infinity\", \"nan\"]");
+		values.put(intListColumn.getId(), "[123, 456, 789]");
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
 		assertTrue(updated);
 		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
 		assertEquals(Arrays.asList("asdf", "qwerty"), anno1Value.getValue());
 		assertEquals(AnnotationsValueType.STRING, anno1Value.getType());
-		AnnotationsValue doubleListValue = annos.getAnnotations().get(doubleListColumn.getName());
-		assertEquals(Arrays.asList("123.2", "infinity", "nan"),doubleListValue.getValue());
-		assertEquals(AnnotationsValueType.DOUBLE, doubleListValue.getType());
+		AnnotationsValue intListValue = annos.getAnnotations().get(intListColumn.getName());
+		assertEquals(Arrays.asList("123", "456", "789"),intListValue.getValue());
+		assertEquals(AnnotationsValueType.LONG, intListValue.getType());
 		// etag should not be included.
 		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
 	}
@@ -467,7 +466,7 @@ public class TableViewManagerImplTest {
 	public void testToAnnotationValuesList_ValueNotJSONArrayFormat(){
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			 TableViewManagerImpl.toAnnotationValuesList(doubleListColumn, "not a JSON ARRAY!!");
+			 TableViewManagerImpl.toAnnotationValuesList(intListColumn, "not a JSON ARRAY!!");
 		});
 
 		assertEquals("Value is not correctly formatted as a JSON Array: not a JSON ARRAY!!" , e.getMessage());
@@ -477,7 +476,7 @@ public class TableViewManagerImplTest {
 	public void testToAnnotationValuesList_ListContainsNull(){
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			TableViewManagerImpl.toAnnotationValuesList(doubleListColumn, "[123.2, \"infinity\", null, \"nan\"]");
+			TableViewManagerImpl.toAnnotationValuesList(intListColumn, "[123, \456, null, 789]");
 		});
 
 		assertEquals("null value is not allowed" , e.getMessage());
@@ -486,9 +485,9 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testToAnnotationValuesList_HappyCase(){
 		// call under test
-		List<String> values = TableViewManagerImpl.toAnnotationValuesList(doubleListColumn, "[123.2, \"infinity\", \"nan\"]");
+		List<String> values = TableViewManagerImpl.toAnnotationValuesList(intListColumn, "[123, 456, 789]");
 
-		assertEquals(Arrays.asList("123.2", "infinity", "nan") , values);
+		assertEquals(Arrays.asList("123", "456", "789") , values);
 	}
 	
 	@Test

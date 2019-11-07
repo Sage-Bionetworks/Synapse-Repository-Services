@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.table.ColumnType;
  */
 public enum ColumnTypeListMappings {
 	STRING(ColumnType.STRING, ColumnType.STRING_LIST),
-	DOUBLE(ColumnType.DOUBLE, ColumnType.DOUBLE_LIST),
 	INTEGER(ColumnType.INTEGER, ColumnType.INTEGER_LIST),
 	BOOLEAN(ColumnType.BOOLEAN, ColumnType.BOOLEAN_LIST),
 	DATE(ColumnType.DATE, ColumnType.DATE_LIST);

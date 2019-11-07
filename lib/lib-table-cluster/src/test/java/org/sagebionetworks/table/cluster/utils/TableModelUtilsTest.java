@@ -686,13 +686,6 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
-	public void testCalculateMaxSizeForTypeDoubleList(){
-		int expected = Double.toString(-Double.MAX_VALUE).getBytes(StandardCharsets.UTF_8).length * 100;
-		assertEquals(expected,
-				TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE_LIST, null));
-	}
-
-	@Test
 	public void testCalculateMaxSizeForTypeIntegerList(){
 		int expected = Long.toString(-1111111111111111111l).getBytes(StandardCharsets.UTF_8).length * 100;
 		assertEquals(expected,

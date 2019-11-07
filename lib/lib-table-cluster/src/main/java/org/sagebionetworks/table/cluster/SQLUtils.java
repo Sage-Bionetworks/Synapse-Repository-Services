@@ -1253,7 +1253,6 @@ public class SQLUtils {
 		case DATE_LIST:
 			return AnnotationType.DATE;
 		case DOUBLE:
-		case DOUBLE_LIST:
 				return AnnotationType.DOUBLE;
 		case INTEGER:
 		case INTEGER_LIST:
@@ -1285,8 +1284,6 @@ public class SQLUtils {
 		case INTEGER_LIST:
 		case DATE_LIST:_VALUE:
 			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
-		case DOUBLE_LIST:
-			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_LIST_VALUE;
 		case BOOLEAN_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
 		default:
@@ -1793,27 +1790,7 @@ public class SQLUtils {
 		ps.setString(parameterIndex++, stringList == null ? null : new JSONArray(stringList).toString());
 		ps.setString(parameterIndex++, longList == null ? null : new JSONArray(longList).toString());
 		//doubles need extra conversion:
-		ps.setString(parameterIndex++, doubleList == null ? null : new JSONArray(mixedDoubleList(doubleList)).toString());
 		ps.setString(parameterIndex++, booleanList == null ? null : new JSONArray(booleanList).toString());
-	}
-
-	//converts a list of doubles to a mixed list of Doubles and String
-	static List<Object> mixedDoubleList(List<Double> doubleList){ //TODO: test
-		if(doubleList == null){
-			throw new IllegalArgumentException("doubleList can not be null");
-		}
-		List<Object> mixedDoubleList = new ArrayList<>(doubleList.size());
-		for(Double d : doubleList){
-			if(d == null){
-				throw new IllegalArgumentException("null values in list are not allowed");
-			}
-			if(d.isNaN() || d.isInfinite()){
-				mixedDoubleList.add(d.toString());
-			}else {
-				mixedDoubleList.add(d);
-			}
-		}
-		return mixedDoubleList;
 	}
 
 	/**

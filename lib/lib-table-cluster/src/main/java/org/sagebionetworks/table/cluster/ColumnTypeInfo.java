@@ -31,7 +31,6 @@ public enum ColumnTypeInfo {
 	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	new StringParser(),			null),
 	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	new LongParser(),			20L),
 	STRING_LIST	(ColumnType.STRING_LIST,	MySqlColumnType.JSON,		new ListStringParser(new StringParser()),			null),
-	DOUBLE_LIST	(ColumnType.DOUBLE_LIST,	MySqlColumnType.JSON,		new ListStringParser(new DoubleParser()),			null),
 	INTEGER_LIST(ColumnType.INTEGER_LIST,	MySqlColumnType.JSON,		new ListStringParser(new LongParser()),			null),
 	BOOLEAN_LIST(ColumnType.BOOLEAN_LIST,	MySqlColumnType.JSON,		new ListStringParser(new BooleanParser()),			null),
 	DATE_LIST	(ColumnType.DATE_LIST,		MySqlColumnType.JSON,		new ListStringParser(new DateToLongParser()),			null);;

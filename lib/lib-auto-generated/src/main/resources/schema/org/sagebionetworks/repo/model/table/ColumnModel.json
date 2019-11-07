@@ -65,10 +65,6 @@
                     "description": "Multiple values of STRING"
                 },
                 {
-                    "name": "DOUBLE_LIST",
-                    "description": "Multiple values of DOUBLE. Currently only works on Entity Views"
-                },
-                {
                     "name": "INTEGER_LIST",
                     "description": "Multiple values of INTEGER. Currently only works on Entity Views"
                 },

@@ -387,7 +387,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000",
-				"link708000", "largeText804000", "903000", "[\"string1000000\", \"otherstring1000000\"]", "[3751003.12]", "[1203000]", "[false]", "[1404000]");
+				"link708000", "largeText804000", "903000", "[\"string1000000\", \"otherstring1000000\"]", "[1103000]", "[false]", "[1304000]");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -396,7 +396,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
 				"true", "404001", "505001", "syn606001", 
-				"link708001", "largeText804001", "903001", "[\"string1000001\", \"otherstring1000001\"]", "[3751006.53]", "[1203001]", "[true]", "[1404001]");
+				"link708001", "largeText804001", "903001", "[\"string1000001\", \"otherstring1000001\"]", "[1103001]", "[true]", "[1304001]");
 		assertEquals(expectedValues, row.getValues());
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
@@ -520,7 +520,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null,
-				null, null, null, null,  null, null, null, null, null, null, null);
+				null, null, null, null,  null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -528,7 +528,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null, null);
+				null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -1450,7 +1450,7 @@ public class TableIndexDAOImplTest {
 		AnnotationDTO double1 = new AnnotationDTO();
 		double1.setKey("foo");
 		double1.setValue(Arrays.asList("NaN", "1.2", "Infinity"));
-		double1.setType(AnnotationType.DOUBLE);
+		double1.setType(AnnotationType.STRING);
 		double1.setEntityId(2L);
 		file1.setAnnotations(Arrays.asList(double1));
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
@@ -1458,7 +1458,7 @@ public class TableIndexDAOImplTest {
 		AnnotationDTO double2 = new AnnotationDTO();
 		double2.setKey("foo");
 		double2.setValue(Arrays.asList("Infinity", "222.222"));
-		double2.setType(AnnotationType.DOUBLE);
+		double2.setType(AnnotationType.STRING);
 		double2.setEntityId(3L);
 		file2.setAnnotations(Arrays.asList(double2));
 
@@ -1479,8 +1479,8 @@ public class TableIndexDAOImplTest {
 		// Query the results
 		RowSet result = tableIndexDAO.query(mockProgressCallback, query);
 		assertEquals(2, result.getRows().size());
-		assertEquals(Collections.singletonList("[\"NaN\", 1.2, \"Infinity\"]"), result.getRows().get(0).getValues());
-		assertEquals(Collections.singletonList("[\"Infinity\", 222.222]"), result.getRows().get(1).getValues());
+		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0).getValues());
+		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1).getValues());
 
 		// Check the CRC of the view
 		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId.getId());
@@ -1580,27 +1580,27 @@ public class TableIndexDAOImplTest {
 		// setup some hierarchy.
 		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		AnnotationDTO double1 = new AnnotationDTO();
-		double1.setKey("foo");
-		double1.setValue(Arrays.asList("NaN", "1.2", "Infinity"));
-		double1.setType(AnnotationType.DOUBLE);
-		double1.setEntityId(2L);
-		file1.setAnnotations(Arrays.asList(double1));
+		AnnotationDTO int1 = new AnnotationDTO();
+		int1.setKey("foo");
+		int1.setValue(Arrays.asList("123", "456", "789"));
+		int1.setType(AnnotationType.LONG);
+		int1.setEntityId(2L);
+		file1.setAnnotations(Arrays.asList(int1));
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		AnnotationDTO double2 = new AnnotationDTO();
-		double2.setKey("foo");
-		double2.setValue(Arrays.asList("Infinity", "222.222"));
-		double2.setType(AnnotationType.DOUBLE);
-		double2.setEntityId(3L);
-		file2.setAnnotations(Arrays.asList(double2));
+		AnnotationDTO int2 = new AnnotationDTO();
+		int2.setKey("foo");
+		int2.setValue(Arrays.asList("321", "654"));
+		int2.setType(AnnotationType.LONG);
+		int2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(int2));
 
 		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 
 		// both parents
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "foo", ColumnType.DOUBLE_LIST));
+				.createColumn(1L, "foo", ColumnType.INTEGER_LIST));
 		// capture the results of the stream
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
 		// call under test
@@ -1610,8 +1610,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(3, rows.size());
 
 		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[\"NaN\", 1.2, \"Infinity\"]"}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[\"Infinity\", 222.222]"}, rows.get(2));
+		assertArrayEquals(new String[] {"2", "2", "etag2", "2", "[123, 456, 789]"}, rows.get(1));
+		assertArrayEquals(new String[] {"3", "2", "etag3", "2", "[321, 654]"}, rows.get(2));
 	}
 
 	
@@ -2350,9 +2350,10 @@ public class TableIndexDAOImplTest {
 		if(dto.getAnnotations() != null){
 			for(AnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
+				//double lists are not supported at the moment
 				cm.setColumnType(annoDto.getValue().size() > 1 ? annoDto.getType().getListColumnType() : annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
-				if(ColumnType.STRING.equals(cm.getColumnType())){
+				if(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.STRING_LIST){
 					cm.setMaximumSize(50L);
 				}
 				schema.add(cm);

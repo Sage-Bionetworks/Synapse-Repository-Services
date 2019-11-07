@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 public enum AnnotationType{
 	STRING	(ColumnType.STRING, ColumnType.STRING_LIST, AnnotationsValueType.STRING),
 	LONG	(ColumnType.INTEGER, ColumnType.INTEGER_LIST, AnnotationsValueType.LONG),
-	DOUBLE	(ColumnType.DOUBLE, ColumnType.DOUBLE_LIST, AnnotationsValueType.DOUBLE),
+	DOUBLE	(ColumnType.DOUBLE, null, AnnotationsValueType.DOUBLE),
 	DATE	(ColumnType.DATE, ColumnType.DATE_LIST, AnnotationsValueType.TIMESTAMP_MS);
 	
 	AnnotationType(ColumnType columnType, ColumnType listColumnType,AnnotationsValueType annotationsV2ValueType){

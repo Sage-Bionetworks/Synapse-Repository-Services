@@ -20,7 +20,6 @@ public class AnnotationTypeTest {
 	public void testListColumnType(){
 		assertEquals(ColumnType.STRING_LIST, AnnotationType.STRING.getListColumnType());
 		assertEquals(ColumnType.INTEGER_LIST, AnnotationType.LONG.getListColumnType());
-		assertEquals(ColumnType.DOUBLE_LIST, AnnotationType.DOUBLE.getListColumnType());
 		assertEquals(ColumnType.DATE_LIST, AnnotationType.DATE.getListColumnType());
 	}
 
