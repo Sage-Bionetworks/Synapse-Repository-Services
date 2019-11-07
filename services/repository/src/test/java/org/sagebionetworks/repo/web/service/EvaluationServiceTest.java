@@ -102,7 +102,7 @@ public class EvaluationServiceTest {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getAllSubmissions(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissions(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissions(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissions(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -111,7 +111,7 @@ public class EvaluationServiceTest {
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getAllSubmissionBundles(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissionBundles(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissionBundles(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissionBundles(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -120,7 +120,7 @@ public class EvaluationServiceTest {
 		List<SubmissionStatus> expectedRes = new LinkedList<SubmissionStatus>();
 		when(mockSubmissionManager.getAllSubmissionStatuses(userInfo, evalId, SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissionStatuses(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissionStatuses(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissionStatuses(userInfo, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -129,7 +129,7 @@ public class EvaluationServiceTest {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset, null);
+		evaluationService.getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset);
 		verify(mockSubmissionManager).getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
 	}
 
@@ -138,7 +138,7 @@ public class EvaluationServiceTest {
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset, null);
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset);
 		verify(mockSubmissionManager).getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
 	}
 
