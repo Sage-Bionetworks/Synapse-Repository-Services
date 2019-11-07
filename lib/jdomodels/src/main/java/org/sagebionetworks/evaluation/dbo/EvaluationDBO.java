@@ -35,6 +35,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
@@ -354,7 +355,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			@Override
 			public EvaluationDBO createDatabaseObjectFromBackup(
 					EvaluationBackup backup) {
-				return EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+				EvaluationDBO dbo =  EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+				// fill out start and end time stamps
+				Evaluation dto = new Evaluation();
+				EvaluationDBOUtil.copyDboToDto(dbo, dto);
+				EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
+				return dbo;
 			}
 
 			@Override
