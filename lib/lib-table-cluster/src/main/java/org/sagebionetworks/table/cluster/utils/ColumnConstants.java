@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.parser.ListStringParser;
+
 public class ColumnConstants {
 
 	/**
@@ -164,6 +166,4 @@ public class ColumnConstants {
 	 */
 	public static final int MINUMUM_ROW_VALUE_SIZE = SIZE_OF_REFERENCE_BYTES*4+80;
 
-	//keep in sync with ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST
-	public static final int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 }

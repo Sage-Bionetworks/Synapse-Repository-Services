@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -46,6 +44,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.parser.ListStringParser;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -762,12 +761,12 @@ public class TableModelUtils {
 				if (maxSize == null) {
 					throw new IllegalArgumentException("maxSize cannot be null for String List types");
 				}
-				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST);
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST);
 			case INTEGER_LIST:
 			case DATE_LIST:
-				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
+				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
 			case BOOLEAN_LIST:
-				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST;
+				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 		}
