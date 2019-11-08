@@ -231,7 +231,7 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null))).thenReturn(Collections.EMPTY_LIST);    	
 
 		// availability is based on SUBMIT access, not READ
-		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
+		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, true, 10L, 0L, null);
 		assertTrue(qr.isEmpty());
 	}
 	
