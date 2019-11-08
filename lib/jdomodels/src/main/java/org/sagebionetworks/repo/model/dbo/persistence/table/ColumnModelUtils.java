@@ -187,6 +187,9 @@ public class ColumnModelUtils {
 			case DATE:
 			case INTEGER:
 			case DOUBLE:
+			case INTEGER_LIST:
+			case DATE_LIST:
+			case BOOLEAN_LIST:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}

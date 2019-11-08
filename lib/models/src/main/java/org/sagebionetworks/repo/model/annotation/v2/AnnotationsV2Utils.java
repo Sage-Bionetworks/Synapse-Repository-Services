@@ -110,14 +110,15 @@ public class AnnotationsV2Utils {
 			List<String> transferredValues = new ArrayList<>();
 			for (String value : annotationsV2Value.getValue()) {
 				if(value == null){
-					throw new IllegalArgumentException("values list can not contain null");
+					continue;
 				}
 				//make sure values are under the maxAnnotationChars limit
 				String shortenedString = value.substring(0, Math.min(value.length(), maxAnnotationChars));
 				transferredValues.add(shortenedString);
 			}
-
-			map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
+			if(!transferredValues.isEmpty()) {
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.forAnnotationV2Type(annotationsV2Value.getType()), transferredValues));
+			}
 		}
 	}
 
