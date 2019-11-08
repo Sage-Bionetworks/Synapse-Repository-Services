@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.table.ValueParser;
 public class ListStringParser extends AbstractValueParser{
 	private ValueParser individualElementParser;
 
-	//TODO: keep in sync with ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST
+	//keep in sync with ColumnConstants.MAX_NUMBER_OF_ITEMS_IN_LIST
 	public final static int MAX_NUMBER_OF_ITEMS_IN_LIST = 100;
 	/**
 	 *
