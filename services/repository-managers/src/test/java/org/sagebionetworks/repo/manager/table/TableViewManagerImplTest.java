@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -147,6 +148,7 @@ public class TableViewManagerImplTest {
 	ColumnModel anno1;
 	ColumnModel anno2;
 	ColumnModel dateColumn;
+	ColumnModel intListColumn;
 	SparseRowDto row;
 	SnapshotRequest snapshotOptions;
 	
@@ -194,6 +196,12 @@ public class TableViewManagerImplTest {
 		dateColumn.setName("aDate");
 		dateColumn.setColumnType(ColumnType.DATE);
 		dateColumn.setId("3");
+
+		intListColumn = new ColumnModel();
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setName("stringList");
+		intListColumn.setId("4");
+
 		
 		etagColumn = EntityField.etag.getColumnModel();
 		etagColumn.setId("3");
@@ -202,6 +210,7 @@ public class TableViewManagerImplTest {
 		viewSchema.add(etagColumn);
 		viewSchema.add(anno1);
 		viewSchema.add(anno2);
+		viewSchema.add(intListColumn);
 		
 		Map<String, String> values = new HashMap<>();
 		values.put(etagColumn.getId(), "anEtag");
@@ -427,6 +436,58 @@ public class TableViewManagerImplTest {
 		assertEquals(AnnotationsValueType.LONG, anno2Value.getType());
 		// etag should not be included.
 		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+	}
+
+	@Test
+	public void testUpdateAnnotations_ListValues(){
+		//make anno1 a list
+		anno1.setColumnType(ColumnType.STRING_LIST);
+
+
+		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
+		Map<String, String> values = new HashMap<>();
+		values.put(EntityField.etag.name(), "anEtag");
+		values.put(anno1.getId(), "[\"asdf\", \"qwerty\"]");
+		values.put(intListColumn.getId(), "[123, 456, 789]");
+		// call under test
+		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		assertTrue(updated);
+		AnnotationsValue anno1Value = annos.getAnnotations().get(anno1.getName());
+		assertEquals(Arrays.asList("asdf", "qwerty"), anno1Value.getValue());
+		assertEquals(AnnotationsValueType.STRING, anno1Value.getType());
+		AnnotationsValue intListValue = annos.getAnnotations().get(intListColumn.getName());
+		assertEquals(Arrays.asList("123", "456", "789"),intListValue.getValue());
+		assertEquals(AnnotationsValueType.LONG, intListValue.getType());
+		// etag should not be included.
+		assertNull(AnnotationsV2Utils.getSingleValue(annos, EntityField.etag.name()));
+	}
+
+	@Test
+	public void testToAnnotationValuesList_ValueNotJSONArrayFormat(){
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			 TableViewManagerImpl.toAnnotationValuesList(intListColumn, "not a JSON ARRAY!!");
+		});
+
+		assertEquals("Value is not correctly formatted as a JSON Array: not a JSON ARRAY!!" , e.getMessage());
+	}
+
+	@Test
+	public void testToAnnotationValuesList_ListContainsNull(){
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableViewManagerImpl.toAnnotationValuesList(intListColumn, "[123, \456, null, 789]");
+		});
+
+		assertEquals("null value is not allowed" , e.getMessage());
+	}
+
+	@Test
+	public void testToAnnotationValuesList_HappyCase(){
+		// call under test
+		List<String> values = TableViewManagerImpl.toAnnotationValuesList(intListColumn, "[123, 456, 789]");
+
+		assertEquals(Arrays.asList("123", "456", "789") , values);
 	}
 	
 	@Test
@@ -741,6 +802,7 @@ public class TableViewManagerImplTest {
 				viewSchema);
 		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
@@ -789,6 +851,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
 		verify(mockFile).delete();
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
+		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);

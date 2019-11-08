@@ -1,10 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,6 +9,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,11 +18,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -50,6 +48,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -61,6 +60,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -98,7 +98,7 @@ public class IT100TableControllerTest {
 	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
 	private static long MAX_APPEND_TIMEOUT = 30*1000;
 	
-	@BeforeClass 
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
@@ -110,14 +110,14 @@ public class IT100TableControllerTest {
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException{
 		adminSynapse.clearAllLocks();
 		entitiesToDelete = new LinkedList<Entity>();
 		tablesToDelete = new ArrayList<TableEntity>();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (Entity entity : tablesToDelete) {
 			adminSynapse.deleteAndPurgeEntity(entity);
@@ -130,7 +130,7 @@ public class IT100TableControllerTest {
 		}
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		//TODO This delete should not need to be surrounded by a try-catch
 		// This means proper cleanup was not done by the test 
@@ -246,7 +246,7 @@ public class IT100TableControllerTest {
 		// run the query again, but this time get the counts
 		Long count = waitForCountResults("select * from " + table.getId(), tableId);
 		assertNotNull(count);
-		assertEquals("There should be 4 rows in this table", 4L, count.longValue());
+		assertEquals(4L, count.longValue(), "There should be 4 rows in this table");
 
 		// Now use these results to delete a row using the row delete api
 		RowSelection toDelete = new RowSelection();
@@ -260,7 +260,7 @@ public class IT100TableControllerTest {
 
 		// run the query again, to get the counts
 		count = waitForCountResults("select * from " + table.getId(), tableId);
-		assertEquals("There should be 3 rows in this table", 3L, count.longValue());
+		assertEquals(3L, count.longValue(), "There should be 3 rows in this table");
 		
 		// run a bundled query
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
@@ -271,7 +271,7 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), bundle.getQueryResult().getQueryResults().getTableId());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
 		assertEquals(2, bundle.getQueryResult().getQueryResults().getRows().size());
-		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
+		assertEquals(new Long(3), bundle.getQueryCount(), "There should be 3 rows in this table");
 		assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one)), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
@@ -283,7 +283,7 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), bundle.getQueryResult().getQueryResults().getTableId());
 		assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
 		assertEquals(1, bundle.getQueryResult().getQueryResults().getRows().size());
-		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
+		assertEquals(new Long(3), bundle.getQueryCount(), "There should be 3 rows in this table");
 		assertEquals(Arrays.asList(TableModelUtils.createSelectColumn(one)), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
@@ -328,7 +328,7 @@ public class IT100TableControllerTest {
 		assertEquals(0L, count.longValue());
 	}
 
-	@Test(expected = SynapseForbiddenException.class)
+	@Test
 	public void testPermissionsFailure() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();
@@ -338,8 +338,10 @@ public class IT100TableControllerTest {
 
 		TableEntity table = createTable(Lists.newArrayList(one.getId()), adminSynapse);
 
-		// Now attempt to query for the table results
-		waitForCountResults("select * from " + table.getId(), table.getId());
+		assertThrows(SynapseForbiddenException.class, () -> {
+			// Now attempt to query for the table results
+			waitForCountResults("select * from " + table.getId(), table.getId());
+		});
 	}
 
 	@Test
@@ -471,8 +473,8 @@ public class IT100TableControllerTest {
 		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());
 
 		URL url = synapse.getTableFileHandleTemporaryUrl(table.getId(), results.getRows().get(0), one.getId());
-		assertTrue("The temporary URL did not contain the expected file handle key",
-				url.toString().contains(((S3FileHandle) fileHandle).getKey()));
+		assertTrue(url.toString().contains(((S3FileHandle) fileHandle).getKey()),
+				"The temporary URL did not contain the expected file handle key");
 
 		File tempFile2 = File.createTempFile("temp", ".txt");
 		tempFiles.add(tempFile2);
@@ -597,7 +599,7 @@ public class IT100TableControllerTest {
 			assertTrue(e.getMessage().contains("has been changed"));
 		}
 	}
-	
+
 	@Test
 	public void testUpdate() throws Exception {
 		// Create a column to add to a table entity
@@ -828,58 +830,60 @@ public class IT100TableControllerTest {
 	}
 	
 	
-	@Test (timeout=60000)
+	@Test
 	public void testGetPossibleColumnModelsForViewScope() throws Exception {
-		// Create a project to contain it all
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		project = synapse.createEntity(project);
-		entitiesToDelete.add(project);
-		// Add an entity
-		Folder folder = new Folder();
-		folder.setName(UUID.randomUUID().toString());
-		folder.setParentId(project.getId());
-		folder = synapse.createEntity(folder);
-		Annotations annos = synapse.getAnnotationsV2(folder.getId());
-		AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsValueType.STRING);
-		AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsValueType.STRING);
-		synapse.updateAnnotationsV2(folder.getId(), annos);
-		
-		// Now find the columns for this scope with mask
-		ViewScope scope = new ViewScope();
-		scope.setScope(Lists.newArrayList(project.getId()));
-		scope.setViewTypeMask(ViewTypeMask.File.getMask());
-		String nextPageToken = null;
-		ColumnModelPage page = waitForColumnModelPage(scope, nextPageToken, 3);
-		assertNotNull(page);
-		assertNotNull(page.getResults());
-		assertNull(page.getNextPageToken());
-		assertEquals(3, page.getResults().size());
-		
-		// find the scope with the old type
-		// Now find the columns for this scope
-		scope = new ViewScope();
-		scope.setScope(Lists.newArrayList(project.getId()));
-		scope.setViewType(ViewType.file);
-		nextPageToken = null;
-		page = waitForColumnModelPage(scope, nextPageToken, 3);
-		assertNotNull(page);
-		assertNotNull(page.getResults());
-		assertNull(page.getNextPageToken());
-		assertEquals(3, page.getResults().size());
-		
-		// make another call with a next page token.
-		long limit = 1;
-		long offset = 1;
-		nextPageToken = new NextPageToken(limit, offset).toToken();
-		page = waitForColumnModelPage(scope, nextPageToken, 1);
-		assertNotNull(page);
-		assertNotNull(page.getResults());
-		assertNotNull(page.getNextPageToken());
-		assertEquals(1, page.getResults().size());
-		ColumnModel cm = page.getResults().get(0);
-		assertEquals("keyB", cm.getName());
+		assertTimeout(Duration.ofSeconds(60), () -> {
+			// Create a project to contain it all
+			Project project = new Project();
+			project.setName(UUID.randomUUID().toString());
+			project = synapse.createEntity(project);
+			entitiesToDelete.add(project);
+			// Add an entity
+			Folder folder = new Folder();
+			folder.setName(UUID.randomUUID().toString());
+			folder.setParentId(project.getId());
+			folder = synapse.createEntity(folder);
+			Annotations annos = synapse.getAnnotationsV2(folder.getId());
+			AnnotationsV2TestUtils.putAnnotations(annos, "keyA", "someValue", AnnotationsValueType.STRING);
+			AnnotationsV2TestUtils.putAnnotations(annos, "keyB", "123456", AnnotationsValueType.STRING);
+			AnnotationsV2TestUtils.putAnnotations(annos, "keyC", "45678", AnnotationsValueType.STRING);
+			synapse.updateAnnotationsV2(folder.getId(), annos);
+
+			// Now find the columns for this scope with mask
+			ViewScope scope = new ViewScope();
+			scope.setScope(Lists.newArrayList(project.getId()));
+			scope.setViewTypeMask(ViewTypeMask.File.getMask());
+			String nextPageToken = null;
+			ColumnModelPage page = waitForColumnModelPage(scope, nextPageToken, 3);
+			assertNotNull(page);
+			assertNotNull(page.getResults());
+			assertNull(page.getNextPageToken());
+			assertEquals(3, page.getResults().size());
+
+			// find the scope with the old type
+			// Now find the columns for this scope
+			scope = new ViewScope();
+			scope.setScope(Lists.newArrayList(project.getId()));
+			scope.setViewType(ViewType.file);
+			nextPageToken = null;
+			page = waitForColumnModelPage(scope, nextPageToken, 3);
+			assertNotNull(page);
+			assertNotNull(page.getResults());
+			assertNull(page.getNextPageToken());
+			assertEquals(3, page.getResults().size());
+
+			// make another call with a next page token.
+			long limit = 1;
+			long offset = 1;
+			nextPageToken = new NextPageToken(limit, offset).toToken();
+			page = waitForColumnModelPage(scope, nextPageToken, 1);
+			assertNotNull(page);
+			assertNotNull(page.getResults());
+			assertNotNull(page.getNextPageToken());
+			assertEquals(1, page.getResults().size());
+			ColumnModel cm = page.getResults().get(0);
+			assertEquals("keyB", cm.getName());
+		});
 	}
 	
 	@Test
@@ -899,6 +903,109 @@ public class IT100TableControllerTest {
 		// Call under test
 		String resultSql = synapse.transformSqlRequest(request);
 		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
+	}
+
+	@Test
+	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
+		Project project = new Project();
+		project.setName("testEntityView_multipleValueColumnRoundTrip" + UUID.randomUUID());
+
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		String multiValueKey = "multiValueKey";
+
+		// Add an entity
+		Folder folder = new Folder();
+		folder.setName(UUID.randomUUID().toString());
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		Annotations annos = synapse.getAnnotationsV2(folder.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos, multiValueKey, Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder.getId(), annos);
+
+		// Add another entity
+		Folder folder2 = new Folder();
+		folder2.setName(UUID.randomUUID().toString());
+		folder2.setParentId(project.getId());
+		folder2 = synapse.createEntity(folder2);
+		Annotations annos2 = synapse.getAnnotationsV2(folder2.getId());
+		AnnotationsV2TestUtils.putAnnotations(annos2, multiValueKey, Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
+		synapse.updateAnnotationsV2(folder2.getId(), annos2);
+
+
+		final long folderViewMask = 0x08L;
+
+		//create schema for entity view
+		ColumnModel listColumnModel = new ColumnModel();
+		listColumnModel.setColumnType(ColumnType.STRING_LIST);
+		listColumnModel.setName(multiValueKey);
+		listColumnModel = synapse.createColumnModel(listColumnModel);
+		List<ColumnModel> defaultViewColumns = synapse.getDefaultColumnsForView(folderViewMask);
+		List<String> columnIds = new ArrayList<>(defaultViewColumns.size() + 1);
+		for(ColumnModel cm : defaultViewColumns){
+			columnIds.add(cm.getId());
+		}
+		columnIds.add(listColumnModel.getId());
+
+		EntityView view = new EntityView();
+		view.setParentId(project.getId());
+		view.setName("ENTITY_VIEW_testEntityView_multipleValueColumnRoundTrip" + UUID.randomUUID());
+		view.setScopeIds(Collections.singletonList(project.getId()));
+		view.setViewTypeMask(folderViewMask);
+		view.setColumnIds(columnIds);
+		view = synapse.createEntity(view);
+
+		//2 total rows should be in view
+		assertEquals(2, waitForCountResults("select * from "+ view.getId(), view.getId()));
+
+		//only 1 annotation has "val1" as a value
+		assertEquals(1, waitForCountResults("select * from "+ view.getId() + " where multiValueKey HAS ('val1')", view.getId()));
+		//both annotations have "val2" as a value
+		assertEquals(2, waitForCountResults("select * from "+ view.getId() + " where multiValueKey HAS ('val2')", view.getId()));
+		//HAS "val1" or "val3" should also cover both values
+		assertEquals(2, waitForCountResults("select * from "+ view.getId() + " where multiValueKey HAS ('val1', 'val3')", view.getId()));
+
+		//modify annotation values by using updates to table view
+		RowSet result = waitForQueryResults("select * from "+ view.getId(), 0L, 10L,view.getId());
+		//still expecting 2 rows
+		assertEquals(2, result.getRows().size());
+
+		//find index of "multiValueKey" column
+		int multiValueKeyIndex = -1;
+		int idKeyIndex = -1;
+		List<SelectColumn> headers = result.getHeaders();
+		for(int i = 0; i < headers.size(); i++){
+			if (headers.get(i).getName().equals(multiValueKey)){
+				multiValueKeyIndex = i;
+			}else if (headers.get(i).getName().equalsIgnoreCase("id")){
+				idKeyIndex = i;
+			}
+		}
+		assertNotEquals(-1, multiValueKeyIndex, "the multiValueKey column is not included in the query results");
+
+		//change multiValueKey to new values
+		String firstChangeId = result.getRows().get(0).getValues().get(idKeyIndex);
+		result.getRows().get(0).getValues().set(multiValueKeyIndex, "[\"newVal1\", \"newVal2\"]");
+		String secondChangeId = result.getRows().get(1).getValues().get(idKeyIndex);
+		result.getRows().get(1).getValues().set(multiValueKeyIndex, "[\"newVal4\", \"newVal5\", \"newVal6\"]");
+		//push modified values to view
+		synapse.appendRowSetToTableStart(result, view.getId());
+
+		long startTime = System.currentTimeMillis();
+		//check view is updated
+		result = waitForQueryResults("select * from "+ view.getId(), 0L, 10L, view.getId());
+		while(!result.getRows().get(0).getValues().get(multiValueKeyIndex).equals("[\"newVal1\", \"newVal2\"]")
+		 && !result.getRows().get(1).getValues().get(multiValueKeyIndex).equals("[\"newVal4\", \"newVal5\", \"newVal6\"]")
+		){
+			if(System.currentTimeMillis() - startTime >= MAX_QUERY_TIMEOUT_MS){
+				fail("Timed out waiting for query results to be consistent");
+			}
+		}
+
+		//check Annotations on entities are updated
+		assertEquals(Arrays.asList("newVal1", "newVal2"), synapse.getAnnotationsV2(firstChangeId).getAnnotations().get(multiValueKey).getValue());
+		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), synapse.getAnnotationsV2(secondChangeId).getAnnotations().get(multiValueKey).getValue());
 	}
 	
 	private TableEntity createTable(List<String> columns) throws SynapseException {

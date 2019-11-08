@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -23,15 +24,19 @@ import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableToo
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -666,14 +671,45 @@ public class SQLUtils {
 		}
 		return builder.toString();
 	}
-	
-	/**
-	 * Alter a single column for a given column change.
-	 * @param builder
-	 * @param change
-	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
-	 * tables that are too large to build with the correct 4 byte UTF-8.
-	 */
+
+	public static List<String> listColumnIndexTableCreateOrDropStatements(List<ColumnChangeDetails> changes, IdAndVersion tableId){
+		List<String> statements = new ArrayList<>();
+
+		StringJoiner dropTableJoiner = new StringJoiner(",", "DROP TABLE IF EXISTS ", ";");
+		int originalJoinerLen = dropTableJoiner.length();
+
+		for(ColumnChangeDetails changeDetails : changes){
+			//column being added/replacing other column
+			if(changeDetails.getNewColumn() != null && !changeDetails.getNewColumn().equals(changeDetails.getOldColumn())
+					&& ColumnTypeListMappings.isList(changeDetails.getNewColumn().getColumnType())
+			){
+				statements.add(SQLUtils.createListColumnIndexTable(tableId, changeDetails.getNewColumn()));
+			}
+
+			//column being deleted/replaced
+			if(changeDetails.getOldColumn() != null && !changeDetails.getOldColumn().equals(changeDetails.getNewColumn())
+					&& ColumnTypeListMappings.isList(changeDetails.getOldColumn().getColumnType())
+			){
+				dropTableJoiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(tableId, changeDetails.getOldColumn().getId()));
+			}
+		}
+
+		//make sure drop statement joiner actually has content before adding to result list
+		if( dropTableJoiner.length() > originalJoinerLen){
+			statements.add(dropTableJoiner.toString());
+		}
+
+		return statements;
+	}
+
+
+		/**
+		 * Alter a single column for a given column change.
+		 * @param builder
+		 * @param change
+		 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
+		 * tables that are too large to build with the correct 4 byte UTF-8.
+		 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
 			ColumnChangeDetails change, boolean isFirst, boolean useDepricatedUtf8ThreeBytes) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
@@ -915,6 +951,11 @@ public class SQLUtils {
 		
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
+			//do not create indexes for JSON columns, these will be done as a separate table
+			if(info.getType() == MySqlColumnType.JSON){
+				continue;
+			}
+
 			// ignore row_id and version
 			if(info.isMetadata()){
 				continue;
@@ -1202,7 +1243,7 @@ public class SQLUtils {
 		}else{
 			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
 			selectColumnName = translateColumnTypeToAnnotationValueName(model.getColumnType());
-			annotationType = translateColumnTypeToAnnotationType(model.getColumnType());
+			annotationType =  translateColumnTypeToAnnotationType(model.getColumnType());
 		}
 		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
 	}
@@ -1215,13 +1256,16 @@ public class SQLUtils {
 	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){
 		switch(type){
 		case STRING:
+		case STRING_LIST:
 			return AnnotationType.STRING;
 		case DATE:
+		case DATE_LIST:
 			return AnnotationType.DATE;
 		case DOUBLE:
-			return AnnotationType.DOUBLE;
+				return AnnotationType.DOUBLE;
 		case INTEGER:
-			return AnnotationType.LONG;
+		case INTEGER_LIST:
+				return AnnotationType.LONG;
 		default:
 			return AnnotationType.STRING;
 		}
@@ -1244,12 +1288,18 @@ public class SQLUtils {
 			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE;
 		case BOOLEAN:
 			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_VALUE;
+		case STRING_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
+		case INTEGER_LIST:
+		case DATE_LIST:_VALUE:
+			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
+		case BOOLEAN_LIST:
+			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
 		default:
 			// Everything else is a string
 			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 		}
 	}
-
 	
 	/**
 	 * Generate the SQL used to insert select data from the entity replication tables to a
@@ -1363,7 +1413,7 @@ public class SQLUtils {
 		}
 		List<String> headers = new LinkedList<>();
 		// annotation select
-		if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+		if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 			// For doubles, the double-meta columns is also selected.
 			boolean isDoubleAbstract = true;
 			headers.add(buildAnnotationSelect(builder, meta, isDoubleAbstract));
@@ -1443,7 +1493,7 @@ public class SQLUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
-			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 				builder.append(", _DBL");
 				builder.append(meta.getColumnNameForId());
 			}
@@ -1667,30 +1717,50 @@ public class SQLUtils {
 		ps.setLong(parameterIndex++, dto.getEntityId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
-		ps.setString(parameterIndex++, dto.getValue());
-		String stringValue = dto.getValue();
+		List<String> stringList = dto.getValue();
+
+		String stringValue = stringList.isEmpty() ? null : stringList.get(0);
+
+		ps.setString(parameterIndex++, stringValue);
 		// Handle longs
 		AllLongTypeParser longParser = new AllLongTypeParser();
-		Long longValue = null;
-		if(longParser.isOfType(stringValue)){
-			longValue = (Long) longParser.parseValueForDatabaseWrite(stringValue);
+		List<Long> longList = new ArrayList<>(stringList.size());
+		for(String value :stringList){
+			//if any values fail to parse, then the entire list of longs is invalid
+			if(!longParser.isOfType(value)){
+				longList = null;
+				break;
+			}
+			longList.add((Long) longParser.parseValueForDatabaseWrite(value));
 		}
+
+		Long longValue = longList == null || longList.isEmpty() ? null : longList.get(0);
 		if(longValue == null){
 			ps.setNull(parameterIndex++, Types.BIGINT);
 		}else{
 			ps.setLong(parameterIndex++, longValue);
 		}
+
+
 		// Handle doubles
-		Double doubleValue = null;
-		AbstractDouble abstractDoubleType = null;
 		DoubleParser doubleParser = new DoubleParser();
-		if(doubleParser.isOfType(stringValue)){
-			doubleValue = (Double) doubleParser.parseValueForDatabaseWrite(stringValue);
-			// Is this an abstract double?
-			if(AbstractDouble.isAbstractValue(doubleValue)){
-				abstractDoubleType = AbstractDouble.lookupType(doubleValue);
-				doubleValue = abstractDoubleType.getApproximateValue();
+
+		List<Double> doubleList = new ArrayList<>(stringList.size());
+		for(String value : stringList) {
+			//if any values fail to parse, then the entire list of doubles is invalid
+			if (!doubleParser.isOfType(value)) {
+				doubleList = null;
+				break;
 			}
+
+			doubleList.add((Double) doubleParser.parseValueForDatabaseWrite(value));
+		}
+
+		Double doubleValue = doubleList == null || doubleList.isEmpty() ? null : doubleList.get(0);
+		AbstractDouble abstractDoubleType = null;
+		if(AbstractDouble.isAbstractValue(doubleValue)){
+			abstractDoubleType = AbstractDouble.lookupType(doubleValue);
+			doubleValue = abstractDoubleType.getApproximateValue();
 		}
 		if(doubleValue == null){
 			ps.setNull(parameterIndex++, Types.DOUBLE);
@@ -1704,18 +1774,29 @@ public class SQLUtils {
 			ps.setString(parameterIndex++, abstractDoubleType.getEnumerationValue());
 		}
 		// Handle booleans
-		Boolean booleanValue = null;
+		List<Boolean> booleanList = new ArrayList<>(stringList.size());
 		BooleanParser booleanParser = new BooleanParser();
-		if(booleanParser.isOfType(stringValue)){
-			booleanValue = (Boolean) booleanParser.parseValueForDatabaseWrite(stringValue);
-		}
-		if(booleanValue == null){
-			ps.setNull(parameterIndex, Types.BOOLEAN);
-		}else{
-			ps.setBoolean(parameterIndex, booleanValue);
-		}
-	}
+		for(String value : stringList){
+			//if any values fail to parse, then the entire list of boolean is invalid
+			if (!booleanParser.isOfType(value)){
+				booleanList = null;
+				break;
+			}
 
+			booleanList.add((Boolean) booleanParser.parseValueForDatabaseWrite(value));
+		}
+		Boolean booleanValue = booleanList == null || booleanList.isEmpty() ? null : booleanList.get(0);
+		if(booleanValue == null){
+			ps.setNull(parameterIndex++, Types.BOOLEAN);
+		}else{
+			ps.setBoolean(parameterIndex++, booleanValue);
+		}
+
+		ps.setString(parameterIndex++, stringList == null ? null : new JSONArray(stringList).toString());
+		ps.setString(parameterIndex++, longList == null ? null : new JSONArray(longList).toString());
+		//doubles need extra conversion:
+		ps.setString(parameterIndex++, booleanList == null ? null : new JSONArray(booleanList).toString());
+	}
 
 	/**
 	 * Create SQL to insert into a table for the IdAndVersion with the given headers.
@@ -1767,6 +1848,44 @@ public class SQLUtils {
 			}
 		}
 		return rowSize;
+	}
+
+
+	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
+		String columnName = getColumnNameForId(columnInfo.getId());
+		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);
+		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
+				ROW_ID+" BIGINT(20) NOT NULL, " +
+				INDEX_NUM + " BIGINT(20) NOT NULL, " + //index of value in its list
+				columnName + " " + columnTypeSql + ", " +
+				"PRIMARY KEY ("+ROW_ID+", "+INDEX_NUM+")," +
+				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
+				");";
+	}
+
+	public static String truncateListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		return "TRUNCATE TABLE " + getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId()) +";";
+	}
+
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		String columnName = getColumnNameForId(columnInfo.getId());
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
+		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
+
+		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
+
+		return "INSERT INTO " + columnIndexTableName + " (" + ROW_ID + "," + INDEX_NUM + ","+ columnName +") " +
+				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM "+ tableName + ", JSON_TABLE(" +
+				columnName +
+				", '$[*]'" +
+				" COLUMNS (" +
+				" ORDINAL FOR ORDINALITY, " +
+				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
+				" )" +
+				") TEMP_JSON_TABLE;";
 	}
 
 }

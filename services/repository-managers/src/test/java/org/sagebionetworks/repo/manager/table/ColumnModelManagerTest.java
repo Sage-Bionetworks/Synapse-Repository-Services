@@ -1014,48 +1014,6 @@ public class ColumnModelManagerTest {
 	}
 
 	@Test
-	public void validateColumnIsListSetting_IsListFalse(){
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setIsList(false);
-		for(ColumnType columnType: ColumnType.values()){
-			columnModel.setColumnType(columnType);
-			assertDoesNotThrow(()->{
-				ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
-			});
-		}
-	}
-
-	@Test
-	public void validateColumnIsListSetting_IsListNull(){
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setIsList(null);
-		for(ColumnType columnType: ColumnType.values()){
-			columnModel.setColumnType(columnType);
-			assertDoesNotThrow(()->{
-				ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
-			});
-		}
-	}
-
-	@Test
-	public void validateColumnIsListSetting_IsListTrue(){
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setIsList(true);
-		for(ColumnType columnType: ColumnType.values()){
-			columnModel.setColumnType(columnType);
-			if(ColumnModelManagerImpl.TYPES_ALLOWED_AS_LISTS.contains(columnType)){
-				assertDoesNotThrow(()->{
-					ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
-				});
-			}else{
-				assertThrows(IllegalArgumentException.class, ()->{
-					ColumnModelManagerImpl.validateColumnIsListSetting(columnModel);
-				});
-			}
-		}
-	}
-
-	@Test
 	public void testValidateSchemaWithProvidedOrderedColumnsWithNullSchema() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			columnModelManager.validateSchemaWithProvidedOrderedColumns(null, new LinkedList<String>());

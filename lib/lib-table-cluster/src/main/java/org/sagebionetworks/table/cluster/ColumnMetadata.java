@@ -18,7 +18,7 @@ public class ColumnMetadata {
 	String columnNameForId;
 	int columnIndex;
 	AnnotationType annotationType;
-	
+
 	public ColumnMetadata(ColumnModel columnModel, EntityField entityField,
 			String tableAlias, String selectColumnName, String columnNameForId,
 			int columnIndex, AnnotationType annotationType) {

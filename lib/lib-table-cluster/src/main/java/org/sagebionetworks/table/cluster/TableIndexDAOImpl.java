@@ -2,7 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
@@ -50,6 +50,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
@@ -81,6 +82,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.object.SqlUpdate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -433,6 +435,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		// apply the update
 		template.update(sql);
+
+
+		//for any columns that have list columns delete their table indexes
+		for(String sqlStatement : SQLUtils.listColumnIndexTableCreateOrDropStatements(changes, tableId)){
+			template.update(sqlStatement);
+		}
+
 		return true;
 	}
 
@@ -526,6 +535,26 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		template.update(alterSql);
 	}
+
+	@Override
+	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
+		for(ColumnModel columnModel : columnModels){
+			//only operate on list column types
+			if(!ColumnTypeListMappings.isList(columnModel.getColumnType())){
+				continue;
+			}
+			//index tables for list columns have already been created when column changes were applied
+
+			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
+			template.update(truncateTablesql);
+
+			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     );
+			template.update(insertIntoSql);
+		}
+	}
+
+
+
 
 	@Override
 	public void createTemporaryTable(IdAndVersion tableId) {
@@ -726,7 +755,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE));
+				dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE)).toList());
 				return dto;
 			}}, entityId);
 		if(!annotations.isEmpty()){

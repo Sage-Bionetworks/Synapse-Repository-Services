@@ -1,12 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,8 +11,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -33,7 +27,7 @@ public class ColumnModelUtlisTest {
 	
 	ColumnModel original;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		original = new ColumnModel();
 		original.setId("123");
@@ -64,12 +58,12 @@ public class ColumnModelUtlisTest {
 		// Normalize
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized, original);
+		assertNotSame(normlaized, original, "A new object should have been created");
 		assertEquals(expected.toString(), normlaized.toString());
 	}
 	
 	@Test
-	public void testNormalizedStringColumnNullSize(){
+	public void testNormalizedStringColumnNullSize() {
 		ColumnModel expected = new ColumnModel();
 		expected.setId(null);
 		expected.setName("name");
@@ -85,10 +79,10 @@ public class ColumnModelUtlisTest {
 		original.setMaximumSize(null);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized, original);
+		assertNotSame(normlaized, original, "A new object should have been created");
 		assertEquals(expected, normlaized);
 	}
-	
+
 	@Test
 	public void testNormalizedStringColumnSizeTooBig(){
 		original.setName("name");
@@ -96,12 +90,10 @@ public class ColumnModelUtlisTest {
 		original.setEnumValues(null);
 		original.setDefaultValue("123");
 		original.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
-		try {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
-			fail("Should have failed as the size is too large");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains(ColumnConstants.MAX_ALLOWED_STRING_SIZE.toString()));
-		}
+		});
+		assertTrue(e.getMessage().contains(ColumnConstants.MAX_ALLOWED_STRING_SIZE.toString()));
 	}
 	
 	@Test
@@ -120,7 +112,7 @@ public class ColumnModelUtlisTest {
 		original.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized, original);
+		assertNotSame(normlaized, original, "A new object should have been created");
 		assertEquals(expected, normlaized);
 	}
 	
@@ -134,6 +126,78 @@ public class ColumnModelUtlisTest {
 
 		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNull(normalized.getEnumValues());
+	}
+
+
+
+	@Test
+	public void testNormalizedStringListColumnNullSize(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setColumnType(ColumnType.STRING_LIST);
+		expected.setDefaultValue("[\"str\"]");
+		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE);
+		//input
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING_LIST);
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"str\"]");
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(null);
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNotNull(normlaized);
+		assertNotSame(normlaized, original, "A new object should have been created");
+		assertEquals(expected, normlaized);
+	}
+
+	@Test
+	public void testNormalizedStringListColumnSizeTooSmall(){
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"str\"]");
+		original.setMaximumSize(0L);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
+		assertEquals("ColumnModel.maxSize for a STRING must be greater than 0", e.getMessage());
+	}
+
+	@Test
+	public void testNormalizedStringListColumnSizeTooBig(){
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"str\"]");
+		original.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
+		assertTrue(e.getMessage().contains(ColumnConstants.MAX_ALLOWED_STRING_SIZE.toString()));
+	}
+
+
+	@Test
+	public void testNormalizedStringListColumnJustRight(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setColumnType(ColumnType.STRING_LIST);
+		expected.setDefaultValue("[\"str\"]");
+		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		// input
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING_LIST);
+		original.setEnumValues(null);
+		original.setDefaultValue("[\"str\"]");
+		original.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertNotNull(normlaized);
+		assertNotSame(normlaized, original, "A new object should have been created");
+		assertEquals(expected, normlaized);
 	}
 
 	@Test
@@ -171,48 +235,52 @@ public class ColumnModelUtlisTest {
 		assertEquals(Lists.newArrayList("1.123", "234.0"), normalized.getEnumValues());
 	}
 
-	@Test(expected = NumberFormatException.class)
+	@Test
 	public void testIncompatibleEnum() {
 		original.setName("name");
 		original.setColumnType(ColumnType.DOUBLE);
 		original.setEnumValues(Lists.newArrayList("1.0", "not a number", "  "));
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(NumberFormatException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
-	@Test(expected = NumberFormatException.class)
+	@Test
 	public void testIncompatibleIntegerEnum() {
 		original.setName("name");
 		original.setColumnType(ColumnType.INTEGER);
 		original.setEnumValues(Lists.newArrayList(" 234 ", "1.123 "));
 		original.setDefaultValue("123");
 		original.setMaximumSize(12L);
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(NumberFormatException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testIncompatibleStringEnum() {
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(Lists.newArrayList(" string too long "));
 		original.setDefaultValue("123");
 		original.setMaximumSize(5L);
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidStringEnum() {
+	@Test
+	public void testInvalidStringListEnum() {
 		original.setName("name");
-		original.setColumnType(ColumnType.STRING);
+		original.setColumnType(ColumnType.STRING_LIST);
 		original.setEnumValues(Lists.newArrayList("aaa"));
 		original.setDefaultValue("123");
 		original.setMaximumSize(5L);
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
 	@Test
@@ -226,24 +294,26 @@ public class ColumnModelUtlisTest {
 		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testTooManyEnums() {
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(Collections.nCopies(StackConfigurationSingleton.singleton().getTableMaxEnumValues() + 1, "aaa"));
 		original.setDefaultValue(null);
 		original.setMaximumSize(5L);
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testLargeText_DisallowDefaultValue(){
 		original.setName("name");
 		original.setColumnType(ColumnType.LARGETEXT);
 		original.setDefaultValue("value");
-
-		ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		});
 	}
 
 	@Test
@@ -267,7 +337,7 @@ public class ColumnModelUtlisTest {
 				.getTableMaxEnumValues()));
 		ColumnModel normalizedClone1 = ColumnModelUtils.createNormalizedClone(clone, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		String cloneHash = ColumnModelUtils.calculateHash(normalizedClone1);
-		assertEquals("The two objects have the same normalized from so they should have the same hash.",originalHash, cloneHash);
+		assertEquals(originalHash, cloneHash, "The two objects have the same normalized from so they should have the same hash.");
 		// Now changing anything should give a new hash
 		clone.setDefaultValue("  Trot  ");
 		ColumnModel normalizedClone2 = ColumnModelUtils.createNormalizedClone(clone, StackConfigurationSingleton.singleton().getTableMaxEnumValues());

@@ -59,6 +59,22 @@
                 {
                     "name": "USERID",
                     "description": "The USERID data type represents a reference to a Synapse User.  The value should be the ID of the referenced User.  Each USERID column counts as 20 bytes towards the total width of a table."
+                },
+                {
+                    "name": "STRING_LIST",
+                    "description": "Multiple values of STRING"
+                },
+                {
+                    "name": "INTEGER_LIST",
+                    "description": "Multiple values of INTEGER. Currently only works on Entity Views"
+                },
+                {
+                    "name": "BOOLEAN_LIST",
+                    "description": "Multiple values of BOOLEAN. Currently only works on Entity Views"
+                },
+                {
+                    "name": "DATE_LIST",
+                    "description": "Multiple values of DATE. Currently only works on Entity Views"
                 }
             ]
         },
@@ -74,10 +90,6 @@
         "facetType": {
             "description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
             "$ref": "org.sagebionetworks.repo.model.table.FacetType"
-        },
-        "isList": {
-            "description": "!!!!HAS NO EFFECT YET!!SUPPORT WILL BE ADDED IN THE FUTURE!! Whether or not this column will have multiple values",
-            "type": "boolean"
         }
     }
 }

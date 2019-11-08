@@ -8,18 +8,19 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
  *
  */
 public enum AnnotationType{
+	STRING	(ColumnType.STRING, ColumnType.STRING_LIST, AnnotationsValueType.STRING),
+	LONG	(ColumnType.INTEGER, ColumnType.INTEGER_LIST, AnnotationsValueType.LONG),
+	DOUBLE	(ColumnType.DOUBLE, null, AnnotationsValueType.DOUBLE),
+	DATE	(ColumnType.DATE, ColumnType.DATE_LIST, AnnotationsValueType.TIMESTAMP_MS);
 	
-	STRING	(ColumnType.STRING, AnnotationsValueType.STRING),
-	LONG	(ColumnType.INTEGER, AnnotationsValueType.LONG),
-	DOUBLE	(ColumnType.DOUBLE, AnnotationsValueType.DOUBLE),
-	DATE	(ColumnType.DATE, AnnotationsValueType.TIMESTAMP_MS);
-	
-	AnnotationType(ColumnType columnType, AnnotationsValueType annotationsV2ValueType){
+	AnnotationType(ColumnType columnType, ColumnType listColumnType,AnnotationsValueType annotationsV2ValueType){
 		this.columnType = columnType;
+		this.listColumnType = listColumnType;
 		this.annotationsV2ValueType = annotationsV2ValueType;
 	}
 
 	ColumnType columnType;
+	ColumnType listColumnType;
 	AnnotationsValueType annotationsV2ValueType;
 
 	/**
@@ -28,6 +29,10 @@ public enum AnnotationType{
 	 */
 	public ColumnType getColumnType(){
 		return columnType;
+	}
+
+	public ColumnType getListColumnType(){
+		return listColumnType;
 	}
 
 	public AnnotationsValueType getAnnotationsV2ValueType() {

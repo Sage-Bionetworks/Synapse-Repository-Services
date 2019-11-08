@@ -12,9 +12,12 @@ import static org.mockito.Mockito.verify;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -996,6 +999,138 @@ public class SQLUtilsTest {
 		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results);
 	}
 
+
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition_nonList(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition(){
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<String> expected = Collections.singletonList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C123_ (" +
+					"ROW_ID BIGINT(20) NOT NULL," +
+					" INDEX_NUM BIGINT(20) NOT NULL," +
+					" _C123_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+					" PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+					"INDEX _C123__IDX (_C123_ ASC) );");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
+
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_NoColumnChange(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = oldColumn;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
+
+	}
+
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_DeleteNonListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
+	}
+
+	@Test
+	public void testlistColumnIndexTableCreateOrDropStatements_DeleteListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithNonListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<String> expected = Arrays.asList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
+						"ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM),INDEX _C456__IDX (_C456_ ASC) );",
+				"DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
+	}
+
+
+	@Test
+	public void testCreateListColumnDropIndexTableSql_MultipleChanges(){
+		ColumnModel oldColumn1 = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn1 = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails replaceChange = new ColumnChangeDetails(oldColumn1, newColumn1);
+
+		ColumnModel oldColumn2 = TableModelTestUtils.createColumn(789L, "test", ColumnType.STRING);
+		ColumnModel newColumn2 = TableModelTestUtils.createColumn(101112L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails addChange = new ColumnChangeDetails(oldColumn2, newColumn2);
+
+		ColumnModel oldColumn3 = TableModelTestUtils.createColumn(161718L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn3 = null;
+
+		ColumnChangeDetails deleteChange = new ColumnChangeDetails(oldColumn3, newColumn3);
+
+
+		List<String> expected = Arrays.asList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
+						"ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+						"INDEX _C456__IDX (_C456_ ASC) );",
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C101112_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+						"INDEX _C101112__IDX (_C101112_ ASC) );",
+				"DROP TABLE IF EXISTS T999_INDEX_C123_,T999_INDEX_C161718_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_empty(){
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.emptyList(), tableId).isEmpty());
+	}
+
 	@Test
 	public void testCreateTableIfDoesNotExistSQL(){
 		boolean isView = false;
@@ -1086,6 +1221,31 @@ public class SQLUtilsTest {
 		assertNotNull(changes.getToRemove());
 		assertNotNull(changes.getToRename());
 		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+
+	@Test
+	public void testCalculateIndexChanges_IgnoreJSONColumns(){
+		int maxNumberOfIndex = 10;
+		List<DatabaseColumnInfo> currentInfo = createDatabaseColumnInfo(3);
+		assertEquals(5, currentInfo.size()); //row_id and row_version are also included
+		//find first column not named row_id or row_version and set it to be JSON type
+		for(DatabaseColumnInfo columnInfo : currentInfo){
+			if(!columnInfo.getColumnName().equals("ROW_ID") && !columnInfo.getColumnName().equals("ROW_VERSION")){
+				columnInfo.setType(MySqlColumnType.JSON);
+				break;
+			}
+		}
+
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+
+		//ignore 1 column because it is a JSON column
+		assertEquals(2, changes.getToAdd().size());
 		assertEquals(0, changes.getToRemove().size());
 		assertEquals(0, changes.getToRename().size());
 	}
@@ -1521,6 +1681,10 @@ public class SQLUtilsTest {
 		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.INTEGER));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.LARGETEXT));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.LINK));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.STRING_LIST));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN_LIST));
+		assertEquals(AnnotationType.DATE , SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DATE_LIST));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.INTEGER_LIST));
 	}
 
 	@Test
@@ -1567,6 +1731,7 @@ public class SQLUtilsTest {
 			allTypes.add(cm);
 			i++;
 		}
+
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
@@ -1586,10 +1751,14 @@ public class SQLUtilsTest {
 				+ " MAX(IF(A.ANNO_KEY ='entityid', A.LONG_VALUE, NULL)) AS _C6_,"
 				+ " MAX(IF(A.ANNO_KEY ='link', A.STRING_VALUE, NULL)) AS _C7_,"
 				+ " MAX(IF(A.ANNO_KEY ='largetext', A.STRING_VALUE, NULL)) AS _C8_,"
-				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_"
+				+ " MAX(IF(A.ANNO_KEY ='userid', A.LONG_VALUE, NULL)) AS _C9_,"
+				+ " MAX(IF(A.ANNO_KEY ='string_list', A.STRING_LIST_VALUE, NULL)) AS _C10_,"
+				+ " MAX(IF(A.ANNO_KEY ='integer_list', A.LONG_LIST_VALUE, NULL)) AS _C11_,"
+				+ " MAX(IF(A.ANNO_KEY ='boolean_list', A.BOOLEAN_LIST_VALUE, NULL)) AS _C12_,"
+				+ " MAX(IF(A.ANNO_KEY ='date_list', A.LONG_LIST_VALUE, NULL)) AS _C13_"
 				, builder.toString());
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C0_", "_DBL_C1_",
-				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_"), headers);
+				"_C1_", "_C2_", "_C3_", "_C4_", "_C5_", "_C6_", "_C7_", "_C8_", "_C9_", "_C10_", "_C11_", "_C12_", "_C13_"), headers);
 	}
 
 	@Test
@@ -1749,6 +1918,23 @@ public class SQLUtilsTest {
 				", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_ABSTRACT, NULL)) AS _DBL_C456_"
 				+ ", MAX(IF(A.ANNO_KEY ='foo', A.DOUBLE_VALUE, NULL)) AS _C456_", builder.toString());
 		assertEquals(Lists.newArrayList("_DBL_C456_","_C456_"), headers);
+	}
+
+	@Test
+	public void testBuildSelectMetadataListAnnotation() {
+		//list columns do not have an abstract column
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("foo");
+		cm.setColumnType(ColumnType.STRING_LIST);
+		cm.setId("456");
+		int index = 4;
+		ColumnMetadata meta = SQLUtils.translateColumns(cm, index);
+		// call under test
+		List<String> headers = SQLUtils.buildSelectMetadata(builder, meta);
+		// Should include two selects, one for the abstract double and the other for the double value.
+		assertEquals(", MAX(IF(A.ANNO_KEY ='foo', A.STRING_LIST_VALUE, NULL)) AS _C456_", builder.toString());
+		assertEquals(Lists.newArrayList("_C456_"), headers);
 	}
 
 	@Test
@@ -2271,12 +2457,33 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
 		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
 		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
-		verify(mockPreparedStatement).setString(4, annotationDto.getValue());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
 		// all others should be set to null since the string cannot be converted to any other type.
 		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
 		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementStringList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("abc", "def"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+		// all others should be set to null since the string cannot be converted to any other type.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+
+		verify(mockPreparedStatement).setString(9, "[\"abc\",\"def\"]");
+		verify(mockPreparedStatement).setString(10, null);
+		verify(mockPreparedStatement).setString(11, null);
 	}
 
 	@Test
@@ -2303,6 +2510,29 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setBoolean(8, Boolean.FALSE);
+	}
+
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementBooleanList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("false", "true", "false"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+
+		// type can be set as a boolean.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setBoolean(8, Boolean.FALSE);
+
+		verify(mockPreparedStatement).setString(9, "[\"false\",\"true\",\"false\"]");
+		verify(mockPreparedStatement).setString(10, null);
+		verify(mockPreparedStatement).setString(11, "[false,true,false]");
 	}
 
 	@Test
@@ -2342,6 +2572,29 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setDouble(6, 123);
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+
+
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementLongList() throws SQLException{
+		// string value
+		annotationDto.setValue(Arrays.asList("123", "456", "789"));
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue().get(0));
+
+		// can be a long or a double
+		verify(mockPreparedStatement).setLong(5, 123L);
+		verify(mockPreparedStatement).setDouble(6, 123);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+
+		verify(mockPreparedStatement).setString(9, "[\"123\",\"456\",\"789\"]");
+		verify(mockPreparedStatement).setString(10, "[123,456,789]");
+		verify(mockPreparedStatement).setString(11, null);
 	}
 
 	@Test
@@ -2410,5 +2663,50 @@ public class SQLUtilsTest {
 		String[] row = new String[] {"foo","barbar"};
 		long bytes = SQLUtils.calculateBytes(row);
 		assertEquals(3*4+6*4, bytes);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
+		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
+				"ROW_ID BIGINT(20) NOT NULL, " +
+				"INDEX_NUM BIGINT(20) NOT NULL, " +
+				"_C0_ VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+				"INDEX _C0__IDX (_C0_ ASC) " +
+				");";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testTruncateListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		assertEquals("TRUNCATE TABLE T999_INDEX_C0_;", SQLUtils.truncateListColumnIndexTable(tableId, columnInfo));
+	}
+
+	@Test
+	public void testInsertIntoListColumnIndexTable(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo);
+		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID,INDEX_NUM,_C0_) " +
+				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM T999, JSON_TABLE(" +
+				"_C0_," +
+				" '$[*]' COLUMNS (" +
+				" ORDINAL FOR ORDINALITY," +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				")" +
+				") TEMP_JSON_TABLE;";
+		assertEquals(expected, sql);
 	}
 }

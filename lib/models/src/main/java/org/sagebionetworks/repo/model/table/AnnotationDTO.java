@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.table;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Data transfer object (DTO) for an annotation of an entity.
  * 
@@ -9,11 +12,10 @@ public class AnnotationDTO {
 	Long entityId;
 	String key;
 	AnnotationType type;
-	String value;
-	
-	public AnnotationDTO(){
-	}
-	
+	List<String> value;
+
+	public AnnotationDTO(){}
+
 	/**
 	 * All fields constructor.
 	 * 
@@ -21,12 +23,16 @@ public class AnnotationDTO {
 	 * @param type
 	 * @param value
 	 */
-	public AnnotationDTO(Long entityId, String key, AnnotationType type, String value) {
+	public AnnotationDTO(Long entityId, String key, AnnotationType type, List<String> value) {
 		super();
 		this.entityId = entityId;
 		this.key = key;
 		this.type = type;
 		this.value = value;
+	}
+
+	public AnnotationDTO(Long entityId, String key, AnnotationType type, String value) {
+		this(entityId, key, type, Collections.singletonList(value));
 	}
 	
 	public Long getEntityId() {
@@ -49,11 +55,14 @@ public class AnnotationDTO {
 	public void setType(AnnotationType type) {
 		this.type = type;
 	}
-	public String getValue() {
+	public List<String> getValue() {
 		return value;
 	}
-	public void setValue(String value) {
+	public void setValue(List<String> value) {
 		this.value = value;
+	}
+	public void setValue(String value){
+		setValue(Collections.singletonList(value));
 	}
 	
 

@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -29,12 +27,12 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReferenceLookup;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -44,6 +42,7 @@ import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -730,23 +729,12 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_FalseIsList() throws ParseException {
-		columnFoo.setIsList(false);
+		columnFoo.setColumnType(ColumnType.STRING);//not a list type
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
-
-		assertThrows(IllegalArgumentException.class, () -> {
-			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
-		});
-	}
-
-
-	@Test
-	public void testReplaceArrayHasPredicate_ReferencedColumn_nullIsList() throws ParseException {
-		columnFoo.setIsList(null);
-		columnMap = new ColumnTranslationReferenceLookup(schema);
-
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of the ArrayHasPredicate when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -755,10 +743,11 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_ReferencedColumn_unknown() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("yourColumnIsInAnotherCastle has ('asdf', 'qwerty', 'yeet')");
+		//should not ever happen since translate would have to translate column name to something that it didnt have in its maping
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C723895794567246_ has ('asdf', 'qwerty', 'yeet')");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
@@ -767,34 +756,40 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testReplaceArrayHasPredicate_Has() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotHas() throws ParseException {
-		columnFoo.setIsList(true);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
 
-		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("_C111_ not has ('asdf', 'qwerty', 'yeet')");
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo not has ('asdf', 'qwerty', 'yeet')");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(booleanPrimary.getFirstElementOfType(ArrayHasPredicate.class), new HashMap<>(), columnMap);
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( 'asdf', 'qwerty', 'yeet' ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
 	@Test
 	public void testReplaceArrayHasPredicate_NotAnArrayHasPredicate() throws ParseException{
-		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("_C111_ IN (\"123\", \"456\")");
+		BooleanPrimary notArrayHasPredicate = SqlElementUntils.createBooleanPrimary("foo IN (\"123\", \"456\")");
+		//call translate so that bind variable replacement occurs, matching the state of when replaceArrayHasPredicate is called in actual code.
+		SQLTranslatorUtils.translate(notArrayHasPredicate.getFirstElementOfType(InPredicate.class), new HashMap<>(), columnMap);
 
 		String beforeCallSqll = notArrayHasPredicate.toSql();
 		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
@@ -1624,19 +1619,19 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_HASKeyword() throws ParseException {
-		columnDouble.setIsList(true);
-		columnFoo.setIsList(true);
+		columnDouble.setColumnType(ColumnType.INTEGER_LIST);
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
 
 		//need to recreate the translation reference
 		columnMap = new ColumnTranslationReferenceLookup(schema);
 
-		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1.1,2.2,3.3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
+		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C777_ WHERE _C777_ IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
-		assertEquals(1.1, parameters.get("b0"));
-		assertEquals(2.2, parameters.get("b1"));
-		assertEquals(3.3, parameters.get("b2"));
+		assertEquals("1", parameters.get("b0"));
+		assertEquals("2", parameters.get("b1"));
+		assertEquals("3", parameters.get("b2"));
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
 	}

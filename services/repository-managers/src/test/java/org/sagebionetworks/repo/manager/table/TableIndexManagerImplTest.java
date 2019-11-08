@@ -748,6 +748,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLock() throws Exception {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockManagerSupport.getTableSchema(tableId)).thenReturn(schema);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1L;
@@ -766,12 +767,14 @@ public class TableIndexManagerImplTest {
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 		// Building without a version should attempt to set the current schema on the index.
-		verify(mockManagerSupport).getTableSchema(any(IdAndVersion.class));
+		verify(mockManagerSupport).getTableSchema(tableId);
+		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLockWithVersion() throws Exception {
 		tableId = IdAndVersion.parse("syn123.1");
+		when(mockManagerSupport.getTableSchema(tableId)).thenReturn(schema);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
@@ -790,7 +793,8 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
-		verify(mockManagerSupport).getTableSchema(any(IdAndVersion.class));
+		verify(mockManagerSupport).getTableSchema(tableId);
+		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test
@@ -812,6 +816,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLockNoWorkNeeded() throws Exception {
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(1L);
+		when(mockManagerSupport.getTableSchema(tableId)).thenReturn(schema);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// no version means there are no table changes.
@@ -827,6 +832,8 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, times(1)).alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean());
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
+		verify(mockManagerSupport).getTableSchema(tableId);
+		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test

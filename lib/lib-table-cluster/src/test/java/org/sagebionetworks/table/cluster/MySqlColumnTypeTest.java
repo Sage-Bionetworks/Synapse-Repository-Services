@@ -46,7 +46,14 @@ public class MySqlColumnTypeTest {
 		Integer size = MySqlColumnType.parseSize(typeString);
 		assertEquals(null, size);
 	}
-	
+
+	@Test
+	public void testParseSizeJSON(){
+		String typeString = "json";
+		Integer size = MySqlColumnType.parseSize(typeString);
+		assertEquals(null, size);
+	}
+
 	@Test
 	public void testBigIntHasSize(){
 		assertTrue(MySqlColumnType.BIGINT.hasSize());
@@ -80,5 +87,10 @@ public class MySqlColumnTypeTest {
 	@Test
 	public void testEnumHasSize(){
 		assertFalse(MySqlColumnType.ENUM.hasSize());
+	}
+
+	@Test
+	public void testJsonHasSize(){
+		assertFalse(MySqlColumnType.JSON.hasSize());
 	}
 }

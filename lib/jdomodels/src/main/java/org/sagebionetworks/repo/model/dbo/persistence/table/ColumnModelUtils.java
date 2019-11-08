@@ -159,6 +159,7 @@ public class ColumnModelUtils {
 			}
 			switch (clone.getColumnType()) {
 			case STRING:
+			case STRING_LIST:
 			case LINK:
 				if(clone.getMaximumSize() == null){
 					// Use the default value
@@ -186,6 +187,9 @@ public class ColumnModelUtils {
 			case DATE:
 			case INTEGER:
 			case DOUBLE:
+			case INTEGER_LIST:
+			case DATE_LIST:
+			case BOOLEAN_LIST:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}

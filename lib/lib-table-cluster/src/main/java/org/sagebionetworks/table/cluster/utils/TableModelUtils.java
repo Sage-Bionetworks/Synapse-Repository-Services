@@ -21,6 +21,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.parser.ListStringParser;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
@@ -101,7 +103,7 @@ public class TableModelUtils {
 			return Long.parseLong(sc.getId());
 		}
 	};
-	
+
 	/**
 	 * Write a SparseChangeSetDto to the given output stream as GZIP compressed JSON.
 	 * @param set
@@ -212,15 +214,7 @@ public class TableModelUtils {
 	public static String validateValue(String value, ColumnModel cm) {
 		switch (cm.getColumnType()) {
 		case STRING:
-			if (cm.getMaximumSize() == null)
-				throw new IllegalArgumentException("String columns must have a maximum size");
-			if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
-				throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
-			}
-			if (value.length() > cm.getMaximumSize()) {
-				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
-						+ " characters. Consider using a FileHandle to store large strings.");
-			}
+			validateStringValueSize(value, cm);
 			checkStringEnum(value, cm);
 			return value;
 		case LINK:
@@ -238,11 +232,33 @@ public class TableModelUtils {
 			}
 			checkStringEnum(value, cm);
 			return value;
+		case STRING_LIST:
+			//make sure this is a valid JSON List (size limit, values
+			String listValue = (String) ColumnTypeInfo.STRING_LIST.parseValueForDatabaseWrite(value);
+
+			//validate values for each individual string in the list
+			for(Object listElem : new JSONArray(listValue)){
+				String strListElem = listElem.toString();
+				validateStringValueSize(strListElem, cm);
+				checkStringEnum(strListElem, cm);
+			}
 		default:
 			// All other types are handled by the type specific parser.
 			ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
 			Object objectValue = info.parseValueForDatabaseWrite(value);
 			return objectValue.toString();
+		}
+	}
+
+	private static void validateStringValueSize(String value, ColumnModel cm) {
+		if (cm.getMaximumSize() == null)
+			throw new IllegalArgumentException("String columns must have a maximum size");
+		if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
+			throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+		}
+		if (value.length() > cm.getMaximumSize()) {
+			throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
+					+ " characters.");
 		}
 	}
 
@@ -720,33 +736,40 @@ public class TableModelUtils {
 	public static int calculateMaxSizeForType(ColumnType type, Long maxSize){
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
 		switch (type) {
-		case STRING:
-		case LINK:
-			if (maxSize == null) {
-				throw new IllegalArgumentException("maxSize cannot be null for String types");
-			}
-			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
-		case LARGETEXT:
-			return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;	
-		case BOOLEAN:
-			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
-		case INTEGER:
-		case DATE:
-			return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
-		case DOUBLE:
-			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
-		case FILEHANDLEID:
-			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
-		case ENTITYID:
-			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
-		case USERID:
-			return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
+			case STRING:
+			case LINK:
+				if (maxSize == null) {
+					throw new IllegalArgumentException("maxSize cannot be null for String types");
+				}
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
+			case LARGETEXT:
+				return ColumnConstants.SIZE_OF_LARGE_TEXT_FOR_COLUMN_SIZE_ESTIMATE_BYTES;
+			case BOOLEAN:
+				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
+			case INTEGER:
+			case DATE:
+				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
+			case DOUBLE:
+				return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
+			case FILEHANDLEID:
+				return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
+			case ENTITYID:
+				return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
+			case USERID:
+				return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
+			case STRING_LIST:
+				if (maxSize == null) {
+					throw new IllegalArgumentException("maxSize cannot be null for String List types");
+				}
+				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST);
+			case INTEGER_LIST:
+			case DATE_LIST:
+				return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
+			case BOOLEAN_LIST:
+				return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * ListStringParser.MAX_NUMBER_OF_ITEMS_IN_LIST;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
-	}
-//TODO: for lists String: counts as 4 * 100 * maxSize
-	//TODO: for double 23 * 100, where 23 is double.max.tostring.getbytes
-	//TODO: 100 is max size of list
+		}
 	
 	/**
 	 * Calculate the amount of memory needed load the given row.
