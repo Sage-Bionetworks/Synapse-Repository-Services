@@ -387,7 +387,7 @@ public class TableModelTestUtils {
 			case BOOLEAN_LIST:
 				return "[" + ((i % 2 > 0 ^ isUpdate) ? "true" : "false") + "]";
 			case DATE_LIST:
-				return "[" + 1234 + "]";
+				return "[" + (i + 4000 + (isUpdate ? 10000 : 0)) + "]";
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}
