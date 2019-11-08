@@ -961,7 +961,7 @@ public class TableIndexDAOImplTest {
 
 
 		//check index table was created
-		assertEquals("t123_index_c1337_", tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class));
+		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class));
 
 		//delete column
 		ColumnChangeDetails deleteColumnChange = new ColumnChangeDetails(column, null);

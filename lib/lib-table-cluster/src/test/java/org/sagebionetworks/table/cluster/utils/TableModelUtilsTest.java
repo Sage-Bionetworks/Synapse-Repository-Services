@@ -774,7 +774,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(28261, allBytes);
+		assertEquals(25961, allBytes);
 	}
 
 	@Test
