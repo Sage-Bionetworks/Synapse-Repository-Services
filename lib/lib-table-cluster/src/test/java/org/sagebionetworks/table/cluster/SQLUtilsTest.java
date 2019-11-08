@@ -999,69 +999,103 @@ public class SQLUtilsTest {
 		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results);
 	}
 
+
+
 	@Test
-	public void testCreateListColumnDropIndexTableSql_ColumnAddition(){
+	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition_nonList(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
+		ColumnModel newColumn = null;
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
+	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition(){
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
-
-		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+		List<String> expected = Collections.singletonList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C123_ (" +
+					"ROW_ID BIGINT(20) NOT NULL," +
+					" INDEX_NUM BIGINT(20) NOT NULL," +
+					" _C123_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+					" PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+					"INDEX _C123__IDX (_C123_ ASC) );");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 
 	}
 
 	@Test
-	public void testCreateListColumnDropIndexTableSql_NoColumnChange(){
+	public void testListColumnIndexTableCreateOrDropStatements_NoColumnChange(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
 		ColumnModel newColumn = oldColumn;
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
 
-		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
 
 	}
 
 
 	@Test
-	public void testCreateListColumnDropIndexTableSql_DeleteNonListColumnType(){
+	public void testListColumnIndexTableCreateOrDropStatements_DeleteNonListColumnType(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
 		ColumnModel newColumn = null;
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
-		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId).isPresent());
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
 	}
 
 	@Test
-	public void testCreateListColumnDropIndexTableSql_DeleteListColumnType(){
+	public void testlistColumnIndexTableCreateOrDropStatements_DeleteListColumnType(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
 		ColumnModel newColumn = null;
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
-
-		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId);
-		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_;", deleteSql.get());
+		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 	}
 
 	@Test
-	public void testCreateListColumnDropIndexTableSql_ReplaceListColumnType(){
+	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithNonListColumnType(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
 		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
-
-		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Collections.singletonList(change), tableId);
-		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_;", deleteSql.get());
+		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 	}
+
+	@Test
+	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithListColumnType(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
+		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
+
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<String> expected = Arrays.asList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
+						"ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM),INDEX _C456__IDX (_C456_ ASC) );",
+				"DROP TABLE IF EXISTS T999_INDEX_C123_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
+	}
+
 
 	@Test
 	public void testCreateListColumnDropIndexTableSql_MultipleChanges(){
 		ColumnModel oldColumn1 = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn1 = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
+		ColumnModel newColumn1 = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
 
 		ColumnChangeDetails replaceChange = new ColumnChangeDetails(oldColumn1, newColumn1);
 
@@ -1076,13 +1110,25 @@ public class SQLUtilsTest {
 		ColumnChangeDetails deleteChange = new ColumnChangeDetails(oldColumn3, newColumn3);
 
 
-		Optional<String> deleteSql = SQLUtils.createListColumnDropIndexTableSql(Arrays.asList(replaceChange,addChange,deleteChange), tableId);
-		assertEquals("DROP TABLE IF EXISTS T999_INDEX_C123_,T999_INDEX_C161718_;", deleteSql.get());
+		List<String> expected = Arrays.asList(
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
+						"ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+						"INDEX _C456__IDX (_C456_ ASC) );",
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (ROW_ID BIGINT(20) NOT NULL, " +
+						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"_C101112_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
+						"INDEX _C101112__IDX (_C101112_ ASC) );",
+				"DROP TABLE IF EXISTS T999_INDEX_C123_,T999_INDEX_C161718_;");
+		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
 	}
 
 	@Test
-	public void testCreateListColumnDropIndexTableSql_empty(){
-		assertFalse(SQLUtils.createListColumnDropIndexTableSql(Collections.emptyList(), tableId).isPresent());
+	public void testListColumnIndexTableCreateOrDropStatements_empty(){
+		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.emptyList(), tableId).isEmpty());
 	}
 
 	@Test
@@ -2625,7 +2671,7 @@ public class SQLUtilsTest {
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.createAndTruncateListColumnIndexTable(tableId, columnInfo);
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
 				"ROW_ID BIGINT(20) NOT NULL, " +
 				"INDEX_NUM BIGINT(20) NOT NULL, " +

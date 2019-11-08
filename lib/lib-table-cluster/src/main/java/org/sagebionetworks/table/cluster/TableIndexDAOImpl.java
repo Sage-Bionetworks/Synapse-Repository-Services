@@ -436,12 +436,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// apply the update
 		template.update(sql);
 
-		//TODO: add create statement here
 
 		//for any columns that have list columns delete their table indexes
-		SQLUtils.createListColumnDropIndexTableSql(changes, tableId)
-				//apply DROP sql if generated
-				.ifPresent(template::update);
+		for(String sqlStatement : SQLUtils.listColumnIndexTableCreateOrDropStatements(changes, tableId)){
+			template.update(sqlStatement);
+		}
 
 		return true;
 	}
@@ -538,17 +537,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
+	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
 		for(ColumnModel columnModel : columnModels){
 			//only operate on list column types
 			if(!ColumnTypeListMappings.isList(columnModel.getColumnType())){
 				continue;
 			}
-
-
-			// drop and re-create table
-			String createTableSql = SQLUtils.createAndTruncateListColumnIndexTable(tableIdAndVersion, columnModel);
-			template.update(createTableSql);
+			//index tables for list columns have already been created when column changes were applied
 
 			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
 			template.update(truncateTablesql);

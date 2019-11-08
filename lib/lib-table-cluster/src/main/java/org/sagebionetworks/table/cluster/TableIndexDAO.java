@@ -252,7 +252,7 @@ public interface TableIndexDAO {
 	 * @param columnModels
 	 * @param tableIdAndVersion
 	 */
-	public void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels);
+	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels);
 
 
 		/**

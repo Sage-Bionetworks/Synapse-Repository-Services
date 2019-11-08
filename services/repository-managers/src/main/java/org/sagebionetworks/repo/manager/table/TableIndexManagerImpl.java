@@ -253,7 +253,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	@Override
 	public void createAndPopulateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schemas){
-		tableIndexDao.createAndPopulateListColumnIndexTables(tableIdAndVersion, schemas);
+		tableIndexDao.populateListColumnIndexTables(tableIdAndVersion, schemas);
 	}
 
 	@Override

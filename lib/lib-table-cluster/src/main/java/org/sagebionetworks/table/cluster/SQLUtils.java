@@ -36,13 +36,8 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import com.amazonaws.services.athena.model.ColumnInfo;
-import com.amazonaws.services.glue.model.Column;
-import org.apache.commons.lang3.BooleanUtils;
-import org.checkerframework.checker.nullness.Opt;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -677,20 +672,34 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
-	public static Optional<String> createListColumnDropIndexTableSql(List<ColumnChangeDetails> changes, IdAndVersion tableId) {
+	public static List<String> listColumnIndexTableCreateOrDropStatements(List<ColumnChangeDetails> changes, IdAndVersion tableId){
+		List<String> statements = new ArrayList<>();
+
 		StringJoiner dropTableJoiner = new StringJoiner(",", "DROP TABLE IF EXISTS ", ";");
-		int originalLen = dropTableJoiner.length();
+		int originalJoinerLen = dropTableJoiner.length();
 
 		for(ColumnChangeDetails changeDetails : changes){
-			//no changes applied to old column if no old column or old column same as new column
-			if(changeDetails.getOldColumn() != null && !changeDetails.getOldColumn().equals(changeDetails.getNewColumn())
-				&& ColumnTypeListMappings.isList(changeDetails.getOldColumn().getColumnType())
+			//column being added/replacing other column
+			if(changeDetails.getNewColumn() != null && !changeDetails.getNewColumn().equals(changeDetails.getOldColumn())
+					&& ColumnTypeListMappings.isList(changeDetails.getNewColumn().getColumnType())
 			){
-				dropTableJoiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(tableId, changeDetails.oldColumn.getId()));
+				statements.add(SQLUtils.createListColumnIndexTable(tableId, changeDetails.getNewColumn()));
+			}
+
+			//column being deleted/replaced
+			if(changeDetails.getOldColumn() != null && !changeDetails.getOldColumn().equals(changeDetails.getNewColumn())
+					&& ColumnTypeListMappings.isList(changeDetails.getOldColumn().getColumnType())
+			){
+				dropTableJoiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(tableId, changeDetails.getOldColumn().getId()));
 			}
 		}
 
-		return dropTableJoiner.length() > originalLen ? Optional.of(dropTableJoiner.toString()) : Optional.empty();
+		//make sure drop statement joiner actually has content before adding to result list
+		if( dropTableJoiner.length() > originalJoinerLen){
+			statements.add(dropTableJoiner.toString());
+		}
+
+		return statements;
 	}
 
 
@@ -1842,7 +1851,7 @@ public class SQLUtils {
 	}
 
 
-	public static String createAndTruncateListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
 		String columnName = getColumnNameForId(columnInfo.getId());
 		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);

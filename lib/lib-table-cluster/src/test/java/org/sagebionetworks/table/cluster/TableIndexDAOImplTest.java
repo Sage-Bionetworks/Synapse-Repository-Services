@@ -61,6 +61,7 @@ import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -941,25 +942,37 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testAlterTableAsNeeded_DropListIndexes(){
+	public void testAlterTableAsNeeded_ListColumnIndexTables(){
 		// This will be an add, so the old is null.
-		ColumnModel oldColumn = null;
-		ColumnModel newColumn = new ColumnModel();
-		newColumn.setColumnType(ColumnType.STRING_LIST);
+		ColumnModel column = new ColumnModel();
+		column.setColumnType(ColumnType.STRING_LIST);
 		String columnId = "1337";
-		newColumn.setId(columnId);
-		newColumn.setName("StringList");
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		column.setId(columnId);
+		column.setMaximumSize(50L);
+		column.setName("StringList");
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		boolean alterTemp = false;
 
-		//add column to list
-		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		//add column
+		ColumnChangeDetails addColumnChange = new ColumnChangeDetails(null, column);
+		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(addColumnChange), alterTemp);
 		assertTrue(wasAltered);
-//todo: finish
-		//check table is deleted
-		tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class);
+
+
+		//check index table was created
+		assertEquals("t123_index_c1337_", tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class));
+
+		//delete column
+		ColumnChangeDetails deleteColumnChange = new ColumnChangeDetails(column, null);
+		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(deleteColumnChange), alterTemp);
+		assertTrue(wasAltered);
+
+
+		//check index table was deleted
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class);
+		});
 	}
 	
 	
@@ -2443,7 +2456,7 @@ public class TableIndexDAOImplTest {
 
 
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
-		tableIndexDAO.createAndPopulateListColumnIndexTables(tableId, schema);
+		tableIndexDAO.populateListColumnIndexTables(tableId, schema);
 
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 
