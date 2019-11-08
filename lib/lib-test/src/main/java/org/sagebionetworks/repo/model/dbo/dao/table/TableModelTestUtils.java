@@ -107,6 +107,16 @@ public class TableModelTestUtils {
 				case LINK:
 					defaultValue = "defaultLink";
 					break;
+				case BOOLEAN_LIST:
+					defaultValue = "[\"true\"]";
+					break;
+				case DATE_LIST:
+				case INTEGER_LIST:
+					defaultValue = "[\"12345\"]";
+					break;
+				case STRING_LIST:
+					defaultValue = "[\"defaultString\"]";
+					break;
 				default:
 					throw new IllegalStateException("huh? missing enum");
 				}
