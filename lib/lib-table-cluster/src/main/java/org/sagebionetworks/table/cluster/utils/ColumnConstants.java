@@ -6,8 +6,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.table.parser.ListStringParser;
-
 public class ColumnConstants {
 
 	/**
