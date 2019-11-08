@@ -28,15 +28,26 @@ public class EvaluationDBOUtilTest {
     	evalDTO.setStatus(EvaluationStatus.OPEN);
     	SubmissionQuota quota = new SubmissionQuota();
     	quota.setSubmissionLimit(10L);
+    	Date firstRoundStart = new Date();
+    	quota.setFirstRoundStart(firstRoundStart);
+    	quota.setNumberOfRounds(100L);
+    	quota.setRoundDurationMillis(60000L);
     	evalDTO.setQuota(quota);
     	evalDTO.setSubmissionInstructionsMessage("some instructions");
     	evalDTO.setSubmissionReceiptMessage("some receipt");
     	    	
+    	// method under test
     	EvaluationDBOUtil.copyDtoToDbo(evalDTO, evalDBO);
+    	// method under test
     	EvaluationDBOUtil.copyDboToDto(evalDBO, evalDTOclone);
+    	// method under test
     	EvaluationDBOUtil.copyDtoToDbo(evalDTOclone, evalDBOclone);
     	
     	assertEquals(evalDTO, evalDTOclone);
     	assertEquals(evalDBO, evalDBOclone);
+    	
+    	assertEquals(firstRoundStart.getTime(), evalDBO.getStartTimestamp());
+    	assertEquals(firstRoundStart.getTime()+60000L*100L, evalDBO.getEndTimestamp());
+    	
     }
 }

@@ -1,11 +1,10 @@
 package org.sagebionetworks.evaluation.dao;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,10 +15,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -35,21 +34,21 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 
-@RunWith(SpringJUnit4ClassRunner.class)
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-
 public class EvaluationDAOImplTest {
 	
 	@Autowired
-	private EvaluationDAO evaluationDAO;
+	EvaluationDAO evaluationDAO;
 	
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	AccessControlListDAO aclDAO;
 	
-	private Evaluation eval;	
+	private Evaluation eval;
 	private AccessControlList aclToDelete = null;
 
 	List<String> toDelete;
@@ -69,7 +68,7 @@ public class EvaluationDAOImplTest {
     	return evaluation;
     }
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
 		// Initialize Evaluation
@@ -77,7 +76,7 @@ public class EvaluationDAOImplTest {
 		aclToDelete = null;
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		if(toDelete != null && evaluationDAO != null){
 			for(String id: toDelete){
@@ -116,8 +115,8 @@ public class EvaluationDAOImplTest {
 		evaluationDAO.update(created);
 		Evaluation updated = evaluationDAO.get(evalId);
 		assertEquals(evalId, updated.getId());
-		assertFalse("Evaluation name update failed.", eval.getName().equals(updated.getName()));
-		assertFalse("eTag was not updated.", originalEtag.equals(updated.getEtag()));
+		assertFalse(eval.getName().equals(updated.getName()), "Evaluation name update failed.");
+		assertFalse(originalEtag.equals(updated.getEtag()), "eTag was not updated.");
 		
 		// Delete it
 		assertNotNull(evaluationDAO.get(evalId));
@@ -208,8 +207,8 @@ public class EvaluationDAOImplTest {
         	fail("Should not be able to create two Evaluations with the same name");
         } catch (NameConflictException e) {
         	// Expected name conflict
-        	assertTrue("Name conflict message should contain the requested name", 
-        			e.getMessage().contains(EVALUATION_NAME));
+        	assertTrue(e.getMessage().contains(EVALUATION_NAME), 
+        			"Name conflict message should contain the requested name");
         }
     }
     
