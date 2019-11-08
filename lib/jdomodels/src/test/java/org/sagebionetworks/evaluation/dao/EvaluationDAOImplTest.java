@@ -44,10 +44,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class EvaluationDAOImplTest {
 	
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
 	
 	@Autowired
-	AccessControlListDAO aclDAO;
+	private AccessControlListDAO aclDAO;
 	
 	private Evaluation eval;
 	private AccessControlList aclToDelete = null;

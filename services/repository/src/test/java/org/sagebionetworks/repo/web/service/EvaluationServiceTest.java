@@ -96,6 +96,34 @@ public class EvaluationServiceTest {
 		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());
 		assertEquals(result, mtuArg.getValue());		
 	}
+	
+	@Test
+	public void testGetEvaluationsInRange() {
+		evaluationService.getEvaluationsInRange(userId, false, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, false, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationsInRangeActiveOnly() {
+		evaluationService.getEvaluationsInRange(userId, true, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, true, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationByContentSource() {
+		evaluationService.getEvaluationByContentSource(userId, "syn123", false, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", false, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationByContentSourceActiveOnly() {
+		evaluationService.getEvaluationByContentSource(userId, "syn123", true, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", true, limit, offset);
+	}
 
 	@Test
 	public void testGetAllSubmissions() {

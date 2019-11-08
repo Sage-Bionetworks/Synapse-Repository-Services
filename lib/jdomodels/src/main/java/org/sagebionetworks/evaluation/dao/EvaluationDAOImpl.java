@@ -175,7 +175,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 
 	@Override
-	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long now, long limit, long offset) 
+	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -188,9 +188,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
 		sql.append(AUTHORIZATION_SQL_WHERE);
 		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
-		if (now!=null) {
+		if (optionalTimeToFilterBy!=null) {
 			sql.append(SELECT_TIME_RANGE_FILTER);
-			param.addValue(CURRENT_TIME_PARAM_NAME, now);
+			param.addValue(CURRENT_TIME_PARAM_NAME, optionalTimeToFilterBy);
 		}
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
@@ -205,7 +205,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * has the given access type
 	 */
 	@Override
-	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long now, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
+	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(BIND_VAR_PREFIX, principalIds);	
@@ -219,9 +219,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
 		}
-		if (now!=null) {
+		if (optionalTimeToFilterBy!=null) {
 			sql.append(SELECT_TIME_RANGE_FILTER);
-			param.addValue(CURRENT_TIME_PARAM_NAME, now);
+			param.addValue(CURRENT_TIME_PARAM_NAME, optionalTimeToFilterBy);
 		}
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 

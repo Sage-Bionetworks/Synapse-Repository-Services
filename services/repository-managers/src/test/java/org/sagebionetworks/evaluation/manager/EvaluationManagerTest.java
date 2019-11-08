@@ -45,7 +45,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class EvaluationManagerTest {
-		
+
 	private EvaluationManager evaluationManager;
 	private Evaluation eval;
 	private Evaluation evalWithId;
@@ -76,30 +76,30 @@ public class EvaluationManagerTest {
 	private final Long USER_ID = 456L;
 	private UserInfo ownerInfo;
 	private UserInfo userInfo;
-	
-	private final String EVALUATION_NAME = "test-evaluation";
-    private final String EVALUATION_ID = "1234";
-    private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
-    private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
-    private final String EVALUATION_ETAG = "etag";
-    
-    @BeforeEach
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 
-    	// UserInfo
-    	ownerInfo = new UserInfo(false, OWNER_ID);
-    	userInfo = new UserInfo(false, USER_ID);
-    	
+	private final String EVALUATION_NAME = "test-evaluation";
+	private final String EVALUATION_ID = "1234";
+	private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
+	private final String EVALUATION_CONTENT_SOURCE = "syn12358129748";
+	private final String EVALUATION_ETAG = "etag";
+
+	@BeforeEach
+	public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
+
+		// UserInfo
+		ownerInfo = new UserInfo(false, OWNER_ID);
+		userInfo = new UserInfo(false, USER_ID);
+
 		// Evaluation
-    	Date date = new Date();
+		Date date = new Date();
 		eval = new Evaluation();
 		eval.setCreatedOn(date);
 		eval.setName(EVALUATION_NAME);
 		eval.setOwnerId(ownerInfo.getId().toString());
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        eval.setEtag(EVALUATION_ETAG);
-        
+		eval.setContentSource(EVALUATION_CONTENT_SOURCE);
+		eval.setStatus(EvaluationStatus.PLANNED);
+		eval.setEtag(EVALUATION_ETAG);
+
 		evalWithId = new Evaluation();
 		evalWithId.setCreatedOn(date);
 		evalWithId.setId(EVALUATION_ID);
@@ -109,27 +109,27 @@ public class EvaluationManagerTest {
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
 
-        // Evaluation Manager
-    	evaluationManager = new EvaluationManagerImpl();
-    	ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
-    	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
-    	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
-    	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
-    	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
+		// Evaluation Manager
+		evaluationManager = new EvaluationManagerImpl();
+		ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
+		ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
+		ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
+		ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
 		ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
 		ReflectionTestUtils.setField(evaluationManager, "nodeDAO", mockNodeDAO);
 
-    }
+	}
 
 	@Test
 	public void testCreateEvaluation() throws Exception {		
-    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
-    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
-    	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
 
 		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
 		assertNotNull(clone.getCreatedOn());
@@ -137,59 +137,61 @@ public class EvaluationManagerTest {
 		assertEquals(evalWithId, clone, "'create' returned unexpected Evaluation");
 		verify(mockEvaluationDAO).create(eq(eval), eq(OWNER_ID));
 	}
-	
+
 	@Test
 	public void testGetEvaluation() throws DatastoreException, NotFoundException, UnauthorizedException {
-    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
 
-    	Evaluation eval2 = evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
-    	
+		Evaluation eval2 = evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
+
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
 	}
-	
+
 	@Test
 	public void testGetEvaluationByContentSource() throws Exception {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
 
 		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, false, 10L, 0L);
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
 	}
-	
+
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() throws Exception {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).
-    		thenReturn(Collections.EMPTY_LIST);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).
+		thenReturn(Collections.EMPTY_LIST);
 
 		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, true, 10L, 0L);
 		assertTrue(qr.isEmpty());
+		verify(mockEvaluationDAO).getAccessibleEvaluationsForProject(
+				eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ),  anyLong(), eq(10L), eq(0L));
 	}
-	
+
 	@Test
 	public void testUpdateEvaluationAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
-    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.authorized());
 
 		assertNotNull(evalWithId.getCreatedOn());
 
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
 	}
-	
+
 	@Test
 	public void testUpdateEvaluationAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(userInfo), any(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationStatus.accessDenied(""));
 
 		try {
 			evaluationManager.updateEvaluation(userInfo, evalWithId);
@@ -202,52 +204,54 @@ public class EvaluationManagerTest {
 
 	@Test
 	public void testFind() throws DatastoreException, UnauthorizedException, NotFoundException {
-    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-    	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockPermissionsManager.hasAccess(eq(ownerInfo), any(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
 
 		Evaluation eval2 = evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).lookupByName(eq(EVALUATION_NAME));
 	}
-	
+
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), eq(null), anyLong(), anyLong(), eq(null))).thenReturn(evaluations);    	
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), eq(null), anyLong(), anyLong(), eq(null))).thenReturn(evaluations);    	
 
 		// availability is based on SUBMIT access, not READ
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
 	}
-	
+
 	@Test
 	public void testGetAvailableInRangeActiveOnly() throws Exception {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null))).thenReturn(Collections.EMPTY_LIST);    	
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null))).thenReturn(Collections.EMPTY_LIST);    	
 
 		// availability is based on SUBMIT access, not READ
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, true, 10L, 0L, null);
 		assertTrue(qr.isEmpty());
+		verify(mockEvaluationDAO).getAccessibleEvaluations(
+				(List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), eq(10L), eq(0L), eq(null));
 	}
-	
+
 	@Test
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-    	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME +  "2"))).thenThrow(new NotFoundException());
+		when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME +  "2"))).thenThrow(new NotFoundException());
 
 		assertThrows(NotFoundException.class, ()->evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME +  "2"));
 	}
-	
+
 	@Test
 	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
-    	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
 
 		// note that the Evaluation Manager relies on NameValidation.java
 		eval.setName("$ This is an invalid name");
@@ -259,36 +263,36 @@ public class EvaluationManagerTest {
 		}
 		verify(mockEvaluationDAO, times(0)).update(eq(eval));
 	}
-	
+
 	private static final String TEAM_ID = "101";
-	
+
 	@Test
 	public void testGetTeamSubmissionEligibility() throws Exception {
 
-    	evaluations= Collections.singletonList(evalWithId);
+		evaluations= Collections.singletonList(evalWithId);
 
 		when(mockEvaluationDAO.get(eval.getId())).thenReturn(eval);
 		when(mockPermissionsManager.canCheckTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID)).
-			thenReturn(AuthorizationStatus.authorized());
+		thenReturn(AuthorizationStatus.authorized());
 		TeamSubmissionEligibility tse = new TeamSubmissionEligibility();
 		tse.setEvaluationId(eval.getId());
 		tse.setTeamId(TEAM_ID);
 		when(mockSubmissionEligibilityManager.getTeamSubmissionEligibility(eval, TEAM_ID)).
-			thenReturn(tse);
+		thenReturn(tse);
 		assertEquals(tse,
 				evaluationManager.getTeamSubmissionEligibility(userInfo, eval.getId(), TEAM_ID));
 	}
 
 	@Test
 	public void testCannotCreateEvaluationForNonProject() {
-    	// configure mocks
-    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
-    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
-    	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
+		// configure mocks
+		when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
+		when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
+		when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
 
-    	evaluations= Collections.singletonList(evalWithId);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
-    	when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
+		evaluations= Collections.singletonList(evalWithId);
+		when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_CONTENT_SOURCE), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(EntityType.project);
 
 		for (EntityType t : EntityType.values()) {
 			when(mockNodeDAO.getNodeTypeById(EVALUATION_CONTENT_SOURCE)).thenReturn(t);

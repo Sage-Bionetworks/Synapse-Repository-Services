@@ -161,8 +161,8 @@ public class EvaluationController {
 	 * >ACCESS_TYPE.READ</a> on the specified Evaluations.
 	 * </p>
 	 * 
-	 * @param id - the ID of the Project.
-	 * @param activeOnly - if 'true' then include only those evaluations with rounds defined and for which the current time is in one of the rounds
+	 * @param id the ID of the project
+	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
@@ -197,7 +197,7 @@ public class EvaluationController {
 	 * permission.
 	 * </p> 
 	 * 
-	 * @param activeOnly - if 'true' then include only those evaluations with rounds defined and for which the current time is in one of the rounds
+	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
