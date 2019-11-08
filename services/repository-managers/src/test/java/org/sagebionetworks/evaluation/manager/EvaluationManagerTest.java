@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -158,9 +157,19 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), eq(null), anyLong(), anyLong())).thenReturn(evaluations);
 
 		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, false, 10L, 0L);
-		// TODO test activeOnly=true
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
+	}
+	
+	@Test
+	public void testGetEvaluationByContentSourceActiveOnly() throws Exception {
+
+    	evaluations= Collections.singletonList(evalWithId);
+    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).
+    		thenReturn(Collections.EMPTY_LIST);
+
+		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, true, 10L, 0L);
+		assertTrue(qr.isEmpty());
 	}
 	
 	@Test
@@ -211,9 +220,19 @@ public class EvaluationManagerTest {
 
 		// availability is based on SUBMIT access, not READ
 		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
-		// TODO test activeOnly=true
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
+	}
+	
+	@Test
+	public void testGetAvailableInRangeActiveOnly() throws Exception {
+
+    	evaluations= Collections.singletonList(evalWithId);
+    	when(mockEvaluationDAO.getAccessibleEvaluations(any(List.class), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), eq(null))).thenReturn(Collections.EMPTY_LIST);    	
+
+		// availability is based on SUBMIT access, not READ
+		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
+		assertTrue(qr.isEmpty());
 	}
 	
 	@Test

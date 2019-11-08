@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -50,6 +51,7 @@ public class EvaluationDAOImplTest {
 	
 	private Evaluation eval;
 	private AccessControlList aclToDelete = null;
+	private Long futureTime;
 
 	List<String> toDelete;
 	
@@ -65,6 +67,12 @@ public class EvaluationDAOImplTest {
     	evaluation.setName(name);
         evaluation.setContentSource(contentSource);
     	evaluation.setStatus(status);
+    	SubmissionQuota quota = new SubmissionQuota();
+    	quota.setFirstRoundStart(new Date(System.currentTimeMillis()-10L)); // started slightly in the past
+    	quota.setNumberOfRounds(10L);
+    	quota.setRoundDurationMillis(60000L); // one minute
+    	quota.setSubmissionLimit(10L); // the challenge ends after ten minutes
+    	evaluation.setQuota(quota);
     	return evaluation;
     }
 
@@ -74,11 +82,12 @@ public class EvaluationDAOImplTest {
 		// Initialize Evaluation
 		eval = newEvaluation("123", EVALUATION_NAME, EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
 		aclToDelete = null;
+		futureTime = System.currentTimeMillis()+60000L*1000L; // 1000 minutes in the future
 	}
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		if(toDelete != null && evaluationDAO != null){
+		if(toDelete != null){
 			for(String id: toDelete){
 				try {
 					evaluationDAO.delete(id);
@@ -138,7 +147,9 @@ public class EvaluationDAOImplTest {
 		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
 		assertEquals(0, retrieved.size());
 		
-		// TODO test with timestamp param
+		// test with timestamp param
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
+		assertEquals(0, retrieved.size());
 		
 		// Create one
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -149,8 +160,6 @@ public class EvaluationDAOImplTest {
 		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
 		assertEquals(0, retrieved.size());
 		
-		// TODO test with timestamp param
-
 		// now provide the permission to READ
 		AccessControlList acl = Util.createACL(evalId, EVALUATION_OWNER_ID, Collections.singleton(ACCESS_TYPE.READ), new Date());
 
@@ -162,8 +171,6 @@ public class EvaluationDAOImplTest {
 		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
 		assertEquals(1, retrieved.size());
 		
-		// TODO test with timestamp param
-		
 		Evaluation created = retrieved.get(0);
 		assertEquals(evalId, created.getId());
 		assertEquals(EVALUATION_NAME, created.getName());
@@ -171,6 +178,15 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
+
+		// test with timestamp param
+		// currently the challenge is active...
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
+		assertEquals(1, retrieved.size());
+		// but in the future it won't be
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, futureTime, 10, 0);
+		assertEquals(0, retrieved.size());
+		
 	}
 
 	@Test
@@ -235,19 +251,19 @@ public class EvaluationDAOImplTest {
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		// TODO test with timestamp param
-	
 		assertTrue(evalList.isEmpty());
+		
 		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		// TODO test with timestamp param
-
 		assertTrue(evalList.isEmpty());
+		
 		// check that the filter works
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
-		// TODO test with timestamp param
-
+		assertTrue(evalList.isEmpty());
+		
+		// and that the time filter works
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
 		assertTrue(evalList.isEmpty());
 
 		// Now join the Evaluation by
@@ -260,26 +276,29 @@ public class EvaluationDAOImplTest {
 		// As a participant, I can find:
 		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		// TODO test with timestamp param
-
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
+		// make sure time filter works
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		// the evaluation is omitted if the challenge is over:
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, futureTime, 10, 0, null);
+		assertTrue(evalList.isEmpty());		
+		
 		// make sure filter works
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
-		// TODO test with timestamp param
-
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
 		// filtering with 'eval 2' causes no results to come back
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
-		// TODO test with timestamp param
-
 		assertEquals(0, evalList.size());
+		
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		// TODO test with timestamp param
-
 		assertTrue(evalList.isEmpty());
 		
 		// PLFM-2312 problem with repeated entries
@@ -294,19 +313,13 @@ public class EvaluationDAOImplTest {
 				participantId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
 		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
-		// TODO test with timestamp param
-		
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		
 		
 		// Note:  The evaluation isn't returned for the wrong access type
 		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null).isEmpty());
-		// TODO test with timestamp param
-
 		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, null, 10, 0, null).isEmpty());
-		// TODO test with timestamp param
-
    }
 
 }
