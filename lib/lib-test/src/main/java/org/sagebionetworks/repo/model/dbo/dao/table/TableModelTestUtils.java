@@ -108,11 +108,11 @@ public class TableModelTestUtils {
 					defaultValue = "defaultLink";
 					break;
 				case BOOLEAN_LIST:
-					defaultValue = "[\"true\"]";
+					defaultValue = "[true]";
 					break;
 				case DATE_LIST:
 				case INTEGER_LIST:
-					defaultValue = "[\"12345\"]";
+					defaultValue = "[12345]";
 					break;
 				case STRING_LIST:
 					defaultValue = "[\"defaultString\"]";
@@ -381,13 +381,13 @@ public class TableModelTestUtils {
 			case LARGETEXT:
 				return (isUpdate ? "updateLargeText" : "largeText") + (4000 + i);
 			case STRING_LIST:
-				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\",  \"" +(isUpdate ? "otherupdatestring" : "otherstring") + i+"\"]";
+				return "[\""+(isUpdate ? "updatestring" : "string") + i+"\", \"" +(isUpdate ? "otherupdatestring" : "otherstring") + i+"\"]";
 			case INTEGER_LIST:
 				return "[" + (i + 3000) + "]";
 			case BOOLEAN_LIST:
-				return "[\"" + ((i % 2 > 0 ^ isUpdate) ? "true" : "false") + "\"]";
+				return "[" + ((i % 2 > 0 ^ isUpdate) ? "true" : "false") + "]";
 			case DATE_LIST:
-				return "[\"" +(!isExpected && useDateStrings && i % 2 == 0 ? gmtDateFormatter.format(new Date(i + 4000 + (isUpdate ? 10000 : 0))) : (i + 4000 + (isUpdate ? 10000 : 0))) + "\"]";
+				return "[" + 1234 + "]";
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}
