@@ -186,14 +186,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@NewWriteTransaction
 	@Override
-	public void attemptToSetTableStatusToFailed(IdAndVersion idAndVersion,
-			String resetToken, Exception error)
+	public void attemptToSetTableStatusToFailed(IdAndVersion idAndVersion, Exception error)
 			throws ConflictingUpdateException, NotFoundException {
 		String errorMessage = error.getMessage();
 		StringWriter writer = new StringWriter();
 		error.printStackTrace(new PrintWriter(writer));
 		String errorDetails = writer.toString();
-		tableStatusDAO.attemptToSetTableStatusToFailed(idAndVersion, resetToken, errorMessage, errorDetails);
+		tableStatusDAO.attemptToSetTableStatusToFailed(idAndVersion, errorMessage, errorDetails);
 	}
 
 	@NewWriteTransaction

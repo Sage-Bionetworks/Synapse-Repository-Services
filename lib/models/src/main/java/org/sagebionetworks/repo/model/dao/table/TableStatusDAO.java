@@ -50,7 +50,6 @@ public interface TableStatusDAO {
 	 * indicating all changes have been accounted for.
 	 * 
 	 * @param tableId
-	 * @param resetToken
 	 * @return
 	 * @throws ConflictingUpdateException
 	 *             Thrown when the passed restToken does not match the current
@@ -59,8 +58,7 @@ public interface TableStatusDAO {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
-			String resetToken, String errorMessage, String errorDetails)
+	public void attemptToSetTableStatusToFailed(IdAndVersion tableId, String errorMessage, String errorDetails)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**

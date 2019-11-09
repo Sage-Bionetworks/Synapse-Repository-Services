@@ -66,7 +66,6 @@ public interface TableManagerSupport {
 	 * indicating all changes have been accounted for.
 	 * 
 	 * @param tableId
-	 * @param resetToken
 	 * @return
 	 * @throws ConflictingUpdateException
 	 *             Thrown when the passed restToken does not match the current
@@ -75,8 +74,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(IdAndVersion tableId,
-			String resetToken, Exception exception)
+	public void attemptToSetTableStatusToFailed(IdAndVersion tableId, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**

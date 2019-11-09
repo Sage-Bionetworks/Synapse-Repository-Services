@@ -846,7 +846,7 @@ public class TableIndexManagerImplTest {
 		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), 
 				any(Exception.class));
 	}
 	
@@ -868,8 +868,7 @@ public class TableIndexManagerImplTest {
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(), anyString());
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		// should fail
-		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(tableId), eq(resetToken),
-				any(Exception.class));
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(tableId), any(Exception.class));
 	}
 	
 	@Test
@@ -890,8 +889,7 @@ public class TableIndexManagerImplTest {
 		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		verify(mockManagerSupport, never()).startTableProcessing(any(IdAndVersion.class));
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
-				any(Exception.class));
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), any(Exception.class));
 	}
 	
 	/**
@@ -919,7 +917,7 @@ public class TableIndexManagerImplTest {
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
 		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 	}
 	
@@ -948,8 +946,19 @@ public class TableIndexManagerImplTest {
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
 		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+	}
+	
+	@Test
+	public void testBuildIndexToChangeNumberErrorOnIsIndexWorkRequired() throws Exception {
+		IllegalArgumentException exception = new IllegalArgumentException("wrong");
+		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// call under test
+		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
 	
 	/**
@@ -976,7 +985,7 @@ public class TableIndexManagerImplTest {
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
 		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 	}
 	
@@ -1004,7 +1013,7 @@ public class TableIndexManagerImplTest {
 		} catch (RecoverableMessageException e) {
 			assertEquals(exception, e.getCause());
 		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 	}
 	
@@ -1024,7 +1033,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		// should fail the table.
-		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, resetToken, exception);
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
 	
 	
