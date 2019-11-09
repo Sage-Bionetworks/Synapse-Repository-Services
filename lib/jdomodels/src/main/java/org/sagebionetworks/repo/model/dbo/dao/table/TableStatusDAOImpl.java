@@ -155,6 +155,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		current.setErrorDetails(errorDetailsBytes);
 		current.setTotalRunTimeMS(runtimeMS);
 		current.setLastTableChangeEtag(tableChangeEtag);
+		current.setResetToken(UUID.randomUUID().toString());
 		basicDao.update(current);
  	}
 	
