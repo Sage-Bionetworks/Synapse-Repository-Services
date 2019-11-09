@@ -100,27 +100,30 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
+	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(id, "Entity ID");
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
 		
-		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, limit, offset);
+		Long now = activeOnly ? System.currentTimeMillis() : null;
+		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, now, limit, offset);
 	}
 
 	@Override
-	public List<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
+	public List<Evaluation> getInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, 
+		Long now = activeOnly ? System.currentTimeMillis() : null;
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, now,
 				limit, offset, null);
 	}
 
 	@Override
-	public List<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
+	public List<Evaluation> getAvailableInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
-		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, 
+		Long now = activeOnly ? System.currentTimeMillis() : null;
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, now,
 				limit, offset, evaluationIds);
 	}
 

@@ -1,11 +1,10 @@
 package org.sagebionetworks.evaluation.dao;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,13 +15,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -36,12 +35,12 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 
-@RunWith(SpringJUnit4ClassRunner.class)
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-
 public class EvaluationDAOImplTest {
 	
 	@Autowired
@@ -50,8 +49,9 @@ public class EvaluationDAOImplTest {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
-	private Evaluation eval;	
+	private Evaluation eval;
 	private AccessControlList aclToDelete = null;
+	private Long futureTime;
 
 	List<String> toDelete;
 	
@@ -67,20 +67,27 @@ public class EvaluationDAOImplTest {
     	evaluation.setName(name);
         evaluation.setContentSource(contentSource);
     	evaluation.setStatus(status);
+    	SubmissionQuota quota = new SubmissionQuota();
+    	quota.setFirstRoundStart(new Date(System.currentTimeMillis()-10L)); // started slightly in the past
+    	quota.setNumberOfRounds(10L);
+    	quota.setRoundDurationMillis(60000L); // one minute
+    	quota.setSubmissionLimit(10L); // the challenge ends after ten minutes
+    	evaluation.setQuota(quota);
     	return evaluation;
     }
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
 		// Initialize Evaluation
 		eval = newEvaluation("123", EVALUATION_NAME, EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
 		aclToDelete = null;
+		futureTime = System.currentTimeMillis()+60000L*1000L; // 1000 minutes in the future
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
-		if(toDelete != null && evaluationDAO != null){
+		if(toDelete != null){
 			for(String id: toDelete){
 				try {
 					evaluationDAO.delete(id);
@@ -110,14 +117,15 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
+		String originalEtag = created.getEtag();
 		
 		// Update it
 		created.setName(EVALUATION_NAME_2);
 		evaluationDAO.update(created);
 		Evaluation updated = evaluationDAO.get(evalId);
 		assertEquals(evalId, updated.getId());
-		assertFalse("Evaluation name update failed.", eval.getName().equals(updated.getName()));
-		assertFalse("eTag was not updated.", created.getEtag().equals(updated.getEtag()));
+		assertFalse(eval.getName().equals(updated.getName()), "Evaluation name update failed.");
+		assertFalse(originalEtag.equals(updated.getEtag()), "eTag was not updated.");
 		
 		// Delete it
 		assertNotNull(evaluationDAO.get(evalId));
@@ -133,10 +141,14 @@ public class EvaluationDAOImplTest {
 	}
 	
 	@Test
-	public void testgetAccessibleEvaluationsForProject() throws Exception {
+	public void testGetAccessibleEvaluationsForProject() throws Exception {
 		List<Long> principalIds = Collections.singletonList(EVALUATION_OWNER_ID);
 		// Get nothing
-		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
+		assertEquals(0, retrieved.size());
+		
+		// test with timestamp param
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// Create one
@@ -145,9 +157,9 @@ public class EvaluationDAOImplTest {
 		toDelete.add(evalId);
 		
 		// no permission to access
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
 		assertEquals(0, retrieved.size());
-
+		
 		// now provide the permission to READ
 		AccessControlList acl = Util.createACL(evalId, EVALUATION_OWNER_ID, Collections.singleton(ACCESS_TYPE.READ), new Date());
 
@@ -156,7 +168,7 @@ public class EvaluationDAOImplTest {
 		aclToDelete = acl;
 		
 		// Get it
-		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, null, 10, 0);
 		assertEquals(1, retrieved.size());
 		
 		Evaluation created = retrieved.get(0);
@@ -166,6 +178,15 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
+
+		// test with timestamp param
+		// currently the challenge is active...
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, System.currentTimeMillis(), 10, 0);
+		assertEquals(1, retrieved.size());
+		// but in the future it won't be
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, futureTime, 10, 0);
+		assertEquals(0, retrieved.size());
+		
 	}
 
 	@Test
@@ -202,8 +223,8 @@ public class EvaluationDAOImplTest {
         	fail("Should not be able to create two Evaluations with the same name");
         } catch (NameConflictException e) {
         	// Expected name conflict
-        	assertTrue("Name conflict message should contain the requested name", 
-        			e.getMessage().contains(EVALUATION_NAME));
+        	assertTrue(e.getMessage().contains(EVALUATION_NAME), 
+        			"Name conflict message should contain the requested name");
         }
     }
     
@@ -229,14 +250,20 @@ public class EvaluationDAOImplTest {
 		// those who have not joined do not get this result
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
 		assertTrue(evalList.isEmpty());
+		
 		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
 		assertTrue(evalList.isEmpty());
+		
 		// check that the filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		assertTrue(evalList.isEmpty());
+		
+		// and that the time filter works
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
 		assertTrue(evalList.isEmpty());
 
 		// Now join the Evaluation by
@@ -248,19 +275,30 @@ public class EvaluationDAOImplTest {
 		
 		// As a participant, I can find:
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
+		// make sure time filter works
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, System.currentTimeMillis(), 10, 0, null);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		// the evaluation is omitted if the challenge is over:
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, futureTime, 10, 0, null);
+		assertTrue(evalList.isEmpty());		
+		
 		// make sure filter works
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
 		// filtering with 'eval 2' causes no results to come back
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
 		assertEquals(0, evalList.size());
+		
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
 		assertTrue(evalList.isEmpty());
 		
 		// PLFM-2312 problem with repeated entries
@@ -274,37 +312,14 @@ public class EvaluationDAOImplTest {
 		pids = Arrays.asList(new Long[] {
 				participantId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
-		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		
 		
 		// Note:  The evaluation isn't returned for the wrong access type
-		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null).isEmpty());
-		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, 10, 0, null).isEmpty());
+		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, null, 10, 0, null).isEmpty());
+		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, null, 10, 0, null).isEmpty());
    }
-    
-    @Test
-    public void testDtoToDbo() {
-    	Evaluation evalDTO = new Evaluation();
-    	Evaluation evalDTOclone = new Evaluation();
-    	EvaluationDBO evalDBO = new EvaluationDBO();
-    	EvaluationDBO evalDBOclone = new EvaluationDBO();
-    	
-    	evalDTO.setContentSource("syn123");
-    	evalDTO.setCreatedOn(new Date());
-    	evalDTO.setDescription("description");
-    	evalDTO.setEtag("eTag");
-    	evalDTO.setId("123");
-    	evalDTO.setName("name");
-    	evalDTO.setOwnerId("456");
-    	evalDTO.setStatus(EvaluationStatus.OPEN);
-    	    	
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTO, evalDBO);
-    	EvaluationDAOImpl.copyDboToDto(evalDBO, evalDTOclone);
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTOclone, evalDBOclone);
-    	
-    	assertEquals(evalDTO, evalDTOclone);
-    	assertEquals(evalDBO, evalDBOclone);
-    }
+
 }

@@ -6,7 +6,6 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
@@ -137,7 +136,6 @@ public class EvaluationController {
 	 * 
 	 * @param userId
 	 * @param evalId - the ID of the desired Evaluation
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -148,8 +146,7 @@ public class EvaluationController {
 	public @ResponseBody
 	Evaluation getEvaluation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String evalId,
-			HttpServletRequest request
+			@PathVariable String evalId
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		return serviceProvider.getEvaluationService().getEvaluation(userId, evalId);
@@ -164,7 +161,18 @@ public class EvaluationController {
 	 * >ACCESS_TYPE.READ</a> on the specified Evaluations.
 	 * </p>
 	 * 
-	 * @param id - the ID of the Project.
+	 * @param id the ID of the project
+	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
+	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
+	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_CONTENT_SOURCE, method = RequestMethod.GET)
@@ -172,12 +180,12 @@ public class EvaluationController {
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			HttpServletRequest request
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, limit, offset, request);
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, activeOnly, limit, offset);
 	}
 	
 	/**
@@ -189,6 +197,7 @@ public class EvaluationController {
 	 * permission.
 	 * </p> 
 	 * 
+	 * @param activeOnly If 'true' then return only those evaluations with rounds defined and for which the current time is in one of the rounds.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
@@ -205,11 +214,12 @@ public class EvaluationController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset);
+		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, activeOnly, limit, offset);
 	}
 	
 	/**
@@ -231,7 +241,6 @@ public class EvaluationController {
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
 	 * @param userId
-	 * @param request
 	 * @param evaluationIds an optional, comma-delimited list of evaluation IDs to which the response is limited
 	 * @return
 	 * @throws DatastoreException
@@ -242,10 +251,10 @@ public class EvaluationController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, NotFoundException
 	{
 		List<Long> evalIds = new ArrayList<Long>();
@@ -261,7 +270,7 @@ public class EvaluationController {
 				evalIds.add(l);
 			}
 		}
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, activeOnly, limit, offset, evalIds);
 	}	
 
 	/**
@@ -420,7 +429,6 @@ public class EvaluationController {
 	 * A signed, serialized token is appended to create the complete URL:
 	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
 	 * In normal operation, this parameter should be omitted.
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -691,7 +699,6 @@ public class EvaluationController {
 	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -705,15 +712,14 @@ public class EvaluationController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
-			HttpServletRequest request
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		SubmissionStatusEnum status = null;
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}		
-		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, limit, offset);
 	}
 	
 	/**
@@ -738,7 +744,6 @@ public class EvaluationController {
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10, max value 100.
 	 * @param statusString
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -752,15 +757,14 @@ public class EvaluationController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
-			HttpServletRequest request
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		SubmissionStatusEnum status = null;
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}
-		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(userId, evalId, status, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(userId, evalId, status, limit, offset);
 	}
 	
 	/**
@@ -782,7 +786,6 @@ public class EvaluationController {
 	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -796,15 +799,14 @@ public class EvaluationController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
-			HttpServletRequest request
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		SubmissionStatusEnum status = null;
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}		
-		return serviceProvider.getEvaluationService().getAllSubmissionBundles(userId, evalId, status, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAllSubmissionBundles(userId, evalId, status, limit, offset);
 	}
 	
 	/**
@@ -820,7 +822,6 @@ public class EvaluationController {
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
 	 * @param userId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -833,11 +834,10 @@ public class EvaluationController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset);
 	}
 	
 	/**
@@ -855,7 +855,6 @@ public class EvaluationController {
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
 	 * @param userId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -868,11 +867,10 @@ public class EvaluationController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset);
 	}
 	
 	/**
@@ -934,8 +932,7 @@ public class EvaluationController {
 	 * 
 	 * @param id 
 	 * @param userId 
-	 * @param accessType 
-	 * @param request 
+	 * @param accessType  
 	 * @return the access types that the given user has to the given resource
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -946,10 +943,10 @@ public class EvaluationController {
 	public @ResponseBody BooleanResult hasAccess(
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = true) String accessType,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = true) String accessType
+			) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));
+		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, accessType));
 	}
 
 	/**

@@ -96,13 +96,41 @@ public class EvaluationServiceTest {
 		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());
 		assertEquals(result, mtuArg.getValue());		
 	}
+	
+	@Test
+	public void testGetEvaluationsInRange() {
+		evaluationService.getEvaluationsInRange(userId, false, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, false, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationsInRangeActiveOnly() {
+		evaluationService.getEvaluationsInRange(userId, true, limit, offset);
+		
+		verify(mockEvaluationManager).getInRange(userInfo, true, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationByContentSource() {
+		evaluationService.getEvaluationByContentSource(userId, "syn123", false, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", false, limit, offset);
+	}
+
+	@Test
+	public void testGetEvaluationByContentSourceActiveOnly() {
+		evaluationService.getEvaluationByContentSource(userId, "syn123", true, limit, offset);
+		
+		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", true, limit, offset);
+	}
 
 	@Test
 	public void testGetAllSubmissions() {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getAllSubmissions(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissions(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissions(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissions(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -111,7 +139,7 @@ public class EvaluationServiceTest {
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getAllSubmissionBundles(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissionBundles(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissionBundles(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissionBundles(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -120,7 +148,7 @@ public class EvaluationServiceTest {
 		List<SubmissionStatus> expectedRes = new LinkedList<SubmissionStatus>();
 		when(mockSubmissionManager.getAllSubmissionStatuses(userInfo, evalId, SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getAllSubmissionStatuses(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset, null);
+		evaluationService.getAllSubmissionStatuses(userId, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 		verify(mockSubmissionManager).getAllSubmissionStatuses(userInfo, evalId, SubmissionStatusEnum.OPEN, limit, offset);
 	}
 
@@ -129,7 +157,7 @@ public class EvaluationServiceTest {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset, null);
+		evaluationService.getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset);
 		verify(mockSubmissionManager).getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
 	}
 
@@ -138,7 +166,7 @@ public class EvaluationServiceTest {
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test
-		evaluationService.getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset, null);
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset);
 		verify(mockSubmissionManager).getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
 	}
 

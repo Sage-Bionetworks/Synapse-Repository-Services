@@ -32,14 +32,16 @@ public interface EvaluationDAO {
 	
 	/**
 	 * Retrieves all evaluations (subject to limit and offset) drawing content from the project
+	 * and optionally filtered by the start and end times derived from the Evaluation's Quota
 	 */
-	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) throws DatastoreException, NotFoundException;
+	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * @return the Evaluations that any of the given principalIds may participate in, optionally filtered by a 
-	 * given list of Evaluations
+	 * @return the Evaluations that any of the given principalIds may 
+	 * participate in, optionally filtered by a  given list of Evaluations
+	 * and optionally filtered by the start and end times derived from the Evaluation's Quota
 	 */
-	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
+	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long optionalTimeToFilterBy, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
 
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,
