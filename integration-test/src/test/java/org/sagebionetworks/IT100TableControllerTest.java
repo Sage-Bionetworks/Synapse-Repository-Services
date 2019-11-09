@@ -993,15 +993,16 @@ public class IT100TableControllerTest {
 		synapse.appendRowSetToTableStart(result, view.getId());
 
 		long startTime = System.currentTimeMillis();
+		
 		//check view is updated
-		result = waitForQueryResults("select * from "+ view.getId(), 0L, 10L, view.getId());
-		while(!result.getRows().get(0).getValues().get(multiValueKeyIndex).equals("[\"newVal1\", \"newVal2\"]")
-		 && !result.getRows().get(1).getValues().get(multiValueKeyIndex).equals("[\"newVal4\", \"newVal5\", \"newVal6\"]")
-		){
+		do {
 			if(System.currentTimeMillis() - startTime >= MAX_QUERY_TIMEOUT_MS){
 				fail("Timed out waiting for query results to be consistent");
 			}
-		}
+			result = waitForQueryResults("select * from "+ view.getId(), 0L, 10L, view.getId());
+		} while(!result.getRows().get(0).getValues().get(multiValueKeyIndex).equals("[\"newVal1\", \"newVal2\"]")
+		 && !result.getRows().get(1).getValues().get(multiValueKeyIndex).equals("[\"newVal4\", \"newVal5\", \"newVal6\"]")
+		);
 
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), synapse.getAnnotationsV2(firstChangeId).getAnnotations().get(multiValueKey).getValue());
