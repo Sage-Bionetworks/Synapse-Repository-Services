@@ -184,6 +184,17 @@ public class TableStatusDAOImplTest {
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken+"invalidated", UUID.randomUUID().toString());
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAttemptToSetTableStatusToAvailableNullReset() throws NotFoundException{
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		resetToken = null;
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, UUID.randomUUID().toString());
+	}
+	
 	@Test
 	public void testAttemptToSetTableStatusToFailedHappy() throws NotFoundException{
 		// This should insert a row for this table.
@@ -195,7 +206,7 @@ public class TableStatusDAOImplTest {
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getChangedOn());
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, "error", "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -210,18 +221,7 @@ public class TableStatusDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testattemptToSetTableStatusToFailedNotFound() throws NotFoundException{
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "fake token", "error", "error details");
-	}
-	
-	@Test (expected=ConflictingUpdateException.class)
-	public void testAttemptToSetTableStatusToFailedConflict() throws NotFoundException{
-		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
-		// Status should start as processing
-		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken+"invalidated", "error", "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
 	}
 	
 	/**
@@ -239,7 +239,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getChangedOn());
 		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS);
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, errorMessage, "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertEquals(errorMessage, status.getErrorMessage());
@@ -260,7 +260,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getChangedOn());
 		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS+1);
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, errorMessage, "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertTrue(TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS <= status.getErrorMessage().length());

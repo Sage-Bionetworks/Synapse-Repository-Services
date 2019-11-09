@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -102,9 +103,10 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToFailed(IdAndVersion tableIdString,
-			String resetToken, String errorMessage, String errorDetails)
+			String errorMessage, String errorDetails)
 			throws ConflictingUpdateException, NotFoundException {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
+		String resetToken = null;
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.PROCESSING_FAILED, null, errorMessage, errorDetails, null);
 	}
 
@@ -113,6 +115,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Override
 	public void attemptToSetTableStatusToAvailable(IdAndVersion tableIdString,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
+		ValidateArgument.required(resetToken, "resetToken");
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
 	
@@ -135,7 +138,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			throw new IllegalArgumentException("This method cannot be used to change the state to PROCESSING because it does not change the reset-token");
 		}
 		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion);
-		if(!current.getResetToken().equals(resetToken)) {
+		if(resetToken != null && !current.getResetToken().equals(resetToken)) {
 			throw new ConflictingUpdateException(CONFLICT_MESSAGE);
 		}
 		// With no conflict make the changes
