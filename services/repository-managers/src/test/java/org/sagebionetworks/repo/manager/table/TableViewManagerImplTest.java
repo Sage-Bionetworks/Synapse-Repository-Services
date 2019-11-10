@@ -806,7 +806,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
-		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 		verifyNoMoreInteractions(mockS3Client);
@@ -855,8 +855,27 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
-		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), anyString(),
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+	}
+	
+	/**
+	 * For PLFM-5939 an exception thrown at
+	 * tableMangerSupport.isIndexWorkerRequired() did not the table status to
+	 * failed.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testCreateOrUpdateViewIndexHoldingPLFM_5939() throws IOException {
+		idAndVersion = IdAndVersion.parse("syn123.45");
+		IllegalArgumentException exception = new IllegalArgumentException("nope");
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenThrow(exception);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		});
+		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}
 	
 	@Test
@@ -873,7 +892,7 @@ public class TableViewManagerImplTest {
 		});
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());
-		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, token, exception);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}
 	
 	/**

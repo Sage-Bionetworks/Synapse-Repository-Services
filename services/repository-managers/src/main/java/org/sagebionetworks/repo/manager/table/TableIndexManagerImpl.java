@@ -381,18 +381,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void buildIndexToChangeNumber(final ProgressCallback progressCallback, final IdAndVersion idAndVersion,
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
-		// Only proceed if work is needed.
-		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
-			log.info("Index already up-to-date for table: " + idAndVersion);
-			return;
-		}
-		/*
-		 * Before we start working on the table make sure it is in the processing mode.
-		 * This will generate a new reset token and will not broadcast the change.
-		 */
-		final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
 		// Attempt to run with
 		try {
+			// Only proceed if work is needed.
+			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
+				log.info("Index already up-to-date for table: " + idAndVersion);
+				return;
+			}
+			/*
+			 * Before we start working on the table make sure it is in the processing mode.
+			 * This will generate a new reset token and will not broadcast the change.
+			 */
+			final String tableResetToken = tableManagerSupport.startTableProcessing(idAndVersion);
 			// Lookup the target change number for the given ID and version.
 			Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
 			if(!targetChangeNumber.isPresent()) {
@@ -411,7 +411,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			// Any other error is a table failure.
-			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, tableResetToken, e);
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			// This is not an error we can recover from.
 			log.info("Unrecoverable failure to update table index: "+idAndVersion);
 		}

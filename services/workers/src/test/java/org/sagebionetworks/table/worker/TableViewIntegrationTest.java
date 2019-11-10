@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -77,7 +76,6 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -89,7 +87,6 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -115,8 +112,6 @@ public class TableViewIntegrationTest {
 	private ColumnModelManager columnModelManager;
 	@Autowired
 	private TableViewManager tableViewManager;
-	@Autowired
-	private TableQueryManager tableQueryManger;
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
 	@Autowired
@@ -293,10 +288,10 @@ public class TableViewIntegrationTest {
 		// query the view as a user that does not permission
 		String sql = "select * from "+fileViewId;
 		try {
-			QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
+			waitForConsistentQuery(userInfo, sql);
 			fail("Should have failed.");
-		} catch (UnauthorizedException e) {
-			// expected
+		} catch (AsynchJobFailedException e) {
+			assertTrue(e.getMessage().contains("permission"));
 		}
 		// grant the user read access to the view
 		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
@@ -627,7 +622,7 @@ public class TableViewIntegrationTest {
 			String sql = "select * from " + fileViewId;
 			waitForConsistentQuery(adminUserInfo, sql);
 			fail("should have failed");
-		} catch (TableFailedException expected) {
+		} catch (AsynchJobFailedException expected) {
 			assertEquals(
 					"The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
 					expected.getStatus().getErrorMessage());
@@ -1221,6 +1216,39 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
+	 * For PLFM-5939 a version query (select * from syn123.1) was run against a view that did not have any snapshots.
+	 * The query worker failed but the request was returned to the queue.  The cycle would then repeat continuously.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_5939() throws Exception {
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
+		createFileView();
+		
+		// wait for the view.
+		waitForEntityReplication(fileViewId, fileId);
+		
+		// Query for the values as strings.
+		String sql = "select * from "+fileViewId+".1";
+		int rowCount = 1;
+		Query query = new Query();
+		query.setSql(sql);
+		query.setIncludeEntityEtag(true);
+		try {
+			waitForConsistentQuery(adminUserInfo, query, rowCount);
+		}catch(AsynchJobFailedException e) {
+			assertTrue(e.getMessage().contains("Snapshot not found"));
+		}
+
+	}
+	
+	/**
 	 * Helper to update a view using a result set.
 	 * @param rowSet
 	 * @param viewId
@@ -1351,21 +1379,10 @@ public class TableViewIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
-		long start = System.currentTimeMillis();
-		while(true){
-			try {
-				QueryBundleRequest request = new QueryBundleRequest();
-				request.setPartMask(options.getPartMask());
-				request.setQuery(query);
-				return tableQueryManger.queryBundle(mockProgressCallbackVoid, user, request);
-			} catch (LockUnavilableException e) {
-				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
-			} catch (TableUnavailableException e) {
-				System.out.println("Waiting for table view worker to build table. Status: "+e.getStatus());
-			}
-			assertTrue("Timed out waiting for table view worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			Thread.sleep(1000);
-		}
+		QueryBundleRequest request = new QueryBundleRequest();
+		request.setQuery(query);
+		request.setPartMask(options.getPartMask());
+		return startAndWaitForJob(user, request, QueryResultBundle.class);
 	}
 	
 	/**

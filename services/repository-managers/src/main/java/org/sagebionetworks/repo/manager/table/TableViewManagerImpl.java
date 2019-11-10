@@ -337,14 +337,14 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param idAndVersion
 	 */
 	void createOrUpdateViewIndexHoldingLock(IdAndVersion idAndVersion) {
-		// Is the index out-of-synch?
-		if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
-			// nothing to do
-			return;
-		}
-		// Start the worker
-		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 		try {
+			// Is the index out-of-synch?
+			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
+				// nothing to do
+				return;
+			}
+			// Start the worker
+			final String token = tableManagerSupport.startTableProcessing(idAndVersion);
 			TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(idAndVersion);
@@ -376,7 +376,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 		} catch (Exception e) {
 			// failed.
-			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, token, e);
+			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			throw e;
 		}
 	}

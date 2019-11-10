@@ -1,30 +1,30 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.TableIndexDAOImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableStatusDAOImplTest {
 
@@ -34,7 +34,7 @@ public class TableStatusDAOImplTest {
 	IdAndVersion tableIdNoVersion;
 	IdAndVersion tableIdWithVersion;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		tableStatusDAO.clearAllTableState();
 		
@@ -42,7 +42,7 @@ public class TableStatusDAOImplTest {
 		tableIdWithVersion = IdAndVersion.parse("syn123.456");
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		tableStatusDAO.clearAllTableState();
 	}
@@ -167,21 +167,53 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testAttemptToSetTableStatusNotFound() throws NotFoundException{
-		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, "fake token", UUID.randomUUID().toString());
+		assertThrows(NotFoundException.class, ()->{
+			// Not make available
+			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, "fake token", UUID.randomUUID().toString());
+		});
 	}
 	
-	@Test (expected=ConflictingUpdateException.class)
+	@Test
 	public void testAttemptToSetTableStatusToAvailableConflict() throws NotFoundException{
 		// This should insert a row for this table.
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
-		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken+"invalidated", UUID.randomUUID().toString());
+		assertThrows(ConflictingUpdateException.class, ()->{
+			// This should fail since the passed token does not match the current token
+			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken+"invalidated", UUID.randomUUID().toString());
+		});
+	}
+	
+	@Test
+	public void testAttemptToSetTableStatusToAvailableMultilpeTimes() throws NotFoundException{
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		// This should pass
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, UUID.randomUUID().toString());
+		assertThrows(ConflictingUpdateException.class, ()->{
+			// A second time should fail
+			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, UUID.randomUUID().toString());
+		});
+	}
+	
+	@Test
+	public void testAttemptToSetTableStatusToAvailableNullReset() throws NotFoundException{
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
+		assertNotNull(status);
+		assertThrows(IllegalArgumentException.class, ()->{
+			String nullToken = null;
+			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, nullToken, UUID.randomUUID().toString());
+		});
 	}
 	
 	@Test
@@ -195,7 +227,7 @@ public class TableStatusDAOImplTest {
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getChangedOn());
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, "error", "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
@@ -207,21 +239,12 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testattemptToSetTableStatusToFailedNotFound() throws NotFoundException{
-		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "fake token", "error", "error details");
-	}
-	
-	@Test (expected=ConflictingUpdateException.class)
-	public void testAttemptToSetTableStatusToFailedConflict() throws NotFoundException{
-		// This should insert a row for this table.
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
-		// Status should start as processing
-		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
-		assertNotNull(status);
-		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken+"invalidated", "error", "error details");
+		assertThrows(NotFoundException.class, ()->{
+			// Not make available
+			tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, "error", "error details");
+		});
 	}
 	
 	/**
@@ -239,7 +262,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getChangedOn());
 		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS);
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, errorMessage, "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertEquals(errorMessage, status.getErrorMessage());
@@ -260,7 +283,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getChangedOn());
 		String errorMessage = StringUtils.repeat("a", TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS+1);
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, resetToken, errorMessage, "error details");
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableIdNoVersion, errorMessage, "error details");
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertTrue(TableStatusDAOImpl.MAX_ERROR_MESSAGE_CHARS <= status.getErrorMessage().length());
@@ -289,26 +312,33 @@ public class TableStatusDAOImplTest {
 		assertEquals(new Long(100), status.getProgressTotal());
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testAttemptToUpdateTableProgressNotFound() throws ConflictingUpdateException, NotFoundException{
-		// Not make available
-		tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion,"fakeToken", "message", 0L, 100L);
+		assertThrows(NotFoundException.class, ()->{
+			// Not make available
+			tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion,"fakeToken", "message", 0L, 100L);
+		});
 	}
 	
-	@Test (expected=ConflictingUpdateException.class)
+	@Test
 	public void testAttemptToUpdateTableProgressConflict() throws NotFoundException{
 		// This should insert a row for this table.
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
-		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion, resetToken+"invalidated", "message", 1L, 100L);
+
+		assertThrows(ConflictingUpdateException.class, ()->{
+			// This should fail since the passed token does not match the current token
+			tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion, resetToken+"invalidated", "message", 1L, 100L);
+		});
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testNotFound() throws NotFoundException{
-		tableStatusDAO.getTableStatus(IdAndVersion.newBuilder().setId(-99L).build());
+		assertThrows(NotFoundException.class, ()->{
+			tableStatusDAO.getTableStatus(IdAndVersion.newBuilder().setId(-99L).build());
+		});
 	}
 	
 	@Test
@@ -325,16 +355,20 @@ public class TableStatusDAOImplTest {
 		assertEquals(TableStatusDAOImpl.NULL_VERSION, version);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateAndGetVersionNull() {
-		// call under test
-		TableStatusDAOImpl.validateAndGetVersion(null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			TableStatusDAOImpl.validateAndGetVersion(null);
+		});
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testValidateAndGetVersionIdNull() {
-		// call under test
-		TableStatusDAOImpl.validateAndGetVersion(IdAndVersion.newBuilder().setId(null).build());
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			TableStatusDAOImpl.validateAndGetVersion(IdAndVersion.newBuilder().setId(null).build());
+		});
 	}
 	
 	@Test
@@ -381,6 +415,6 @@ public class TableStatusDAOImplTest {
 		TableStatus noVersion = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(noVersion);
 		assertEquals(null, noVersion.getVersion());
-		assertEquals("Both should have the same ID", withVersion.getTableId(), noVersion.getTableId());
+		assertEquals(withVersion.getTableId(), noVersion.getTableId(),"Both should have the same ID");
 	}
 }
