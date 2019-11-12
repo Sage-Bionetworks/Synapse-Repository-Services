@@ -306,36 +306,42 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	private void validateS3BucketOwnership(ExternalS3StorageLocationSetting externalS3StorageLocationSetting, List<PrincipalAlias> ownerAliases)
 			throws IOException, NotFoundException {
+		// PLFM-5769: Check that the key is valid
+		if (externalS3StorageLocationSetting.getBaseKey() != null && externalS3StorageLocationSetting.getBaseKey().endsWith("/")) {
+			throw new IllegalArgumentException("Base keys cannot end with trailing slashes");
+		}
+
 		// check the ownership of the S3 bucket against the user
 		String bucket = externalS3StorageLocationSetting.getBucket();
-		String key = (externalS3StorageLocationSetting.getBaseKey() == null ? ""
-				: externalS3StorageLocationSetting.getBaseKey()) + OWNER_MARKER;
+		// If there is no base key, look for "owner.txt"; otherwise, look for "baseKey/owner.txt"
+		String ownerKey = (externalS3StorageLocationSetting.getBaseKey() == null ? ""
+				: (externalS3StorageLocationSetting.getBaseKey() + "/")) + OWNER_MARKER;
 
 		S3Object s3object;
 		try {
-			s3object = s3client.getObject(bucket, key);
+			s3object = s3client.getObject(bucket, ownerKey);
 		} catch (AmazonServiceException e) {
 			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
 				throw new IllegalArgumentException(
-						"Did not find S3 bucket " + bucket + ". " + getExplanation(ownerAliases, bucket, key));
+						"Did not find S3 bucket " + bucket + ". " + getExplanation(ownerAliases, bucket, ownerKey));
 			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())
 					|| AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
-				if (key.equals(OWNER_MARKER)) {
-					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket
-							+ ". " + getExplanation(ownerAliases, bucket, key));
+				if (ownerKey.equals(OWNER_MARKER)) {
+					throw new IllegalArgumentException("Did not find S3 object at key " + ownerKey + " from bucket " + bucket
+							+ ". " + getExplanation(ownerAliases, bucket, ownerKey));
 				} else {
-					throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucket
+					throw new IllegalArgumentException("Did not find S3 object at key " + ownerKey + " from bucket " + bucket
 							+ ". If the S3 object is in a folder, please make sure you specify a trailing '/' in the base key. "
-							+ getExplanation(ownerAliases, bucket, key));
+							+ getExplanation(ownerAliases, bucket, ownerKey));
 				}
 			} else {
-				throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucket
-						+ ": " + e.getMessage() + ". " + getExplanation(ownerAliases, bucket, key));
+				throw new IllegalArgumentException("Could not read S3 object at key " + ownerKey + " from bucket " + bucket
+						+ ": " + e.getMessage() + ". " + getExplanation(ownerAliases, bucket, ownerKey));
 			}
 		}
 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(s3object.getObjectContent(), StandardCharsets.UTF_8));
-		inspectUsername(reader, ownerAliases, bucket, key);
+		inspectUsername(reader, ownerAliases, bucket, ownerKey);
 	}
 
 	private void validateGoogleCloudBucketOwnership(ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting, List<PrincipalAlias> ownerAliases)
