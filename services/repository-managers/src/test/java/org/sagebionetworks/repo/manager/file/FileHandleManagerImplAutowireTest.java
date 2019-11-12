@@ -81,9 +81,7 @@ import com.google.common.collect.Sets;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class FileHandleManagerImplAutowireTest {
-	
-	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
-	
+
 	private List<S3FileHandle> toDelete;
 	private List<WikiPageKey> wikisToDelete;
 	private final List<String> entitiesToDelete = Lists.newArrayList();
@@ -339,11 +337,11 @@ public class FileHandleManagerImplAutowireTest {
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(nothing.length());
-		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(nothing), metadata);
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(nothing), metadata);
 		
 		S3FileHandle fauxHandle = new S3FileHandle();
 		fauxHandle.setBucketName(externalS3LocationSetting.getBucket());
-		fauxHandle.setKey(testBase + "owner.txt");
+		fauxHandle.setKey(testBase + "/owner.txt");
 		toDelete.add(fauxHandle);
 
 		try {
@@ -355,7 +353,7 @@ public class FileHandleManagerImplAutowireTest {
 
 		String wrongName = "not me";
 		metadata.setContentLength(wrongName.length());
-		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(wrongName), metadata);
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(wrongName), metadata);
 
 		try {
 			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
@@ -365,7 +363,7 @@ public class FileHandleManagerImplAutowireTest {
 		}
 
 		metadata.setContentLength(username.length());
-		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "owner.txt", new StringInputStream(username), metadata);
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(username), metadata);
 
 		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
 
