@@ -628,7 +628,7 @@ public class IT049FileHandleTest {
 		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
 		om.setContentLength(bytes.length);
 
-		synapseS3Client.putObject(bucket, baseKey + "owner.txt", new ByteArrayInputStream(bytes), om);
+		synapseS3Client.putObject(bucket, baseKey + "/owner.txt", new ByteArrayInputStream(bytes), om);
 	}
 
 
