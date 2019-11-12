@@ -47,7 +47,13 @@ public class MultipartUtils {
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
 			if (!StringUtils.isEmpty(externalS3StorageLocationSetting.getBaseKey())) {
-				base = externalS3StorageLocationSetting.getBaseKey() + FILE_TOKEN_TEMPLATE_SEPARATOR;
+				// PLFM-5769: S3 base keys must end with only one trailing slash, but may be stored with one or more
+				base = externalS3StorageLocationSetting.getBaseKey();
+				while (base.endsWith("/")){
+					// TODO: Migrate existing base keys to not have trailing slashes, delete this loop
+					base = base.substring(0, base.length() - 1);
+				}
+				base += FILE_TOKEN_TEMPLATE_SEPARATOR;
 			}
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
