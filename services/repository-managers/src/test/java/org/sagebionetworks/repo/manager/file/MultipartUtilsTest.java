@@ -90,18 +90,6 @@ public class MultipartUtilsTest {
 	}
 
 	@Test
-	public void testCreateNewKeyStorageLocationExternalBaseEndsWithSlash(){
-		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();
-		location.setBaseKey("aFolder////");
-		//call under test
-		String key = MultipartUtils.createNewKey(userId, fileName, location);
-		assertNotNull(key);
-		assertTrue(key.startsWith("aFolder/" + userId));
-		assertTrue(key.endsWith(fileName));
-	}
-
-
-	@Test
 	public void testCreateNewKeyStorageLocationExternalBaseNull(){
 		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();
 		location.setBaseKey(null);
