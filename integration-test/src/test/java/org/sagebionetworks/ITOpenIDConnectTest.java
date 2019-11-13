@@ -103,6 +103,15 @@ public class ITOpenIDConnectTest {
 		clientToDelete = client.getClient_id();
 		
 		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertFalse(client.getVerified());
+		
+		// Sets the verified status of the client (only admins and ACT can do this)
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		assertTrue(client.getVerified());
+		
+		// Re-read the client as the user
+		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertTrue(client.getVerified());
 		
 		OAuthClientList clientList = synapseOne.listOAuthClients(null);
 		assertEquals(client, clientList.getResults().get(0));

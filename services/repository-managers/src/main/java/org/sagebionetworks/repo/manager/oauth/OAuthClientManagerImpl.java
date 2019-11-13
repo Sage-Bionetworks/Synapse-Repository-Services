@@ -9,10 +9,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -41,6 +43,9 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	
 	@Autowired
 	private SimpleHttpClient httpClient;
+	
+	@Autowired
+	private AuthorizationManager authManager;
 
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
 		ValidateArgument.required(oauthClient.getClient_name(), "OAuth client name");
@@ -223,6 +228,28 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			toStore.setVerified(false);
 		}
 		return oauthClientDao.updateOAuthClient(toStore);
+	}
+	
+	@WriteTransaction
+	@Override
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, boolean verifiedStatus) {
+		ValidateArgument.required(userInfo, "User info");
+		ValidateArgument.requiredNotBlank(clientId, "Client ID");
+		
+		if (!authManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("You must be an administrator or a member of the ACT team to update the verification status of a client");
+		}
+		
+		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(clientId);
+		
+		if (verifiedStatus != currentClient.getVerified()) {
+			currentClient.setVerified(verifiedStatus);
+			currentClient.setModifiedOn(new Date());
+			currentClient.setEtag(UUID.randomUUID().toString());
+			oauthClientDao.updateOAuthClient(currentClient);
+		}
+
+		return oauthClientDao.getOAuthClient(clientId);
 	}
 
 	@WriteTransaction

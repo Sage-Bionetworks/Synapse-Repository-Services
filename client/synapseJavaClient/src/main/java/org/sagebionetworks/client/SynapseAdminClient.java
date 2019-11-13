@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -273,5 +274,16 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Deletes a message.  Used for test cleanup only.  Admin only.
 	 */
 	public void deleteMessage(String messageId) throws SynapseException;
+	
+	/**
+	 * Updates the verified status of the oauth client with the given id, only administrator or members of the ACT team can perform this action
+	 * 
+	 * @param clientId The id of the oauth client
+	 * @param status The verified value to be set 
+	 * @return The updated client
+	 * 
+	 * @throws SynapseException
+	 */
+	OAuthClient updateOAuthClientVerifiedStatus(String clientId, boolean status) throws SynapseException;
 
 }

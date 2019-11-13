@@ -75,7 +75,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private String SET_CLIENT_SECRET_HASH = "UPDATE "+TABLE_OAUTH_CLIENT+
 			" SET "+COL_OAUTH_CLIENT_SECRET_HASH+"= ?, "+
 			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
-
+	
 	@Autowired
 	private DBOBasicDao basicDao;	
 
@@ -241,7 +241,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		basicDao.update(dbo);
 		return updatedClient;
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public void deleteOAuthClient(String clientId) {

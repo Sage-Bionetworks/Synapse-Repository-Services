@@ -60,6 +60,15 @@ public interface OpenIDConnectService {
 	/**
 	 * 
 	 * @param userId
+	 * @param clientId
+	 * @param verifiedStatus
+	 * @return
+	 */
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, boolean verifiedStatus);
+	
+	/**
+	 * 
+	 * @param userId
 	 * @param id
 	 */
 	public void deleteOpenIDConnectClient(Long userId, String id);
@@ -111,4 +120,5 @@ public interface OpenIDConnectService {
 	 * @return
 	 */
 	public Object getUserInfo(String accessToken, String oauthEndpoint);
+
 }

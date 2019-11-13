@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -189,6 +190,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
+		
+		
 		validateAuthenticationRequest(authorizationRequest, client);
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));

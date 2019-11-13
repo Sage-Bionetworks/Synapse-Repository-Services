@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -77,7 +78,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	private static final String CERTIFIED_USER_STATUS = "/certificationStatus";
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
+	private static final String OAUTH_CLIENT = "/oauth2/client";
 
+	private static final String VERIFIED = "/verified";
 	private static final String MESSAGE = "/message";
 
 	public SynapseAdminClientImpl() {
@@ -398,5 +401,12 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public void deleteCertifiedUserTestResponse(String id)
 			throws SynapseException {
 		deleteUri(getRepoEndpoint(), ADMIN + CERTIFIED_USER_TEST_RESPONSE + "/" + id);
+	}
+	
+	@Override
+	public OAuthClient updateOAuthClientVerifiedStatus(String clientId, boolean status) throws SynapseException {
+		validateStringAsLong(clientId);
+		String uri = ADMIN + OAUTH_CLIENT + "/" + clientId + VERIFIED + "?status=" + status;
+		return putJSONEntity(getRepoEndpoint(), uri, null, OAuthClient.class);
 	}
 }

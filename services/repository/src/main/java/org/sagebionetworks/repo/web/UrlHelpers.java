@@ -191,6 +191,8 @@ public class UrlHelpers {
 	public static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN + ASYNCHRONOUS_JOB_ID;
 	
 	public static final String ADMIN_ID_GEN_EXPORT = ADMIN + "/id/generator/export";
+	public static final String ADMIN_OAUTH_CLIENT_VERIFICATION = ADMIN + "/oauth2/client/{clientId}/verified";
+	
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
