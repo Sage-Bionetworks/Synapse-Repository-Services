@@ -33,12 +33,9 @@ public class ListStringParser extends AbstractValueParser{
 					throw new IllegalArgumentException("null value is not allowed");
 				}
 
-				Object parsedObject = individualElementParser.parseValueForDatabaseWrite(parsed.getString(i));
+				String element = parsed.getString(i);
+				Object parsedObject = individualElementParser.parseValueForDatabaseWrite(element);
 
-				//nan and inf are written as string
-				if(parsedObject instanceof Double && (((Double) parsedObject).isInfinite() || ((Double) parsedObject).isNaN())){
-					parsedObject = parsedObject.toString();
-				}
 				toDatabase.put(parsedObject);
 			}
 			return toDatabase.toString();

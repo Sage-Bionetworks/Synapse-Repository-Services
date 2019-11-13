@@ -8,7 +8,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.util.Comparator;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**

@@ -81,6 +81,8 @@ public class TableIndexDAOImplTest {
 	IdAndVersion tableId;
 	boolean isView;
 
+	List<String> listColumnIndexTablesToDrop;
+
 	@BeforeEach
 	public void before() {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
@@ -90,15 +92,21 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.deleteTable(tableId);
 		tableIndexDAO.deleteSecondaryTables(tableId);
 		isView = false;
+
+		listColumnIndexTablesToDrop = new LinkedList<>();
 	}
 
 	@AfterEach
 	public void after() {
 		// Drop the table
-//		if (tableId != null && tableIndexDAO != null) {
-//			tableIndexDAO.deleteTable(tableId);
-//			tableIndexDAO.deleteSecondaryTables(tableId);
-//		}
+		if (tableId != null && tableIndexDAO != null) {
+			tableIndexDAO.deleteTable(tableId);
+			tableIndexDAO.deleteSecondaryTables(tableId);
+		}
+		for(String table : listColumnIndexTablesToDrop) {
+			//drop the created temporary index table
+			tableIndexDAO.getConnection().update("DROP TABLE " + table);
+		}
 	}
 	
 	/**
@@ -1242,27 +1250,6 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testEntityReplication_MultipleValues(){
-		// delete all data
-		long id = 1L;
-		tableIndexDAO.deleteEntityData(Lists.newArrayList(id));
-
-		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
-		AnnotationDTO abstractDoubleAnnos = new AnnotationDTO();
-		abstractDoubleAnnos.setEntityId(id);
-		abstractDoubleAnnos.setType(AnnotationType.DOUBLE);
-		abstractDoubleAnnos.setKey("abstractDoubles");
-		abstractDoubleAnnos.setValue(Arrays.asList("a", "bb", "ccc", "dddd"));
-		project.setAnnotations(Collections.singletonList(abstractDoubleAnnos));
-
-		tableIndexDAO.addEntityData(Collections.singletonList(project));
-
-		// lookup each
-		EntityDTO fetched = tableIndexDAO.getEntityData(id);
-		assertEquals(project, fetched);
-	}
-
-	@Test
 	public void testEntityReplication_AbstractDoubles(){
 		// delete all data
 		long id = 1L;
@@ -2368,7 +2355,7 @@ public class TableIndexDAOImplTest {
 			for(AnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
 				//double lists are not supported at the moment
-				cm.setColumnType(annoDto.getValue().size() > 1 ? annoDto.getType().getListColumnType() : annoDto.getType().getColumnType());
+				cm.setColumnType(annoDto.getValue().size() > 1 ? ColumnTypeListMappings.listType(annoDto.getType().getColumnType()) : annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
 				if(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.STRING_LIST){
 					cm.setMaximumSize(50L);
@@ -2463,7 +2450,6 @@ public class TableIndexDAOImplTest {
 		//each list value created by createRows has 2 items in the list
 		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
 
-		//drop the created table as cleanup
-		tableIndexDAO.getConnection().update("DROP TABLE " + listColumnindexTableName);
+		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
 }

@@ -19,7 +19,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.isTableTooLargeForFourByteUtf8;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -31,9 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
@@ -675,28 +673,23 @@ public class SQLUtils {
 	public static List<String> listColumnIndexTableCreateOrDropStatements(List<ColumnChangeDetails> changes, IdAndVersion tableId){
 		List<String> statements = new ArrayList<>();
 
-		StringJoiner dropTableJoiner = new StringJoiner(",", "DROP TABLE IF EXISTS ", ";");
-		int originalJoinerLen = dropTableJoiner.length();
-
 		for(ColumnChangeDetails changeDetails : changes){
+			ColumnModel oldColumn = changeDetails.getOldColumn();
+			ColumnModel newColumn = changeDetails.getNewColumn();
+
 			//column being added/replacing other column
-			if(changeDetails.getNewColumn() != null && !changeDetails.getNewColumn().equals(changeDetails.getOldColumn())
-					&& ColumnTypeListMappings.isList(changeDetails.getNewColumn().getColumnType())
+			if(newColumn != null && !newColumn.equals(oldColumn)
+					&& ColumnTypeListMappings.isList(newColumn.getColumnType())
 			){
-				statements.add(SQLUtils.createListColumnIndexTable(tableId, changeDetails.getNewColumn()));
+				statements.add(SQLUtils.createListColumnIndexTable(tableId, newColumn));
 			}
 
 			//column being deleted/replaced
-			if(changeDetails.getOldColumn() != null && !changeDetails.getOldColumn().equals(changeDetails.getNewColumn())
-					&& ColumnTypeListMappings.isList(changeDetails.getOldColumn().getColumnType())
+			if(oldColumn != null && !oldColumn.equals(newColumn)
+					&& ColumnTypeListMappings.isList(oldColumn.getColumnType())
 			){
-				dropTableJoiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(tableId, changeDetails.getOldColumn().getId()));
+				statements.add("DROP TABLE IF EXISTS " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, oldColumn.getId()) + ";");
 			}
-		}
-
-		//make sure drop statement joiner actually has content before adding to result list
-		if( dropTableJoiner.length() > originalJoinerLen){
-			statements.add(dropTableJoiner.toString());
 		}
 
 		return statements;

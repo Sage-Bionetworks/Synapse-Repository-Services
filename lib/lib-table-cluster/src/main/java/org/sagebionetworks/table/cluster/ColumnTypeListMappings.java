@@ -18,14 +18,6 @@ public enum ColumnTypeListMappings {
 	BOOLEAN(ColumnType.BOOLEAN, ColumnType.BOOLEAN_LIST),
 	DATE(ColumnType.DATE, ColumnType.DATE_LIST);
 
-	private static final Map<ColumnType, ColumnTypeListMappings> LIST_TO_NON_LIST = Arrays.stream(values())
-			.collect(Collectors.toMap(
-						ColumnTypeListMappings::getListType, //key
-						Function.identity(), //value
-						(key, val) -> {throw new IllegalArgumentException("duplicate key " + key);}	, //duplicate key handler
-						() -> new EnumMap<>(ColumnType.class) //map implementation supplier
-					));
-
 	ColumnType nonListType;
 	ColumnType listType;
 
@@ -43,15 +35,29 @@ public enum ColumnTypeListMappings {
 	}
 
 	public static ColumnTypeListMappings forListType(ColumnType listType){
-		ColumnTypeListMappings nonListType = LIST_TO_NON_LIST.get(listType);
-		if (nonListType == null) {
-			throw new IllegalArgumentException(listType + " is not a List ColumnType");
+		for(ColumnTypeListMappings mappings : values()){
+			if(mappings.getListType() == listType){
+				return mappings;
+			}
 		}
-		return nonListType;
+		throw new IllegalArgumentException(listType + " is not a list ColumnType");
+	}
+
+	public static ColumnTypeListMappings forNonListType(ColumnType nonListType){
+		for(ColumnTypeListMappings mappings : values()){
+			if(mappings.getNonListType() == nonListType){
+				return mappings;
+			}
+		}
+		throw new IllegalArgumentException(nonListType + " is not a ColumnType that has a list type associated with it");
 	}
 
 	public static ColumnType nonListType(ColumnType listType){
 		return forListType(listType).getNonListType();
+	}
+
+	public static ColumnType listType(ColumnType nonListType){
+		return forNonListType(nonListType).getListType();
 	}
 
 	public static boolean isList(ColumnType columnType){
