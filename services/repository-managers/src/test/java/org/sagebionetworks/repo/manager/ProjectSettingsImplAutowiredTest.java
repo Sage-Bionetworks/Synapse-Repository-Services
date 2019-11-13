@@ -40,12 +40,6 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
-/**
- * Tests message access requirement checking and the sending of messages Note: only the logic for sending messages is
- * tested, a separate test handles tests of sending emails
- * 
- * Sorting of messages is not tested. All tests order their results as most recent first.
- */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectSettingsImplAutowiredTest {
@@ -114,7 +108,7 @@ public class ProjectSettingsImplAutowiredTest {
 
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(username.length());
-		s3Client.putObject(externalS3LocationSetting.getBucket(), externalS3LocationSetting.getBaseKey() + "owner.txt",
+		s3Client.putObject(externalS3LocationSetting.getBucket(), externalS3LocationSetting.getBaseKey() + "/owner.txt",
 				new StringInputStream(username), metadata);
 
 		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
