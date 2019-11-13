@@ -108,6 +108,10 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	// the business logic is tested in detail in the unit tests.  This just does a basic authorization round-trip.
 	@Test
 	public void testAuthorizationRoundTrip() throws Exception {		
+
+		// Verify the client
+		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), true);
+		
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(oauthClient.getClient_id());
 		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));

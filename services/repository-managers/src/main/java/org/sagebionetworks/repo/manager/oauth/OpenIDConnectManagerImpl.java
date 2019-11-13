@@ -12,20 +12,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -71,7 +74,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private UserManager userManager;
 	
 	@Autowired
-	Clock clock;
+	private PrincipalAliasDAO principalAliasDao;
+	
+	@Autowired
+	private Clock clock;
 	
 	/**
 	 * Injected.
@@ -87,7 +93,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 */
 	public static List<OAuthScope> parseScopeString(String s) {
 		if (StringUtils.isEmpty(s)) {
-			return Collections.EMPTY_LIST;
+			return Collections.emptyList();
 		}
 		String decoded;
 		try {
@@ -191,8 +197,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
-		
 		validateAuthenticationRequest(authorizationRequest, client);
+		
+		validateClientVerificationStatus(client.getClient_id(), userInfo.getId().toString());
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt(clock.now());
@@ -273,6 +280,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");
 		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
+		
+		// When retrieving an access token the target user is the creator of the client itself
+		// if the client is not verified we include a message that indicates to contact the AC team
+		validateClientVerificationStatus(verifiedClientId);
+		
 		String serializedAuthorizationRequest;
 		try {
 			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
@@ -341,7 +353,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
-		if (oauthClientId==null) {
+		if (oauthClientId == null) {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
@@ -351,6 +363,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
+		
+		validateClientVerificationStatus(oauthClientId, userId);
 
 		UserAuthorization result = new UserAuthorization();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
@@ -393,5 +407,52 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 			return new JWTWrapper(jwtIdToken);
 		}
+	}
+	
+	// If the client is not verified the message includes the AC team contact email iff the user id is the same as the client creator
+	protected void validateClientVerificationStatus(String clientId, String userId) throws NotFoundException {
+		validateClientVerificationStatus(clientId, () -> 
+			oauthClientDao.getOAuthClientCreator(clientId).equals(userId)
+		);
+	}
+	
+	// If the client is not verified the message includes the AC team contact email
+	protected void validateClientVerificationStatus(String clientId) throws NotFoundException {
+		validateClientVerificationStatus(clientId, () -> true);
+	}
+	
+	/**
+	 * Validates that the verified flag is true for the client with the given id, the given condition is evaluated iff the
+	 * client is not verified. If the condition evaluates to true the error message will include the email of the AC Team to
+	 * contact for verification.
+	 * 
+	 * @param clientId The id of the client to validate
+	 * @param includeACTMessageCondition A condition that is evaluated if the client is not verified to include in the error
+	 *                                   message the contact email of the AC Team.
+	 * @throws OAuthClientNotVerifiedException If the client is not verified
+	 * @throws NotFoundException               If a client with the given id does not exist
+	 */
+	private void validateClientVerificationStatus(String clientId, BooleanSupplier includeACTMessageCondition) throws NotFoundException {
+		
+		if (oauthClientDao.isOauthClientVerified(clientId)) {
+			return;
+		}
+		
+		StringBuilder errorMessage = new StringBuilder("The client is not verified yet.");
+
+		if (includeACTMessageCondition.getAsBoolean()) {
+			String actEmail = getVerificationContactEmail();
+			if (actEmail != null) {
+				errorMessage.append(" Pleast contact the Synapse Access and Compliance Team (" + actEmail + ") to verify your client.");
+			}
+		}
+
+		throw new OAuthClientNotVerifiedException(errorMessage.toString());
+		
+	}
+	
+	private String getVerificationContactEmail() {
+		String acTeamName = principalAliasDao.getTeamName(TeamConstants.ACT_TEAM_ID);
+		return EmailUtils.getInternetAddressForPrincipalName(acTeamName).getAddress();
 	}
 }

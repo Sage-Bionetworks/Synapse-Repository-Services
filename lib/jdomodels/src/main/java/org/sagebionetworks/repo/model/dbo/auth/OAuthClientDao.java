@@ -1,5 +1,6 @@
-package org.sagebionetworks.repo.model.auth;
+package org.sagebionetworks.repo.model.dbo.auth;
 
+import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -57,13 +58,6 @@ public interface OAuthClientDao {
 	public void deleteOAuthClient(String clientId);
 	
 	/**
-	 * 
-	 * @param clientId
-	 * @param newEtag
-	 */
-	public void setOAuthClientVerified(String clientId, String newEtag);
-	
-	/**
 	 * Store the salted hash of the client secret.
 	 * @param clientId
 	 * @param newEtag
@@ -75,8 +69,10 @@ public interface OAuthClientDao {
 	 * 
 	 * @param clientId
 	 * @return
+	 * @throws NotFoundException If a client with the given id does not exist or if a secret 
+	 * 	for the client was not generated
 	 */
-	public byte[] getSecretSalt(String clientId);
+	public byte[] getSecretSalt(String clientId) throws NotFoundException;
 	
 	/**
 	 * 
@@ -113,6 +109,13 @@ public interface OAuthClientDao {
 	 * @param sectorIdentiferUri
 	 */
 	public void deleteSectorIdentifer(String sectorIdentiferUri);
+	
+	/**
+	 * @param clientId
+	 * @return True if the client with the given id is verified, false otherwise
+	 * @throws NotFoundException If a client with the given id does not exist
+	 */
+	boolean isOauthClientVerified(String clientId) throws NotFoundException;
 	
 	
 }

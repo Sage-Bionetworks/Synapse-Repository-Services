@@ -21,7 +21,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -68,13 +67,13 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private static final String SECTOR_IDENTIFIER_SQL_DELETE = "DELETE FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
 
-	private String SET_CLIENT_VERIFIED_SQL = "UPDATE "+TABLE_OAUTH_CLIENT+
-			" SET "+COL_OAUTH_CLIENT_IS_VERIFIED+"= ?, "+
-			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
-
-	private String SET_CLIENT_SECRET_HASH = "UPDATE "+TABLE_OAUTH_CLIENT+
+	private static final String SET_CLIENT_SECRET_HASH = "UPDATE "+TABLE_OAUTH_CLIENT+
 			" SET "+COL_OAUTH_CLIENT_SECRET_HASH+"= ?, "+
 			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
+	
+	private static final String CLIENT_VERIFIED_SQL_SELECT = "SELECT " + COL_OAUTH_CLIENT_IS_VERIFIED +
+			" FROM " + TABLE_OAUTH_CLIENT
+			+ " WHERE " + COL_OAUTH_CLIENT_ID + " = ?";
 	
 	@Autowired
 	private DBOBasicDao basicDao;	
@@ -193,7 +192,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		try {
 			return jdbcTemplate.queryForObject(CLIENT_CREATOR_SQL_SELECT, String.class, clientId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
+			throw clientNotFoundException(clientId);
 		}
 	}
 
@@ -222,8 +221,19 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	@Override
 	public byte[] getSecretSalt(String clientId) {
-		String secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, clientId);
-		if (secretHash==null) throw new NotFoundException("OAuth client (" + clientId + ") does not exist");
+		
+		String secretHash;
+		
+		try {
+			secretHash = jdbcTemplate.queryForObject(CLIENT_SECRET_HASH_SQL_SELECT, String.class, clientId);
+		} catch (EmptyResultDataAccessException e) {
+			throw clientNotFoundException(clientId);
+		}
+		
+		if (secretHash == null) {
+			throw new NotFoundException("OAuth client (" + clientId + ") not initialized");
+		}
+		
 		return PBKDF2Utils.extractSalt(secretHash);
 
 	}
@@ -278,13 +288,22 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	}
 	
 	@Override
-	public void setOAuthClientVerified(String clientId, String newEtag) {
-		jdbcTemplate.update(SET_CLIENT_VERIFIED_SQL, true, newEtag, clientId);	
-	}
-
-	@Override
 	public void setOAuthClientSecretHash(String clientId, String secretHash, String newEtag) {
 		jdbcTemplate.update(SET_CLIENT_SECRET_HASH, secretHash, newEtag, clientId);	
 	}
+	
+	@Override
+	public boolean isOauthClientVerified(String clientId) {
+		ValidateArgument.required(clientId, "Client ID");
+		try {
+			return jdbcTemplate.queryForObject(CLIENT_VERIFIED_SQL_SELECT, Boolean.class, clientId);
+		} catch (EmptyResultDataAccessException e) {
+			throw clientNotFoundException(clientId);
+		}
+	}
 
+	private NotFoundException clientNotFoundException(String clientId) {
+		return new NotFoundException("OAuth client (" + clientId + ") does not exist");
+	}
+	
 }

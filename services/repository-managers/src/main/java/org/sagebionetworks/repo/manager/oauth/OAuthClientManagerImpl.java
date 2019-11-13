@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
@@ -242,7 +242,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(clientId);
 		
-		if (verifiedStatus != currentClient.getVerified()) {
+		if (verifiedStatus != BooleanUtils.isTrue(currentClient.getVerified())) {
 			currentClient.setVerified(verifiedStatus);
 			currentClient.setModifiedOn(new Date());
 			currentClient.setEtag(UUID.randomUUID().toString());
@@ -251,7 +251,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 
 		return oauthClientDao.getOAuthClient(clientId);
 	}
-
+	
 	@WriteTransaction
 	@Override
 	public void deleteOpenIDConnectClient(UserInfo userInfo, String id) {

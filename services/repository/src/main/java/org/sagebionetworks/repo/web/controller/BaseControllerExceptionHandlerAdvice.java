@@ -15,6 +15,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.manager.authentication.PasswordResetViaEmailRequiredException;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
+import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.table.InvalidTableQueryFacetColumnRequestException;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -936,4 +937,13 @@ public class BaseControllerExceptionHandlerAdvice {
 				false,
 				null);
 	}
+	
+	@ExceptionHandler(OAuthClientNotVerifiedException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleOAuthClientNotVerifiedException(OAuthClientNotVerifiedException ex,
+														HttpServletRequest request){
+		return handleException(ex, request, true, ErrorResponseCode.OAUTH_CLIENT_NOT_VERIFIED);
+	}
+
 }

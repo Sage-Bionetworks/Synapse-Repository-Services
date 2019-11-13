@@ -98,15 +98,18 @@ public class EmailUtils {
 	}
 	
 	public static String getEmailAddressForPrincipalName(String principalAlias) {
+		return getInternetAddressForPrincipalName(principalAlias).toString();
+	}
+	
+	public static InternetAddress getInternetAddressForPrincipalName(String principalAlias) {
 		String actEmailAddress = 
 				AliasUtils.getUniqueAliasName(principalAlias)+
 				StackConfigurationSingleton.singleton().getNotificationEmailSuffix();
 		try {
-			return (new InternetAddress(actEmailAddress, principalAlias)).toString();
+			return new InternetAddress(actEmailAddress, principalAlias);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-
 	}
 
 	/**

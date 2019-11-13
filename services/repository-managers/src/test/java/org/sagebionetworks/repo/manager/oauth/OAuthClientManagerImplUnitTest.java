@@ -41,8 +41,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;

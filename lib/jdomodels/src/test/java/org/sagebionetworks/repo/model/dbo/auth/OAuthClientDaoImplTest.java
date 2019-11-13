@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,14 +15,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -34,9 +33,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class OAuthClientDaoImplTest {
 	
@@ -58,13 +58,13 @@ public class OAuthClientDaoImplTest {
 	@Autowired
 	private OAuthClientDao oauthClientDao;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		idsToDelete = new ArrayList<String>();
 		assertNotNull(oauthClientDao);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for (String id: idsToDelete) {
 			try {
@@ -257,33 +257,8 @@ public class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	public void testVerifyOAuthClient() {
-		String clientId = createSectorIdentifierAndClient();
-		OAuthClient client = oauthClientDao.getOAuthClient(clientId);
-		assertFalse(client.getVerified());
-		
-		// method under test
-		String newEtag = UUID.randomUUID().toString();
-		oauthClientDao.setOAuthClientVerified(clientId, newEtag);
-		
-		OAuthClient updatedClient = oauthClientDao.getOAuthClient(clientId);
-		assertTrue(updatedClient.getVerified());
-		assertEquals(newEtag, updatedClient.getEtag());
-		
-		try {
-			// method under test
-			oauthClientDao.setOAuthClientVerified("0", UUID.randomUUID().toString());
-		} catch (NotFoundException e) {
-			// as expected
-		}
-	}
-	
-	@Test
 	public void testSecretHash() {
 		String clientId = createSectorIdentifierAndClient();
-		
-		// let's note the etag
-		String originalEtag = oauthClientDao.getOAuthClient(clientId).getEtag();
 		
 		try {
 			// method under test
@@ -452,14 +427,12 @@ public class OAuthClientDaoImplTest {
 	}
 	
 	@Test
-	public void testUpdateIndependentOfSecretAndVerified() throws Exception {
+	public void testUpdateIndependentOfSecret() throws Exception {
 		String id = createSectorIdentifierAndClient();
-		// we should be able to set the secret hash and set the client as verified
-		// without that information being compromised by other metadata updates
+		// we should be able to set the secret hash without that information 
+		// being compromised by other metadata updates
 		String secretHash = "hash";
 		oauthClientDao.setOAuthClientSecretHash(id, secretHash, UUID.randomUUID().toString());
-		
-		oauthClientDao.setOAuthClientVerified(id, UUID.randomUUID().toString());
 		
 		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
 		
@@ -468,23 +441,38 @@ public class OAuthClientDaoImplTest {
 		
 		// the information should not be changed
 		assertTrue(oauthClientDao.checkOAuthClientSecretHash(id, secretHash));
-		assertTrue(oauthClientDao.getOAuthClient(id).getVerified());
 	}
 	
 	@Test
-	public void testInvalidateClient() throws Exception {
+	public void testIsOauthClientVerifiedWithNoClient() throws Exception {
+		String id = UUID.randomUUID().toString();
+		
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			// Method under test
+			oauthClientDao.isOauthClientVerified(id);
+		});
+	}
+	
+	@Test
+	public void testIsOauthClientVerified() throws Exception {
 		String id = createSectorIdentifierAndClient();
-		oauthClientDao.setOAuthClientVerified(id, UUID.randomUUID().toString());
 		
-		OAuthClient clientToUpdate = oauthClientDao.getOAuthClient(id);
-		assertTrue(clientToUpdate.getVerified());
+		OAuthClient client = oauthClientDao.getOAuthClient(id);
 		
-		clientToUpdate.setVerified(false);
-		// method under test
-		OAuthClient updated = oauthClientDao.updateOAuthClient(clientToUpdate);
-
-		// though we can't set false-> true in an update, we CAN set true->false
-		assertFalse(updated.getVerified());
+		// Method under test
+		boolean isVerified = oauthClientDao.isOauthClientVerified(id);
+		
+		assertFalse(isVerified);
+		
+		// Updates the verified flag
+		client.setVerified(true);
+		oauthClientDao.updateOAuthClient(client);
+		
+		// Method under test
+		isVerified = oauthClientDao.isOauthClientVerified(id);
+		
+		assertTrue(isVerified);
+		
 	}
 
 }
