@@ -74,7 +74,7 @@ public class OpenIDConnectController {
 	
 	/**
 	 * Create an OAuth 2.0 client.  Note:  After creating the client one must also set the client secret
-	 * and verify ownership of the host(s) in the registered redirect URIs.
+	 * and ask ACT to have their client verified.
 	 * 
 	 * @param oauthClient the client metadata for the new client
 	 * @return

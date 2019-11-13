@@ -30,7 +30,7 @@
 		},
 		"verified": {
 			"type": "boolean",
-			"description": "initially false, becomes true once the client creator demonstrates ownership of the redirect URI host",
+			"description": "initially false, to be verified please contact the AC Team.",
 			"links": [
 				{
 					"rel": "describedby",
