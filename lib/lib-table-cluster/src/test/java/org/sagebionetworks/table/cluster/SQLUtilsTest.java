@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +39,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -1003,8 +1002,8 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition_nonList(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
-		ColumnModel newColumn = null;
+		ColumnModel oldColumn = null;
+		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
 
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 
@@ -1117,12 +1116,13 @@ public class SQLUtilsTest {
 						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
 						"INDEX _C456__IDX (_C456_ ASC) );",
+				"DROP TABLE IF EXISTS T999_INDEX_C123_;",
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (ROW_ID BIGINT(20) NOT NULL, " +
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
 						"_C101112_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
 						"INDEX _C101112__IDX (_C101112_ ASC) );",
-				"DROP TABLE IF EXISTS T999_INDEX_C123_,T999_INDEX_C161718_;");
+				"DROP TABLE IF EXISTS T999_INDEX_C161718_;");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
 	}
 

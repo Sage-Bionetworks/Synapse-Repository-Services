@@ -115,7 +115,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.TimeUtils;

@@ -16,13 +16,6 @@ public class AnnotationTypeTest {
 		assertEquals(ColumnType.DATE, AnnotationType.DATE.getColumnType());
 	}
 
-	@Test
-	public void testListColumnType(){
-		assertEquals(ColumnType.STRING_LIST, AnnotationType.STRING.getListColumnType());
-		assertEquals(ColumnType.INTEGER_LIST, AnnotationType.LONG.getListColumnType());
-		assertEquals(ColumnType.DATE_LIST, AnnotationType.DATE.getListColumnType());
-	}
-
 	public void testAnnotationType(){
 		assertEquals(AnnotationType.STRING, AnnotationType.forAnnotationV2Type(AnnotationsValueType.STRING));
 		assertEquals(AnnotationType.DOUBLE, AnnotationType.forAnnotationV2Type(AnnotationsValueType.DOUBLE));

@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 import com.google.common.collect.Lists;
 
@@ -69,7 +69,7 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setDefaultValue("123");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE);
+		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
 		//input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
@@ -103,13 +103,13 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setDefaultValue("123");
 		expected.setColumnType(ColumnType.STRING);
-		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(null);
 		original.setDefaultValue("123");
-		original.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		original.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame(normlaized, original, "A new object should have been created");
@@ -137,7 +137,7 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
-		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE);
+		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
 		//input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
@@ -187,13 +187,13 @@ public class ColumnModelUtlisTest {
 		expected.setName("name");
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
-		expected.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
 		original.setEnumValues(null);
 		original.setDefaultValue("[\"str\"]");
-		original.setMaximumSize(ColumnModelUtils.DEFAULT_MAX_STRING_SIZE-1);
+		original.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
 		ColumnModel normlaized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		assertNotNull(normlaized);
 		assertNotSame(normlaized, original, "A new object should have been created");
@@ -314,6 +314,19 @@ public class ColumnModelUtlisTest {
 		assertThrows(IllegalArgumentException.class, () -> {
 			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
 		});
+	}
+
+	@Test
+	public void testLargeText_ListDefaultValue(){
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING_LIST);
+		original.setDefaultValue("nonArray]");
+		original.setEnumValues(null);
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+		}).getMessage();
+
+		assertEquals("Not a JSON Array: nonArray]", errorMessage);
 	}
 
 	@Test

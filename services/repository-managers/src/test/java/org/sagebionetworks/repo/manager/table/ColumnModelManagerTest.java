@@ -13,8 +13,8 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE;
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.MAX_NUMBER_OF_LARGE_TEXT_COLUMNS_PER_TABLE;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,7 +47,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
-import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 /**
  * Unit test for the ColumnManager.

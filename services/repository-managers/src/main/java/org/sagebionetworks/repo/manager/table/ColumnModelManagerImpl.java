@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.MY_SQL_MAX_BYTES_PER_ROW;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
 
 import java.util.HashMap;
 import java.util.HashSet;

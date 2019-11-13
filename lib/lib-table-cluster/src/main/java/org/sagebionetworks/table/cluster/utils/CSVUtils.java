@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.utils;
 
 import java.io.Reader;
 
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -12,7 +13,7 @@ import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
 	
-	public static final String ERROR_CELLS_EXCEED_MAX = "One or more cell value exceeds the maxiumn number of characters: "+ColumnConstants.MAX_LARGE_TEXT_CHARACTERS;
+	public static final String ERROR_CELLS_EXCEED_MAX = "One or more cell value exceeds the maxiumn number of characters: "+ ColumnConstants.MAX_LARGE_TEXT_CHARACTERS;
 	/**
 	 * When searching for a type this setups the order we check for.  Not all types are included.
 	 */

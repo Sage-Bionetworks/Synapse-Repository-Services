@@ -10,6 +10,7 @@ import java.io.StringReader;
 import java.util.Arrays;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;

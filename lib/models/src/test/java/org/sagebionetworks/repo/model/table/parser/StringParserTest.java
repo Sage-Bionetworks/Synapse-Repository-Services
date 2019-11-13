@@ -38,14 +38,4 @@ public class StringParserTest {
 		assertTrue(parser.isOfType("a string"));
 		assertFalse(parser.isOfType(null));
 	}
-
-
-	@Test
-	public void temptest(){
-		List<Double> jsonArray = new ArrayList<>();
-		jsonArray.add(Double.POSITIVE_INFINITY);
-		jsonArray.add(Double.NEGATIVE_INFINITY);
-		jsonArray.add(Double.NaN);
-		System.out.println(jsonArray);
-	}
 }

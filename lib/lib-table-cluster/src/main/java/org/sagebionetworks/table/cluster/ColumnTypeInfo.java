@@ -1,9 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.table.cluster.utils.ColumnConstants.*;
+import static org.sagebionetworks.repo.model.table.ColumnConstants.*;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ValueParser;
 import org.sagebionetworks.repo.model.table.parser.BooleanParser;
@@ -49,21 +48,14 @@ public enum ColumnTypeInfo {
 		this.parser = parser;
 	}
 
-
-	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
-		return toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes, false);
-	}
-
 	/**
 	 * Get the SQL to define a column of this type in MySQL.
 	 * @param inputSize
 	 * @param defaultValue
 	 * @param useDepricatedUtf8ThreeBytes Should only be set to true for the few old
-	 * @param forJsonTempTable
-	 * tables that are too large to build with the correct 4 byte UTF-8.
 	 * @return
 	 */
-	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes, boolean forJsonTempTable){
+	public String toSql(Long inputSize, String defaultValue, boolean useDepricatedUtf8ThreeBytes){
 		StringBuilder builder = new StringBuilder();
 			builder.append(mySqlType.name());
 		Long size = maxSize;

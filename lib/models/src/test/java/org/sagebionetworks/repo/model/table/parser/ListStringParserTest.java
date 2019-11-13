@@ -54,11 +54,4 @@ class ListStringParserTest {
 	public void testParseValueForDatabaseWrite_happyCase(){
 		assertEquals("[\"str\",\"str2\"]", listStringParser.parseValueForDatabaseWrite("[\"str\", \"str2\"]"));
 	}
-
-	@Test
-	public void testParseValueForDatabaseWrite_double(){
-		listStringParser = new ListStringParser(new DoubleParser());
-
-		assertEquals("[1.2,\"Infinity\",\"NaN\"]", listStringParser.parseValueForDatabaseWrite("[\"1.2\",\"Infinity\",\"NaN\"]"));
-	}
 }
