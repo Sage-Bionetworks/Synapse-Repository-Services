@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.sun.xml.internal.bind.v2.model.core.ID;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.util.doubles.AbstractDouble;
@@ -236,6 +237,13 @@ public class SQLUtils {
 		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
 		builder.append("_INDEX");
 		appendColumnNameForId(columnId, builder);
+		return builder.toString();
+	}
+
+	public static String getFacetCacheTableName(IdAndVersion idAndVersion){//TODO: test
+		StringBuilder builder = new StringBuilder();
+		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
+		builder.append("_FACET");
 		return builder.toString();
 	}
 
@@ -1881,4 +1889,19 @@ public class SQLUtils {
 				") TEMP_JSON_TABLE;";
 	}
 
+
+	static String createFacetCacheTableTable(IdAndVersion tableIdAndVersion, int maxInputSize){
+		String facetCacheTableName = getFacetCacheTableName(tableIdAndVersion);
+		String stringTypeSQL = ColumnTypeInfo.STRING.toSql(maxInputSize, null, false);
+		//TODO: maybe just use json to store a pre-computed FacetColumnResult object
+		return "CREATE TABLE IF NOT EXISTS " + facetCacheTableName + " (" +
+				"columnName " + stringTypeSQL + ", " +
+				"value " + stringTypeSQL + ", " +
+				"count " + stringTypeSQL + ", " +
+				"min " + stringTypeSQL + ", " +
+				"max " + stringTypeSQL + ", " +
+				"PRIMARY KEY ("+ROW_ID+", "+INDEX_NUM+")," +
+				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
+				");";
+	}
 }
