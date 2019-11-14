@@ -342,6 +342,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		List<FacetColumnResult> facetResults = new ArrayList<>();
 		for (FacetTransformer facetQueryTransformer : facetModel.getFacetInformationQueries()) {
 			RowSet rowSet = indexDao.query(null, facetQueryTransformer.getFacetSqlQuery());
+			indexDao.getConnection().quer("asdfsafsdaf");
 			facetResults.add(facetQueryTransformer.translateToResult(rowSet));
 		}
 		return facetResults;
