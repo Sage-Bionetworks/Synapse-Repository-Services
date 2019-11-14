@@ -1,5 +1,6 @@
 package org.sagebionetworks.auth;
 
+import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -74,7 +75,7 @@ public class OpenIDConnectController {
 	
 	/**
 	 * Create an OAuth 2.0 client.  Note:  After creating the client one must also set the client secret
-	 * and ask ACT to have their client verified.
+	 * and have their client verified (See the <a href="https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html">Synapse OAuth Server Documentation</a>)
 	 * 
 	 * @param oauthClient the client metadata for the new client
 	 * @return
@@ -223,6 +224,7 @@ public class OpenIDConnectController {
 	 * @param authorizationRequest the request to be authorized
 	 * @return
 	 * @throws NotFoundException
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
@@ -230,7 +232,7 @@ public class OpenIDConnectController {
 	OAuthAuthorizationResponse authorizeClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
-			) throws NotFoundException {
+			) throws NotFoundException, OAuthClientNotVerifiedException {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
@@ -251,6 +253,7 @@ public class OpenIDConnectController {
 	 * @param claims optional if grant_type is refresh_token
 	 * @return
 	 * @throws NotFoundException
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
@@ -264,7 +267,7 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
-			)  throws NotFoundException {
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
 	}
 		
@@ -275,6 +278,9 @@ public class OpenIDConnectController {
 	 * <br/>
 	 * <br/>
 	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
+	 * 
+	 * @throws NotFoundException
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
@@ -282,7 +288,7 @@ public class OpenIDConnectController {
 	Object getUserInfoGET(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
-			)  throws NotFoundException {
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}
@@ -294,6 +300,8 @@ public class OpenIDConnectController {
 	 * <br/>
 	 * <br/>
 	 * Authorization is via an OAuth access token passed as a Bearer token in the Authorization header.
+	 * 
+	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
@@ -301,7 +309,7 @@ public class OpenIDConnectController {
 	Object getUserInfoPOST(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
-			)  throws NotFoundException {
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
 	}

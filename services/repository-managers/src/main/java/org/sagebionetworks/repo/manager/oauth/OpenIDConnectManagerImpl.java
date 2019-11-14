@@ -57,6 +57,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
+	private static final String OAUTH_DOCS_URL = "https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html";
 	
 	@Autowired
 	private StackEncrypter stackEncrypter;
@@ -409,30 +410,30 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 	}
 	
-	// If the client is not verified the message includes the AC team contact email iff the user id is the same as the client creator
-	protected void validateClientVerificationStatus(String clientId, String userId) throws NotFoundException {
+	// If the client is not verified the message includes the URL to the synapse OAuth docs iff the user id is the same as the client creator
+	protected void validateClientVerificationStatus(String clientId, String userId) throws NotFoundException, OAuthClientNotVerifiedException {
 		validateClientVerificationStatus(clientId, () -> 
 			oauthClientDao.getOAuthClientCreator(clientId).equals(userId)
 		);
 	}
 	
-	// If the client is not verified the message includes the AC team contact email
-	protected void validateClientVerificationStatus(String clientId) throws NotFoundException {
+	// If the client is not verified the message includes the URL to the synapse OAuth docs
+	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
 		validateClientVerificationStatus(clientId, () -> true);
 	}
 	
 	/**
-	 * Validates that the verified flag is true for the client with the given id, the given condition is evaluated iff the
-	 * client is not verified. If the condition evaluates to true the error message will include the email of the AC Team to
-	 * contact for verification.
+	 * Validates that the verified flag is true for the client with the given id, the given condition is
+	 * evaluated iff the client is not verified. If the condition evaluates to true the error message
+	 * will include the URL for the synapse OAuth docs.
 	 * 
-	 * @param clientId The id of the client to validate
-	 * @param includeACTMessageCondition A condition that is evaluated if the client is not verified to include in the error
-	 *                                   message the contact email of the AC Team.
+	 * @param clientId                     The id of the client to validate
+	 * @param includeOAuthDocsURLCondition A condition that is evaluated if the client is not verified
+	 *                                     to include in the error message the URL to the OAuth docs
 	 * @throws OAuthClientNotVerifiedException If the client is not verified
 	 * @throws NotFoundException               If a client with the given id does not exist
 	 */
-	private void validateClientVerificationStatus(String clientId, BooleanSupplier includeACTMessageCondition) throws NotFoundException {
+	private void validateClientVerificationStatus(String clientId, BooleanSupplier includeOAuthDocsURLCondition) throws NotFoundException, OAuthClientNotVerifiedException {
 		
 		if (oauthClientDao.isOauthClientVerified(clientId)) {
 			return;
@@ -440,19 +441,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		
 		StringBuilder errorMessage = new StringBuilder("The client is not verified yet.");
 
-		if (includeACTMessageCondition.getAsBoolean()) {
-			String actEmail = getVerificationContactEmail();
-			if (actEmail != null) {
-				errorMessage.append(" Pleast contact the Synapse Access and Compliance Team (" + actEmail + ") to verify your client.");
-			}
+		if (includeOAuthDocsURLCondition.getAsBoolean()) {
+			errorMessage.append(" Please see ").append(OAUTH_DOCS_URL).append(" to verify your client.");
 		}
 
 		throw new OAuthClientNotVerifiedException(errorMessage.toString());
 		
-	}
-	
-	private String getVerificationContactEmail() {
-		String acTeamName = principalAliasDao.getTeamName(TeamConstants.ACT_TEAM_ID);
-		return EmailUtils.getInternetAddressForPrincipalName(acTeamName).getAddress();
 	}
 }

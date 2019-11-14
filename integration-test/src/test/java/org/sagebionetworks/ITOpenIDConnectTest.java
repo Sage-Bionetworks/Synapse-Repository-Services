@@ -121,7 +121,7 @@ public class ITOpenIDConnectTest {
 		});
 		
 		// Since I'm the creator of the client I should also receive in the message the contact email of ACT
-		assertTrue(ex.getMessage().contains("The client is not verified yet. Pleast contact the Synapse Access and Compliance Team"));
+		assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 		
 		// Verify the client
 		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -149,7 +149,7 @@ public class ITOpenIDConnectTest {
 			});
 			
 			// Should always include the ACT message as I'm the creator of client
-			assertTrue(ex.getMessage().contains("The client is not verified yet. Pleast contact the Synapse Access and Compliance Team"));
+			assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 			
 			// Verify the client once again
 			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -175,7 +175,7 @@ public class ITOpenIDConnectTest {
 			});
 			
 			// Should include the ACT message since the subject was the creator
-			assertTrue(ex.getMessage().contains("The client is not verified yet. Pleast contact the Synapse Access and Compliance Team"));
+			assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 						
 			
 			// Verify the client once again

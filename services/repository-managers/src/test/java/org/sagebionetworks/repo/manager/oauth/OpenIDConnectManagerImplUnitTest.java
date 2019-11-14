@@ -16,7 +16,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -126,10 +125,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private UserManager mockUserManager;
-	
-	@Mock
-	private PrincipalAliasDAO mockPrincipalAliasDao;
-	
+		
 	@Mock
 	private Jwt<JwsHeader,Claims> mockJWT;
 
@@ -750,7 +746,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		String code = "Some code";
 		
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
-		when(mockPrincipalAliasDao.getTeamName(TeamConstants.ACT_TEAM_ID)).thenReturn("act");
 		
 		assertThrows(OAuthClientNotVerifiedException.class, () -> {
 			// method under test
@@ -937,7 +932,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 		verifyNoMoreInteractions(mockOauthClientDao);
-		verifyZeroInteractions(mockPrincipalAliasDao);	
 		
 	}
 	
@@ -949,18 +943,16 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
 		when(mockOauthClientDao.getOAuthClientCreator(clientId)).thenReturn(creatorId);
-		when(mockPrincipalAliasDao.getTeamName(TeamConstants.ACT_TEAM_ID)).thenReturn("act");
 		
 		OAuthClientNotVerifiedException ex = assertThrows(OAuthClientNotVerifiedException.class, ()-> {
 			// Method under test
 			openIDConnectManagerImpl.validateClientVerificationStatus(clientId, userId);
 		});
 		
-		assertEquals("The client is not verified yet. Pleast contact the Synapse Access and Compliance Team (act@synapse.org) to verify your client.", ex.getMessage());
+		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).getOAuthClientCreator(OAUTH_CLIENT_ID);
-		verify(mockPrincipalAliasDao).getTeamName(TeamConstants.ACT_TEAM_ID);	
 		
 	}
 	
@@ -982,7 +974,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).getOAuthClientCreator(OAUTH_CLIENT_ID);
-		verifyZeroInteractions(mockPrincipalAliasDao);
 		
 	}
 	
@@ -991,17 +982,15 @@ public class OpenIDConnectManagerImplUnitTest {
 		String clientId = OAUTH_CLIENT_ID;
 		
 		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
-		when(mockPrincipalAliasDao.getTeamName(TeamConstants.ACT_TEAM_ID)).thenReturn("act");
 		
 		OAuthClientNotVerifiedException ex = assertThrows(OAuthClientNotVerifiedException.class, ()-> {
 			// Method under test
 			openIDConnectManagerImpl.validateClientVerificationStatus(clientId);
 		});
 		
-		assertEquals("The client is not verified yet. Pleast contact the Synapse Access and Compliance Team (act@synapse.org) to verify your client.", ex.getMessage());
+		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
-		verify(mockPrincipalAliasDao).getTeamName(TeamConstants.ACT_TEAM_ID);		
 	}
 
 }
