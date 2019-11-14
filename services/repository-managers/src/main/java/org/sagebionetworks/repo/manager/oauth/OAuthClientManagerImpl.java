@@ -240,16 +240,16 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			throw new UnauthorizedException("You must be an administrator or a member of the ACT team to update the verification status of a client");
 		}
 		
-		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(clientId);
+		OAuthClient client = oauthClientDao.selectOAuthClientForUpdate(clientId);
 		
-		if (verifiedStatus != BooleanUtils.isTrue(currentClient.getVerified())) {
-			currentClient.setVerified(verifiedStatus);
-			currentClient.setModifiedOn(new Date());
-			currentClient.setEtag(UUID.randomUUID().toString());
-			oauthClientDao.updateOAuthClient(currentClient);
+		if (verifiedStatus != BooleanUtils.isTrue(client.getVerified())) {
+			client.setVerified(verifiedStatus);
+			client.setModifiedOn(new Date());
+			client.setEtag(UUID.randomUUID().toString());
+			client = oauthClientDao.updateOAuthClient(client);
 		}
 
-		return oauthClientDao.getOAuthClient(clientId);
+		return client;
 	}
 	
 	@WriteTransaction
