@@ -16,11 +16,9 @@ import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
-import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -37,7 +35,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -73,9 +70,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private PrincipalAliasDAO principalAliasDao;
 	
 	@Autowired
 	private Clock clock;
@@ -137,7 +131,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
+		
+		validateClientVerificationStatus(client.getClient_id(), authorizationRequest.getUserId());
 		validateAuthenticationRequest(authorizationRequest, client);
+		
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
 		result.setClientId(client.getClient_id());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
@@ -198,9 +195,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
-		validateAuthenticationRequest(authorizationRequest, client);
-		
 		validateClientVerificationStatus(client.getClient_id(), userInfo.getId().toString());
+
+		validateAuthenticationRequest(authorizationRequest, client);
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
 		authorizationRequest.setAuthorizedAt(clock.now());
@@ -283,7 +280,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
 		
 		// When retrieving an access token the target user is the creator of the client itself
-		// if the client is not verified we include a message that indicates to contact the AC team
+		// if the client is not verified we include in the message the URL to the synapse OAuth docs
 		validateClientVerificationStatus(verifiedClientId);
 		
 		String serializedAuthorizationRequest;
@@ -413,7 +410,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// If the client is not verified the message includes the URL to the synapse OAuth docs iff the user id is the same as the client creator
 	protected void validateClientVerificationStatus(String clientId, String userId) throws NotFoundException, OAuthClientNotVerifiedException {
 		validateClientVerificationStatus(clientId, () -> 
-			oauthClientDao.getOAuthClientCreator(clientId).equals(userId)
+			userId != null && oauthClientDao.getOAuthClientCreator(clientId).equals(userId)
 		);
 	}
 	

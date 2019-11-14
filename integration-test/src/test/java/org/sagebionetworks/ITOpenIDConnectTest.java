@@ -112,16 +112,34 @@ public class ITOpenIDConnectTest {
 				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
 				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
 		);
+
+		// ---- Auth Description Test ----
+		
+		// The client is not verified, we cannot get the description
+		SynapseForbiddenException ex = assertThrows(SynapseForbiddenException.class, () -> {
+				synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
+		});
+		
+		assertEquals("The client is not verified yet.", ex.getMessage());
+		
+		// Verify the client
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		
+		// This goes through
+		synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
 		
 		// ---- Authorization Code Test ----
 		
-		// The client is not verified, we cannot autorize the request
-		SynapseForbiddenException ex = assertThrows(SynapseForbiddenException.class, () -> {
+		// Remove the client verification
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		
+		// The client is not verified, we cannot authorize the request
+		ex = assertThrows(SynapseForbiddenException.class, () -> {
 			synapseOne.authorizeClient(authorizationRequest);
 		});
 		
 		// Since I'm the creator of the client I should also receive in the message the contact email of ACT
-		assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
+		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 		
 		// Verify the client
 		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -149,7 +167,7 @@ public class ITOpenIDConnectTest {
 			});
 			
 			// Should always include the ACT message as I'm the creator of client
-			assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
+			assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 			
 			// Verify the client once again
 			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -175,7 +193,7 @@ public class ITOpenIDConnectTest {
 			});
 			
 			// Should include the ACT message since the subject was the creator
-			assertEquals("The client is not verified yet. Pleast see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
+			assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
 						
 			
 			// Verify the client once again

@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider;
-import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -68,7 +67,6 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -327,7 +325,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_IdTokenClaims() {
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
@@ -345,7 +344,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_UserInfoClaims() {
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
 		OIDCAuthorizationRequestDescription description = 
@@ -364,6 +364,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetAuthenticationRequestDescription_NoOAuthScope() {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null);
@@ -404,6 +405,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetAuthenticationRequestDescription_BadRedirectURI() {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setRedirectUri("some other redir uri");
@@ -415,6 +417,22 @@ public class OpenIDConnectManagerImplUnitTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+
+	}
+	
+	@Test
+	public void testGetAuthenticationRequestDescription_UnverifiedClient() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
+		
+		OAuthClientNotVerifiedException ex =  assertThrows(OAuthClientNotVerifiedException.class, () -> {
+			// method under test
+			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
+		});
+		
+		assertEquals("The client is not verified yet.", ex.getMessage());
 
 	}
 
