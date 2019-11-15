@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -70,7 +70,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private UserManager userManager;
 	
 	@Autowired
-	Clock clock;
+	private Clock clock;
 	
 	/**
 	 * Injected.
@@ -86,7 +86,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 */
 	public static List<OAuthScope> parseScopeString(String s) {
 		if (StringUtils.isEmpty(s)) {
-			return Collections.EMPTY_LIST;
+			return Collections.emptyList();
 		}
 		String decoded;
 		try {
@@ -129,7 +129,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
+		
+		validateClientVerificationStatus(client.getClient_id());
+		
 		validateAuthenticationRequest(authorizationRequest, client);
+		
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
 		result.setClientId(client.getClient_id());
 		result.setRedirect_uri(authorizationRequest.getRedirectUri());
@@ -189,6 +193,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
+		
+		validateClientVerificationStatus(client.getClient_id());
+
 		validateAuthenticationRequest(authorizationRequest, client);
 
 		authorizationRequest.setUserId((new Long(userInfo.getId()).toString()));
@@ -270,6 +277,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");
 		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
+		
+		validateClientVerificationStatus(verifiedClientId);
+		
 		String serializedAuthorizationRequest;
 		try {
 			serializedAuthorizationRequest = stackEncrypter.decryptStackEncryptedAndBase64EncodedString(code);
@@ -338,9 +348,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
-		if (oauthClientId==null) {
+		
+		if (oauthClientId == null) {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
+
+		validateClientVerificationStatus(oauthClientId);
+		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
@@ -389,6 +403,18 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 					authTime, UUID.randomUUID().toString(), userInfo);
 
 			return new JWTWrapper(jwtIdToken);
+		}
+	}
+	
+	/**
+	 * Validates that the verified flag is true for the client with the given id
+	 * 
+	 * @throws OAuthClientNotVerifiedException If the client is not verified
+	 * @throws NotFoundException               If a client with the given id does not exist
+	 */
+	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
+		if (!oauthClientDao.isOauthClientVerified(clientId)) {			
+			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}
 	}
 }

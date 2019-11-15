@@ -100,6 +100,11 @@ public class OAuthClientManagerImplAutowiredTest {
 		oauthClientsToDelete.add(id);
 		
 		// method under test
+		created = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, id, true);
+		
+		assertTrue(created.getVerified());
+		
+		// method under test
 		assertEquals(created, oauthClientManager.getOpenIDConnectClient(userInfo, id));
 		
 		// method under test

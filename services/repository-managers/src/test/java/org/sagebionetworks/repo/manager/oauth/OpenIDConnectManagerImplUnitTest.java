@@ -54,8 +54,8 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -122,9 +122,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private UserManager mockUserManager;
-	
+		
 	@Mock
-	Jwt<JwsHeader,Claims> mockJWT;
+	private Jwt<JwsHeader,Claims> mockJWT;
 
 	@Mock
 	private Clock mockClock;
@@ -174,6 +174,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
+		oauthClient.setVerified(true);
 		oauthClient.setClient_id(OAUTH_CLIENT_ID);
 		oauthClient.setRedirect_uris(REDIRCT_URIS);
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
@@ -242,6 +243,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testValidateAuthenticationRequest() {
 		OAuthClient client = new OAuthClient();
 		client.setRedirect_uris(REDIRCT_URIS);
+		client.setVerified(true);
 
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
@@ -255,6 +257,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testValidateAuthenticationRequest_invalidUri() {
 		OAuthClient client = new OAuthClient();
 		client.setRedirect_uris(REDIRCT_URIS);
+		client.setVerified(true);
 
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setRedirectUri("some invalid uri");
@@ -273,6 +276,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testValidateAuthenticationRequest_invalidResponseType() {
 		OAuthClient client = new OAuthClient();
 		client.setRedirect_uris(REDIRCT_URIS);
+		client.setVerified(true);
 
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setRedirectUri(REDIRCT_URIS.get(0));
@@ -285,7 +289,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
-	}
+	}	
 
 	private static final String NONCE = UUID.randomUUID().toString();
 	
@@ -320,7 +324,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_IdTokenClaims() {
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("id_token"));
 		OIDCAuthorizationRequestDescription description = 
@@ -338,7 +343,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_HappyCase_UserInfoClaims() {
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
 		OIDCAuthorizationRequestDescription description = 
@@ -357,6 +363,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetAuthenticationRequestDescription_NoOAuthScope() {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setScope(null);
@@ -396,6 +403,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAuthenticationRequestDescription_BadRedirectURI() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		authorizationRequest.setRedirectUri("some other redir uri");
 
@@ -408,11 +418,28 @@ public class OpenIDConnectManagerImplUnitTest {
 		}
 
 	}
+	
+	@Test
+	public void testGetAuthenticationRequestDescription_UnverifiedClient() {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(Collections.singletonList("userinfo"));
+		
+		OAuthClientNotVerifiedException ex =  assertThrows(OAuthClientNotVerifiedException.class, () -> {
+			// method under test
+			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
+		});
+		
+		assertEquals("The OAuth client (" + OAUTH_CLIENT_ID + ") is not verified.", ex.getMessage());
+
+	}
 
 	@Test
 	public void testAuthorizeClient() throws Exception {
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.now()).thenReturn(new Date());
@@ -454,7 +481,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		} catch (UnauthorizedException e) {
 			// as expected
 		}
-	}	
+	}
 
 	@Test
 	public void testAuthorizeClient_InvalidClientId() {
@@ -469,6 +496,21 @@ public class OpenIDConnectManagerImplUnitTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+
+	@Test
+	public void testAuthorizeClient_unverified() throws Exception {
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
+
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+
+		assertThrows(OAuthClientNotVerifiedException.class, ()-> {
+			// method under test
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
+		});
+		
+		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 	
 	@Test
@@ -558,7 +600,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetAccessToken() {
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
@@ -607,6 +650,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testGetAccessToken_invalidAuthCode() {
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 
 		String incorrectlyEncryptedCode = "some invalid code";
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(incorrectlyEncryptedCode)).thenThrow(new RuntimeException());
@@ -631,7 +675,8 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Test
 	public void testGetAccessToken_expiredAuthCode() throws Exception {
-		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		// let's doctor the authorization time stamp to be long ago
@@ -660,6 +705,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetAccessToken_mismatchRedirectURI() {
 		when(mockStackEncrypter.decryptStackEncryptedAndBase64EncodedString(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
@@ -684,6 +730,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);	
 		when(mockStackEncrypter.encryptAndBase64EncodeStringWithStackKey(anyString())).then(returnsFirstArg());	
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		when(mockAuthDao.getSessionValidatedOn(USER_ID_LONG)).thenReturn(now);
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockClock.now()).thenReturn(new Date());
@@ -707,6 +754,21 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertNull(tokenResponse.getId_token());
 
 		assertNotNull(tokenResponse.getAccess_token());
+	}
+	
+	@Test
+	public void testGetAccessToken_clientUnverified() {
+		String code = "Some code";
+		
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
+		
+		assertThrows(OAuthClientNotVerifiedException.class, () -> {
+			// method under test
+			openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
+		});
+		
+		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
+		
 	}
 	
 	private UserAuthorization createUserAuthorization() {
@@ -791,6 +853,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		
 		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
 		claims.setSubject(ppid);
@@ -829,6 +892,28 @@ public class OpenIDConnectManagerImplUnitTest {
 		// method under test
 		assertThrows(IllegalArgumentException.class, () -> openIDConnectManagerImpl.getUserAuthorization(token));
 	}
+	
+	@Test
+	public void testGetUserAuthorizationClientUnverified() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = Collections.singletonList(OAuthScope.openid);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
+		
+		String ppid = openIDConnectManagerImpl.ppid("456", OAUTH_CLIENT_ID);
+		claims.setSubject(ppid);
+		
+		assertThrows(OAuthClientNotVerifiedException.class, ()-> {
+			// method under test
+			openIDConnectManagerImpl.getUserAuthorization(token);
+		});
+	}
 
 	@Test
 	public void testGetUserId() {
@@ -847,6 +932,35 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(USER_ID, openIDConnectManagerImpl.getUserId(token));
 		
 		verify(oidcTokenHelper).parseJWT(token);
+	}
+	
+	@Test
+	public void testValidateClientVerificationStatusVerified() {
+		String clientId = OAUTH_CLIENT_ID;
+		
+		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(true);
+
+		// Method under test
+		openIDConnectManagerImpl.validateClientVerificationStatus(clientId);
+		
+		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
+		
+	}
+	
+	@Test
+	public void testValidateClientVerificationStatusUnverified() {
+		String clientId = OAUTH_CLIENT_ID;
+		
+		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
+		
+		OAuthClientNotVerifiedException ex = assertThrows(OAuthClientNotVerifiedException.class, ()-> {
+			// Method under test
+			openIDConnectManagerImpl.validateClientVerificationStatus(clientId);
+		});
+		
+		assertEquals("The OAuth client (" + OAUTH_CLIENT_ID + ") is not verified.", ex.getMessage());
+		
+		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}
 
 }

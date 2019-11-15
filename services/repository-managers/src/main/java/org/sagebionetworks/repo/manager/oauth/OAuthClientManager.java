@@ -48,6 +48,16 @@ public interface OAuthClientManager {
 	OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient oauthClient) throws ServiceUnavailableException;
 
 	/**
+	 * Updates the verified status of the client with the given id. If the verified status matches the given value, no update is performed.
+	 * 
+	 * @param userInfo The user changing the verified status, must be a synapse administrator or ACT member
+	 * @param clientId The id of the client to be updated
+	 * @param verifiedStatus The verified status value
+	 * @return
+	 */
+	OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, boolean verifiedStatus);
+	
+	/**
 	 * Delete an Open ID Connect client.
 	 * userInfo param must be the creator of the client (or else a Synapse administrator)
 	 * @param userInfo
@@ -70,5 +80,6 @@ public interface OAuthClientManager {
 	 * @return true iff the credentials are valid
 	 */
 	boolean validateClientCredentials(OAuthClientIdAndSecret idAndSecret);
+	
 
 }
