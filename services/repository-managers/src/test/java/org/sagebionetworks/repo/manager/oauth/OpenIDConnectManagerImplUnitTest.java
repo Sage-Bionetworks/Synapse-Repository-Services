@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -432,7 +431,7 @@ public class OpenIDConnectManagerImplUnitTest {
 			openIDConnectManagerImpl.getAuthenticationRequestDescription(authorizationRequest);
 		});
 		
-		assertEquals("The client is not verified yet.", ex.getMessage());
+		assertEquals("The OAuth client (" + OAUTH_CLIENT_ID + ") is not verified.", ex.getMessage());
 
 	}
 
@@ -502,7 +501,6 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testAuthorizeClient_unverified() throws Exception {
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn("456");
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
@@ -513,7 +511,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		});
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
-		verify(mockOauthClientDao).getOAuthClientCreator(OAUTH_CLIENT_ID);
 	}
 	
 	@Test
@@ -908,7 +905,6 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setAudience(OAUTH_CLIENT_ID);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(false);
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
 		
 		String ppid = openIDConnectManagerImpl.ppid("456", OAUTH_CLIENT_ID);
 		claims.setSubject(ppid);
@@ -941,62 +937,18 @@ public class OpenIDConnectManagerImplUnitTest {
 	@Test
 	public void testValidateClientVerificationStatusVerified() {
 		String clientId = OAUTH_CLIENT_ID;
-		String userId = USER_ID;
 		
 		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(true);
 
 		// Method under test
-		openIDConnectManagerImpl.validateClientVerificationStatus(clientId, userId);
+		openIDConnectManagerImpl.validateClientVerificationStatus(clientId);
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
-		verifyNoMoreInteractions(mockOauthClientDao);
 		
 	}
 	
 	@Test
-	public void testValidateClientVerificationStatusUnverifiedSameCreator() {
-		String clientId = OAUTH_CLIENT_ID;
-		String userId = USER_ID;
-		String creatorId = userId;
-		
-		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
-		when(mockOauthClientDao.getOAuthClientCreator(clientId)).thenReturn(creatorId);
-		
-		OAuthClientNotVerifiedException ex = assertThrows(OAuthClientNotVerifiedException.class, ()-> {
-			// Method under test
-			openIDConnectManagerImpl.validateClientVerificationStatus(clientId, userId);
-		});
-		
-		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
-		
-		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
-		verify(mockOauthClientDao).getOAuthClientCreator(OAUTH_CLIENT_ID);
-		
-	}
-	
-	@Test
-	public void testValidateClientVerificationStatusUnverifiedDifferentCreator() {
-		String clientId = OAUTH_CLIENT_ID;
-		String userId = USER_ID;
-		String creatorId = "456";
-		
-		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
-		when(mockOauthClientDao.getOAuthClientCreator(clientId)).thenReturn(creatorId);
-		
-		OAuthClientNotVerifiedException ex = assertThrows(OAuthClientNotVerifiedException.class, ()-> {
-			// Method under test
-			openIDConnectManagerImpl.validateClientVerificationStatus(clientId, userId);
-		});
-		
-		assertEquals("The client is not verified yet.", ex.getMessage());
-		
-		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
-		verify(mockOauthClientDao).getOAuthClientCreator(OAUTH_CLIENT_ID);
-		
-	}
-	
-	@Test
-	public void testValidateClientVerificationStatusUnverifiedWithoutUser() {
+	public void testValidateClientVerificationStatusUnverified() {
 		String clientId = OAUTH_CLIENT_ID;
 		
 		when(mockOauthClientDao.isOauthClientVerified(clientId)).thenReturn(false);
@@ -1006,7 +958,7 @@ public class OpenIDConnectManagerImplUnitTest {
 			openIDConnectManagerImpl.validateClientVerificationStatus(clientId);
 		});
 		
-		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
+		assertEquals("The OAuth client (" + OAUTH_CLIENT_ID + ") is not verified.", ex.getMessage());
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 	}

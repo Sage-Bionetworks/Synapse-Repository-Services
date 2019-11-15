@@ -231,7 +231,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 		}
 		
 		if (secretHash == null) {
-			throw new NotFoundException("OAuth client (" + clientId + ") not initialized");
+			throw new NotFoundException("OAuth client (" + clientId + ") does not have a secret defined");
 		}
 		
 		return PBKDF2Utils.extractSalt(secretHash);
@@ -303,7 +303,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	}
 
 	private NotFoundException clientNotFoundException(String clientId) {
-		return new NotFoundException("OAuth client (" + clientId + ") does not exist");
+		return new NotFoundException("The OAuth client (" + clientId + ") does not exist");
 	}
 	
 }

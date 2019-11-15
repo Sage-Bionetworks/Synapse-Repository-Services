@@ -120,7 +120,7 @@ public class ITOpenIDConnectTest {
 				synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
 		});
 		
-		assertEquals("The client is not verified yet.", ex.getMessage());
+		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 		
 		// Verify the client
 		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -138,9 +138,8 @@ public class ITOpenIDConnectTest {
 			synapseOne.authorizeClient(authorizationRequest);
 		});
 		
-		// Since I'm the creator of the client I should also receive in the message the contact email of ACT
-		assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
-		
+		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+
 		// Verify the client
 		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
 		
@@ -166,8 +165,7 @@ public class ITOpenIDConnectTest {
 						accessCode, redirectUri, null, null, null);
 			});
 			
-			// Should always include the ACT message as I'm the creator of client
-			assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 			
 			// Verify the client once again
 			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
@@ -192,9 +190,7 @@ public class ITOpenIDConnectTest {
 				synapseAnonymous.getUserInfoAsJSON();
 			});
 			
-			// Should include the ACT message since the subject was the creator
-			assertEquals("The client is not verified yet. Please see https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html to verify your client.", ex.getMessage());
-						
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 			
 			// Verify the client once again
 			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);

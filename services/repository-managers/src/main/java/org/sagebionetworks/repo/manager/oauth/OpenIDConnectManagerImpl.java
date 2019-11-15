@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
@@ -54,7 +53,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	// from https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
-	private static final String OAUTH_DOCS_URL = "https://docs.synapse.org/articles/using_synapse_as_an_oauth_server.html";
 	
 	@Autowired
 	private StackEncrypter stackEncrypter;
@@ -132,7 +130,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
-		validateClientVerificationStatus(client.getClient_id(), authorizationRequest.getUserId());
+		validateClientVerificationStatus(client.getClient_id());
+		
 		validateAuthenticationRequest(authorizationRequest, client);
 		
 		OIDCAuthorizationRequestDescription result = new OIDCAuthorizationRequestDescription();
@@ -195,7 +194,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Invalid OAuth Client ID: "+authorizationRequest.getClientId());
 		}
 		
-		validateClientVerificationStatus(client.getClient_id(), userInfo.getId().toString());
+		validateClientVerificationStatus(client.getClient_id());
 
 		validateAuthenticationRequest(authorizationRequest, client);
 
@@ -279,8 +278,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		ValidateArgument.required(redirectUri, "Redirect URI");
 		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
 		
-		// When retrieving an access token the target user is the creator of the client itself
-		// if the client is not verified we include in the message the URL to the synapse OAuth docs
 		validateClientVerificationStatus(verifiedClientId);
 		
 		String serializedAuthorizationRequest;
@@ -351,9 +348,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		Claims accessTokenClaims = accessToken.getBody();
 		String oauthClientId = accessTokenClaims.getAudience();
+		
 		if (oauthClientId == null) {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
+
+		validateClientVerificationStatus(oauthClientId);
+		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
 
@@ -361,8 +362,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
-		
-		validateClientVerificationStatus(oauthClientId, userId);
 
 		UserAuthorization result = new UserAuthorization();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
@@ -407,42 +406,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 	}
 	
-	// If the client is not verified the message includes the URL to the synapse OAuth docs iff the user id is the same as the client creator
-	protected void validateClientVerificationStatus(String clientId, String userId) throws NotFoundException, OAuthClientNotVerifiedException {
-		validateClientVerificationStatus(clientId, () -> 
-			userId != null && oauthClientDao.getOAuthClientCreator(clientId).equals(userId)
-		);
-	}
-	
-	// If the client is not verified the message includes the URL to the synapse OAuth docs
-	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
-		validateClientVerificationStatus(clientId, () -> true);
-	}
-	
 	/**
-	 * Validates that the verified flag is true for the client with the given id, the given condition is
-	 * evaluated iff the client is not verified. If the condition evaluates to true the error message
-	 * will include the URL for the synapse OAuth docs.
+	 * Validates that the verified flag is true for the client with the given id
 	 * 
-	 * @param clientId                     The id of the client to validate
-	 * @param includeOAuthDocsURLCondition A condition that is evaluated if the client is not verified
-	 *                                     to include in the error message the URL to the OAuth docs
 	 * @throws OAuthClientNotVerifiedException If the client is not verified
 	 * @throws NotFoundException               If a client with the given id does not exist
 	 */
-	private void validateClientVerificationStatus(String clientId, BooleanSupplier includeOAuthDocsURLCondition) throws NotFoundException, OAuthClientNotVerifiedException {
-		
-		if (oauthClientDao.isOauthClientVerified(clientId)) {
-			return;
+	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
+		if (!oauthClientDao.isOauthClientVerified(clientId)) {			
+			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}
-		
-		StringBuilder errorMessage = new StringBuilder("The client is not verified yet.");
-
-		if (includeOAuthDocsURLCondition.getAsBoolean()) {
-			errorMessage.append(" Please see ").append(OAUTH_DOCS_URL).append(" to verify your client.");
-		}
-
-		throw new OAuthClientNotVerifiedException(errorMessage.toString());
-		
 	}
 }
