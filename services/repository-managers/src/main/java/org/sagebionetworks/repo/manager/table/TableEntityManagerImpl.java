@@ -978,8 +978,12 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		tableTransactionDao.linkTransactionToVersion(transactionId, version);
 		// bump the parent etag so the change can migrate.
 		tableTransactionDao.updateTransactionEtag(transactionId);
+		
+		IdAndVersion resultingIdAndVersion = IdAndVersion.newBuilder().setId(tableId).setVersion(version).build();
 		// bind the current schema to the version
-		columModelManager.bindCurrentColumnsToVersion(IdAndVersion.newBuilder().setId(tableId).setVersion(version).build());
+		columModelManager.bindCurrentColumnsToVersion(resultingIdAndVersion);
+		// trigger the build of new version (see: PLFM-5957)
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
 	}
 
 

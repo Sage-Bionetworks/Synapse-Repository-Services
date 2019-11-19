@@ -1624,6 +1624,10 @@ public class TableEntityManagerTest {
 		verify(mockTableTransactionDao).getTableIdWithLock(transactionId);
 		verify(mockTableTransactionDao).linkTransactionToVersion(transactionId, newVersionNumber);
 		verify(mockTableTransactionDao).updateTransactionEtag(transactionId);
+		IdAndVersion expectedIdAndVersion = IdAndVersion.parse("syn"+tableIdLong+"."+newVersionNumber);
+		verify(mockColumModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
+		// fix for PLFM-5957
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(expectedIdAndVersion);
 	}
 	
 	@Test
