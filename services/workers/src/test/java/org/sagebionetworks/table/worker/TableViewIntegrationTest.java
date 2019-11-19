@@ -1267,7 +1267,7 @@ public class TableViewIntegrationTest {
 		
 		// Query for the values as strings.
 		String sql = "select * from "+fileViewId+".1";
-		int rowCount = 3;
+		int rowCount = fileIds.size();
 		Query query = new Query();
 		query.setSql(sql);
 		query.setIncludeEntityEtag(true);
