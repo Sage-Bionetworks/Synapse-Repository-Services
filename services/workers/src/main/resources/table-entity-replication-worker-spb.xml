@@ -28,7 +28,7 @@
 									<bean class="org.sagebionetworks.worker.entity.EntityReplicationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="10" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
 								<property name="queueName" value="#{stackConfiguration.getQueueName('TABLE_ENTITY_REPLICATION')}"/>
 								<property name="gate">
@@ -45,7 +45,7 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="15" />
-		<property name="repeatInterval" value="1730" />
+		<property name="repeatInterval" value="553" />
 	</bean>
 
 </beans>
