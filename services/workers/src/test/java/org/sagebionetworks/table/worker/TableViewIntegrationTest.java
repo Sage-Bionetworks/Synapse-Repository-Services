@@ -1245,7 +1245,47 @@ public class TableViewIntegrationTest {
 		}catch(AsynchJobFailedException e) {
 			assertTrue(e.getMessage().contains("Snapshot not found"));
 		}
-
+	}
+	
+	/**
+	 * For PLFM-5957, a user queried for a snapshot prior to creating it.
+	 * After the snapshot was created, the query still failed with "snapshot not found"
+	 */
+	@Test
+	public void testPLFM_5957() throws Exception {
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringColumn.getName(), "1", AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
+		createFileView();
+		
+		// wait for the view.
+		waitForEntityReplication(fileViewId, fileId);
+		
+		// Query for the values as strings.
+		String sql = "select * from "+fileViewId+".1";
+		int rowCount = 3;
+		Query query = new Query();
+		query.setSql(sql);
+		query.setIncludeEntityEtag(true);
+		try {
+			waitForConsistentQuery(adminUserInfo, query, rowCount);
+		}catch(AsynchJobFailedException e) {
+			assertTrue(e.getMessage().contains("Snapshot not found"));
+		}
+		// Create a snapshot for this view
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(fileViewId);
+		transactionRequest.setCreateSnapshot(true);
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest,
+				TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertEquals(new Long(1), response.getSnapshotVersionNumber());
+		// run the query again, this time there should be 3 rows.
+		waitForConsistentQuery(adminUserInfo, query, rowCount);
 	}
 	
 	/**
