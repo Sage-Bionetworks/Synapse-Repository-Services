@@ -8,7 +8,7 @@ import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUER
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
-import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES;
+import static org.sagebionetworks.repo.model.table.QueryOptions.*;
 
 import org.junit.Test;
 
@@ -133,6 +133,17 @@ public class QueryOptionsTest {
 		// call under test
 		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_SUM_FILE_SIZES);
 		assertTrue(options.runSumFileSizes());
+		// the rest of the values should be false
+		options.withRunSumFileSizes(false);
+		boolean expectedValue = false;
+		assertAll(expectedValue, options);
+	}
+	
+	@Test
+	public void testEstimateUpToDate() {
+		// call under test
+		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_ESTIMATED_UP_TO_DATE);
+		assertTrue(options.isEstimatedUpToDate());
 		// the rest of the values should be false
 		options.withRunSumFileSizes(false);
 		boolean expectedValue = false;

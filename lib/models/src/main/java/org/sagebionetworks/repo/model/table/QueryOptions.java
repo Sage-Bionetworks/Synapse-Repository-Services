@@ -9,6 +9,7 @@ public class QueryOptions {
 	public static final long BUNDLE_MASK_QUERY_COLUMN_MODELS = 0x10;
 	public static final long BUNDLE_MASK_QUERY_FACETS = 0x20;
 	public static final long BUNDLE_MASK_SUM_FILE_SIZES = 0x40;
+	public static final long BUNDLE_MASK_ESTIMATED_UP_TO_DATE = 0x80;
 
 	boolean runQuery;
 	boolean runCount;
@@ -17,6 +18,7 @@ public class QueryOptions {
 	boolean returnColumnModels;
 	boolean returnFacets;
 	boolean runSumFileSizes;
+	boolean estimatedUpToDate;
 
 	public QueryOptions() {
 		// all default to false
@@ -27,6 +29,7 @@ public class QueryOptions {
 		this.returnColumnModels = false;
 		this.returnFacets = false;
 		this.runSumFileSizes = false;
+		this.estimatedUpToDate = false;
 	}
 
 	public boolean runQuery() {
@@ -91,6 +94,15 @@ public class QueryOptions {
 		this.returnMaxRowsPerPage = returnMaxRowsPerPage;
 		return this;
 	}
+	
+	public boolean isEstimatedUpToDate() {
+		return estimatedUpToDate;
+	}
+
+	public QueryOptions withEstimatedUpToDate(boolean estimateUpToDate) {
+		this.estimatedUpToDate = estimateUpToDate;
+		return this;
+	}
 
 	public QueryOptions withMask(Long partMaskIn) {
 		final long partMask = partMaskIn != null ? partMaskIn : -1L;// default all.
@@ -101,6 +113,7 @@ public class QueryOptions {
 		this.returnColumnModels = ((partMask & BUNDLE_MASK_QUERY_COLUMN_MODELS) != 0);
 		this.returnFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
 		this.runSumFileSizes = ((partMask & BUNDLE_MASK_SUM_FILE_SIZES) != 0);
+		this.estimatedUpToDate = ((partMask & BUNDLE_MASK_ESTIMATED_UP_TO_DATE) != 0);
 		return this;
 	}
 	
@@ -132,6 +145,9 @@ public class QueryOptions {
 		if(this.runSumFileSizes) {
 			partMask = partMask | BUNDLE_MASK_SUM_FILE_SIZES;
 		}
+		if(this.estimatedUpToDate) {
+			partMask = partMask | BUNDLE_MASK_SUM_FILE_SIZES;
+		}
 		return partMask;
 	}
 
@@ -139,6 +155,7 @@ public class QueryOptions {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + (estimatedUpToDate ? 1231 : 1237);
 		result = prime * result + (returnColumnModels ? 1231 : 1237);
 		result = prime * result + (returnFacets ? 1231 : 1237);
 		result = prime * result + (returnMaxRowsPerPage ? 1231 : 1237);
@@ -158,6 +175,8 @@ public class QueryOptions {
 		if (getClass() != obj.getClass())
 			return false;
 		QueryOptions other = (QueryOptions) obj;
+		if (estimatedUpToDate != other.estimatedUpToDate)
+			return false;
 		if (returnColumnModels != other.returnColumnModels)
 			return false;
 		if (returnFacets != other.returnFacets)
