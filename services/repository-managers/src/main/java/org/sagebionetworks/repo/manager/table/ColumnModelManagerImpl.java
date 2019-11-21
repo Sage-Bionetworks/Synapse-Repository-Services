@@ -152,7 +152,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			case DATE_LIST:
 			case INTEGER_LIST:
 					if(facetType != FacetType.enumeration)
-					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");
+					throw new IllegalArgumentException(columnType + " columns can only be enumeration faceted");
 				break;
 			//doubles and dates can only be range faceted
 			case DOUBLE:
