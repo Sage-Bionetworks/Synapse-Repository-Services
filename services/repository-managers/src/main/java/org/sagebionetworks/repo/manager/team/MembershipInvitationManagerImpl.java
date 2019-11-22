@@ -149,7 +149,10 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId(), tokenGenerator));
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mi.getMessage());
+		
+		// TODO: The message body should be sanitized, or not included (Discovered from https://sagebionetworks.jira.com/browse/PLFM-5970)
+		
+		//fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mi.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 			.withRecipientEmail(mi.getInviteeEmail())
