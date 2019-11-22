@@ -229,4 +229,11 @@ public interface TableIndexManager {
 	 */
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
+	/**
+	 * Mark all view scopes associated the given entityId as out-of-date.
+	 * 
+	 * @param objectId
+	 */
+	public void markEntityScopeOutOfDate(String objectId);
+
 }

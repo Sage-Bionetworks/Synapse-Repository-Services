@@ -264,6 +264,13 @@ public interface NodeDAO {
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the IDs of the entities in the provied entityId's path.
+	 * @param nodeId
+	 * @return
+	 */
+	public List<Long> getEntityPathIds(String nodeId);
+	
+	/**
 	 * Lookup a node id using its unique path.
 	 * @param path
 	 * @return the node id

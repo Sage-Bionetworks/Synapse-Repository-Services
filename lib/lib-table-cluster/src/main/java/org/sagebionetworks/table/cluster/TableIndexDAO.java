@@ -453,9 +453,4 @@ public interface TableIndexDAO {
 	 */
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 	
-	/**
-	 * The status of each container scope of views is tracked to determine when the data in a view is out-of-date.
-	 * Change the status of scope containers.
-	 */
-	public void setScopeStatus();
 }

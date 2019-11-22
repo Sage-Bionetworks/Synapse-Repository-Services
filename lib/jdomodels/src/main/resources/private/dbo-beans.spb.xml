@@ -159,6 +159,12 @@
 					</key>
 					<value>schema/functions/GetEntityProjectId.ddl.sql</value>
 				</entry>
+				<entry>
+					<key>
+						<value>getEntityPath</value>
+					</key>
+					<value>schema/functions/GetEntityPath.ddl.sql</value>
+				</entry>
 			</map>
 		</property>
 	</bean>

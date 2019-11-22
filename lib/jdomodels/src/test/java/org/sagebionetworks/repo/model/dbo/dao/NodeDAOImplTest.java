@@ -1536,6 +1536,36 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetEntityPathId() throws Exception {
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Add a child		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		// Add a GrandChild		
+		node = privateCreateNew("grandChild");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(childId);
+		String grandId = nodeDao.createNew(node);
+		toDelete.add(grandId);
+		assertNotNull(grandId);
+		
+		// call under test
+		List<Long> path = nodeDao.getEntityPathIds(grandId);
+		assertNotNull(path);
+		assertEquals(2, path.size());
+		assertEquals(KeyFactory.stringToKey(childId), path.get(0));
+		assertEquals(KeyFactory.stringToKey(parentId), path.get(1));
+	}
+	
+	@Test
 	public void testGetEntityPath() throws Exception {
 		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project);
@@ -1591,17 +1621,6 @@ public class NodeDAOImplTest {
 		nodeDao.getEntityPath("syn9999999");
 	}
 	
-	// we introduced batch entity path search so we test the case that 
-	// the path is bigger than one batch
-	@Test
-	public void testGetDeepEntityPath() throws Exception {
-		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH+3);
-	}
-	
-	@Test
-	public void testGetDeepEntityPathEdgeCase() throws Exception {
-		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH*2);
-	}
 	
 	@Test 
 	public void testGetShallowEntityPath() throws Exception {
