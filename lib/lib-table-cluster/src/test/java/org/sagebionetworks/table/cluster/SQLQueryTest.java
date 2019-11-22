@@ -718,43 +718,6 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testCopyConstructor() throws ParseException{
-		Long overideOffset = 1L;
-		Long overideLimit = 101L;
-		Long maxBytesPerPage = 501L;
-		QuerySpecification originalModel = new TableQueryParser("select foo from syn123").querySpecification();
-		SortItem sortItem = new SortItem();
-		sortItem.setColumn("bar");
-		sortItem.setDirection(SortDirection.DESC);
-		List<SortItem> sortList = Lists.newArrayList(sortItem);
-		SqlQuery original = new SqlQueryBuilder(originalModel)
-		.tableSchema(tableSchema)
-		.overrideOffset(overideOffset)
-		.overrideLimit(overideLimit)
-		.maxBytesPerPage(maxBytesPerPage)
-		.tableType(EntityType.entityview)
-		.includeEntityEtag(true)
-		.sortList(sortList)
-		.build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", original.getOutputSQL());
-
-		QuerySpecification newModel = new TableQueryParser(original.getModel().toSql()).querySpecification();
-		SelectList newSelectList = new TableQueryParser("foo as bar").selectList();
-		newModel.replaceSelectList(newSelectList);
-		
-		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
-		assertEquals("SELECT _C111_ AS bar, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
-		assertEquals(2L, copy.getParameters().get("b0"));
-		assertEquals(overideOffset, copy.getParameters().get("b1"));
-		assertEquals(tableSchema, copy.getTableSchema());
-		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
-		assertEquals(overideOffset, copy.overrideOffset);
-		assertEquals(overideLimit, copy.overrideLimit);
-		assertEquals(EntityType.entityview, copy.tableType);
-		assertEquals(true, copy.includeEntityEtag);
-	}
-	
-	@Test
 	public void testPLFM_4161() throws ParseException{
 		String sql = "select * from syn123";
 		SqlQuery query = new SqlQueryBuilder(sql, schema).build();

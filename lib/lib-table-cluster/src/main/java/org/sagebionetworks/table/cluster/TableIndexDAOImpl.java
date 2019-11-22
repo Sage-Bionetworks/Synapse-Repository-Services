@@ -62,12 +62,15 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.query.model.WhereClause;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -1049,5 +1052,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(!batch.isEmpty()) {
 			template.batchUpdate(sql, batch);
 		}
+	}
+
+	public List<FacetColumnResult> getFacetResults(IdAndVersion tableIdAndVersion, List<FacetRequestColumnModel> facetRequestColumnModels, SqlQuery originalQuery){
+		//TODO: move FacetModel code over here. Make all references based on column Id instead of columnName
 	}
 }

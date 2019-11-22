@@ -46,6 +46,7 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -305,20 +306,9 @@ public class SQLTranslatorUtils {
 		translate(tableReference);
 		
 		// Translate where
-		WhereClause whereClause = tableExpression.getWhereClause();
-		if(whereClause != null){
-			// Translate all predicates
-			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
-			for(HasPredicate predicate: hasPredicates){
-				translate(predicate, parameters, columnTranslationReferenceLookup);
-			}
-
-			//once all row names are translated and predicate values are replaced with bind variables
-			//transform Synapse-specific predicate into MySQL
-			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
-				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
-				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
-			}
+		if(tableExpression.getWhereClause() != null){
+			SearchCondition whereClauseSearchCondition = tableExpression.getWhereClause().getSearchCondition();
+			translateSearchCondition(parameters, columnTranslationReferenceLookup, originalSynId, whereClauseSearchCondition);
 		}
 		// translate the group by
 		GroupByClause groupByClause = tableExpression.getGroupByClause();
@@ -345,7 +335,23 @@ public class SQLTranslatorUtils {
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
-	
+
+	//TODO: move tests for translateModel to tests for translateSearchCondition
+	public static void translateSearchCondition(Map<String, Object> parameters, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, IdAndVersion originalSynId, SearchCondition searchCondition) {
+		// Translate all predicates
+		Iterable<HasPredicate> hasPredicates = searchCondition.createIterable(HasPredicate.class);
+		for(HasPredicate predicate: hasPredicates){
+			translate(predicate, parameters, columnTranslationReferenceLookup);
+		}
+
+		//once all row names are translated and predicate values are replaced with bind variables
+		//transform Synapse-specific predicate into MySQL
+		for(BooleanPrimary booleanPrimary: searchCondition.createIterable(BooleanPrimary.class)){
+			replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
+			replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
+		}
+	}
+
 	/**
 	 * Any DelimitedIdentifier remaining in the query after translation should be
 	 * treated as a column reference, which for MySQL, means the value must be
