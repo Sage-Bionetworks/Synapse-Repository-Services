@@ -71,7 +71,7 @@ public class MembershipInvitationServiceImpl implements
 			// membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
 			
 			@TemporaryCode(author = "marco.marasca@sagebase.org")
-			IllegalStateException ex = new IllegalStateException("Inviting members through an email is currently disabled.");
+			IllegalArgumentException ex = new IllegalArgumentException("Inviting members through an email is currently disabled.");
 			
 			throw ex;
 		} else {
