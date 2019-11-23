@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -56,9 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
@@ -90,6 +87,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
@@ -416,6 +414,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return header;
 		}
 	};
+	
+	private static final RowMapper<NameIdType> NAME_ID_TYPE_ROWMAPPER = (ResultSet rs, int rowNum) -> {
+		NameIdType header = new NameIdType();
+		Long entityId = rs.getLong(COL_NODE_ID);
+		header.setId(KeyFactory.keyToString(entityId));
+		EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+		header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+		header.setName(rs.getString(COL_NODE_NAME));
+		return header;
+	};
+
 
 	private static final RowMapper<Node> NODE_MAPPER = new NodeMapper();
 	
@@ -1038,10 +1047,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		Reference ref = new Reference();
 		ref.setTargetId(nodeId);
-		ref.setTargetVersionNumber(versionNumber);
 		LinkedList<Reference> list = new LinkedList<Reference>();
 		list.add(ref);
 		List<EntityHeader> header = getEntityHeader(list);
@@ -1135,6 +1143,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<Long> getEntityPathIds(String nodeId) {
 		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
+		return getIdsFromCsv(csv);
+	}
+	
+	/**
+	 * Extract a list of ID from the the given comma separated string of Ids..
+	 * @param csv
+	 * @return
+	 */
+	public static List<Long> getIdsFromCsv(String csv){
 		String[] split = csv.split(",");
 		List<Long> results = new ArrayList<>(split.length);
 		for(String id: split) {
@@ -1146,16 +1163,42 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
+	public List<NameIdType> getNameIdType(List<Long> ids){
+		ValidateArgument.required(ids, "ids");
+		if(ids.isEmpty()) {
+			return Collections.emptyList();
+		}
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue("ids", ids);
+		List<NameIdType> unorderd = namedParameterJdbcTemplate.query("SELECT " + COL_NODE_NAME + "," + COL_NODE_ID
+				+ ", " + COL_NODE_TYPE + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN (:ids)",
+				paramMap, NAME_ID_TYPE_ROWMAPPER);
+		Map<Long, NameIdType> map = new HashMap<Long, NameIdType>(unorderd.size());
+		for(NameIdType nameIdType: unorderd) {
+			map.put(KeyFactory.stringToKey(nameIdType.getId()), nameIdType);
+		}
+		// put the results in the request order
+		List<NameIdType> ordered = new ArrayList<NameIdType>(unorderd.size());
+		for(Long id: ids) {
+			NameIdType nameIdType = map.get(id);
+			if(nameIdType != null) {
+				ordered.add(nameIdType);
+			}
+		}
+		return ordered;
+	}
+	
+	
+	@Override
+	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		List<Long> pathIds = getEntityPathIds(nodeId);
 		Collections.reverse(pathIds);
 		pathIds.add(KeyFactory.stringToKey(nodeId));
-		List<Reference> references = pathIds.stream().map((Long targetId) -> {
-			Reference ref = new Reference();
-			ref.setTargetId(KeyFactory.keyToString(targetId));
-			return ref;
-		}).collect(Collectors.toList());
-		return getEntityHeader(references);
+		List<NameIdType> results = getNameIdType(pathIds);
+		if(results.isEmpty()) {
+			throw new NotFoundException(nodeId);
+		}
+		return results;
 	}
 	
 
@@ -1907,6 +1950,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
 				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
 		return revisionNumber;
+	}
+
+	@Override
+	public String getNodeName(String nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		try {
+			return this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" =? ", String.class, KeyFactory.stringToKey(nodeId));
+		}catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 
 }

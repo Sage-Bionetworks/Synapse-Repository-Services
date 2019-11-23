@@ -212,7 +212,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).isAuthorized())
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
-		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
+		return entityManager.getEntityHeader(userInfo, favorite.getEntityId()); // current version
 	}
 
 	@Override

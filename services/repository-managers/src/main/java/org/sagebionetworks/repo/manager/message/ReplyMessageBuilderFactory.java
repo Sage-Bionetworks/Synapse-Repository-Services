@@ -49,7 +49,7 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 		// Lookup the thread
 		DiscussionThreadBundle threadBundle = threadDao.getThread(Long.parseLong(replyBundle.getThreadId()), DiscussionFilter.NO_FILTER);
 		// Lookup the project
-		String projectName = nodeDao.getEntityHeader(threadBundle.getProjectId(), null).getName();
+		String projectName = nodeDao.getNodeName(threadBundle.getProjectId());
 		// Lookup the user name of the actor
 		String actor = principalAliasDAO.getUserName(userId);
 		String markdown = null;

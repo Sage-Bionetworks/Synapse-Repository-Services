@@ -361,9 +361,9 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber)
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return nodeManager.getNodeHeader(userInfo, entityId, versionNumber);
+		return nodeManager.getNodeHeader(userInfo, entityId);
 	}
 	
 	@Override

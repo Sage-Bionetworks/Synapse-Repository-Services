@@ -124,7 +124,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get an entity header for each reference.

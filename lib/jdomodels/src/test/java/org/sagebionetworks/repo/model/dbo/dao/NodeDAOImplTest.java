@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -57,7 +55,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
@@ -77,6 +74,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
@@ -102,6 +100,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -1409,7 +1410,7 @@ public class NodeDAOImplTest {
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		// Get the header of this node
-		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId, null);
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
 		assertNotNull(parentHeader);
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), parentHeader.getType());
 		assertEquals("parent", parentHeader.getName());
@@ -1422,14 +1423,14 @@ public class NodeDAOImplTest {
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Get the header of this node
-		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId);
 		assertNotNull(childHeader);
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), childHeader.getType());
 		assertEquals("child", childHeader.getName());
 		assertEquals(childId, childHeader.getId());
 
 		// Get the header of this node non versioned
-		childHeader = nodeDao.getEntityHeader(childId, null);
+		childHeader = nodeDao.getEntityHeader(childId);
 		assertNotNull(childHeader);		
 		assertEquals(childId, childHeader.getId());
 		assertEquals(new Long(1), childHeader.getVersionNumber());
@@ -1532,7 +1533,7 @@ public class NodeDAOImplTest {
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
 		long id = idGenerator.generateNewId(IdType.ENTITY_ID);
-		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
+		nodeDao.getEntityHeader(KeyFactory.keyToString(id));
 	}
 	
 	@Test
@@ -1589,12 +1590,12 @@ public class NodeDAOImplTest {
 		
 		// Get the individual headers
 		EntityHeader[] array = new EntityHeader[3];
-		array[0] = nodeDao.getEntityHeader(parentId, null);
-		array[1] = nodeDao.getEntityHeader(childId, null);
-		array[2] = nodeDao.getEntityHeader(grandId, null);
+		array[0] = nodeDao.getEntityHeader(parentId);
+		array[1] = nodeDao.getEntityHeader(childId);
+		array[2] = nodeDao.getEntityHeader(grandId);
 		
 		// Now get the path for each node
-		List<EntityHeader> path = nodeDao.getEntityPath(grandId);
+		List<NameIdType> path = nodeDao.getEntityPath(grandId);
 		assertNotNull(path);
 		assertEquals(3, path.size());
 		assertEquals(array[0].getId(), path.get(0).getId());
@@ -1640,21 +1641,17 @@ public class NodeDAOImplTest {
 		}
 		EntityHeader[] array = new EntityHeader[depth];
 		for (int i=0; i<depth; i++) {
-			array[i] = nodeDao.getEntityHeader(ids[i], null);
-			// 'getEntityPath' doesn't retreive version info, so we clear these fields for the sake of comparison
-			array[i].setVersionLabel(null);
-			array[i].setVersionNumber(null);
-			array[i].setBenefactorId(null);
-			array[i].setCreatedBy(null);
-			array[i].setCreatedOn(null);
-			array[i].setModifiedBy(null);
-			array[i].setModifiedOn(null);
+			array[i] = nodeDao.getEntityHeader(ids[i]);
 		}
-		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
+		List<NameIdType> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
 		assertEquals(depth, path.size());
 		for (int i=0; i<depth; i++) {
-			assertEquals(array[i], path.get(i));
+			EntityHeader header = array[i];
+			NameIdType nameIdType = path.get(i);
+			assertEquals(header.getId(), nameIdType.getId());
+			assertEquals(header.getName(), nameIdType.getName());
+			assertEquals(header.getType(), nameIdType.getType());
 		}
 	}
 	
@@ -3887,5 +3884,21 @@ public class NodeDAOImplTest {
 
 		assertEquals(oldEntityPropertyAnnotations.getStringAnnotations(), retrievedOldVersion.getStringAnnotations());
 		assertEquals(newEntityPropertiesAnnotations.getStringAnnotations(), retrievedNewVersion.getStringAnnotations());
+	}
+	
+	@Test
+	public void testGetName() {
+		String name = "some name to test for";
+		Node node = nodeDao.createNewNode(privateCreateNew(name));
+		toDelete.add(node.getId());
+		// call under test
+		String resultName = nodeDao.getNodeName(node.getId());
+		assertEquals(name, resultName);
+	}
+	
+	@Test (expected = NotFoundException.class)
+	public void testGetNameNotFound() {
+		// call under test
+		nodeDao.getNodeName("syn999999");
 	}
 }

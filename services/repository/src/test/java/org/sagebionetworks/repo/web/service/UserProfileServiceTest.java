@@ -198,7 +198,7 @@ public class UserProfileServiceTest {
 		userProfileService.addFavorite(EXTRA_USER_ID, entityId);
 		
 		verify(mockUserProfileManager).addFavorite(userInfo, entityId);
-		verify(mockEntityManager).getEntityHeader(userInfo, entityId, null);
+		verify(mockEntityManager).getEntityHeader(userInfo, entityId);
 	}
 
 	@Test(expected=UnauthorizedException.class)

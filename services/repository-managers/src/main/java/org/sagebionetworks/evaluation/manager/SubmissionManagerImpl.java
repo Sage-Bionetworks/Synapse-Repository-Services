@@ -322,18 +322,17 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, teamId);
 		
 		String challengeEntityId = evaluation.getContentSource();
-		EntityHeader entityHeader = null;
-		
+		String nodeName = null;
 		try {
-			entityHeader = entityManager.getEntityHeader(userInfo, challengeEntityId, null);
+			nodeName = nodeManager.getNodeName(userInfo, challengeEntityId);
 		} catch (UnauthorizedException e) {
-			entityHeader = null;
+			nodeName = null;
 		}
 		String challengeName = null;
-		if (entityHeader==null || entityHeader.getName()==null) {
+		if (nodeName==null) {
 			challengeName = challengeEntityId;
 		} else {
-			challengeName = entityHeader.getName();
+			challengeName = nodeName;
 		}
 		
 		fieldValues.put(TEMPLATE_KEY_CHALLENGE_NAME, challengeName);

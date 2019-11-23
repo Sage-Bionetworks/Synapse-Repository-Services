@@ -506,11 +506,11 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return nodeDao.getEntityHeader(entityId, versionNumber);
+		return nodeDao.getEntityHeader(entityId);
 	}
 	
 	@Override
@@ -742,6 +742,13 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public long getCurrentRevisionNumber(String entityId) {
 		return nodeDao.getCurrentRevisionNumber(entityId);
+	}
+
+	@Override
+	public String getNodeName(UserInfo userInfo, String nodeId) {
+		// Validate that the user has download permission.
+		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return nodeDao.getNodeName(nodeId);
 	}
 
 }

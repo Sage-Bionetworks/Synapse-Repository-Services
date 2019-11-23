@@ -462,7 +462,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber)
+	public EntityHeader getEntityHeader(Long userId, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**

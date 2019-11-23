@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.google.common.collect.Lists;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NodeDaoUnitTest {
@@ -197,5 +200,23 @@ public class NodeDaoUnitTest {
 	@Test(expected = IllegalArgumentException.class)
 	public void testUpdateAnnotations_nullAnnotations(){
 		nodeDao.updateAnnotations("syn123", null, "any columname works");
+	}
+	
+	@Test
+	public void testGetIdsFromCsv() {
+		String csv = "123,456,789";
+		// call under test
+		List<Long> results = NodeDAOImpl.getIdsFromCsv(csv);
+		List<Long> expected = Lists.newArrayList(123L,456L,789L);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetIdsFromCsvEmpty() {
+		String csv = "";
+		// call under test
+		List<Long> results = NodeDAOImpl.getIdsFromCsv(csv);
+		List<Long> expected = Collections.EMPTY_LIST;
+		assertEquals(expected, results);
 	}
 }
