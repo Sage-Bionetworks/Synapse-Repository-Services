@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.sql.DataSource;
 
 import org.json.JSONArray;
@@ -67,10 +68,9 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.facets.FacetTransformer2;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -85,7 +85,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.object.SqlUpdate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -1054,7 +1053,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 	}
 
-	public List<FacetColumnResult> getFacetResults(IdAndVersion tableIdAndVersion, List<FacetRequestColumnModel> facetRequestColumnModels, SqlQuery originalQuery){
-		//TODO: move FacetModel code over here. Make all references based on column Id instead of columnName
+	public List<FacetColumnResult> getFacetResults(IdAndVersion tableIdAndVersion, List<FacetTransformer2> facetRequestColumnModels, Map<String, Object> bindVariables){
+		NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(template);
+
+		List<FacetColumnResult> results = new ArrayList<>(facetRequestColumnModels.size());
+		for(FacetTransformer2 facetTransformer : facetRequestColumnModels){
+			FacetColumnResult facetResult = namedParameterJdbcTemplate.query(facetTransformer.getFacetQuery(), bindVariables, facetTransformer::translateResults);
+			results.add(facetResult);
+		}
+
+		return results;
 	}
 }
