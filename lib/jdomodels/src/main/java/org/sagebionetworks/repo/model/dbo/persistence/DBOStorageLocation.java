@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 /**
@@ -208,6 +209,18 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 			
 			@Override
 			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
+				// PLFM-5769 - Remove after migrated
+				if (backup.getData() != null && backup.getData() instanceof ExternalS3StorageLocationSetting) {
+					ExternalS3StorageLocationSetting data = (ExternalS3StorageLocationSetting) backup.getData();
+					if (data.getBaseKey() != null) {
+						// Base keys should not have trailing slashes
+						data.setBaseKey(removeTrailingSlashes(data.getBaseKey()));
+						// Set the hash to null to recompute it
+						backup.setDataHash(null);
+					}
+				}
+				// ^^^ PLFM-5769 code ends here
+
 				if (backup.getDataHash() == null && backup.getData() != null) {
 					StorageLocationSetting setting = backup.getData();
 					String settingHash = StorageLocationUtils.computeHash(setting);
@@ -221,6 +234,13 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 				return dbo;
 			}
 		};
+	}
+
+	private static String removeTrailingSlashes(String s) {
+		while (s.endsWith("/")){
+			s = s.substring(0, s.length() - 1);
+		}
+		return s;
 	}
 
 	@Override

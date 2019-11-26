@@ -25,6 +25,8 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.aws.AwsClientFactory;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -59,6 +61,7 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -68,8 +71,10 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -93,6 +98,8 @@ public class IT049FileHandleTest {
 	private static StackConfiguration config;
 	private static SynapseGoogleCloudStorageClient googleCloudStorageClient;
 
+	private static SynapseS3Client synapseS3Client;
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		config = StackConfigurationSingleton.singleton();
@@ -106,6 +113,7 @@ public class IT049FileHandleTest {
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 
+		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 		if (config.getGoogleCloudEnabled()) {
 			googleCloudStorageClient = SynapseGoogleCloudClientFactory.createGoogleCloudStorageClient();
 		}
@@ -550,6 +558,34 @@ public class IT049FileHandleTest {
 		assertFalse(startStatus.getUploadId().equals(statusAgain.getUploadId()));
 	}
 
+	// See PLFM-5769
+	@Test
+	public void testMultipartUploadToExternalS3() throws FileNotFoundException, SynapseException, IOException{
+		assertNotNull(largeImageFile);
+		assertTrue(largeImageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(largeImageFile);
+
+		// Upload the owner.txt to S3 so we can create the external storage location
+		String baseKey = "integration-test/IT049FileHandleTest-" + UUID.randomUUID().toString();
+
+		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+
+		// upload the little image using multi-part upload
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(config.getS3Bucket());
+		storageLocationSetting.setBaseKey(baseKey);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
+
+		Boolean generatePreview = false;
+		Boolean forceRestart = null;
+		S3FileHandle result = (S3FileHandle) synapse.multipartUpload(this.largeImageFile, storageLocationSetting.getStorageLocationId(), generatePreview, forceRestart);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
+		assertEquals(expectedMD5, result.getContentMd5());
+	}
+
 	@Test
 	public void testMultipartUploadV2ToGoogleCloud() throws FileNotFoundException, SynapseException, IOException{
 		// Only run this test if Google Cloud is enabled.
@@ -581,6 +617,18 @@ public class IT049FileHandleTest {
 
 		// Verify that all parts have been deleted
 		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
+	}
+
+	private static void uploadOwnerTxtToS3(String bucket, String baseKey, String username) throws IOException {
+		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);
+
+		ObjectMetadata om = new ObjectMetadata();
+		om.setContentType("text/plain");
+		om.setContentEncoding("UTF-8");
+		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
+		om.setContentLength(bytes.length);
+
+		synapseS3Client.putObject(bucket, baseKey + "/owner.txt", new ByteArrayInputStream(bytes), om);
 	}
 
 

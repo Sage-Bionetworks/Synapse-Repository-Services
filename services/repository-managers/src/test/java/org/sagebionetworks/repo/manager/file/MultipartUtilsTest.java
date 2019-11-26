@@ -88,7 +88,7 @@ public class MultipartUtilsTest {
 		assertTrue(key.startsWith(userId));
 		assertTrue(key.endsWith(fileName));
 	}
-	
+
 	@Test
 	public void testCreateNewKeyStorageLocationExternalBaseNull(){
 		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();

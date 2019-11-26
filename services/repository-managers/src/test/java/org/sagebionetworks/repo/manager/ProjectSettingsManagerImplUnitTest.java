@@ -249,6 +249,16 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCreateExternalS3StorageLocationSetting_InvalidS3BaseKey() {
+		externalS3StorageLocationSetting.setBaseKey("CantHaveATrailingSlash/");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalS3StorageLocationSetting);
+		});
+	}
+
+	@Test
 	public void testCreateExternalObjectStorageLocationSetting_InvalidS3BucketName() {
 		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setBucket("s3://my-bucket-name-is-wrong/");
