@@ -1034,27 +1034,23 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// The first row is the header
 		String[] headers = input.next();
 		String sql = SQLUtils.createInsertViewFromSnapshot(idAndVersion, headers);
-		
+
 		// push the data in batches
 		List<Object[]> batch = new LinkedList<>();
 		int batchSize = 0;
-		while(input.hasNext()) {
+		while (input.hasNext()) {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
-			if(batchSize + rowSize > maxBytesPerBatch) {
+			if (batchSize + rowSize > maxBytesPerBatch) {
 				template.batchUpdate(sql, batch);
 				batch.clear();
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
-		
-		if(!batch.isEmpty()) {
+
+		if (!batch.isEmpty()) {
 			template.batchUpdate(sql, batch);
 		}
-	}
-
-	public List<FacetColumnResult> getFacetResults(IdAndVersion tableIdAndVersion, List<FacetRequestColumnModel> facetRequestColumnModels, SqlQuery originalQuery){
-		//TODO: move FacetModel code over here. Make all references based on column Id instead of columnName
 	}
 }
