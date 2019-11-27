@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.lang.reflect.Constructor;
 import java.util.List;
 
 /**
@@ -14,6 +15,17 @@ public class QualifiedJoin extends SQLElement{
 	TableReference tableReferenceLHS;// left side of join
 	TableReference tableReferenceRHS;// right side of join
 	JoinCondition joinCondition;// optional
+
+
+	QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS) {
+		this(tableReferenceLHS,tableReferenceRHS,null);
+	}
+
+	QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS, JoinCondition joinCondition) {
+		this.tableReferenceLHS = tableReferenceLHS;
+		this.tableReferenceRHS = tableReferenceRHS;
+		this.joinCondition = joinCondition;
+	}
 
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
