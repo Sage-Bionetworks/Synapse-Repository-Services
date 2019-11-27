@@ -9,6 +9,10 @@ public class TableReference extends SimpleBranch {
 		super(tableName);
 	}
 
+	//not exposed to parser. currently only allows a single join since that's all that is necessary
+	//also skipped <joined table> part of the spec and heads directly to <qualified join>
+	public TableReference(QualifiedJoin joinedTable) {super(joinedTable);}
+
 	public String getTableName() {
 		return child.toSql();
 	}
@@ -19,5 +23,9 @@ public class TableReference extends SimpleBranch {
 	 */
 	public void replaceTableName(String tableName){
 		this.child = new TableName(new RegularIdentifier(tableName));
+	}
+
+	public void replaceTableName(QualifiedJoin qualifiedJoin){
+		this.replaceChildren(qualifiedJoin);
 	}
 }

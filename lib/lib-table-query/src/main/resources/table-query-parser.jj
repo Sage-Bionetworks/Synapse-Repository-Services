@@ -245,6 +245,13 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
+/* list functions */
+TOKEN [IGNORE_CASE]: {
+  < array_function_name:
+   "UNNEST"
+   >
+}
+
 /* date time field */
 TOKEN [IGNORE_CASE]: {
 	< date_time_field:
@@ -405,9 +412,11 @@ ValueExpressionPrimary valueExpressionPrimary():
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
 	ParenthesizedValueExpression parenthesizedValueExpression;
+	ArrayFunctionSpecification arrayFunctionSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+    | arrayFunctionSpecification = arrayFunctionSpecification() { return new ValueExpressionPrimary(arrayFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
@@ -555,7 +564,7 @@ TableExpression tableExpression():
 	Pagination pagination = null;
 }
 {
-	fromClause = fromClause() 
+	fromClause  = fromClause()
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
 	[ orderByClause = orderByClause() ]
@@ -631,6 +640,29 @@ SetFunctionType setFunctionType():
 {
 	functionName = <aggregate_functions_name> { return SetFunctionType.valueOf(functionName.image.toUpperCase()); }
 }
+
+ArrayFunctionSpecification arrayFunctionSpecification():
+{
+    ArrayFunctionType arrayFunctionType = null;
+    ColumnReference columnReference = null;
+}
+{
+    arrayFunctionType = arrayFunctionType()
+    <left_paren>
+    columnReference = columnReference()
+    <right_paren>
+    {return new ArrayFunctionSpecification(arrayFunctionType, columnReference);}
+}
+
+ArrayFunctionType arrayFunctionType():
+{
+    Token functionName;
+}
+{
+    functionName = <array_function_name>
+    {return ArrayFunctionType.valueOf(functionName.image.toUpperCase());}
+}
+
 Separator separatorClause():
 {
 	CharacterStringLiteral characterStringLiteral;
