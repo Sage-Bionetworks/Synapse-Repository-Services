@@ -1635,6 +1635,16 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
 	}
+
+	@Test
+	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select unnest(dankmeme) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT T123_INDEX_C111_._C111_ FROM T123 JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID  WHERE _C333_ IN ( :b0, :b1 ) GROUP BY T123_456_INDEX_C111_._C111_",element.toSql());
+		assertEquals("asdf", parameters.get("b0"));
+		assertEquals("qwerty", parameters.get("b1"));
+	}
 	
 	@Test
 	public void testGetColumnTypeInfoArray(){

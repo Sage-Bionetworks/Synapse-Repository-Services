@@ -7,9 +7,11 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -23,12 +25,15 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
+import org.sagebionetworks.table.query.model.ArrayFunctionType;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
@@ -41,6 +46,7 @@ import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
+import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -52,6 +58,8 @@ import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -328,12 +336,56 @@ public class SQLTranslatorUtils {
 		if(pagination != null){
 			translate(pagination, parameters);
 		}
-		
+
+		//handle array functions which requires appending a join on another table
+		translateArrayFunctions(transformedModel);
+
 		/*
 		 *  By this point anything all remaining DelimitedIdentifier should be treated as a column
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
+	}
+
+	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, IdAndVersion idAndVersion) throws ParseException {
+		Set<String> tablesToJoin = new HashSet<>();
+
+		for(ValueExpressionPrimary valueExpressionPrimary : transformedModel.createIterable(ValueExpressionPrimary.class)){
+			//ignore valueExpressionPrimary that don't use an ArrayFunctionSpecification
+			if(!(valueExpressionPrimary.getChild() instanceof ArrayFunctionSpecification)){
+				continue;
+			}
+
+			ArrayFunctionSpecification arrayFunctionSpecification = (ArrayFunctionSpecification) valueExpressionPrimary.getChild();
+
+			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
+				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
+
+				//todo: refactor into method that gets a SchemaColumnTranslationReference
+				ColumnTranslationReference columnTranslationReference = lookup.forTranslatedColumnName(referencedColumn.toSqlWithoutQuotes()).orElseThrow(
+						() -> new IllegalArgumentException("Column does not exist: " + referencedColumn.toSqlWithoutQuotes())
+				);
+				if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+					throw new IllegalArgumentException("UNNEST() can only be used on columns defined in the schema");
+				}
+
+				if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
+					throw new IllegalArgumentException("UNNEST() only works for columns that have list values");
+				}
+
+				//get table name of flattened index
+				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, ((SchemaColumnTranslationReference) columnTranslationReference).getId());
+				tablesToJoin.add(columnFlattenedIndexTable);
+
+				ColumnName tableName = new TableQueryParser(columnFlattenedIndexTable).columnName();
+				//replace UNNEST(columnName) with columnIndexTableName.columnName
+				valueExpressionPrimary.replaceChildren(new ColumnReference(tableName, referencedColumn.getNameRHS()));
+			}
+		}
+		TableReference = transformedModel.getTableExpression().getFromClause().getTableReference();
+		for(String tableName : tablesToJoin){
+		//TODO: finish
+		}
 	}
 
 	//TODO: move tests for translateModel to tests for translateSearchCondition

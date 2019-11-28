@@ -26,6 +26,14 @@ public class ArrayFunctionSpecification extends SQLElement implements HasFunctio
 		this.columnReference = columnReference;
 	}
 
+	public ArrayFunctionType getListFunctionType() {
+		return listFunctionType;
+	}
+
+	public ColumnReference getColumnReference() {
+		return columnReference;
+	}
+
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(listFunctionType.name())
