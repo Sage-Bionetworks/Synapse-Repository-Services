@@ -32,8 +32,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -43,7 +41,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -69,7 +66,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -92,8 +88,6 @@ public class AccessRequirementManagerImplUnitTest {
 	private AccessApprovalDAO accessApprovalDAO;
 	@Mock
 	private NodeDAO nodeDao;
-	@Mock
-	private EntityHeader mockEntityHeader;
 	@Mock
 	private AuthorizationManager authorizationManager;
 
@@ -129,9 +123,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// by default the user is authorized to create, edit.  individual tests may override these settings
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-
-		when(mockEntityHeader.getId()).thenReturn(TEST_ENTITY_ID);
-		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(Arrays.asList(mockEntityHeader));
+		when(nodeDao.getEntityPathIds(eq(TEST_ENTITY_ID), any(Boolean.class))).thenReturn(Arrays.asList(TEST_ENTITY_ID));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -245,7 +237,7 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(new ArrayList<EntityHeader>()); // an empty list, i.e. this is a top-level object
+		when(nodeDao.getEntityPathIds(TEST_ENTITY_ID, false)).thenReturn(new ArrayList<String>()); // an empty list, i.e. this is a top-level object
 		Node mockNode = new Node();
 		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
 		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
@@ -264,6 +256,7 @@ public class AccessRequirementManagerImplUnitTest {
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
 		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
+		// call under test
 		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
 	}
@@ -554,7 +547,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		boolean includeSelf = true;
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
 	}
 
 	@Test
@@ -575,7 +569,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		boolean includeSelf = true;
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
 	}
 
 	@Test
@@ -596,7 +591,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		boolean includeSelf = true;
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
 	}
 
 	@Test
@@ -617,7 +613,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		boolean includeSelf = true;
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
 	}
 
 	@Test
@@ -639,7 +636,8 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		boolean includeSelf = true;
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
 	}
 
 	@Test (expected = IllegalStateException.class)

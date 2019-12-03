@@ -83,9 +83,8 @@ public class NodeObjectRecordWriterTest {
 				.thenReturn(mockUserInfo);
 		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
-		EntityHeader header = new EntityHeader();;
-		header.setId(node.getId());
-		when(mockNodeDAO.getEntityPath(node.getId())).thenReturn(Arrays.asList(header));
+		boolean includeSelf = true;
+		when(mockNodeDAO.getEntityPathIds(node.getId(), includeSelf)).thenReturn(Arrays.asList(node.getId()));
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
 		stats.setHasToU(false);

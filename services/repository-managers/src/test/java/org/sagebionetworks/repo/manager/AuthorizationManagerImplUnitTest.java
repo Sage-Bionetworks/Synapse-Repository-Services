@@ -700,28 +700,21 @@ public class AuthorizationManagerImplUnitTest {
 		List<String> ancestorIds = new ArrayList<String>();
 		ancestorIds.add(parentId);
 		ancestorIds.add("syn999");
-		List<EntityHeader> parentAncestors = new ArrayList<EntityHeader>();
-		for (String id: ancestorIds) {
-			addEntityHeaderTo(id, parentAncestors);
-		}
-		when(mockNodeDao.getEntityPath(parentId)).thenReturn(parentAncestors);
+		boolean includeSelf = true;
+		when(mockNodeDao.getEntityPathIds(parentId, includeSelf)).thenReturn(ancestorIds);
 		
 		String newParentId = "syn6789";
 		List<String> newAncestorIds = new ArrayList<String>();
 		newAncestorIds.add(newParentId);
 		newAncestorIds.add("syn888");
-		List<EntityHeader> newParentAncestors = new ArrayList<EntityHeader>();
-		for (String id: newAncestorIds) {
-			addEntityHeaderTo(id, newParentAncestors);
-		}
-		when(mockNodeDao.getEntityPath(newParentId)).thenReturn(newParentAncestors);
+		when(mockNodeDao.getEntityPathIds(newParentId, includeSelf)).thenReturn(newAncestorIds);
 		
 		List<String> diff = Arrays.asList("1");
 		when(mockAccessRequirementDAO.getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(new LinkedList<String>());
 		
 		// since 'ars' list doesn't change, will return true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).isAuthorized());
-		verify(mockNodeDao).getEntityPath(parentId);
+		verify(mockNodeDao).getEntityPathIds(parentId, true);
 		verify(mockAccessRequirementDAO).getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY);
 
 		// but making less restrictive is NOT OK
