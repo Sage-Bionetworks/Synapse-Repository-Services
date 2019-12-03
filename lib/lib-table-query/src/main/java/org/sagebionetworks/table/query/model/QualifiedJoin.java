@@ -21,7 +21,7 @@ public class QualifiedJoin extends SQLElement{
 		this(tableReferenceLHS,tableReferenceRHS,null);
 	}
 
-	QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS, JoinCondition joinCondition) {
+	public QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS, JoinCondition joinCondition) {
 		this.tableReferenceLHS = tableReferenceLHS;
 		this.tableReferenceRHS = tableReferenceRHS;
 		this.joinCondition = joinCondition;

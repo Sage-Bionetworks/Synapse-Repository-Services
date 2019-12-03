@@ -16,14 +16,6 @@ public class TableReference extends SimpleBranch {
 	public String getTableName() {
 		return child.toSql();
 	}
-	
-	/**
-	 * Replace the table name.
-	 * @param tableName
-	 */
-	public void replaceTableName(String tableName){
-		this.child = new TableName(new RegularIdentifier(tableName));
-	}
 
 	public void replaceWithJoin(QualifiedJoin qualifiedJoin){
 		this.replaceChildren(qualifiedJoin);

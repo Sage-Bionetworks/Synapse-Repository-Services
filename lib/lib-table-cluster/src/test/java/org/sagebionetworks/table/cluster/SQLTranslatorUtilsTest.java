@@ -38,6 +38,7 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -586,17 +587,17 @@ public class SQLTranslatorUtilsTest {
 	}	
 	
 	@Test
-	public void testTranslateTableReference() throws ParseException{
-		TableReference element = new TableQueryParser("syn123").tableReference();
+	public void testTranslateFromClause() throws ParseException{
+		FromClause element = new TableQueryParser("FROM syn123").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123",element.getTableName());
+		assertEquals("T123",element.getTableReference().getTableName());
 	}
 	
 	@Test
 	public void testTranslateTableReferenceVerion() throws ParseException{
-		TableReference element = new TableQueryParser("syn123.456").tableReference();
+		FromClause element = new TableQueryParser("FROM syn123.456").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123_456",element.getTableName());
+		assertEquals("T123_456",element.getTableReference().getTableName());
 	}
 	
 	@Test
@@ -1638,12 +1639,36 @@ public class SQLTranslatorUtilsTest {
 
 	@Test
 	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select unnest(dankmeme) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
+		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser("select unnest(foo) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT T123_INDEX_C111_._C111_ FROM T123 JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID  WHERE _C333_ IN ( :b0, :b1 ) GROUP BY T123_456_INDEX_C111_._C111_",element.toSql());
+		String expectedSql = "SELECT T123_INDEX_C111_._C111_, COUNT(*) " +
+				"FROM T123 " +
+				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID " +
+				"WHERE _C333_ IN ( :b0, :b1 ) " +
+				"GROUP BY T123_INDEX_C111_._C111_";
+		assertEquals(expectedSql,element.toSql());
 		assertEquals("asdf", parameters.get("b0"));
 		assertEquals("qwerty", parameters.get("b1"));
+	}
+
+	@Test
+	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
+		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser("select unnest(foo) , unnest(bar) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		String expectedSql = "SELECT T123_INDEX_C111_._C111_, T123_INDEX_C333_._C333_ " +
+				"FROM T123 " +
+				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID " +
+				"JOIN T123_INDEX_C333_ ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID";
+		assertTrue(parameters.isEmpty());
 	}
 	
 	@Test

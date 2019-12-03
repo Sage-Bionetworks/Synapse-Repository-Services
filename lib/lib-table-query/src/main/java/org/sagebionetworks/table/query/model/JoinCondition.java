@@ -4,7 +4,7 @@ package org.sagebionetworks.table.query.model;
  * This matches &ltjoin condition&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class JoinCondition extends SimpleBranch{
-	JoinCondition(SearchCondition searchCondition){
+	public JoinCondition(SearchCondition searchCondition){
 		super(searchCondition);
 	}
 
