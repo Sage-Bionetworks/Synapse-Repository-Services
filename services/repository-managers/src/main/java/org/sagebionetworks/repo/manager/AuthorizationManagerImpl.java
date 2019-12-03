@@ -372,8 +372,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (sourceParentId.equals(destParentId)) {
 			return AuthorizationStatus.authorized();
 		}
-		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
-		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
+		List<String> sourceParentAncestorIds = nodeDao.getEntityPathIds(sourceParentId, true);
+		List<String> destParentAncestorIds = nodeDao.getEntityPathIds(destParentId, true);
 
 		List<String> missingRequirements = accessRequirementDAO.getAccessRequirementDiff(sourceParentAncestorIds, destParentAncestorIds, RestrictableObjectType.ENTITY);
 		if (missingRequirements.isEmpty()) { // only OK if destParent has all the requirements that source parent has

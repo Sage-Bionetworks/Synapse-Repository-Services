@@ -418,10 +418,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final RowMapper<NameIdType> NAME_ID_TYPE_ROWMAPPER = (ResultSet rs, int rowNum) -> {
 		NameIdType header = new NameIdType();
 		Long entityId = rs.getLong(COL_NODE_ID);
-		header.setId(KeyFactory.keyToString(entityId));
+		header.withId(KeyFactory.keyToString(entityId));
 		EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
-		header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-		header.setName(rs.getString(COL_NODE_NAME));
+		header.withType(EntityTypeUtils.getEntityTypeClassName(type));
+		header.withName(rs.getString(COL_NODE_NAME));
 		return header;
 	};
 
@@ -1143,7 +1143,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<Long> getEntityPathIds(String nodeId) {
 		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
-		return getIdsFromCsv(csv);
+		List<Long> results = getIdsFromCsv(csv);
+		Collections.reverse(results);
+		return results;
 	}
 	
 	/**
@@ -1192,13 +1194,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		List<Long> pathIds = getEntityPathIds(nodeId);
-		Collections.reverse(pathIds);
 		pathIds.add(KeyFactory.stringToKey(nodeId));
 		List<NameIdType> results = getNameIdType(pathIds);
 		if(results.isEmpty()) {
 			throw new NotFoundException(nodeId);
 		}
 		return results;
+	}
+	
+	@Override
+	public List<String> getEntityPathIds(String nodeId, boolean includeSelf) {
+		List<Long> pathIds = getEntityPathIds(nodeId);
+		if (includeSelf) {
+			pathIds.add(KeyFactory.stringToKey(nodeId));
+		}
+		// map the longs back to strings
+		return pathIds.stream().map(t -> {
+			return KeyFactory.keyToString(t);
+		}).collect(Collectors.toList());
 	}
 	
 

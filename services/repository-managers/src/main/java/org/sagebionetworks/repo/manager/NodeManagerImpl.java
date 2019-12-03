@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
@@ -482,13 +483,13 @@ public class NodeManagerImpl implements NodeManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return nodeDao.getEntityPath(nodeId);
+		return NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 	}
 
 	@Override
 	public List<EntityHeader> getNodePathAsAdmin(String nodeId)	throws NotFoundException, DatastoreException {
 		// This version does not require authorization.
-		return nodeDao.getEntityPath(nodeId);
+		return NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 	}
 
 	@WriteTransaction

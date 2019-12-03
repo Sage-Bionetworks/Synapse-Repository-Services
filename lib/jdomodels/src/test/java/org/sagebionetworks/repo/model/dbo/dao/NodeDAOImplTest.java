@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -54,6 +55,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
@@ -1653,6 +1655,49 @@ public class NodeDAOImplTest {
 			assertEquals(header.getName(), nameIdType.getName());
 			assertEquals(header.getType(), nameIdType.getType());
 		}
+	}
+	
+	@Test
+	public void testGetNameIdTypeEmpty() {
+		// call under test
+		List<NameIdType> results = nodeDao.getNameIdType(new LinkedList<Long>());
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetNamedIdType() {
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		long parentIdLong = KeyFactory.stringToKey(parentId);
+		// Add a child		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		long childIdLong = KeyFactory.stringToKey(childId);
+
+		// call under test
+		List<NameIdType> results = nodeDao.getNameIdType(Lists.newArrayList(childIdLong, parentIdLong));
+		assertNotNull(results);
+		// oder should match the order of request
+		List<NameIdType> expected = Lists.newArrayList(
+				new NameIdType().withId(childId).withType(Folder.class.getName()).withName("child"),
+				new NameIdType().withId(parentId).withType(Project.class.getName()).withName("parent")
+				);
+		assertEquals(expected, results);
+		
+		// call under test in reverse order
+		results = nodeDao.getNameIdType(Lists.newArrayList(parentIdLong, childIdLong));
+		assertNotNull(results);
+		// oder should match the order of request
+		Collections.reverse(expected);
+		assertEquals(expected, results);
 	}
 	
 	@Test

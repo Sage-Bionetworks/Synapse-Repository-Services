@@ -359,7 +359,7 @@ public interface TableManagerSupport {
 	 * @param entityId
 	 * @return
 	 */
-	public Set<Long> getEntityPath(IdAndVersion entityId);
+	public List<Long> getEntityPath(IdAndVersion entityId);
 
 	/**
 	 * Get the view type for the given table ID.

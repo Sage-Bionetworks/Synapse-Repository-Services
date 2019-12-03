@@ -143,7 +143,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
+		List<String> subjectIds = nodeDao.getEntityPathIds(entityId, true);
 		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
@@ -173,7 +173,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		List<Long> unmetARIds = null;
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
 			unmetARIds = new ArrayList<Long>();
-			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), false);
+			List<String> nodeAncestorIds = nodeDao.getEntityPathIds(rod.getId(), false);
 			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
@@ -223,7 +223,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(offset >= 0L, "offset must be at least 0");
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId(), true));
 		} else {
 			subjectIds.add(rod.getId());
 		}
@@ -333,7 +333,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		RestrictionInformationResponse info = new RestrictionInformationResponse();
 		List<String> subjectIds;
 		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
-			subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, request.getObjectId(), true);
+			subjectIds = nodeDao.getEntityPathIds(request.getObjectId(), true);
 		} else if (RestrictableObjectType.TEAM == request.getRestrictableObjectType()){
 			subjectIds = Arrays.asList(request.getObjectId());
 		} else {

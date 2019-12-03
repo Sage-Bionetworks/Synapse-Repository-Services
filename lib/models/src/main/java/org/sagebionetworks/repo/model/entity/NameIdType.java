@@ -1,5 +1,11 @@
 package org.sagebionetworks.repo.model.entity;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.util.ValidateArgument;
+
 /**
  * Simple POJO to capture name, id, and type.
  *
@@ -13,20 +19,23 @@ public class NameIdType {
 	public String getName() {
 		return name;
 	}
-	public void setName(String name) {
+	public NameIdType withName(String name) {
 		this.name = name;
+		return this;
 	}
 	public String getId() {
 		return id;
 	}
-	public void setId(String id) {
+	public NameIdType withId(String id) {
 		this.id = id;
+		return this;
 	}
 	public String getType() {
 		return type;
 	}
-	public void setType(String type) {
+	public NameIdType withType(String type) {
 		this.type = type;
+		return this;
 	}
 	
 	@Override
@@ -64,6 +73,24 @@ public class NameIdType {
 			return false;
 		return true;
 	}
+	@Override
+	public String toString() {
+		return "NameIdType [name=" + name + ", id=" + id + ", type=" + type + "]";
+	}
     
-
+	/**
+	 * Create a List<EntityHeader> copy from a given List<NameIdType>.
+	 * @param input
+	 * @return
+	 */
+	public static List<EntityHeader> toEntityHeader(List<NameIdType> input) {
+		ValidateArgument.required(input, "input");
+		return input.stream().map(t -> {
+			EntityHeader header = new EntityHeader();
+			header.setName(t.getName());
+			header.setId(t.getId());
+			header.setType(t.getType());
+			return header;
+		}).collect(Collectors.toList());
+	}
 }

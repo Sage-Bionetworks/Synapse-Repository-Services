@@ -127,7 +127,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(offset >= 0, "Offset must be at least 0");
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId(), true));
 		} else {
 			subjectIds.add(rod.getId());
 		}

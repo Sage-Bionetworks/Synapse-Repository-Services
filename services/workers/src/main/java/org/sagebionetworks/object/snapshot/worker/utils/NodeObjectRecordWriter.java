@@ -66,7 +66,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 
 		record.setIsPublic(permissions.getCanPublicRead());
 
-		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, record.getId(), true);
+		List<String> subjectIds = nodeDao.getEntityPathIds(record.getId(), true);
 		AccessRequirementStats stats = accessRequirementDao.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		record.setIsRestricted(stats.getHasToU());
 		record.setIsControlled(stats.getHasACT());

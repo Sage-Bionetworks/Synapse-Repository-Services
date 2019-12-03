@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -23,7 +24,7 @@ public interface ViewScopeDao {
 	 * @param path
 	 * @return
 	 */
-	public Set<Long> findViewScopeIntersectionWithPath(Set<Long> path);
+	public Set<Long> findViewScopeIntersectionWithPath(List<Long> path);
 	
 	/**
 	 * Clear all data in the table.

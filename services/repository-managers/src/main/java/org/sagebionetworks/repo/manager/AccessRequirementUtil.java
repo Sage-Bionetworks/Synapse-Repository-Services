@@ -50,14 +50,4 @@ public class AccessRequirementUtil {
 		return accessRequirementDAO.getAllUnmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 
-	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {
-		List<String> nodeAncestorIds = new ArrayList<String>();
-		for (EntityHeader ancestorHeader : nodeDao.getEntityPath(nodeId)) {
-			// we omit 'subjectId' itself from the ancestor list
-			if (includeNode || !ancestorHeader.getId().equals(nodeId)) 
-				nodeAncestorIds.add(ancestorHeader.getId());
-		}
-		return nodeAncestorIds;
-	}
-
 }

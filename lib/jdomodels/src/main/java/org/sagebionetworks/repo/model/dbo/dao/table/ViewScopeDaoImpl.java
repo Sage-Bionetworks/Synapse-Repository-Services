@@ -68,8 +68,8 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 	}
 
 	@Override
-	public Set<Long> findViewScopeIntersectionWithPath(Set<Long> pathIds) {
-		Map<String, Set<Long>> params = new HashMap<String, Set<Long>>(1);
+	public Set<Long> findViewScopeIntersectionWithPath(List<Long> pathIds) {
+		Map<String, List<Long>> params = new HashMap<String, List<Long>>(1);
 		params.put("pathIds", pathIds);
 		List<Long> list = namedParameterJdbcTemplate.queryForList(SQL_SELECT_DISTINCT_VIEW_IDS_FOR_PATH, params, Long.class);
 		return new HashSet<Long>(list);

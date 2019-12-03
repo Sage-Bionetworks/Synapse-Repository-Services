@@ -139,7 +139,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public Set<Long> findViewsContainingEntity(String entityId) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(entityId);
-		Set<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
+		List<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
 		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 
