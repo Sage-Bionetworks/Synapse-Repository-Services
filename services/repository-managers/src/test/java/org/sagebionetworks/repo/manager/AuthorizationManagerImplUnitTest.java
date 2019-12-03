@@ -697,16 +697,16 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanMoveEntity() throws Exception {
 		// mock nodeDao
 		String parentId = "syn12345";
-		List<String> ancestorIds = new ArrayList<String>();
-		ancestorIds.add(parentId);
-		ancestorIds.add("syn999");
+		List<Long> ancestorIds = new ArrayList<Long>();
+		ancestorIds.add(KeyFactory.stringToKey(parentId));
+		ancestorIds.add(999L);
 		boolean includeSelf = true;
 		when(mockNodeDao.getEntityPathIds(parentId, includeSelf)).thenReturn(ancestorIds);
 		
 		String newParentId = "syn6789";
-		List<String> newAncestorIds = new ArrayList<String>();
-		newAncestorIds.add(newParentId);
-		newAncestorIds.add("syn888");
+		List<Long> newAncestorIds = new ArrayList<Long>();
+		newAncestorIds.add(KeyFactory.stringToKey(newParentId));
+		newAncestorIds.add(888L);
 		when(mockNodeDao.getEntityPathIds(newParentId, includeSelf)).thenReturn(newAncestorIds);
 		
 		List<String> diff = Arrays.asList("1");

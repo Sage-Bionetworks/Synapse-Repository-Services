@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -503,7 +504,7 @@ public class TeamManagerImplTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.TEAM);
 		rod.setId(TEAM_ID);
-		List<String> teamIds = Collections.singletonList(TEAM_ID);
+		List<Long> teamIds = Collections.singletonList(KeyFactory.stringToKey(TEAM_ID));
 		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		Set<Long> principalIds = new HashSet<Long>();

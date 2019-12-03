@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -84,11 +85,11 @@ public class NodeObjectRecordWriterTest {
 		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
 		boolean includeSelf = true;
-		when(mockNodeDAO.getEntityPathIds(node.getId(), includeSelf)).thenReturn(Arrays.asList(node.getId()));
+		when(mockNodeDAO.getEntityPathIds(node.getId(), includeSelf)).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
 		stats.setHasToU(false);
-		when(mockAccessRequirementDao.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY))
+		when(mockAccessRequirementDao.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY))
 				.thenReturn(stats);
 		canPublicRead = true;
 		when(mockPermissions.getCanPublicRead()).thenReturn(canPublicRead);

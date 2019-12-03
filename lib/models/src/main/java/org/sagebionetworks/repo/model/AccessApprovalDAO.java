@@ -72,7 +72,7 @@ public interface AccessApprovalDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type,
+	public List<AccessApproval> getAccessApprovalsForSubjects(List<Long> subjectIdList, RestrictableObjectType type,
 			long limit, long offset);
 
 	/**

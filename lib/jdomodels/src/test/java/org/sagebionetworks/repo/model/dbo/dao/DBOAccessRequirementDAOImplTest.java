@@ -134,16 +134,16 @@ public class DBOAccessRequirementDAOImplTest {
 			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);
 			ars.add(accessRequirementDAO.create(accessRequirement));
 		}
-		List<AccessRequirement> ars2 = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
+		List<AccessRequirement> ars2 = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
 		assertEquals(ars, ars2);
-		List<AccessRequirement> ars3 = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		List<AccessRequirement> ars3 = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
 		assertEquals(ars, ars3);
 
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<ACCESS_TYPE> downloadAccessType = new ArrayList<ACCESS_TYPE>();
 		downloadAccessType.add(ACCESS_TYPE.DOWNLOAD);
-		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, principalIds, downloadAccessType);
+		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY, principalIds, downloadAccessType);
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
@@ -151,7 +151,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@Test
 	public void testGetAccessRequirementForSubjectEmpty(){
-		List<String> subjects = Collections.singletonList("-1");
+		List<Long> subjects = Collections.singletonList(-1L);
 		List<AccessRequirement> results = accessRequirementDAO.getAllAccessRequirementsForSubject(subjects, RestrictableObjectType.ENTITY);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
@@ -194,17 +194,17 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, clone);
 
 		// Get by Node Id
-		Collection<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
+		Collection<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(subjectId.getId())), subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
-		ars = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType(), 10L, 0L);
+		ars = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(subjectId.getId())), subjectId.getType(), 10L, 0L);
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
 		
 		// including an irrelevant  ID in the ID list doesn't change the result
-		List<String> ids = new ArrayList<String>();
-		ids.add(subjectId.getId());
-		ids.add(KeyFactory.keyToString(KeyFactory.stringToKey(subjectId.getId())-100L));
+		List<Long> ids = new ArrayList<Long>();
+		ids.add(KeyFactory.stringToKey(subjectId.getId()));
+		ids.add(KeyFactory.stringToKey(subjectId.getId())-100L);
 		ars = accessRequirementDAO.getAllAccessRequirementsForSubject(ids, subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
@@ -212,7 +212,7 @@ public class DBOAccessRequirementDAOImplTest {
 		// check the 'unmet' access requirements
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
-		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
+		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(KeyFactory.stringToKey(subjectId.getId())), 
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(1, arIds.size());
 		assertEquals(accessRequirement.getId(), arIds.get(0));
@@ -255,9 +255,9 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, clone);
 				
 		// retrieve by multiple node ids
-		List<String> nodeIds = new ArrayList<String>();
-		nodeIds.add(node.getId());
-		nodeIds.add(node2.getId());
+		List<Long> nodeIds = new ArrayList<Long>();
+		nodeIds.add(KeyFactory.stringToKey(node.getId()));
+		nodeIds.add(KeyFactory.stringToKey(node2.getId()));
 		ars = accessRequirementDAO.getAllAccessRequirementsForSubject(nodeIds, RestrictableObjectType.ENTITY);
 		assertEquals(2, ars.size());
 		boolean found1 = false;
@@ -272,8 +272,8 @@ public class DBOAccessRequirementDAOImplTest {
 		// check the 'unmet' access requirements
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
-		List<String> ids = new ArrayList<String>();
-		ids.add(node.getId());
+		List<Long> ids = new ArrayList<Long>();
+		ids.add(KeyFactory.stringToKey(node.getId()));
 		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				RestrictableObjectType.ENTITY, principalIds, 
 				Collections.singletonList(accessRequirement.getAccessType()));
@@ -281,7 +281,7 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement.getId(), arIds.get(0));
 		
 		// check that it works to retrieve from multiple nodes
-		ids.add(node2.getId());
+		ids.add(KeyFactory.stringToKey(node2.getId()));
 		arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				RestrictableObjectType.ENTITY, principalIds, 
 				Collections.singletonList(accessRequirement.getAccessType()));
@@ -317,17 +317,17 @@ public class DBOAccessRequirementDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementStatsWithEmptySubjectIds() {
-		accessRequirementDAO.getAccessRequirementStats(new LinkedList<String>(), RestrictableObjectType.ENTITY);
+		accessRequirementDAO.getAccessRequirementStats(new LinkedList<Long>(), RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementStatsWithNullRestrictableObjectType() {
-		accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), null);
+		accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), null);
 	}
 
 	@Test
 	public void testGetAccessRequirementStats() {
-		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertFalse(stats.getHasToU());
 		assertFalse(stats.getHasACT());
@@ -348,7 +348,7 @@ public class DBOAccessRequirementDAOImplTest {
 		selfsignAR.setVersionNumber(1L);
 		selfsignAR = accessRequirementDAO.create(selfsignAR);
 
-		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertFalse(stats.getHasACT());
@@ -368,7 +368,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setVersionNumber(1L);
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
-		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertFalse(stats.getHasACT());
@@ -385,7 +385,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement2.setSubjectIds(Arrays.asList(rod));
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
 
-		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertTrue(stats.getHasACT());
@@ -416,7 +416,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setTermsOfUse("text");
 
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		List<AccessRequirement> list = accessRequirementDAO.getAccessRequirementsForSubject(Arrays.asList(node.getId(), node2.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		List<AccessRequirement> list = accessRequirementDAO.getAccessRequirementsForSubject(Arrays.asList(KeyFactory.stringToKey(node.getId()), KeyFactory.stringToKey(node2.getId())), RestrictableObjectType.ENTITY, 10L, 0L);
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		assertEquals(accessRequirement, list.get(0));
@@ -440,27 +440,27 @@ public class DBOAccessRequirementDAOImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementDiffForNullSource() {
-		List<String> destSubjects = Arrays.asList(node.getId());
+		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		accessRequirementDAO.getAccessRequirementDiff(null, destSubjects , RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementDiffForNullDest() {
-		List<String> sourceSubjects = Arrays.asList(node.getId());
+		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, null , RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementDiffForEmptySource() {
-		List<String> sourceSubjects = new LinkedList<String>();
-		List<String> destSubjects = Arrays.asList(node.getId());
+		List<Long> sourceSubjects = new LinkedList<Long>();
+		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementDiffForEmptyDest() {
-		List<String> sourceSubjects = Arrays.asList(node.getId());
-		List<String> destSubjects = new LinkedList<String>();
+		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
+		List<Long> destSubjects = new LinkedList<Long>();
 		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
 	}
 
@@ -468,8 +468,8 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testGetAccessRequirementDiffWithDestinationMoreRestricted() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		List<String> sourceSubjects = Arrays.asList(node2.getId());
-		List<String> destSubjects = Arrays.asList(node.getId());
+		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node2.getId()));
+		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		assertEquals(new LinkedList<String>(),
 				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
 	}
@@ -478,8 +478,8 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testGetAccessRequirementDiffWithMatchingAR() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		List<String> sourceSubjects = Arrays.asList(node.getId());
-		List<String> destSubjects = Arrays.asList(node.getId());
+		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
+		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
 		assertEquals(new LinkedList<String>(),
 				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
 	}
@@ -488,8 +488,8 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testGetAccessRequirementDiffWithSourceMoreRestricted() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		List<String> sourceSubjects = Arrays.asList(node.getId());
-		List<String> destSubjects = Arrays.asList(node2.getId());
+		List<Long> sourceSubjects = Arrays.asList(KeyFactory.stringToKey(node.getId()));
+		List<Long> destSubjects = Arrays.asList(KeyFactory.stringToKey(node2.getId()));
 		assertEquals(Arrays.asList(accessRequirement.getId().toString()),
 				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
 	}

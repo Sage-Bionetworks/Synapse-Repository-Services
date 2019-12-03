@@ -1203,15 +1203,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public List<String> getEntityPathIds(String nodeId, boolean includeSelf) {
+	public List<Long> getEntityPathIds(String nodeId, boolean includeSelf) {
 		List<Long> pathIds = getEntityPathIds(nodeId);
 		if (includeSelf) {
 			pathIds.add(KeyFactory.stringToKey(nodeId));
 		}
-		// map the longs back to strings
-		return pathIds.stream().map(t -> {
-			return KeyFactory.keyToString(t);
-		}).collect(Collectors.toList());
+		return pathIds;
 	}
 	
 

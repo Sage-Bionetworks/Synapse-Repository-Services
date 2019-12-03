@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -167,10 +168,10 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		// now let's apply an access requirement to "syn987" that does not apply to the benefactor
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
+				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
+				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		
 		when(mockUser.getId()).thenReturn(userId);

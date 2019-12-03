@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -81,7 +82,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
 		List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
+				Collections.singletonList(KeyFactory.stringToKey(teamId)), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();
 	}

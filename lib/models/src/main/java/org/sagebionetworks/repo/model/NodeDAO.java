@@ -604,5 +604,5 @@ public interface NodeDAO {
 	 * @param includeSelf When true, the passed entityId will be included in the results.
 	 * @return
 	 */
-	List<String> getEntityPathIds(String entityId, boolean includeSelf);
+	List<Long> getEntityPathIds(String entityId, boolean includeSelf);
 }

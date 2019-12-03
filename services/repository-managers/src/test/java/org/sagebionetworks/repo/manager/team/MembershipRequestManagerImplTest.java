@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 @ExtendWith(MockitoExtension.class)
 public class MembershipRequestManagerImplTest {
@@ -177,7 +178,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		// now mock an unmet access requirement
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				eq(Collections.singletonList(TEAM_ID)), 
+				eq(Collections.singletonList(KeyFactory.stringToKey(TEAM_ID))), 
 				eq(RestrictableObjectType.TEAM), 
 				eq(userInfo.getGroups()), 
 				eq(Collections.singletonList(ACCESS_TYPE.PARTICIPATE))))

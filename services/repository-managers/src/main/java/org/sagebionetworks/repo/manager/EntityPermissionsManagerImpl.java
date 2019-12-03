@@ -434,7 +434,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
 		// if there are any unmet access requirements return false
-		List<String> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
+		List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
