@@ -1144,9 +1144,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<Long> getEntityPathIds(String nodeId) {
 		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
 		List<Long> results = getIdsFromCsv(csv);
+		// expected order is root to leaf
 		Collections.reverse(results);
 		return results;
 	}
+	
+	@Override
+	public List<Long> getEntityPathIds(String nodeId, boolean includeSelf) {
+		List<Long> pathIds = getEntityPathIds(nodeId);
+		if (includeSelf) {
+			pathIds.add(KeyFactory.stringToKey(nodeId));
+		}
+		return pathIds;
+	}
+	
 	
 	/**
 	 * Extract a list of ID from the the given comma separated string of Ids..
@@ -1201,16 +1212,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return results;
 	}
-	
-	@Override
-	public List<Long> getEntityPathIds(String nodeId, boolean includeSelf) {
-		List<Long> pathIds = getEntityPathIds(nodeId);
-		if (includeSelf) {
-			pathIds.add(KeyFactory.stringToKey(nodeId));
-		}
-		return pathIds;
-	}
-	
+
 
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {

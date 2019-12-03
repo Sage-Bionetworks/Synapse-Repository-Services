@@ -266,11 +266,20 @@ public interface NodeDAO {
 	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get the IDs of the entities in the provied entityId's path.
+	 * Get the IDs of the entities in the provided entityId's path.
 	 * @param nodeId
-	 * @return
+	 * @return Result order will be from root to leaf.
 	 */
 	public List<Long> getEntityPathIds(String nodeId);
+	
+	/**
+	 * Get the IDs of the entities in the provided entityId's path.
+	 * 
+	 * @param entityId
+	 * @param includeSelf When true, the passed entityId will be included in the results.
+	 * @return Result order will be from root to leaf.
+	 */
+	List<Long> getEntityPathIds(String entityId, boolean includeSelf);
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -598,11 +607,4 @@ public interface NodeDAO {
 	 */
 	List<NameIdType> getNameIdType(List<Long> ids);
 
-	/**
-	 * Get the Path of the given entityId.
-	 * @param entityId
-	 * @param includeSelf When true, the passed entityId will be included in the results.
-	 * @return
-	 */
-	List<Long> getEntityPathIds(String entityId, boolean includeSelf);
 }

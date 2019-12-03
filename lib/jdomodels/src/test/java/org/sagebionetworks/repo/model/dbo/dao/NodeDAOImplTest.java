@@ -1564,8 +1564,55 @@ public class NodeDAOImplTest {
 		List<Long> path = nodeDao.getEntityPathIds(grandId);
 		assertNotNull(path);
 		assertEquals(2, path.size());
-		assertEquals(KeyFactory.stringToKey(childId), path.get(0));
-		assertEquals(KeyFactory.stringToKey(parentId), path.get(1));
+		assertEquals(KeyFactory.stringToKey(parentId), path.get(0));
+		assertEquals(KeyFactory.stringToKey(childId), path.get(1));
+	}
+	
+	@Test
+	public void testGetEntityPathIdIncludeSelfTrue() throws Exception {
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Add a child		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		
+		// call under test
+		boolean includeSelf = true;
+		List<Long> path = nodeDao.getEntityPathIds(childId, includeSelf);
+		assertNotNull(path);
+		assertEquals(2, path.size());
+		assertEquals(KeyFactory.stringToKey(parentId), path.get(0));
+		assertEquals(KeyFactory.stringToKey(childId), path.get(1));
+	}
+	
+	@Test
+	public void testGetEntityPathIdIncludeSelfFalse() throws Exception {
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Add a child		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		
+		// call under test
+		boolean includeSelf = false;
+		List<Long> path = nodeDao.getEntityPathIds(childId, includeSelf);
+		assertNotNull(path);
+		assertEquals(1, path.size());
+		assertEquals(KeyFactory.stringToKey(parentId), path.get(0));
 	}
 	
 	@Test
