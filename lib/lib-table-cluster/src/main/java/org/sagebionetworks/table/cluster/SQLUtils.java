@@ -1899,13 +1899,16 @@ public class SQLUtils {
 
 	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
 		String columnName = getColumnNameForId(columnInfo.getId());
+		String unnestedColumnName = getUnnestedColumnNameForId(columnInfo.getId());
+
+		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
 		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
 
-		return "INSERT INTO " + columnIndexTableName + " (" + ROW_ID + "," + INDEX_NUM + ","+ columnName +") " +
+		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
 				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM "+ tableName + ", JSON_TABLE(" +
 				columnName +

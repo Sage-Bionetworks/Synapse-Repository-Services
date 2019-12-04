@@ -766,7 +766,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
@@ -782,7 +782,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
@@ -1629,7 +1629,7 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C777_ WHERE _C777_ IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
 		assertEquals("1", parameters.get("b0"));
 		assertEquals("2", parameters.get("b1"));
 		assertEquals("3", parameters.get("b2"));
@@ -1645,11 +1645,11 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select unnest(foo) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		String expectedSql = "SELECT T123_INDEX_C111_._C111_, COUNT(*) " +
+		String expectedSql = "SELECT _C111__UNNEST, COUNT(*) " +
 				"FROM T123 " +
-				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID " +
+				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
 				"WHERE _C333_ IN ( :b0, :b1 ) " +
-				"GROUP BY T123_INDEX_C111_._C111_";
+				"GROUP BY _C111__UNNEST";
 		assertEquals(expectedSql,element.toSql());
 		assertEquals("asdf", parameters.get("b0"));
 		assertEquals("qwerty", parameters.get("b1"));

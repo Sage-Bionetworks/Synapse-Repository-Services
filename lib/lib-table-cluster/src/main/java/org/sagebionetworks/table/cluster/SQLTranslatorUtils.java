@@ -362,7 +362,7 @@ public class SQLTranslatorUtils {
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, IdAndVersion idAndVersion) throws ParseException {
-		Set<String> tablesToJoin = new HashSet<>();
+		Set<String> columnIdsToJoin = new HashSet<>();
 
 		// iterate over ValueExpressionPrimary since its child may need to be replaced with
 		// another SQLElements if its child is a ArrayFunctionSpecification
@@ -380,25 +380,28 @@ public class SQLTranslatorUtils {
 				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(lookup, referencedColumn.toSqlWithoutQuotes(), "UNNEST()");
 
 				//get table name of flattened index
-				String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnTranslationReference.getId());
-				tablesToJoin.add(columnFlattenedIndexTable);
+				columnIdsToJoin.add(columnTranslationReference.getId());
+				System.out.println("================adding column id " + columnTranslationReference);
 
 				//replace UNNEST(columnName) with columnName_UNNEST
 				valueExpressionPrimary.replaceChildren(SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())));
 			}
 		}
 
-		appendJoinsToFromClause(transformedModel.getTableExpression().getFromClause(), tablesToJoin);
+		appendJoinsToFromClause(idAndVersion, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
 	}
 
-	private static void appendJoinsToFromClause(FromClause fromClause, Set<String> tablesToJoin) throws ParseException {
+	private static void appendJoinsToFromClause(IdAndVersion idAndVersion, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
 		TableReference currentTableReference = fromClause.getTableReference();
 		String mainTableName = currentTableReference.toSql();
+
 		//chain additional tables to join via right-recursion
-		for(String joinTableName : tablesToJoin){
+		for(String columnId : columnIdsToJoin){
+			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId);
+
 			TableReference joinedTableRef = tableReferenceForName(joinTableName);
 			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
-				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + ROW_ID
+				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnId)
 			).searchCondition());
 			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, joinedTableRef, joinOnRowId));
 		}
