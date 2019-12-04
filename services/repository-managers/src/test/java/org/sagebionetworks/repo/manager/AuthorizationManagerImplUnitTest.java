@@ -711,6 +711,7 @@ public class AuthorizationManagerImplUnitTest {
 		
 		List<String> diff = Arrays.asList("1");
 		when(mockAccessRequirementDAO.getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(new LinkedList<String>());
+		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		
 		// since 'ars' list doesn't change, will return true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).isAuthorized());

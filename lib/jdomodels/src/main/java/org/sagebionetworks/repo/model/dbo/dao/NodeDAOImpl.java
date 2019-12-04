@@ -1144,6 +1144,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<Long> getEntityPathIds(String nodeId) {
 		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
 		List<Long> results = getIdsFromCsv(csv);
+		if(results.isEmpty()) {
+			if(!doesNodeExist(KeyFactory.stringToKey(nodeId))) {
+				throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
+			}
+		}
 		// expected order is root to leaf
 		Collections.reverse(results);
 		return results;
@@ -1206,11 +1211,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		List<Long> pathIds = getEntityPathIds(nodeId);
 		pathIds.add(KeyFactory.stringToKey(nodeId));
-		List<NameIdType> results = getNameIdType(pathIds);
-		if(results.isEmpty()) {
-			throw new NotFoundException(nodeId);
-		}
-		return results;
+		return getNameIdType(pathIds);
 	}
 
 

@@ -1568,6 +1568,12 @@ public class NodeDAOImplTest {
 		assertEquals(KeyFactory.stringToKey(childId), path.get(1));
 	}
 	
+	@Test (expected = NotFoundException.class)
+	public void testGetEntityPathIdNotFound() throws Exception {
+		// call under test
+		nodeDao.getEntityPathIds("syn99999999");
+	}
+	
 	@Test
 	public void testGetEntityPathIdIncludeSelfTrue() throws Exception {
 		Node node = privateCreateNew("parent");

@@ -91,7 +91,7 @@ public class ReplyMessageBuilderFactoryTest {
 		ChangeType type = ChangeType.CREATE;
 		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
 		assertNotNull(bulider);
-		verify(mockNodeDao).getEntityHeader("444");
+		verify(mockNodeDao).getNodeName("444");
 		verify(mockUploadDao).getMessage(key);
 	}
 }
