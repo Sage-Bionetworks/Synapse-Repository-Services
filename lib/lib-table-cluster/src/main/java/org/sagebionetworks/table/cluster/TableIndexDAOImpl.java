@@ -124,6 +124,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
+		if(template != null) {
+			throw new IllegalStateException("DataSource can only be set once");
+		}
 		this.transactionManager = new DataSourceTransactionManager(dataSource);
 		// This will manage transactions for calls that need it.
 		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
