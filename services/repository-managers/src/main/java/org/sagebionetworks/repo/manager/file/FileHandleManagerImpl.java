@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -103,6 +104,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -834,7 +836,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			uploadDestination = new S3UploadDestination();
 		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
+			ExternalS3UploadDestination externalS3UploadDestination;
+			if (storageLocationSetting instanceof StsStorageLocationSetting) {
+				externalS3UploadDestination = new StsUploadDestination();
+				externalS3UploadDestination.setConcreteType(StsUploadDestination.class.getName());
+			} else {
+				externalS3UploadDestination = new ExternalS3UploadDestination();
+			}
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
 			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
 			uploadDestination = externalS3UploadDestination;

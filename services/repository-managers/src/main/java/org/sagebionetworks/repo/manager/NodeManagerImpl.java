@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -692,6 +693,16 @@ public class NodeManagerImpl implements NodeManager {
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.getChildernStats(request);
+	}
+
+	@Override
+	public boolean isEntityEmpty(String entityId) {
+		ChildStatsRequest childStatsRequest = new ChildStatsRequest()
+				.withParentId(entityId)
+				.withIncludeTypes(ImmutableList.copyOf(EntityType.values()))
+				.withIncludeTotalChildCount(true);
+		ChildStatsResponse childStatsResponse = getChildrenStats(childStatsRequest);
+		return childStatsResponse.getTotalChildCount() == 0;
 	}
 
 	@Override

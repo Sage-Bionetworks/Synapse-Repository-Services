@@ -23,6 +23,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
 import com.amazonaws.services.sns.AmazonSNS;
@@ -151,6 +153,18 @@ public class AwsClientFactory {
 	 */
 	public static AmazonSimpleEmailService createAmazonSimpleEmailServiceClient() {
 		AmazonSimpleEmailServiceClientBuilder builder = AmazonSimpleEmailServiceClientBuilder.standard();
+		builder.withRegion(Regions.US_EAST_1);
+		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
+		return builder.build();
+	}
+
+	/**
+	 * Create an instance of AWSSecurityTokenService using a credential chain.
+	 *
+	 * @return the created AWSSecurityTokenService instance
+	 */
+	public static AWSSecurityTokenService createAmazonSecurityTokenServiceClient() {
+		AWSSecurityTokenServiceClientBuilder builder = AWSSecurityTokenServiceClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
 		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();

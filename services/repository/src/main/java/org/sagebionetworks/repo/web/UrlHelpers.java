@@ -95,7 +95,10 @@ public class UrlHelpers {
 	public static final String ACL = "/acl";
 	
 	public static final String BENEFACTOR = "/benefactor";
-	
+
+	// todo doc
+	public static final String CREDENTIALS = "/credentials";
+
 	/**
 	 * The request parameter to enforce ACL inheritance of child nodes.
 	 */
@@ -216,6 +219,7 @@ public class UrlHelpers {
 	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE_V2+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
+	public static final String ENTITY_ID_CREDENTIALS = ENTITY_ID+CREDENTIALS;
 
 	public static final String FILE= "/file";
 	public static final String FILE_PREVIEW = "/filepreview";

@@ -328,7 +328,9 @@ public interface NodeManager {
 	 * @return
 	 */
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request);
-	
+
+	/** True if the entity has no children, false otherwise. */
+	boolean isEntityEmpty(String entityId);
 
 	/**
 	 * Retrieve the entityId for a given parentId and entityName
