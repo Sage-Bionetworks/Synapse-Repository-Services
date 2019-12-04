@@ -374,28 +374,34 @@ public class SQLTranslatorUtils {
 	}
 
 	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, IdAndVersion idAndVersion) throws ParseException {
+		// UNNEST(columnName) for the same columnName
+		// may appear in multiple places (select clause ,group by, order by, etc.)
+		// but should only join the unnested index table for that column once
 		Set<String> columnIdsToJoin = new HashSet<>();
 
-		// iterate over ValueExpressionPrimary since its child may need to be replaced with
-		// another SQLElements if its child is a ArrayFunctionSpecification
+		// iterate over all ValueExpressionPrimary since its may hold a ArrayFunctionSpecification.
+		// Its held element then may need to be replaced with a different child element.
 		for(ValueExpressionPrimary valueExpressionPrimary : transformedModel.createIterable(ValueExpressionPrimary.class)){
 			//ignore valueExpressionPrimary that don't use an ArrayFunctionSpecification
 			if(!(valueExpressionPrimary.getChild() instanceof ArrayFunctionSpecification)){
 				continue;
 			}
-
 			ArrayFunctionSpecification arrayFunctionSpecification = (ArrayFunctionSpecification) valueExpressionPrimary.getChild();
 
+			//handle UNNEST() functions
 			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
 				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
 
 				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(lookup, referencedColumn.toSqlWithoutQuotes(), "UNNEST()");
 
-				//get table name of flattened index
+				//add column id to be joined
 				columnIdsToJoin.add(columnTranslationReference.getId());
 
-				//replace UNNEST(columnName) with columnName_UNNEST
-				valueExpressionPrimary.replaceChildren(SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())));
+				//replace "UNNEST(_C123_)" with column "_C123__UNNEST"
+				ColumnReference replacementColumn = SqlElementUntils.createColumnReference(
+						SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())
+				);
+				valueExpressionPrimary.replaceChildren(replacementColumn);
 			}
 		}
 
@@ -701,6 +707,11 @@ public class SQLTranslatorUtils {
 		}
 	}
 
+	/**
+	 * Wraps string table name inside a TableReference
+	 * @param tableName
+	 * @return
+	 */
 	private static TableReference tableReferenceForName(String tableName){
 		return new TableReference(new TableName(new RegularIdentifier(tableName)));
 	}
@@ -713,7 +724,7 @@ public class SQLTranslatorUtils {
 	 * @throws IllegalArgumentException if the column is not defined in the schema or does not have a _LIST ColumnType
 	 * @return SchemaColumnTranslationReference associated with the columnName
 	 */
-	static SchemaColumnTranslationReference lookupAndRequireListColumn(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, String columnName, String errorMessageFunctionName){
+	private static SchemaColumnTranslationReference lookupAndRequireListColumn(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, String columnName, String errorMessageFunctionName){
 		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
 				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnName));
 		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){

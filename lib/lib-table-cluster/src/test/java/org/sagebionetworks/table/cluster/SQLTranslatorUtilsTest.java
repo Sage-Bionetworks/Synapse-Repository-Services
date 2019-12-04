@@ -798,6 +798,78 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(beforeCallSqll, notArrayHasPredicate.toSql());
 	}
 
+	@Test
+	public void tesTranslateArrayFunction_columnNotFound() throws ParseException {
+		//_C987654_ does not exist
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(_C987654_) FROM T123 ORDER BY UNNEST(_C987654_)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("Unknown column reference: _C987654_", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_columnNotInSchema() throws ParseException {
+		//can not perform UNNEST on one of the metadata columns
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(ROW_ID) FROM T123 ORDER BY UNNEST(ROW_ID)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("UNNEST() may only be used on columns defined in the schema", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_columnNotListType() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING);
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		//_C111_ is a STRING type instead of STRING_LIST
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(_C111_) FROM T123 ORDER BY UNNEST(_C111_)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("UNNEST() only works for columns that hold list values", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_multipleColumns() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnBar.setColumnType(ColumnType.STRING_LIST);
+
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT _C222_, UNNEST(_C111_), UNNEST(_C333_) FROM T123 ORDER BY UNNEST(_C111_), UNNEST(_C333_)"
+		);
+
+		//method under test
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+
+		String expected = "SELECT _C222_, _C111__UNNEST, _C333__UNNEST " +
+				"FROM T123 " +
+				"JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"ORDER BY _C111__UNNEST, _C333__UNNEST";
+		assertEquals(expected, querySpecification.toSql());
+	}
+
 
 	@Test
 	public void testTranslate_PredicateColumnReferenceNotExist() throws ParseException {

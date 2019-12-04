@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -193,6 +194,33 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetColumnNameForId(){
 		assertEquals("_C456_", SQLUtils.getColumnNameForId("456"));
+	}
+
+
+	@Test
+	public void testGetUnnestedColumnNameForId_nullColumnId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getUnnestedColumnNameForId(null);
+		});
+	}
+
+	@Test
+	public void testGetUnnestedColumnNameForId(){
+		assertEquals("_C12345__UNNEST",
+			SQLUtils.getUnnestedColumnNameForId("12345"));
+	}
+
+	@Test
+	public void testGetRowIdRefColumnNameForId_nullColumnId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getRowIdRefColumnNameForId(null);
+		});
+	}
+
+	@Test
+	public void testGetRowIdRefColumnNameForId(){
+		assertEquals("ROW_ID_REF_C12345_",
+				SQLUtils.getRowIdRefColumnNameForId("12345"));
 	}
 
 	@Test
