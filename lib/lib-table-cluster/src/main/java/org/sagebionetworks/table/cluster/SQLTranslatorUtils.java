@@ -62,6 +62,7 @@ import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -312,9 +313,20 @@ public class SQLTranslatorUtils {
 		IdAndVersion originalSynId = translate(tableExpression.getFromClause());
 
 		// Translate where
-		if(tableExpression.getWhereClause() != null){
-			SearchCondition whereClauseSearchCondition = tableExpression.getWhereClause().getSearchCondition();
-			translateSearchCondition(parameters, columnTranslationReferenceLookup, originalSynId, whereClauseSearchCondition);
+		WhereClause whereClause = tableExpression.getWhereClause();
+		if(whereClause != null) {
+			// Translate all predicates
+			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
+			for (HasPredicate predicate : hasPredicates) {
+				translate(predicate, parameters, columnTranslationReferenceLookup);
+			}
+
+			//once all row names are translated and predicate values are replaced with bind variables
+			//transform Synapse-specific predicate into MySQL
+			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
+				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
+				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
+			}
 		}
 		// translate the group by
 		GroupByClause groupByClause = tableExpression.getGroupByClause();
@@ -381,7 +393,6 @@ public class SQLTranslatorUtils {
 
 				//get table name of flattened index
 				columnIdsToJoin.add(columnTranslationReference.getId());
-				System.out.println("================adding column id " + columnTranslationReference);
 
 				//replace UNNEST(columnName) with columnName_UNNEST
 				valueExpressionPrimary.replaceChildren(SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())));
@@ -406,22 +417,6 @@ public class SQLTranslatorUtils {
 			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, joinedTableRef, joinOnRowId));
 		}
 		fromClause.setTableReference(currentTableReference);
-	}
-
-	//TODO: move tests for translateModel to tests for translateSearchCondition
-	public static void translateSearchCondition(Map<String, Object> parameters, ColumnTranslationReferenceLookup columnTranslationReferenceLookup, IdAndVersion originalSynId, SearchCondition searchCondition) {
-		// Translate all predicates
-		Iterable<HasPredicate> hasPredicates = searchCondition.createIterable(HasPredicate.class);
-		for(HasPredicate predicate: hasPredicates){
-			translate(predicate, parameters, columnTranslationReferenceLookup);
-		}
-
-		//once all row names are translated and predicate values are replaced with bind variables
-		//transform Synapse-specific predicate into MySQL
-		for(BooleanPrimary booleanPrimary: searchCondition.createIterable(BooleanPrimary.class)){
-			replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
-			replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
-		}
 	}
 
 	/**
