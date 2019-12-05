@@ -29,7 +29,7 @@ import static org.junit.Assert.assertNotNull;
  * @author michael
  *
  */
-public class ITCORSFilterTest {
+public class ITSimpleCORSFilterTest {
 
     private static SimpleHttpClient simpleHttpClient;
     private static SynapseClient synapse;
@@ -61,7 +61,7 @@ public class ITCORSFilterTest {
 
 
     @Test
-    public void testCORSResponseOnThrottleResponse() throws Exception {
+    public void testResponseHasCORSOnThrottle() throws Exception {
         StringBuilder urlBuilder = new StringBuilder(StackConfigurationSingleton.singleton().getRepositoryServiceEndpoint());
         urlBuilder.append("/version");
         SimpleHttpRequest request = new SimpleHttpRequest();
