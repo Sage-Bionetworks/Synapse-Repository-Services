@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -64,9 +65,15 @@ public class MembershipInvitationServiceImpl implements
 			if (message != null) {
 				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
 			}
-		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null){
+		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null) {
 			// Invitation to new user
-			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
+			// Disabled because of https://sagebionetworks.jira.com/browse/PLFM-5970 
+			// membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
+			
+			@TemporaryCode(author = "marco.marasca@sagebase.org")
+			IllegalArgumentException ex = new IllegalArgumentException("Inviting members through an email is currently disabled.");
+			
+			throw ex;
 		} else {
 			throw new IllegalArgumentException("Exactly one of invitee email or invitee user Id should be included. Received email: "+
 					created.getInviteeEmail()+", and user Id: "+created.getInviteeId());
