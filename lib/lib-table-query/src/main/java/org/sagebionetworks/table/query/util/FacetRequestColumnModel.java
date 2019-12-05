@@ -2,10 +2,14 @@ package org.sagebionetworks.table.query.util;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
+import java.util.StringJoiner;
+
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.util.ValidateArgument;
@@ -46,7 +50,7 @@ public class FacetRequestColumnModel {
 		this.columnName = columnModel.getName();
 		this.facetType = columnModel.getFacetType();
 		this.facetColumnRequest = facetColumnRequest;
-		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest);
+		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest, columnModel.getColumnType());
 	}
 
 	public String getColumnName() {
@@ -78,13 +82,17 @@ public class FacetRequestColumnModel {
 	 * @param facetColumnRequest
 	 * @return the search condition string
 	 */
-	static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest){
+	static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest, ColumnType columnType){
 		if (facetColumnRequest == null){
 			return null;
 		}
 		
 		if (facetColumnRequest instanceof FacetColumnValuesRequest){
-			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
+			if(ColumnTypeListMappings.isList(columnType)){
+				return createListColumnEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
+			}else {
+				return createSingleValueColumnEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
+			}
 		}else if (facetColumnRequest instanceof FacetColumnRangeRequest){
 			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest);
 		}else{
@@ -125,7 +133,7 @@ public class FacetRequestColumnModel {
 		return builder.toString();
 	}
 	
-	static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
+	static String createSingleValueColumnEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
 		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
 		}
@@ -148,6 +156,43 @@ public class FacetRequestColumnModel {
 		}
 		builder.append(")");
 		return builder.toString();
+	}
+
+	static String createListColumnEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
+		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
+			return null;
+		}
+
+
+		StringJoiner hasClauseJoiner = new StringJoiner(",", "\"" + facetValues.getColumnName() + "\" HAS (", ")");
+		//initial size will be non-zero because we gave the constructor a prefix and suffix
+		int joinerInitialSize = hasClauseJoiner.length();
+
+		boolean includeColumnIsNullCondition = false;
+		for(String value : facetValues.getFacetValues()){
+			// values inside lists may not have the null keyword (e.g. "[null]" is not allowed)
+			// so seeing the null keyword is treated as selecting for columns in which there is no list value.
+			if(value.equals(NULL_VALUE_KEYWORD)){
+				includeColumnIsNullCondition = true;
+			}else {
+				hasClauseJoiner.add("'" + value.replaceAll("'", "''")+"'");
+			}
+		}
+
+		String searchCondition;
+		if(includeColumnIsNullCondition){
+			boolean noValuesAddedToJoiner = hasClauseJoiner.length() == joinerInitialSize;
+			String isNullCondition = "\"" + facetValues.getColumnName() + "\" IS NULL";
+			if(noValuesAddedToJoiner){
+				searchCondition = isNullCondition ;
+			}else{
+				searchCondition = hasClauseJoiner + " OR " + isNullCondition;
+			}
+		} else {
+			searchCondition = hasClauseJoiner.toString();
+		}
+
+		return "(" + searchCondition + ")";
 	}
 
 	/**

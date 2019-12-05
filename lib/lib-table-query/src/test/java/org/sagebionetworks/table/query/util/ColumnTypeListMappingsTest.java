@@ -1,11 +1,10 @@
-package org.sagebionetworks.table.cluster;
+package org.sagebionetworks.table.query.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
-
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 class ColumnTypeListMappingsTest {
 

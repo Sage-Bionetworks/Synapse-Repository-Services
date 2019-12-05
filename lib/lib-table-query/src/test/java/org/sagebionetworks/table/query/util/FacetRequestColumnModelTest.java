@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
+import java.util.Collections;
 import java.util.HashSet;
 
 import org.junit.Before;
@@ -125,21 +126,28 @@ public class FacetRequestColumnModelTest {
 
 	@Test
 	public void testCreateFacetSearchConditionStringNullFacet(){
-		assertNull(FacetRequestColumnModel.createFacetSearchConditionString(null));
+		assertNull(FacetRequestColumnModel.createFacetSearchConditionString(null, ColumnType.STRING));
 	}
 
 	@Test
-	public void testCreateFacetSearchConditionStringUsingFacetColumnValuesRequestClass(){
+	public void testCreateFacetSearchConditionString_UsingFacetColumnValuesRequestClass_SingleValueColumn(){
 		facetValues.setFacetValues(Sets.newHashSet("hello"));
-		assertEquals(FacetRequestColumnModel.createEnumerationSearchCondition(facetValues),
-				FacetRequestColumnModel.createFacetSearchConditionString(facetValues));
+		assertEquals(FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues),
+				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, ColumnType.STRING));
+	}
+
+	@Test
+	public void testCreateFacetSearchConditionString_UsingFacetColumnValuesRequestClass_ListColumn(){
+		facetValues.setFacetValues(Sets.newHashSet("hello"));
+		assertEquals(FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues),
+				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, ColumnType.STRING_LIST));
 	}
 
 	@Test
 	public void testCreateFacetSearchConditionStringUsingFacetColumnRangeRequestClass(){
 		facetRange.setMax("123");
 		assertEquals(FacetRequestColumnModel.createRangeSearchCondition(facetRange),
-				FacetRequestColumnModel.createFacetSearchConditionString(facetRange));
+				FacetRequestColumnModel.createFacetSearchConditionString(facetRange, ColumnType.INTEGER));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -153,73 +161,150 @@ public class FacetRequestColumnModelTest {
 			public void setConcreteType(String concreteType) {}
 			public String getColumnName() {return null;}
 			public void setColumnName(String columnName) {}
-		});
+		}, ColumnType.STRING);
 	}
 
 	////////////////////////////////////////////
-	// createEnumerationSearchCondition() tests
+	// createSingleValueColumnEnumerationSearchCondition() tests
 	///////////////////////////////////////////
 	@Test
-	public void testEnumerationSearchConditionStringNullFacet(){
-		assertNull(FacetRequestColumnModel.createEnumerationSearchCondition(null));
+	public void testSingleValueColumnEnumerationSearchConditionString_NullFacet(){
+		assertNull(FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(null));
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringNullFacetValues(){
+	public void testSingleValueColumnEnumerationSearchConditionString_NullFacetValues(){
 		facetValues.setFacetValues(null);
-		assertNull(FacetRequestColumnModel.createEnumerationSearchCondition(facetValues));
+		assertNull(FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues));
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringEmptyFacetValues(){
+	public void testSingleValueColumnEnumerationSearchConditionString_EmptyFacetValues(){
 		facetValues.setFacetValues(new HashSet<String>());
-		assertNull(FacetRequestColumnModel.createEnumerationSearchCondition(facetValues));
+		assertNull(FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues));
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringOneValue(){
+	public void testSingleValueColumnEnumerationSearchConditionString_OneValue(){
 		String value = "hello";
 		facetValues.setFacetValues(Sets.newHashSet(value));
-		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\"='hello')", searchConditionString);
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringOneValueIsNullKeyword(){
+	public void testSingleValueColumnEnumerationSearchConditionString_OneValueIsNullKeyword(){
 		String value = TableConstants.NULL_VALUE_KEYWORD;
 		facetValues.setFacetValues(Sets.newHashSet(value));
-		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringTwoValues(){
+	public void testSingleValueColumnEnumerationSearchConditionString_TwoValues(){
 		String value1 = "hello";
 		String value2 = "world";
 		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
 
 
-		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\"='hello' OR \"someColumn\"='world')", searchConditionString);
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringTwoValuesWithOneBeingNullKeyword(){
+	public void testSingleValueColumnEnumerationSearchConditionString_TwoValuesWithOneBeingNullKeyword(){
 		String value1 = TableConstants.NULL_VALUE_KEYWORD;
 		String value2 = "world";
 		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
 
 
-		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\" IS NULL OR \"someColumn\"='world')", searchConditionString);
 	}
 
 	@Test
-	public void testEnumerationSearchConditionStringOneValueContainsSpace(){
+	public void testSingleValueColumnEnumerationSearchConditionString_OneValueContainsSpace(){
 		String value = "hello world";
 		facetValues.setFacetValues(Sets.newHashSet(value));
-		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues);
+		String searchConditionString = FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues);
 		assertEquals("(\"someColumn\"='hello world')", searchConditionString);
+	}
+
+	////////////////////////////////////////////
+	// createListColumnEnumerationSearchCondition() tests
+	///////////////////////////////////////////
+	@Test
+	public void testListColumnEnumerationSearchConditionString_NullFacet(){
+		assertNull(FacetRequestColumnModel.createListColumnEnumerationSearchCondition(null));
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_NullFacetValues(){
+		facetValues.setFacetValues(null);
+		assertNull(FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues));
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_EmptyFacetValues(){
+		facetValues.setFacetValues(Collections.emptySet());
+		assertNull(FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues));
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_OneValue(){
+		String value = "hello";
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" HAS ('hello'))", searchConditionString);
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_OneValueIsNullKeyword(){
+		String value = TableConstants.NULL_VALUE_KEYWORD;
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_TwoValues(){
+		String value1 = "hello";
+		String value2 = "world";
+		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
+
+
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" HAS ('hello','world'))", searchConditionString);
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_TwoValuesWithNull(){
+		String value1 = "hello";
+		String value2 = "world";
+		facetValues.setFacetValues(Sets.newHashSet(value1, value2, TableConstants.NULL_VALUE_KEYWORD));
+
+
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" HAS ('hello','world') OR \"someColumn\" IS NULL)", searchConditionString);
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_TwoValuesWithOneBeingNullKeyword(){
+		String value1 = TableConstants.NULL_VALUE_KEYWORD;
+		String value2 = "world";
+		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
+
+
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" HAS ('world') OR \"someColumn\" IS NULL)", searchConditionString);
+	}
+
+	@Test
+	public void testListColumnEnumerationSearchConditionString_OneValueContainsSpace(){
+		String value = "hello world";
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		String searchConditionString = FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues);
+		assertEquals("(\"someColumn\" HAS ('hello world'))", searchConditionString);
 	}
 
 	//////////////////////////////////////
