@@ -1143,6 +1143,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<Long> getEntityPathIds(String nodeId) {
 		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
+		if("-1".equals(csv)) {
+			throw new IllegalStateException("Loop detected in path: "+nodeId);
+		}
 		List<Long> results = getIdsFromCsv(csv);
 		if(results.isEmpty()) {
 			if(!doesNodeExist(KeyFactory.stringToKey(nodeId))) {
