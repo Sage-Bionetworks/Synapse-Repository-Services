@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 
 /**
  * Run this integration test to ensure CORS filter is applied
- * if throttle filter is applied. See PLFM-5982.
+ * if a throttled response is returned. See PLFM-5982.
  *
  *
  * @author michael
@@ -45,7 +45,7 @@ public class ITSimpleCORSFilterTest {
         adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
         adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
         synapse = new SynapseClientImpl();
-        // Some throttles only only occur for authenticated users
+        // Some throttles only occur for authenticated users
         userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
     }
 
