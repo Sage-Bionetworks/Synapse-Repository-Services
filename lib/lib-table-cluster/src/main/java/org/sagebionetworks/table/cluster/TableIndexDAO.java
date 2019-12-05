@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.sql.DataSource;
+
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -452,4 +454,11 @@ public interface TableIndexDAO {
 	 *                         than maxBytesPerBatch.
 	 */
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
+
+	/**
+	 * Initialize this dao by setting its database connection.
+	 * 
+	 * @param dataSource
+	 */
+	void setDataSource(DataSource dataSource);
 }
