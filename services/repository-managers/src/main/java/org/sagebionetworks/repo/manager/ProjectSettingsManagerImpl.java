@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -181,6 +182,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()),
 					"Invalid Bucket Name");
 
+			externalS3StorageLocationSetting.setUploadType(UploadType.S3);
 			validateS3BucketAccess(externalS3StorageLocationSetting);
 			validateS3BucketOwnership(externalS3StorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
@@ -194,10 +196,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			validateGoogleCloudBucketOwnership(externalGoogleCloudStorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
+			ValidateArgument.required(externalStorageLocationSetting.getUploadType(), "uploadType");
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validExternalUrl(externalStorageLocationSetting.getUrl());
 		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting) {
 			ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+			ValidateArgument.required(externalObjectStorageLocationSetting.getUploadType(), "uploadType");
 
 			// strip leading and trailing slashes and whitespace from the endpointUrl and bucket
 			String strippedEndpoint = StringUtils.strip(externalObjectStorageLocationSetting.getEndpointUrl(), "/ \t");
@@ -227,6 +231,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			} catch (MalformedURLException e) {
 				throw new IllegalArgumentException("proxyUrl is malformed: " + e.getMessage());
 			}
+		} else if (storageLocationSetting instanceof S3StorageLocationSetting) {
+			storageLocationSetting.setUploadType(UploadType.S3);
 		}
 
 		storageLocationSetting.setCreatedBy(userInfo.getId());

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,14 +42,18 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -104,6 +110,10 @@ public class ProjectSettingsManagerImplUnitTest {
 	private UploadDestinationListSetting uploadDestinationListSetting;
 	private ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	private ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting;
+	private ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting;
+	private ExternalStorageLocationSetting externalStorageLocationSetting;
+	private ProxyStorageLocationSettings proxyStorageLocationSettings;
+	private S3StorageLocationSetting synapseStorageLocationSetting;
 
 	@BeforeEach
 	public void before() {
@@ -134,6 +144,22 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		externalGoogleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
 		externalGoogleCloudStorageLocationSetting.setBucket(bucketName);
+
+		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageLocationSetting.setBucket(bucketName);
+		externalObjectStorageLocationSetting.setEndpointUrl("https://myendpoint.com");
+		externalObjectStorageLocationSetting.setUploadType(UploadType.S3);
+
+		externalStorageLocationSetting = new ExternalStorageLocationSetting();
+		externalStorageLocationSetting.setUploadType(UploadType.HTTPS);
+		externalStorageLocationSetting.setUrl("https://example.com");
+
+		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
+		proxyStorageLocationSettings.setProxyUrl("https://example.com");
+		proxyStorageLocationSettings.setSecretKey(RandomStringUtils.randomAlphabetic(36));
+		proxyStorageLocationSettings.setUploadType(UploadType.HTTPS);
+
+		synapseStorageLocationSetting = new S3StorageLocationSetting();
 	}
 
 	@Test
@@ -220,12 +246,16 @@ public class ProjectSettingsManagerImplUnitTest {
 		s3Object.setObjectContent(new ByteArrayInputStream(USER_NAME.getBytes()));
 		when(synapseS3Client.getObject(bucketName, "owner.txt")).thenReturn(s3Object);
 
+		// Set UploadType to null to verify that we set the default UploadType.
+		externalS3StorageLocationSetting.setUploadType(null);
+
 		when(mockStorageLocationDAO.create(externalS3StorageLocationSetting)).thenReturn(999L);
 
 		// method under test
 		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalS3StorageLocationSetting);
 
 		verify(mockStorageLocationDAO).create(externalS3StorageLocationSetting);
+		assertEquals(UploadType.S3, externalS3StorageLocationSetting.getUploadType());
 	}
 
 	@Test
@@ -259,10 +289,78 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCreateExternalStorageLocationSetting_HappyCase() throws IOException {
+		when(mockStorageLocationDAO.create(externalStorageLocationSetting)).thenReturn(999L);
+
+		// Method under test.
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
+
+		verify(mockStorageLocationDAO).create(externalStorageLocationSetting);
+	}
+
+	@Test
+	public void testCreateExternalStorageLocationSetting_NullUploadType() {
+		externalStorageLocationSetting.setUploadType(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
+		});
+	}
+
+	@Test
+	public void testCreateExternalStorageLocationSetting_NullUrl() {
+		externalStorageLocationSetting.setUrl(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
+		});
+	}
+
+	@Test
+	public void testCreateExternalStorageLocationSetting_InvalidUrl() {
+		externalStorageLocationSetting.setUrl("invalid url");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
+		});
+	}
+
+	@Test
+	public void testCreateExternalObjectStorageLocationSetting_HappyCase() throws IOException {
+		when(mockStorageLocationDAO.create(externalObjectStorageLocationSetting)).thenReturn(999L);
+
+		// Method under test.
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+
+		verify(mockStorageLocationDAO).create(externalObjectStorageLocationSetting);
+	}
+
+	@Test
+	public void testCreateExternalObjectStorageLocationSetting_NullUploadType() {
+		externalObjectStorageLocationSetting.setUploadType(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+		});
+	}
+
+	@Test
+	public void testCreateExternalObjectStorageLocationSetting_InvalidEndpointUrl() {
+		externalObjectStorageLocationSetting.setEndpointUrl("invalid url");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+		});
+	}
+
+	@Test
 	public void testCreateExternalObjectStorageLocationSetting_InvalidS3BucketName() {
-		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setBucket("s3://my-bucket-name-is-wrong/");
-		externalObjectStorageLocationSetting.setEndpointUrl("https://myendpoint.com");
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
@@ -278,10 +376,14 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(synapseGoogleCloudStorageClient.getObjectContent(bucketName, "owner.txt")).thenReturn(IOUtils.toInputStream(USER_NAME, StandardCharsets.UTF_8));
 		when(mockStorageLocationDAO.create(externalGoogleCloudStorageLocationSetting)).thenReturn(999L);
 
+		// Set UploadType to null to verify that we set the default UploadType.
+		externalGoogleCloudStorageLocationSetting.setUploadType(null);
+
 		// method under test
 		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalGoogleCloudStorageLocationSetting);
 
 		verify(mockStorageLocationDAO).create(externalGoogleCloudStorageLocationSetting);
+		assertEquals(UploadType.GOOGLECLOUDSTORAGE, externalGoogleCloudStorageLocationSetting.getUploadType());
 	}
 
 	@Test
@@ -309,6 +411,90 @@ public class ProjectSettingsManagerImplUnitTest {
 			projectSettingsManagerImpl.createStorageLocationSetting(userInfo,
 					externalGoogleCloudStorageLocationSetting);
 		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_HappyCase() throws IOException {
+		when(mockStorageLocationDAO.create(proxyStorageLocationSettings)).thenReturn(999L);
+
+		// Method under test.
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+
+		verify(mockStorageLocationDAO).create(proxyStorageLocationSettings);
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_NullProxyUrl() {
+		proxyStorageLocationSettings.setProxyUrl(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_InvalidProxyUrl() {
+		proxyStorageLocationSettings.setProxyUrl("invalid url");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_ProxyUrlNotHttps() {
+		proxyStorageLocationSettings.setProxyUrl("ftp://example.com");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_NullSecretKey() {
+		proxyStorageLocationSettings.setSecretKey(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_SecretKeyTooShort() {
+		proxyStorageLocationSettings.setSecretKey("ab");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateProxyLocationStorageSettings_NullUploadType() {
+		proxyStorageLocationSettings.setUploadType(null);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
+		});
+	}
+
+	@Test
+	public void testCreateSynapseStorageLocationSettings_HappyCase() throws IOException {
+		// Set UploadType to null to verify that we set the default UploadType.
+		synapseStorageLocationSetting.setUploadType(null);
+
+		when(mockStorageLocationDAO.create(synapseStorageLocationSetting)).thenReturn(999L);
+
+		// Method under test.
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, synapseStorageLocationSetting);
+
+		verify(mockStorageLocationDAO).create(synapseStorageLocationSetting);
+		assertEquals(UploadType.S3, synapseStorageLocationSetting.getUploadType());
 	}
 
 	@Test
