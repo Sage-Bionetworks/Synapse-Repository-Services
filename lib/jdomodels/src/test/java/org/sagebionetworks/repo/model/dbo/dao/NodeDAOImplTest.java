@@ -1574,6 +1574,40 @@ public class NodeDAOImplTest {
 		nodeDao.getEntityPathIds("syn99999999");
 	}
 	
+	/**
+	 * Maybe we should prevent users from creating such a loop.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetEntityPathIdsInfiniteLoop() throws Exception {
+		Node parent = privateCreateNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		assertNotNull(parentId);
+		toDelete.add(parentId);
+		
+		//Now add an child
+		Node child = privateCreateNew("child");
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		assertNotNull(childId);
+		toDelete.add(parentId);
+		
+		//Now add an child
+		Node grandChild = privateCreateNew("grandChild");
+		grandChild.setParentId(childId);
+		String grandChildId = nodeDao.createNew(grandChild);
+		assertNotNull(grandChildId);
+		toDelete.add(grandChildId);
+		// setup an infinite loop
+		parent.setParentId(grandChildId);
+		nodeDao.updateNode(parent);
+		// call under test
+		List<Long> path = nodeDao.getEntityPathIds(grandChildId);
+		List<Long> expected = Lists.newArrayList(-1L);
+		assertEquals(expected, path);
+	}
+	
 	@Test
 	public void testGetEntityPathIdIncludeSelfTrue() throws Exception {
 		Node node = privateCreateNew("parent");
