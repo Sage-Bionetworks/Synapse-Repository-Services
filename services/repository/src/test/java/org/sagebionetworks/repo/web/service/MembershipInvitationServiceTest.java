@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -99,6 +101,40 @@ public class MembershipInvitationServiceTest {
 			// method under test
 			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		});
+
+	}
+	
+	@Test
+	public void testInviteByEmailCertified() throws Exception {
+		
+		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		
+		MembershipInvitation mis = new MembershipInvitation();
+		mis.setInviteeEmail("me@domain.com");
+		
+		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
+		doNothing().when(mockMembershipInvitationManager).sendInvitationToEmail(mis, ACCEPT_INVITATION_ENDPOINT);
+
+		// method under test
+		membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+
+		verify(mockMembershipInvitationManager).create(userInfo, mis);
+		verify(mockMembershipInvitationManager).sendInvitationToEmail(mis, ACCEPT_INVITATION_ENDPOINT);
+	}
+	
+	@Test
+	public void testInviteByEmailNotCertified() throws Exception {
+		MembershipInvitation mis = new MembershipInvitation();
+		mis.setInviteeEmail("me@domain.com");
+		
+		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
+
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			membershipInvitationService.create(USER_ID, mis, ACCEPT_INVITATION_ENDPOINT,  NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
+		
+		assertEquals("You must be a certified user to send email invitations", ex.getMessage());
 
 	}
 

@@ -649,9 +649,32 @@ public class IT500SynapseJavaClientTeamTest {
 		} catch (SynapseException e) {
 			// as expected
 		}
-
 		
-		// TODO Deleted the membership invitation by email address, feature disabled because of https://sagebionetworks.jira.com/browse/PLFM-5970
+		// create an invitation with null inviteeId and non null inviteeEmail
+		dto.setInviteeId(null);
+		dto.setInviteeEmail(TEST_EMAIL);
+		MembershipInvitation mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		InviteeVerificationSignedToken token = synapseTwo.getInviteeVerificationSignedToken(mis.getId());
+		// test if getInviteeVerificationSignedToken succeeded
+		assertNotNull(token);
+		String inviteeId = inviteeUserProfile.getOwnerId();
+		assertEquals(inviteeId, token.getInviteeId());
+		assertEquals(mis.getId(), token.getMembershipInvitationId());
+
+		// update the inviteeIinviteeUserProfile.getOwnerId() of the invitation
+		synapseTwo.updateInviteeId(mis.getId(), token);
+		mis = synapseTwo.getMembershipInvitation(mis.getId());
+		// test if updateInviteeId succeeded
+		assertEquals(inviteeId, mis.getInviteeId());
+
+		// delete the second invitation
+		synapseOne.deleteMembershipInvitation(mis.getId());
+		try {
+			synapseOne.getMembershipInvitation(mis.getId());
+			fail("Failed to delete membership invitation.");
+		} catch (SynapseException e) {
+			// as expected
+		}
 	}
 
 	@Test
