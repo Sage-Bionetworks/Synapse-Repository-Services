@@ -126,28 +126,28 @@ public class FacetRequestColumnModelTest {
 
 	@Test
 	public void testCreateFacetSearchConditionStringNullFacet(){
-		assertNull(FacetRequestColumnModel.createFacetSearchConditionString(null, ColumnType.STRING));
+		assertNull(FacetRequestColumnModel.createFacetSearchConditionString(null, false));
 	}
 
 	@Test
 	public void testCreateFacetSearchConditionString_UsingFacetColumnValuesRequestClass_SingleValueColumn(){
 		facetValues.setFacetValues(Sets.newHashSet("hello"));
 		assertEquals(FacetRequestColumnModel.createSingleValueColumnEnumerationSearchCondition(facetValues),
-				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, ColumnType.STRING));
+				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, false));
 	}
 
 	@Test
 	public void testCreateFacetSearchConditionString_UsingFacetColumnValuesRequestClass_ListColumn(){
 		facetValues.setFacetValues(Sets.newHashSet("hello"));
 		assertEquals(FacetRequestColumnModel.createListColumnEnumerationSearchCondition(facetValues),
-				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, ColumnType.STRING_LIST));
+				FacetRequestColumnModel.createFacetSearchConditionString(facetValues, true));
 	}
 
 	@Test
 	public void testCreateFacetSearchConditionStringUsingFacetColumnRangeRequestClass(){
 		facetRange.setMax("123");
 		assertEquals(FacetRequestColumnModel.createRangeSearchCondition(facetRange),
-				FacetRequestColumnModel.createFacetSearchConditionString(facetRange, ColumnType.INTEGER));
+				FacetRequestColumnModel.createFacetSearchConditionString(facetRange, false));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -161,7 +161,7 @@ public class FacetRequestColumnModelTest {
 			public void setConcreteType(String concreteType) {}
 			public String getColumnName() {return null;}
 			public void setColumnName(String columnName) {}
-		}, ColumnType.STRING);
+		}, false);
 	}
 
 	////////////////////////////////////////////

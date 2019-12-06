@@ -24,7 +24,7 @@ public class FacetRequestColumnModel {
 	private FacetType facetType;
 	private FacetColumnRequest facetColumnRequest;
 	private String searchConditionString;
-	
+	private boolean columnTypeIsList;
 	/**
 	 * Constructor.
 	 * @param columnModel The original ColumnModel from which we derive the FacetRequestColumnModel
@@ -50,7 +50,8 @@ public class FacetRequestColumnModel {
 		this.columnName = columnModel.getName();
 		this.facetType = columnModel.getFacetType();
 		this.facetColumnRequest = facetColumnRequest;
-		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest, columnModel.getColumnType());
+		this.columnTypeIsList = ColumnTypeListMappings.isList(columnModel.getColumnType());
+		this.searchConditionString = createFacetSearchConditionString(facetColumnRequest, this.columnTypeIsList);
 	}
 
 	public String getColumnName() {
@@ -76,19 +77,23 @@ public class FacetRequestColumnModel {
 	public FacetType getFacetType(){
 		return this.facetType;
 	}
-	
+
+	public boolean isColumnTypeIsList() {
+		return columnTypeIsList;
+	}
+
 	/**
 	 * Creates the search condition for a FacetColumnRequest
 	 * @param facetColumnRequest
 	 * @return the search condition string
 	 */
-	static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest, ColumnType columnType){
+	static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest, boolean columnTypeIsList){
 		if (facetColumnRequest == null){
 			return null;
 		}
 		
 		if (facetColumnRequest instanceof FacetColumnValuesRequest){
-			if(ColumnTypeListMappings.isList(columnType)){
+			if(columnTypeIsList){
 				return createListColumnEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
 			}else {
 				return createSingleValueColumnEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);

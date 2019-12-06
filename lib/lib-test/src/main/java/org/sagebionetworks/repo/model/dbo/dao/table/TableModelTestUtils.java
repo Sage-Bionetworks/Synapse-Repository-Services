@@ -72,7 +72,7 @@ public class TableModelTestUtils {
 			if (type == ColumnType.STRING || type == ColumnType.LINK || type == ColumnType.STRING_LIST) {
 				cm.setMaximumSize(47L);
 			}
-			if(type == ColumnType.STRING){
+			if(type == ColumnType.STRING || type == ColumnType.STRING_LIST){
 				cm.setFacetType(FacetType.enumeration);
 			}
 			

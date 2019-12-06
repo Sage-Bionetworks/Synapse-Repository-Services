@@ -34,14 +34,14 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	private SqlQuery generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
-	public FacetTransformerValueCounts(String columnName, List<FacetRequestColumnModel> facets, SqlQuery originalQuery, Set<String> selectedValues){
+	public FacetTransformerValueCounts(String columnName, boolean columnTypeIsList, List<FacetRequestColumnModel> facets, SqlQuery originalQuery, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
 		this.columnName = columnName;
 		this.facets = facets;
 		this.selectedValues = selectedValues;
-		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery);
+		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, columnTypeIsList);
 	}
 	
 	
@@ -55,15 +55,16 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		return this.generatedFacetSqlQuery;
 	}
 	
-	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery) {
+	private SqlQuery generateFacetSqlQuery(SqlQuery originalQuery, boolean columnTypeIsList) {
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnName);
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
+
+		String columnToUse = columnTypeIsList ? "UNNEST(\"" + columnName + "\")" : "\"" + columnName + "\"";
+
 		StringBuilder builder = new StringBuilder("SELECT ");
-		builder.append("\"");
-		builder.append(columnName);
-		builder.append("\"");
+		builder.append(columnToUse);
 		builder.append(" AS ");
 		builder.append(VALUE_ALIAS);
 		builder.append(", COUNT(*) AS ");
@@ -72,9 +73,12 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		builder.append(" GROUP BY ");
-		builder.append("\"");
-		builder.append(columnName);
-		builder.append("\" ");
+		builder.append(columnToUse);
+		builder.append(" ORDER BY ");
+		builder.append(COUNT_ALIAS);
+		builder.append(" DESC, ");
+		builder.append(VALUE_ALIAS);
+		builder.append(" ASC ");
 		builder.append(pagination.toSql());
 		
 		try {
