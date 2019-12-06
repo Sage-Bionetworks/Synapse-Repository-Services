@@ -230,6 +230,7 @@ public class ProjectSettingsImplAutowiredTest {
 		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setEndpointUrl("https://www.someurl.com");
 		externalObjectStorageLocationSetting.setBucket("i-am-a-bucket-yay");
+		externalObjectStorageLocationSetting.setUploadType(UploadType.HTTPS);
 		//call under test
 		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
 		assertNotNull(result);
@@ -246,6 +247,7 @@ public class ProjectSettingsImplAutowiredTest {
 		String bucket = "bucket-mc-bucket-face";
 		externalObjectStorageLocationSetting.setEndpointUrl("////" + endpoint + "//////");
 		externalObjectStorageLocationSetting.setBucket(bucket);
+		externalObjectStorageLocationSetting.setUploadType(UploadType.HTTPS);
 
 		//call under test
 		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
