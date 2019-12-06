@@ -391,6 +391,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
+	
+	/**
+	 * Max path depth for a node hierarchy.
+	 */
+	public static final int MAX_PATH_DEPTH = 100;
+	/**
+	 * A recursive sql call to get the full path of a given entity id (?). The limit
+	 * on the distance prevents an infinite loop for a circular path. To be used a
+	 * string template to set which columns should be selected. The ORDER BY clause
+	 * ensures the order is from root to leaf. Note: The results will include the
+	 * requested node as the last element.
+	 * 
+	 */
+	public static final String PATH_QUERY_TEMPLATE = "WITH RECURSIVE PATH (" + COL_NODE_ID + ", " + COL_NODE_NAME + ", "
+			+ COL_NODE_TYPE + ", " + COL_NODE_PARENT_ID + ", DISTANCE) AS " + "(SELECT " + COL_NODE_ID + ", "
+			+ COL_NODE_NAME + ", " + COL_NODE_TYPE + ", " + COL_NODE_PARENT_ID + ", 1 FROM " + TABLE_NODE
+			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
+			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
+			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
@@ -1139,84 +1159,47 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
-	
 	@Override
 	public List<Long> getEntityPathIds(String nodeId) {
-		String csv = jdbcTemplate.queryForObject("SELECT getEntityPath(?)", String.class, KeyFactory.stringToKey(nodeId));
-		if("-1".equals(csv)) {
-			throw new IllegalStateException("Loop detected in path: "+nodeId);
+		String selectColumns = COL_NODE_ID;
+		String sql = String.format(PATH_QUERY_TEMPLATE, selectColumns);
+		List<Long> path = jdbcTemplate.queryForList(sql, Long.class, KeyFactory.stringToKey(nodeId));
+		validatePath(nodeId, path);
+		return path;
+	}
+	
+	@Override
+	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
+		String selectColumns = COL_NODE_ID+","+COL_NODE_NAME+","+COL_NODE_TYPE;
+		String sql = String.format(PATH_QUERY_TEMPLATE, selectColumns);
+		List<NameIdType> path = jdbcTemplate.query(sql, NAME_ID_TYPE_ROWMAPPER, KeyFactory.stringToKey(nodeId));
+		validatePath(nodeId, path);
+		return path;
+	}
+	
+	/**
+	 * Validate the provide path result is valid.
+	 * @param nodeId
+	 * @param path
+	 */
+	public static void validatePath(String nodeId, List<?> path) {
+		if(path.isEmpty()) {
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		List<Long> results = getIdsFromCsv(csv);
-		if(results.isEmpty()) {
-			if(!doesNodeExist(KeyFactory.stringToKey(nodeId))) {
-				throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
-			}
+		if(path.size() >= MAX_PATH_DEPTH) {
+			throw new IllegalStateException("Path depth limit of: "+MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
-		// expected order is root to leaf
-		Collections.reverse(results);
-		return results;
 	}
 	
 	@Override
 	public List<Long> getEntityPathIds(String nodeId, boolean includeSelf) {
 		List<Long> pathIds = getEntityPathIds(nodeId);
-		if (includeSelf) {
-			pathIds.add(KeyFactory.stringToKey(nodeId));
+		if (!includeSelf) {
+			// path automatically includes the self as the last item so it is removed.
+			pathIds.remove(pathIds.size()-1);
 		}
 		return pathIds;
 	}
-	
-	
-	/**
-	 * Extract a list of ID from the the given comma separated string of Ids..
-	 * @param csv
-	 * @return
-	 */
-	public static List<Long> getIdsFromCsv(String csv){
-		String[] split = csv.split(",");
-		List<Long> results = new ArrayList<>(split.length);
-		for(String id: split) {
-			if(!id.isEmpty()) {
-				results.add(Long.parseLong(id));
-			}
-		}
-		return results;
-	}
-	
-	@Override
-	public List<NameIdType> getNameIdType(List<Long> ids){
-		ValidateArgument.required(ids, "ids");
-		if(ids.isEmpty()) {
-			return Collections.emptyList();
-		}
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue("ids", ids);
-		List<NameIdType> unorderd = namedParameterJdbcTemplate.query("SELECT " + COL_NODE_NAME + "," + COL_NODE_ID
-				+ ", " + COL_NODE_TYPE + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_ID + " IN (:ids)",
-				paramMap, NAME_ID_TYPE_ROWMAPPER);
-		Map<Long, NameIdType> map = new HashMap<Long, NameIdType>(unorderd.size());
-		for(NameIdType nameIdType: unorderd) {
-			map.put(KeyFactory.stringToKey(nameIdType.getId()), nameIdType);
-		}
-		// put the results in the request order
-		List<NameIdType> ordered = new ArrayList<NameIdType>(unorderd.size());
-		for(Long id: ids) {
-			NameIdType nameIdType = map.get(id);
-			if(nameIdType != null) {
-				ordered.add(nameIdType);
-			}
-		}
-		return ordered;
-	}
-	
-	
-	@Override
-	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
-		List<Long> pathIds = getEntityPathIds(nodeId);
-		pathIds.add(KeyFactory.stringToKey(nodeId));
-		return getNameIdType(pathIds);
-	}
-
 
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {

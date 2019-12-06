@@ -268,17 +268,21 @@ public interface NodeDAO {
 	/**
 	 * Get the IDs of the entities in the provided entityId's path.
 	 * @param nodeId
-	 * @return Result order will be from root to leaf.
+	 * @return Result order will be from root to leaf. The results will include the requested entity (as the last item).
+	 * Results will also include the root folder as the first item.
 	 */
 	public List<Long> getEntityPathIds(String nodeId);
 	
 	/**
+	 * @deprecated Use: {@link #getEntityPathIds(String)}.
+	 * <p>
 	 * Get the IDs of the entities in the provided entityId's path.
 	 * 
 	 * @param entityId
 	 * @param includeSelf When true, the passed entityId will be included in the results.
 	 * @return Result order will be from root to leaf.
 	 */
+	@Deprecated 
 	List<Long> getEntityPathIds(String entityId, boolean includeSelf);
 	
 	/**
@@ -600,11 +604,5 @@ public interface NodeDAO {
 	 */
 	public String getNodeName(String nodeId);
 
-	/**
-	 * Get the name, ID an type for the given node ids.
-	 * @param ids
-	 * @return
-	 */
-	List<NameIdType> getNameIdType(List<Long> ids);
 
 }

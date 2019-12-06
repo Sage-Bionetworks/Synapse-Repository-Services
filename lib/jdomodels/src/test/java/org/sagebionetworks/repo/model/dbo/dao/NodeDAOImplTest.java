@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -55,7 +54,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
@@ -1555,9 +1553,10 @@ public class NodeDAOImplTest {
 		// call under test
 		List<Long> path = nodeDao.getEntityPathIds(grandId);
 		assertNotNull(path);
-		assertEquals(2, path.size());
+		assertEquals(3, path.size());
 		assertEquals(KeyFactory.stringToKey(parentId), path.get(0));
 		assertEquals(KeyFactory.stringToKey(childId), path.get(1));
+		assertEquals(KeyFactory.stringToKey(grandId), path.get(2));
 	}
 	
 	@Test
@@ -1601,7 +1600,7 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getEntityPathIds(grandChildId);
 		}).getMessage();
-		assertEquals(message, "Loop detected in path: "+grandChildId);
+		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
 	}
 	
 	@Test
@@ -1709,6 +1708,37 @@ public class NodeDAOImplTest {
 		});
 	}
 	
+	@Test
+	public void testGetEntityPathInfiniteLoop() throws Exception {
+		Node parent = privateCreateNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		assertNotNull(parentId);
+		toDelete.add(parentId);
+		
+		//Now add an child
+		Node child = privateCreateNew("child");
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		assertNotNull(childId);
+		toDelete.add(parentId);
+		
+		//Now add an child
+		Node grandChild = privateCreateNew("grandChild");
+		grandChild.setParentId(childId);
+		String grandChildId = nodeDao.createNew(grandChild);
+		assertNotNull(grandChildId);
+		toDelete.add(grandChildId);
+		// setup an infinite loop
+		parent.setParentId(grandChildId);
+		nodeDao.updateNode(parent);
+		
+		String message = assertThrows(IllegalStateException.class, ()->{
+			// call under test
+			nodeDao.getEntityPath(grandChildId);
+		}).getMessage();
+		assertEquals("Path depth limit of: 100 exceeded for: "+grandChildId, message);
+	}
+	
 	
 	@Test 
 	public void testGetShallowEntityPath() throws Exception {
@@ -1741,49 +1771,7 @@ public class NodeDAOImplTest {
 			assertEquals(header.getType(), nameIdType.getType());
 		}
 	}
-	
-	@Test
-	public void testGetNameIdTypeEmpty() {
-		// call under test
-		List<NameIdType> results = nodeDao.getNameIdType(new LinkedList<Long>());
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
-	}
-	
-	@Test
-	public void testGetNamedIdType() {
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project);
-		String parentId = nodeDao.createNew(node);
-		toDelete.add(parentId);
-		assertNotNull(parentId);
-		long parentIdLong = KeyFactory.stringToKey(parentId);
-		// Add a child		
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentId);
-		String childId = nodeDao.createNew(node);
-		toDelete.add(childId);
-		assertNotNull(childId);
-		long childIdLong = KeyFactory.stringToKey(childId);
 
-		// call under test
-		List<NameIdType> results = nodeDao.getNameIdType(Lists.newArrayList(childIdLong, parentIdLong));
-		assertNotNull(results);
-		// oder should match the order of request
-		List<NameIdType> expected = Lists.newArrayList(
-				new NameIdType().withId(childId).withType(Folder.class.getName()).withName("child"),
-				new NameIdType().withId(parentId).withType(Project.class.getName()).withName("parent")
-				);
-		assertEquals(expected, results);
-		
-		// call under test in reverse order
-		results = nodeDao.getNameIdType(Lists.newArrayList(parentIdLong, childIdLong));
-		assertNotNull(results);
-		// oder should match the order of request
-		Collections.reverse(expected);
-		assertEquals(expected, results);
-	}
 	
 	@Test
 	public void testGetChildrenList() throws NotFoundException, DatastoreException, InvalidModelException {

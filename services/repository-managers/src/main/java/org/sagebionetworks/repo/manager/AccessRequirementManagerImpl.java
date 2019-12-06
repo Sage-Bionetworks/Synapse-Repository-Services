@@ -144,7 +144,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<Long> subjectIds = nodeDao.getEntityPathIds(entityId, true);
+		List<Long> subjectIds = nodeDao.getEntityPathIds(entityId);
 		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
@@ -224,7 +224,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(offset >= 0L, "offset must be at least 0");
 		List<Long> subjectIds = new ArrayList<Long>();
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId(), true));
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId()));
 		} else {
 			subjectIds.add(KeyFactory.stringToKey(rod.getId()));
 		}
@@ -334,7 +334,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		RestrictionInformationResponse info = new RestrictionInformationResponse();
 		List<Long> subjectIds;
 		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
-			subjectIds = nodeDao.getEntityPathIds(request.getObjectId(), true);
+			subjectIds = nodeDao.getEntityPathIds(request.getObjectId());
 		} else if (RestrictableObjectType.TEAM == request.getRestrictableObjectType()){
 			subjectIds = Arrays.asList(KeyFactory.stringToKey(request.getObjectId()));
 		} else {

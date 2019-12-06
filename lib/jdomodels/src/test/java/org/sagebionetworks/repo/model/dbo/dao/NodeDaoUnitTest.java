@@ -201,22 +201,4 @@ public class NodeDaoUnitTest {
 	public void testUpdateAnnotations_nullAnnotations(){
 		nodeDao.updateAnnotations("syn123", null, "any columname works");
 	}
-	
-	@Test
-	public void testGetIdsFromCsv() {
-		String csv = "123,456,789";
-		// call under test
-		List<Long> results = NodeDAOImpl.getIdsFromCsv(csv);
-		List<Long> expected = Lists.newArrayList(123L,456L,789L);
-		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testGetIdsFromCsvEmpty() {
-		String csv = "";
-		// call under test
-		List<Long> results = NodeDAOImpl.getIdsFromCsv(csv);
-		List<Long> expected = Collections.EMPTY_LIST;
-		assertEquals(expected, results);
-	}
 }

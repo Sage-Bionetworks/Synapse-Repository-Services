@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -84,8 +83,7 @@ public class NodeObjectRecordWriterTest {
 				.thenReturn(mockUserInfo);
 		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
-		boolean includeSelf = true;
-		when(mockNodeDAO.getEntityPathIds(node.getId(), includeSelf)).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
+		when(mockNodeDAO.getEntityPathIds(node.getId())).thenReturn(Arrays.asList(KeyFactory.stringToKey(node.getId())));
 		stats = new AccessRequirementStats();
 		stats.setHasACT(true);
 		stats.setHasToU(false);

@@ -123,7 +123,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// by default the user is authorized to create, edit.  individual tests may override these settings
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-		when(nodeDao.getEntityPathIds(eq(TEST_ENTITY_ID), any(Boolean.class))).thenReturn(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)));
+		when(nodeDao.getEntityPathIds(eq(TEST_ENTITY_ID))).thenReturn(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -547,8 +547,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		boolean includeSelf = true;
-		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -569,8 +568,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		boolean includeSelf = true;
-		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -591,8 +589,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		boolean includeSelf = true;
-		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -613,8 +610,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		boolean includeSelf = true;
-		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -636,8 +632,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		boolean includeSelf = true;
-		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID, includeSelf);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test (expected = IllegalStateException.class)
