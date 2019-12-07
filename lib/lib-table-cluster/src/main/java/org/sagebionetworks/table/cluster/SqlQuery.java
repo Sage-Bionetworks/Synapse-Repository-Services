@@ -98,7 +98,7 @@ public class SqlQuery {
 	 * The list of all columns referenced in the select column.
 	 */
 	List<SelectColumn> selectColumns;
-	
+
 	Long overrideOffset;
 	Long overrideLimit;
 	Long maxBytesPerPage;
@@ -342,5 +342,25 @@ public class SqlQuery {
 	 */
 	public EntityType getTableType(){
 		return this.tableType;
+	}
+
+	public boolean isIncludesRowIdAndVersion() {
+		return includesRowIdAndVersion;
+	}
+
+	public boolean isIncludeEntityEtag() {
+		return includeEntityEtag;
+	}
+
+	public Long getOverrideOffset() {
+		return overrideOffset;
+	}
+
+	public Long getOverrideLimit() {
+		return overrideLimit;
+	}
+
+	public Long getMaxBytesPerPage() {
+		return maxBytesPerPage;
 	}
 }

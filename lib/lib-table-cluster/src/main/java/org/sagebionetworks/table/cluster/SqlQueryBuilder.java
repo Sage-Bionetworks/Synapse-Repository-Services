@@ -51,25 +51,6 @@ public class SqlQueryBuilder {
 		this.overrideLimit = overideLimit;
 		this.maxBytesPerPage = maxBytesPerPage;
 	}
-	
-	/**
-	 * This constructor will be removed after facets are refactored.
-	 * @param modifiedQuery
-	 * @param sqlQuery
-	 */
-	@Deprecated
-	public SqlQueryBuilder(QuerySpecification modifiedQuery, SqlQuery sqlQuery) {
-		this.model = modifiedQuery;
-		this.tableSchema = sqlQuery.tableSchema;
-		this.maxBytesPerPage = sqlQuery.maxBytesPerPage;
-		this.isConsistent = sqlQuery.isConsistent;
-		this.includeEntityEtag = sqlQuery.includeEntityEtag;
-		this.includeRowIdAndRowVersion = sqlQuery.includesRowIdAndVersion;
-		this.tableType = sqlQuery.tableType;
-		this.selectedFacets = sqlQuery.getSelectedFacets();
-		this.overrideLimit = sqlQuery.overrideLimit;
-		this.overrideOffset = sqlQuery.overrideOffset;
-	}
 
 	public SqlQueryBuilder tableSchema(List<ColumnModel> tableSchema) {
 		this.tableSchema = tableSchema;

@@ -25,6 +25,10 @@ public class FromClause extends SQLElement {
 		tableReference.toSql(builder, parameters);
 	}
 
+	public void setTableReference(TableReference tableReference) {
+		this.tableReference = tableReference;
+	}
+
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
 		checkElement(elements, type, tableReference);

@@ -47,9 +47,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.sql.DataSource;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
@@ -87,9 +88,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -1027,22 +1025,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// The first row is the header
 		String[] headers = input.next();
 		String sql = SQLUtils.createInsertViewFromSnapshot(idAndVersion, headers);
-		
+
 		// push the data in batches
 		List<Object[]> batch = new LinkedList<>();
 		int batchSize = 0;
-		while(input.hasNext()) {
+		while (input.hasNext()) {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
-			if(batchSize + rowSize > maxBytesPerBatch) {
+			if (batchSize + rowSize > maxBytesPerBatch) {
 				template.batchUpdate(sql, batch);
 				batch.clear();
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
-		
-		if(!batch.isEmpty()) {
+
+		if (!batch.isEmpty()) {
 			template.batchUpdate(sql, batch);
 		}
 	}

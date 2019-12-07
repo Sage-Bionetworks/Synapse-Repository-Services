@@ -16,7 +16,6 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class FacetRequestColumnModel {
-	
 	private String columnName;
 	private FacetType facetType;
 	private FacetColumnRequest facetColumnRequest;

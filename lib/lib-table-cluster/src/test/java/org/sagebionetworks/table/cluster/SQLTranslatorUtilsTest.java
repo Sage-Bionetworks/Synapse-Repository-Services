@@ -38,6 +38,7 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -586,17 +587,17 @@ public class SQLTranslatorUtilsTest {
 	}	
 	
 	@Test
-	public void testTranslateTableReference() throws ParseException{
-		TableReference element = new TableQueryParser("syn123").tableReference();
+	public void testTranslateFromClause() throws ParseException{
+		FromClause element = new TableQueryParser("FROM syn123").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123",element.getTableName());
+		assertEquals("T123",element.getTableReference().getTableName());
 	}
 	
 	@Test
 	public void testTranslateTableReferenceVerion() throws ParseException{
-		TableReference element = new TableQueryParser("syn123.456").tableReference();
+		FromClause element = new TableQueryParser("FROM syn123.456").fromClause();
 		SQLTranslatorUtils.translate(element);
-		assertEquals("T123_456",element.getTableName());
+		assertEquals("T123_456",element.getTableReference().getTableName());
 	}
 	
 	@Test
@@ -765,7 +766,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
@@ -781,7 +782,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, columnMap, tableIdAndVersion);
 
-		assertEquals("ROW_ID IN ( SELECT ROW_ID FROM T123_456_INDEX_C111_ WHERE _C111_ NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
+		assertEquals("ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_456_INDEX_C111_ WHERE _C111__UNNEST NOT IN ( :b0, :b1, :b2 ) )", booleanPrimary.toSql());
 
 	}
 
@@ -795,6 +796,78 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.replaceArrayHasPredicate(notArrayHasPredicate, columnMap, tableIdAndVersion);
 		//if not an ArrayHasPredicate, nothing should have changed
 		assertEquals(beforeCallSqll, notArrayHasPredicate.toSql());
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_columnNotFound() throws ParseException {
+		//_C987654_ does not exist
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(_C987654_) FROM T123 ORDER BY UNNEST(_C987654_)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("Unknown column reference: _C987654_", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_columnNotInSchema() throws ParseException {
+		//can not perform UNNEST on one of the metadata columns
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(ROW_ID) FROM T123 ORDER BY UNNEST(ROW_ID)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("UNNEST() may only be used on columns defined in the schema", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_columnNotListType() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING);
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		//_C111_ is a STRING type instead of STRING_LIST
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT UNNEST(_C111_) FROM T123 ORDER BY UNNEST(_C111_)"
+		);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			//method under test
+			SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+		}).getMessage();
+
+		assertEquals("UNNEST() only works for columns that hold list values", errorMessage);
+	}
+
+	@Test
+	public void tesTranslateArrayFunction_multipleColumns() throws ParseException {
+		columnFoo.setColumnType(ColumnType.STRING_LIST);
+		columnBar.setColumnType(ColumnType.STRING_LIST);
+
+		//need to recreate the translation reference
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification querySpecification = TableQueryParser.parserQuery(
+				"SELECT _C222_, UNNEST(_C111_), UNNEST(_C333_) FROM T123 ORDER BY UNNEST(_C111_), UNNEST(_C333_)"
+		);
+
+		//method under test
+		SQLTranslatorUtils.translateArrayFunctions(querySpecification, columnMap, tableIdAndVersion);
+
+		String expected = "SELECT _C222_, _C111__UNNEST, _C333__UNNEST " +
+				"FROM T123 " +
+				"JOIN T123_456_INDEX_C111_ ON T123.ROW_ID = T123_456_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"JOIN T123_456_INDEX_C333_ ON T123.ROW_ID = T123_456_INDEX_C333_.ROW_ID_REF_C333_ " +
+				"ORDER BY _C111__UNNEST, _C333__UNNEST";
+		assertEquals(expected, querySpecification.toSql());
 	}
 
 
@@ -1628,12 +1701,46 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser( "select * from syn123 where aDouble has (1,2,3) and ( foo has ('yah') or bar = 'yeet')").querySpecification();
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C777_ WHERE _C777_ IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID FROM T123_INDEX_C111_ WHERE _C111_ IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
+		assertEquals( "SELECT * FROM T123 WHERE ROW_ID IN ( SELECT ROW_ID_REF_C777_ FROM T123_INDEX_C777_ WHERE _C777__UNNEST IN ( :b0, :b1, :b2 ) ) AND ( ROW_ID IN ( SELECT ROW_ID_REF_C111_ FROM T123_INDEX_C111_ WHERE _C111__UNNEST IN ( :b3 ) ) OR _C333_ = :b4 )",element.toSql());
 		assertEquals("1", parameters.get("b0"));
 		assertEquals("2", parameters.get("b1"));
 		assertEquals("3", parameters.get("b2"));
 		assertEquals("yah", parameters.get("b3"));
 		assertEquals("yeet", parameters.get("b4"));
+	}
+
+	@Test
+	public void testTranslateModel_UnnestArrayColumn() throws ParseException{
+		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser("select unnest(foo) , count(*) from syn123 where bar in ('asdf', 'qwerty') group by Unnest(foo)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		String expectedSql = "SELECT _C111__UNNEST, COUNT(*) " +
+				"FROM T123 " +
+				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID_REF_C111_ " +
+				"WHERE _C333_ IN ( :b0, :b1 ) " +
+				"GROUP BY _C111__UNNEST";
+		assertEquals(expectedSql,element.toSql());
+		assertEquals("asdf", parameters.get("b0"));
+		assertEquals("qwerty", parameters.get("b1"));
+	}
+
+	@Test
+	public void testTranslateModel_UnnestArrayColumn_multipleJoins() throws ParseException{
+		columnFoo.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnBar.setColumnType(ColumnType.STRING_LIST);//not a list type
+		columnMap = new ColumnTranslationReferenceLookup(schema);
+
+		QuerySpecification element = new TableQueryParser("select unnest(foo) , unnest(bar) from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		String expectedSql = "SELECT T123_INDEX_C111_._C111_, T123_INDEX_C333_._C333_ " +
+				"FROM T123 " +
+				"JOIN T123_INDEX_C111_ ON T123.ROW_ID = T123_INDEX_C111_.ROW_ID " +
+				"JOIN T123_INDEX_C333_ ON T123.ROW_ID = T123_INDEX_C333_.ROW_ID";
+		assertTrue(parameters.isEmpty());
 	}
 	
 	@Test

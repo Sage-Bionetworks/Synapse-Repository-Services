@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -193,6 +194,33 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetColumnNameForId(){
 		assertEquals("_C456_", SQLUtils.getColumnNameForId("456"));
+	}
+
+
+	@Test
+	public void testGetUnnestedColumnNameForId_nullColumnId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getUnnestedColumnNameForId(null);
+		});
+	}
+
+	@Test
+	public void testGetUnnestedColumnNameForId(){
+		assertEquals("_C12345__UNNEST",
+			SQLUtils.getUnnestedColumnNameForId("12345"));
+	}
+
+	@Test
+	public void testGetRowIdRefColumnNameForId_nullColumnId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getRowIdRefColumnNameForId(null);
+		});
+	}
+
+	@Test
+	public void testGetRowIdRefColumnNameForId(){
+		assertEquals("ROW_ID_REF_C12345_",
+				SQLUtils.getRowIdRefColumnNameForId("12345"));
 	}
 
 	@Test
@@ -1019,11 +1047,11 @@ public class SQLUtilsTest {
 
 		List<String> expected = Collections.singletonList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C123_ (" +
-					"ROW_ID BIGINT(20) NOT NULL," +
+					"ROW_ID_REF_C123_ BIGINT(20) NOT NULL," +
 					" INDEX_NUM BIGINT(20) NOT NULL," +
-					" _C123_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
-					" PRIMARY KEY (ROW_ID, INDEX_NUM)," +
-					"INDEX _C123__IDX (_C123_ ASC) );");
+					" _C123__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+					" PRIMARY KEY (ROW_ID_REF_C123_, INDEX_NUM)," +
+					"INDEX _C123__UNNEST_IDX (_C123__UNNEST ASC) );");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 
 	}
@@ -1082,10 +1110,11 @@ public class SQLUtilsTest {
 
 		List<String> expected = Arrays.asList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID BIGINT(20) NOT NULL, " +
+						"ROW_ID_REF_C456_ BIGINT(20) NOT NULL, " +
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
-						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID, INDEX_NUM),INDEX _C456__IDX (_C456_ ASC) );",
+						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
+						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) );",
 				"DROP TABLE IF EXISTS T999_INDEX_C123_;");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 	}
@@ -1111,17 +1140,18 @@ public class SQLUtilsTest {
 
 		List<String> expected = Arrays.asList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID BIGINT(20) NOT NULL, " +
+						"ROW_ID_REF_C456_ BIGINT(20) NOT NULL, " +
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
-						"_C456_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
-						"INDEX _C456__IDX (_C456_ ASC) );",
+						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
+						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) );",
 				"DROP TABLE IF EXISTS T999_INDEX_C123_;",
-				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (ROW_ID BIGINT(20) NOT NULL, " +
+				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (" +
+						"ROW_ID_REF_C101112_ BIGINT(20) NOT NULL, " +
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
-						"_C101112_ VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
-						"INDEX _C101112__IDX (_C101112_ ASC) );",
+						"_C101112__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+						"PRIMARY KEY (ROW_ID_REF_C101112_, INDEX_NUM)," +
+						"INDEX _C101112__UNNEST_IDX (_C101112__UNNEST ASC) );",
 				"DROP TABLE IF EXISTS T999_INDEX_C161718_;");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
 	}
@@ -2673,11 +2703,11 @@ public class SQLUtilsTest {
 		columnInfo.setMaximumSize(42L);
 		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
-				"ROW_ID BIGINT(20) NOT NULL, " +
+				"ROW_ID_REF_C0_ BIGINT(20) NOT NULL, " +
 				"INDEX_NUM BIGINT(20) NOT NULL, " +
-				"_C0_ VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-				"PRIMARY KEY (ROW_ID, INDEX_NUM)," +
-				"INDEX _C0__IDX (_C0_ ASC) " +
+				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
+				"INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC) " +
 				");";
 		assertEquals(expected, sql);
 	}
@@ -2698,7 +2728,7 @@ public class SQLUtilsTest {
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
 		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo);
-		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID,INDEX_NUM,_C0_) " +
+		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
 				"_C0_," +

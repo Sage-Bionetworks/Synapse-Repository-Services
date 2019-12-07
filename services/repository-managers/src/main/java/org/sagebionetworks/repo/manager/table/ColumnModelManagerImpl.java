@@ -142,13 +142,17 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			//integers and strings can be any type of facet
 			case INTEGER:
 			case STRING:
-				break;
+					break;
 			//booleans, userIds, and entityIds can only be faceted by enumeration
 			case USERID:
 			case ENTITYID:
 			case BOOLEAN:
-				if(facetType != FacetType.enumeration)
-					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");
+			case BOOLEAN_LIST:
+			case STRING_LIST:
+			case DATE_LIST:
+			case INTEGER_LIST:
+					if(facetType != FacetType.enumeration)
+					throw new IllegalArgumentException(columnType + " columns can only be enumeration faceted");
 				break;
 			//doubles and dates can only be range faceted
 			case DOUBLE:

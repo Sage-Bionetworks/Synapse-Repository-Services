@@ -7,9 +7,11 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -23,15 +25,19 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ArrayFunctionSpecification;
+import org.sagebionetworks.table.query.model.ArrayFunctionType;
 import org.sagebionetworks.table.query.model.ArrayHasPredicate;
 import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
+import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DelimitedIdentifier;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.Element;
+import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
@@ -41,16 +47,21 @@ import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
+import org.sagebionetworks.table.query.model.JoinCondition;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QualifiedJoin;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableName;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -297,25 +308,22 @@ public class SQLTranslatorUtils {
 			// nothing else to do.
 			return;
 		}
-		// First change the table name
-		TableReference tableReference = tableExpression.getFromClause().getTableReference();
 
 		//save the original syn### id since we will need it for any HAS predicates
-		IdAndVersion originalSynId = IdAndVersion.parse(tableReference.getTableName());
-		translate(tableReference);
-		
+		IdAndVersion originalSynId = translate(tableExpression.getFromClause());
+
 		// Translate where
 		WhereClause whereClause = tableExpression.getWhereClause();
-		if(whereClause != null){
+		if(whereClause != null) {
 			// Translate all predicates
 			Iterable<HasPredicate> hasPredicates = whereClause.createIterable(HasPredicate.class);
-			for(HasPredicate predicate: hasPredicates){
+			for (HasPredicate predicate : hasPredicates) {
 				translate(predicate, parameters, columnTranslationReferenceLookup);
 			}
 
 			//once all row names are translated and predicate values are replaced with bind variables
 			//transform Synapse-specific predicate into MySQL
-			for(BooleanPrimary booleanPrimary: whereClause.createIterable(BooleanPrimary.class)){
+			for (BooleanPrimary booleanPrimary : whereClause.createIterable(BooleanPrimary.class)) {
 				replaceBooleanFunction(booleanPrimary, columnTranslationReferenceLookup);
 				replaceArrayHasPredicate(booleanPrimary, columnTranslationReferenceLookup, originalSynId);
 			}
@@ -338,14 +346,85 @@ public class SQLTranslatorUtils {
 		if(pagination != null){
 			translate(pagination, parameters);
 		}
-		
+
+		//handle array functions which requires appending a join on another table
+		try {
+			translateArrayFunctions(transformedModel, columnTranslationReferenceLookup, originalSynId);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+
 		/*
 		 *  By this point anything all remaining DelimitedIdentifier should be treated as a column
 		 *  reference and therefore should be enclosed in backticks.
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
-	
+
+	/**
+	 * Translates FROM clause and returns the original Synapse IdAndVersion that was translated
+	 * @param fromClause
+	 * @return
+	 */
+	static IdAndVersion translate(FromClause fromClause) {
+		IdAndVersion originalSynId = IdAndVersion.parse(fromClause.getTableReference().getTableName());
+		//replace from clause
+		fromClause.setTableReference(tableReferenceForName(SQLUtils.getTableNameForId(originalSynId, TableType.INDEX)));
+		return originalSynId;
+	}
+
+	static void translateArrayFunctions(QuerySpecification transformedModel, ColumnTranslationReferenceLookup lookup, IdAndVersion idAndVersion) throws ParseException {
+		// UNNEST(columnName) for the same columnName
+		// may appear in multiple places (select clause ,group by, order by, etc.)
+		// but should only join the unnested index table for that column once
+		Set<String> columnIdsToJoin = new HashSet<>();
+
+		// iterate over all ValueExpressionPrimary since its may hold a ArrayFunctionSpecification.
+		// Its held element then may need to be replaced with a different child element.
+		for(ValueExpressionPrimary valueExpressionPrimary : transformedModel.createIterable(ValueExpressionPrimary.class)){
+			//ignore valueExpressionPrimary that don't use an ArrayFunctionSpecification
+			if(!(valueExpressionPrimary.getChild() instanceof ArrayFunctionSpecification)){
+				continue;
+			}
+			ArrayFunctionSpecification arrayFunctionSpecification = (ArrayFunctionSpecification) valueExpressionPrimary.getChild();
+
+			//handle UNNEST() functions
+			if(arrayFunctionSpecification.getListFunctionType() == ArrayFunctionType.UNNEST){
+				ColumnReference referencedColumn = arrayFunctionSpecification.getColumnReference();
+
+				SchemaColumnTranslationReference columnTranslationReference = lookupAndRequireListColumn(lookup, referencedColumn.toSqlWithoutQuotes(), "UNNEST()");
+
+				//add column id to be joined
+				columnIdsToJoin.add(columnTranslationReference.getId());
+
+				//replace "UNNEST(_C123_)" with column "_C123__UNNEST"
+				ColumnReference replacementColumn = SqlElementUntils.createColumnReference(
+						SQLUtils.getUnnestedColumnNameForId(columnTranslationReference.getId())
+				);
+				valueExpressionPrimary.replaceChildren(replacementColumn);
+			}
+		}
+
+		appendJoinsToFromClause(idAndVersion, transformedModel.getTableExpression().getFromClause(), columnIdsToJoin);
+	}
+
+	private static void appendJoinsToFromClause(IdAndVersion idAndVersion, FromClause fromClause, Set<String> columnIdsToJoin) throws ParseException {
+		TableReference currentTableReference = fromClause.getTableReference();
+		String mainTableName = currentTableReference.toSql();
+
+		//chain additional tables to join via right-recursion
+		for(String columnId : columnIdsToJoin){
+			String joinTableName = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId);
+
+			TableReference joinedTableRef = tableReferenceForName(joinTableName);
+			JoinCondition joinOnRowId = new JoinCondition(new TableQueryParser(
+				mainTableName + "." + ROW_ID + "=" + joinTableName + "." + SQLUtils.getRowIdRefColumnNameForId(columnId)
+			).searchCondition());
+			currentTableReference = new TableReference(new QualifiedJoin(currentTableReference, joinedTableRef, joinOnRowId));
+		}
+		fromClause.setTableReference(currentTableReference);
+	}
+
 	/**
 	 * Any DelimitedIdentifier remaining in the query after translation should be
 	 * treated as a column reference, which for MySQL, means the value must be
@@ -547,31 +626,22 @@ public class SQLTranslatorUtils {
 			return; // no ArrayHasPredicate to replace
 		}
 
-
 		String columnName = arrayHasPredicate.getLeftHandSide().toSqlWithoutQuotes();
 
-		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
-				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnName));
-		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
-			throw new IllegalArgumentException("HAS can only be used on columns defined in the schema");
-		}
-		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
-
-		if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
-			throw new IllegalArgumentException("The HAS keyword only works for columns that have list values");
-		}
+		SchemaColumnTranslationReference schemaColumnTranslationReference = lookupAndRequireListColumn(columnTranslationReferenceLookup, columnName, "The HAS keyword");
 
 		//build up subquery against the flattened index table
 		String columnFlattenedIndexTable = SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, schemaColumnTranslationReference.getId());
 		try {
-			QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + ROW_ID +
+			QuerySpecification subquery = TableQueryParser.parserQuery("SELECT " + SQLUtils.getRowIdRefColumnNameForId(schemaColumnTranslationReference.getId()) +
 					" FROM " + columnFlattenedIndexTable +
 					" WHERE "
 					//use a placeholder predicate because the colons in bind variables (e.g. ":b1") are not accepted by the parser
 					+ " placeholder IN ( placeholder )");
 
-			//create a "IN" predicate that has the same left and right hand side as the "HAS" predicate for the subquery
-			InPredicate subqueryInPredicate = new InPredicate(arrayHasPredicate.getLeftHandSide(), arrayHasPredicate.getNot(), arrayHasPredicate.getInPredicateValue());
+			//create a "IN" predicate that has the same right hand side as the "HAS" predicate for the subquery
+			ColumnReference unnestedColumn = SqlElementUntils.createColumnReference(SQLUtils.getUnnestedColumnNameForId(schemaColumnTranslationReference.getId()));
+			InPredicate subqueryInPredicate = new InPredicate(unnestedColumn, arrayHasPredicate.getNot(), arrayHasPredicate.getInPredicateValue());
 			subquery.getFirstElementOfType(Predicate.class).replaceChildren(subqueryInPredicate);
 
 			//replace the "HAS" with "IN" predicate containing the subquery
@@ -638,17 +708,33 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
-	 * Translate the table name.
-	 * 
-	 * Translate user generated queries to queries that can
-	 * run against the actual database.
-	 * 
-	 * @param tableReference
+	 * Wraps string table name inside a TableReference
+	 * @param tableName
+	 * @return
 	 */
-	public static void translate(TableReference tableReference) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableReference.getTableName());
-		String translatedName = SQLUtils.getTableNameForId(idAndVersion, TableType.INDEX);
-		tableReference.replaceTableName(translatedName);
+	private static TableReference tableReferenceForName(String tableName){
+		return new TableReference(new TableName(new RegularIdentifier(tableName)));
 	}
-	
+
+	/**
+	 *
+	 * @param columnTranslationReferenceLookup lookup table for ColumnTranslationReferences
+	 * @param columnName column name for which to
+	 * @param errorMessageFunctionName name of the function that requires a list column type
+	 * @throws IllegalArgumentException if the column is not defined in the schema or does not have a _LIST ColumnType
+	 * @return SchemaColumnTranslationReference associated with the columnName
+	 */
+	private static SchemaColumnTranslationReference lookupAndRequireListColumn(ColumnTranslationReferenceLookup columnTranslationReferenceLookup, String columnName, String errorMessageFunctionName){
+		ColumnTranslationReference columnTranslationReference = columnTranslationReferenceLookup.forTranslatedColumnName(columnName)
+				.orElseThrow(() ->  new IllegalArgumentException("Unknown column reference: " + columnName));
+		if( !(columnTranslationReference instanceof SchemaColumnTranslationReference) ){
+			throw new IllegalArgumentException(errorMessageFunctionName + " may only be used on columns defined in the schema");
+		}
+		SchemaColumnTranslationReference schemaColumnTranslationReference = (SchemaColumnTranslationReference) columnTranslationReference;
+
+		if( !ColumnTypeListMappings.isList(columnTranslationReference.getColumnType()) ){
+			throw new IllegalArgumentException(errorMessageFunctionName + " only works for columns that hold list values");
+		}
+		return schemaColumnTranslationReference;
+	}
 }

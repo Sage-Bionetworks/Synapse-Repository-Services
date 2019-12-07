@@ -25,6 +25,10 @@ public abstract class SimpleBranch extends SQLElement implements HasReplaceableC
 		this.child = child;
 	}
 
+	public SQLElement getChild() {
+		return child;
+	}
+
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		child.toSql(builder, parameters);
