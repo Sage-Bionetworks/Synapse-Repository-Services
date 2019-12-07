@@ -489,6 +489,8 @@ public class TableViewManagerImpl implements TableViewManager {
 		viewSnapshotDao.createSnapshot(new ViewSnapshot().withBucket(bucketAndKey.getBucket())
 				.withKey(bucketAndKey.getKey()).withCreatedBy(userInfo.getId()).withCreatedOn(new Date())
 				.withVersion(snapshotVersion).withViewId(idAndVersion.getId()));
+		// trigger an update (see: PLFM-5957)
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
 		return snapshotVersion;
 	}
 

@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
@@ -20,6 +21,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -86,7 +88,120 @@ public class ITOpenIDConnectTest {
 			// already gone
 		}
 	}
+	
+	@Test
+	public void testClientNotVerified() throws Exception {
+		OAuthClient client = new OAuthClient();
+		client.setClient_name("some client");
+		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
+		client = synapseOne.createOAuthClient(client);
+		clientToDelete = client.getClient_id();
+		
+		assertFalse(client.getVerified());
+		
+		OAuthClientIdAndSecret secret = synapseOne.createOAuthClientSecret(client.getClient_id());
+		assertEquals(client.getClient_id(), secret.getClient_id());
+		assertNotNull(secret.getClient_secret());
+		
+		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
+		authorizationRequest.setClientId(client.getClient_id());
+		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
+		authorizationRequest.setResponseType(OAuthResponseType.code);
+		authorizationRequest.setScope("openid");
+		authorizationRequest.setClaims(
+				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
+				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
+		);
 
+		// ---- Auth Description Test ----
+		
+		// The client is not verified, we cannot get the description
+		SynapseForbiddenException ex = assertThrows(SynapseForbiddenException.class, () -> {
+				synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
+		});
+		
+		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+		
+		// Verify the client
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		
+		// This goes through
+		synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
+		
+		// ---- Authorization Code Test ----
+		
+		// Remove the client verification
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		
+		// The client is not verified, we cannot authorize the request
+		ex = assertThrows(SynapseForbiddenException.class, () -> {
+			synapseOne.authorizeClient(authorizationRequest);
+		});
+		
+		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+
+		// Verify the client
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		
+		// We should now be able to authorize the request
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		
+		// Un-verify the client
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		
+		String accessCode = oauthAuthorizationResponse.getAccess_code();
+		String redirectUri = client.getRedirect_uris().get(0);
+		// Note, we use Basic auth to authorize the client when asking for an access token
+		OIDCTokenResponse tokenResponse = null;
+		
+		
+		// ---- Token Exchange TEST ----
+		
+		try {
+			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret.getClient_secret());
+			
+			ex = assertThrows(SynapseForbiddenException.class, () -> {
+				synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code, 
+						accessCode, redirectUri, null, null, null);
+			});
+			
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+			
+			// Verify the client once again
+			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+			
+			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code, 
+					accessCode, redirectUri, null, null, null);
+			
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+		
+		// ---- User Info TEST ----
+		
+		// Un-verify the client
+		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		
+		// Note, we use a bearer token to authorize the client 
+		try {
+			synapseAnonymous.setBearerAuthorizationToken(tokenResponse.getAccess_token());
+			
+			ex = assertThrows(SynapseForbiddenException.class, () -> {
+				synapseAnonymous.getUserInfoAsJSON();
+			});
+			
+			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
+			
+			// Verify the client once again
+			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+			
+			// Now we should be able to get the user info
+			synapseAnonymous.getUserInfoAsJSON();
+			
+		} finally {
+			synapseAnonymous.removeAuthorizationHeader();
+		}
+	}
 	
 	@Test
 	public void testRoundTrip() throws Exception {
@@ -103,6 +218,15 @@ public class ITOpenIDConnectTest {
 		clientToDelete = client.getClient_id();
 		
 		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertFalse(client.getVerified());
+		
+		// Sets the verified status of the client (only admins and ACT can do this)
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		assertTrue(client.getVerified());
+		
+		// Re-read the client as the user
+		assertEquals(client, synapseOne.getOAuthClient(client.getClient_id()));
+		assertTrue(client.getVerified());
 		
 		OAuthClientList clientList = synapseOne.listOAuthClients(null);
 		assertEquals(client, clientList.getResults().get(0));

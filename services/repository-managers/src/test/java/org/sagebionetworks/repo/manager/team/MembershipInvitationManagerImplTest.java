@@ -379,6 +379,7 @@ public class MembershipInvitationManagerImplTest {
 		assertNotNull(mimeMessage.getSubject());
 		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
 		assertTrue(body.contains(teamName));
+		
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
 	}

@@ -14,10 +14,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -25,18 +29,20 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
+import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
@@ -70,12 +76,18 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Mock
 	private SimpleHttpResponse mockHttpResponse;
+	
+	@Mock
+	private AuthorizationManager mockAuthManager;
 
 	@Captor
 	private ArgumentCaptor<SimpleHttpRequest> simpleHttpRequestCaptor;
 	
 	@Captor
 	private ArgumentCaptor<SectorIdentifier> sectorIdentifierCaptor;
+	
+	@Captor
+	private ArgumentCaptor<OAuthClient> oauthClientCaptor;
 	
 	@InjectMocks
 	private OAuthClientManagerImpl oauthClientManagerImpl;
@@ -753,5 +765,110 @@ public class OAuthClientManagerImplUnitTest {
 		
 		verify(mockOauthClientDao).getSecretSalt(OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).checkOAuthClientSecretHash(OAUTH_CLIENT_ID, wrongSecretHash);
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusWithEmptyUser() {
+		UserInfo userInfo = null;
+		boolean verifiedStatus = true;
+		String clientId = OAUTH_CLIENT_ID;
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+		});
+		
+		assertEquals("User info is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusWithWrongClientId() {
+		boolean verifiedStatus = true;
+		
+		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "", verifiedStatus);
+		});
+		
+		assertEquals("Client ID is required and must not be the empty string.", ex.getMessage());
+		
+		ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "    ", verifiedStatus);
+		});
+		
+		assertEquals("Client ID is required and must not be a blank string.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusWithWrongCredentials() {
+		boolean verifiedStatus = true;
+		String clientId = OAUTH_CLIENT_ID;
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+		});
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verifyZeroInteractions(mockOauthClientDao);
+		
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusNoChange() {
+		OAuthClient mockClient = newCreatedOAuthClient();
+		
+		String clientId = OAUTH_CLIENT_ID;
+		boolean verifiedStatus = true;
+		
+		mockClient.setVerified(verifiedStatus);
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(mockClient);
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		
+		// Method under test
+		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
+		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
+		
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatus() {
+		OAuthClient originalClient = newCreatedOAuthClient();
+		
+		String clientId = OAUTH_CLIENT_ID;
+		
+		Date originalModifiedOn = Date.from(Instant.now().minusSeconds(60));
+		String originalEtag = "Some Etag";
+		boolean originalVerifiedStatus = false;
+		
+		originalClient.setModifiedOn(originalModifiedOn);
+		originalClient.setEtag(originalEtag);
+		originalClient.setVerified(originalVerifiedStatus);
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(originalClient);
+		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		
+		// Method under test
+		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, !originalVerifiedStatus);
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
+		verify(mockOauthClientDao).updateOAuthClient(oauthClientCaptor.capture());
+		
+		OAuthClient updated = oauthClientCaptor.getValue();
+		
+		assertNotEquals(originalModifiedOn, updated.getModifiedOn());
+		assertNotEquals(originalEtag, updated.getEtag());
+		assertNotEquals(originalVerifiedStatus, updated.getVerified());
+		
 	}
 }

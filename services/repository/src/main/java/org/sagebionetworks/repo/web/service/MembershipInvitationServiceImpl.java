@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -64,8 +65,12 @@ public class MembershipInvitationServiceImpl implements
 			if (message != null) {
 				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
 			}
-		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null){
-			// Invitation to new user
+		} else if (created.getInviteeId()==null && created.getInviteeEmail()!=null) {
+			
+			if (!AuthorizationUtils.isCertifiedUser(userInfo)) {
+				throw new IllegalArgumentException("You must be a certified user to send email invitations");
+			}
+			
 			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
 		} else {
 			throw new IllegalArgumentException("Exactly one of invitee email or invitee user Id should be included. Received email: "+

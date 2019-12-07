@@ -1028,6 +1028,8 @@ public class TableViewManagerImplTest {
 				.setVersion(snapshotVersion).build();
 		verify(mockColumnModelManager).bindCurrentColumnsToVersion(expectedIdAndVersion);
 		verify(mockViewSnapshotDao).createSnapshot(snapshotCaptor.capture());
+		// fix for PLFM-5957
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(expectedIdAndVersion);
 		ViewSnapshot snapshot = snapshotCaptor.getValue();
 		assertNotNull(snapshot);
 		assertEquals(bucket, snapshot.getBucket());

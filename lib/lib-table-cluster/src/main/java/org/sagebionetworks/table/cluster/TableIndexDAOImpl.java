@@ -116,19 +116,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
 
-	private final DataSourceTransactionManager transactionManager;
-	private final TransactionTemplate writeTransactionTemplate;
-	private final TransactionTemplate readTransactionTemplate;
-	private final JdbcTemplate template;
+	private DataSourceTransactionManager transactionManager;
+	private TransactionTemplate writeTransactionTemplate;
+	private TransactionTemplate readTransactionTemplate;
+	private JdbcTemplate template;
 
-	/**
-	 * The IoC constructor.
-	 * 
-	 * @param template
-	 * @param transactionManager
-	 */
-	public TableIndexDAOImpl(DataSource dataSource) {
-		super();
+	@Override
+	public void setDataSource(DataSource dataSource) {
+		if(template != null) {
+			throw new IllegalStateException("DataSource can only be set once");
+		}
 		this.transactionManager = new DataSourceTransactionManager(dataSource);
 		// This will manage transactions for calls that need it.
 		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);

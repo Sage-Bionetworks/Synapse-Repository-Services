@@ -13,6 +13,10 @@
 		{
 			"name": "INVALID_TABLE_QUERY_FACET_COLUMN_REQUEST",
 			"description": "At least one of the columns listed in a FacetColumnRequest is not facet-able according to the table's schema."
+		},
+		{
+			"name": "OAUTH_CLIENT_NOT_VERIFIED",
+			"description": "The OAuth Client is not verified."
 		}
 	]
 }

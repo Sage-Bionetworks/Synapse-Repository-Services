@@ -101,7 +101,9 @@ public class ExceptionHandlers {
 		new TestEntry(405,
 				new ExceptionType("org.springframework.web.HttpRequestMethodNotSupportedException", false)),
 		new TestEntry(409,
-				new ExceptionType("org.sagebionetworks.repo.model.ses.QuarantinedEmailException", true))
+				new ExceptionType("org.sagebionetworks.repo.model.ses.QuarantinedEmailException", true)),
+		new TestEntry(403,
+				new ExceptionType("org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException", true))
 
 	};
 }

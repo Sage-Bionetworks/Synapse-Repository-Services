@@ -649,7 +649,7 @@ public class IT500SynapseJavaClientTeamTest {
 		} catch (SynapseException e) {
 			// as expected
 		}
-
+		
 		// create an invitation with null inviteeId and non null inviteeEmail
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
