@@ -934,14 +934,10 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetEntityPath(){
-		EntityHeader one = new EntityHeader();
-		one.setId("syn123");
-		EntityHeader two = new EntityHeader();
-		two.setId("syn456");
-		when(mockNodeDao.getEntityPath(tableId)).thenReturn(Lists.newArrayList(one, two));
-		Set<Long> expected = Sets.newHashSet(123L, 456L);
+		List<Long> expected = Lists.newArrayList(123L, 456L);
+		when(mockNodeDao.getEntityPathIds(tableId)).thenReturn(expected);
 		// call under test
-		Set<Long> results = manager.getEntityPath(idAndVersion);
+		List<Long> results = manager.getEntityPath(idAndVersion);
 		assertEquals(expected, results);
 	}
 

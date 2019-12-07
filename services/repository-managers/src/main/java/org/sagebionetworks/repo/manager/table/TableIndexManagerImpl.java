@@ -523,5 +523,10 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
 	}
+	@Override
+	public void markEntityScopeOutOfDate(String entityId) {
+
+		
+	}
 
 }

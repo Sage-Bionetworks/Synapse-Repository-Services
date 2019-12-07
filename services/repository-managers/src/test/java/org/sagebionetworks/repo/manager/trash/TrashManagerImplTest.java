@@ -279,9 +279,9 @@ public class TrashManagerImplTest {
 		.thenReturn(AuthorizationStatus.authorized());
 		EntityHeader mockChild1EntityHeader = mock(EntityHeader.class);
 		EntityHeader mockChild2EntityHeader = mock(EntityHeader.class);
-		when(mockNodeDAO.getEntityHeader(child1ID, null)).thenReturn(mockChild1EntityHeader);
+		when(mockNodeDAO.getEntityHeader(child1ID)).thenReturn(mockChild1EntityHeader);
 		when(mockChild1EntityHeader.getName()).thenReturn(child1Name);
-		when(mockNodeDAO.getEntityHeader(child2ID, null)).thenReturn(mockChild2EntityHeader);
+		when(mockNodeDAO.getEntityHeader(child2ID)).thenReturn(mockChild2EntityHeader);
 		when(mockChild2EntityHeader.getName()).thenReturn(child2Name);
 		
 		trashManager.moveToTrash(userInfo, nodeID);

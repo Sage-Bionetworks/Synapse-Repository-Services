@@ -210,16 +210,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@Deprecated
 	@Override
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<Long> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		if (subjectIds.isEmpty()){
 			return new ArrayList<AccessRequirement>();
 		}
-		List<Long> subjectIdsAsLong = new ArrayList<Long>();
-		for (String id: subjectIds) {
-			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		List<Long> ids = namedJdbcTemplate.queryForList(GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL, param, Long.class);
 		return getAccessRequirements(ids);
@@ -227,7 +223,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Deprecated
 	@Override
-	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
+	public List<Long> getAllUnmetAccessRequirements(List<Long> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
@@ -235,9 +231,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		for (ACCESS_TYPE type : accessTypes) {
 			accessTypeStrings.add(type.toString());
 		}
-		List<Long> subjectIdsAsLong = KeyFactory.stringToKey(subjectIds);
 		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
 		List<Long> arIds = namedJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, param, new RowMapper<Long>(){
 			@Override
@@ -391,15 +386,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@Override
 	public List<AccessRequirement> getAccessRequirementsForSubject(
-			List<String> subjectIds, RestrictableObjectType type,
+			List<Long> subjectIds, RestrictableObjectType type,
 			long limit, long offset) throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		if (subjectIds.isEmpty()) {
 			return dtos;
 		}
-		List<Long> subjectIdsAsLong = KeyFactory.stringToKey(subjectIds);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		param.addValue(LIMIT_PARAM, limit);
 		param.addValue(OFFSET_PARAM, offset);
@@ -417,7 +411,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public AccessRequirementStats getAccessRequirementStats(List<String> subjectIds, RestrictableObjectType type) {
+	public AccessRequirementStats getAccessRequirementStats(List<Long> subjectIds, RestrictableObjectType type) {
 		ValidateArgument.requirement(subjectIds != null && !subjectIds.isEmpty(), "subjectIds must contain at least one ID.");
 		ValidateArgument.required(type, "type");
 		final AccessRequirementStats stats = new AccessRequirementStats();
@@ -427,7 +421,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		final Set<String> requirementIdSet = new HashSet<String>();
 		stats.setRequirementIdSet(requirementIdSet);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIds));
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIds);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		namedJdbcTemplate.query(SELECT_ACCESS_REQUIREMENT_STATS, param, new RowMapper<Void>(){
 
@@ -451,18 +445,16 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public List<String> getAccessRequirementDiff(List<String> sourceSubjects, List<String> destSubjects, RestrictableObjectType type) {
+	public List<String> getAccessRequirementDiff(List<Long> sourceSubjects, List<Long> destSubjects, RestrictableObjectType type) {
 		ValidateArgument.required(type, "type");
 		ValidateArgument.required(sourceSubjects, "sourceSubjects");
 		ValidateArgument.required(destSubjects, "destSubjects");
 		ValidateArgument.requirement(!sourceSubjects.isEmpty(), "Need at least one source subject.");
 		ValidateArgument.requirement(!destSubjects.isEmpty(), "Need at least one destination subject.");
 
-		List<Long> sourceSubjectIdsAsLong = KeyFactory.stringToKey(sourceSubjects);
-		List<Long> destSubjectIdsAsLong = KeyFactory.stringToKey(destSubjects);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(SOURCE_SUBJECTS, sourceSubjectIdsAsLong);
-		param.addValue(DEST_SUBJECTS, destSubjectIdsAsLong);
+		param.addValue(SOURCE_SUBJECTS, sourceSubjects);
+		param.addValue(DEST_SUBJECTS, destSubjects);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		List<String> ids = namedJdbcTemplate.queryForList(SELECT_ACCESS_REQUIREMENT_DIFF, param, String.class);
 		return ids;

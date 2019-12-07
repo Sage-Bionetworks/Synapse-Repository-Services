@@ -51,7 +51,6 @@ public class ReplyMessageBuilderFactoryTest {
 	
 	DiscussionReplyBundle replyBundle;
 	DiscussionThreadBundle threadBundle;
-	EntityHeader projectHeader;
 	String message;
 	String key;
 	Long actorUserId;
@@ -77,9 +76,7 @@ public class ReplyMessageBuilderFactoryTest {
 		threadBundle.setTitle("title");
 		when(mockThreadDao.getThread(anyLong(), any(DiscussionFilter.class))).thenReturn(threadBundle);
 		
-		projectHeader = new EntityHeader();
-		projectHeader.setName("project name");
-		when(mockNodeDao.getEntityHeader(anyString(), isNull())).thenReturn(projectHeader);
+		when(mockNodeDao.getNodeName(anyString())).thenReturn("project name");
 
 		when(mockUploadDao.getMessage(key)).thenReturn(message);
 
@@ -94,7 +91,7 @@ public class ReplyMessageBuilderFactoryTest {
 		ChangeType type = ChangeType.CREATE;
 		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
 		assertNotNull(bulider);
-		verify(mockNodeDao).getEntityHeader("444", null);
+		verify(mockNodeDao).getNodeName("444");
 		verify(mockUploadDao).getMessage(key);
 	}
 }

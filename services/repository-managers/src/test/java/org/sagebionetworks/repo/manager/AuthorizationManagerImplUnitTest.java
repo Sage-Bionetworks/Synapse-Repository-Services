@@ -697,31 +697,24 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanMoveEntity() throws Exception {
 		// mock nodeDao
 		String parentId = "syn12345";
-		List<String> ancestorIds = new ArrayList<String>();
-		ancestorIds.add(parentId);
-		ancestorIds.add("syn999");
-		List<EntityHeader> parentAncestors = new ArrayList<EntityHeader>();
-		for (String id: ancestorIds) {
-			addEntityHeaderTo(id, parentAncestors);
-		}
-		when(mockNodeDao.getEntityPath(parentId)).thenReturn(parentAncestors);
+		List<Long> ancestorIds = new ArrayList<Long>();
+		ancestorIds.add(KeyFactory.stringToKey(parentId));
+		ancestorIds.add(999L);
+		when(mockNodeDao.getEntityPathIds(parentId)).thenReturn(ancestorIds);
 		
 		String newParentId = "syn6789";
-		List<String> newAncestorIds = new ArrayList<String>();
-		newAncestorIds.add(newParentId);
-		newAncestorIds.add("syn888");
-		List<EntityHeader> newParentAncestors = new ArrayList<EntityHeader>();
-		for (String id: newAncestorIds) {
-			addEntityHeaderTo(id, newParentAncestors);
-		}
-		when(mockNodeDao.getEntityPath(newParentId)).thenReturn(newParentAncestors);
+		List<Long> newAncestorIds = new ArrayList<Long>();
+		newAncestorIds.add(KeyFactory.stringToKey(newParentId));
+		newAncestorIds.add(888L);
+		when(mockNodeDao.getEntityPathIds(newParentId)).thenReturn(newAncestorIds);
 		
 		List<String> diff = Arrays.asList("1");
 		when(mockAccessRequirementDAO.getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(new LinkedList<String>());
+		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		
 		// since 'ars' list doesn't change, will return true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).isAuthorized());
-		verify(mockNodeDao).getEntityPath(parentId);
+		verify(mockNodeDao).getEntityPathIds(parentId);
 		verify(mockAccessRequirementDAO).getAccessRequirementDiff(ancestorIds, newAncestorIds, RestrictableObjectType.ENTITY);
 
 		// but making less restrictive is NOT OK

@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -125,11 +126,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT,
 				"Limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "Offset must be at least 0");
-		List<String> subjectIds = new ArrayList<String>();
+		List<Long> subjectIds = new ArrayList<Long>();
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId()));
 		} else {
-			subjectIds.add(rod.getId());
+			subjectIds.add(KeyFactory.stringToKey(rod.getId()));
 		}
 		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
 	}

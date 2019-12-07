@@ -329,10 +329,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	@Deprecated
 	@Override
-	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type, long limit, long offset) {
+	public List<AccessApproval> getAccessApprovalsForSubjects(List<Long> subjectIdList, RestrictableObjectType type, long limit, long offset) {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIdList));
+		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdList);
 		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		params.addValue(LIMIT_PARAM, limit);
 		params.addValue(OFFSET_PARAM, offset);

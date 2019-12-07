@@ -110,7 +110,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public Entity getEntity(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
+		EntityHeader header = entityManager.getEntityHeader(userInfo, id);
 		EntityType type = EntityTypeUtils.getEntityTypeForClassName(header.getType());
 		return getEntity(userInfo, id, EntityTypeUtils.getClassForType(type), EventType.GET);
 	}
@@ -483,9 +483,9 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public EntityHeader getEntityHeader(Long userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityHeader(userInfo, entityId, versionNumber);
+		return entityManager.getEntityHeader(userInfo, entityId);
 	}
 	
 	@Override
@@ -505,7 +505,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the permissions benefactor
 		String benefactor = entityPermissionsManager.getPermissionBenefactor(entityId, userInfo);
-		return getEntityHeader(userId, benefactor, null);
+		return getEntityHeader(userId, benefactor);
 	}
 
 	@Override

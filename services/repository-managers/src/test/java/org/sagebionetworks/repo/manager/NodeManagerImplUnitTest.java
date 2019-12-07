@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1306,5 +1307,28 @@ public class NodeManagerImplUnitTest {
 		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		// offset + one for tables/views
 		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset+1, limit);
+	}
+	
+	@Test
+	public void testGetName() {
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+		String name = "foo";
+		when(mockNodeDao.getNodeName(nodeId)).thenReturn(name);
+		// call under test
+		String resultName = nodeManager.getNodeName(mockUserInfo, nodeId);
+		assertEquals(name, resultName);
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getNodeName(nodeId);
+	}
+	
+	@Test
+	public void testGetNameUnauthorized() {
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+				.thenReturn(AuthorizationStatus.accessDenied("nope"));
+		assertThrows(UnauthorizedException.class, ()->{
+			nodeManager.getNodeName(mockUserInfo, nodeId);
+		});
+		verify(mockAuthManager).canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao, never()).getNodeName(anyString());
 	}
 }

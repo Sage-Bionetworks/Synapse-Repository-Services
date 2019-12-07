@@ -32,8 +32,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -43,7 +41,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -69,7 +66,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -92,8 +88,6 @@ public class AccessRequirementManagerImplUnitTest {
 	private AccessApprovalDAO accessApprovalDAO;
 	@Mock
 	private NodeDAO nodeDao;
-	@Mock
-	private EntityHeader mockEntityHeader;
 	@Mock
 	private AuthorizationManager authorizationManager;
 
@@ -129,9 +123,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// by default the user is authorized to create, edit.  individual tests may override these settings
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
-
-		when(mockEntityHeader.getId()).thenReturn(TEST_ENTITY_ID);
-		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(Arrays.asList(mockEntityHeader));
+		when(nodeDao.getEntityPathIds(eq(TEST_ENTITY_ID))).thenReturn(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -245,14 +237,14 @@ public class AccessRequirementManagerImplUnitTest {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(new ArrayList<EntityHeader>()); // an empty list, i.e. this is a top-level object
+		when(nodeDao.getEntityPathIds(TEST_ENTITY_ID, false)).thenReturn(new ArrayList<Long>()); // an empty list, i.e. this is a top-level object
 		Node mockNode = new Node();
 		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
 		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
 		mockNode.setNodeType(EntityType.file);
 		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
 		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(TEST_ENTITY_ID), 
+				Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)), 
 				RestrictableObjectType.ENTITY, 
 				Collections.singleton(userInfo.getId()), 
 				Collections.singletonList(DOWNLOAD))).
@@ -262,8 +254,9 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
 		uploadAR.setId(mockUploadARId);
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
-		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
+		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
+		// call under test
 		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
 	}
@@ -549,12 +542,12 @@ public class AccessRequirementManagerImplUnitTest {
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(new HashSet<String>());
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -569,13 +562,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(true);
 		stats.setHasACT(false);
 		stats.setHasLock(false);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -590,13 +583,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(false);
 		stats.setHasACT(false);
 		stats.setHasLock(true);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -611,13 +604,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(false);
 		stats.setHasACT(true);
 		stats.setHasLock(false);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -633,13 +626,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(true);
 		stats.setHasACT(true);
 		stats.setHasLock(false);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
-		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
+		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
 	}
 
 	@Test (expected = IllegalStateException.class)
@@ -655,7 +648,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(false);
 		stats.setHasACT(false);
 		stats.setHasLock(false);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats);
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_ENTITY_ID)), RestrictableObjectType.ENTITY)).thenReturn(stats);
 		arm.getRestrictionInformation(userInfo, request);
 	}
 
@@ -671,7 +664,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasToU(true);
 		stats.setHasACT(false);
 		stats.setHasLock(false);
-		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_PRINCIPAL_ID), RestrictableObjectType.TEAM)).thenReturn(stats);
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(TEST_PRINCIPAL_ID)), RestrictableObjectType.TEAM)).thenReturn(stats);
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
 		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);

@@ -60,13 +60,13 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 		deadlockWatcher.setLog(mockLog);
 
 		EntityManager mockEntityManager = mock(EntityManager.class);
-		when(mockEntityManager.getEntityHeader(any(UserInfo.class), anyString(), anyLong())).thenThrow(
+		when(mockEntityManager.getEntityHeader(any(UserInfo.class), anyString())).thenThrow(
 				new DeadlockLoserDataAccessException("fake", null));
 
 		ReflectionTestUtils.setField(((EntityServiceImpl) getTargetObject(entityService)), "entityManager", mockEntityManager);
 
 		try {
-			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), null, null);
+			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), (String)null);
 			fail("Should have thrown a DeadlockLoserDataAccessException");
 		} catch (DeadlockLoserDataAccessException e2) {
 		}
@@ -80,7 +80,7 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 		deadlockWatcher.setLog(mockLog);
 
 		EntityManager mockEntityManager = mock(EntityManager.class);
-		when(mockEntityManager.getEntityHeader(any(UserInfo.class), anyString(), anyLong())).thenThrow(
+		when(mockEntityManager.getEntityHeader(any(UserInfo.class), anyString())).thenThrow(
 				new TransientDataAccessException("fake", null) {
 					private static final long serialVersionUID = 1L;
 				});
@@ -88,7 +88,7 @@ public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTest
 		ReflectionTestUtils.setField(((EntityServiceImpl) getTargetObject(entityService)), "entityManager", mockEntityManager);
 
 		try {
-			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), null, null);
+			entityService.getEntityHeader(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), (String)null);
 			fail("Should have thrown a DeadlockLoserDataAccessException");
 		} catch (TransientDataAccessException e2) {
 

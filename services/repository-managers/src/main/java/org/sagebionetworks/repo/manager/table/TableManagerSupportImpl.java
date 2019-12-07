@@ -535,13 +535,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public Set<Long> getEntityPath(IdAndVersion idAndVersion) {
-		List<EntityHeader> headers = nodeDao.getEntityPath(idAndVersion.getId().toString());
-		Set<Long> results = new HashSet<Long>(headers.size());
-		for(EntityHeader header: headers){
-			results.add(KeyFactory.stringToKey(header.getId()));
-		}
-		return results;
+	public List<Long> getEntityPath(IdAndVersion idAndVersion) {
+		return nodeDao.getEntityPathIds(idAndVersion.getId().toString());
 	}
 
 	@WriteTransaction

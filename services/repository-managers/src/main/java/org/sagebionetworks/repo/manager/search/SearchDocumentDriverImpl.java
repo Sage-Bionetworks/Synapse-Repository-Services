@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
@@ -118,7 +119,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws NotFoundException
 	 */
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException {
-		List<EntityHeader> pathHeaders = nodeDao.getEntityPath(nodeId);
+		List<EntityHeader> pathHeaders = NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(pathHeaders);
 		return entityPath;

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -80,7 +82,7 @@ public class ViewScopeDaoImplTest {
 		// one
 		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewTypeMask.File.getMask());
 		// find the intersection
-		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers);
+		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers.stream().collect(Collectors.toList()));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
 		assertTrue(intersection.contains(viewId1));		
@@ -96,16 +98,16 @@ public class ViewScopeDaoImplTest {
 		containers = Sets.newHashSet(555L,777L);
 		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewTypeMask.File.getMask());
 		// The 444 container should no longer intersect with view 123
-		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L));
+		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(444L));
 		assertNotNull(intersection);
 		assertEquals(0, intersection.size());
 		// view 123 should intersect with 555
-		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(555L));
+		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(555L));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
 		assertTrue(intersection.contains(viewId1));
 		// view 123 should intersect with 777
-		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(777L));
+		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(777L));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
 		assertTrue(intersection.contains(viewId1));		
@@ -120,13 +122,13 @@ public class ViewScopeDaoImplTest {
 		// two
 		viewScopeDao.setViewScopeAndType(viewId2, Sets.newHashSet(555L,888L), ViewTypeMask.File.getMask());
 		// 555 should intersect with views 123 and 456
-		Set<Long> results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(555L));
+		Set<Long> results = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(555L));
 		assertEquals(Sets.newHashSet(viewId1, viewId2), results);
 		// 444 should intersect with view 123
-		results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L));
+		results = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(444L));
 		assertEquals(Sets.newHashSet(viewId1), results);
 		// 888 should intersect with view 456
-		results = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(888L));
+		results = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(888L));
 		assertEquals(Sets.newHashSet(viewId2), results);
 		
 	}
@@ -138,7 +140,7 @@ public class ViewScopeDaoImplTest {
 		// one
 		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewTypeMask.File.getMask());
 		// find the intersection
-		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers);
+		Set<Long> intersection = viewScopeDao.findViewScopeIntersectionWithPath(containers.stream().collect(Collectors.toList()));
 		assertNotNull(intersection);
 		assertEquals(1, intersection.size());
 		assertTrue(intersection.contains(viewId1));
@@ -148,7 +150,7 @@ public class ViewScopeDaoImplTest {
 		viewScopeDao.setViewScopeAndType(viewId1, containers, ViewTypeMask.File.getMask());
 		
 		// No intersection should be found
-		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Sets.newHashSet(444L,555L));
+		intersection = viewScopeDao.findViewScopeIntersectionWithPath(Lists.newArrayList(444L,555L));
 		assertNotNull(intersection);
 		assertEquals(0, intersection.size());
 	}

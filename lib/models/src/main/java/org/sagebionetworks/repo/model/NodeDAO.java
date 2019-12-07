@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
@@ -223,7 +225,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
+	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a list of entity headers from a list of references.
@@ -261,7 +263,27 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the IDs of the entities in the provided entityId's path.
+	 * @param nodeId
+	 * @return Result order will be from root to leaf. The results will include the requested entity (as the last item).
+	 * Results will also include the root folder as the first item.
+	 */
+	public List<Long> getEntityPathIds(String nodeId);
+	
+	/**
+	 * @deprecated Use: {@link #getEntityPathIds(String)}.
+	 * <p>
+	 * Get the IDs of the entities in the provided entityId's path.
+	 * 
+	 * @param entityId
+	 * @param includeSelf When true, the passed entityId will be included in the results.
+	 * @return Result order will be from root to leaf.
+	 */
+	@Deprecated 
+	List<Long> getEntityPathIds(String entityId, boolean includeSelf);
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -574,4 +596,13 @@ public interface NodeDAO {
 	 * @return The version number of the the snapshot (will always be the current version number).
 	 */
 	public long snapshotVersion(Long userId, String nodeId, SnapshotRequest request);
+
+	/**
+	 * Get the name of the given Node.
+	 * @param projectId
+	 * @return
+	 */
+	public String getNodeName(String nodeId);
+
+
 }
