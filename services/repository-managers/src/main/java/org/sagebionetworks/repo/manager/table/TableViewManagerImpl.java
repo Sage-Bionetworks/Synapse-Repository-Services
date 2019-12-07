@@ -42,7 +42,7 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.ColumnTypeListMappings;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.util.FileProvider;

@@ -171,7 +171,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), validatedFacets, sqlQuery, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, sqlQuery, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;

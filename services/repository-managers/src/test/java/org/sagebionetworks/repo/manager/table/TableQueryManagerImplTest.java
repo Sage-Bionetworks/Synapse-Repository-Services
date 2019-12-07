@@ -133,8 +133,8 @@ public class TableQueryManagerImplTest {
 	String facetMax;
 	FacetColumnRangeRequest facetColumnRequest;
 	private FacetColumnResultRange expectedRangeResult;
-	private RowSet rowSet1;
-	private RowSet rowSet2;
+	private RowSet enumerationFacetResults;
+	private RowSet rangeFacetResults;
 	
 	private QueryOptions queryOptions;
 	
@@ -227,8 +227,8 @@ public class TableQueryManagerImplTest {
 		String expectedColMax = "123";
 		String expectedColumnName = "i2";
 		FacetType expectedFacetType = FacetType.range;
-		rowSet1 = createRowSetForTest(Lists.newArrayList(FacetTransformerValueCounts.VALUE_ALIAS, FacetTransformerValueCounts.COUNT_ALIAS));
-		rowSet2 = createRowSetForTest(Lists.newArrayList(FacetTransformerRange.MIN_ALIAS, FacetTransformerRange.MAX_ALIAS), Lists.newArrayList(expectedColMin, expectedColMax));
+		enumerationFacetResults = createRowSetForTest(Lists.newArrayList(FacetTransformerValueCounts.VALUE_ALIAS, FacetTransformerValueCounts.COUNT_ALIAS));
+		rangeFacetResults = createRowSetForTest(Lists.newArrayList(FacetTransformerRange.MIN_ALIAS, FacetTransformerRange.MAX_ALIAS), Lists.newArrayList(expectedColMin, expectedColMax));
 		expectedRangeResult = new FacetColumnResultRange();
 		expectedRangeResult.setColumnName(expectedColumnName);
 		expectedRangeResult.setColumnMin(expectedColMin);
@@ -565,7 +565,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
-		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
 		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
@@ -589,7 +589,7 @@ public class TableQueryManagerImplTest {
 		
 		//facet result asserts
 		assertNotNull(results.getFacets());
-		assertEquals(2, results.getFacets().size());
+		assertEquals(3, results.getFacets().size());
 		FacetColumnResult facetResultColumn = results.getFacets().get(1);
 		assertEquals(expectedRangeResult, facetResultColumn);
 	}
@@ -796,7 +796,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
-		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -813,7 +813,7 @@ public class TableQueryManagerImplTest {
 		assertNull(bundle.getSelectColumns());
 		assertNull(bundle.getColumnModels());
 		assertNotNull(bundle.getFacets());
-		assertEquals(2, bundle.getFacets().size());
+		assertEquals(3, bundle.getFacets().size());
 		//we don't care about the first facet result because it has no useful data and only exists to make sure for loops work
 		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
 	}
