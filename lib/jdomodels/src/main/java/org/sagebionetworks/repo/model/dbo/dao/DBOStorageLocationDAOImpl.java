@@ -135,6 +135,12 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
+
+		// PFLM-5985
+		if (dbo.getUploadType() == null) {
+			dbo.setUploadType(UploadType.S3);
+		}
+
 		dbo = basicDao.createNew(dbo);
 		return dbo.getId();
 	}

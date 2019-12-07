@@ -38,7 +38,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	@Field(name = COL_STORAGE_LOCATION_DESCRIPTION, varchar = 512)
 	private String description;
 
-	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE)
+	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE, nullable = false, sql = "DEFAULT 'S3'")
 	private UploadType uploadType;
 
 	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
@@ -209,17 +209,29 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 			
 			@Override
 			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
-				// PLFM-5769 - Remove after migrated
-				if (backup.getData() != null && backup.getData() instanceof ExternalS3StorageLocationSetting) {
-					ExternalS3StorageLocationSetting data = (ExternalS3StorageLocationSetting) backup.getData();
-					if (data.getBaseKey() != null) {
-						// Base keys should not have trailing slashes
-						data.setBaseKey(removeTrailingSlashes(data.getBaseKey()));
-						// Set the hash to null to recompute it
+				if (backup.getData() != null) {
+					// PLFM-5769 - Remove after migrated
+					if (backup.getData() instanceof ExternalS3StorageLocationSetting) {
+						ExternalS3StorageLocationSetting data = (ExternalS3StorageLocationSetting) backup.getData();
+						if (data.getBaseKey() != null) {
+							// Base keys should not have trailing slashes
+							data.setBaseKey(removeTrailingSlashes(data.getBaseKey()));
+							// Set the hash to null to recompute it
+							backup.setDataHash(null);
+						}
+					}
+					// ^^^ PLFM-5769 code ends here
+
+					// PLFM-5985
+					if (backup.getData().getUploadType() == null) {
+						// UploadType is no longer nullable. Default UploadType is S3.
+						backup.getData().setUploadType(UploadType.S3);
+						backup.setUploadType(UploadType.S3);
+						// Set the hash to null to recompute it.
 						backup.setDataHash(null);
 					}
+					// PLFM-5985
 				}
-				// ^^^ PLFM-5769 code ends here
 
 				if (backup.getDataHash() == null && backup.getData() != null) {
 					StorageLocationSetting setting = backup.getData();
