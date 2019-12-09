@@ -301,7 +301,7 @@ public class IT049FileHandleTest {
 		
 		// Create a ProxyFileHandle
 		ProxyFileHandle handle = new ProxyFileHandle();
-		handle.setContentMd5("md5");
+		handle.setContentMd5("0123456789abcdef0123456789abcdef");
 		handle.setContentSize(123L);
 		handle.setContentType("text/plain");
 		handle.setFileName("barFoo.txt");
@@ -328,7 +328,7 @@ public class IT049FileHandleTest {
 		
 		// Create a ProxyFileHandle
 		ProxyFileHandle handle = new ProxyFileHandle();
-		handle.setContentMd5("md5");
+		handle.setContentMd5("0123456789abcdef0123456789abcdef");
 		handle.setContentSize(123L);
 		handle.setContentType("text/plain");
 		handle.setFileName("barFoo.txt");
@@ -379,7 +379,7 @@ public class IT049FileHandleTest {
 		ExternalObjectStoreFileHandle fileHandle = new ExternalObjectStoreFileHandle();
 		fileHandle.setFileKey(uploadDestination.getKeyPrefixUUID() + "/asdf.txt");
 		fileHandle.setStorageLocationId(storageLocationSetting.getStorageLocationId());
-		fileHandle.setContentMd5("md5");
+		fileHandle.setContentMd5("0123456789abcdef0123456789abcdef");
 		fileHandle.setContentSize(1234L);
 		fileHandle.setContentType("text/plain");
 		ExternalObjectStoreFileHandle createdFileHandle = synapse.createExternalObjectStoreFileHandle(fileHandle);

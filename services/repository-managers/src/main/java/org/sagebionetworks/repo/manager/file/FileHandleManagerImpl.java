@@ -555,6 +555,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			fileHandle.setContentType(NOT_SET);
 		}
 
+		if (!MD5ChecksumHelper.isValidMd5Digest(fileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
 		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
@@ -972,7 +976,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				Date modifiedOn, byte[] fileContents, String fileName, ContentType contentType, String contentEncoding) throws UnsupportedEncodingException, IOException {
 		// Create the compress string
 		ByteArrayInputStream in = new ByteArrayInputStream(fileContents);
-		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(fileContents);
+		String md5 = MD5ChecksumHelper.getMD5Checksum(fileContents);
 		String hexMd5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		// Upload the file to S3
 		if (fileName==null) fileName=DEFAULT_COMPRESSED_FILE_NAME;
@@ -1040,6 +1044,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (fileHandle.getContentType() == null) {
 			fileHandle.setContentType(NOT_SET);
 		}
+
+		if (!MD5ChecksumHelper.isValidMd5Digest(fileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
 		ExternalS3StorageLocationSetting esls = null;
@@ -1090,6 +1099,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!(sls instanceof ProxyStorageLocationSettings)){
 			throw new IllegalArgumentException("ProxyFileHandle.storageLocationId must refer to a valid ProxyStorageLocationSettings.");
 		}
+
+		if (!MD5ChecksumHelper.isValidMd5Digest(proxyFileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
 		ProxyStorageLocationSettings proxyLocation = (ProxyStorageLocationSettings) sls;
 		// If the user is not the creator of the location they must have 'create' on the benefactor.
 		if (!userInfo.getId().equals(proxyLocation.getCreatedBy())) {
