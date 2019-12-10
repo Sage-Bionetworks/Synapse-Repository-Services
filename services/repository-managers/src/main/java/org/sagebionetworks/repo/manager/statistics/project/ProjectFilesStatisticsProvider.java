@@ -67,11 +67,14 @@ public class ProjectFilesStatisticsProvider implements StatisticsProvider<Projec
 		statistics.setObjectId(request.getObjectId());
 
 		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(maxMonths);
+		
+		boolean includeDownloads = request.getFileDownloads() == null || request.getFileDownloads();
+		boolean includeUploads = request.getFileUploads() == null || request.getFileUploads();
 
-		if (request.getFileDownloads()) {
+		if (includeDownloads) {
 			statistics.setFileDownloads(getProjectFilesStatistics(projectId, FileEvent.FILE_DOWNLOAD, months));
 		}
-		if (request.getFileUploads()) {
+		if (includeUploads) {
 			statistics.setFileUploads(getProjectFilesStatistics(projectId, FileEvent.FILE_UPLOAD, months));
 		}
 
