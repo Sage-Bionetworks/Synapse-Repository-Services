@@ -853,6 +853,8 @@ public class UploadPreviewBuilderTest {
 			csvString = IOUtils.toString(in, StandardCharsets.UTF_8);
 		}
 		
+		System.out.println(Arrays.toString(csvString.getBytes(StandardCharsets.UTF_8)));
+		
 		CsvTableDescriptor descriptor = new CsvTableDescriptor();
 		descriptor.setIsFirstLineHeader(true);
 		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
@@ -877,7 +879,6 @@ public class UploadPreviewBuilderTest {
 		cm = result.getSuggestedColumns().get(1);
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals("column2", cm.getName());
-		assertEquals(new Long(5), cm.getMaximumSize());
 	}
 	
 	public static List<String> getColumnNames(List<ColumnModel> models){
