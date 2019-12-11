@@ -19,15 +19,18 @@ class TableReferenceTest {
 		TableReference tableA = new TableQueryParser("tableA").tableReference();
 		TableReference tableB = new TableQueryParser("tableB").tableReference();
 		TableReference tableC = new TableQueryParser("tableC").tableReference();
-
+		JoinCondition condition = new JoinCondition(new TableQueryParser("tableB.id = tableC.id").searchCondition());
 		TableReference joinedTables = new TableReference(
 			new QualifiedJoin(
-				tableA,
-				new TableReference(new QualifiedJoin(tableB, tableC))
+				new TableReference(new QualifiedJoin(tableA, tableB, new JoinCondition(new TableQueryParser("tableA.id = tableB.id").searchCondition()))),
+				tableC,
+				new JoinCondition(new TableQueryParser("tableA.id = tableC.id").searchCondition())
 			)
 		);
 
 
-		assertEquals("tableA JOIN tableB JOIN tableC", joinedTables.toSql());
+		assertEquals("tableA " +
+				"JOIN tableB ON tableA.id = tableB.id " +
+				"JOIN tableC ON tableA.id = tableC.id", joinedTables.toSql());
 	}
 }

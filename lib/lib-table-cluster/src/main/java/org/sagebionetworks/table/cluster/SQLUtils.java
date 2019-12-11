@@ -264,7 +264,7 @@ public class SQLUtils {
 	 * @param columnId
 	 * @return
 	 */
-	public static String getUnnestedColumnNameForId(String columnId) { //TODO: TEST
+	public static String getUnnestedColumnNameForId(String columnId) {
 		ValidateArgument.required(columnId, "columnId");
 
 		StringBuilder builder = new StringBuilder();
@@ -285,7 +285,7 @@ public class SQLUtils {
 	 * @param columnId
 	 * @return
 	 */
-	public static String getRowIdRefColumnNameForId(String columnId) { //TODO: TEST
+	public static String getRowIdRefColumnNameForId(String columnId) {
 		ValidateArgument.required(columnId, "columnId");
 
 		StringBuilder builder = new StringBuilder();
