@@ -8,7 +8,9 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -17,6 +19,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.apache.commons.io.IOUtils;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -27,6 +30,7 @@ import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -860,6 +864,42 @@ public class UploadPreviewBuilderTest {
 		assertEquals(null, UploadPreviewBuilder.parseAsLong(null));
 		assertEquals(null, UploadPreviewBuilder.parseAsLong(""));
 		assertEquals(new Long(123), UploadPreviewBuilder.parseAsLong("123"));
+	}
+	
+	@Test
+	public void testPLFM_5989() throws IOException {
+		String fileName = "testPLFM_5989.csv";
+		String csvString = null;
+		
+		try(InputStream in = UploadPreviewBuilderTest.class.getClassLoader().getResourceAsStream(fileName)){
+			assertNotNull(in, "Cannot find: "+fileName+" on classpath");
+			csvString = IOUtils.toString(in, StandardCharsets.UTF_8);
+		}
+		
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(csvString);
+		Long linesToSkip = 0L;
+		CSVReader reader = CSVUtils.createCSVReader(sReader, descriptor, linesToSkip);
+		
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(2, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("column1", cm.getName());
+		assertEquals(new Long(5), cm.getMaximumSize());
+		// two
+		cm = result.getSuggestedColumns().get(1);
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals("column2", cm.getName());
 	}
 	
 	public static List<String> getColumnNames(List<ColumnModel> models){
