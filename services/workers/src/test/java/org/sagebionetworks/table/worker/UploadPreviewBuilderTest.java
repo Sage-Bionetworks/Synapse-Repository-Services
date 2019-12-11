@@ -853,8 +853,6 @@ public class UploadPreviewBuilderTest {
 			csvString = IOUtils.toString(in, StandardCharsets.UTF_8);
 		}
 		
-		System.out.println(Arrays.toString(csvString.getBytes(StandardCharsets.UTF_8)));
-		
 		CsvTableDescriptor descriptor = new CsvTableDescriptor();
 		descriptor.setIsFirstLineHeader(true);
 		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
