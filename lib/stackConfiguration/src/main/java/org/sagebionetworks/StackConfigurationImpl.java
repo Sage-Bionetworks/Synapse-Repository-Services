@@ -708,12 +708,12 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getJiraUserName() {
-		return configuration.getProperty("org.sagebionetworks.repo.manager.jira.user.name");
+	public String getJiraUserEmail() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.email");
 	}
 
-	public String getJiraUserPassword() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
+	public String getJiraUserApikey() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.apikey");
 	}
 
 	/**
