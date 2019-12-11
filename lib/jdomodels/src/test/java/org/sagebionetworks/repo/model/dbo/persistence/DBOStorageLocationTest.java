@@ -60,8 +60,8 @@ public class DBOStorageLocationTest {
 	public void createDatabaseObjectFromBackup_NullUploadType() {
 		extS3sls.setUploadType(null);
 		DBOStorageLocation result = executeTest(true);
-		assertEquals(UploadType.S3, result.getData().getUploadType());
-		assertEquals(UploadType.S3, result.getUploadType());
+		assertEquals(UploadType.NONE, result.getData().getUploadType());
+		assertEquals(UploadType.NONE, result.getUploadType());
 	}
 
 	/** Test for PLFM-5985 */

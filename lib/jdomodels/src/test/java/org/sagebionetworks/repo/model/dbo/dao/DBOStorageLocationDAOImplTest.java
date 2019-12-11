@@ -61,7 +61,7 @@ public class DBOStorageLocationDAOImplTest {
 		ExternalStorageLocationSetting locationSetting = new ExternalStorageLocationSetting();
 		locationSetting.setUploadType(null);
 		StorageLocationSetting result = doTestCRUD(locationSetting);
-		assertEquals(UploadType.S3, result.getUploadType());
+		assertEquals(UploadType.NONE, result.getUploadType());
 	}
 
 	@Test

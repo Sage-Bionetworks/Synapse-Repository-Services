@@ -148,16 +148,13 @@ public class ProjectSettingsManagerImplUnitTest {
 		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setBucket(bucketName);
 		externalObjectStorageLocationSetting.setEndpointUrl("https://myendpoint.com");
-		externalObjectStorageLocationSetting.setUploadType(UploadType.S3);
 
 		externalStorageLocationSetting = new ExternalStorageLocationSetting();
-		externalStorageLocationSetting.setUploadType(UploadType.HTTPS);
 		externalStorageLocationSetting.setUrl("https://example.com");
 
 		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
 		proxyStorageLocationSettings.setProxyUrl("https://example.com");
 		proxyStorageLocationSettings.setSecretKey(RandomStringUtils.randomAlphabetic(36));
-		proxyStorageLocationSettings.setUploadType(UploadType.HTTPS);
 
 		synapseStorageLocationSetting = new S3StorageLocationSetting();
 	}
@@ -292,20 +289,14 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void testCreateExternalStorageLocationSetting_HappyCase() throws IOException {
 		when(mockStorageLocationDAO.create(externalStorageLocationSetting)).thenReturn(999L);
 
+		// Set UploadType to null to verify that we set the default UploadType.
+		externalStorageLocationSetting.setUploadType(null);
+
 		// Method under test.
 		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
 
 		verify(mockStorageLocationDAO).create(externalStorageLocationSetting);
-	}
-
-	@Test
-	public void testCreateExternalStorageLocationSetting_NullUploadType() {
-		externalStorageLocationSetting.setUploadType(null);
-
-		assertThrows(IllegalArgumentException.class, () -> {
-			// Method under test.
-			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalStorageLocationSetting);
-		});
+		assertEquals(UploadType.NONE, externalStorageLocationSetting.getUploadType());
 	}
 
 	@Test
@@ -332,20 +323,14 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void testCreateExternalObjectStorageLocationSetting_HappyCase() throws IOException {
 		when(mockStorageLocationDAO.create(externalObjectStorageLocationSetting)).thenReturn(999L);
 
+		// Set UploadType to null to verify that we set the default UploadType.
+		externalObjectStorageLocationSetting.setUploadType(null);
+
 		// Method under test.
 		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
 
 		verify(mockStorageLocationDAO).create(externalObjectStorageLocationSetting);
-	}
-
-	@Test
-	public void testCreateExternalObjectStorageLocationSetting_NullUploadType() {
-		externalObjectStorageLocationSetting.setUploadType(null);
-
-		assertThrows(IllegalArgumentException.class, () -> {
-			// Method under test.
-			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
-		});
+		assertEquals(UploadType.NONE, externalObjectStorageLocationSetting.getUploadType());
 	}
 
 	@Test
@@ -417,10 +402,14 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void testCreateProxyLocationStorageSettings_HappyCase() throws IOException {
 		when(mockStorageLocationDAO.create(proxyStorageLocationSettings)).thenReturn(999L);
 
+		// Set UploadType to null to verify that we set the default UploadType.
+		proxyStorageLocationSettings.setUploadType(null);
+
 		// Method under test.
 		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
 
 		verify(mockStorageLocationDAO).create(proxyStorageLocationSettings);
+		assertEquals(UploadType.NONE, proxyStorageLocationSettings.getUploadType());
 	}
 
 	@Test
@@ -466,16 +455,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void testCreateProxyLocationStorageSettings_SecretKeyTooShort() {
 		proxyStorageLocationSettings.setSecretKey("ab");
-
-		assertThrows(IllegalArgumentException.class, () -> {
-			// Method under test.
-			projectSettingsManagerImpl.createStorageLocationSetting(userInfo, proxyStorageLocationSettings);
-		});
-	}
-
-	@Test
-	public void testCreateProxyLocationStorageSettings_NullUploadType() {
-		proxyStorageLocationSettings.setUploadType(null);
 
 		assertThrows(IllegalArgumentException.class, () -> {
 			// Method under test.

@@ -38,7 +38,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	@Field(name = COL_STORAGE_LOCATION_DESCRIPTION, varchar = 512)
 	private String description;
 
-	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE, nullable = false, sql = "DEFAULT 'S3'")
+	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE, nullable = false, sql = "DEFAULT 'NONE'")
 	private UploadType uploadType;
 
 	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
@@ -224,9 +224,9 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 					// PLFM-5985
 					if (backup.getData().getUploadType() == null) {
-						// UploadType is no longer nullable. Default UploadType is S3.
-						backup.getData().setUploadType(UploadType.S3);
-						backup.setUploadType(UploadType.S3);
+						// UploadType is no longer nullable. Default UploadType is NONE.
+						backup.getData().setUploadType(UploadType.NONE);
+						backup.setUploadType(UploadType.NONE);
 						// Set the hash to null to recompute it.
 						backup.setDataHash(null);
 					}
