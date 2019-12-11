@@ -74,6 +74,7 @@ import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -533,9 +534,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
-		for(ColumnModel columnModel : columnModels){
+		for(ColumnModel columnModel : columnModels) {
 			//only operate on list column types
-			if(!ColumnTypeListMappings.isList(columnModel.getColumnType())){
+			if (!ColumnTypeListMappings.isList(columnModel.getColumnType())) {
 				continue;
 			}
 			//index tables for list columns have already been created when column changes were applied
@@ -543,8 +544,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
 			template.update(truncateTablesql);
 
-			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     );
-			template.update(insertIntoSql);
+			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel);
+			try {
+				template.update(insertIntoSql);
+			} catch (DataIntegrityViolationException e){
+				if (columnModel.getColumnType() == ColumnType.STRING_LIST){
+					throw new IllegalArgumentException("The size of the column '"+ columnModel.getName()+ "' is too small." +
+							" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
+				}
+				throw e;
+			}
 		}
 	}
 

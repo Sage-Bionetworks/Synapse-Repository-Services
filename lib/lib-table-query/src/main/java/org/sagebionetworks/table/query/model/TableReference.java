@@ -16,8 +16,4 @@ public class TableReference extends SimpleBranch {
 	public String getTableName() {
 		return child.toSql();
 	}
-
-	public void replaceWithJoin(QualifiedJoin qualifiedJoin){
-		this.replaceChildren(qualifiedJoin);
-	}
 }

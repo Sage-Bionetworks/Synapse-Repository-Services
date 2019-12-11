@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -144,6 +145,7 @@ public class TableViewIntegrationTest {
 	ColumnModel booleanColumn;
 	ColumnModel stringColumn;
 	ColumnModel entityIdColumn;
+	ColumnModel stringListColumn;
 	
 	@Before
 	public void before(){
@@ -221,6 +223,11 @@ public class TableViewIntegrationTest {
 		entityIdColumn.setName("anEntityId");
 		entityIdColumn.setColumnType(ColumnType.ENTITYID);
 		entityIdColumn = columnModelManager.createColumnModel(adminUserInfo, entityIdColumn);
+
+		stringListColumn = new ColumnModel();
+		stringListColumn.setName("stringList");
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+		stringListColumn = columnModelManager.createColumnModel(adminUserInfo, stringListColumn);
 	}
 
 	/**
@@ -1287,7 +1294,43 @@ public class TableViewIntegrationTest {
 		// run the query again, this time there should be 3 rows.
 		waitForConsistentQuery(adminUserInfo, query, rowCount);
 	}
-	
+
+	/**
+	 * Tests the UNNEST(colName) function which is applied to LIST_columnTypes
+	 * @throws Exception
+	 */
+	@Test
+	public void testUNNESTFunction() throws Exception{
+		// Add 'boolean' annotations to each file
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		AnnotationsV2TestUtils.putAnnotations(annos, stringListColumn.getName(), Arrays.asList("val3", "val4"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(stringListColumn.getId());
+		createFileView();
+
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		String sql = "select UNNEST("+stringListColumn.getName()+") from "+fileViewId;
+		int rowCount = 4;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows  = extractRows(results);
+		assertEquals(4, rows.size());
+		assertEquals("val1", rows.get(0).getValues().get(0));
+		assertEquals("val2", rows.get(1).getValues().get(0));
+		assertEquals("val3", rows.get(2).getValues().get(0));
+		assertEquals("val4", rows.get(3).getValues().get(0));
+	}
+
+
 	/**
 	 * Helper to update a view using a result set.
 	 * @param rowSet
