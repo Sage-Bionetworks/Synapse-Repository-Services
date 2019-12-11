@@ -22,6 +22,10 @@
         {
             "name": "PROXYLOCAL",
             "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "NONE",
+            "description": "No upload type, for when the upload type is unknown or unspecified"
         }
     ]
 }

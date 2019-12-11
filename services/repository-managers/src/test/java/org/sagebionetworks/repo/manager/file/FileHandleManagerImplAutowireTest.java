@@ -418,16 +418,6 @@ public class FileHandleManagerImplAutowireTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testProxyStorageLocationSettingsTypeNull() throws DatastoreException, NotFoundException, IOException{
-		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
-		proxy.setProxyUrl("https://host.org:8080/path");
-		proxy.setSecretKey(UUID.randomUUID().toString());
-		proxy.setUploadType(null);
-		// call under test
-		projectSettingsManager.createStorageLocationSetting(userInfo, proxy);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
 	public void testProxyStorageLocationSettingsProtocolHttp() throws DatastoreException, NotFoundException, IOException{
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
 		proxy.setProxyUrl("http://host.org:8080/path");

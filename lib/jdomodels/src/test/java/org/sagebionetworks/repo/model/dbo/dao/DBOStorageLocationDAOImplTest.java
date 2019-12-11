@@ -57,6 +57,14 @@ public class DBOStorageLocationDAOImplTest {
 	}
 
 	@Test
+	public void testDefaultUploadType() throws Exception {
+		ExternalStorageLocationSetting locationSetting = new ExternalStorageLocationSetting();
+		locationSetting.setUploadType(null);
+		StorageLocationSetting result = doTestCRUD(locationSetting);
+		assertEquals(UploadType.NONE, result.getUploadType());
+	}
+
+	@Test
 	public void testIdempotentCreation() throws Exception {
 		ExternalS3StorageLocationSetting locationSetting = new ExternalS3StorageLocationSetting();
 		locationSetting.setUploadType(UploadType.S3);
@@ -73,7 +81,7 @@ public class DBOStorageLocationDAOImplTest {
 		assertEquals(id, sameId);
 	}
 
-	private void doTestCRUD(StorageLocationSetting locationSetting) throws Exception {
+	private StorageLocationSetting doTestCRUD(StorageLocationSetting locationSetting) throws Exception {
 		locationSetting.setDescription("description");
 		locationSetting.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		locationSetting.setCreatedOn(new Date());
@@ -88,5 +96,7 @@ public class DBOStorageLocationDAOImplTest {
 		List<StorageLocationSetting> byOwner = storageLocationDAO
 				.getByOwner(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertTrue(byOwner.contains(clone));
+
+		return clone;
 	}
 }

@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -181,6 +182,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()),
 					"Invalid Bucket Name");
 
+			externalS3StorageLocationSetting.setUploadType(UploadType.S3);
 			validateS3BucketAccess(externalS3StorageLocationSetting);
 			validateS3BucketOwnership(externalS3StorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
@@ -214,7 +216,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings) storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");
 			ValidateArgument.required(proxySettings.getSecretKey(), "secretKey");
-			ValidateArgument.required(proxySettings.getUploadType(), "uploadType");
 			if (proxySettings.getSecretKey().length() < MIN_SECRET_KEY_CHARS) {
 				throw new IllegalArgumentException("SecretKey must be at least: " + MIN_SECRET_KEY_CHARS
 						+ " characters but was: " + proxySettings.getSecretKey().length());
@@ -227,6 +228,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			} catch (MalformedURLException e) {
 				throw new IllegalArgumentException("proxyUrl is malformed: " + e.getMessage());
 			}
+		} else if (storageLocationSetting instanceof S3StorageLocationSetting) {
+			storageLocationSetting.setUploadType(UploadType.S3);
+		}
+
+		// Default UploadType to null.
+		if (storageLocationSetting.getUploadType() == null) {
+			storageLocationSetting.setUploadType(UploadType.NONE);
 		}
 
 		storageLocationSetting.setCreatedBy(userInfo.getId());
