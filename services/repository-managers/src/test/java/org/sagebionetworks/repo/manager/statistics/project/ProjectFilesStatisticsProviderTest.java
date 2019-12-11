@@ -470,8 +470,39 @@ public class ProjectFilesStatisticsProviderTest {
 		assertNull(result.getFileUploads());
 
 	}
+	
+	@Test
+	public void testGetProejctStatisticsWithDefaults() {
+		List<YearMonth> months = StatisticsMonthlyUtils.generatePastMonths(MAX_MONTHS);
 
-	private ProjectFilesStatisticsRequest getRequest(String projectId, boolean fileDownloads, boolean fileUploads) {
+		YearMonth from = months.get(0);
+		YearMonth to = months.get(months.size() - 1);
+
+		List<StatisticsMonthlyProjectFiles> statistics = Collections.singletonList(mockStatistics);
+
+		when(mockNodeDAO.getNode(any())).thenReturn(mockNode);
+		when(mockNode.getNodeType()).thenReturn(EntityType.project);
+		when(mockFileStatsDao.getProjectFilesStatisticsInRange(any(), any(), any(), any())).thenReturn(statistics);
+
+		String projectId = "123";
+		
+		// We do not specify what we want, should get back both
+		Boolean fileDownloads = null;
+		Boolean fileUploads = null;
+		
+		// Call under test
+		ProjectFilesStatisticsResponse result = provider.getObjectStatistics(getRequest(projectId, fileDownloads, fileUploads));
+
+		verify(mockNodeDAO).getNode(projectId);
+		verify(mockNode).getNodeType();
+		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_DOWNLOAD, from, to);
+		verify(mockFileStatsDao).getProjectFilesStatisticsInRange(Long.valueOf(projectId), FileEvent.FILE_UPLOAD, from, to);
+
+		assertNotNull(result.getFileDownloads());
+		assertNotNull(result.getFileUploads());
+	}
+
+	private ProjectFilesStatisticsRequest getRequest(String projectId, Boolean fileDownloads, Boolean fileUploads) {
 		ProjectFilesStatisticsRequest request = new ProjectFilesStatisticsRequest();
 		request.setObjectId(projectId);
 		request.setFileDownloads(fileDownloads);
