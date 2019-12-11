@@ -444,9 +444,9 @@ public interface StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getJiraUserName();
+	public String getJiraUserEmail();
 
-	public String getJiraUserPassword();
+	public String getJiraUserApikey();
 
 	/**
 	 * Entity path for the root folder. This is to be bootstrapped.
