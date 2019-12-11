@@ -18,6 +18,10 @@ public class ValueExpressionPrimary extends SimpleBranch implements HasReference
 		super(setFunctionSpecification);
 	}
 
+	public ValueExpressionPrimary(ArrayFunctionSpecification arrayFunctionSpecification) {
+		super(arrayFunctionSpecification);
+	}
+
 	public ValueExpressionPrimary(
 			ParenthesizedValueExpression parenthesizedValueExpression) {
 		super(parenthesizedValueExpression);

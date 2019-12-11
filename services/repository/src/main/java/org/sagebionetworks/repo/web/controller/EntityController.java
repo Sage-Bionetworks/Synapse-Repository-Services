@@ -692,7 +692,7 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
-		return serviceProvider.getEntityService().getEntityHeader(userId, id, null);
+		return serviceProvider.getEntityService().getEntityHeader(userId, id);
 	}
 
 	/**

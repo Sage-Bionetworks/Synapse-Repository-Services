@@ -47,9 +47,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.sql.DataSource;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
@@ -68,6 +69,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -82,15 +84,11 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.object.SqlUpdate;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -118,19 +116,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
 
-	private final DataSourceTransactionManager transactionManager;
-	private final TransactionTemplate writeTransactionTemplate;
-	private final TransactionTemplate readTransactionTemplate;
-	private final JdbcTemplate template;
+	private DataSourceTransactionManager transactionManager;
+	private TransactionTemplate writeTransactionTemplate;
+	private TransactionTemplate readTransactionTemplate;
+	private JdbcTemplate template;
 
-	/**
-	 * The IoC constructor.
-	 * 
-	 * @param template
-	 * @param transactionManager
-	 */
-	public TableIndexDAOImpl(DataSource dataSource) {
-		super();
+	@Override
+	public void setDataSource(DataSource dataSource) {
+		if(template != null) {
+			throw new IllegalStateException("DataSource can only be set once");
+		}
 		this.transactionManager = new DataSourceTransactionManager(dataSource);
 		// This will manage transactions for calls that need it.
 		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
@@ -1031,22 +1026,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// The first row is the header
 		String[] headers = input.next();
 		String sql = SQLUtils.createInsertViewFromSnapshot(idAndVersion, headers);
-		
+
 		// push the data in batches
 		List<Object[]> batch = new LinkedList<>();
 		int batchSize = 0;
-		while(input.hasNext()) {
+		while (input.hasNext()) {
 			String[] row = input.next();
 			long rowSize = SQLUtils.calculateBytes(row);
-			if(batchSize + rowSize > maxBytesPerBatch) {
+			if (batchSize + rowSize > maxBytesPerBatch) {
 				template.batchUpdate(sql, batch);
 				batch.clear();
 			}
 			batch.add(row);
 			batchSize += rowSize;
 		}
-		
-		if(!batch.isEmpty()) {
+
+		if (!batch.isEmpty()) {
 			template.batchUpdate(sql, batch);
 		}
 	}

@@ -42,7 +42,7 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.cluster.ColumnTypeListMappings;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.util.FileProvider;
@@ -139,7 +139,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public Set<Long> findViewsContainingEntity(String entityId) {
 		IdAndVersion idAndVersion = IdAndVersion.parse(entityId);
-		Set<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
+		List<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
 		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 

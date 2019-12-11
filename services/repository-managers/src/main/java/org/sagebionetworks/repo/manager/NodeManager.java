@@ -183,7 +183,7 @@ public interface NodeManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get an entity header for each reference.
@@ -363,5 +363,13 @@ public interface NodeManager {
 	 * @return
 	 */
 	long getCurrentRevisionNumber(String entityId);
+
+	/**
+	 * Get the name of the given node.
+	 * @param userInfo
+	 * @param nodeId
+	 * @return
+	 */
+	public String getNodeName(UserInfo userInfo, String nodeId);
 
 }

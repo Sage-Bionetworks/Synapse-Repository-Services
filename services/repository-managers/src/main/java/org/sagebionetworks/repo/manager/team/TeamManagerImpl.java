@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -471,7 +472,7 @@ public class TeamManagerImpl implements TeamManager {
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
 		List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
+				Collections.singletonList(KeyFactory.stringToKey(teamId)), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();
 

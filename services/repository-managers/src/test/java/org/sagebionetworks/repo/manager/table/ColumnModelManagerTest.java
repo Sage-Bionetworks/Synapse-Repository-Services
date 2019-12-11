@@ -990,6 +990,69 @@ public class ColumnModelManagerTest {
 		//should do nothing
 		columnModelManager.validateFacetType(columnModel);
 	}
+
+	@Test
+	public void testValidateFacetType_StringListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
+
+	@Test
+	public void testValidateFacetType_IntegerListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
+
+	@Test
+	public void testValidateFacetType_BooleanListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN_LIST);
+
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
+
+	@Test
+	public void testValidateFacetType_DateListColumn(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DATE_LIST);
+
+		//should pass for enumeration facets
+		columnModel.setFacetType(FacetType.enumeration);
+		columnModelManager.validateFacetType(columnModel);
+
+		//should throw exception for range facets
+		columnModel.setFacetType(FacetType.range);
+		assertThrows(IllegalArgumentException.class, () -> {
+			columnModelManager.validateFacetType(columnModel);
+		});
+	}
 	
 	@Test
 	public void testValidateFacetTypeOtherColumnTypeEnumerationFacet(){

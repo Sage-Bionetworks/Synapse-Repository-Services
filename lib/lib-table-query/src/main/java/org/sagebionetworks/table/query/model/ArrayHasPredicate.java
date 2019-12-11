@@ -13,6 +13,8 @@ import java.util.List;
  *
  * See  https://sagebionetworks.jira.com/wiki/spaces/PLFM/pages/817168468/Multiple+Value+Annotations
  *
+ * Related: {@link ArrayFunctionSpecification}
+ *
  * NOTE the implemented {@link HasPredicate} interface is not for the "HAS" keyword, but, instead an interface for any predicate
  */
 public class ArrayHasPredicate extends SQLElement implements HasPredicate {

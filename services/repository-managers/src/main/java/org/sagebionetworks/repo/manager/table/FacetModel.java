@@ -144,9 +144,15 @@ public class FacetModel {
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		try{
-			QuerySpecification modifiedQuery = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
+			QuerySpecification modifiedQuerySpecification = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
 
-			return new SqlQueryBuilder(modifiedQuery, sqlQuery).build();
+			return new SqlQueryBuilder(modifiedQuerySpecification, sqlQuery.getTableSchema(), sqlQuery.getOverrideOffset(), sqlQuery.getOverrideLimit(), sqlQuery.getMaxBytesPerPage())
+					.isConsistent(sqlQuery.isConsistent())
+					.includeEntityEtag(sqlQuery.includeEntityEtag())
+					.includeRowIdAndRowVersion(sqlQuery.includesRowIdAndVersion())
+					.tableType(sqlQuery.getTableType())
+					.selectedFacets(sqlQuery.getSelectedFacets())
+					.build();
 		}catch (ParseException e){
 			throw new RuntimeException(e);
 		}
@@ -165,7 +171,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), validatedFacets, sqlQuery, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.isColumnTypeIsList(), validatedFacets, sqlQuery, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;

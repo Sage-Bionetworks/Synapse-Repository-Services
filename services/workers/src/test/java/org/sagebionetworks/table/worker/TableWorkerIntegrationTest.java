@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1899,7 +1900,7 @@ public class TableWorkerIntegrationTest {
 		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
-		assertEquals(2, facets.size());
+		assertEquals(3, facets.size());
 		
 		
 		//first facet should be string
@@ -1921,11 +1922,27 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(facetRange);
 		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
 		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
+
+		//third facet is an STRING_LIST
+		FacetColumnResult strListFacet = facets.get(2);
+		assertEquals(FacetType.enumeration, strListFacet.getFacetType());
+		assertTrue(strListFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> listEnumerationValues = ((FacetColumnResultValues) strListFacet).getFacetValues();
+		for(int i = 0; i < listEnumerationValues.size() ; i++){
+			FacetColumnResultValueCount enumVal = listEnumerationValues.get(i);
+			assertEquals(1, enumVal.getCount().longValue());
+			//each row list column has 2 values so first 2 rows will have row 1 and row 2
+			if(i < listEnumerationValues.size() / 2) {
+				assertEquals("otherstring100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+			}else{
+				assertEquals("string100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+			}
+		}
 		
 	}
 	
 	@Test
-	public void testFacetMultipleSelected() throws Exception{
+	public void testFacet_SingleValueColumnSelected() throws Exception{
 		facetTestSetup();
 
 		long expectedMin = 203000;
@@ -1933,6 +1950,7 @@ public class TableWorkerIntegrationTest {
 		
 		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
 		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
+		//select values on the non-list column
 		selectedColumn.setColumnName("i0");
 		Set<String> facetValues = new HashSet<>();
 		facetValues.add("string0");
@@ -1948,7 +1966,7 @@ public class TableWorkerIntegrationTest {
 		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
-		assertEquals(2, facets.size());
+		assertEquals(3, facets.size());
 		
 		
 		//first facet should be string
@@ -1972,7 +1990,102 @@ public class TableWorkerIntegrationTest {
 		//it should affect the values in other columns when a facet of another column is selected
 		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
 		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
-		
+
+
+		//third facet should be string_list
+		FacetColumnResult strListFacet = facets.get(2);
+		assertEquals(FacetType.enumeration, strListFacet.getFacetType());
+		assertTrue(strListFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> enumListValues = ((FacetColumnResultValues)strListFacet).getFacetValues();
+		// the List's values should have been affected by selecting from the single value columns
+		// facet results for the list should match the selected values for column "i0" since the generated values
+		// simply wrap the exact same non-list values values into a list.
+		// (e.g. column "i0" (non-list) has value "string0" and column "i10" (list) has value "[\"string0\"]")
+		assertEquals(4, enumListValues.size());
+		assertEquals("otherstring1000000", enumListValues.get(0).getValue());
+		assertEquals((Long) 1L, enumListValues.get(0).getCount());
+
+		assertEquals("otherstring1000003", enumListValues.get(1).getValue());
+		assertEquals((Long) 1L, enumListValues.get(1).getCount());
+
+		assertEquals("string1000000", enumListValues.get(2).getValue());
+		assertEquals((Long) 1L, enumListValues.get(2).getCount());
+
+		assertEquals("string1000003", enumListValues.get(3).getValue());
+		assertEquals((Long) 1L, enumListValues.get(3).getCount());
+	}
+
+	@Test
+	public void testFacet_ListColumnValueSelected() throws Exception{
+		facetTestSetup();
+
+		long expectedMin = 203000;
+		long expectedMax = 203003;
+
+		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
+		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
+		//select values on the list column
+		selectedColumn.setColumnName("i10");
+		Set<String> facetValues = new HashSet<>();
+		facetValues.add("string1000000");
+		facetValues.add("otherstring1000003");
+		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
+		selectedFacets.add(selectedColumn);
+
+		query.setSql(simpleSql);
+		query.setOffset(5L);
+		query.setLimit(1L);
+		query.setSelectedFacets(selectedFacets);
+		queryOptions.withReturnFacets(true);
+		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		List<FacetColumnResult> facets = queryResultBundle.getFacets();
+		assertNotNull(facets);
+		assertEquals(3, facets.size());
+
+
+		//first facet should be string
+		FacetColumnResult strFacet = facets.get(0);
+		assertEquals(FacetType.enumeration, strFacet.getFacetType());
+		assertTrue(strFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> enumValues = ((FacetColumnResultValues)strFacet).getFacetValues();
+		// the non-list column's values should have been affected by selecting from the single value columns
+		// the generated values simply wrap the exact same non-list values values into a list.
+		// (e.g. column "i0" (non-list) has value "string0" and column "i10" (list) has value "[\"string0\"]")
+		assertEquals(2, enumValues.size());
+		assertEquals("string0", enumValues.get(0).getValue());
+		assertEquals((Long) 1L, enumValues.get(0).getCount());
+
+		assertEquals("string3", enumValues.get(1).getValue());
+		assertEquals((Long) 1L, enumValues.get(1).getCount());
+
+
+		//second facet is an integer range
+		FacetColumnResult intFacet = facets.get(1);
+		assertEquals(FacetType.range, intFacet.getFacetType());
+		assertTrue(intFacet instanceof FacetColumnResultRange);
+		FacetColumnResultRange facetRange = (FacetColumnResultRange) intFacet;
+		assertNotNull(facetRange);
+		//it should affect the values in other columns when a facet of another column is selected
+		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
+		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
+
+		//third facet is a string_list
+		FacetColumnResult strListFacet = facets.get(2);
+		assertEquals(FacetType.enumeration, strListFacet.getFacetType());
+		assertTrue(strListFacet instanceof FacetColumnResultValues);
+		List<FacetColumnResultValueCount> listEnumerationValues = ((FacetColumnResultValues) strListFacet).getFacetValues();
+		//selecting facet within same category should not affect the existence and counts of the other values
+		for(int i = 0; i < listEnumerationValues.size() ; i++){
+			FacetColumnResultValueCount enumVal = listEnumerationValues.get(i);
+			assertEquals(1, enumVal.getCount().longValue());
+			//each row list column has 2 values so first 2 rows will have row 1 and row 2
+			if(i < listEnumerationValues.size() / 2) {
+				assertEquals("otherstring100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+			}else{
+				assertEquals("string100000" + i % (listEnumerationValues.size() / 2), enumVal.getValue());
+			}
+		}
+
 	}
 	
 	@Test

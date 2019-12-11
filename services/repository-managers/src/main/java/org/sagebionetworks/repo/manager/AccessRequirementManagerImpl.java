@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
@@ -143,7 +144,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
+		List<Long> subjectIds = nodeDao.getEntityPathIds(entityId);
 		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
 
@@ -168,12 +169,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			RestrictableObjectDescriptor rod, ACCESS_TYPE accessType)
 					throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
-		List<String> subjectIds = new ArrayList<String>();
-		subjectIds.add(rod.getId());
+		List<Long> subjectIds = new ArrayList<Long>();
+		subjectIds.add(KeyFactory.stringToKey(rod.getId()));
 		List<Long> unmetARIds = null;
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
 			unmetARIds = new ArrayList<Long>();
-			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), false);
+			List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(rod.getId(), false);
 			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
@@ -190,7 +191,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				}
 			}
 			unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
-					Collections.singletonList(rod.getId()), rod.getType(), userInfo.getGroups(), 
+					Collections.singletonList(KeyFactory.stringToKey(rod.getId())), rod.getType(), userInfo.getGroups(), 
 					Collections.singletonList(accessType));
 		}
 		
@@ -221,11 +222,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(limit >= 1L && limit <= MAX_LIMIT,
 				"limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0L, "offset must be at least 0");
-		List<String> subjectIds = new ArrayList<String>();
+		List<Long> subjectIds = new ArrayList<Long>();
 		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
+			subjectIds.addAll(nodeDao.getEntityPathIds(rod.getId()));
 		} else {
-			subjectIds.add(rod.getId());
+			subjectIds.add(KeyFactory.stringToKey(rod.getId()));
 		}
 		return accessRequirementDAO.getAccessRequirementsForSubject(subjectIds, rod.getType(), limit, offset);
 	}
@@ -331,11 +332,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(request.getObjectId(), "RestrictionInformationRequest.objectId");
 		ValidateArgument.required(request.getRestrictableObjectType(), "RestrictionInformationRequest.restrictableObjectType");
 		RestrictionInformationResponse info = new RestrictionInformationResponse();
-		List<String> subjectIds;
+		List<Long> subjectIds;
 		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
-			subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, request.getObjectId(), true);
+			subjectIds = nodeDao.getEntityPathIds(request.getObjectId());
 		} else if (RestrictableObjectType.TEAM == request.getRestrictableObjectType()){
-			subjectIds = Arrays.asList(request.getObjectId());
+			subjectIds = Arrays.asList(KeyFactory.stringToKey(request.getObjectId()));
 		} else {
 			throw new IllegalArgumentException("Do not support retrieving restriction information for type: "+request.getRestrictableObjectType());
 		}

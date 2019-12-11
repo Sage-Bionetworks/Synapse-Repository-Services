@@ -1,10 +1,4 @@
-package org.sagebionetworks.table.cluster;
-
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+package org.sagebionetworks.table.query.util;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 

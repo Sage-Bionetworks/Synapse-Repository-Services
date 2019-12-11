@@ -55,6 +55,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -85,6 +87,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
@@ -388,6 +391,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
+	
+	/**
+	 * Max path depth for a node hierarchy.
+	 */
+	public static final int MAX_PATH_DEPTH = 100;
+	/**
+	 * A recursive sql call to get the full path of a given entity id (?). The limit
+	 * on the distance prevents an infinite loop for a circular path. To be used a
+	 * string template to set which columns should be selected. The ORDER BY clause
+	 * ensures the order is from root to leaf. Note: The results will include the
+	 * requested node as the last element.
+	 * 
+	 */
+	public static final String PATH_QUERY_TEMPLATE = "WITH RECURSIVE PATH (" + COL_NODE_ID + ", " + COL_NODE_NAME + ", "
+			+ COL_NODE_TYPE + ", " + COL_NODE_PARENT_ID + ", DISTANCE) AS " + "(SELECT " + COL_NODE_ID + ", "
+			+ COL_NODE_NAME + ", " + COL_NODE_TYPE + ", " + COL_NODE_PARENT_ID + ", 1 FROM " + TABLE_NODE
+			+ " AS N WHERE " + COL_NODE_ID + " = ?" + " UNION ALL" + " SELECT N." + COL_NODE_ID + ", N."
+			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
+			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
+			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
@@ -411,6 +434,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return header;
 		}
 	};
+	
+	private static final RowMapper<NameIdType> NAME_ID_TYPE_ROWMAPPER = (ResultSet rs, int rowNum) -> {
+		NameIdType header = new NameIdType();
+		Long entityId = rs.getLong(COL_NODE_ID);
+		header.withId(KeyFactory.keyToString(entityId));
+		EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+		header.withType(EntityTypeUtils.getEntityTypeClassName(type));
+		header.withName(rs.getString(COL_NODE_NAME));
+		return header;
+	};
+
 
 	private static final RowMapper<Node> NODE_MAPPER = new NodeMapper();
 	
@@ -1033,10 +1067,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		Reference ref = new Reference();
 		ref.setTargetId(nodeId);
-		ref.setTargetVersionNumber(versionNumber);
 		LinkedList<Reference> list = new LinkedList<Reference>();
 		list.add(ref);
 		List<EntityHeader> header = getEntityHeader(list);
@@ -1103,23 +1136,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return rowList;
 	}
-
-	/**
-	 * Create a header for 
-	 * @param nodeId
-	 * @param ptn
-	 * @return the entity header
-	 */
-	public static EntityHeader createHeaderFromParentTypeName(ParentTypeName ptn, Long versionNumber, String versionLabel) {
-		EntityHeader header = new EntityHeader();
-		header.setId(KeyFactory.keyToString(ptn.getId()));
-		header.setName(ptn.getName());
-		header.setVersionNumber(versionNumber);
-		header.setVersionLabel(versionLabel);
-		EntityType type = ptn.getType();
-		header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-		return header;
-	}
+	
 	/**
 	 * Fetch the Parent, Type, Name for a Node.
 	 * @param nodeId
@@ -1142,91 +1159,48 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
-	/**
-	 * returns up to n ancestors of nodeId, ordered from leaf to root and including the given node Id
-	 * 
-	 * @param nodeId
-	 * @param n
-	 * @return
-	 * @throws NotFoundException
-	 */
-	private List<ParentTypeName> getAncestorsPTN(Long nodeId, int depth) {
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		Map<String, Object> row = null;
-		try {
-			row = jdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Entity " + nodeId + " is not found.");
-		}
-		List<ParentTypeName> result = new ArrayList<ParentTypeName>();
-		for (int i=0; i<depth; i++) {
-			Long id = (Long)row.get(COL_NODE_ID+"_"+i);
-			if (id==null) break;
-			ParentTypeName ptn = new ParentTypeName();
-			ptn.setId(id);
-			ptn.setName((String)row.get(COL_NODE_NAME+"_"+i));
-			ptn.setParentId((Long)row.get(COL_NODE_PARENT_ID+"_"+i));
-			ptn.setType(EntityType.valueOf((String)row.get(COL_NODE_TYPE+"_"+i)));
-			result.add(ptn);
-		}
-		return result;
-	}
-	
-	public static String nodeAncestorSQL(int depth) {
-		if (depth<2) throw new IllegalArgumentException("Depth must be at least 1");
-		StringBuilder sb = new StringBuilder("SELECT ");
-		for (int i=0; i<depth; i++) {
-			if (i>0) sb.append(", ");
-			sb.append("n"+i+"."+COL_NODE_ID+" as "+COL_NODE_ID+"_"+i+", ");
-			sb.append("n"+i+"."+COL_NODE_NAME+" as "+COL_NODE_NAME+"_"+i+", ");
-			sb.append("n"+i+"."+COL_NODE_PARENT_ID+" as "+COL_NODE_PARENT_ID+"_"+i+", ");
-			sb.append("n"+i+"."+COL_NODE_TYPE+" as "+COL_NODE_TYPE+"_"+i);
-		}
-		sb.append(" \nFROM ");
-		sb.append(outerJoinElement(depth-1));
-		sb.append(" \nWHERE \nn0."+COL_NODE_ID+"=?");
-		return sb.toString();
-	}
-	
-	private static String outerJoinElement(int i) {
-		if (i<0) throw new IllegalArgumentException(""+i);
-		if (i==0) return "JDONODE n0";
-		return "("+outerJoinElement(i-1)+") \nLEFT OUTER JOIN JDONODE n"+(i)+" ON n"+(i-1)+".parent_id=n"+(i)+".id";
+	@Override
+	public List<Long> getEntityPathIds(String nodeId) {
+		String selectColumns = COL_NODE_ID;
+		String sql = String.format(PATH_QUERY_TEMPLATE, selectColumns);
+		List<Long> path = jdbcTemplate.queryForList(sql, Long.class, KeyFactory.stringToKey(nodeId));
+		validatePath(nodeId, path);
+		return path;
 	}
 	
 	@Override
-	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
-		// Call the recursive method
-		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
-		appendPathBatch(results, KeyFactory.stringToKey(nodeId));
-		return results;
+	public List<NameIdType> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
+		String selectColumns = COL_NODE_ID+","+COL_NODE_NAME+","+COL_NODE_TYPE;
+		String sql = String.format(PATH_QUERY_TEMPLATE, selectColumns);
+		List<NameIdType> path = jdbcTemplate.query(sql, NAME_ID_TYPE_ROWMAPPER, KeyFactory.stringToKey(nodeId));
+		validatePath(nodeId, path);
+		return path;
 	}
 	
-	public static final int BATCH_PATH_DEPTH = 5;
-
 	/**
-	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
-	 * node at a time.
-	 * The first EntityHeader in the results will be the Root Node, and the last EntityHeader will be the requested Node.
-	 * @param results
+	 * Validate the provide path result is valid.
 	 * @param nodeId
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @param path
 	 */
-	private void appendPathBatch(LinkedList<EntityHeader> results, Long nodeId){
-		List<ParentTypeName> ptns = getAncestorsPTN(nodeId, BATCH_PATH_DEPTH); // ordered from leaf to root, length always >=1
-		for (ParentTypeName ptn : ptns) {
-			EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
-			// Add at the front
-			results.add(0, header);
+	public static void validatePath(String nodeId, List<?> path) {
+		if(path.isEmpty()) {
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-		Long lastParentId = ptns.get(ptns.size()-1).getParentId();
-		if(lastParentId!= null){
-			// Recurse
-			appendPathBatch(results, lastParentId);
+		if(path.size() >= MAX_PATH_DEPTH) {
+			throw new IllegalStateException("Path depth limit of: "+MAX_PATH_DEPTH+" exceeded for: "+nodeId);
 		}
 	}
 	
+	@Override
+	public List<Long> getEntityPathIds(String nodeId, boolean includeSelf) {
+		List<Long> pathIds = getEntityPathIds(nodeId);
+		if (!includeSelf) {
+			// path automatically includes the self as the last item so it is removed.
+			pathIds.remove(pathIds.size()-1);
+		}
+		return pathIds;
+	}
+
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {
 		// Get the names
@@ -1975,6 +1949,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		this.jdbcTemplate.update(SQL_CREATE_SNAPSHOT_VERSION, request.getSnapshotComment(), label,
 				request.getSnapshotActivityId(), userId, modifiedOn, nodeId, revisionNumber);
 		return revisionNumber;
+	}
+
+	@Override
+	public String getNodeName(String nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		try {
+			return this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" =? ", String.class, KeyFactory.stringToKey(nodeId));
+		}catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 
 }

@@ -319,7 +319,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testFindViewsContainingEntity(){
-		Set<Long> path = Sets.newHashSet(123L,456L);
+		List<Long> path = Lists.newArrayList(123L,456L);
 		when(mockTableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
 		Set<Long> expected = Sets.newHashSet(789L);
 		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
