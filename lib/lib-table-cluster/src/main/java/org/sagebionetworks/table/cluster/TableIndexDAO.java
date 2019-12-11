@@ -198,6 +198,8 @@ public interface TableIndexDAO {
 	 */
 	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
+	void deleteListColumnIndexTables(IdAndVersion idAndVersion, List<Long> columnIdsToDrop);
+
 	/**
 	 * Truncate all of the data in the given table.
 	 * 

@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import javax.sql.DataSource;
 
 import com.google.common.collect.Maps;
@@ -438,6 +439,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 
 		return true;
+	}
+
+	@Override
+	public void deleteListColumnIndexTables(IdAndVersion idAndVersion, List<Long> columnIdsToDrop){
+		if(columnIdsToDrop == null || columnIdsToDrop.isEmpty()){
+			return;
+		}
+		StringJoiner joiner = new StringJoiner(",", "DROP TABLE ", "");
+		for(Long columnId : columnIdsToDrop){
+			joiner.add(SQLUtils.getTableNameForMultiValueColumnIndex(idAndVersion, columnId.toString()));
+		}
+
+		template.update(joiner.toString());
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,6 +31,7 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -145,6 +147,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	@Override
 	public void deleteTableIndex(final IdAndVersion tableId) {
+		// Get the current schema.
+		List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
+		//find drop index tables for columns with columnType: _LIST
+		List<Long> columnIdsToDrop = tableInfo.stream()
+				.filter(columnInfo -> ColumnTypeListMappings.isList(columnInfo.getColumnType()))
+				.map(SQLUtils::getColumnId)
+				.collect(Collectors.toList());
+		tableIndexDao.deleteListColumnIndexTables(tableId, columnIdsToDrop);
+
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 		tableIndexDao.deleteSecondaryTables(tableId);

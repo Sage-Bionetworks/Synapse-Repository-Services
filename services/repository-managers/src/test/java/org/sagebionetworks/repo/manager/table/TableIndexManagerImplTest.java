@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import io.opencensus.metrics.LongGauge;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -308,10 +311,43 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testDeleteTableIndex(){
+	public void testDeleteTableIndex_noListColumns(){
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Collections.emptyList());
+
+		//method under test
 		manager.deleteTableIndex(tableId);
+
+		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao).deleteSecondaryTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
+		verify(mockIndexDao).deleteListColumnIndexTables(tableId, Collections.emptyList());
+	}
+
+	@Test
+	public void testDeleteTableIndex(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		rowId.setColumnType(ColumnType.INTEGER);
+		DatabaseColumnInfo strListCol = new DatabaseColumnInfo();
+		strListCol.setColumnName("_C111_");
+		strListCol.setColumnType(ColumnType.STRING_LIST);
+		DatabaseColumnInfo strCol = new DatabaseColumnInfo();
+		strCol.setColumnName("_C222_");
+		strCol.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo intListCol = new DatabaseColumnInfo();
+		intListCol.setColumnName("_C333_");
+		intListCol.setColumnType(ColumnType.INTEGER_LIST);
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, strListCol, strCol, intListCol);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(curretIndexSchema);
+
+		//method under test
+		manager.deleteTableIndex(tableId);
+
+		verify(mockIndexDao).getDatabaseInfo(tableId);
+		verify(mockIndexDao).deleteSecondaryTables(tableId);
+		verify(mockIndexDao).deleteTable(tableId);
+		verify(mockIndexDao).deleteListColumnIndexTables(tableId, Arrays.asList(111L, 333L));
+
 	}
 	
 	@Test
