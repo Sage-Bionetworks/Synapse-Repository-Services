@@ -518,8 +518,6 @@
     
 	<bean id="challengeManager" class="org.sagebionetworks.repo.manager.ChallengeManagerImpl" scope="singleton"/>
     
-	<bean id="verificationManager" class="org.sagebionetworks.repo.manager.VerificationManagerImpl" scope="singleton"/>
-	
 	<bean id="tableEntityTransactionManager"
 		class="org.sagebionetworks.repo.manager.table.TableEntityTransactionManager"
 		scope="singleton"/>

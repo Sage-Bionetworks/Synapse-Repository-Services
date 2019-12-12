@@ -44,7 +44,9 @@ import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class VerificationManagerImpl implements VerificationManager {
 	
 	@Autowired
@@ -125,6 +127,8 @@ public class VerificationManagerImpl implements VerificationManager {
 				attachmentMetadata.setFileName(fileHandle.getFileName());
 			}
 		}
+		// Note: We use the user id instead of the verification submission id so that we record all the submissions of the user?
+		// See (VerificationSubmissionObjectRecordWriter)
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
