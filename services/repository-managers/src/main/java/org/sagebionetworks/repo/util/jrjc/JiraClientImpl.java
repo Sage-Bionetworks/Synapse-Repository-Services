@@ -45,8 +45,8 @@ public class JiraClientImpl implements JiraClient {
     	URI jiraServerUri = URI.create(JIRA_URL);
     	this.restClient = factory.createWithBasicHttpAuthentication(
     			jiraServerUri, 
-    			StackConfigurationSingleton.singleton().getJiraUserName(), 
-    			StackConfigurationSingleton.singleton().getJiraUserPassword());
+    			StackConfigurationSingleton.singleton().getJiraUserEmail(), 
+    			StackConfigurationSingleton.singleton().getJiraUserApikey());
 	}
 
 	@Override
