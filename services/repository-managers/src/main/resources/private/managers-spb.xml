@@ -218,7 +218,7 @@
 				</entry>
 				<entry key="VerificationSubmission">
 					<bean
-						class="org.sagebionetworks.repo.manager.VerificationFileHandleAssociationProvider" />
+						class="org.sagebionetworks.repo.manager.verification.VerificationFileHandleAssociationProvider" />
 				</entry>
 				<entry key="FileEntity">
 					<bean

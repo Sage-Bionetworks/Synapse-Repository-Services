@@ -1,11 +1,11 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.web.service.verification;
 
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.VerificationManager;
+import org.sagebionetworks.repo.manager.verification.VerificationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;

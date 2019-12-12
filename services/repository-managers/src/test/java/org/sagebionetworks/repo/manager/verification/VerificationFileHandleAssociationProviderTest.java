@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.verification;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
@@ -10,7 +10,8 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.manager.verification.VerificationFileHandleAssociationProvider;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class VerificationFileHandleAssociationProviderTest {

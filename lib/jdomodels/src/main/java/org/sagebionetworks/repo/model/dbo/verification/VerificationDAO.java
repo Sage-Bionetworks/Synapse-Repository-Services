@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.dbo.verification;
 
 import java.util.List;
 import java.util.Set;
