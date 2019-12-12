@@ -1092,6 +1092,8 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static Map<Long, Integer> createColumnIdToColumnIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema) {
+		ValidateArgument.required(rowValues, "header");
+		ValidateArgument.required(schema, "schema");
 		Map<String, Long> nameMap = createNameToIDMap(schema);
 		// Build the map from the names
 		Map<Long, Integer> columnIdToColumnIndexMap = Maps.newHashMap();

@@ -86,7 +86,11 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 		if (isFirstLineHeader) {
 			// read the header
 			rowLineNumber++;
-			return reader.readNext();
+			String[] header = reader.readNext();
+			if (header == null) {
+				throw new IllegalArgumentException("Expected the first line to be the header but was empty.");
+			}
+			return header;
 		}
 		boolean lastRowIncludesRowIdAndVersion = false;
 		boolean includeEtag = false;
