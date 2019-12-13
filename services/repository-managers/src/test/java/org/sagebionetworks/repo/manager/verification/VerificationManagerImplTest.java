@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.manager.verification;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -21,16 +22,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.manager.verification.VerificationManagerImpl;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -38,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -49,8 +55,8 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
+@ExtendWith(MockitoExtension.class)
 public class VerificationManagerImplTest {
-	
 	
 	private static final Long USER_ID = 101L;
 	private static final String USER_NAME = "username";
@@ -66,24 +72,30 @@ public class VerificationManagerImplTest {
 
 	private static final Long VERIFICATION_ID = 222L;
 
-	
+	@Mock
 	private VerificationDAO mockVerificationDao;
 	
+	@Mock
 	private UserProfileManager mockUserProfileManager;
 	
+	@Mock
 	private FileHandleManager mockFileHandleManager;
 	
+	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
 
+	@InjectMocks
 	private VerificationManagerImpl verificationManager;
 	
+	private FileHandle fileHandle;
+
 	private UserInfo userInfo;
-	private VerificationSubmission verificationSubmission;
-	
 
 	private static UserProfile createUserProfile() {
 		UserProfile userProfile = new UserProfile();
@@ -111,49 +123,41 @@ public class VerificationManagerImplTest {
 	}
 	
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID);
-		mockVerificationDao = Mockito.mock(VerificationDAO.class);
-		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
-		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		verificationManager = new VerificationManagerImpl(
-				mockVerificationDao,
-				mockUserProfileManager,
-				mockFileHandleManager,
-				mockPrincipalAliasDAO,
-				mockAuthorizationManager,
-				mockTransactionalMessenger);
+		
+		fileHandle = new S3FileHandle();
+		fileHandle.setId(FILE_HANDLE_ID);
+		fileHandle.setFileName(FILE_NAME);
 		
 		UserProfile userProfile = createUserProfile();
-		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).
-			thenReturn(userProfile);
+		lenient().when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
+		
 		PrincipalAlias orcidAlias = new PrincipalAlias();
 		orcidAlias.setAlias(ORCID);
 		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+		lenient().when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+		
 		PrincipalAlias actAlias = new PrincipalAlias();
 		actAlias.setAlias("Synapse Access and Compliance Team");
 		List<PrincipalAlias> actPaList = Collections.singletonList(actAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(
+		
+		lenient().when(mockPrincipalAliasDAO.listPrincipalAliases(
 				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
 				thenReturn(actPaList);
-		verificationSubmission = createVerificationSubmission();
-		when(mockVerificationDao.
-				createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
-		FileHandle fileHandle = Mockito.mock(FileHandle.class);
-		when(fileHandle.getId()).thenReturn(FILE_HANDLE_ID);
-		when(fileHandle.getFileName()).thenReturn(FILE_NAME);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 	}
 	
 	@Test
 	public void testCreateVerificationSubmission() {
+		
+		VerificationSubmission verificationSubmission = createVerificationSubmission();
+		
+		when(mockVerificationDao.createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
+		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
 		// method under test:
 		verificationSubmission = verificationManager.
 				createVerificationSubmission(userInfo, verificationSubmission);
@@ -168,21 +172,31 @@ public class VerificationManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testCreateVerificationSubmissionDuplicateAttachment() throws Exception {
+		
+		VerificationSubmission verificationSubmission = createVerificationSubmission();
+		
+		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
 		// Duplicate attachment
 		AttachmentMetadata attachment = verificationSubmission.getAttachments().get(0);
 		List<AttachmentMetadata> attachments = Arrays.asList(attachment, attachment);
 		verificationSubmission.setAttachments(attachments);
-		// Call under test
-		verificationSubmission = verificationManager.
-				createVerificationSubmission(userInfo, verificationSubmission);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// Call under test
+			verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
+		});
 	}
 	
 	@Test
 	public void testCreateVerificationSubmissionAlreadyCreated() {
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		VerificationSubmission current = createVerificationSubmission();
+		
+		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		
 		List<VerificationState> states = new ArrayList<VerificationState>();
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.SUBMITTED);
@@ -276,13 +290,16 @@ public class VerificationManagerImplTest {
 		}
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testCreateVerificationSubmissionUnauthorizedFile() {
+		VerificationSubmission verificationSubmission = createVerificationSubmission();
+		
 		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenThrow(new UnauthorizedException());
 
-		// method under test:
-		verificationSubmission = verificationManager.
-				createVerificationSubmission(userInfo, verificationSubmission);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			// method under test:
+			verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
+		});
 	}
 
 	@Test
@@ -292,10 +309,13 @@ public class VerificationManagerImplTest {
 		verify(mockVerificationDao).deleteVerificationSubmission(VERIFICATION_ID);
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testDeleteVerificationSubmissionUnauthorized() {
 		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID*13);
-		verificationManager.deleteVerificationSubmission(userInfo, VERIFICATION_ID);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			verificationManager.deleteVerificationSubmission(userInfo, VERIFICATION_ID);
+		});
 	}
 
 	@Test
@@ -318,11 +338,14 @@ public class VerificationManagerImplTest {
 		assertEquals(expected, result);
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testListVerificationSubmissionsUnauthorized() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		List<VerificationStateEnum> states = Collections.singletonList(VerificationStateEnum.SUBMITTED);
-		verificationManager.listVerificationSubmissions(userInfo, states, USER_ID, 10, 0);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			verificationManager.listVerificationSubmissions(userInfo, states, USER_ID, 10, 0);
+		});
 	}
 
 	@Test
@@ -342,7 +365,7 @@ public class VerificationManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 
-	@Test(expected=InvalidModelException.class)
+	@Test
 	public void testChangeSubmissionStateTransitionNotAllowed() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockVerificationDao.getVerificationState(VERIFICATION_ID)).thenReturn(
@@ -350,7 +373,10 @@ public class VerificationManagerImplTest {
 		
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
-		verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
+		
+		Assertions.assertThrows(InvalidModelException.class, ()-> {
+			verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
+		});
 	}
 	
 	public void testIsStateTransitionAllowed() {
@@ -377,12 +403,15 @@ public class VerificationManagerImplTest {
 	}
 
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testChangeSubmissionStateUnauthorzed() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
-		verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			verificationManager.changeSubmissionState(userInfo, VERIFICATION_ID, state);
+		});
 	}
 
 

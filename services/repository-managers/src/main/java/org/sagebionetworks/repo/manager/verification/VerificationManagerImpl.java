@@ -49,22 +49,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class VerificationManagerImpl implements VerificationManager {
 	
-	@Autowired
 	private VerificationDAO verificationDao;
-	
-	@Autowired
 	private UserProfileManager userProfileManager;
-	
-	@Autowired
 	private FileHandleManager fileHandleManager;
-	
-	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
 	private AuthorizationManager authorizationManager;
-
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
 	public static final String VERIFICATION_APPROVED_TEMPLATE = "message/verificationApprovedTemplate.html";
@@ -75,10 +64,8 @@ public class VerificationManagerImpl implements VerificationManager {
 	public static final String VERIFICATION_SUSPENDED_NO_REASON_TEMPLATE = "message/verificationSuspendedNoReasonTemplate.html";
 
 	public static final String VERIFICATION_NOTIFICATION_SUBJECT = "Synapse Identity Verification Request";
-	
-	public VerificationManagerImpl() {}
 
-	// for testing
+	@Autowired
 	public VerificationManagerImpl(
 			VerificationDAO verificationDao,
 			UserProfileManager userProfileManager,
@@ -100,25 +87,24 @@ public class VerificationManagerImpl implements VerificationManager {
 			UserInfo userInfo, VerificationSubmission verificationSubmission) {
 		// check whether there is already an active (submitted or approved) verification submission
 		VerificationSubmission current = verificationDao.getCurrentVerificationSubmissionForUser(userInfo.getId());
-		if (current!=null) {
+		if (current != null) {
 			List<VerificationState> states = current.getStateHistory();
-			VerificationStateEnum state = states.get(states.size()-1).getState();
-			if (state==VerificationStateEnum.SUBMITTED) {
+			VerificationStateEnum state = states.get(states.size() - 1).getState();
+			if (state == VerificationStateEnum.SUBMITTED) {
 				throw new UnauthorizedException("A verification request has already been submitted.");
-			} else if (state==VerificationStateEnum.APPROVED) {
+			} else if (state == VerificationStateEnum.APPROVED) {
 				throw new UnauthorizedException("You are already verified.");
 			}
 		}
 		populateCreateFields(verificationSubmission, userInfo, new Date());
-		validateVerificationSubmission(verificationSubmission, 
-				userProfileManager.getUserProfile(userInfo.getId().toString()),
+		validateVerificationSubmission(verificationSubmission, userProfileManager.getUserProfile(userInfo.getId().toString()),
 				getOrcid(userInfo.getId()));
-		// 		User must be owner of file handle Ids
-		if (verificationSubmission.getAttachments()!=null) {
+		// User must be owner of file handle Ids
+		if (verificationSubmission.getAttachments() != null) {
 			Set<String> fileHandleIds = new HashSet<>();
 			for (AttachmentMetadata attachmentMetadata : verificationSubmission.getAttachments()) {
 				String fileHandleId = attachmentMetadata.getId();
-				if (! fileHandleIds.add(fileHandleId)) {
+				if (!fileHandleIds.add(fileHandleId)) {
 					throw new IllegalArgumentException("Duplicate file handle: " + fileHandleId);
 				}
 				// this will throw an UnauthorizedException if the user is not the owner
@@ -127,9 +113,10 @@ public class VerificationManagerImpl implements VerificationManager {
 				attachmentMetadata.setFileName(fileHandle.getFileName());
 			}
 		}
-		// Note: We use the user id instead of the verification submission id so that we record all the submissions of the user?
+		// Note: We use the user id instead of the verification submission id so that we record all the submissions of the user
 		// See (VerificationSubmissionObjectRecordWriter)
-		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag",
+				ChangeType.CREATE);
 		return verificationDao.createVerificationSubmission(verificationSubmission);
 	}
 	
@@ -173,9 +160,9 @@ public class VerificationManagerImpl implements VerificationManager {
 
 	@Override
 	public void deleteVerificationSubmission(UserInfo userInfo, Long verificationId) {
-		if (!userInfo.isAdmin() && 
-				userInfo.getId()!=verificationDao.getVerificationSubmitter(verificationId))
+		if (!userInfo.isAdmin() &&  userInfo.getId() != verificationDao.getVerificationSubmitter(verificationId)) {
 			throw new UnauthorizedException("Only the creator of a verification submission may delete it.");
+		}
 		verificationDao.deleteVerificationSubmission(verificationId);
 	}
 	
@@ -184,8 +171,9 @@ public class VerificationManagerImpl implements VerificationManager {
 			UserInfo userInfo, List<VerificationStateEnum> currentVerificationState,
 			Long verifiedUserId, long limit, long offset) {
 		// check that user is in ACT (or an admin)
-		if(!authorizationManager.isACTTeamMemberOrAdmin(userInfo))
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("You are not a member of the Synapse Access and Compliance Team.");
+		}
 		List<VerificationSubmission>  list = verificationDao.listVerificationSubmissions(currentVerificationState, verifiedUserId, limit, offset);
 		long totalNumberOfResults = verificationDao.countVerificationSubmissions(currentVerificationState, verifiedUserId);
 		VerificationPagedResults result = new VerificationPagedResults();
@@ -199,36 +187,22 @@ public class VerificationManagerImpl implements VerificationManager {
 	public void changeSubmissionState(UserInfo userInfo,
 			long verificationSubmissionId, VerificationState newState) {
 		// check that user is in ACT (or an admin)
-		if(!authorizationManager.isACTTeamMemberOrAdmin(userInfo))
+		if(!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("You are not a member of the Synapse Access and Compliance Team.");
+		}
+		
 		// check that the state transition is allowed, by comparing to the current state
 		VerificationStateEnum currentState = verificationDao.getVerificationState(verificationSubmissionId);
-		if (!isStateTransitionAllowed(currentState, newState.getState()))
+		
+		if (!isStateTransitionAllowed(currentState, newState.getState())) {
 			throw new InvalidModelException("Cannot transition verification submission from "+currentState+" to "+newState.getState());
-		populateCreateFields(newState, userInfo, new Date());
+		}
+		
+		newState.setCreatedBy(userInfo.getId().toString());
+		newState.setCreatedOn(new Date());
+	
 		verificationDao.appendVerificationSubmissionState(verificationSubmissionId, newState);
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
-	}
-	
-	public static void populateCreateFields(VerificationState state, UserInfo userInfo, Date now) {
-		state.setCreatedBy(userInfo.getId().toString());
-		state.setCreatedOn(now);
-	}
-
-	
-	public static boolean isStateTransitionAllowed(VerificationStateEnum currentState, VerificationStateEnum newState) {
-		switch (currentState) {
-		case SUBMITTED:
-			return newState==APPROVED || newState==REJECTED;
-		case APPROVED:
-			return newState==SUSPENDED;
-		case REJECTED:
-			return false;
-		case SUSPENDED:
-			return false;
-		default:
-			throw new InvalidModelException("Unexpected state "+currentState);
-		}
 	}
 
 	@Override
@@ -299,5 +273,20 @@ public class VerificationManagerImpl implements VerificationManager {
 		return Collections.singletonList(new MessageToUserAndBody(
 				mtu, messageContent, ContentType.TEXT_HTML.getMimeType()));
 	}
-
+	
+	public static boolean isStateTransitionAllowed(VerificationStateEnum currentState, VerificationStateEnum newState) {
+		switch (currentState) {
+		case SUBMITTED:
+			return newState==APPROVED || newState==REJECTED;
+		case APPROVED:
+			return newState==SUSPENDED;
+		case REJECTED:
+			return false;
+		case SUSPENDED:
+			return false;
+		default:
+			throw new InvalidModelException("Unexpected state "+currentState);
+		}
+	}
+	
 }

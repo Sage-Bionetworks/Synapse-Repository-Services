@@ -1,19 +1,22 @@
 package org.sagebionetworks.repo.manager.verification;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.verification.VerificationFileHandleAssociationProvider;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class VerificationFileHandleAssociationProviderTest {
 	
 	private VerificationDAO mockVerificationDao;
@@ -21,7 +24,7 @@ public class VerificationFileHandleAssociationProviderTest {
 	private static final Long VERIFICATION_ID = 111L;
 	private static final Long FH_ID = 222L;
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		mockVerificationDao = Mockito.mock(VerificationDAO.class);
 		provider = new VerificationFileHandleAssociationProvider();
