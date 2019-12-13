@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -126,7 +128,11 @@ public class VerificationDAOImpl implements VerificationDAO {
 			+ " SELECT MAX(S3."+COL_VERIFICATION_STATE_CREATED_ON+")"
 			+ " FROM "+TABLE_VERIFICATION_STATE+" S3"
 			+ " WHERE S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S3."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
+	
+	private static final String SQL_GET_SUBMISSION = "SELECT * FROM " + TABLE_VERIFICATION_SUBMISSION + " WHERE " + COL_VERIFICATION_SUBMISSION_ID + " = ?";
 
+	private static final String SQL_DELETE_FILE_IDS = "DELETE FROM " + TABLE_VERIFICATION_FILE + " WHERE " + COL_VERIFICATION_FILE_VERIFICATION_ID + " = ?";
+	
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			new DBOVerificationSubmission().getTableMapping();
 	
@@ -156,23 +162,34 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
-		try {
-			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		dbo.setSerialized(serializeDTO(dto));
 		return dbo;
 	}
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
-		VerificationSubmission dto = new VerificationSubmission();
-		try {
-			dto = (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		VerificationSubmission dto = deserializeDTO(dbo);
+		// Avoid breaking the client
+		if (dto.getAttachments() == null) {
+			dto.setAttachments(Collections.emptyList());
 		}
 		dto.setStateHistory(stateHistory);
 		return dto;
+	}
+	
+	private static byte[] serializeDTO(VerificationSubmission dto) {
+		try {
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) {
+		try {
+			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {
@@ -192,9 +209,12 @@ public class VerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void deleteVerificationSubmission(long verificationId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), verificationId);
-		basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
+		wrapSubmissionNotFound(verificationId, () -> {
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), verificationId);
+			basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
+			return false;
+		});
 	}
 
 	@WriteTransaction
@@ -343,7 +363,15 @@ public class VerificationDAOImpl implements VerificationDAO {
 	
 	@Override
 	public List<Long> listFileHandleIds(long verificationId) {
-		return jdbcTemplate.queryForList(FILE_IDS_IN_VERIFICATION_SQL, Long.class, verificationId);
+		return listFileHandleIds(verificationId, false);
+	}
+	
+	private List<Long> listFileHandleIds(long verificationId, boolean forUpdate) {
+		StringBuilder sql = new StringBuilder(FILE_IDS_IN_VERIFICATION_SQL);
+		if (forUpdate) {
+			sql.append(" FOR UPDATE");
+		}
+		return jdbcTemplate.queryForList(sql.toString(), Long.class, verificationId);
 	}
 
 	@Override
@@ -363,16 +391,18 @@ public class VerificationDAOImpl implements VerificationDAO {
 	}
 
 	@Override
-	public VerificationStateEnum getVerificationState(
-			long verificationId) {
-		String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
-		return VerificationStateEnum.valueOf(stateName);
+	public VerificationStateEnum getVerificationState(long verificationId) {
+		return wrapSubmissionNotFound(verificationId, () -> {
+			String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
+			return VerificationStateEnum.valueOf(stateName);
+		});
 	}
 
 	@Override
 	public long getVerificationSubmitter(long verificationId) {
-		return jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId);
-		
+		return wrapSubmissionNotFound(verificationId, () -> 
+			jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId)
+		);
 	}
 
 	@Override
@@ -384,6 +414,37 @@ public class VerificationDAOImpl implements VerificationDAO {
 		params.addValue(IDS_PARAM, userIds);
 		Integer count = namedJdbcTemplate.queryForObject(SQL_VALIDATED_COUNT, params, Integer.class);
 		return count.equals(userIds.size());
+	}
+	
+	@Override
+	public List<Long> removeFileHandleIds(long verificationId) {
+		DBOVerificationSubmission dbo = wrapSubmissionNotFound(verificationId, () -> 
+				jdbcTemplate.queryForObject(SQL_GET_SUBMISSION, DBO_VERIFICATION_SUB_MAPPING, verificationId)
+		);
+		
+		VerificationSubmission dto = deserializeDTO(dbo);
+		
+		// Clear the attachments from the DTO
+		dto.setAttachments(null);
+		dbo.setSerialized(serializeDTO(dto));
+		
+		basicDao.update(dbo);
+		
+		// Get the list of ids
+		List<Long> fileHandleIds = listFileHandleIds(verificationId, true);
+		
+		// Drop the ids
+		jdbcTemplate.update(SQL_DELETE_FILE_IDS, verificationId);
+		
+		return fileHandleIds;
+	}
+	
+	private <T> T wrapSubmissionNotFound(long verificationId, Supplier<T> supplier) {
+		try {
+			return supplier.get();
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("A verification submission with id " + verificationId + " could not be found");
+		}
 	}
 
 }

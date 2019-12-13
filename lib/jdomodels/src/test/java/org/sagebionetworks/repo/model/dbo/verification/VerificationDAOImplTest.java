@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,15 +96,15 @@ public class VerificationDAOImplTest {
 		}
 		dto.setCompany(COMPANY);
 		dto.setEmails(EMAILS);
+		List<AttachmentMetadata> attachments = new ArrayList<AttachmentMetadata>();
 		if (fileHandleIds!=null) {
-			List<AttachmentMetadata> attachments = new ArrayList<AttachmentMetadata>();
 			for (String fileHandleId : fileHandleIds) {
 				AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
 				attachmentMetadata.setId(fileHandleId);
 				attachments.add(attachmentMetadata);
 			}
-			dto.setAttachments(attachments);
 		}
+		dto.setAttachments(attachments);
 		dto.setFirstName(FIRST_NAME);
 		dto.setLastName(LAST_NAME);
 		dto.setLocation(LOCATION);
@@ -518,4 +519,31 @@ public class VerificationDAOImplTest {
 		userIds.add(USER_2_ID);
 		assertFalse(verificationDao.haveValidatedProfiles(userIds));
 	}
+	
+	@Test
+	public void testRemoveFileHandles() throws Exception {
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		
+		List<String> fileHandleIds = Arrays.asList(fh1.getId(), fh2.getId());
+		
+		long user1long = Long.parseLong(USER_1_ID);
+		
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		
+		vsToDelete.add(created.getId());
+		
+		assertEquals(2, created.getAttachments().size());
+		
+		List<Long> removed = verificationDao.removeFileHandleIds(Long.valueOf(created.getId()));
+		List<String> removedString = removed.stream().map(Object::toString).collect(Collectors.toList());
+		
+		assertEquals(fileHandleIds, removedString);
+		
+		VerificationSubmission current = verificationDao.getCurrentVerificationSubmissionForUser(user1long);
+		
+		assertTrue(current.getAttachments().isEmpty());
+	}
+	
 }
