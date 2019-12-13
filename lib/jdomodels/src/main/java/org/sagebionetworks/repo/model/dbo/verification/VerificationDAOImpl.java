@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -163,6 +164,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setSerialized(serializeDTO(dto));
+		dbo.setEtag(UUID.randomUUID().toString());
 		return dbo;
 	}
 	
@@ -323,6 +325,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dbo.setId(stateId);
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setEtag(UUID.randomUUID().toString());
 		
 		if (!StringUtils.isBlank(dto.getReason())) {
 			byte[] reason = dto.getReason().getBytes(StandardCharsets.UTF_8);
@@ -427,6 +430,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		// Clear the attachments from the DTO
 		dto.setAttachments(null);
 		dbo.setSerialized(serializeDTO(dto));
+		dbo.setEtag(UUID.randomUUID().toString());
 		
 		basicDao.update(dbo);
 		
