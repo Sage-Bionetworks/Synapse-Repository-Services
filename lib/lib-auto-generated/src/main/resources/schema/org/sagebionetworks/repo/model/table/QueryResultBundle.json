@@ -43,8 +43,8 @@
 			"description": "The sum of the file size for all files in the given view query. Use mask = 0x40 to include in the bundle.",
 			"$ref": "org.sagebionetworks.repo.model.table.SumFileSizes"
 		},
-		"estimatedUpToDate": {
-			"description": "When true, the returned view query results are estimated to be up-to-date.  Note: This is only an estimate, as view query results are eventually consistent. Use mask = 0x80 to include in the bundle for view queries.",
+		"isViewOutOfDate": {
+			"description": "Only returned for view query results. When true, the data in the view is consider to be out-of-date (stale) and the view will be updated when the changes stablized.",
 			"type": "boolean"
 		}
 	}

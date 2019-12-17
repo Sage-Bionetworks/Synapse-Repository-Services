@@ -140,17 +140,6 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
-	public void testEstimateUpToDate() {
-		// call under test
-		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_ESTIMATED_UP_TO_DATE);
-		assertTrue(options.isEstimatedUpToDate());
-		// the rest of the values should be false
-		options.withRunSumFileSizes(false);
-		boolean expectedValue = false;
-		assertAll(expectedValue, options);
-	}
-	
-	@Test
 	public void testGetMaskNone() {
 		QueryOptions options = new QueryOptions();
 		// call under test
