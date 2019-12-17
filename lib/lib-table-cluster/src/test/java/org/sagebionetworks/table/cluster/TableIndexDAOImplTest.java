@@ -2453,4 +2453,44 @@ public class TableIndexDAOImplTest {
 
 		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
+
+	//See PLFM-5999
+	@Test
+	public void testCreateAndPopulateListColumnIndexTables__StringListDataTooLarge(){
+
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setId("15");
+		stringListColumn.setName("myList");
+		// initial size needs to be large to allow initial values to be inserted into table
+		// in a view, values are replicated from
+		stringListColumn.setMaximumSize(54L);
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+
+
+		List<ColumnModel> schema = Lists.newArrayList(stringListColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		int numRows = 5;
+		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+		// make size a very small value to replicate annotation values
+		// larger than the defined max size being inserted copied into a view
+		stringListColumn.setMaximumSize(1L);
+		createOrUpdateTable(schema, tableId, isView);
+
+
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		String message = assertThrows(IllegalArgumentException.class, ()-> {
+			//method under test
+			tableIndexDAO.populateListColumnIndexTables(tableId, schema);
+		}).getMessage();
+
+		assertEquals("The size of the column 'myList' is too small." +
+				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
+
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
+		listColumnIndexTablesToDrop.add(listColumnindexTableName);
+	}
 }

@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -1532,15 +1533,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
+	
+	
+	/**
+	 * As part of PLFM-6061, the implementation of this method was changed from n number of SQL calls to a single
+	 * 'WITH RECURSIVE' call. The change eliminates sending intermediate results back and forth from the server and
+	 * database.
 	 */
 	@Override
 	public Set<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds) throws LimitExceededException {
 		ValidateArgument.required(parentIds, "parentIds");
-		// the parentIds are always included.
 		Set<Long> results = new LinkedHashSet<Long>(parentIds);
 		if(parentIds.isEmpty()){
 			return results;
@@ -1548,26 +1550,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
 		parameters.put(IDS_PARAM_NAME, parentIds);
 		parameters.put(BIND_LIMIT, maxNumberIds+1);
-		while(true){
-			// Get all children at this level.
-			List<Long> children = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
-			if(children.isEmpty()){
-				// done
-				return results;
-			}
-			/*
-			 * If the children size is over the max then a single page exceeded
-			 * the max. If the children size + result size is over the max then
-			 * the total number exceed the max.
-			 */
-			if(children.size() > maxNumberIds
-					|| children.size()+results.size() > maxNumberIds){
-				throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
-			}
-			results.addAll(children);
-			// Children become the parents
-			parameters.put(IDS_PARAM_NAME, children);
+		List<Long> children = namedParameterJdbcTemplate.queryForList(
+				"WITH RECURSIVE CONTAINERS (ID) AS (" + 
+				" SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:"+IDS_PARAM_NAME+")"
+						+ " AND "+COL_NODE_TYPE+" IN ('"+EntityType.project.name()+"','"+EntityType.folder.name()+"')" + 
+				" UNION DISTINCT" + 
+				" SELECT N."+COL_NODE_ID+" FROM CONTAINERS AS C JOIN "+TABLE_NODE+" AS N ON (C."+COL_NODE_ID+" = N."+COL_NODE_PARENT_ID
+					+" AND N."+COL_NODE_TYPE+" IN ('"+EntityType.project.name()+"','"+EntityType.folder.name()+"'))" + 
+				")" + 
+				"SELECT ID FROM CONTAINERS LIMIT :"+BIND_LIMIT, parameters, Long.class);
+		Set<Long> finalSet = new HashSet<>(children);
+		if(finalSet.size() > maxNumberIds
+				|| children.size()+results.size() > maxNumberIds){
+			throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
 		}
+		return finalSet;
 	}
 	
 	/*

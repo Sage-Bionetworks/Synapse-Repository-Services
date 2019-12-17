@@ -9,11 +9,11 @@
     "properties":{
         "fileDownloads": {
         	"type": "boolean",
-        	"description": "Specifies if the statistics about file downloads should be included in the response"
+        	"description": "Specifies if the statistics about file downloads should be included in the response, defaults to true"
         },
         "fileUploads": {
         	"type": "boolean",
-        	"description": "Specifies if the statistics about file uploads should be included in the response"
+        	"description": "Specifies if the statistics about file uploads should be included in the response, defaults to true"
         }
     }
 }

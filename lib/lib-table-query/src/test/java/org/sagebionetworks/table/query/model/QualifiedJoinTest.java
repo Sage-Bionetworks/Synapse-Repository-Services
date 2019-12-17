@@ -12,15 +12,6 @@ class QualifiedJoinTest {
 	TableReference rhs;
 
 	@Test
-	public void testNoJoinCondition() throws ParseException {
-		lhs = new TableQueryParser("tableA").tableReference();
-		rhs = new TableQueryParser("tableB").tableReference();
-		//not exposed to parser so no parsing of qualified join string
-		QualifiedJoin join = new QualifiedJoin(lhs, rhs);
-		assertEquals("tableA JOIN tableB", join.toSql());
-	}
-
-	@Test
 	public void testWithJoinCondition() throws ParseException {
 		lhs = new TableQueryParser("tableA").tableReference();
 		rhs = new TableQueryParser("tableB").tableReference();

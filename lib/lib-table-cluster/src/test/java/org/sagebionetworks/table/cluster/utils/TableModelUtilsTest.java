@@ -830,6 +830,16 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void createColumnIdToIndexMapFromNullFirstRow() {
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		String[] names = null;
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(names, all);
+		});
+	}
+	
+	@Test
 	public void testCreateColumnNameHeaderWithoutRowId() {
 		List<SelectColumn> schema = Lists.newArrayList();
 		schema.add(TableModelTestUtils.createSelectColumn(123L, "three", ColumnType.STRING));

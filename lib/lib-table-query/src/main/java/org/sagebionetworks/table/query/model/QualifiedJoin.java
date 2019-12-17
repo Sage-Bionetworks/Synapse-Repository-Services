@@ -14,12 +14,7 @@ import java.util.List;
 public class QualifiedJoin extends SQLElement{
 	TableReference tableReferenceLHS;// left side of join
 	TableReference tableReferenceRHS;// right side of join
-	JoinCondition joinCondition;// optional
-
-
-	QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS) {
-		this(tableReferenceLHS,tableReferenceRHS,null);
-	}
+	JoinCondition joinCondition;// condition for join
 
 	public QualifiedJoin(TableReference tableReferenceLHS, TableReference tableReferenceRHS, JoinCondition joinCondition) {
 		this.tableReferenceLHS = tableReferenceLHS;
@@ -32,10 +27,8 @@ public class QualifiedJoin extends SQLElement{
 		tableReferenceLHS.toSql(builder, parameters);
 		builder.append(" JOIN ");
 		tableReferenceRHS.toSql(builder, parameters);
-		if(joinCondition != null){
-			builder.append(" ");
-			joinCondition.toSql(builder, parameters);
-		}
+		builder.append(" ");
+		joinCondition.toSql(builder, parameters);
 	}
 
 	@Override
