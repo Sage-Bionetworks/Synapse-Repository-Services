@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -96,6 +97,7 @@ import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -840,21 +842,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			uploadDestination = new S3UploadDestination();
 		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			ExternalS3UploadDestination externalS3UploadDestination;
-			if (storageLocationSetting instanceof StsStorageLocationSetting) {
-				externalS3UploadDestination = new StsUploadDestination();
-				externalS3UploadDestination.setConcreteType(StsUploadDestination.class.getName());
-			} else {
-				externalS3UploadDestination = new ExternalS3UploadDestination();
-			}
+			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
-			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
 			uploadDestination = externalS3UploadDestination;
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
 			ExternalGoogleCloudUploadDestination externalGoogleCloudUploadDestination = new ExternalGoogleCloudUploadDestination();
 			externalGoogleCloudUploadDestination.setBucket(externalGoogleCloudStorageLocationSetting.getBucket());
-			externalGoogleCloudUploadDestination.setBaseKey(externalGoogleCloudStorageLocationSetting.getBaseKey());
 			uploadDestination = externalGoogleCloudUploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();
@@ -871,6 +865,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());
+		}
+
+		if (storageLocationSetting instanceof BaseKeyStorageLocationSetting) {
+			((BaseKeyUploadDestination) uploadDestination).setBaseKey(
+					((BaseKeyStorageLocationSetting) storageLocationSetting).getBaseKey());
+		}
+		if (storageLocationSetting instanceof StsStorageLocationSetting) {
+			((StsUploadDestination) uploadDestination).setStsEnabled(
+					((StsStorageLocationSetting)storageLocationSetting).getStsEnabled());
 		}
 
 		uploadDestination.setStorageLocationId(storageLocationId);

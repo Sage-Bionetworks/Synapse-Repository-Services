@@ -2,17 +2,13 @@
 	"description": "This upload destination contains information to start an upload to an external Google Cloud Storage bucket connected with synapse. The destination is mapped from an <a href=\"${org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting}\">ExternalGoogleCloudStorageLocationSetting</a>.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+			"$ref": "org.sagebionetworks.repo.model.file.BaseKeyUploadDestination"
 		}
 	],
 	"properties": {
 		"bucket": {
 			"type": "string",
 			"description": "the bucket to use"
-		},
-		"baseKey": {
-			"type": "string",
-			"description": "the optional base key to use"
 		}
 	}
 }

@@ -1,6 +1,15 @@
 {
-    "description": "An StsStorageLocation points to an S3 bucket and base key, has the invariant that the Synapse folder hierarchy matches the S3 folder hierarchy, and you can call AWS Security Token Service (STS) to get temporary AWS credentials for the bucket and base key corresponding to the StsStorage Location.",
-    "extends": {
-        "$ref": "org.sagebionetworks.repo.model.file.ExternalS3UploadDestination"
+    "description": "An StsUploadDestination provides settings to enable Synapse to call AWS Security Token Service (STS) to get temporary AWS credentials",
+    "type": "interface",
+    "implements": [
+        {
+            "$ref": "org.sagebionetworks.repo.model.file.BaseKeyUploadDestination"
+        }
+    ],
+    "properties": {
+        "stsEnabled": {
+            "type": "boolean",
+            "description": "Enables STS on this Storage Location"
+        }
     }
 }

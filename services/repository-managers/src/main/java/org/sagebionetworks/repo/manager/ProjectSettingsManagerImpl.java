@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
+import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -150,14 +151,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ProjectSetting parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
 				ProjectSetting.class);
 		if (isStsStorageLocationSetting(parentSetting)) {
-			throw new IllegalArgumentException("Can't create project settings if a parent has an StsStorageLocation");
+			throw new IllegalArgumentException("Can't override project settings in an STS-enabled folder path");
 		}
 
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add an StsStorageLocation to a non-empty entity.
 		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(parentId)) {
-			throw new IllegalArgumentException("Can't add an StsStorageLocation to a non-empty entity");
+			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 		}
 
 		String id = projectSettingsDao.create(projectSetting);
@@ -178,12 +179,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
 		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
 			if (isStsStorageLocationSetting(projectSetting)) {
-				throw new IllegalArgumentException("Can't add an StsStorageLocation to a non-empty entity");
+				throw new IllegalArgumentException("Cab't enable StS in a non-empty folder");
 			}
 
 			ProjectSetting oldSetting = projectSettingsDao.get(projectSetting.getId());
 			if (isStsStorageLocationSetting(oldSetting)) {
-				throw new IllegalArgumentException("Can't modify an StsStorageLocation on a non-empty entity.");
+				throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 			}
 		}
 
@@ -202,7 +203,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		// Can't delete an StsStorageLocation on a non-empty entity.
 		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
-			throw new IllegalArgumentException("Can't delete an StsStorageLocation on a non-empty entity.");
+			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 		}
 
 		projectSettingsDao.delete(id);
@@ -216,9 +217,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			// A valid bucket name must also be a valid domain name
 			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()),
 					"Invalid Bucket Name");
-
-			// Setting UploadType to S3 prevents a NullPointerException reading from the database later on.
-			externalS3StorageLocationSetting.setUploadType(UploadType.S3);
 
 			validateS3BucketAccess(externalS3StorageLocationSetting);
 			validateS3BucketOwnership(externalS3StorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
@@ -265,6 +263,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				}
 			} catch (MalformedURLException e) {
 				throw new IllegalArgumentException("proxyUrl is malformed: " + e.getMessage());
+			}
+		} else if (storageLocationSetting instanceof S3StorageLocationSetting) {
+			S3StorageLocationSetting synapseS3StorageLocationSetting = (S3StorageLocationSetting) storageLocationSetting;
+			if (Boolean.TRUE.equals(synapseS3StorageLocationSetting.getStsEnabled())) {
+				// This is the S3 bucket we own, so we need to auto-generate the base key.
+				String baseKey = userInfo.getId() + "/" + System.currentTimeMillis();
+				synapseS3StorageLocationSetting.setBaseKey(baseKey);
 			}
 		}
 
@@ -331,21 +336,21 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 										+ ") can add this upload destination to a project. Either ask that user to perform this operation or follow the steps to create a new external s3 upload destination (see "
 										+ EXTERNAL_STORAGE_HELP);
 					}
+				}
 
-					// STS storage locations have additional restrictions.
-					if (storageLocationSetting instanceof StsStorageLocationSetting) {
-						// Can only be applied to folders.
-						EntityType nodeType = nodeManager.getNodeType(currentUser, setting.getProjectId());
-						if (EntityType.folder != nodeType) {
-							throw new IllegalArgumentException("An STS upload destination can only be applied to a " +
-									"folder");
-						}
+				// STS storage locations have additional restrictions.
+				if (storageLocationSetting instanceof StsStorageLocationSetting &&
+						Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled())) {
+					// Can only be applied to folders.
+					EntityType nodeType = nodeManager.getNodeType(currentUser, setting.getProjectId());
+					if (EntityType.folder != nodeType) {
+						throw new IllegalArgumentException("Can only enable STS on a folder");
+					}
 
-						// Cannot be applied with other storage locations.
-						if (setting.getLocations().size() != 1) {
-							throw new IllegalArgumentException("A folder with an STS upload destination cannot add " +
-									"other upload destinations");
-						}
+					// Cannot be applied with other storage locations.
+					if (setting.getLocations().size() != 1) {
+						throw new IllegalArgumentException("An STS-enabled folder cannot add other upload " +
+								"destinations");
 					}
 				}
 			} catch (NotFoundException e) {
@@ -366,7 +371,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		long storageLocationId = storageLocationIdList.get(0);
 		try {
 			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
-			return storageLocationSetting instanceof StsStorageLocationSetting;
+			return storageLocationSetting instanceof StsStorageLocationSetting &&
+					Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Storage location " + storageLocationId + " not found");
 		}
