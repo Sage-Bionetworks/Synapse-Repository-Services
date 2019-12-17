@@ -82,10 +82,4 @@ public interface VerificationDAO {
 	 * @return true if all users have validated profiles; false otherwise.
 	 */
 	public boolean haveValidatedProfiles(Set<String> userIds);
-	
-	/**
-	 * @param verificationId
-	 * @return
-	 */
-	public List<Long> removeFileHandleIds(long verificationId);
 }

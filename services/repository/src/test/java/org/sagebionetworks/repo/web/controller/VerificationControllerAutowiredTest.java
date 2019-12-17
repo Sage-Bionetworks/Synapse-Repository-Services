@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -171,10 +170,15 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		servletTestHelper.updateVerificationState(dispatchServlet, adminUserId, Long.parseLong(vs.getId()),
 				newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
 		
-		// The file should have been deleted after approval
-		Assertions.assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getFileHandleUrl(dispatchServlet, fha, adminUserId);
-		});
+		List<VerificationSubmission> submissions = servletTestHelper.listVerificationSubmissions(
+				dispatchServlet, VerificationStateEnum.APPROVED, 
+				userInfo.getId(), 10L, 0L, adminUserId).getResults();
+		
+		// The attachments should not be included
+		assertTrue(submissions.get(0).getAttachments().isEmpty());
+		
+		// The user can still read the file handle as the creator
+		servletTestHelper.getFileHandleUrl(dispatchServlet, fha, userInfo.getId());
 		
 	}
 }

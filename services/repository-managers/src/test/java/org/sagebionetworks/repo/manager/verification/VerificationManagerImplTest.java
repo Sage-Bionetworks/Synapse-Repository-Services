@@ -32,7 +32,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
@@ -90,9 +89,6 @@ public class VerificationManagerImplTest {
 
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
-
-	@Mock
-	private UserManager mockUserManager;
 	
 	@InjectMocks
 	private VerificationManagerImpl verificationManager;
@@ -309,13 +305,11 @@ public class VerificationManagerImplTest {
 	@Test
 	public void testDeleteVerificationSubmission() {
 		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
-		when(mockVerificationDao.listFileHandleIds(VERIFICATION_ID)).thenReturn(Collections.singletonList(Long.valueOf(FILE_HANDLE_ID)));
 		
 		verificationManager.deleteVerificationSubmission(userInfo, VERIFICATION_ID);
 		
-		verify(mockVerificationDao).listFileHandleIds(VERIFICATION_ID);
+		verify(mockVerificationDao).getVerificationSubmitter(VERIFICATION_ID);
 		verify(mockVerificationDao).deleteVerificationSubmission(VERIFICATION_ID);
-		verify(mockFileHandleManager).deleteFileHandle(userInfo, FILE_HANDLE_ID);
 	}
 
 	@Test
@@ -362,8 +356,6 @@ public class VerificationManagerImplTest {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockVerificationDao.getVerificationState(VERIFICATION_ID)).thenReturn(
 				VerificationStateEnum.SUBMITTED);
-		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
-		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 		
 		VerificationState state = new VerificationState();
 		state.setState(VerificationStateEnum.APPROVED);
@@ -376,42 +368,6 @@ public class VerificationManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 	
-	@Test
-	public void testRemoveAttachmentsAfterApproval() {
-		testRemoveAttachmentsAfterState(APPROVED);
-	}
-	
-	@Test
-	public void testRemoveAttachmentsAfterRejection() {
-		testRemoveAttachmentsAfterState(REJECTED);
-	}
-	
-	private void testRemoveAttachmentsAfterState(VerificationStateEnum newState) {
-		UserInfo actUser = new UserInfo(false);
-		actUser.setId(123L);
-		
-		UserInfo submitterUser = new UserInfo(false);
-		submitterUser.setId(456L);
-		
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(actUser)).thenReturn(true);
-		when(mockVerificationDao.getVerificationState(VERIFICATION_ID)).thenReturn(
-				VerificationStateEnum.SUBMITTED);
-		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(submitterUser.getId());
-		when(mockUserManager.getUserInfo(submitterUser.getId())).thenReturn(submitterUser);
-		when(mockVerificationDao.removeFileHandleIds(VERIFICATION_ID)).thenReturn(Collections.singletonList(Long.valueOf(FILE_HANDLE_ID)));
-		
-		VerificationState state = new VerificationState();
-		state.setState(newState);
-		
-		// Call under test
-		verificationManager.changeSubmissionState(actUser, VERIFICATION_ID, state);
-		
-		verify(mockVerificationDao).getVerificationSubmitter(VERIFICATION_ID);
-		verify(mockUserManager).getUserInfo(submitterUser.getId());
-		verify(mockVerificationDao).removeFileHandleIds(VERIFICATION_ID);
-		verify(mockFileHandleManager).deleteFileHandle(submitterUser, FILE_HANDLE_ID);
-	}
-
 	@Test
 	public void testChangeSubmissionStateTransitionNotAllowed() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);

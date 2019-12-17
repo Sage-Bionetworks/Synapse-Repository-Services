@@ -47,8 +47,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.ImmutableSet;
-
 @Service
 public class VerificationManagerImpl implements VerificationManager {
 	
@@ -58,7 +56,6 @@ public class VerificationManagerImpl implements VerificationManager {
 	private PrincipalAliasDAO principalAliasDAO;
 	private AuthorizationManager authorizationManager;
 	private TransactionalMessenger transactionalMessenger;
-	private UserManager userManager;
 	
 	public static final String VERIFICATION_APPROVED_TEMPLATE = "message/verificationApprovedTemplate.html";
 	public static final String VERIFICATION_SUBMISSION_TEMPLATE = "message/verificationSubmissionTemplate.html";
@@ -68,8 +65,6 @@ public class VerificationManagerImpl implements VerificationManager {
 	public static final String VERIFICATION_SUSPENDED_NO_REASON_TEMPLATE = "message/verificationSuspendedNoReasonTemplate.html";
 
 	public static final String VERIFICATION_NOTIFICATION_SUBJECT = "Synapse Identity Verification Request";
-	
-	private static final Set<VerificationStateEnum> DELETE_ATTACHMENTS_STATES = ImmutableSet.of(APPROVED, REJECTED);
 
 	@Autowired
 	public VerificationManagerImpl(
@@ -86,7 +81,6 @@ public class VerificationManagerImpl implements VerificationManager {
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.transactionalMessenger = transactionalMessenger;
-		this.userManager = userManager;
 	}
 
 	@WriteTransaction
@@ -172,14 +166,8 @@ public class VerificationManagerImpl implements VerificationManager {
 		if (!userInfo.isAdmin() &&  userInfo.getId() != verificationDao.getVerificationSubmitter(verificationId)) {
 			throw new UnauthorizedException("Only the creator of a verification submission may delete it.");
 		}
-		// First saves off the file handles
-		List<Long> fileHandleIds = verificationDao.listFileHandleIds(verificationId);
-		
 		// Deletes the submission and by cascade the link to the file handles
 		verificationDao.deleteVerificationSubmission(verificationId);
-
-		// Now we can remove the file handles
-		deleteFileHandleIds(userInfo, fileHandleIds);
 	}
 	
 	@Override
@@ -214,13 +202,6 @@ public class VerificationManagerImpl implements VerificationManager {
 			throw new InvalidModelException("Cannot transition verification submission from "+currentState+" to "+newState.getState());
 		}
 		
-		if (DELETE_ATTACHMENTS_STATES.contains(newState.getState())) {
-			long submitterId = verificationDao.getVerificationSubmitter(verificationSubmissionId);
-			UserInfo submitter = userManager.getUserInfo(submitterId);
-			// The deletion is perform using the submitter that uploaded the files
-			deleteVerificationAttachments(submitter, verificationSubmissionId);
-		}
-		
 		newState.setCreatedBy(userInfo.getId().toString());
 		newState.setCreatedOn(new Date());
 	
@@ -228,21 +209,6 @@ public class VerificationManagerImpl implements VerificationManager {
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 	
-	private void deleteVerificationAttachments(UserInfo userInfo, long verificationSubmissionId) {
-		List<Long> fileHandleIds = verificationDao.removeFileHandleIds(verificationSubmissionId);
-		deleteFileHandleIds(userInfo, fileHandleIds);
-	}
-	
-	private void deleteFileHandleIds(UserInfo userInfo, List<Long> fileHandleIds) {
-		fileHandleIds.forEach( id -> {
-			try {
-				fileHandleManager.deleteFileHandle(userInfo, id.toString());
-			} catch (Exception e) {
-				throw new IllegalStateException("Cannot delete file handle with id " + id, e);
-			}
-		});
-	}
-
 	@Override
 	public List<MessageToUserAndBody> createSubmissionNotification(
 			VerificationSubmission verificationSubmission,

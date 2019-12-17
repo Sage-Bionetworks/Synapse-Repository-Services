@@ -11,6 +11,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -50,8 +52,12 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.google.common.collect.ImmutableSet;
+
 @Repository
 public class VerificationDAOImpl implements VerificationDAO {
+	
+	private static final Set<VerificationStateEnum> DELETE_ATTACHMENTS_STATES = ImmutableSet.of(APPROVED, REJECTED);
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
@@ -129,8 +135,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 			+ " SELECT MAX(S3."+COL_VERIFICATION_STATE_CREATED_ON+")"
 			+ " FROM "+TABLE_VERIFICATION_STATE+" S3"
 			+ " WHERE S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S3."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
-	
-	private static final String SQL_GET_SUBMISSION = "SELECT * FROM " + TABLE_VERIFICATION_SUBMISSION + " WHERE " + COL_VERIFICATION_SUBMISSION_ID + " = ?";
 
 	private static final String SQL_DELETE_FILE_IDS = "DELETE FROM " + TABLE_VERIFICATION_FILE + " WHERE " + COL_VERIFICATION_FILE_VERIFICATION_ID + " = ?";
 	
@@ -170,11 +174,17 @@ public class VerificationDAOImpl implements VerificationDAO {
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
 		VerificationSubmission dto = deserializeDTO(dbo);
-		// Avoid breaking the client
-		if (dto.getAttachments() == null) {
+		
+		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
+		
+		if (dto.getAttachments() == null || // Avoid breaking the client if a verification was submitted without attachments
+				!VerificationStateEnum.SUBMITTED.equals(currentState)) // Include the deserialized attachments only for the submitted state
+		{
 			dto.setAttachments(Collections.emptyList());
 		}
+		
 		dto.setStateHistory(stateHistory);
+		
 		return dto;
 	}
 	
@@ -222,6 +232,11 @@ public class VerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
+		
+		if (DELETE_ATTACHMENTS_STATES.contains(newState.getState())) {
+			jdbcTemplate.update(SQL_DELETE_FILE_IDS, verificationId);
+		}
+		
 		long stateId = idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID);
 		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, stateId, newState);
 		basicDao.createNew(dbo);
@@ -417,30 +432,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 		params.addValue(IDS_PARAM, userIds);
 		Integer count = namedJdbcTemplate.queryForObject(SQL_VALIDATED_COUNT, params, Integer.class);
 		return count.equals(userIds.size());
-	}
-	
-	@Override
-	public List<Long> removeFileHandleIds(long verificationId) {
-		DBOVerificationSubmission dbo = wrapSubmissionNotFound(verificationId, () -> 
-				jdbcTemplate.queryForObject(SQL_GET_SUBMISSION, DBO_VERIFICATION_SUB_MAPPING, verificationId)
-		);
-		
-		VerificationSubmission dto = deserializeDTO(dbo);
-		
-		// Clear the attachments from the DTO
-		dto.setAttachments(null);
-		dbo.setSerialized(serializeDTO(dto));
-		dbo.setEtag(UUID.randomUUID().toString());
-		
-		basicDao.update(dbo);
-		
-		// Get the list of ids
-		List<Long> fileHandleIds = listFileHandleIds(verificationId, true);
-		
-		// Drop the ids
-		jdbcTemplate.update(SQL_DELETE_FILE_IDS, verificationId);
-		
-		return fileHandleIds;
 	}
 	
 	private <T> T wrapSubmissionNotFound(long verificationId, Supplier<T> supplier) {

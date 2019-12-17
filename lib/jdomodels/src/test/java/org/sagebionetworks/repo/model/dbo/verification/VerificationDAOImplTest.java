@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -521,29 +520,72 @@ public class VerificationDAOImplTest {
 	}
 	
 	@Test
-	public void testRemoveFileHandles() throws Exception {
+	public void testRemoveFileHandleAfterApproval() throws Exception {
+		testRemoveFileHandlesAfterStateChange(VerificationStateEnum.APPROVED);
+	}
+	
+	@Test
+	public void testRemoveFileHandleAfterRejection() throws Exception {
+		testRemoveFileHandlesAfterStateChange(VerificationStateEnum.REJECTED);
+	}
+	
+	private void testRemoveFileHandlesAfterStateChange(VerificationStateEnum state) throws Exception {
 		FileHandle fh1 = createFileHandle(USER_1_ID);
 		FileHandle fh2 = createFileHandle(USER_1_ID);
-		
 		List<String> fileHandleIds = Arrays.asList(fh1.getId(), fh2.getId());
-		
-		long user1long = Long.parseLong(USER_1_ID);
-		
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
-		
+
 		vsToDelete.add(created.getId());
 		
 		assertEquals(2, created.getAttachments().size());
 		
-		List<Long> removed = verificationDao.removeFileHandleIds(Long.valueOf(created.getId()));
-		List<String> removedString = removed.stream().map(Object::toString).collect(Collectors.toList());
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(state);
 		
-		assertEquals(fileHandleIds, removedString);
+		// Call under test
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
 		
-		VerificationSubmission current = verificationDao.getCurrentVerificationSubmissionForUser(user1long);
+		List<Long> currentFileHandleIds = verificationDao.listFileHandleIds(Long.valueOf(created.getId()));
 		
-		assertTrue(current.getAttachments().isEmpty());
+		assertTrue(currentFileHandleIds.isEmpty());
+		
+	}
+	
+	@Test
+	public void testIncludeAttachmentsForSubmittedOnly() throws Exception {
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds = Arrays.asList(fh1.getId(), fh2.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+
+		vsToDelete.add(created.getId());
+		
+		// Call under test
+		VerificationSubmission submission = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
+		
+		assertFalse(submission.getAttachments().isEmpty());
+		
+		
+		for (VerificationStateEnum state : VerificationStateEnum.values()) {
+			
+			VerificationState newState = new VerificationState();
+			newState.setCreatedBy(USER_2_ID);
+			newState.setCreatedOn(new Date());
+			newState.setState(state);
+			
+			verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
+			
+			// Call under test
+			submission = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
+			
+			boolean expected = !VerificationStateEnum.SUBMITTED.equals(state);
+			
+			assertEquals(expected, submission.getAttachments().isEmpty());
+		}
 	}
 	
 }
