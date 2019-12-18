@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
@@ -136,7 +137,11 @@ public class VerificationDAOImpl implements VerificationDAO {
 			+ " FROM "+TABLE_VERIFICATION_STATE+" S3"
 			+ " WHERE S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S3."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
 
-	private static final String SQL_DELETE_FILE_IDS = "DELETE FROM " + TABLE_VERIFICATION_FILE + " WHERE " + COL_VERIFICATION_FILE_VERIFICATION_ID + " = ?";
+	private static final String SQL_DELETE_FILE_IDS = "DELETE FROM " + TABLE_VERIFICATION_FILE
+			+ " WHERE " + COL_VERIFICATION_FILE_VERIFICATION_ID + " = ?";
+	
+	private static final String SQL_UPDATE_SUBMISSION_ETAG = "UPDATE " + TABLE_VERIFICATION_SUBMISSION
+			+ " SET " + COL_VERIFICATION_SUBMISSION_ETAG + " = UUID() WHERE " + COL_VERIFICATION_SUBMISSION_ID + " = ?";
 	
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			new DBOVerificationSubmission().getTableMapping();
@@ -178,7 +183,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
 		
 		if (dto.getAttachments() == null || // Avoid breaking the client if a verification was submitted without attachments
-				!VerificationStateEnum.SUBMITTED.equals(currentState)) // Include the deserialized attachments only for the submitted state
+			!VerificationStateEnum.SUBMITTED.equals(currentState)) // Include the attachments only for the submitted state
 		{
 			dto.setAttachments(Collections.emptyList());
 		}
@@ -221,12 +226,9 @@ public class VerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void deleteVerificationSubmission(long verificationId) {
-		wrapSubmissionNotFound(verificationId, () -> {
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), verificationId);
-			basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
-			return false;
-		});
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_VERIFICATION_SUBMISSION_ID.toLowerCase(), verificationId);
+		basicDao.deleteObjectByPrimaryKey(DBOVerificationSubmission.class, param);
 	}
 
 	@WriteTransaction
@@ -234,7 +236,12 @@ public class VerificationDAOImpl implements VerificationDAO {
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
 		
 		if (DELETE_ATTACHMENTS_STATES.contains(newState.getState())) {
+			// Note: we drop the link to the file ids used by the FileHandleAssociationProvider
+			// but we keep the serialized blob intact so that we can reconstruct it if needed
+			// the serialized blob is not returned if the state is different from SUBMITTED
 			jdbcTemplate.update(SQL_DELETE_FILE_IDS, verificationId);
+			// Etag update for migration
+			jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, verificationId);
 		}
 		
 		long stateId = idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID);
@@ -262,7 +269,9 @@ public class VerificationDAOImpl implements VerificationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if (states!=null) {
 			List<String> stateNames = new ArrayList<String>();
-			for (VerificationStateEnum state : states) stateNames.add(state.name());
+			for (VerificationStateEnum state : states) {
+				stateNames.add(state.name());
+			}
 			param.addValue(COL_VERIFICATION_STATE_STATE, stateNames);
 		}
 		if (userId!=null) {
@@ -340,7 +349,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dbo.setId(stateId);
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		dbo.setEtag(UUID.randomUUID().toString());
 		
 		if (!StringUtils.isBlank(dto.getReason())) {
 			byte[] reason = dto.getReason().getBytes(StandardCharsets.UTF_8);
@@ -381,15 +389,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 	
 	@Override
 	public List<Long> listFileHandleIds(long verificationId) {
-		return listFileHandleIds(verificationId, false);
-	}
-	
-	private List<Long> listFileHandleIds(long verificationId, boolean forUpdate) {
-		StringBuilder sql = new StringBuilder(FILE_IDS_IN_VERIFICATION_SQL);
-		if (forUpdate) {
-			sql.append(" FOR UPDATE");
-		}
-		return jdbcTemplate.queryForList(sql.toString(), Long.class, verificationId);
+		return jdbcTemplate.queryForList(FILE_IDS_IN_VERIFICATION_SQL, Long.class, verificationId);
 	}
 
 	@Override

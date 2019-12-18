@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_NOTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_STATE_VERIFICATION_ID;
@@ -19,7 +18,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
@@ -39,9 +37,6 @@ public class DBOVerificationState implements
 	
 	@Field(name = COL_VERIFICATION_STATE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
-	
-	@Field(name = COL_VERIFICATION_STATE_ETAG, etag = true, nullable = false)
-	private String etag;
 	
 	@Field(name = COL_VERIFICATION_STATE_VERIFICATION_ID, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_VERIFICATION_SUBMISSION, field = COL_VERIFICATION_SUBMISSION_ID, cascadeDelete = true, name = FK_VERIFICATION_STATE_VERIFICATION_ID)
@@ -77,15 +72,7 @@ public class DBOVerificationState implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationState, DBOVerificationState> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOVerificationState>() {
-			@Override
-			public DBOVerificationState createDatabaseObjectFromBackup(DBOVerificationState backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
-				return backup;
-			}
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
@@ -109,14 +96,6 @@ public class DBOVerificationState implements
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-	
-	public String getEtag() {
-		return etag;
-	}
-	
-	public void setEtag(String etag) {
-		this.etag = etag;
 	}
 
 	public Long getVerificationId() {
@@ -173,7 +152,7 @@ public class DBOVerificationState implements
 		int result = 1;
 		result = prime * result + Arrays.hashCode(notes);
 		result = prime * result + Arrays.hashCode(reason);
-		result = prime * result + Objects.hash(createdBy, createdOn, etag, id, state, verificationId);
+		result = prime * result + Objects.hash(createdBy, createdOn, id, state, verificationId);
 		return result;
 	}
 
@@ -186,16 +165,15 @@ public class DBOVerificationState implements
 		if (getClass() != obj.getClass())
 			return false;
 		DBOVerificationState other = (DBOVerificationState) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
-				&& Objects.equals(id, other.id) && Arrays.equals(notes, other.notes) && Arrays.equals(reason, other.reason)
-				&& state == other.state && Objects.equals(verificationId, other.verificationId);
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+				&& Arrays.equals(notes, other.notes) && Arrays.equals(reason, other.reason) && state == other.state
+				&& Objects.equals(verificationId, other.verificationId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationState [id=" + id + ", etag=" + etag + ", verificationId=" + verificationId + ", createdBy=" + createdBy
-				+ ", createdOn=" + createdOn + ", state=" + state + ", reason=" + Arrays.toString(reason) + ", notes="
-				+ Arrays.toString(notes) + "]";
+		return "DBOVerificationState [id=" + id + ", verificationId=" + verificationId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", state=" + state + ", reason=" + Arrays.toString(reason) + ", notes=" + Arrays.toString(notes) + "]";
 	}
 	
 }
