@@ -13,10 +13,6 @@
 		"bucket": {
 			"type": "string",
 			"description": "the bucket to use"
-		},
-		"baseKey": {
-			"type": "string",
-			"description": "the optional base key to use"
 		}
 	}
 }

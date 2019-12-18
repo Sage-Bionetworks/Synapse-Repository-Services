@@ -202,6 +202,7 @@ public class ITStorageLocation {
 
 	private void testStsStorageLocation(StsStorageLocationSetting stsStorageLocationSetting) throws SynapseException {
 		String baseKey = stsStorageLocationSetting.getBaseKey();
+		assertNotNull(baseKey);
 		long storageLocationId = stsStorageLocationSetting.getStorageLocationId();
 
 		// Create and verify project settings.
