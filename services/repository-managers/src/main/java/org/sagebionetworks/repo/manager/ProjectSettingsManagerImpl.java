@@ -179,7 +179,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
 		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
 			if (isStsStorageLocationSetting(projectSetting)) {
-				throw new IllegalArgumentException("Cab't enable StS in a non-empty folder");
+				throw new IllegalArgumentException("Cab't enable STS in a non-empty folder");
 			}
 
 			ProjectSetting oldSetting = projectSettingsDao.get(projectSetting.getId());
