@@ -461,4 +461,11 @@ public interface TableIndexDAO {
 	 * @param dataSource
 	 */
 	void setDataSource(DataSource dataSource);
+	
+	/**
+	 * Get the checksum of the replication data for the given view.
+	 * @param viewId
+	 * @return
+	 */
+	public long getReplicationViewChecksum(Long viewId);
 }

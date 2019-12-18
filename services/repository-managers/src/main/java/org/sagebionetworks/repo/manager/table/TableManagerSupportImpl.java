@@ -324,29 +324,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			// The ID of the snapshot is used for this case.
 			return viewSnapshotDao.getSnapshotId(idAndVersion);
 		}else {
+			// Ensure this view is asynchronously checked for reconciliation.
+			this.replicationMessageManagerAsynch.pushViewIdToReconciliationQueue(idAndVersion.getId());
 			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-			// Start with all container IDs that define the view's scope
-			Long viewTypeMask = getViewTypeMask(idAndVersion);
-			Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-			// Trigger the reconciliation of this view's scope.
-			triggerScopeReconciliation(viewTypeMask, viewContainers);
-			return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+			// lookup the cached checksum for this view.
+			return indexDao.getReplicationViewChecksum(idAndVersion.getId());
 		}
-	}
-
-	@Override
-	public void triggerScopeReconciliation(Long viewTypeMask, Set<Long> viewContainers) {
-		// Trigger the reconciliation of this view
-		List<Long> containersToReconcile = new LinkedList<Long>();
-		if(ViewTypeMask.Project.getMask() == viewTypeMask){
-			// project views reconcile with root.
-			Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
-			containersToReconcile.add(rootId);
-		}else{
-			// all other views reconcile one the view's scope.
-			containersToReconcile.addAll(viewContainers);
-		}
-		this.replicationMessageManagerAsynch.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
 	
 

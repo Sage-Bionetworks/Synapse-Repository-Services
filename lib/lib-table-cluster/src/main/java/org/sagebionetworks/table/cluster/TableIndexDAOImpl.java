@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
@@ -75,6 +75,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -593,6 +594,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
+		template.update(TableConstants.REPLICATION_VIEW_CHECKUSM_TABLE_CREATE);
 	}
 
 	@Override
@@ -1052,6 +1054,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 		if (!batch.isEmpty()) {
 			template.batchUpdate(sql, batch);
+		}
+	}
+
+	@Override
+	public long getReplicationViewChecksum(Long viewId) {
+		try {
+			return template.queryForObject(
+					"SELECT "+REPLICATION_VIEW_CHECKSUM_COL_CHECKSUM+" FROM "+REPLICATION_VIEW_CHECKSUM_TABLE
+					+" WHERE "+REPLICATOIN_VIEW_CHECKSUM_COL_VIEW_ID+" = ?", Long.class, viewId);
+		} catch (EmptyResultDataAccessException e) {
+			return -1;
 		}
 	}
 }

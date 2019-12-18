@@ -21,4 +21,10 @@ public interface ReplicationMessageManagerAsynch {
 	 */
 	Future<Void> pushContainerIdsToReconciliationQueue(List<Long> scopeIds);
 
+	/**
+	 * 
+	 * @param id
+	 */
+	Future<Void> pushViewIdToReconciliationQueue(Long id);
+
 }

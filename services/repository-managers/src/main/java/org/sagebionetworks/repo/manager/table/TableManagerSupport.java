@@ -387,16 +387,6 @@ public interface TableManagerSupport {
 	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
 
 	/**
-	 * This will trigger a worker to detect and reconcile any entity replication
-	 * data that is out-of-synch with the truth for the given view's scope.
-	 * 
-	 * @param type
-	 * @param expandedScope
-	 *            The fully expanded scope of the view.
-	 */
-	void triggerScopeReconciliation(Long viewTypeMask, Set<Long> expandedScope);
-
-	/**
 	 * Does the given table exist?  If the table is in the trash then this will
 	 * return true.  Will only return true if the table no longer exists.
 	 * @param tableId

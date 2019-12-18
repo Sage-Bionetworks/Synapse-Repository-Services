@@ -119,6 +119,20 @@ public class TableConstants {
 	public static final String REPLICATION_SYNC_EXP_COL_ID 			= "ID";
 	public static final String REPLICATION_SYNC_EXP_COL_EXPIRES		= "EXPIRES_MS";
 	
+	// table to track the view CRC from the entity replication table
+	public static final String REPLICATION_VIEW_CHECKSUM_TABLE				= "REPLICATION_VIEW_CHECKSUM";
+	public static final String REPLICATOIN_VIEW_CHECKSUM_COL_VIEW_ID		= "VIEW_ID";
+	public static final String REPLICATION_VIEW_CHECKSUM_COL_CHECKSUM		= "CHECKSUM";
+	public static final String REPLICATION_VIEW_CHECKSUM_COL_UPDATED_ON		= "UPDATED_ON";
+	
+	public final static String REPLICATION_VIEW_CHECKUSM_TABLE_CREATE = 
+			"CREATE TABLE IF NOT EXISTS "+REPLICATION_VIEW_CHECKSUM_TABLE+ "("
+			+ REPLICATOIN_VIEW_CHECKSUM_COL_VIEW_ID +" bigint(20) NOT NULL,"
+			+ REPLICATION_VIEW_CHECKSUM_COL_CHECKSUM +" bigint(20) NOT NULL,"
+			+ REPLICATION_VIEW_CHECKSUM_COL_UPDATED_ON +" timestamp(3) NOT NULL,"
+			+ "PRIMARY KEY("+REPLICATOIN_VIEW_CHECKSUM_COL_VIEW_ID+")"
+			+")";
+	
 	// Dynamic string of all of the entity types.
 	public static final String ENTITY_TYPES;
 	static{
