@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_REASON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_NOTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
@@ -16,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
@@ -52,6 +54,9 @@ public class DBOVerificationState implements
 
 	@Field(name = COL_VERIFICATION_STATE_REASON, backupId = false, primary = false, nullable = true, blob="blob")
 	private byte[] reason;
+	
+	@Field(name = COL_VERIFICATION_STATE_NOTES, backupId = false, primary = false, nullable = true, blob="blob")
+	private byte[] notes;
 
 	private static TableMapping<DBOVerificationState> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationState.class);
 
@@ -67,7 +72,7 @@ public class DBOVerificationState implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationState, DBOVerificationState> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOVerificationState>();
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
@@ -132,20 +137,22 @@ public class DBOVerificationState implements
 	public void setReason(byte[] reason) {
 		this.reason = reason;
 	}
+	
+	public byte[] getNotes() {
+		return notes;
+	}
+	
+	public void setNotes(byte[] notes) {
+		this.notes = notes;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + Arrays.hashCode(notes);
 		result = prime * result + Arrays.hashCode(reason);
-		result = prime * result + ((state == null) ? 0 : state.hashCode());
-		result = prime * result
-				+ ((verificationId == null) ? 0 : verificationId.hashCode());
+		result = prime * result + Objects.hash(createdBy, createdOn, id, state, verificationId);
 		return result;
 	}
 
@@ -158,40 +165,15 @@ public class DBOVerificationState implements
 		if (getClass() != obj.getClass())
 			return false;
 		DBOVerificationState other = (DBOVerificationState) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (!Arrays.equals(reason, other.reason))
-			return false;
-		if (state != other.state)
-			return false;
-		if (verificationId == null) {
-			if (other.verificationId != null)
-				return false;
-		} else if (!verificationId.equals(other.verificationId))
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+				&& Arrays.equals(notes, other.notes) && Arrays.equals(reason, other.reason) && state == other.state
+				&& Objects.equals(verificationId, other.verificationId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationState [id=" + id + ", verificationId="
-				+ verificationId + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", state=" + state + ", reason="
-				+ Arrays.toString(reason) + "]";
+		return "DBOVerificationState [id=" + id + ", verificationId=" + verificationId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", state=" + state + ", reason=" + Arrays.toString(reason) + ", notes=" + Arrays.toString(notes) + "]";
 	}
-	
 	
 }

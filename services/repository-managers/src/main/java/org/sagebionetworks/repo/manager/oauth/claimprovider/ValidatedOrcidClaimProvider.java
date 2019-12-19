@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth.claimprovider;
 
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.VerificationHelper;
+import org.sagebionetworks.repo.manager.verification.VerificationHelper;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;

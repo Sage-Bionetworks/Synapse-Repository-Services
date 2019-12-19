@@ -21,6 +21,10 @@
 		"reason":{
 			"type":"string",
 			"description":"The reason for putting the verification submission in this state."
+		},
+		"notes":{
+			"type":"string",
+			"description":"Additional notes that can be set by the ACT team and that is not exposed to the end user."
 		}
 	}
 }
