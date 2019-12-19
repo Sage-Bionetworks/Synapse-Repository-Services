@@ -367,9 +367,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 	}
 
-	// Helper method to check if a ProjectSetting is a an STS-enabled storage location. That is, the storage location
-	// referenced in the project setting is an StsStorageLocation with StsEnabled=true.
-	private boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
+	@Override
+	public boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
 		if (!(projectSetting instanceof UploadDestinationListSetting)) {
 			// Impossible code path, but add this check here to future-proof this against ClassCastExceptions.
 			return false;

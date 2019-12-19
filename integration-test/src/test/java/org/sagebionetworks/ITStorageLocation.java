@@ -3,6 +3,7 @@ package org.sagebionetworks;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,8 +17,11 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
@@ -32,10 +36,12 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 // verifies the fix.
 public class ITStorageLocation {
 	private static Long userToDelete;
+	private static Long secondUser;
 	private static StackConfiguration config;
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -69,6 +76,9 @@ public class ITStorageLocation {
 
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+
+		SynapseClient secondSynapseClient = new SynapseAdminClientImpl();
+		secondUser = SynapseClientHelper.createUser(adminSynapse, secondSynapseClient);
 
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 	}
@@ -98,6 +108,12 @@ public class ITStorageLocation {
 	public static void afterClass() {
 		try {
 			adminSynapse.deleteUser(userToDelete);
+		} catch (SynapseException e) {
+			// Ignore possible exceptions
+		}
+
+		try {
+			adminSynapse.deleteUser(secondUser);
 		} catch (SynapseException e) {
 			// Ignore possible exceptions
 		}
@@ -434,6 +450,104 @@ public class ITStorageLocation {
 		childProjectSetting.setLocations(ImmutableList.of(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
 		assertThrows(SynapseBadRequestException.class, () -> synapse.createProjectSetting(childProjectSetting),
 				"Can't override project settings in an STS-enabled folder path");
+	}
+
+	@Test
+	public void cannotOverrideAclsOnChildOfStsFolder() throws SynapseException {
+		// Create storage location.
+		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
+		stsStorageLocationSetting.setStsEnabled(true);
+		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
+
+		// Create project settings.
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folder.getId());
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
+		synapse.createProjectSetting(projectSetting);
+
+		// Create child folder.
+		Folder subFolder = new Folder();
+		subFolder.setParentId(folder.getId());
+		subFolder = synapse.createEntity(subFolder);
+
+		// Attempt to add ACL to child folder.
+		ResourceAccess firstUserResourceAccess = new ResourceAccess();
+		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
+		firstUserResourceAccess.setPrincipalId(userToDelete);
+
+		ResourceAccess secondUserResourceAccess = new ResourceAccess();
+		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
+		secondUserResourceAccess.setPrincipalId(secondUser);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId(subFolder.getId());
+		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
+		assertThrows(SynapseBadRequestException.class, () -> synapse.createACL(acl),
+				"Cannot override ACLs in a child of an STS-enabled folder");
+	}
+
+	@Test
+	public void canOverrideAclsOnStsFolder() throws SynapseException {
+		// Create storage location.
+		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
+		stsStorageLocationSetting.setStsEnabled(true);
+		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
+
+		// Create project settings.
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folder.getId());
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
+		synapse.createProjectSetting(projectSetting);
+
+		// Add ACLs to STS folder.
+		ResourceAccess firstUserResourceAccess = new ResourceAccess();
+		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
+		firstUserResourceAccess.setPrincipalId(userToDelete);
+
+		ResourceAccess secondUserResourceAccess = new ResourceAccess();
+		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
+		secondUserResourceAccess.setPrincipalId(secondUser);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId(folder.getId());
+		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
+		synapse.createACL(acl);
+	}
+
+	@Test
+	public void canOverrideAclsOnChildOfNonStsFolder() throws SynapseException {
+		// Create storage location.
+		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
+		stsStorageLocationSetting.setStsEnabled(false);
+		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
+
+		// Create project settings.
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folder.getId());
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
+		synapse.createProjectSetting(projectSetting);
+
+		// Create child folder.
+		Folder subFolder = new Folder();
+		subFolder.setParentId(folder.getId());
+		subFolder = synapse.createEntity(subFolder);
+
+		// Attempt to add ACL to child folder.
+		ResourceAccess firstUserResourceAccess = new ResourceAccess();
+		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
+		firstUserResourceAccess.setPrincipalId(userToDelete);
+
+		ResourceAccess secondUserResourceAccess = new ResourceAccess();
+		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
+		secondUserResourceAccess.setPrincipalId(secondUser);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId(subFolder.getId());
+		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
+		synapse.createACL(acl);
 	}
 
 	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {

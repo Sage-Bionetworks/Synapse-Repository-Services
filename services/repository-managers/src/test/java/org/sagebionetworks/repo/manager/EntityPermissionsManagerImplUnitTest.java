@@ -2,9 +2,11 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +45,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
@@ -452,8 +456,68 @@ public class EntityPermissionsManagerImplUnitTest {
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
 		// file should not trigger container message
-		verifyNoMoreInteractions(mockTransactionalMessenger);	}
-	
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+	}
+
+	@Test
+	public void testOverrideInheritance_CannotOverrideOnChildOfStsFolder() {
+		// Mock dependencies.
+		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
+				.thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
+		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folderId);
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+
+		// Call under test - throws exception.
+		assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser),
+				"Cannot override ACLs in a child of an STS-enabled folder");
+	}
+
+	@Test
+	public void testOverrideInheritance_CanOverrideOnStsFolder() {
+		// Mock dependencies.
+		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
+				.thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
+		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folderId);
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+
+		// Call under test.
+		AccessControlList result = entityPermissionsManager.overrideInheritance(acl, mockUser);
+		assertSame(acl, result);
+		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
+	}
+
+	@Test
+	public void testOverrideInheritance_CanOverrideOnNonStsFolder() {
+		// Mock dependencies.
+		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
+				.thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
+		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(folderId);
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
+
+		// Call under test.
+		AccessControlList result = entityPermissionsManager.overrideInheritance(acl, mockUser);
+		assertSame(acl, result);
+		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
+	}
+
 	@Test
 	public void testRestoreInheritanceProject(){
 		when(mockNodeDao.getBenefactor(project.getId())).thenReturn(project.getId());
