@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_USER_GROUP_ID;
@@ -12,8 +13,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
@@ -23,7 +25,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
 @Table(name = TABLE_VERIFICATION_SUBMISSION, constraints={"UNIQUE UNIQUE_VERIFICATION_BY_ON ("+COL_VERIFICATION_SUBMISSION_CREATED_BY+", "+COL_VERIFICATION_SUBMISSION_CREATED_ON+")"})
 public class DBOVerificationSubmission implements
@@ -31,6 +32,9 @@ public class DBOVerificationSubmission implements
 
 	@Field(name = COL_VERIFICATION_SUBMISSION_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
+	
+	@Field(name = COL_VERIFICATION_SUBMISSION_ETAG, etag = true, nullable = false)
+	private String etag;
 	
 	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_BY, backupId = false, primary = false, nullable = false)
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_USER_GROUP_ID)
@@ -44,9 +48,6 @@ public class DBOVerificationSubmission implements
 
 	private static TableMapping<DBOVerificationSubmission> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmission.class);
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
-
-
 	@Override
 	public TableMapping<DBOVerificationSubmission> getTableMapping() {
 		return TABLE_MAPPING;
@@ -59,7 +60,15 @@ public class DBOVerificationSubmission implements
 
 	@Override
 	public MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return new BasicMigratableTableTranslation<DBOVerificationSubmission>() {
+			@Override
+			public DBOVerificationSubmission createDatabaseObjectFromBackup(DBOVerificationSubmission backup) {
+				if (backup.getEtag() == null) {
+					backup.setEtag(UUID.randomUUID().toString());
+				}
+				return backup;
+			}
+		};
 	}
 
 	@Override
@@ -85,6 +94,14 @@ public class DBOVerificationSubmission implements
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+	
+	public String getEtag() {
+		return etag;
+	}
+	
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 	public Long getCreatedBy() {
@@ -115,12 +132,8 @@ public class DBOVerificationSubmission implements
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(serialized);
+		result = prime * result + Objects.hash(createdBy, createdOn, etag, id);
 		return result;
 	}
 
@@ -133,33 +146,14 @@ public class DBOVerificationSubmission implements
 		if (getClass() != obj.getClass())
 			return false;
 		DBOVerificationSubmission other = (DBOVerificationSubmission) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (!Arrays.equals(serialized, other.serialized))
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Arrays.equals(serialized, other.serialized);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationSubmission [id=" + id + ", createdBy="
-				+ createdBy + ", createdOn=" + createdOn + ", serialized="
-				+ Arrays.toString(serialized) + "]";
+		return "DBOVerificationSubmission [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", serialized=" + Arrays.toString(serialized) + "]";
 	}
-	
-	
 
 }

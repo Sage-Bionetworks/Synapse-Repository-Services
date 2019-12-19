@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.verification;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_FILEHANDLEID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_FILE_VERIFICATION_ID;
@@ -7,29 +7,33 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_STATE_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_FILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
+import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState;
@@ -41,14 +45,21 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-public class DBOVerificationDAOImpl implements VerificationDAO {
+import com.google.common.collect.ImmutableSet;
+
+@Repository
+public class VerificationDAOImpl implements VerificationDAO {
+	
+	private static final Set<VerificationStateEnum> DELETE_ATTACHMENTS_STATES = ImmutableSet.of(APPROVED, REJECTED);
+	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
@@ -126,11 +137,17 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			+ " FROM "+TABLE_VERIFICATION_STATE+" S3"
 			+ " WHERE S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S3."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
 
+	private static final String SQL_DELETE_FILE_IDS = "DELETE FROM " + TABLE_VERIFICATION_FILE
+			+ " WHERE " + COL_VERIFICATION_FILE_VERIFICATION_ID + " = ?";
+	
+	private static final String SQL_UPDATE_SUBMISSION_ETAG = "UPDATE " + TABLE_VERIFICATION_SUBMISSION
+			+ " SET " + COL_VERIFICATION_SUBMISSION_ETAG + " = UUID() WHERE " + COL_VERIFICATION_SUBMISSION_ID + " = ?";
+	
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
-			(new DBOVerificationSubmission()).getTableMapping();
+			new DBOVerificationSubmission().getTableMapping();
 	
 	private static TableMapping<DBOVerificationState> DBO_VERIFICATION_STATE_MAPPING =
-			(new DBOVerificationState()).getTableMapping();
+			new DBOVerificationState().getTableMapping();
 
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
 
@@ -155,27 +172,47 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
-		try {
-			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		dbo.setSerialized(serializeDTO(dto));
+		dbo.setEtag(UUID.randomUUID().toString());
 		return dbo;
 	}
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
-		VerificationSubmission dto = new VerificationSubmission();
-		try {
-			dto = (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		VerificationSubmission dto = deserializeDTO(dbo);
+		
+		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
+		
+		if (dto.getAttachments() == null || // Avoid breaking the client if a verification was submitted without attachments
+			!VerificationStateEnum.SUBMITTED.equals(currentState)) // Include the attachments only for the submitted state
+		{
+			dto.setAttachments(Collections.emptyList());
 		}
+		
 		dto.setStateHistory(stateHistory);
+		
 		return dto;
 	}
 	
+	private static byte[] serializeDTO(VerificationSubmission dto) {
+		try {
+			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) {
+		try {
+			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {
-		if (attachments==null || attachments.isEmpty()) return;
+		if (attachments==null || attachments.isEmpty()) {
+			return;
+		}
 		List<DBOVerificationSubmissionFile> batch = new ArrayList<DBOVerificationSubmissionFile>();
 		for (AttachmentMetadata attachmentMetadata : attachments) {
 			DBOVerificationSubmissionFile sf = new DBOVerificationSubmissionFile();
@@ -197,6 +234,16 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
+		
+		if (DELETE_ATTACHMENTS_STATES.contains(newState.getState())) {
+			// Note: we drop the link to the file ids used by the FileHandleAssociationProvider
+			// but we keep the serialized blob intact so that we can reconstruct it if needed
+			// the serialized blob is not returned if the state is different from SUBMITTED
+			jdbcTemplate.update(SQL_DELETE_FILE_IDS, verificationId);
+			// Etag update for migration
+			jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, verificationId);
+		}
+		
 		long stateId = idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID);
 		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, stateId, newState);
 		basicDao.createNew(dbo);
@@ -222,7 +269,9 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if (states!=null) {
 			List<String> stateNames = new ArrayList<String>();
-			for (VerificationStateEnum state : states) stateNames.add(state.name());
+			for (VerificationStateEnum state : states) {
+				stateNames.add(state.name());
+			}
 			param.addValue(COL_VERIFICATION_STATE_STATE, stateNames);
 		}
 		if (userId!=null) {
@@ -232,98 +281,109 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 	
 	@Override
-	public List<VerificationSubmission> listVerificationSubmissions(
-			List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset) {
+	public List<VerificationSubmission> listVerificationSubmissions(List<VerificationStateEnum> currentVerificationState, Long userId, long limit, long offset) {
 		String sql = "SELECT * "+listVerificationSubmissionsSQLcore(currentVerificationState, userId)+LIMIT_OFFSET;
 		MapSqlParameterSource param = listVerificationSubmissionsParams(currentVerificationState, userId);
 		param.addValue(LIMIT, limit);
 		param.addValue(OFFSET, offset);
 		
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		List<DBOVerificationSubmission> dbos =
-				namedTemplate.query(sql, param, DBO_VERIFICATION_SUB_MAPPING);
+		List<DBOVerificationSubmission> dbos = namedTemplate.query(sql, param, DBO_VERIFICATION_SUB_MAPPING);
+		
+		if (dbos.isEmpty())  {
+			return Collections.emptyList();
+		}
 		
 		List<VerificationSubmission> result = new ArrayList<VerificationSubmission>();
-		if (dbos.isEmpty()) return result;
-		Set<Long> verificationIds = new HashSet<Long>();
-		for (DBOVerificationSubmission dbo : dbos) verificationIds.add(dbo.getId());
-		Map<Long,List<VerificationState>> stateMap = getVerificationStates(verificationIds);
+
+		Set<Long> verificationIds = dbos.stream().map(DBOVerificationSubmission::getId).collect(Collectors.toSet());
+
+		Map<Long,List<VerificationState>> stateMap = getVerificationStates(verificationIds, true);
+		
 		for (DBOVerificationSubmission dbo : dbos) {
 			List<VerificationState> stateHistory = stateMap.get(dbo.getId());
-			if (stateHistory==null) throw new IllegalStateException("Failed to retrieve state history for submission verification "+dbo.getId());
+			if (stateHistory == null) {
+				throw new IllegalStateException("Failed to retrieve state history for submission verification " + dbo.getId());
+			}
 			result.add(copyVerificationDBOtoDTO(dbo, stateHistory));
 		}
+		
 		return result;
 	}
 	
-	private Map<Long,List<VerificationState>> getVerificationStates(Set<Long> verificationIds) {
+	private Map<Long,List<VerificationState>> getVerificationStates(Set<Long> verificationIds, boolean includeNotes) {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_VERIFICATION_STATE_VERIFICATION_ID, verificationIds);
-		final Map<Long,List<VerificationState>> result = new HashMap<Long,List<VerificationState>>();
-		namedTemplate.query(VERIFICATION_STATE_SQL, param, new RowMapper<VerificationState>() {
 
-			@Override
-			public VerificationState mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				DBOVerificationState state = DBO_VERIFICATION_STATE_MAPPING.mapRow(rs, rowNum);
-				List<VerificationState> states = result.get(state.getVerificationId());
-				if (states==null) {
-					states = new ArrayList<VerificationState>();
-					result.put(state.getVerificationId(), states);
-				}
-				states.add(copyVerificationStateDBOtoDTO(state));
-				return null;
+		final Map<Long, List<VerificationState>> result = new HashMap<Long, List<VerificationState>>();
+
+		namedTemplate.query(VERIFICATION_STATE_SQL, param, (ResultSet rs, int rowNum) -> {
+			DBOVerificationState state = DBO_VERIFICATION_STATE_MAPPING.mapRow(rs, rowNum);
+			List<VerificationState> states = result.get(state.getVerificationId());
+			if (states == null) {
+				states = new ArrayList<VerificationState>();
+				result.put(state.getVerificationId(), states);
 			}
-			
+			states.add(copyVerificationStateDBOtoDTO(state, includeNotes));
+
+			// We do not need the result from the mapper
+			return null;
 		});
+
 		return result;
 	}
 
 	@Override
 	public long countVerificationSubmissions(List<VerificationStateEnum> states,
 			Long userId) {
-		String sql = "SELECT COUNT(*) "+listVerificationSubmissionsSQLcore(states, userId);
+		String sql = "SELECT COUNT(*) " + listVerificationSubmissionsSQLcore(states, userId);
 		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		return namedTemplate.queryForObject(sql, param, Long.class);
 	}
-	
-	private static final String REASON_CHARACTER_SET = "UTF-8";
 
 	public static DBOVerificationState copyVerificationStateDTOtoDBO(long verificationSubmissionId, long stateId, VerificationState dto) {
 		DBOVerificationState dbo = new DBOVerificationState();
 		dbo.setId(stateId);
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		if (dto.getReason()==null) {
-			dbo.setReason(null);
-		} else {
-			try {
-				dbo.setReason((dto.getReason().getBytes(REASON_CHARACTER_SET)));
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
+		
+		if (!StringUtils.isBlank(dto.getReason())) {
+			byte[] reason = dto.getReason().getBytes(StandardCharsets.UTF_8);
+			dbo.setReason(reason);
 		}
+				
+		if (!StringUtils.isBlank(dto.getNotes())) {
+			byte[] notes = dto.getNotes().getBytes(StandardCharsets.UTF_8);
+			dbo.setNotes(notes);
+		}
+		
 		dbo.setState(dto.getState());
 		dbo.setVerificationId(verificationSubmissionId);
+		
 		return dbo;
 	}
 	
-	public static VerificationState copyVerificationStateDBOtoDTO(DBOVerificationState dbo) {
+	public static VerificationState copyVerificationStateDBOtoDTO(DBOVerificationState dbo, boolean includeNotes) {
 		VerificationState dto = new VerificationState();
+		
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		if (dbo.getReason()==null) {
-			dto.setReason(null);
-		} else {
-			try {
-				dto.setReason(new String(dbo.getReason(), REASON_CHARACTER_SET));
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
+		
+		if (dbo.getReason() != null) {
+			String reason = new String(dbo.getReason(), StandardCharsets.UTF_8);
+			dto.setReason(reason);
 		}
+		
+		if (includeNotes && dbo.getNotes() != null) {
+			String notes = new String(dbo.getNotes(), StandardCharsets.UTF_8);
+			dto.setNotes(notes);
+		}
+		
 		dto.setState(dbo.getState());
+		
 		return dto;
 	}
 	
@@ -333,33 +393,34 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	}
 
 	@Override
-	public VerificationSubmission getCurrentVerificationSubmissionForUser(
-			long userId) {
+	public VerificationSubmission getCurrentVerificationSubmissionForUser(long userId) {
 		DBOVerificationSubmission dbo = null;
 		try {
-			dbo = jdbcTemplate.queryForObject(
-				LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
+			dbo = jdbcTemplate.queryForObject(LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
-		Map<Long,List<VerificationState>> stateMap = getVerificationStates(
-				Collections.singleton(dbo.getId()));
+		Map<Long, List<VerificationState>> stateMap = getVerificationStates(Collections.singleton(dbo.getId()), false);
 		List<VerificationState> stateHistory = stateMap.get(dbo.getId());
-		if (stateHistory==null) throw new IllegalStateException("Failed to retrieve state history for submission verification "+dbo.getId());
+		if (stateHistory == null) {
+			throw new IllegalStateException("Failed to retrieve state history for submission verification " + dbo.getId());
+		}
 		return copyVerificationDBOtoDTO(dbo, stateHistory);
 	}
 
 	@Override
-	public VerificationStateEnum getVerificationState(
-			long verificationId) {
-		String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
-		return VerificationStateEnum.valueOf(stateName);
+	public VerificationStateEnum getVerificationState(long verificationId) {
+		return wrapSubmissionNotFound(verificationId, () -> {
+			String stateName = jdbcTemplate.queryForObject(CURRENT_VERIFICATION_STATE_SQL, String.class, verificationId);
+			return VerificationStateEnum.valueOf(stateName);
+		});
 	}
 
 	@Override
 	public long getVerificationSubmitter(long verificationId) {
-		return jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId);
-		
+		return wrapSubmissionNotFound(verificationId, () -> 
+			jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId)
+		);
 	}
 
 	@Override
@@ -371,6 +432,14 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		params.addValue(IDS_PARAM, userIds);
 		Integer count = namedJdbcTemplate.queryForObject(SQL_VALIDATED_COUNT, params, Integer.class);
 		return count.equals(userIds.size());
+	}
+	
+	private <T> T wrapSubmissionNotFound(long verificationId, Supplier<T> supplier) {
+		try {
+			return supplier.get();
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("A verification submission with id " + verificationId + " could not be found");
+		}
 	}
 
 }
