@@ -26,9 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
+import org.checkerframework.checker.units.qual.min;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,6 +75,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -97,10 +101,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.UnexpectedRollbackException;
-import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -135,17 +138,12 @@ public class NodeDAOImplTest {
 	private TeamDAO teamDAO;
 	
 	@Autowired
-	private PlatformTransactionManager txManager;
-	
-	@Autowired
 	private MigratableTableDAO migratableTableDao;;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	DBOBasicDao basicDao;
-
-	private TransactionTemplate transactionTemplate;
+	private DBOBasicDao basicDao;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -207,8 +205,6 @@ public class NodeDAOImplTest {
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
-		
-		transactionTemplate = new TransactionTemplate(txManager);
 	}
 	
 	@AfterEach
@@ -1251,6 +1247,61 @@ public class NodeDAOImplTest {
 		for(String nodeID : nodeIds){
 			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
 		}
+	}
+	
+	@Test
+	public void testDeleteCascadeGreaterThanMax(){
+		List<String> nodeIds = createNestedNodes(20);
+		//delete the parent node 
+		nodeDao.delete(nodeIds.get(0));
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIds){
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+	}
+	
+	@Test
+	public void testGetAllContainerIdsOrderByDistanceDesc() {
+		int treeDepth = 20;
+		
+		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
+		
+		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
+		
+		int minDistance = 1;
+		int limit = 1000;
+		
+		// Call under test
+		SortedMap<Integer, Set<Long>> result = nodeDao.getAllContainerIdsOrderByDistanceDesc(parentIds, minDistance, limit);
+		
+		// Does not include the root
+		assertEquals(nodeIds.size() - 1, result.size());
+		
+		for (int level=1; level<treeDepth; level++) {
+			Set<Long> levelIds = result.get(level);
+			Set<Long> expected = ImmutableSet.of(nodeIds.get(level));
+			assertEquals(expected, levelIds);
+		}
+		
+	}
+	
+	@Test
+	public void testGetAllContainerIdsOrderByDistanceDescLastLevel() {
+		int treeDepth = 20;
+		
+		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
+		
+		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
+		
+		int minDistance = treeDepth - 1;
+		int limit = 1000;
+		
+		// Call under test
+		SortedMap<Integer, Set<Long>> result = nodeDao.getAllContainerIdsOrderByDistanceDesc(parentIds, minDistance, limit);
+
+		assertEquals(1, result.size());
+		assertEquals(ImmutableSet.of(nodeIds.get(nodeIds.size() - 1)), result.get(minDistance));
+		
 	}
 	
 	/**
@@ -2732,13 +2783,9 @@ public class NodeDAOImplTest {
 		toDelete.add(child.getId());
 
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
-
-			@Override
-			public Void call() throws Exception {
-				nodeDao.delete(projectid);
-				return null;
-			}
+		migratableTableDao.runWithKeyChecksIgnored(() -> {
+			basicDao.deleteObjectByPrimaryKey(DBONode.class, new MapSqlParameterSource("id", KeyFactory.stringToKey(projectid)));
+			return null;
 		});
 		// the parent should not exist.
 		assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(child.getParentId())));
@@ -4024,6 +4071,8 @@ public class NodeDAOImplTest {
 	public void testEntityPropertiesRoundTrip(){
 
 		String nodeId = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip")).getId();
+		
+		toDelete.add(nodeId);
 
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		entityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");

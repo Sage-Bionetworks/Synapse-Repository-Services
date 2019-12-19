@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -55,9 +54,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -304,15 +303,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
 			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	
-	private static final String IDS_PARAM_NAME = "ids_param";
-
-	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = 
-			"SELECT "+COL_NODE_ID
-			+" FROM "+TABLE_NODE
-			+" WHERE "
-				+ COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")"
-				+ " AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"')"
-						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
+	private static final String PARAM_NAME_IDS = "ids_param";
+	private static final String PARAM_NAME_MIN_DISTANCE = "min_depth";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R.";
@@ -412,6 +404,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", PATH.DISTANCE+ 1 FROM "
 			+ TABLE_NODE + " AS N JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + " WHERE N."
 			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
+	
+	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
+	
+	/**
+	 * MySQL has a limit of 15 level on cascade for self referencing FK, this constant is used to grab all the nodes in a hierarchy
+	 * whose distance from a root node is greater than this limit so that they can be deleted safely.
+	 */
+	public static final int MIN_PATH_DISTANCE = 15;
+	public static final int MAX_PATH_RECURSION = 1000;
+	
+	/**
+	 * Maximum number of c to delete at once
+	 */
+	public static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 1000;
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
@@ -484,7 +490,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+" FROM "+TABLE_REVISION
 			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
 	
-	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ IDS_PARAM_NAME+")";
+	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ PARAM_NAME_IDS+")";
 	
 	@WriteTransaction
 	@Override
@@ -620,28 +626,54 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@WriteTransaction
 	@Override
 	public boolean delete(String id) throws DatastoreException {
-		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
+		ValidateArgument.required(id, "NodeId");
 		Long longId = KeyFactory.stringToKey(id);
-		MapSqlParameterSource prams = getNodeParameters(longId);
-		// Send a delete message
-		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ENTITY);
-		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
+		return delete(Collections.singletonList(longId)) == 1;
 	}
 	
 	@WriteTransaction
 	@Override
 	public int delete(List<Long> ids) throws DatastoreException{
 		ValidateArgument.required(ids, "ids");
-		if(ids.isEmpty()){
-			//no need to update database if not deleting anything
+
+		if (ids.isEmpty()) {
+			// no need to update database if not deleting anything
 			return 0;
 		}
-		
-		for(long id : ids){
+
+		for (long id : ids) {
 			String stringID = KeyFactory.keyToString(id);
 			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 		}
-		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
+
+		// Before deleting the nodes we remove the descendant nodes that are deeper than 15 levels to
+		// avoid the MySQL cascade delete limitation on self referencing keys
+
+		deleteDeepDescendants(ids);
+
+		return deleteBatch(ids);
+	}
+	
+	private void deleteDeepDescendants(List<Long> ids) {
+		SortedMap<Integer, Set<Long>> descendants;
+		
+		do {
+			descendants = getAllContainerIdsOrderByDistanceDesc(ids, MIN_PATH_DISTANCE - 1, MAX_CONTAINER_DELETE_BATCH_SIZE);
+			
+			// For the unit test
+			if (descendants == null) {
+				return;
+			}
+			
+			descendants.forEach( (_level, levelIds) -> {
+				deleteBatch(levelIds);
+			});
+			
+		} while (!descendants.isEmpty());
+	}
+
+	private int deleteBatch(Collection<Long> ids) {
+		MapSqlParameterSource parameters = new MapSqlParameterSource(PARAM_NAME_IDS, ids);
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
 	}
 	
@@ -700,12 +732,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
 		return params;
-	}
-	
-
-	private DBORevision getCurrentRevision(DBONode node){
-		if(node == null) throw new IllegalArgumentException("Node cannot be null");
-		return getNodeRevisionById(node.getId(),  node.getCurrentRevNumber());
 	}
 	
 	private DBORevision getNodeRevisionById(Long id, Long revNumber){
@@ -1543,20 +1569,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public Set<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds) throws LimitExceededException {
 		ValidateArgument.required(parentIds, "parentIds");
-		Set<Long> results = new LinkedHashSet<Long>(parentIds);
 		if(parentIds.isEmpty()){
-			return results;
+			return Collections.emptySet();
 		}
+		Set<Long> results = new LinkedHashSet<Long>(parentIds);
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
-		parameters.put(IDS_PARAM_NAME, parentIds);
+		parameters.put(PARAM_NAME_IDS, parentIds);
 		parameters.put(BIND_LIMIT, maxNumberIds+1);
 		List<Long> children = namedParameterJdbcTemplate.queryForList(
 				"WITH RECURSIVE CONTAINERS (ID) AS (" + 
-				" SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:"+IDS_PARAM_NAME+")"
-						+ " AND "+COL_NODE_TYPE+" IN ('"+EntityType.project.name()+"','"+EntityType.folder.name()+"')" + 
+				" SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:"+PARAM_NAME_IDS+")"
+						+ " AND "+COL_NODE_TYPE+" IN (" + SQL_STRING_CONTAINERS_TYPES + ")" + 
 				" UNION DISTINCT" + 
 				" SELECT N."+COL_NODE_ID+" FROM CONTAINERS AS C JOIN "+TABLE_NODE+" AS N ON (C."+COL_NODE_ID+" = N."+COL_NODE_PARENT_ID
-					+" AND N."+COL_NODE_TYPE+" IN ('"+EntityType.project.name()+"','"+EntityType.folder.name()+"'))" + 
+					+" AND N."+COL_NODE_TYPE+" IN (" + SQL_STRING_CONTAINERS_TYPES + "))" + 
 				")" + 
 				"SELECT ID FROM CONTAINERS LIMIT :"+BIND_LIMIT, parameters, Long.class);
 		Set<Long> finalSet = new HashSet<>(children);
@@ -1575,11 +1601,51 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException{
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
-		List<Long> ids = new LinkedList<>();
-		ids.add(id);
-		return getAllContainerIds(ids, maxNumberIds);
+		return getAllContainerIds(Collections.singletonList(id), maxNumberIds);
 	}
+	
+	@Override
+	public SortedMap<Integer, Set<Long>> getAllContainerIdsOrderByDistanceDesc(Collection<Long> parentIds, int minDistance, int limit) {
+		ValidateArgument.required(parentIds, "parentIds");
+		ValidateArgument.requirement(minDistance > 0, "The min distance must be greater than 0");
+		
+		Map<String, Object> parameters = new HashMap<String, Object>(2);
+		
+		parameters.put(PARAM_NAME_IDS, parentIds);
+		parameters.put(PARAM_NAME_MIN_DISTANCE, minDistance);
+		parameters.put(BIND_LIMIT, limit);
+		
+		return namedParameterJdbcTemplate.query(
+				"WITH RECURSIVE CONTAINERS (ID, DISTANCE) AS (" 
+						+ " SELECT " + COL_NODE_ID + ", 1 FROM " + TABLE_NODE 
+						+ " WHERE " + COL_NODE_PARENT_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
+						+ " UNION " 
+						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
+						+ " FROM CONTAINERS AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
+						+ " AND N." + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ") AND C.DISTANCE < " + MAX_PATH_RECURSION
+				+ ")"
+				+ " SELECT ID, DISTANCE FROM CONTAINERS WHERE DISTANCE >= :" + PARAM_NAME_MIN_DISTANCE + " ORDER BY DISTANCE DESC LIMIT :" + BIND_LIMIT, parameters, (rs) -> {
+					SortedMap<Integer, Set<Long>> result = new TreeMap<>((a, b) -> {
+						return b - a;
+					});
+					
+					while (rs.next()) {
+						final Long id = rs.getLong(1);
+						final Integer distance = rs.getInt(2);
 
+						Set<Long> levelIds = result.get(distance);
+						
+						if (levelIds == null) {
+							result.put(distance, levelIds = new HashSet<>());
+						}
+						
+						levelIds.add(id);
+						
+					}
+					
+					return result;
+				});
+	}
 
 	@Override
 	public String getNodeIdByAlias(String alias) {

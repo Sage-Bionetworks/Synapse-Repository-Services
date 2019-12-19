@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -43,9 +42,6 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-
-	@Autowired
-	private NodeManager nodeManager;
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -362,12 +358,11 @@ public class TrashManagerImpl implements TrashManager {
 	
 	@WriteTransaction
 	@Override
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo){
+	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo userInfo) {
 		ValidateArgument.required(trashIDs, "trashIDs");
 		ValidateArgument.required(userInfo, "userInfo");
 		
 		if (!userInfo.isAdmin()) {
-			String userId = userInfo.getId().toString();
 			throw new UnauthorizedException("Only an Administrator can perform this action.");
 		}
 	

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
@@ -603,6 +604,19 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getNodeName(String nodeId);
+
+	/**
+	 * Return all the containers in the sub tree(s) for the given list of nodes ordered by their distance (child to root) to
+	 * the respective input nodes. 
+	 * 
+	 * The keys in the sorted map is the distance value, the value for each key is the set of nodes that match the distance.
+	 *  
+	 * @param parentIds The input root nodes
+	 * @param minDistance The min distance between the input node a container in its subtree to filter by
+	 * @param limit The max number of container nodes to be fetched
+	 * @return A map sorted by the distance (desc) of the container nodes to their parents
+	 */
+	SortedMap<Integer, Set<Long>> getAllContainerIdsOrderByDistanceDesc(Collection<Long> parentIds, int minDistance, int limit);
 
 
 }
