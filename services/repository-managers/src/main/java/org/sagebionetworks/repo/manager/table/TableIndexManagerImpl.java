@@ -528,5 +528,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 		
 	}
+	@Override
+	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask, Set<Long> viewContainers) {
+		return tableIndexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+	}
 
 }

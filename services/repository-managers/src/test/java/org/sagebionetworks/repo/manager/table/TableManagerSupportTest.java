@@ -38,14 +38,11 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ObjectTypeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DataType;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -104,8 +101,6 @@ public class TableManagerSupportTest {
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
 	ProgressCallback mockCallback;
-	@Mock
-	ReplicationMessageManagerAsynch mockReplicationMessageManager;
 	@Mock
 	ObjectTypeManager mockObjectTypeManager;
 	@Mock
@@ -630,7 +625,6 @@ public class TableManagerSupportTest {
 		// call under test
 		Long crcResult = manager.calculateViewCRC32(idAndVersion);
 		assertEquals(crc32, crcResult);
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 	}
 	
@@ -642,29 +636,6 @@ public class TableManagerSupportTest {
 		// call under test
 		Long crcResult = manager.calculateViewCRC32(idAndVersion);
 		assertEquals(snapshotId, crcResult);
-		verify(mockReplicationMessageManager, never()).pushContainerIdsToReconciliationQueue(any());
-	}
-	
-	@Test
-	public void testTriggerScopeReconciliationFileView(){
-		Long type = ViewTypeMask.File.getMask();
-		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
-		// call under test
-		manager.triggerScopeReconciliation(type, containersInScope);
-		// the scope should be sent
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
-	}
-	
-	@Test
-	public void testTriggerScopeReconciliationProjectView(){
-		Long type = ViewTypeMask.Project.getMask();
-		Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
-		// project views reconcile on root.
-		List<Long> toReconcile = Lists.newArrayList(rootId);
-		// call under test
-		manager.triggerScopeReconciliation(type, containersInScope);
-		// the scope should be sent
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
 
 	@Test

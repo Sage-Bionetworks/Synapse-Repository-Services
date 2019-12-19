@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -91,6 +92,14 @@ public interface TableStatusDAO {
 	 *             table.
 	 */
 	public TableStatus getTableStatus(IdAndVersion tableId) throws NotFoundException;
+	
+	/**
+	 * Get just the state of the given table.
+	 * @param tableId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public TableState getTableStatusState(IdAndVersion tableId) throws NotFoundException;
 
 	/**
 	 * Delete the table status for this table. Called during migration if table was updated in staging and we don't want

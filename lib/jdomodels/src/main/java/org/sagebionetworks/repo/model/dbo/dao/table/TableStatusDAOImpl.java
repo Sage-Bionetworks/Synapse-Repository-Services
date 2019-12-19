@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
+import java.sql.ResultSet;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -217,6 +218,22 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			throw new IllegalArgumentException("IdAndVersion.id cannot be null");
 		}
 		return idAndVersion.getVersion().orElse(NULL_VERSION);
+	}
+
+	@Override
+	public TableState getTableStatusState(IdAndVersion tableId) throws NotFoundException {
+		long version = validateAndGetVersion(tableId);
+		try {
+			return jdbcTemplate
+					.queryForObject(
+							"SELECT " + COL_TABLE_STATUS_STATE + " FROM " + TABLE_STATUS + " WHERE "
+									+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?",
+							(ResultSet rs, int rowNum) -> {
+								return TableState.valueOf(rs.getString(COL_TABLE_STATUS_STATE));
+							}, tableId.getId(), version);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+		}
 	}
 
 }

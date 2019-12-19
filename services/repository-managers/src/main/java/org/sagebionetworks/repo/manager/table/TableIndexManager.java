@@ -111,6 +111,13 @@ public interface TableIndexManager {
 	 * Delete the index for this table.
 	 */
 	public void deleteTableIndex(IdAndVersion tableId);
+	
+	/**
+	 * Delete the index for this table.
+	 * @param idAndVersion
+	 * @param newTableSuffix The suffix to be included in the table's name.
+	 */
+	public void deleteTableIndex(IdAndVersion idAndVersion, String newTableSuffix);
 
 	/**
 	 * Set current version of the index.
@@ -235,5 +242,12 @@ public interface TableIndexManager {
 	 * @param objectId
 	 */
 	public void markEntityScopeOutOfDate(String objectId);
+
+	/**
+	 * Calculate the CRC32 for the given view containers.
+	 * @param viewTypeMask
+	 * @param viewContainers
+	 */
+	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask, Set<Long> viewContainers);
 
 }

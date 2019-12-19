@@ -417,4 +417,32 @@ public class TableStatusDAOImplTest {
 		assertEquals(null, noVersion.getVersion());
 		assertEquals(withVersion.getTableId(), noVersion.getTableId(),"Both should have the same ID");
 	}
+	
+	@Test
+	public void testGetTableStatusStateWithVersion() {
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
+		// call under test
+		TableState withVersion = tableStatusDAO.getTableStatusState(tableIdWithVersion);
+		assertNotNull(withVersion);
+		assertEquals(TableState.PROCESSING, withVersion);
+	}
+	
+	@Test
+	public void testGetTableStatusStateWithNoVersion() {
+		// This should insert a row for this table.
+		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
+		// call under test
+		TableState withVersion = tableStatusDAO.getTableStatusState(tableIdNoVersion);
+		assertNotNull(withVersion);
+		assertEquals(TableState.PROCESSING, withVersion);
+	}
+	
+	@Test
+	public void testGetTableStatusStateDoesNotExist() {
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			 tableStatusDAO.getTableStatusState(tableIdNoVersion);
+		});
+	}
 }

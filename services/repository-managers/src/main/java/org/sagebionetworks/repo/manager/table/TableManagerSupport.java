@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -40,6 +41,14 @@ public interface TableManagerSupport {
 	 */
 	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
 			throws NotFoundException;
+	
+	/**
+	 * Get the current state of the given table.
+	 * @param idAndVersion
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public TableState getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -274,6 +283,18 @@ public interface TableManagerSupport {
 	public <R> R tryRunWithTableNonexclusiveLock(
 			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
+	
+	/**
+	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback, IdAndVersion, int, ProgressingCallable)
+	 * @param callback
+	 * @param key
+	 * @param timeoutSeconds
+	 * @param runner
+	 * @return
+	 * @throws Exception 
+	 */
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
+			int timeoutSeconds, ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
