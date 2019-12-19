@@ -17,10 +17,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
+import static org.sagebionetworks.repo.manager.trash.TrashManagerImpl.MAX_IDS_TO_LOAD;
+
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -494,11 +497,12 @@ public class TrashManagerImplTest {
 	
 	@Test 
 	public void testPurgeTrashForUser(){
-		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID))
-		.thenReturn(true);
+		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID)).thenReturn(true);
+		when(mockNodeDAO.deleteTree(nodeID, MAX_IDS_TO_LOAD)).thenReturn(true);	
+		
 		trashManager.purgeTrashForUser(userInfo, nodeID, purgeCallback);
 	
-		verify(mockNodeDAO).delete(nodeID);
+		verify(mockNodeDAO).deleteTree(nodeID, MAX_IDS_TO_LOAD);
 		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
 		verify(mockTrashCanDao).delete(userInfo.getId().toString(), nodeID);
 				
@@ -569,13 +573,18 @@ public class TrashManagerImplTest {
 	}
 	
 	@Test
-	public void testPurgeTrashAdmin(){
-		List<Long> trashIDList = new ArrayList<Long>(1);
-		trashIDList.add(1L);
+	public void testPurgeTrashAdmin() {
+		
+		String nodeId = "1";
+		
+		when(mockNodeDAO.deleteTree(nodeId, MAX_IDS_TO_LOAD)).thenReturn(true);
+		
+		List<Long> trashIDList = Collections.singletonList(Long.valueOf(nodeId));
+		
 		trashManager.purgeTrashAdmin(trashIDList, adminUserInfo);
 		
-		verify(mockNodeDAO,times(1)).delete(trashIDList);
-		verify(mockAclDAO,times(1)).delete(trashIDList, ObjectType.ENTITY);
+		verify(mockNodeDAO,times(1)).deleteTree(nodeId, MAX_IDS_TO_LOAD);
+		verify(mockAclDAO,times(1)).delete(nodeId, ObjectType.ENTITY);
 		verify(mockTrashCanDao,times(1)).delete(trashIDList);
 	}
 

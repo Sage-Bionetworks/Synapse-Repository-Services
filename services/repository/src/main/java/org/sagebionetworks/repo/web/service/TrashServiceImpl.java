@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
@@ -40,9 +39,6 @@ public class TrashServiceImpl implements TrashService {
 
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
-
-	@Autowired
-	private NodeManager nodeManager;
 
 	@Override
 	public void moveToTrash(Long currentUserId, String entityId)

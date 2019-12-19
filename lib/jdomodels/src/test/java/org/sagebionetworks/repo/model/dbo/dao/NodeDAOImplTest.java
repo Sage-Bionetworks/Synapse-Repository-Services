@@ -28,8 +28,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,6 +74,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -93,13 +96,12 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.UnexpectedRollbackException;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -135,17 +137,12 @@ public class NodeDAOImplTest {
 	private TeamDAO teamDAO;
 	
 	@Autowired
-	private PlatformTransactionManager txManager;
-	
-	@Autowired
 	private MigratableTableDAO migratableTableDao;;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	DBOBasicDao basicDao;
-
-	private TransactionTemplate transactionTemplate;
+	private DBOBasicDao basicDao;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -207,8 +204,6 @@ public class NodeDAOImplTest {
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
-		
-		transactionTemplate = new TransactionTemplate(txManager);
 	}
 	
 	@AfterEach
@@ -220,7 +215,7 @@ public class NodeDAOImplTest {
 			for(String id:  toDelete){
 				// Delete each
 				try{
-					nodeDao.delete(id);
+					nodeDao.deleteTree(id, 100);
 				}catch (NotFoundException e) {
 					// happens if the object no longer exists.
 				}
@@ -1253,6 +1248,112 @@ public class NodeDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testDeleteCascadeGreaterThanMax(){
+		List<String> nodeIds = createNestedNodes(20);
+		
+		UncategorizedSQLException ex = Assertions.assertThrows(UncategorizedSQLException.class, () -> {
+			//delete the parent node 
+			nodeDao.delete(nodeIds.get(0));
+		});
+		
+		assertTrue(ex.getMessage().contains("Foreign key cascade delete/update exceeds max depth of 15."));
+	}
+	
+	@Test
+	public void testDeleteTreeWithSubtreeSizeLessThanLimit() {
+		int depth = 20;
+		
+		List<String> nodeIds = createNestedNodes(depth);
+		
+		// Call under test
+		boolean deleted = nodeDao.deleteTree(nodeIds.get(0), depth);
+	
+		assertTrue(deleted);
+		
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIds) {
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+	}
+	
+	@Test
+	public void testDeleteTreeWithSubtreeSizeGreaterThanLimit() {
+		int depth = 20;
+		
+		List<String> nodeIds = createNestedNodes(depth);
+		
+		int limit = depth / 2;
+		
+		// Call under test
+		boolean deleted = nodeDao.deleteTree(nodeIds.get(0), limit);
+	
+		assertFalse(deleted);
+		
+		// Calling it again should finalize the deletion
+		deleted = nodeDao.deleteTree(nodeIds.get(0), limit);
+		
+		assertTrue(deleted);
+		
+		//check that all added nodes were deleted 
+		for(String nodeID : nodeIds){
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
+		}
+	}
+	
+	@Test
+	public void testDeleteTreeNoContainer() {
+		Node node = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		node.setNodeType(EntityType.file);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		
+		boolean deleted = nodeDao.deleteTree(node.getId(), 1);
+	
+		assertTrue(deleted);
+	}
+	
+	@Test
+	public void testDeleteTreeWithLeaves() {
+		int depth = 20;
+		
+		List<String> nodeIds = createNestedNodes(depth);
+		List<String> fileIds = new ArrayList<>();
+		
+		// Add a couple of files in the last node
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() - 1)));
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() - 1)));
+		
+		// Add some in the middle
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() / 2)));
+		
+		int limit = depth + fileIds.size();
+		
+		// Call under test
+		boolean deleted = nodeDao.deleteTree(nodeIds.get(0), limit);
+		
+		assertTrue(deleted);
+		
+		for (String fileId : fileIds) {
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(fileId)));
+		}
+		
+	}
+	
+	private String addFile(String parentId) {
+		Node file = NodeTestUtils.createNew("file_" + UUID.randomUUID().toString(), creatorUserGroupId);
+		
+		file.setNodeType(EntityType.file);
+		file.setParentId(parentId);
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		
+		toDelete.add(file.getId());
+		
+		return file.getId();
+	}
+	
+	
 	/**
 	 * <pre>
 	 * numLevels amount of nodes each referencing the previous
@@ -1282,7 +1383,7 @@ public class NodeDAOImplTest {
 		List<String> nodeIDs = new ArrayList<String>();
 		
 		for(int i = 0; i < numLevels; i++){
-			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i;
+			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i + " " + UUID.randomUUID().toString();
 			Node node = new Node();
 			
 			//set fields for the new node
@@ -1306,74 +1407,7 @@ public class NodeDAOImplTest {
 		
 		return nodeIDs;
 	}
-	
-	@Test
-	public void testDeleteListNullList(){
-		assertThrows(IllegalArgumentException.class, ()->{
-			nodeDao.delete((List<Long>) null);
-		});
-	}
-	
-	@Test
-	public void testDeleteListEmptyList(){
-		assertEquals(0, nodeDao.delete(new ArrayList<Long>()));
-	}
-	
-	
-	@Test
-	public void testDeleteListLeavesOnly(){
-		List<Long> nodeIDs = new ArrayList<Long>();
-		int numNodes = 2; 
-		
-		//create numNodes amount of Nodes. all children of the root
-		for(int i = 0; i < numNodes; i++){
-			String nodeName = "NodeDAOImplTest.testDeleteList() Node:" + i;
-			Node node = new Node();
-			
-			//set fields for the new node
-			Date now = new Date();
-			node.setName(nodeName);
-			node.setParentId( rootID );//previous added node is the parent
-			node.setNodeType(EntityType.project);
-			node.setModifiedByPrincipalId(creatorUserGroupId);
-			node.setModifiedOn(now);
-			node.setCreatedOn(now);
-			node.setCreatedByPrincipalId(creatorUserGroupId);
-			
-			//create the node in the database and update the parentid to that of the new node
-			String nodeID = nodeDao.createNew(node);
-			assertNotNull(nodeID);
-			
-			nodeIDs.add(KeyFactory.stringToKey(nodeID));
-			toDelete.add(nodeID);//add to cleanup list in case test fails
-		}
-		assertEquals(numNodes, nodeIDs.size());
-		
-		//check that the nodes were added
-		for(Long nodeID : nodeIDs){
-			assertTrue(nodeDao.doesNodeExist(nodeID));
-		}
-		
-		//delete the nodes
-		nodeDao.delete(nodeIDs);
-		
-		//check that the nodes no longer exist
-		for(Long nodeID : nodeIDs){
-			assertFalse(nodeDao.doesNodeExist(nodeID));
-		}
-	}
-	@Test
-	public void testDeleteListOfNodeWithChildren(){
-		List<String> stringTypeNodeIds = createNestedNodes(2);//1 child
-		List<Long> listParentOnly = new ArrayList<Long>();
-		
-		//only add the root parent
-		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
-		
-		nodeDao.delete(listParentOnly);
-	}
-	
-	
+
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {
 		Node node = privateCreateNew("testPeekCurrentEtag");
@@ -2542,6 +2576,25 @@ public class NodeDAOImplTest {
 		});
 	}
 	
+	@Test
+	public void testGetAllContainerIdsOrderByDistanceDesc() {
+		int treeDepth = 20;
+
+		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
+
+		int limit = 1000;
+
+		// Call under test
+		List<Long> result = nodeDao.getSubTreeNodeIdsOrderByDistanceDesc(nodeIds.get(0), limit);
+
+		List<Long> expected = nodeIds.subList(1, nodeIds.size());
+		
+		Collections.reverse(expected);
+
+		assertEquals(expected, result);
+
+	}
+	
 	/**
 	 * Exceed the limit with multiple calls.
 	 * 
@@ -2732,13 +2785,9 @@ public class NodeDAOImplTest {
 		toDelete.add(child.getId());
 
 		// to delete the parent without deleting the child:
-		migratableTableDao.runWithKeyChecksIgnored(new Callable<Void>() {
-
-			@Override
-			public Void call() throws Exception {
-				nodeDao.delete(projectid);
-				return null;
-			}
+		migratableTableDao.runWithKeyChecksIgnored(() -> {
+			basicDao.deleteObjectByPrimaryKey(DBONode.class, new MapSqlParameterSource("id", KeyFactory.stringToKey(projectid)));
+			return null;
 		});
 		// the parent should not exist.
 		assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(child.getParentId())));
@@ -4024,6 +4073,8 @@ public class NodeDAOImplTest {
 	public void testEntityPropertiesRoundTrip(){
 
 		String nodeId = nodeDao.createNewNode(privateCreateNew("testEntityPropertiesRoundTrip")).getId();
+		
+		toDelete.add(nodeId);
 
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		entityPropertyAnnotations.addAnnotation("primaryString", "primaryTest");

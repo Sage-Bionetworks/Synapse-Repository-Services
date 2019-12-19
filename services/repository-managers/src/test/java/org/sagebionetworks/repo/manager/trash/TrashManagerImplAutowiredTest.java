@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -965,6 +966,33 @@ public class TrashManagerImplAutowiredTest {
 		toClearList.add(nodeId);
 		trashManager.moveToTrash(testAdminUserInfo, nodeId);
 		entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+	}
+	
+	@Test
+	public void testPurgeTrashAdminDeepHierarchy_PLFM_5932() {
+		final Node root = new Node();
+		final String rootName = "TrashManagerImplAutowiredTest.testPurgeTrashAdminDeepHierarchy() Root Node";
+		root.setName(rootName);
+		root.setNodeType(EntityType.project);
+		String rootId = nodeManager.createNewNode(root, testAdminUserInfo);
+		toClearList.add(rootId);
+		
+		String parentId = rootId;
+		int depth = 20;
+		
+		for (int i=0; i<depth; i++) {
+			Node childNode = new Node();
+			String nodeNameB = "TrashManagerImplAutowiredTest.testPurgeTrashAdminDeepHierarchy() Child " + i;
+			childNode.setName(nodeNameB);
+			childNode.setNodeType(EntityType.folder);
+			childNode.setParentId(parentId);
+			parentId = nodeManager.createNewNode(childNode, testAdminUserInfo);
+			toClearList.add(parentId);
+		}
+		
+		trashManager.moveToTrash(testAdminUserInfo, rootId);
+		
+		trashManager.purgeTrashAdmin(Collections.singletonList(KeyFactory.stringToKey(rootId)), testAdminUserInfo);
 	}
 
 	private void cleanUp() throws Exception {
