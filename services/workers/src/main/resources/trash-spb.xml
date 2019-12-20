@@ -41,8 +41,8 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="93867" />
-		<!-- Runs every 10 hours. A long interval to give a grace period for data migration. -->
-		<property name="repeatInterval" value="36000000" />
+		<!-- Runs every hour. A long interval to give a grace period for data migration. -->
+		<property name="repeatInterval" value="3600000" />
 	</bean>
 
 </beans>
