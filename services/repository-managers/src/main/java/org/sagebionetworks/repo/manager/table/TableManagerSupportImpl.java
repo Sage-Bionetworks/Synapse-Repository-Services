@@ -341,6 +341,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
+	
+	@Override
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
+		Long viewTypeMask = getViewTypeMask(idAndVersion);
+		return getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+	}
 
 	/*
 	 * (non-Javadoc)

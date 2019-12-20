@@ -364,8 +364,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	void createNewViewIndexThenSwapWithOldIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
 		// use an exclusive semaphore to ensure we do not attempt to update the same view concurrently.
-		String stringTempLockKey = "VIEW-REBUILD-"+idAndVersion.toString();
-		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, stringTempLockKey, TIMEOUT_SECONDS,
+		String key = "VIEW-REBUILD-"+idAndVersion.toString();
+		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
 				(ProgressCallback innerCallback) -> {
 					createNewViewIndexThenSwapWithOldIndexHoldingLock(idAndVersion);
 					return null;

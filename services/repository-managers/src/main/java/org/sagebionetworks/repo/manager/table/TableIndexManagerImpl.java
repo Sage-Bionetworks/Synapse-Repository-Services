@@ -532,5 +532,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask, Set<Long> viewContainers) {
 		return tableIndexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
 	}
+	
+	@Override
+	public void deleteTableIndex(IdAndVersion idAndVersion, String newTableSuffix) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

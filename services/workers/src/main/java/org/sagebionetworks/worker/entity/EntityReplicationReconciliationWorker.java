@@ -1,5 +1,6 @@
 package org.sagebionetworks.worker.entity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -11,25 +12,22 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * <p>
@@ -51,7 +49,7 @@ import com.amazonaws.services.sqs.model.Message;
  * entity replicated data as needed.
  * </p>
  */
-public class EntityReplicationReconciliationWorker implements MessageDrivenRunner {
+public class EntityReplicationReconciliationWorker implements ChangeMessageDrivenRunner {
 
 	static final int MAX_MESSAGE_TO_RUN_RECONCILIATION = 100;
 
@@ -79,6 +77,9 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	
 	@Autowired
 	ReplicationMessageManager replicationMessageManager;
+	
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	Clock clock;
@@ -86,8 +87,12 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) {
+	public void run(ProgressCallback progressCallback, ChangeMessage message) {
 		try {
+			if(!ObjectType.ENTITY_VIEW.equals(message.getObjectType())){
+				// ignore non-view messages
+				return;
+			}
 			/*
 			 * Entity replication reconciliation is expensive. It serves as a fail-safe for
 			 * lost messages and is not a replacement for the normal replication process.
@@ -103,8 +108,10 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 				return;
 			}
 			
-			// extract the containerIds to check from the message.
-			List<Long> containerIds = getContainerIdsFromMessage(message);
+			// Get all of the containers for the given view.
+			IdAndVersion idAndVersion = IdAndVersion.parse(message.getObjectId());
+			Set<Long> containerIdsSet = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion);
+			List<Long> containerIds = new ArrayList<Long>(containerIdsSet);
 			if (containerIds.isEmpty()) {
 				// nothing to do.
 				return;
@@ -157,25 +164,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 			}
 		}
 		return inTrash;
-	}
-
-	/**
-	 * Extract the containerIs from the message.
-	 * 
-	 * @param message
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	public List<Long> getContainerIdsFromMessage(Message message)
-			throws JSONObjectAdapterException {
-		ValidateArgument.required(message, "message");
-		ValidateArgument.required(message.getBody(), "message.body");
-		// Extract the container IDs to check from the message.
-		IdList containers = EntityFactory.createEntityFromJSONString(
-				message.getBody(), IdList.class);
-		ValidateArgument.required(containers, "containers");
-		ValidateArgument.required(containers.getList(), "containers.list");
-		return containers.getList();
 	}
 
 	/**
@@ -327,4 +315,5 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 		}
 		return parentsOutOfSynch;
 	}
+
 }
