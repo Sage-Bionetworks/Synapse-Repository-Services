@@ -463,6 +463,16 @@ public interface NodeDAO {
 	Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
 	
 	/**
+	 * Return all the containers in the sub tree(s) for the given list of nodes ordered (decreasing) by their distance from
+	 * the respective input nodes.
+	 *  
+	 * @param parentIds The input root nodes
+	 * @param limit The max number of container nodes to be fetched
+	 * @return The list of containers in the sub-trees of the given list of parent nodes, does not include the input nodes
+	 */
+	List<Long> getAllContainersIdsOrderByDistanceDesc(List<Long> ids, int limit);
+	
+	/**
 	 * Lookup a nodeId using its alias.
 	 * @param alias
 	 * @return

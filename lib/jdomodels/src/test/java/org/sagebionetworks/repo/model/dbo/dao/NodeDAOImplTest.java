@@ -1249,13 +1249,49 @@ public class NodeDAOImplTest {
 	@Test
 	public void testDeleteCascadeGreaterThanMax(){
 		List<String> nodeIds = createNestedNodes(20);
-		List<Long> nodeIdsLong = nodeIds.stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
 		//delete the parent node 
-		nodeDao.delete(nodeIdsLong);
+		nodeDao.delete(nodeIds.get(0));
 		//check that all added nodes were deleted 
-		for(String nodeID : nodeIds){
+		for(String nodeID : nodeIds) {
 			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
 		}
+	}
+	
+	@Test
+	public void testDeleteCascadeWithLeaves() {
+		List<String> nodeIds = createNestedNodes(20);
+		List<String> fileIds = new ArrayList<>();
+		
+		// Add a couple of files in the last node
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() - 1)));
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() - 1)));
+		
+		// Add some in the middle
+		fileIds.add(addFile(nodeIds.get(nodeIds.size() / 2)));
+		
+		// Call under test
+		int count = nodeDao.delete(Collections.singletonList(KeyFactory.stringToKey(nodeIds.get(0))));
+		
+		// The count include only the deleted containers in the hierarchy
+		assertEquals(nodeIds.size(), count);
+		
+		for (String fileId : fileIds) {
+			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(fileId)));
+		}
+		
+	}
+	
+	private String addFile(String parentId) {
+		Node file = NodeTestUtils.createNew("file_" + UUID.randomUUID().toString(), creatorUserGroupId);
+		
+		file.setNodeType(EntityType.file);
+		file.setParentId(parentId);
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		
+		toDelete.add(file.getId());
+		
+		return file.getId();
 	}
 	
 	
@@ -1288,7 +1324,7 @@ public class NodeDAOImplTest {
 		List<String> nodeIDs = new ArrayList<String>();
 		
 		for(int i = 0; i < numLevels; i++){
-			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i;
+			String nodeName = "NodeDAOImplTest.createNestedNodes() Node:" + i + " " + UUID.randomUUID().toString();
 			Node node = new Node();
 			
 			//set fields for the new node
@@ -2546,6 +2582,27 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
 		});
+	}
+	
+	@Test
+	public void testGetAllContainerIdsOrderByDistanceDesc() {
+		int treeDepth = 20;
+
+		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
+
+		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
+
+		int limit = 1000;
+
+		// Call under test
+		List<Long> result = nodeDao.getAllContainersIdsOrderByDistanceDesc(parentIds, limit);
+
+		List<Long> expected = nodeIds.subList(1, nodeIds.size());
+		
+		Collections.reverse(expected);
+
+		assertEquals(expected, result);
+
 	}
 	
 	/**

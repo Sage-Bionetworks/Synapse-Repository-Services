@@ -57,8 +57,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
@@ -113,7 +111,6 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -134,6 +131,21 @@ import com.google.common.collect.Sets;
  *
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
+	
+	/**
+	 * MySQL have a default limit on the maximum recursion calls that can be made on a recursive CTE
+	 */
+	private static final int MAX_PATH_RECURSION = 1000;
+	
+	/**
+	 * Maximum batch size of containers to be fetched and deleted
+	 */
+	private static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 1000;
+	
+	/**
+	 * Max path depth for a node hierarchy.
+	 */
+	private static final int MAX_PATH_DEPTH = 100;
 
 	private static final String SQL_CREATE_SNAPSHOT_VERSION = "UPDATE " + TABLE_REVISION + " SET "
 			+ COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_ACTIVITY_ID + " = ?, "
@@ -388,10 +400,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 	
 	/**
-	 * Max path depth for a node hierarchy.
-	 */
-	public static final int MAX_PATH_DEPTH = 100;
-	/**
 	 * A recursive sql call to get the full path of a given entity id (?). The limit
 	 * on the distance prevents an infinite loop for a circular path. To be used a
 	 * string template to set which columns should be selected. The ORDER BY clause
@@ -408,18 +416,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_NODE_ID + " IS NOT NULL AND DISTANCE < "+MAX_PATH_DEPTH+" )" + " SELECT %1s FROM PATH ORDER BY DISTANCE DESC";
 	
 	private static final String SQL_STRING_CONTAINERS_TYPES = String.join(",", "'" + EntityType.project.name() + "'", "'" + EntityType.folder.name() + "'");
-	
-	/**
-	 * MySQL has a limit of 15 level on cascade for self referencing FK, this constant is used to grab all the nodes in a hierarchy
-	 * whose distance from a root node is greater than this limit so that they can be deleted safely.
-	 */
-	public static final int MIN_PATH_DISTANCE = 15;
-	public static final int MAX_PATH_RECURSION = 1000;
-	
-	/**
-	 * Maximum number of containers to delete at once
-	 */
-	public static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 1000;
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
@@ -473,19 +469,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	
-
-	@Autowired
-	@Qualifier("streamingJdbcTemplate")
-	private JdbcTemplate streamingJdbcTemplate;
-	
-	// Uses the special jdbc template instance with streaming enabled
-	private NamedParameterJdbcTemplate streamingNamedParameterJdbcTemplate;
-	
-	@PostConstruct
-	public void init() {
-		this.streamingNamedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
-	}
-
 	private final Long ROOT_NODE_ID = Long.parseLong(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 	
 	private static final String BIND_ID_KEY = "bindId";
@@ -656,41 +639,37 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return 0;
 		}
 		
-		Map<String, Object> parameters = new HashMap<>(1);
+		int count = 0;
+
+		List<Long> batch;
 		
-		parameters.put(PARAM_NAME_IDS, ids);
+		do {
+			batch = getAllContainersIdsOrderByDistanceDesc(ids, MAX_CONTAINER_DELETE_BATCH_SIZE);
+			count += deleteBatch(batch);
+		} while( batch.size() >= MAX_CONTAINER_DELETE_BATCH_SIZE);
 		
-		// Fetches recursively all the containers of the given set of parent ids recording the distance from each parent
-		// and deletes in batches from the leaf to the root
-		return streamingNamedParameterJdbcTemplate.query(
+		count += deleteBatch(ids);
+		
+		return count;
+	}
+	
+	@Override
+	public List<Long> getAllContainersIdsOrderByDistanceDesc(List<Long> ids, int limit) {
+		
+		MapSqlParameterSource parameters = new MapSqlParameterSource(PARAM_NAME_IDS, ids);
+		
+		return namedParameterJdbcTemplate.queryForList(
 				"WITH RECURSIVE CONTAINERS (ID, DISTANCE) AS (" 
 						+ " SELECT " + COL_NODE_ID + ", 1 FROM " + TABLE_NODE 
-						+ " WHERE " + COL_NODE_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
+						+ " WHERE " + COL_NODE_PARENT_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM CONTAINERS AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
 						+ " AND N." + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ") AND C.DISTANCE < " + MAX_PATH_RECURSION
 				+ ")"
-				+ " SELECT ID FROM CONTAINERS ORDER BY DISTANCE DESC", parameters, (rs) -> {
-					int count = 0;
-					
-					List<Long> batch = new ArrayList<>(MAX_CONTAINER_DELETE_BATCH_SIZE);
-					
-					while (rs.next()) {
-						final Long id = rs.getLong(1);
-						batch.add(id);
-						if (batch.size() >= MAX_CONTAINER_DELETE_BATCH_SIZE) {
-							count += deleteBatch(batch);
-							batch.clear();
-						}
-					}
-					
-					count += deleteBatch(batch);
-					
-					return count;
-				});
+				+ " SELECT ID FROM CONTAINERS ORDER BY DISTANCE DESC LIMIT " + limit, parameters, Long.class);
 	}
-
+	
 	private int deleteBatch(List<Long> ids) {
 		if (ids.isEmpty()) {
 			return 0;
