@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -30,8 +29,6 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import com.google.common.collect.Lists;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NodeDaoUnitTest {
@@ -182,15 +179,6 @@ public class NodeDaoUnitTest {
 		assertEquals(userId, sent.getUserId());
 		assertEquals(changeType, sent.getChangeType());
 	}
-	
-	@Test
-	public void testDelete() {
-		String nodeId = "syn456";
-		// call under test
-		nodeDao.delete(nodeId);
-		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(nodeId, ObjectType.ENTITY);
-	}
-
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testUpdateAnnotations_nullNodeId(){

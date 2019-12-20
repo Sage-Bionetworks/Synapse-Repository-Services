@@ -26,12 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import org.checkerframework.checker.units.qual.min;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,7 +101,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.UnexpectedRollbackException;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -1252,57 +1249,15 @@ public class NodeDAOImplTest {
 	@Test
 	public void testDeleteCascadeGreaterThanMax(){
 		List<String> nodeIds = createNestedNodes(20);
+		List<Long> nodeIdsLong = nodeIds.stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
 		//delete the parent node 
-		nodeDao.delete(nodeIds.get(0));
+		nodeDao.delete(nodeIdsLong);
 		//check that all added nodes were deleted 
 		for(String nodeID : nodeIds){
 			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeID)));
 		}
 	}
 	
-	@Test
-	public void testGetAllContainerIdsOrderByDistanceDesc() {
-		int treeDepth = 20;
-		
-		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
-		
-		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
-		
-		int minDistance = 1;
-		int limit = 1000;
-		
-		// Call under test
-		SortedMap<Integer, Set<Long>> result = nodeDao.getAllContainerIdsOrderByDistanceDesc(parentIds, minDistance, limit);
-		
-		// Does not include the root
-		assertEquals(nodeIds.size() - 1, result.size());
-		
-		for (int level=1; level<treeDepth; level++) {
-			Set<Long> levelIds = result.get(level);
-			Set<Long> expected = ImmutableSet.of(nodeIds.get(level));
-			assertEquals(expected, levelIds);
-		}
-		
-	}
-	
-	@Test
-	public void testGetAllContainerIdsOrderByDistanceDescLastLevel() {
-		int treeDepth = 20;
-		
-		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
-		
-		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
-		
-		int minDistance = treeDepth - 1;
-		int limit = 1000;
-		
-		// Call under test
-		SortedMap<Integer, Set<Long>> result = nodeDao.getAllContainerIdsOrderByDistanceDesc(parentIds, minDistance, limit);
-
-		assertEquals(1, result.size());
-		assertEquals(ImmutableSet.of(nodeIds.get(nodeIds.size() - 1)), result.get(minDistance));
-		
-	}
 	
 	/**
 	 * <pre>

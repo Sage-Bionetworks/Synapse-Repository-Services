@@ -41,6 +41,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -54,9 +55,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.UUID;
+
+import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -112,9 +113,11 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -304,7 +307,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	
 	private static final String PARAM_NAME_IDS = "ids_param";
-	private static final String PARAM_NAME_MIN_DISTANCE = "min_depth";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_ANNOTATIONS_ONLY_SELECT_CLAUSE_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R.";
@@ -415,7 +417,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public static final int MAX_PATH_RECURSION = 1000;
 	
 	/**
-	 * Maximum number of c to delete at once
+	 * Maximum number of containers to delete at once
 	 */
 	public static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 1000;
 
@@ -470,6 +472,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
+	
+
+	@Autowired
+	@Qualifier("streamingJdbcTemplate")
+	private JdbcTemplate streamingJdbcTemplate;
+	
+	// Uses the special jdbc template instance with streaming enabled
+	private NamedParameterJdbcTemplate streamingNamedParameterJdbcTemplate;
+	
+	@PostConstruct
+	public void init() {
+		this.streamingNamedParameterJdbcTemplate = new NamedParameterJdbcTemplate(streamingJdbcTemplate);
+	}
 
 	private final Long ROOT_NODE_ID = Long.parseLong(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 	
@@ -490,7 +505,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+" FROM "+TABLE_REVISION
 			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
 	
-	private static final String SQL_DELETE_BY_IDS = "DELETE FROM " + TABLE_NODE + " WHERE ID IN (:"+ PARAM_NAME_IDS+")";
+	private static final String SQL_DELETE_BY_ID = "DELETE FROM " + TABLE_NODE + " WHERE ID = ?";
 	
 	@WriteTransaction
 	@Override
@@ -628,7 +643,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public boolean delete(String id) throws DatastoreException {
 		ValidateArgument.required(id, "NodeId");
 		Long longId = KeyFactory.stringToKey(id);
-		return delete(Collections.singletonList(longId)) == 1;
+		return delete(Collections.singletonList(longId)) > 0;
 	}
 	
 	@WriteTransaction
@@ -640,41 +655,71 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// no need to update database if not deleting anything
 			return 0;
 		}
+		
+		Map<String, Object> parameters = new HashMap<>(1);
+		
+		parameters.put(PARAM_NAME_IDS, ids);
+		
+		// Fetches recursively all the containers of the given set of parent ids recording the distance from each parent
+		// and deletes in batches from the leaf to the root
+		return streamingNamedParameterJdbcTemplate.query(
+				"WITH RECURSIVE CONTAINERS (ID, DISTANCE) AS (" 
+						+ " SELECT " + COL_NODE_ID + ", 1 FROM " + TABLE_NODE 
+						+ " WHERE " + COL_NODE_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
+						+ " UNION" 
+						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
+						+ " FROM CONTAINERS AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
+						+ " AND N." + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ") AND C.DISTANCE < " + MAX_PATH_RECURSION
+				+ ")"
+				+ " SELECT ID FROM CONTAINERS ORDER BY DISTANCE DESC", parameters, (rs) -> {
+					int count = 0;
+					
+					List<Long> batch = new ArrayList<>(MAX_CONTAINER_DELETE_BATCH_SIZE);
+					
+					while (rs.next()) {
+						final Long id = rs.getLong(1);
+						batch.add(id);
+						if (batch.size() >= MAX_CONTAINER_DELETE_BATCH_SIZE) {
+							count += deleteBatch(batch);
+							batch.clear();
+						}
+					}
+					
+					count += deleteBatch(batch);
+					
+					return count;
+				});
+	}
 
-		for (long id : ids) {
-			String stringID = KeyFactory.keyToString(id);
-			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
+	private int deleteBatch(List<Long> ids) {
+		if (ids.isEmpty()) {
+			return 0;
+		}
+		int[] counts = jdbcTemplate.batchUpdate(SQL_DELETE_BY_ID, new BatchPreparedStatementSetter() {
+
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, ids.get(i));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return ids.size();
+			}
+		});
+
+		int count = 0;
+
+		for (int i = 0; i < ids.size(); i++) {
+			int stCount = counts[i];
+			if (stCount > 0) {
+				String stringID = KeyFactory.keyToString(ids.get(i));
+				transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
+			}
+			count += stCount;
 		}
 
-		// Before deleting the nodes we remove the descendant nodes that are deeper than 15 levels to
-		// avoid the MySQL cascade delete limitation on self referencing keys
-
-		deleteDeepDescendants(ids);
-
-		return deleteBatch(ids);
-	}
-	
-	private void deleteDeepDescendants(List<Long> ids) {
-		SortedMap<Integer, Set<Long>> descendants;
-		
-		do {
-			descendants = getAllContainerIdsOrderByDistanceDesc(ids, MIN_PATH_DISTANCE - 1, MAX_CONTAINER_DELETE_BATCH_SIZE);
-			
-			// For the unit test
-			if (descendants == null) {
-				return;
-			}
-			
-			descendants.forEach( (_level, levelIds) -> {
-				deleteBatch(levelIds);
-			});
-			
-		} while (!descendants.isEmpty());
-	}
-
-	private int deleteBatch(Collection<Long> ids) {
-		MapSqlParameterSource parameters = new MapSqlParameterSource(PARAM_NAME_IDS, ids);
-		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
+		return count;
 	}
 	
 	@WriteTransaction
@@ -1602,49 +1647,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
 		return getAllContainerIds(Collections.singletonList(id), maxNumberIds);
-	}
-	
-	@Override
-	public SortedMap<Integer, Set<Long>> getAllContainerIdsOrderByDistanceDesc(Collection<Long> parentIds, int minDistance, int limit) {
-		ValidateArgument.required(parentIds, "parentIds");
-		ValidateArgument.requirement(minDistance > 0, "The min distance must be greater than 0");
-		
-		Map<String, Object> parameters = new HashMap<String, Object>(2);
-		
-		parameters.put(PARAM_NAME_IDS, parentIds);
-		parameters.put(PARAM_NAME_MIN_DISTANCE, minDistance);
-		parameters.put(BIND_LIMIT, limit);
-		
-		return namedParameterJdbcTemplate.query(
-				"WITH RECURSIVE CONTAINERS (ID, DISTANCE) AS (" 
-						+ " SELECT " + COL_NODE_ID + ", 1 FROM " + TABLE_NODE 
-						+ " WHERE " + COL_NODE_PARENT_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
-						+ " UNION " 
-						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
-						+ " FROM CONTAINERS AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
-						+ " AND N." + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ") AND C.DISTANCE < " + MAX_PATH_RECURSION
-				+ ")"
-				+ " SELECT ID, DISTANCE FROM CONTAINERS WHERE DISTANCE >= :" + PARAM_NAME_MIN_DISTANCE + " ORDER BY DISTANCE DESC LIMIT :" + BIND_LIMIT, parameters, (rs) -> {
-					SortedMap<Integer, Set<Long>> result = new TreeMap<>((a, b) -> {
-						return b - a;
-					});
-					
-					while (rs.next()) {
-						final Long id = rs.getLong(1);
-						final Integer distance = rs.getInt(2);
-
-						Set<Long> levelIds = result.get(distance);
-						
-						if (levelIds == null) {
-							result.put(distance, levelIds = new HashSet<>());
-						}
-						
-						levelIds.add(id);
-						
-					}
-					
-					return result;
-				});
 	}
 
 	@Override
