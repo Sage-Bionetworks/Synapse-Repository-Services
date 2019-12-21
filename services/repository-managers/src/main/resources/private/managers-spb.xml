@@ -300,7 +300,7 @@
 		factory-method="createAmazonSimpleEmailServiceClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
-			
+
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>

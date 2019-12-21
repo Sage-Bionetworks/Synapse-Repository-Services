@@ -2,7 +2,7 @@
 	"description": "The external upload destination setting contains information to generate an external S3 upload destination connected with Synapse. For details on how to create a custom S3 storage location in the web client, see <a href=\"https://docs.synapse.org/articles/custom_storage_location.html\">Custom Storage Locations</a>",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+			"$ref": "org.sagebionetworks.repo.model.project.StsStorageLocationSetting"
 		}
 	],
 	"properties": {
@@ -13,10 +13,6 @@
 		"bucket": {
 			"type": "string",
 			"description": "the bucket to use"
-		},
-		"baseKey": {
-			"type": "string",
-			"description": "the optional base key to use"
 		}
 	}
 }

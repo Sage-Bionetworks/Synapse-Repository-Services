@@ -95,7 +95,7 @@ public class UrlHelpers {
 	public static final String ACL = "/acl";
 	
 	public static final String BENEFACTOR = "/benefactor";
-	
+
 	/**
 	 * The request parameter to enforce ACL inheritance of child nodes.
 	 */
