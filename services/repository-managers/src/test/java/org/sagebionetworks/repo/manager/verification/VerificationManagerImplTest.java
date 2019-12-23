@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -127,6 +126,9 @@ public class VerificationManagerImplTest {
 		return verificationSubmission;
 	}
 	
+	UserProfile userProfile;
+	List<PrincipalAlias> paList;
+	List<PrincipalAlias> actPaList;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -137,28 +139,30 @@ public class VerificationManagerImplTest {
 		fileHandle.setId(FILE_HANDLE_ID);
 		fileHandle.setFileName(FILE_NAME);
 		
-		UserProfile userProfile = createUserProfile();
-		lenient().when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
-		
-		lenient().when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
+		userProfile = createUserProfile();
 		
 		PrincipalAlias orcidAlias = new PrincipalAlias();
 		orcidAlias.setAlias(ORCID);
-		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
-		lenient().when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+		paList = Collections.singletonList(orcidAlias);
 		
 		PrincipalAlias actAlias = new PrincipalAlias();
 		actAlias.setAlias("Synapse Access and Compliance Team");
-		List<PrincipalAlias> actPaList = Collections.singletonList(actAlias);
+		actPaList = Collections.singletonList(actAlias);
 		
-		lenient().when(mockPrincipalAliasDAO.listPrincipalAliases(
-				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
-				thenReturn(actPaList);
+//		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+//		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
+//		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+//		when(mockPrincipalAliasDAO.listPrincipalAliases(
+//				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
+//				thenReturn(actPaList);
 
 	}
 	
 	@Test
 	public void testCreateVerificationSubmission() {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
 		
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		
@@ -182,11 +186,10 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateVerificationSubmissionDuplicateAttachment() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
 		
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
-		
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
-		
+
 		// Duplicate attachment
 		AttachmentMetadata attachment = verificationSubmission.getAttachments().get(0);
 		List<AttachmentMetadata> attachments = Arrays.asList(attachment, attachment);
@@ -200,6 +203,9 @@ public class VerificationManagerImplTest {
 	
 	@Test
 	public void testCreateVerificationSubmissionAlreadyCreated() {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		VerificationSubmission current = createVerificationSubmission();
 		
@@ -300,6 +306,10 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateVerificationSubmissionUnauthorizedFile() {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
+		
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		
 		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenThrow(new UnauthorizedException());
@@ -428,6 +438,11 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateSubmissionNotification() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+		when(mockPrincipalAliasDAO.listPrincipalAliases(
+				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
+				thenReturn(actPaList);
+
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		verificationSubmission.setCreatedBy(USER_ID.toString());
 		List<MessageToUserAndBody> mtubs = verificationManager.createSubmissionNotification(
@@ -462,6 +477,8 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateStateChangeNotificationApproved() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+
 		VerificationState newState = new VerificationState();
 		newState.setState(APPROVED);
 		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
@@ -501,6 +518,8 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateStateChangeNotificationRejected() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+
 		VerificationState newState = new VerificationState();
 		newState.setState(REJECTED);
 		String expectedReason = "your submission is invalid";
@@ -546,6 +565,8 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateStateChangeNotificationRejectedNoReason() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+
 		VerificationState newState = new VerificationState();
 		newState.setState(REJECTED);
 		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
@@ -585,6 +606,8 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateStateChangeNotificationSuspended() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+
 		VerificationState newState = new VerificationState();
 		newState.setState(SUSPENDED);
 		String expectedReason = "your submission is invalid";
@@ -630,6 +653,8 @@ public class VerificationManagerImplTest {
 
 	@Test
 	public void testCreateStateChangeNotificationSuspendedNoReason() throws Exception {
+		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+
 		VerificationState newState = new VerificationState();
 		newState.setState(SUSPENDED);
 		when(mockVerificationDao.getVerificationSubmitter(VERIFICATION_ID)).thenReturn(USER_ID);
