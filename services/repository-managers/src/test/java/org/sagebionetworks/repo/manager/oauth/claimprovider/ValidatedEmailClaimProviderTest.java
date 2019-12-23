@@ -57,7 +57,7 @@ public class ValidatedEmailClaimProviderTest {
 		Date now = new Date();
 		verificationState.setCreatedOn(now);
 		verificationSubmission.setStateHistory(Collections.singletonList(verificationState));
-		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "other"));
+		verificationSubmission.setNotificationEmail(EMAIL);
 		
 		// method under test
 		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));

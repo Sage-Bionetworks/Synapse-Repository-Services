@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -56,6 +57,7 @@ public class VerificationManagerImpl implements VerificationManager {
 	private PrincipalAliasDAO principalAliasDAO;
 	private AuthorizationManager authorizationManager;
 	private TransactionalMessenger transactionalMessenger;
+	private NotificationEmailDAO notificationEmailDao;
 	
 	public static final String VERIFICATION_APPROVED_TEMPLATE = "message/verificationApprovedTemplate.html";
 	public static final String VERIFICATION_SUBMISSION_TEMPLATE = "message/verificationSubmissionTemplate.html";
@@ -70,6 +72,7 @@ public class VerificationManagerImpl implements VerificationManager {
 	public VerificationManagerImpl(
 			VerificationDAO verificationDao,
 			UserProfileManager userProfileManager,
+			NotificationEmailDAO notificationEmailDao,
 			FileHandleManager fileHandleManager,
 			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
@@ -77,6 +80,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			UserManager userManager) {
 		this.verificationDao = verificationDao;
 		this.userProfileManager = userProfileManager;
+		this.notificationEmailDao=notificationEmailDao;
 		this.fileHandleManager = fileHandleManager;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
@@ -99,6 +103,10 @@ public class VerificationManagerImpl implements VerificationManager {
 			}
 		}
 		populateCreateFields(verificationSubmission, userInfo, new Date());
+		// fill in notification email
+		verificationSubmission.setNotificationEmail(
+				notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())
+				);
 		validateVerificationSubmission(verificationSubmission, userProfileManager.getUserProfile(userInfo.getId().toString()),
 				getOrcid(userInfo.getId()));
 		// User must be owner of file handle Ids

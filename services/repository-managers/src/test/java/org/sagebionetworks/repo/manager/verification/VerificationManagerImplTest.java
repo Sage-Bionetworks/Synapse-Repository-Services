@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -65,7 +66,8 @@ public class VerificationManagerImplTest {
 	private static final String COMPANY = "company";
 	private static final String LOCATION = "location";
 	private static final String ORCID = "http://www.orcid.org/my-id";
-	private static final List<String> EMAILS = Arrays.asList("primary.email.com", "secondary.email.com");
+	private static final String PRIMARY_EMAIL = "primary.email.com";
+	private static final List<String> EMAILS = Arrays.asList(PRIMARY_EMAIL, "secondary.email.com");
 	private static final String FILE_HANDLE_ID = "101";
 	private static final String FILE_NAME = "filename.txt";
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
@@ -77,6 +79,9 @@ public class VerificationManagerImplTest {
 	
 	@Mock
 	private UserProfileManager mockUserProfileManager;
+	
+	@Mock
+	private NotificationEmailDAO mockNotificationEmailDao;
 	
 	@Mock
 	private FileHandleManager mockFileHandleManager;
@@ -135,6 +140,8 @@ public class VerificationManagerImplTest {
 		UserProfile userProfile = createUserProfile();
 		lenient().when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);
 		
+		lenient().when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
+		
 		PrincipalAlias orcidAlias = new PrincipalAlias();
 		orcidAlias.setAlias(ORCID);
 		List<PrincipalAlias> paList = Collections.singletonList(orcidAlias);
@@ -169,6 +176,7 @@ public class VerificationManagerImplTest {
 		assertEquals(1, verificationSubmission.getAttachments().size());
 		assertEquals(FILE_HANDLE_ID, verificationSubmission.getAttachments().get(0).getId());
 		assertEquals(FILE_NAME, verificationSubmission.getAttachments().get(0).getFileName());
+		assertEquals(PRIMARY_EMAIL, verificationSubmission.getNotificationEmail());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
 	}
 

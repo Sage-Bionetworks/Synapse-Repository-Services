@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth.claimprovider;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.verification.VerificationHelper;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -27,12 +25,7 @@ public class ValidatedEmailClaimProvider implements OIDCClaimProvider {
 	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
 		VerificationSubmission verificationSubmission = userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
 		if (VerificationHelper.isVerified(verificationSubmission)) {
-			List<String> validatedEmails = verificationSubmission.getEmails();
-			if (validatedEmails==null || validatedEmails.isEmpty()) {
-				return null;
-			} else {
-				return validatedEmails.get(0);
-			}
+			return verificationSubmission.getNotificationEmail();
 		} else {
 			return null;
 		}
