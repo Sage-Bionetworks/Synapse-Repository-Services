@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -157,7 +158,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add an StsStorageLocation to a non-empty entity.
-		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(parentId)) {
+		if (!nodeManager.isEntityEmpty(parentId) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 		}
 
@@ -195,14 +196,17 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@WriteTransaction
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
-		if (projectSetting != null && !authorizationManager
+		if (projectSetting == null) {
+			throw new NotFoundException("Project setting " + id + "not found");
+		}
+		if (!authorizationManager
 				.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
 				.isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 
 		// Can't delete an StsStorageLocation on a non-empty entity.
-		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
+		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId()) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 		}
 
@@ -266,9 +270,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			}
 		} else if (storageLocationSetting instanceof S3StorageLocationSetting) {
 			S3StorageLocationSetting synapseS3StorageLocationSetting = (S3StorageLocationSetting) storageLocationSetting;
+			if (synapseS3StorageLocationSetting.getBaseKey() != null) {
+				throw new IllegalArgumentException("Cannot specify baseKey when creating an S3StorageLocationSetting");
+			}
+
 			if (Boolean.TRUE.equals(synapseS3StorageLocationSetting.getStsEnabled())) {
 				// This is the S3 bucket we own, so we need to auto-generate the base key.
-				String baseKey = userInfo.getId() + "/" + System.currentTimeMillis();
+				String baseKey = userInfo.getId() + "/" + UUID.randomUUID();
 				synapseS3StorageLocationSetting.setBaseKey(baseKey);
 			}
 
@@ -369,7 +377,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	// Helper method to check if a ProjectSetting is a an STS-enabled storage location. That is, the storage location
 	// referenced in the project setting is an StsStorageLocation with StsEnabled=true.
-	private boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
+	// Package-scoped for unit tests.
+	boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
 		if (!(projectSetting instanceof UploadDestinationListSetting)) {
 			// Impossible code path, but add this check here to future-proof this against ClassCastExceptions.
 			return false;
