@@ -175,6 +175,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -451,6 +452,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
+	private static final String EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD = "/externalFileHandle/googleCloud";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 	private static final String FILE_HANDLES_COPY = FILE_HANDLES+"/copy";
@@ -1609,7 +1611,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE, efh, ExternalFileHandle.class);
 	}
-	
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.client.SynapseClient#createExternalS3FileHandle(org.sagebionetworks.repo.model.file.S3FileHandle)
@@ -1618,7 +1620,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws SynapseException{
 		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE_S3, handle, S3FileHandle.class);
 	}
-	
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.client.SynapseClient#createExternalGoogleCloudFileHandle(org.sagebionetworks.repo.model.file.GoogleCloudFileHandle)
+	 */
+	@Override
+	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(GoogleCloudFileHandle handle) throws SynapseException{
+		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD, handle, GoogleCloudFileHandle.class);
+	}
+
 	@Override
 	public ProxyFileHandle createExternalProxyFileHandle(ProxyFileHandle handle) throws SynapseException{
 		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE, handle, ProxyFileHandle.class);

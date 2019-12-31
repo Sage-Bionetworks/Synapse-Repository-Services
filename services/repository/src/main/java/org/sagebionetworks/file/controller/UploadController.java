@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -359,6 +360,35 @@ public class UploadController {
 			NotFoundException {
 		// Pass it along
 		return fileService.createExternalS3FileHandle(userId, fileHandle);
+	}
+
+	/**
+	 * Create an GoogleCloudFileHandle to represent a Google Cloud Blob in a user's Google Cloud bucket.
+	 * <p>
+	 * In order to use this method an ExternalGoogleCloudStorageLocationSetting must
+	 * first be created for the user's bucket. The ID of the resulting
+	 * ExternalGoogleCloudStorageLocationSetting must be set in the
+	 * GoogleCloudFileHandle.storageLocationId. Only the user that created to the
+	 * ExternalGoogleCloudStorageLocationSetting will be allowed to create GoogleCloudFileHandle
+	 * using that storageLocationId.
+	 * </p>
+	 *
+	 * @param userId
+	 * @param fileHandle
+	 *            The GoogleCloudFileHandle to create
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/externalFileHandle/googleCloud", method = RequestMethod.POST)
+	public @ResponseBody
+	GoogleCloudFileHandle createExternalFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody GoogleCloudFileHandle fileHandle) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return fileService.createExternalGoogleCloudFileHandle(userId, fileHandle);
 	}
 	
 	/**
