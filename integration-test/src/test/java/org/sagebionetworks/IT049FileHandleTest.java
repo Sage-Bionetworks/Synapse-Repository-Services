@@ -596,7 +596,7 @@ public class IT049FileHandleTest {
 
 	// See PLFM-5769
 	@Test
-	public void testMultipartUploadToExternalS3() throws SynapseException, IOException{
+	public void testMultipartUploadToExternalS3() throws SynapseException, IOException, InterruptedException {
 		assertNotNull(largeImageFile);
 		assertTrue(largeImageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(largeImageFile);
