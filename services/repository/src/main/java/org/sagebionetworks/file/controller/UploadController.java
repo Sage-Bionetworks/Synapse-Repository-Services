@@ -82,10 +82,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * all parts that Synapse reports as missing.
  * </p>
  * <p>
- * <i>Note: For mutli-part upload 1 MB is defined as 1024*1024 bytes </i>
+ * <i>Note: For multi-part upload 1 MB is defined as 1024*1024 bytes </i>
  * </p>
  * <p>
- * The first task in mutli-part upload is choosing a part size. The minimum part
+ * The first task in multi-part upload is choosing a part size. The minimum part
  * size is 5 MB (1024*1024*5). Therefore, any file with a size less than or
  * equal to 5 MB will have a single part and a partSize=5242880. The maximum
  * number of parts for a single file 10,000 parts. The following should be used
@@ -109,7 +109,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${POST.file.multipart.uploadId.presigned.url.batch}">POST
  * /file/multipart/{uploadId}/presigned/url/batch</a></li>
  * <li>Upload the part to the pre-signed URL using HTTPs PUT</li>
- * <li>Add the part to the mutli-part upload using: <a
+ * <li>Add the part to the multi-part upload using: <a
  * href="${PUT.file.multipart.uploadId.add.partNumber}">PUT
  * /file/multipart/{uploadId}/add/{partNumber}</a></li>
  * </ol>
@@ -190,7 +190,7 @@ public class UploadController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/fileHandle/batch", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_BATCH, method = RequestMethod.POST)
 	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody BatchFileRequest request)
@@ -215,7 +215,7 @@ public class UploadController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/fileHandle/{handleIdToCopyFrom}/copy", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_COPY, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle copyS3FileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String handleIdToCopyFrom,
@@ -246,7 +246,7 @@ public class UploadController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/fileHandle/{handleId}", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.GET)
 	public @ResponseBody FileHandle getFileHandle(
 			@PathVariable String handleId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
@@ -275,7 +275,7 @@ public class UploadController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/fileHandle/{handleId}", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.DELETE)
 	public @ResponseBody void deleteFileHandle(
 			@PathVariable String handleId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
@@ -300,7 +300,7 @@ public class UploadController {
 	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/fileHandle/{handleId}/filepreview", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.FILE_HANDLE_PREVIEW, method = RequestMethod.DELETE)
 	public @ResponseBody void clearPreview(
 			@PathVariable String handleId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
@@ -325,7 +325,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/externalFileHandle", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE, method = RequestMethod.POST)
 	public @ResponseBody ExternalFileHandleInterface createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ExternalFileHandleInterface fileHandle)
@@ -353,7 +353,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/externalFileHandle/s3", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_S3, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody S3FileHandle fileHandle) throws DatastoreException,
@@ -381,7 +381,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/externalFileHandle/googleCloud", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD, method = RequestMethod.POST)
 	public @ResponseBody
 	GoogleCloudFileHandle createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -409,7 +409,7 @@ public class UploadController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/externalFileHandle/proxy", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_PROXY, method = RequestMethod.POST)
 	@Deprecated
 	public @ResponseBody ProxyFileHandle createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

@@ -1080,14 +1080,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!esls.getCreatedBy().equals(userInfo.getId())){
 			throw new UnauthorizedException("Only the creator of ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external S3FileHandle with storageLocationId = "+fileHandle.getStorageLocationId());
 		}
+		ObjectMetadata summary;
 		try {
-			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
-			if (fileHandle.getContentSize() == null) {
-				fileHandle.setContentSize(summary.getContentLength());
-			}
+			summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
-		} 
+		}
+		if (fileHandle.getContentSize() == null) {
+			fileHandle.setContentSize(summary.getContentLength());
+		}
+
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());
@@ -1136,13 +1138,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!esls.getCreatedBy().equals(userInfo.getId())){
 			throw new UnauthorizedException("Only the creator of ExternalGoogleCloudStorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external GoogleCloudFileHandle with storageLocationId = "+fileHandle.getStorageLocationId());
 		}
+		Blob summary;
 		try {
-			Blob summary = googleCloudStorageClient.getObject(fileHandle.getBucketName(), fileHandle.getKey());
-			if (fileHandle.getContentSize() == null) {
-				fileHandle.setContentSize(summary.getSize());
-			}
+			summary = googleCloudStorageClient.getObject(fileHandle.getBucketName(), fileHandle.getKey());
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
+		}
+		if (fileHandle.getContentSize() == null) {
+			fileHandle.setContentSize(summary.getSize());
 		}
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
