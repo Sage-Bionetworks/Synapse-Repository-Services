@@ -5,29 +5,36 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.regex.Pattern;
+
+import org.apache.commons.codec.digest.DigestUtils;
 
 /**
- * Code lifted from http://www.rgagnon.com/javadetails/java-0416.html
- * 
- * Found similar code later in org/apache/commons/codec/digest/DigestUtils.java
- * 
- * @author deflaux
- * 
+ * Utilities for calculating and verifying MD5s
  */
 public class MD5ChecksumHelper {
 
+	// Exactly 32 characters, hexadecimal.
+	private static final Pattern VALID_MD5_REGEX = Pattern.compile("^[0-9a-fA-F]{32}$");
+
 	/**
+	 * Determines if a hexadecimal string is a valid MD5 digest (i.e. is exactly 32 hexadecimal characters).
+	 * @param hexDigest The hexadecimal string
+	 * @return true iff the string is a valid MD5 digest
+	 */
+	public static boolean isValidMd5Digest(String hexDigest) {
+		if (hexDigest == null) throw new IllegalArgumentException("The MD5 digest may not be null");
+		return VALID_MD5_REGEX.matcher(hexDigest).matches();
+	}
+
+	/**
+	 * Compute the MD5 for a file
 	 * @param filename
 	 * @return the hex version of the checksum
-	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
 	public static String getMD5Checksum(String filename) throws IOException {
-		byte[] b = createChecksum(filename);
-		return getHexString(b);
+		return getMD5Checksum(new FileInputStream(filename));
 	}
 	
 	/**
@@ -37,8 +44,7 @@ public class MD5ChecksumHelper {
 	 * @throws IOException
 	 */
 	public static String getMD5Checksum(File file) throws IOException {
-		byte[] b = createChecksum(new FileInputStream(file));
-		return getHexString(b);
+		return getMD5Checksum(new FileInputStream(file));
 	}
 	
 	/**
@@ -47,67 +53,22 @@ public class MD5ChecksumHelper {
 	 * @return
 	 * @throws IOException
 	 */
-	public static String getMD5ChecksumForByteArray(byte[] content) throws IOException {
-		ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
-		try {
-			byte[] raw = createChecksum(inputStream);
-			return getHexString(raw);
-		} finally {
-			inputStream.close();
-		}
+	public static String getMD5Checksum(byte[] content) throws IOException {
+		return getMD5Checksum(new ByteArrayInputStream(content));
 	}
 
 	/**
-	 * @param filename
-	 * @return the checksum as a byte array
+	 * Computes the MD5 for an input stream. Closes the input stream upon completion
+	 * @param is
+	 * @return
 	 * @throws IOException
-	 * @throws NoSuchAlgorithmException
 	 */
-	public static byte[] createChecksum(String filename) throws IOException {
-		InputStream fis = new FileInputStream(filename);
-		return createChecksum(fis);
-	}
-
-	public static byte[] createChecksum(InputStream fis) throws IOException {
-		byte[] buffer = new byte[1024];
-		MessageDigest complete;
+	public static String getMD5Checksum(InputStream is) throws IOException {
 		try {
-			complete = MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e.getMessage());
+			return DigestUtils.md5Hex(is);
+		} finally {
+			is.close();
 		}
-		int numRead;
-		do {
-			numRead = fis.read(buffer);
-			if (numRead > 0) {
-				complete.update(buffer, 0, numRead);
-			}
-		} while (numRead != -1);
-		fis.close();
-		return complete.digest();
-	}
-
-	static final byte[] HEX_CHAR_TABLE = { (byte) '0', (byte) '1', (byte) '2',
-			(byte) '3', (byte) '4', (byte) '5', (byte) '6', (byte) '7',
-			(byte) '8', (byte) '9', (byte) 'a', (byte) 'b', (byte) 'c',
-			(byte) 'd', (byte) 'e', (byte) 'f' };
-
-	/**
-	 * @param raw
-	 * @return convert a byte array to hex
-	 * @throws UnsupportedEncodingException
-	 */
-	public static String getHexString(byte[] raw)
-			throws UnsupportedEncodingException {
-		byte[] hex = new byte[2 * raw.length];
-		int index = 0;
-
-		for (byte b : raw) {
-			int v = b & 0xFF;
-			hex[index++] = HEX_CHAR_TABLE[v >>> 4];
-			hex[index++] = HEX_CHAR_TABLE[v & 0xF];
-		}
-		return new String(hex, "ASCII");
 	}
 
 }
