@@ -277,8 +277,8 @@ public class TrashManagerImpl implements TrashManager {
 			purgeCallback.startPurge(nodeId);
 		}
 
-		nodeDao.delete(nodeId);
-		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		deleteNode(nodeId);
+		
 		trashCanDao.delete(userGroupId, nodeId);
 		if (purgeCallback != null) {
 			purgeCallback.endPurge();
@@ -346,8 +346,7 @@ public class TrashManagerImpl implements TrashManager {
 				purgeCallback.startPurge(nodeId);
 			}
 			if (!trashIdSet.contains(trash.getOriginalParentId())) {
-				nodeDao.delete(nodeId);
-				aclDAO.delete(nodeId, ObjectType.ENTITY);
+				deleteNode(nodeId);
 			}
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
 			if (purgeCallback != null) {
@@ -366,9 +365,22 @@ public class TrashManagerImpl implements TrashManager {
 			throw new UnauthorizedException("Only an Administrator can perform this action.");
 		}
 	
-		nodeDao.delete(trashIDs);
-		aclDAO.delete(trashIDs, ObjectType.ENTITY);
+		for (Long id : trashIDs) {
+			deleteNode(id.toString());
+		}
+		
 		trashCanDao.delete(trashIDs);
+	}
+	
+	private void deleteNode(String nodeId) {
+		boolean deleted = false;
+		
+		do {
+			deleted = nodeDao.delete(nodeId);
+		} while (!deleted);
+		
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		
 	}
 
 	@Override

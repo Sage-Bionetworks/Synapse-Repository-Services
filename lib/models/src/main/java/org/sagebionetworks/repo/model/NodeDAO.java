@@ -86,22 +86,20 @@ public interface NodeDAO {
 	public Node getNodeForVersion(String id, Long versionNumber);
 	
 	/**
-	 * Delete a node using its id.
-	 * @param id
-	 * @return boolean
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public boolean delete(String id) throws DatastoreException;
-	
-	/**
-	 * Delete all nodes within a list of IDs. All nodes in the list must have < 14 levels of children.
-	 * @param IDs list of IDs to remove
-	 * @return int number of nodes deleted
+	 * Attempts to delete the node with the given id, if the node is a container this method will delete
+	 * in a single transaction a maximum of 10k child containers first. If the sub tree contains more
+	 * than 10k containers this method returns false and should be invoked again to deleted another
+	 * batch of 10k sub tree containers.
+	 * 
+	 * @param id The if of a node
+	 * @return True if the node was deleted (or didn't exists) and its subtree has less than 10k
+	 *         containers. If the node is a container and more than 10k containers are present in its
+	 *         subtree returns false (still deletes the 10k subtree containers).
+	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public int delete(List<Long> IDs) throws DatastoreException;
-	
+	public boolean delete(String id) throws DatastoreException;
+		
 	/**
 	 * Delete a specific version.
 	 * @param id
@@ -463,14 +461,14 @@ public interface NodeDAO {
 	Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
 	
 	/**
-	 * Return all the containers in the sub tree(s) for the given list of nodes ordered (decreasing) by their distance from
-	 * the respective input nodes.
+	 * Return all the containers in the sub tree(s) of the node with the given id ordered (decreasing) by their distance from
+	 * the input node.
 	 *  
-	 * @param parentIds The input root nodes
+	 * @param parentId The id of a (container) node
 	 * @param limit The max number of container nodes to be fetched
-	 * @return The list of containers in the sub-trees of the given list of parent nodes, does not include the input nodes
+	 * @return The list of containers in the sub-trees of the node with the given id, does not include the input node id
 	 */
-	List<Long> getAllContainersIdsOrderByDistanceDesc(List<Long> ids, int limit);
+	List<Long> getAllContainersIdsOrderByDistanceDesc(Long parentId, int limit);
 	
 	/**
 	 * Lookup a nodeId using its alias.

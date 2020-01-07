@@ -103,6 +103,7 @@ import org.sagebionetworks.repo.model.query.QueryTools;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -138,9 +139,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final int MAX_PATH_RECURSION = 1000;
 	
 	/**
-	 * Maximum batch size of containers to be fetched and deleted
+	 * Maximum number of containers to be fecthed and deleted in one transaction when deleting a node
 	 */
-	private static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 1000;
+	private static final int MAX_CONTAINER_DELETE_BATCH_SIZE = 10000;
 	
 	/**
 	 * Max path depth for a node hierarchy.
@@ -615,64 +616,52 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER,versionNumber, KeyFactory.stringToKey(id));
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, NODE_MAPPER, versionNumber, KeyFactory.stringToKey(id));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
 	}
 
-	@WriteTransaction
+	@NewWriteTransaction
 	@Override
 	public boolean delete(String id) throws DatastoreException {
 		ValidateArgument.required(id, "NodeId");
+		
 		Long longId = KeyFactory.stringToKey(id);
-		return delete(Collections.singletonList(longId)) > 0;
-	}
-	
-	@WriteTransaction
-	@Override
-	public int delete(List<Long> ids) throws DatastoreException{
-		ValidateArgument.required(ids, "ids");
-
-		if (ids.isEmpty()) {
-			// no need to update database if not deleting anything
-			return 0;
+		
+		// First delete the subtree of containers
+		List<Long> subTreeContainers = getAllContainersIdsOrderByDistanceDesc(longId, MAX_CONTAINER_DELETE_BATCH_SIZE + 1);
+		
+		deleteBatch(subTreeContainers);
+		
+		boolean deleted = false;
+		
+		// If we do not exceed the container deletion limit we can delete the input node
+		if (subTreeContainers.size() <= MAX_CONTAINER_DELETE_BATCH_SIZE) {
+			deleteBatch(Collections.singletonList(longId));
+			deleted = true;
 		}
 		
-		int count = 0;
-
-		List<Long> batch;
-		
-		do {
-			batch = getAllContainersIdsOrderByDistanceDesc(ids, MAX_CONTAINER_DELETE_BATCH_SIZE);
-			count += deleteBatch(batch);
-		} while( batch.size() >= MAX_CONTAINER_DELETE_BATCH_SIZE);
-		
-		count += deleteBatch(ids);
-		
-		return count;
+		return deleted;
 	}
 	
 	@Override
-	public List<Long> getAllContainersIdsOrderByDistanceDesc(List<Long> ids, int limit) {
-		
-		MapSqlParameterSource parameters = new MapSqlParameterSource(PARAM_NAME_IDS, ids);
-		
-		return namedParameterJdbcTemplate.queryForList(
+	public List<Long> getAllContainersIdsOrderByDistanceDesc(Long parentId, int limit) {
+		return jdbcTemplate.queryForList(
 				"WITH RECURSIVE CONTAINERS (ID, DISTANCE) AS (" 
 						+ " SELECT " + COL_NODE_ID + ", 1 FROM " + TABLE_NODE 
-						+ " WHERE " + COL_NODE_PARENT_ID + " IN (:" + PARAM_NAME_IDS + ")" + " AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
+						+ " WHERE " + COL_NODE_PARENT_ID + " = ? AND " + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ")" 
 						+ " UNION" 
 						+ " SELECT N." + COL_NODE_ID + ", C.DISTANCE + 1" 
 						+ " FROM CONTAINERS AS C JOIN " + TABLE_NODE + " AS N ON C." + COL_NODE_ID + " = N." + COL_NODE_PARENT_ID
 						+ " AND N." + COL_NODE_TYPE + " IN (" + SQL_STRING_CONTAINERS_TYPES + ") AND C.DISTANCE < " + MAX_PATH_RECURSION
 				+ ")"
-				+ " SELECT ID FROM CONTAINERS ORDER BY DISTANCE DESC LIMIT " + limit, parameters, Long.class);
+				+ " SELECT ID FROM CONTAINERS ORDER BY DISTANCE DESC LIMIT " + limit, Long.class, parentId);
 	}
 	
-	private int deleteBatch(List<Long> ids) {
+	private void deleteBatch(List<Long> ids) {
 		if (ids.isEmpty()) {
-			return 0;
+			return;
 		}
 		int[] counts = jdbcTemplate.batchUpdate(SQL_DELETE_BY_ID, new BatchPreparedStatementSetter() {
 
@@ -687,18 +676,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 
-		int count = 0;
-
 		for (int i = 0; i < ids.size(); i++) {
 			int stCount = counts[i];
 			if (stCount > 0) {
 				String stringID = KeyFactory.keyToString(ids.get(i));
 				transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 			}
-			count += stCount;
 		}
-
-		return count;
 	}
 	
 	@WriteTransaction

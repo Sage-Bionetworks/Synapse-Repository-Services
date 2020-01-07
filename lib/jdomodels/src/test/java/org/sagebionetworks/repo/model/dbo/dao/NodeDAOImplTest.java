@@ -1270,10 +1270,9 @@ public class NodeDAOImplTest {
 		fileIds.add(addFile(nodeIds.get(nodeIds.size() / 2)));
 		
 		// Call under test
-		int count = nodeDao.delete(Collections.singletonList(KeyFactory.stringToKey(nodeIds.get(0))));
+		boolean deleted = nodeDao.delete(nodeIds.get(0));
 		
-		// The count include only the deleted containers in the hierarchy
-		assertEquals(nodeIds.size(), count);
+		assertTrue(deleted);
 		
 		for (String fileId : fileIds) {
 			assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(fileId)));
@@ -1348,74 +1347,7 @@ public class NodeDAOImplTest {
 		
 		return nodeIDs;
 	}
-	
-	@Test
-	public void testDeleteListNullList(){
-		assertThrows(IllegalArgumentException.class, ()->{
-			nodeDao.delete((List<Long>) null);
-		});
-	}
-	
-	@Test
-	public void testDeleteListEmptyList(){
-		assertEquals(0, nodeDao.delete(new ArrayList<Long>()));
-	}
-	
-	
-	@Test
-	public void testDeleteListLeavesOnly(){
-		List<Long> nodeIDs = new ArrayList<Long>();
-		int numNodes = 2; 
-		
-		//create numNodes amount of Nodes. all children of the root
-		for(int i = 0; i < numNodes; i++){
-			String nodeName = "NodeDAOImplTest.testDeleteList() Node:" + i;
-			Node node = new Node();
-			
-			//set fields for the new node
-			Date now = new Date();
-			node.setName(nodeName);
-			node.setParentId( rootID );//previous added node is the parent
-			node.setNodeType(EntityType.project);
-			node.setModifiedByPrincipalId(creatorUserGroupId);
-			node.setModifiedOn(now);
-			node.setCreatedOn(now);
-			node.setCreatedByPrincipalId(creatorUserGroupId);
-			
-			//create the node in the database and update the parentid to that of the new node
-			String nodeID = nodeDao.createNew(node);
-			assertNotNull(nodeID);
-			
-			nodeIDs.add(KeyFactory.stringToKey(nodeID));
-			toDelete.add(nodeID);//add to cleanup list in case test fails
-		}
-		assertEquals(numNodes, nodeIDs.size());
-		
-		//check that the nodes were added
-		for(Long nodeID : nodeIDs){
-			assertTrue(nodeDao.doesNodeExist(nodeID));
-		}
-		
-		//delete the nodes
-		nodeDao.delete(nodeIDs);
-		
-		//check that the nodes no longer exist
-		for(Long nodeID : nodeIDs){
-			assertFalse(nodeDao.doesNodeExist(nodeID));
-		}
-	}
-	@Test
-	public void testDeleteListOfNodeWithChildren(){
-		List<String> stringTypeNodeIds = createNestedNodes(2);//1 child
-		List<Long> listParentOnly = new ArrayList<Long>();
-		
-		//only add the root parent
-		listParentOnly.add(KeyFactory.stringToKey(stringTypeNodeIds.get(0)));
-		
-		nodeDao.delete(listParentOnly);
-	}
-	
-	
+
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {
 		Node node = privateCreateNew("testPeekCurrentEtag");
@@ -2590,12 +2522,10 @@ public class NodeDAOImplTest {
 
 		List<Long> nodeIds = createNestedNodes(treeDepth).stream().map(KeyFactory::stringToKey).collect(Collectors.toList());
 
-		List<Long> parentIds = Collections.singletonList(nodeIds.get(0));
-
 		int limit = 1000;
 
 		// Call under test
-		List<Long> result = nodeDao.getAllContainersIdsOrderByDistanceDesc(parentIds, limit);
+		List<Long> result = nodeDao.getAllContainersIdsOrderByDistanceDesc(nodeIds.get(0), limit);
 
 		List<Long> expected = nodeIds.subList(1, nodeIds.size());
 		
