@@ -1,10 +1,10 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.verification;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,14 +13,14 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
@@ -30,11 +30,11 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class DBOVerificationDAOImplTest {
+public class VerificationDAOImplTest {
 	
 	@Autowired
 	private VerificationDAO verificationDao;
@@ -60,13 +60,13 @@ public class DBOVerificationDAOImplTest {
 	private List<String> fhsToDelete;
 	
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		vsToDelete = new ArrayList<String>();
 		fhsToDelete = new ArrayList<String>();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (String id : vsToDelete) {
 			try {
@@ -95,15 +95,15 @@ public class DBOVerificationDAOImplTest {
 		}
 		dto.setCompany(COMPANY);
 		dto.setEmails(EMAILS);
+		List<AttachmentMetadata> attachments = new ArrayList<AttachmentMetadata>();
 		if (fileHandleIds!=null) {
-			List<AttachmentMetadata> attachments = new ArrayList<AttachmentMetadata>();
 			for (String fileHandleId : fileHandleIds) {
 				AttachmentMetadata attachmentMetadata = new AttachmentMetadata();
 				attachmentMetadata.setId(fileHandleId);
 				attachments.add(attachmentMetadata);
 			}
-			dto.setAttachments(attachments);
 		}
+		dto.setAttachments(attachments);
 		dto.setFirstName(FIRST_NAME);
 		dto.setLastName(LAST_NAME);
 		dto.setLocation(LOCATION);
@@ -190,6 +190,33 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(VerificationStateEnum.SUBMITTED, stateHistory.get(0).getState());
 		// check that the second (current) state is the one we set
 		assertEquals(newState, stateHistory.get(1));
+	}
+	
+	@Test
+	public void testListVerificationsIncludeNotes() throws Exception {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		
+		vsToDelete.add(created.getId());
+		
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(VerificationStateEnum.REJECTED);
+		newState.setNotes("Some note");
+		newState.setReason("Some reason");
+		
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
+		
+		List<VerificationSubmission> submissions = verificationDao.listVerificationSubmissions(null, Long.valueOf(USER_1_ID), 10, 0);
+		
+		assertEquals(1, submissions.size());
+		
+		VerificationSubmission submission = submissions.get(0);
+		
+		VerificationState currState = submission.getStateHistory().get(submission.getStateHistory().size() - 1);
+		
+		assertEquals(newState, currState);
 	}
 	
 	@Test
@@ -390,6 +417,35 @@ public class DBOVerificationDAOImplTest {
 	}
 	
 	@Test
+	public void testGetCurrentVerificationSubmissionForUserNoNotes() {
+		long user1long = Long.parseLong(USER_1_ID);
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		
+		vsToDelete.add(created.getId());
+		
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(VerificationStateEnum.REJECTED);
+		newState.setNotes("Some note");
+		newState.setReason("Some reason");
+		
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
+		
+		VerificationSubmission current = verificationDao.getCurrentVerificationSubmissionForUser(user1long);
+		
+		assertFalse(current.getStateHistory().isEmpty());
+		
+		VerificationState currState = current.getStateHistory().get(current.getStateHistory().size() - 1);
+		
+		newState.setNotes(null);
+		
+		assertEquals(newState, currState);
+		
+	}
+	
+	@Test
 	public void testGetVerificationState() {
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
 		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
@@ -462,4 +518,74 @@ public class DBOVerificationDAOImplTest {
 		userIds.add(USER_2_ID);
 		assertFalse(verificationDao.haveValidatedProfiles(userIds));
 	}
+	
+	@Test
+	public void testRemoveFileHandleAfterApproval() throws Exception {
+		testRemoveFileHandlesAfterStateChange(VerificationStateEnum.APPROVED);
+	}
+	
+	@Test
+	public void testRemoveFileHandleAfterRejection() throws Exception {
+		testRemoveFileHandlesAfterStateChange(VerificationStateEnum.REJECTED);
+	}
+	
+	private void testRemoveFileHandlesAfterStateChange(VerificationStateEnum state) throws Exception {
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds = Arrays.asList(fh1.getId(), fh2.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+
+		vsToDelete.add(created.getId());
+		
+		assertEquals(2, created.getAttachments().size());
+		
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(state);
+		
+		// Call under test
+		verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
+		
+		List<Long> currentFileHandleIds = verificationDao.listFileHandleIds(Long.valueOf(created.getId()));
+		
+		assertTrue(currentFileHandleIds.isEmpty());
+		
+	}
+	
+	@Test
+	public void testIncludeAttachmentsForSubmittedOnly() throws Exception {
+		FileHandle fh1 = createFileHandle(USER_1_ID);
+		FileHandle fh2 = createFileHandle(USER_1_ID);
+		List<String> fileHandleIds = Arrays.asList(fh1.getId(), fh2.getId());
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+
+		vsToDelete.add(created.getId());
+		
+		// Call under test
+		VerificationSubmission submission = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
+		
+		assertFalse(submission.getAttachments().isEmpty());
+		
+		
+		for (VerificationStateEnum state : VerificationStateEnum.values()) {
+			
+			VerificationState newState = new VerificationState();
+			newState.setCreatedBy(USER_2_ID);
+			newState.setCreatedOn(new Date());
+			newState.setState(state);
+			
+			verificationDao.appendVerificationSubmissionState(Long.parseLong(created.getId()), newState);
+			
+			// Call under test
+			submission = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
+			
+			boolean expected = !VerificationStateEnum.SUBMITTED.equals(state);
+			
+			assertEquals(expected, submission.getAttachments().isEmpty());
+		}
+	}
+	
 }

@@ -1,0 +1,15 @@
+{
+	"description": "A storage location with an optional base key",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+		}
+	],
+	"properties": {
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key, which acts as a prefix or a base folder"
+		}
+	}
+}

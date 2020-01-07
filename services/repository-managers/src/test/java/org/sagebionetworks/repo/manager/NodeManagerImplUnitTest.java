@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -50,6 +51,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.file.ChildStatsRequest;
+import org.sagebionetworks.repo.model.file.ChildStatsResponse;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -1002,7 +1005,40 @@ public class NodeManagerImplUnitTest {
 		assertEquals(1L, outputString.size());
 		assertTrue(outputString.contains("2"));
 	}
-	
+
+	@Test
+	public void testIsEntityEmptyTrue() {
+		// Mock dao.
+		when(mockNodeDao.getChildernStats(any())).thenReturn(new ChildStatsResponse().withTotalChildCount(0L));
+
+		// Execute and verify.
+		boolean result = nodeManager.isEntityEmpty(nodeId);
+		assertTrue(result);
+
+		ArgumentCaptor<ChildStatsRequest> childStatsRequestCaptor = ArgumentCaptor.forClass(
+				ChildStatsRequest.class);
+		verify(mockNodeDao).getChildernStats(childStatsRequestCaptor.capture());
+		ChildStatsRequest childStatsRequest = childStatsRequestCaptor.getValue();
+		assertEquals(nodeId, childStatsRequest.getParentId());
+		assertTrue(childStatsRequest.getIncludeTotalChildCount());
+
+		for (EntityType type : EntityType.values()) {
+			assertTrue(childStatsRequest.getIncludeTypes().contains(type));
+		}
+	}
+
+	@Test
+	public void testIsEntityEmptyFalse() {
+		// Mock dao.
+		when(mockNodeDao.getChildernStats(any())).thenReturn(new ChildStatsResponse().withTotalChildCount(3L));
+
+		// Execute and verify.
+		boolean result = nodeManager.isEntityEmpty(nodeId);
+		assertFalse(result);
+
+		// For verifying the ChildStatsRequest, see the previous test.
+	}
+
 	@Test
 	public void testValidateChildCountFileUnder(){
 		nodeManager.validateChildCount(parentId, type);

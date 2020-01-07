@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
+import org.sagebionetworks.repo.web.service.verification.VerificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
