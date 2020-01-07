@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -192,6 +193,13 @@ public class FileUploadServiceImpl implements FileUploadService {
 			S3FileHandle fileHandle) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileHandleManager.createExternalS3FileHandle(userInfo, fileHandle);
+	}
+
+	@Override
+	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(Long userId,
+												   GoogleCloudFileHandle fileHandle) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileHandleManager.createExternalGoogleCloudFileHandle(userInfo, fileHandle);
 	}
 
 	@Override
