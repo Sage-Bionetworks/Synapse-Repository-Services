@@ -254,12 +254,6 @@ public class FileHandleManagerImplTest {
 		externalGoogleCloudFileHandle.setStorageLocationId(externalGoogleCloudStorageLocationId);
 		externalGoogleCloudFileHandle.setContentMd5(md5);
 
-		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
-		Blob mockGCBlob = Mockito.mock(Blob.class);
-		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
-		when(mockGCBlob.getMd5()).thenReturn(md5);
-		when(mockGCBlob.getSize()).thenReturn(fileSize);
-
 		// proxy storage location setup.
 		proxyStorageLocationId = 5555L;
 		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
@@ -877,6 +871,13 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudFileHandleHappy(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
+		Blob mockGCBlob = Mockito.mock(Blob.class);
+		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
+		when(mockGCBlob.getSize()).thenReturn(fileSize);
+
 		// call under test
 		GoogleCloudFileHandle result = manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle);
 		assertNotNull(result);
@@ -917,6 +918,8 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudFileHandleUnauthorized(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
 		// In this case the esl created by does not match the caller.
 		externalGoogleCloudStorageLocationSetting.setCreatedBy(mockUser.getId()+1);
 		// should fails since the user is not the creator of the storage location.
@@ -979,6 +982,8 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateExternalGoogleCloudFileHandleGoogleCloudError(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
 		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenThrow(new StorageException(403, "Something is wrong"));
 		// should fail
 		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
