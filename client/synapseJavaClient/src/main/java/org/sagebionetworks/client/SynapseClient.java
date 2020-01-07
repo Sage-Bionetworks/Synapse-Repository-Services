@@ -139,6 +139,7 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -635,7 +636,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws SynapseException;
-	
+
+	/**
+	 * Create an GoogleCloudFileHandle using a pre-configured ExternalGoogleCloudStorageLocationSetting ID.
+	 * @param handle
+	 * @return
+	 * @throws SynapseException
+	 */
+	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(GoogleCloudFileHandle handle) throws SynapseException;
+
 	/**
 	 * Create a new file handle with optionally a new name and a new content type
 	 * 

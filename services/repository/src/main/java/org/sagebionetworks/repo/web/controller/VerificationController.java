@@ -73,7 +73,8 @@ public class VerificationController {
 	 * <li>	Submitted -> Rejected </li>
 	 * <li>	Approved  -> Suspended </li>
 	 * </ul>
-	 * Notification is sent to the user who requested verification.
+	 * Notification is sent to the user who requested verification. After approval or rejection the files attached to the submission
+	 * will not be available.
 	 * 
 	 * @param userId
 	 * @param id the ID of the verification submission

@@ -111,8 +111,6 @@
 	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
 		
 	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
-		
-	<bean id="verificationService" class="org.sagebionetworks.repo.web.service.VerificationServiceImpl" />
 
 	<!-- The Discussion Service -->
 	<bean id="discussionService" class="org.sagebionetworks.repo.web.service.discussion.DiscussionServiceImpl" />

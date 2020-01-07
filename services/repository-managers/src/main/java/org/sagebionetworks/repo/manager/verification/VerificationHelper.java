@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.verification;
 
 import java.util.Date;
 import java.util.List;
