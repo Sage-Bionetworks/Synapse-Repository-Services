@@ -1,16 +1,14 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -225,9 +223,7 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setBucketName(bucket);
 		googleCloudFileHandle.setKey(key);
 
-		bucket = "some-bucket";
-		key = "some-key";
-		md5 = "some-md5";
+		md5 = "0123456789abcdef0123456789abcdef";
 		fileSize = 103L;
 		externalS3StorageLocationId = 987L;
 		// setup a storage location
@@ -284,7 +280,7 @@ public class FileHandleManagerImplTest {
 		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
 
 		externalProxyFileHandle = new ProxyFileHandle();
-		externalProxyFileHandle.setContentMd5("md5");
+		externalProxyFileHandle.setContentMd5("0123456789abcdef0123456789abcdef");
 		externalProxyFileHandle.setContentSize(123L);
 		externalProxyFileHandle.setContentType("plain/text");
 		externalProxyFileHandle.setFileName("foo.bar");
@@ -384,7 +380,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAuthrozied() throws DatastoreException, NotFoundException{
+	public void testGetFileHandleAuthorized() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
@@ -461,7 +457,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testClearPreviewAuthorzied() throws DatastoreException, NotFoundException{
+	public void testClearPreviewAuthorized() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
@@ -611,14 +607,16 @@ public class FileHandleManagerImplTest {
 	public void testCreateExternalFileHandleNullHandle(){
 		assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser, (ExternalFileHandle) null));
 	}
-	
+
+	@Test
 	public void testCreateExternalFileHandleNullFileName(){
 		ExternalFileHandle efh = createFileHandle();
 		efh.setFileName(null);
 		// This should not fail.
 		manager.createExternalFileHandle(mockUser, efh);
 	}
-	
+
+	@Test
 	public void testCreateExternalFileHandleNullContentType(){
 		ExternalFileHandle efh = createFileHandle();
 		efh.setContentType(null);
@@ -770,13 +768,13 @@ public class FileHandleManagerImplTest {
 		
 		// now make it unauthorized
 		authorizationResult.setStatus(AuthorizationStatus.accessDenied(""));
-		try {
+
+		assertThrows(UnauthorizedException.class, () ->
 			 manager.getRedirectURLForFileHandle(mockUser,
-						s3FileHandle.getId(), FileHandleAssociateType.VerificationSubmission, associateObjectId);;
-			fail("Exception expected");
-		} catch (UnauthorizedException e) {
-			// as expected
-		}
+					 s3FileHandle.getId(),
+					 FileHandleAssociateType.VerificationSubmission,
+					 associateObjectId)
+		);
 	}
 
 	///////////////////////////////////////////////////
@@ -807,16 +805,21 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testCreateExternalS3FileHandleInvalidMD5(){
+		externals3FileHandle.setContentMd5("not hex string");
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle),
+				"FileHandle.contentMd5 is required and must not be the empty string.");
+	}
+
+	@Test
 	public void testCreateExternalS3FileHandleEmptyMD5(){
 		externals3FileHandle.setContentMd5("");
 		// call under test
-		try {
-			// should fail
-			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
-			fail();
-		}catch (IllegalArgumentException e){
-			assertEquals("FileHandle.contentMd5 is required and must not be the empty string.", e.getMessage());
-		}
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle),
+				"FileHandle.contentMd5 is required and must not be the empty string.");
 	}
 	
 	@Test
@@ -837,13 +840,9 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateExternalS3FileHandleEmptyBucket(){
 		externals3FileHandle.setBucketName("");
-		try {
-			// should fail
-			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
-			fail();
-		}catch (IllegalArgumentException e){
-			assertEquals("FileHandle.bucket is required and must not be the empty string.", e.getMessage());
-		}
+		assertThrows(IllegalArgumentException.class, () ->
+				manager.createExternalS3FileHandle(mockUser, externals3FileHandle),
+				"FileHandle.bucket is required and must not be the empty string.");
 	}
 
 	@Test
@@ -863,13 +862,10 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateExternalS3FileHandleEmptyKey(){
 		externals3FileHandle.setKey("");
-		try {
-			// should fail
-			S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
-			fail();
-		}catch (IllegalArgumentException e){
-			assertEquals("FileHandle.key is required and must not be the empty string.", e.getMessage());
-		}
+		// should fail
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle),
+		"FileHandle.key is required and must not be the empty string.");
 	}
 	
 	@Test
@@ -1155,6 +1151,12 @@ public class FileHandleManagerImplTest {
 	public void testCreateExternalObjectStoreFileHandleNullContentMd5(){
 		externalObjectStoreFileHandle.setContentMd5(null);
 		assertThrows(IllegalArgumentException.class, () -> 	manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalObjectStoreFileHandleInvalidContentMd5(){
+		externalObjectStoreFileHandle.setContentMd5("not hexadecimal");
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle));
 	}
 
 	@Test
@@ -1559,26 +1561,21 @@ public class FileHandleManagerImplTest {
 		}
 		// call under test
 		batchRequest.setRequestedFiles(overLimit);
-		try {
-			// call under test
-			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
-			fail("should have thrown an exception");
-		} catch (IllegalArgumentException e) {
-			assertEquals(FileHandleManagerImpl.MAX_REQUESTS_PER_CALL_MESSAGE, e.getMessage());
-		}
+
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.getFileHandleAndUrlBatch(mockUser, batchRequest),
+				FileHandleManagerImpl.MAX_REQUESTS_PER_CALL_MESSAGE);
 	}
 	
 	@Test
 	public void testGetFileHandleAndUrlBatchEitherHandleOrUrl() throws Exception {
 		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(false);
-		try {
-			// call under test
-			manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
-			fail("should have thrown an exception");
-		} catch (IllegalArgumentException e) {
-			assertEquals(FileHandleManagerImpl.MUST_INCLUDE_EITHER, e.getMessage());
-		}
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.getFileHandleAndUrlBatch(mockUser, batchRequest),
+				FileHandleManagerImpl.MUST_INCLUDE_EITHER);
 	}
 	
 	
@@ -1638,7 +1635,7 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getPreviewPreSignedURL());
 
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
-		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));		
+		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 		verify(mockStatisticsCollector, times(1)).collectEvents(any());
 	}
 
@@ -1788,9 +1785,9 @@ public class FileHandleManagerImplTest {
 		FileHandle newFileHandle = toCreate.get(0);
 		assertEquals(newId.toString(), newFileHandle.getId());
 		assertNotNull(newFileHandle.getEtag());
-		assertFalse(newFileHandle.getEtag().equals(oldEtag));
+		assertNotEquals(newFileHandle.getEtag(), oldEtag);
 		assertNotNull(newFileHandle.getCreatedOn());
-		assertFalse(newFileHandle.getCreatedOn().equals(oldCreationDate));
+		assertNotEquals(newFileHandle.getCreatedOn(), oldCreationDate);
 		assertEquals(mockUser.getId().toString(), newFileHandle.getCreatedBy());
 		assertEquals(newFileName, newFileHandle.getFileName());
 		assertEquals(oldContentType, newFileHandle.getContentType());
