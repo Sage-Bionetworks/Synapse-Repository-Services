@@ -868,7 +868,6 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>3.0.0-M3</version>
 					<configuration>
-						<argLine>${argLine} -Xmx1024m -Xms128m</argLine>
 						<runOrder>alphabetical</runOrder>
 					</configuration>
 				</plugin>
@@ -944,6 +943,7 @@
 	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
+		<argLine>-Xmx1024m -Xms128m</argLine>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
