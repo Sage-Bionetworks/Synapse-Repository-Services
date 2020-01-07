@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.dbo.verification;
 
 import java.util.List;
 import java.util.Set;
@@ -68,7 +68,6 @@ public interface VerificationDAO {
 	 * @return the file handle IDs associated with the given verification submission
 	 */
 	public List<Long> listFileHandleIds(long verificationId);
-
 
 	/**
 	 * 

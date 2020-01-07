@@ -1,0 +1,15 @@
+{
+	"description": "An upload destination with an optional base key",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		}
+	],
+	"properties": {
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key, which acts as a prefix or a base folder"
+		}
+	}
+}

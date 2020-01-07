@@ -765,6 +765,7 @@ public class SqlConstants {
 	
 	public static final String TABLE_VERIFICATION_SUBMISSION = "VERIFICATION_SUBMISSION";
 	public static final String COL_VERIFICATION_SUBMISSION_ID = "ID";
+	public static final String COL_VERIFICATION_SUBMISSION_ETAG = "ETAG";
 	public static final String COL_VERIFICATION_SUBMISSION_CREATED_BY = "CREATED_BY";
 	public static final String COL_VERIFICATION_SUBMISSION_CREATED_ON = "CREATED_ON";
 	public static final String COL_VERIFICATION_SUBMISSION_SERIALIZED = "SERIALIZED";
@@ -777,6 +778,7 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_STATE_CREATED_BY = "CREATED_BY";
 	public static final String COL_VERIFICATION_STATE_CREATED_ON = "CREATED_ON";
 	public static final String COL_VERIFICATION_STATE_REASON = "REASON";
+	public static final String COL_VERIFICATION_STATE_NOTES = "NOTES";
 	public static final String COL_VERIFICATION_STATE_STATE = "STATE";
 	public static final String FK_VERIFICATION_STATE_VERIFICATION_ID = "VERI_STATE_VERI_ID";
 	public static final String FK_VERIFICATION_STATE_USER_ID = "VERI_STATE_USER_ID";

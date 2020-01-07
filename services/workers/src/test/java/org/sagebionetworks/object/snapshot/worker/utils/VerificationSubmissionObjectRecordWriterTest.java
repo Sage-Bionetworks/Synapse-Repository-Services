@@ -20,7 +20,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.VerificationManager;
+import org.sagebionetworks.repo.manager.verification.VerificationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;

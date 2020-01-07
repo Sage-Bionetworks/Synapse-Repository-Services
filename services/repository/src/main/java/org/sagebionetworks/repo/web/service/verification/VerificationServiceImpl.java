@@ -1,37 +1,32 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.web.service.verification;
 
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.VerificationManager;
+import org.sagebionetworks.repo.manager.verification.VerificationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class VerificationServiceImpl implements VerificationService {
 	
-	@Autowired
 	private VerificationManager verificationManager;
 
-	@Autowired
 	private UserManager userManager;
 	
-	@Autowired
 	private NotificationManager notificationManager;
 
-	public VerificationServiceImpl() {}
-
-	// for testing
-	public VerificationServiceImpl(
-			VerificationManager verificationManager, 
-			UserManager userManager,
+	@Autowired
+	public VerificationServiceImpl(VerificationManager verificationManager, UserManager userManager,
 			NotificationManager notificationManager) {
-		this.verificationManager=verificationManager;
+		this.verificationManager = verificationManager;
 		this.userManager = userManager;
 		this.notificationManager = notificationManager;
 	}
