@@ -111,13 +111,6 @@ public interface TableIndexManager {
 	 * Delete the index for this table.
 	 */
 	public void deleteTableIndex(IdAndVersion tableId);
-	
-	/**
-	 * Delete the index for this table.
-	 * @param idAndVersion
-	 * @param newTableSuffix The suffix to be included in the table's name.
-	 */
-	public void deleteTableIndex(IdAndVersion idAndVersion, String newTableSuffix);
 
 	/**
 	 * Set current version of the index.
@@ -237,17 +230,35 @@ public interface TableIndexManager {
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
 	/**
-	 * Mark all view scopes associated the given entityId as out-of-date.
+	 * Get a single page (up to the provided limit) of rowIds that are out-of-date
+	 * for the given view. A row is out-of-date if any of these conditions are true:
+	 * <ul>
+	 * <li>A row exists in the replication table but does not exist in the
+	 * view.</li>
+	 * <li>A row exists in the view but does not exist in the replication
+	 * table.</li>
+	 * <li>The rowId, etag, or benefactorId do not match in the view and the
+	 * replication table.</li>
+	 * </ul>
 	 * 
-	 * @param objectId
+	 * @param viewId The id of the view to check.
+	 * @param limit  Limit the number of row returned.
+	 * @return
 	 */
-	public void markEntityScopeOutOfDate(String objectId);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit);
 
 	/**
-	 * Calculate the CRC32 for the given view containers.
-	 * @param viewTypeMask
-	 * @param viewContainers
+	 * In a single transaction, update the provided rowIds for a view. For each
+	 * rowId, all data will first be deleted from the view, then copied back to the
+	 * view from the replication tables.
+	 * 
+	 * @param viewId The Id of the view.
+	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this transaction.
+	 * @param viewTypeMask The type of view this is.
+	 * @param allContainersInScope The container Ids that define the scope of this view.
+	 * @param currentSchema The current schema of the view.
 	 */
-	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask, Set<Long> viewContainers);
+	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 
 }

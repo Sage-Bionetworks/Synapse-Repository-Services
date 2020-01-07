@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
@@ -47,10 +47,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.sql.DataSource;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
@@ -75,7 +74,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,6 +89,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -594,7 +595,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
-		template.update(TableConstants.REPLICATION_VIEW_CHECKUSM_TABLE_CREATE);
 	}
 
 	@Override
@@ -1058,13 +1058,22 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long getReplicationViewChecksum(Long viewId) {
-		try {
-			return template.queryForObject(
-					"SELECT "+REPLICATION_VIEW_CHECKSUM_COL_CHECKSUM+" FROM "+REPLICATION_VIEW_CHECKSUM_TABLE
-					+" WHERE "+REPLICATOIN_VIEW_CHECKSUM_COL_VIEW_ID+" = ?", Long.class, viewId);
-		} catch (EmptyResultDataAccessException e) {
-			return -1;
-		}
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit) {
+		// TODO Auto-generated method stub
+		return null;
 	}
+
+	@Override
+	public void copyEntityReplicationToView(IdAndVersion viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, Set<Long> rowsIdsWithChanges) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

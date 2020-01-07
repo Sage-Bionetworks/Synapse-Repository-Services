@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -14,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,6 +37,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -43,9 +47,8 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
@@ -54,11 +57,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
+	
+	static private Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
 	/**
@@ -76,6 +82,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * Max columns per view is now the same as the max per table.
 	 */
 	public static final int MAX_COLUMNS_PER_VIEW = ColumnConstants.MY_SQL_MAX_COLUMNS_PER_TABLE;
+	/**
+	 * The maximum number of view rows that can be updated in a single transaction.
+	 */
+	public static final long MAX_ROWS_PER_TRANSACTION = 1000;
 
 	@Autowired
 	ViewScopeDao viewScopeDao;
@@ -321,87 +331,114 @@ public class TableViewManagerImpl implements TableViewManager {
 			throws Exception {
 		if (TableState.AVAILABLE.equals(tableManagerSupport.getTableStatusState(idAndVersion))
 				&& !idAndVersion.getVersion().isPresent()) {
-			// This is not a view snapshot and the view is currently available.
-			if(isViewStale(idAndVersion)) {
-				// The view is stale so update it without blocking query
-				createNewViewIndexThenSwapWithOldIndex(idAndVersion, outerProgressCallback);
-			}
+			/*
+			 * The view is currently available and this is not a "snapshot". This route will
+			 * attempt to apply any changes to an existing view while the view status
+			 * remains AVAILABLE. Users will be able to query the view during this
+			 * operation.
+			 */
+			applyChangesToAvailableView(idAndVersion, outerProgressCallback);
 		}else {
-			// The view must be built from scratch while holding the exclusive lock
-			createOrUpdateViewWithExclusiveLock(idAndVersion, outerProgressCallback);
+			/*
+			 * The view is not currently available or this is a "snapshot". This route will
+			 * create or rebuild the table from scratch with the view status set to
+			 * PROCESSING. Users will not be able to query the view during this operation.
+			 */
+			createOrRebuildView(idAndVersion, outerProgressCallback);
 		}
-	}
-
-	/**
-	 * Determine if the data in the given view is stale by comparing 
-	 * the view checksum to the replication checksum.
-	 * Note: This call is fairly expensive.
-	 * @param idAndVersion
-	 * @return
-	 */
-	boolean isViewStale(IdAndVersion idAndVersion) {
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		if(idAndVersion.getVersion().isPresent()) {
-			throw new IllegalArgumentException("View snapshots cannot be stale");
-		}
-		 // Start with all container IDs that define the view's scope
-		 Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
-		 Set<Long> viewContainers = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-		 TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		 // Calculate the current checksum of the replication data for this view's scope.
-		 long replicationChecksum = indexManager.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
-		 long indexChecksum = indexManager.getCurrentVersionOfIndex(idAndVersion);
-		return replicationChecksum != indexChecksum;
-		
 	}
 	
 	/**
-	 * Attempt to create a new view index while keeping the current view Index available
-	 * for query.  The view is only changed to processing to swap the new index for the old.
+	 * Attempt to apply any changes to a view that will remain available for query during this operation.
+	 * 
 	 * @param idAndVersion
 	 * @param outerProgressCallback
 	 * @throws Exception 
 	 */
-	void createNewViewIndexThenSwapWithOldIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
-		// use an exclusive semaphore to ensure we do not attempt to update the same view concurrently.
-		String key = "VIEW-REBUILD-"+idAndVersion.toString();
+	void applyChangesToAvailableView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
+		/*
+		 * We do not want to block users from querying the view during this process but
+		 * we still need to prevent concurrent attempt apply deltas to the view.
+		 * Therefore, we use a key that is different from the key used to query/rebuild
+		 * a view.
+		 */
+		String key = "VIEW-DELTA-"+idAndVersion.toString();
 		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
 				(ProgressCallback innerCallback) -> {
-					createNewViewIndexThenSwapWithOldIndexHoldingLock(idAndVersion);
+					applyChangesToAvailableViewHoldingLock(idAndVersion);
 					return null;
 				});
 	}
 	
-	void createNewViewIndexThenSwapWithOldIndexHoldingLock(IdAndVersion idAndVersion) {
-		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		String newTableSuffix = "new";
-		// Since this worker re-builds the index, start by deleting it.
-		indexManager.deleteTableIndex(idAndVersion, newTableSuffix);
-		// Need the MD5 for the original schema.
-		String originalSchemaMD5Hex = tableManagerSupport.getSchemaMD5Hex(idAndVersion);
-		List<ColumnModel> viewSchema = getViewSchema(idAndVersion);
-	}
-	
 	/**
-	 * Create or update the view with an exclusive lock.  Users will not be able to query the view during this build.
+	 * Attempt to apply any changes to a view that will remain available for query during this operation.
+	 * The caller must hold an exclusive lock on the view-change during this operation.
+	 * @param viewId
+	 */
+	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
+		Long viewTypeMask = null;
+		Set<Long> allContainersInScope = null;
+		List<ColumnModel> currentSchema = null;
+		Set<Long> rowsIdsWithChanges = null;
+		Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
+		// Continue applying change to the view until none remain.
+		do {
+			rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, MAX_ROWS_PER_TRANSACTION);
+			// infinite loop detection:
+			Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
+					previousPageRowIdsWithChanges);
+			if (intersectionWithPreviousPage.size() > 0) {
+				// The current page intersects with the previous page so we are not making
+				// progress.
+				log.warn("No progress made for " + viewId.toString() + " for rows: " + intersectionWithPreviousPage
+						+ ". Will break.");
+				break;
+			}
+			
+			if (!rowsIdsWithChanges.isEmpty()) {
+				// We have changes, so lazy load the mask, containers, and schema.
+				if(viewTypeMask == null) {
+					viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
+				}
+				if(allContainersInScope == null) {
+					allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
+				}
+				if(currentSchema == null) {
+					currentSchema = tableManagerSupport.getTableSchema(viewId);
+				}
+				// update these rows in a new transaction.
+				indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
+						currentSchema);
+				previousPageRowIdsWithChanges = rowsIdsWithChanges;
+			}
+		} while (rowsIdsWithChanges != null && !rowsIdsWithChanges.isEmpty());
+	}
+
+	/**
+	 * Create or rebuild a view from scratch. Users will not be able to query the
+	 * view during this build.
+	 * 
 	 * @param idAndVersion
 	 * @param outerProgressCallback
 	 * @throws Exception
 	 */
-	void createOrUpdateViewWithExclusiveLock(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
+	void createOrRebuildView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
 		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
 				(ProgressCallback innerCallback) -> {
-					createOrUpdateViewIndexHoldingLock(idAndVersion);
+					createOrRebuildViewHoldingLock(idAndVersion);
 					return null;
 				});
 	}
 
 	/**
-	 * Create the index table for the given view and version.
+	 * Create or rebuild a view from scratch. Users will not be able to query the
+	 * view during this build. The caller must hold an exclusive lock on the view
+	 * during this call.
 	 * 
 	 * @param idAndVersion
 	 */
-	void createOrUpdateViewIndexHoldingLock(IdAndVersion idAndVersion) {
+	void createOrRebuildViewHoldingLock(IdAndVersion idAndVersion) {
 		try {
 			// Is the index out-of-synch?
 			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {

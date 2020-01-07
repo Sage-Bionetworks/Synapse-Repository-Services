@@ -331,6 +331,17 @@ public interface TableIndexDAO {
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
+	 * 
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @param allContainersInScope
+	 * @param currentSchema
+	 * @param rowsIdsWithChanges Only copy rows with Ids in this set.
+	 */
+	public void copyEntityReplicationToView(IdAndVersion viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, Set<Long> rowsIdsWithChanges);
+	
+	/**
 	 * Copy the data from the entity replication tables to the given view's table.
 	 * 
 	 * @param viewId
@@ -461,11 +472,31 @@ public interface TableIndexDAO {
 	 * @param dataSource
 	 */
 	void setDataSource(DataSource dataSource);
-	
+
 	/**
-	 * Get the checksum of the replication data for the given view.
-	 * @param viewId
+	 * Get a single page (up to the provided limit) of rowIds that are out-of-date
+	 * for the given view. A row is out-of-date if any of these conditions are true:
+	 * <ul>
+	 * <li>A row exists in the replication table but does not exist in the
+	 * view.</li>
+	 * <li>A row exists in the view but does not exist in the replication
+	 * table.</li>
+	 * <li>The rowId, etag, or benefactorId do not match in the view and the
+	 * replication table.</li>
+	 * </ul>
+	 * 
+	 * @param viewId The id of the view to check.
+	 * @param limit  Limit the number of row returned.
 	 * @return
 	 */
-	public long getReplicationViewChecksum(Long viewId);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit);
+
+	/**
+	 * Delete the provied rows from a view.
+	 * 
+	 * @param viewId
+	 * @param rowsIdsWithChanges
+	 */
+	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges);
+
 }

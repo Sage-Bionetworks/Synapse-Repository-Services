@@ -755,10 +755,10 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingNoWorkRequired() {
+	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 		verifyNoMoreInteractions(mockConnectionFactory);
@@ -768,7 +768,7 @@ public class TableViewManagerImplTest {
 	 * Populate a view from entity replication.
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingWorkeRequired() {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -784,7 +784,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
 		
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
@@ -817,7 +817,7 @@ public class TableViewManagerImplTest {
 	 * @throws IOException
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingWorkeRequiredWithVersion() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
@@ -833,7 +833,7 @@ public class TableViewManagerImplTest {
 		setupReader("foo,bar");
 		
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
@@ -867,19 +867,19 @@ public class TableViewManagerImplTest {
 	 * @throws IOException
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingPLFM_5939() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockPLFM_5939() throws IOException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		IllegalArgumentException exception = new IllegalArgumentException("nope");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenThrow(exception);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
 		});
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}
 	
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingError() {
+	public void testCreateOrRebuildViewHoldingLockError() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -888,7 +888,7 @@ public class TableViewManagerImplTest {
 		
 		assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
 		});
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());

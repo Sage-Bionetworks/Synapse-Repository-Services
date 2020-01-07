@@ -523,20 +523,23 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
 	}
-	@Override
-	public void markEntityScopeOutOfDate(String entityId) {
 
-		
-	}
 	@Override
-	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask, Set<Long> viewContainers) {
-		return tableIndexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit) {
+		return tableIndexDao.getOutOfDateRowsForView(viewId, limit);
 	}
 	
 	@Override
-	public void deleteTableIndex(IdAndVersion idAndVersion, String newTableSuffix) {
-		// TODO Auto-generated method stub
-		
+	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		// all calls are in a single transaction.
+		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			// First delete the provided rows from the view
+			tableIndexDao.deleteRowsFromView(viewId, rowsIdsWithChanges);
+			// Apply any updates to the view for the given Ids
+			tableIndexDao.copyEntityReplicationToView(viewId, viewTypeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+			return null;
+		});
 	}
 
 }
