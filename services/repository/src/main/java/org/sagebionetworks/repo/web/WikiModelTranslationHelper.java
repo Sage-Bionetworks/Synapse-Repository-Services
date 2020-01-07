@@ -99,7 +99,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		ccftr.setContentType(contentType.toString());
 		ccftr.setFileName("markdown.txt.gz");
 		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(compressedBytest);
+		String md5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(compressedBytest);
 		// Amazon wants the md5 as a base 64 hex string.
 		String hexMD5 = BinaryUtils.toBase64(BinaryUtils.fromHex(md5));
 		ccftr.setContentMD5(md5);
