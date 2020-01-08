@@ -1056,11 +1056,28 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			template.batchUpdate(sql, batch);
 		}
 	}
+	
+	@Override
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+			long limit) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()) {
+			return Collections.emptySet();
+		}
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, viewTypeMask);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("scopeIds", allContainersInScope);
+		param.addValue("limitParam", limit);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
+		return new LinkedHashSet<Long>(deltas);
+	}
 
 	@Override
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit) {
+	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges) {
 		// TODO Auto-generated method stub
-		return null;
+		
 	}
 
 	@Override
@@ -1070,10 +1087,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 	}
 
-	@Override
-	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges) {
-		// TODO Auto-generated method stub
-		
-	}
+
 
 }

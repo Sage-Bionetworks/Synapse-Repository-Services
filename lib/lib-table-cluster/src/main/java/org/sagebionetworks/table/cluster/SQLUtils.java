@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_ALIAS;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
@@ -19,7 +20,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
-import static org.sagebionetworks.repo.model.table.ColumnConstants.isTableTooLargeForFourByteUtf8;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -36,8 +36,6 @@ import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
-import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -51,7 +49,9 @@ import org.sagebionetworks.repo.model.table.parser.BooleanParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -1925,5 +1925,35 @@ public class SQLUtils {
 				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
 				" )" +
 				") TEMP_JSON_TABLE;";
+	}
+	
+	public static String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = 
+			"WITH DELTAS (ID, MISSING) AS ( " 
+			+ "SELECT R."+ENTITY_REPLICATION_COL_ID+", V."+ROW_ID+" FROM "+ENTITY_REPLICATION_TABLE+" R "
+			+ "   LEFT JOIN %1$s V ON ("
+			+ "		 R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
+			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
+			+ "   WHERE R.%2$s IN (:scopeIds)" 
+			+ " UNION ALL"
+			+ " SELECT V."+ROW_ID+", R."+ENTITY_REPLICATION_COL_ID+" FROM "+ENTITY_REPLICATION_TABLE+" R "
+			+ "   RIGHT JOIN %1$s V ON ("
+			+ "      R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
+			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
+			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
+			+ "   WHERE R.%2$s IN (:scopeIds)"
+			+ ")"
+			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
+	
+	/**
+	 * Create SQL to find out-of-date rows for a view.
+	 * @param viewId
+	 * @param viewTypeMask
+	 * @return
+	 */
+	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, long viewTypeMask) {
+		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		String scopeColumn = SQLUtils.getViewScopeFilterColumnForType(viewTypeMask);
+		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn);
 	}
 }

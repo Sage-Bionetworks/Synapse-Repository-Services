@@ -486,10 +486,12 @@ public interface TableIndexDAO {
 	 * </ul>
 	 * 
 	 * @param viewId The id of the view to check.
-	 * @param limit  Limit the number of row returned.
+	 * @param viewTypeMask  The type of view.
+	 * @param allContainersInScope All of the containers that define the scope 
+	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
 
 	/**
 	 * Delete the provied rows from a view.

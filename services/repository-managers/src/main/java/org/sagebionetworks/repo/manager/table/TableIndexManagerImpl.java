@@ -525,8 +525,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long limit) {
-		return tableIndexDao.getOutOfDateRowsForView(viewId, limit);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+			long limit) {
+		return tableIndexDao.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope, limit);
 	}
 	
 	@Override

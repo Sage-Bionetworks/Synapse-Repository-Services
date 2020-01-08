@@ -2493,4 +2493,36 @@ public class TableIndexDAOImplTest {
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
+	
+	
+	@Test
+	public void testGetOutOfDateRowsForView(){
+		isView = true;
+		// delete all data
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		// Create the schema for this table
+		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
+		// Create the view index
+		createOrUpdateTable(schema, tableId, isView);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		long limit = 100L;
+		// the view should now match the replication
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
 }

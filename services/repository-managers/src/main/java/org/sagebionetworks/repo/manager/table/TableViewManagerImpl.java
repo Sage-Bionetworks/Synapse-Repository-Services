@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -53,6 +52,7 @@ import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -362,12 +362,16 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * Therefore, we use a key that is different from the key used to query/rebuild
 		 * a view.
 		 */
-		String key = "VIEW-DELTA-"+idAndVersion.toString();
-		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
-				(ProgressCallback innerCallback) -> {
-					applyChangesToAvailableViewHoldingLock(idAndVersion);
-					return null;
-				});
+		String key = "viewDelta"+idAndVersion.toString();
+		try {
+			tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
+					(ProgressCallback innerCallback) -> {
+						applyChangesToAvailableViewHoldingLock(idAndVersion);
+						return null;
+					});
+		} catch (LockUnavilableException e) {
+			log.warn("Unable to aquire lock: "+key+" so the message will be ignored.");
+		}
 	}
 	
 	/**
@@ -377,14 +381,14 @@ public class TableViewManagerImpl implements TableViewManager {
 	 */
 	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-		Long viewTypeMask = null;
-		Set<Long> allContainersInScope = null;
-		List<ColumnModel> currentSchema = null;
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
+		List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
 		Set<Long> rowsIdsWithChanges = null;
 		Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
 		// Continue applying change to the view until none remain.
 		do {
-			rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, MAX_ROWS_PER_TRANSACTION);
+			rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
 			// infinite loop detection:
 			Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 					previousPageRowIdsWithChanges);
@@ -397,16 +401,6 @@ public class TableViewManagerImpl implements TableViewManager {
 			}
 			
 			if (!rowsIdsWithChanges.isEmpty()) {
-				// We have changes, so lazy load the mask, containers, and schema.
-				if(viewTypeMask == null) {
-					viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
-				}
-				if(allContainersInScope == null) {
-					allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
-				}
-				if(currentSchema == null) {
-					currentSchema = tableManagerSupport.getTableSchema(viewId);
-				}
 				// update these rows in a new transaction.
 				indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
 						currentSchema);
