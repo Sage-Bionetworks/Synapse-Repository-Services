@@ -29,7 +29,7 @@ public class MD5ChecksumHelper {
 	/**
 	 * Determines if a hexadecimal string is a valid MD5 digest (i.e. is exactly 32 hexadecimal characters).
 	 * @param hexDigest The hexadecimal string
-	 * @throws IllegalArgumentException if the MD5 digest is invalid
+	 * @return true iff the string is a valid MD5 digest
 	 */
 	public static boolean isValidMd5Digest(String hexDigest) {
 		if (hexDigest == null) throw new IllegalArgumentException("The MD5 digest may not be null");
