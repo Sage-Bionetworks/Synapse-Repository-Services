@@ -10,14 +10,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
@@ -30,7 +28,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -107,21 +104,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		// Access to this method is not exposed externally, so we can use admin credentials to find the project setting
-		List<EntityHeader> nodePath = nodeManager.getNodePathAsAdmin(nodeId);
-		// the root of the node path should be the project
-		if (nodePath.isEmpty()) {
-			throw new DatastoreException("No path for this parentId could be found");
-		}
-		List<Long> nodePathIds = nodePath.stream().map(input -> KeyFactory.stringToKey(input.getId()))
-				.collect(Collectors.toList());
-
-		// get the first available project setting of the correct type
-		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
+		ProjectSetting projectSetting = projectSettingsDao.getInheritedForEntity(nodeId, type);
 		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
-		return (T) projectSetting;
+		return expectedType.cast(projectSetting);
 	}
 
 	@Override

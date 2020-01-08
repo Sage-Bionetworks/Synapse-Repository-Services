@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -38,8 +37,6 @@ import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -216,24 +213,35 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.singletonList(projectHeader));
-		when(mockProjectSettingDao.get(eq(Collections.singletonList(Long.valueOf(PROJECT_ID))), eq(ProjectSettingsType.upload))).thenReturn(uploadDestinationListSetting);
+		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(
+				uploadDestinationListSetting);
 
 		// Call under test
-		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertSame(uploadDestinationListSetting, actual);
 	}
 
 	@Test
-	public void getProjectSettingForNodeEmptyPath() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.emptyList());
+	public void getProjectSettingForNode_Null() {
+		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(null);
 
 		// Call under test
-		assertThrows(DatastoreException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class));
+		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		assertNull(actual);
+	}
+
+	@Test
+	public void getProjectSettingForNode_WrongType() {
+		// Use Mockito to create an instance of ProjectSetting that's not an UploadDestinationListSetting.
+		ProjectSetting mockSetting = mock(ProjectSetting.class);
+		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(mockSetting);
+
+		// Call under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(
+				userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class),
+				"Settings type for 'upload' is not of type UploadDestinationListSetting");
 	}
 
 	@Test

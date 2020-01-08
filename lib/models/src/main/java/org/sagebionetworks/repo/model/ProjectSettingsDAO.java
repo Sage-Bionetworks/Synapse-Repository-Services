@@ -15,9 +15,13 @@ public interface ProjectSettingsDAO {
 
 	public Optional<ProjectSetting> get(String projectId, ProjectSettingsType projectSettingsType) throws DatastoreException;
 
-	public ProjectSetting get(List<Long> parentIds, ProjectSettingsType projectSettingsType) throws DatastoreException;
-
 	public List<ProjectSetting> getAllForProject(String projectId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Walks up the entity hierarchy and returns the first ProjectSetting of the specified type for this entity, or
+	 * null if no ProjectSettings of the specified type are defined in the entity hierarchy.
+	 */
+	ProjectSetting getInheritedForEntity(String entityId, ProjectSettingsType type);
 
 	public ProjectSetting update(ProjectSetting settings) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException;
