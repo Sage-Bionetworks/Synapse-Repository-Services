@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.principal;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AccountCreationToken;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
@@ -230,6 +233,57 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		PrincipalAliasResponse response = new PrincipalAliasResponse();
 		response.setPrincipalId(principalId);
 		return response;
+	}
+
+	@WriteTransaction
+	@Override
+	public void clearPrincipalInformation(UserInfo userInfo, Long principalToClear) {
+		UserInfo.validateUserInfo(userInfo);
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admins may clear user information");
+		}
+
+		ValidateArgument.required(principalToClear, "principalToClear");
+
+		// Remove all the aliases from the account
+		boolean aliasesRemoved = principalAliasDAO.removeAllAliasFromPrincipal(principalToClear);
+		if (!aliasesRemoved) {
+			throw new DatastoreException("Removed zero aliases from principal: " + principalToClear + ". A principal record should have at least one alias.");
+		}
+
+		// The email address that this account will now use:
+		String gdprEmail = "gdpr-synapse+" + principalToClear + "@sagebase.org";
+
+		// Set the new email address for the user
+		PrincipalAlias emailAlias = new PrincipalAlias();
+		emailAlias.setPrincipalId(principalToClear);
+		emailAlias.setAlias(gdprEmail);
+		emailAlias.setType(AliasType.USER_EMAIL);
+		emailAlias = principalAliasDAO.bindAliasToPrincipal(emailAlias);
+
+		// Set the new email address to be the user's notification email
+		notificationEmailDao.update(emailAlias);
+
+		UserProfile profile = userProfileDAO.get(principalToClear.toString());
+		profile.setEmails(Collections.emptyList());
+		profile.setFirstName("");
+		profile.setLastName("");
+		profile.setOpenIds(Collections.emptyList());
+		profile.setOwnerId(principalToClear.toString());
+		profile.setUserName(principalToClear.toString());
+		Settings notificationSettings = new Settings();
+		notificationSettings.setSendEmailNotifications(false);
+		profile.setNotificationSettings(notificationSettings);
+		profile.setDisplayName(null);
+		profile.setIndustry(null);
+		profile.setProfilePicureFileHandleId(null);
+		profile.setLocation(null);
+		profile.setCompany(null);
+		profile.setPosition(null);
+		userProfileDAO.update(profile);
+
+		// Reset the password
+		authManager.setPassword(principalToClear, UUID.randomUUID().toString());
 	}
 	
 	private void assertNotQuarantinedEmail(String email, String messageType) {

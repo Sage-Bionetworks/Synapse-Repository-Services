@@ -1,13 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
-
 import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.evaluation.model.SubmissionContributor;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -16,7 +12,6 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -26,12 +21,9 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.quiz.PassingRecord;
-import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -295,5 +287,18 @@ public class AdministrationController {
 			@RequestParam(defaultValue = "true") Boolean status) 
 			throws NotFoundException, UnauthorizedException {
 		return serviceProvider.getOpenIDConnectService().updateOpenIDConnectClientVerifiedStatus(userId, clientId, status);
+	}
+
+	/**
+	 * Removes all information about a user to comply with data removal requests.
+	 * @param userId Principal ID of the caller. Must be an administrator
+	 * @param principalIdToClear The principal ID of the user whose information should be cleared
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_REMOVE_USER, method = RequestMethod.POST)
+	public @ResponseBody void clearUserProfile(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+																	 @PathVariable Long principalIdToClear)
+			throws NotFoundException, UnauthorizedException {
+		serviceProvider.getPrincipalService().clearPrincipalInformation(userId, principalIdToClear);
 	}
 }

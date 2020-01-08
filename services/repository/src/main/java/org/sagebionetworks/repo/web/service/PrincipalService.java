@@ -98,4 +98,10 @@ public interface PrincipalService {
 	 */
 	PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest alias);
 
+	/**
+	 * Removes all information about a user to comply with data removal requests.
+	 * @param userId Principal ID of the caller. Must be an administrator
+	 * @param principalToClear The principal ID of the user whose information should be cleared
+	 */
+	void clearPrincipalInformation(Long userId, Long principalToClear);
 }
