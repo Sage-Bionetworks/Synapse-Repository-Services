@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -18,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.collections4.IterableUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -31,12 +34,15 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudClientFactory;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
@@ -87,6 +93,7 @@ public class IT049FileHandleTest {
 	private static final String FILE_NAME = "LittleImage.png";
 	private static final String LARGE_IMAGE_FILE_NAME = "LargeImage.jpg";
 
+	private List<FileEntity> fileEntitiesToDelete = null;
 	private List<FileHandle> toDelete = null;
 	private File imageFile;
 	private File largeImageFile;
@@ -122,7 +129,8 @@ public class IT049FileHandleTest {
 	@Before
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
-		toDelete = new ArrayList<FileHandle>();
+		fileEntitiesToDelete = new ArrayList<>();
+		toDelete = new ArrayList<>();
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -134,12 +142,22 @@ public class IT049FileHandleTest {
 
 	@After
 	public void after() throws Exception {
+		for (FileEntity fileEntity : fileEntitiesToDelete) {
+			try {
+				synapse.deleteEntity(fileEntity, true);
+			} catch (SynapseNotFoundException | SynapseClientException e) {
+				// Ignore exceptions
+			}
+		}
+
 		for (FileHandle handle: toDelete) {
 			try {
 				synapse.deleteFileHandle(handle.getId());
-			} catch (SynapseNotFoundException e) {
-			} catch (SynapseClientException e) { }
+			} catch (SynapseNotFoundException | SynapseClientException e) {
+				// Ignore exceptions
+			}
 		}
+
 		synapse.deleteEntity(project, true);
 	}
 	
@@ -617,6 +635,155 @@ public class IT049FileHandleTest {
 
 		// Verify that all parts have been deleted
 		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
+	}
+
+	@Test
+	public void testMultipartUploadV2WithSts() throws IOException, SynapseException {
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+
+		// Upload the owner.txt to S3 so we can create the external storage location
+		String externalS3StorageBaseKey = "integration-test/IT049FileHandleTest-" + UUID.randomUUID().toString();
+		uploadOwnerTxtToS3(config.getS3Bucket(), externalS3StorageBaseKey,
+				synapse.getUserProfile(userToDelete.toString()).getUserName());
+
+		// Create Synapse Storage and External S3 Storage w/ STS.
+		S3StorageLocationSetting synapseStorageLocationSetting = new S3StorageLocationSetting();
+		synapseStorageLocationSetting.setStsEnabled(true);
+		synapseStorageLocationSetting = synapse.createStorageLocationSetting(synapseStorageLocationSetting);
+		long synapseStorageLocationId = synapseStorageLocationSetting.getStorageLocationId();
+		String synapseStorageBaseKey = synapseStorageLocationSetting.getBaseKey();
+		assertNotNull(synapseStorageBaseKey);
+
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setBucket(config.getS3Bucket());
+		externalS3StorageLocationSetting.setBaseKey(externalS3StorageBaseKey);
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		externalS3StorageLocationSetting = synapse.createStorageLocationSetting(externalS3StorageLocationSetting);
+		long externalS3StorageLocationId = externalS3StorageLocationSetting.getStorageLocationId();
+		assertNotEquals(synapseStorageLocationId, externalS3StorageLocationId);
+		assertNotEquals(synapseStorageBaseKey, externalS3StorageBaseKey);
+
+		// Upload to Synapse Storage.
+		S3FileHandle synapseFileHandle = (S3FileHandle) synapse.multipartUpload(imageFile,
+				synapseStorageLocationId, false, null);
+		assertNotNull(synapseFileHandle);
+		toDelete.add(synapseFileHandle);
+		assertNotNull(synapseFileHandle.getBucketName());
+		assertTrue(synapseFileHandle.getKey().startsWith(synapseStorageBaseKey));
+
+		// Verify file exists in S3.
+		assertTrue(synapseS3Client.doesObjectExist(synapseFileHandle.getBucketName(), synapseFileHandle.getKey()));
+
+		// Upload to External S3 Storage.
+		S3FileHandle externalS3FileHandle = (S3FileHandle) synapse.multipartUpload(imageFile,
+				externalS3StorageLocationId, false, null);
+		assertNotNull(externalS3FileHandle);
+		toDelete.add(externalS3FileHandle);
+		assertEquals(config.getS3Bucket(), externalS3FileHandle.getBucketName());
+		assertTrue(externalS3FileHandle.getKey().startsWith(externalS3StorageBaseKey));
+
+		// Verify file exists in S3.
+		assertTrue(synapseS3Client.doesObjectExist(externalS3FileHandle.getBucketName(),
+				externalS3FileHandle.getKey()));
+
+		// Attempt to create a new file handle that points at the same file. Even though there's a copy API that does
+		// exactly this, we're specifically testing the more general createExternalS3FileHandle() API.)
+		S3FileHandle externalS3FileHandleCopy = synapse.createExternalS3FileHandle(externalS3FileHandle);
+		assertNotNull(externalS3FileHandleCopy);
+		toDelete.add(externalS3FileHandleCopy);
+		assertNotEquals(externalS3FileHandle.getId(), externalS3FileHandleCopy.getId());
+		assertEquals(config.getS3Bucket(), externalS3FileHandleCopy.getBucketName());
+		assertEquals(externalS3FileHandle.getKey(), externalS3FileHandleCopy.getKey());
+
+		// Note that the way the integration tests are set up, our "external S3 bucket" actually points to the same
+		// bucket as Synapse storage. Attempt to create the S3FileHandle from Synapse Storage as an external S3
+		// file handle in the External S3 Storage Location, but it will fail because it's base key prefix is wrong.
+		assertThrows(SynapseBadRequestException.class, () -> synapse.createExternalS3FileHandle(synapseFileHandle),
+				"The baseKey for ExternalS3StorageLocationSetting.id=" + externalS3StorageLocationId +
+						" does not match the provided key: " + externalS3FileHandle.getKey());
+
+		// Create folders for the project.
+		Folder synapseFolder = new Folder();
+		synapseFolder.setParentId(project.getId());
+		synapseFolder = synapse.createEntity(synapseFolder);
+		String synapseFolderId = synapseFolder.getId();
+
+		Folder externalS3Folder = new Folder();
+		externalS3Folder.setParentId(project.getId());
+		externalS3Folder = synapse.createEntity(externalS3Folder);
+		String externalS3FolderId = externalS3Folder.getId();
+
+		// Add storage locations to the folders.
+		UploadDestinationListSetting synapseProjectSetting = new UploadDestinationListSetting();
+		synapseProjectSetting.setProjectId(synapseFolderId);
+		synapseProjectSetting.setSettingsType(ProjectSettingsType.upload);
+		synapseProjectSetting.setLocations(ImmutableList.of(synapseStorageLocationId));
+		synapse.createProjectSetting(synapseProjectSetting);
+
+		UploadDestinationListSetting externalS3ProjectSetting = new UploadDestinationListSetting();
+		externalS3ProjectSetting.setProjectId(externalS3FolderId);
+		externalS3ProjectSetting.setSettingsType(ProjectSettingsType.upload);
+		externalS3ProjectSetting.setLocations(ImmutableList.of(externalS3StorageLocationId));
+		synapse.createProjectSetting(externalS3ProjectSetting);
+
+		// Create file entities for each file handle.
+		FileEntity synapseFileEntity = new FileEntity();
+		synapseFileEntity.setDataFileHandleId(synapseFileHandle.getId());
+		synapseFileEntity.setParentId(synapseFolderId);
+		synapseFileEntity = synapse.createEntity(synapseFileEntity);
+		assertNotNull(synapseFileEntity);
+		fileEntitiesToDelete.add(synapseFileEntity);
+
+		FileEntity externalS3FileEntity = new FileEntity();
+		externalS3FileEntity.setDataFileHandleId(externalS3FileHandle.getId());
+		externalS3FileEntity.setParentId(externalS3FolderId);
+		externalS3FileEntity = synapse.createEntity(externalS3FileEntity);
+		assertNotNull(externalS3FileEntity);
+		fileEntitiesToDelete.add(externalS3FileEntity);
+
+		// Create a file handle and file entity in the default storage location (such as project root).
+		S3FileHandle nonStsFileHandle = (S3FileHandle) synapse.multipartUpload(this.imageFile,
+				null, false, null);
+		FileEntity nonStsFileEntity = new FileEntity();
+		nonStsFileEntity.setDataFileHandleId(nonStsFileHandle.getId());
+		nonStsFileEntity.setParentId(project.getId());
+		nonStsFileEntity = synapse.createEntity(nonStsFileEntity);
+		assertNotNull(nonStsFileEntity);
+		fileEntitiesToDelete.add(nonStsFileEntity);
+
+		// Can't add file handle from a non-STS storage location in an STS folder.
+		FileEntity wrongFileEntity = new FileEntity();
+		wrongFileEntity.setDataFileHandleId(nonStsFileHandle.getId());
+		wrongFileEntity.setParentId(externalS3FolderId);
+		assertThrows(SynapseBadRequestException.class, () -> synapse.createEntity(wrongFileEntity),
+				"Folders with STS-enabled storage locations can only accept files with the same storage location");
+
+		// Can't add files in STS storage locations to non-STS folders (such as project root).
+		FileEntity wrongFileEntity2 = new FileEntity();
+		wrongFileEntity2.setDataFileHandleId(externalS3FileHandle.getId());
+		wrongFileEntity2.setParentId(project.getId());
+		assertThrows(SynapseBadRequestException.class, () -> synapse.createEntity(wrongFileEntity2),
+				"Files in STS-enabled storage locations can only be placed in folders with the same storage location");
+
+		// Can't update the non-STS file entity to turn it into an STS file entity.
+		FileEntity wrongFileEntity3 = nonStsFileEntity;
+		wrongFileEntity3.setDataFileHandleId(externalS3FileHandle.getId());
+		assertThrows(SynapseBadRequestException.class, () -> synapse.putEntity(wrongFileEntity3),
+				"Files in STS-enabled storage locations can only be placed in folders with the same storage location");
+
+		// Can't update STS file entity to turn it into a non-STS file entity.
+		FileEntity wrongFileEntity4 = externalS3FileEntity;
+		wrongFileEntity4.setDataFileHandleId(nonStsFileHandle.getId());
+		assertThrows(SynapseBadRequestException.class, () -> synapse.putEntity(wrongFileEntity4),
+				"Folders with STS-enabled storage locations can only accept files with the same storage location");
+
+		// Can update the STS file entity to a different STS file handle in the same storage location.
+		FileEntity externalS3FileEntityV2 = externalS3FileEntity;
+		externalS3FileEntityV2.setDataFileHandleId(externalS3FileHandleCopy.getId());
+		externalS3FileEntityV2 = synapse.putEntity(externalS3FileEntityV2);
+		assertNotNull(externalS3FileEntityV2);
+		assertNotEquals(externalS3FileEntity.getVersionNumber(), externalS3FileEntityV2.getVersionNumber());
 	}
 
 	private static void uploadOwnerTxtToS3(String bucket, String baseKey, String username) throws IOException {

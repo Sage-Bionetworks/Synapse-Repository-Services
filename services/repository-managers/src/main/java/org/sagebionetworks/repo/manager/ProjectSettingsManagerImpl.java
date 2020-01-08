@@ -270,6 +270,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				// This is the S3 bucket we own, so we need to auto-generate the base key.
 				String baseKey = userInfo.getId() + "/" + System.currentTimeMillis();
 				synapseS3StorageLocationSetting.setBaseKey(baseKey);
+			} else {
+				// If STS is not enabled, clear the base key.
+				synapseS3StorageLocationSetting.setBaseKey(null);
 			}
 
 			storageLocationSetting.setUploadType(UploadType.S3);
