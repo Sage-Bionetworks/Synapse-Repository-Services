@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -345,6 +346,15 @@ public interface FileHandleManager {
 	 */
 	S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle);
+
+	/**
+	 *
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
+	GoogleCloudFileHandle createExternalGoogleCloudFileHandle(UserInfo userInfo,
+													  GoogleCloudFileHandle fileHandle);
 
 	/**
 	 * Create a copy of a file handle with a new name and content type

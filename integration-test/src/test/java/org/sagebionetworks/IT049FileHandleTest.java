@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ import org.sagebionetworks.util.ContentDispositionUtils;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.cloud.storage.StorageException;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -558,15 +560,49 @@ public class IT049FileHandleTest {
 		assertFalse(startStatus.getUploadId().equals(statusAgain.getUploadId()));
 	}
 
+	@Test
+	public void testCreateExternalS3FileHandleFromExistingFile() throws Exception {
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String md5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+
+		// Upload the owner.txt to S3 so we can create the external storage location
+		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalS3FileHandleFromExistingFile/" + UUID.randomUUID().toString();
+		String key = baseKey + FILE_NAME;
+		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+
+		// upload the little image to S3, but not through Synapse
+		putToS3WaitForConsistency(config.getS3Bucket(), key, imageFile);
+
+		// Create the storage location setting
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(config.getS3Bucket());
+		storageLocationSetting.setBaseKey(baseKey);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
+
+		S3FileHandle fh = new S3FileHandle();
+		fh.setStorageLocationId(storageLocationSetting.getStorageLocationId());
+		fh.setBucketName(config.getS3Bucket());
+		fh.setKey(key);
+		fh.setContentMd5(md5);
+
+		// Method under test
+		S3FileHandle result = synapse.createExternalS3FileHandle(fh);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
+	}
+
 	// See PLFM-5769
 	@Test
-	public void testMultipartUploadToExternalS3() throws FileNotFoundException, SynapseException, IOException{
+	public void testMultipartUploadToExternalS3() throws SynapseException, IOException, InterruptedException {
 		assertNotNull(largeImageFile);
 		assertTrue(largeImageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(largeImageFile);
 
 		// Upload the owner.txt to S3 so we can create the external storage location
-		String baseKey = "integration-test/IT049FileHandleTest-" + UUID.randomUUID().toString();
+		String baseKey = "integration-test/IT049FileHandleTest/testMultipartUploadToExternalS3/" + UUID.randomUUID().toString();
 
 		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
 
@@ -587,7 +623,7 @@ public class IT049FileHandleTest {
 	}
 
 	@Test
-	public void testMultipartUploadV2ToGoogleCloud() throws FileNotFoundException, SynapseException, IOException{
+	public void testMultipartUploadV2ToGoogleCloud() throws SynapseException, IOException, InterruptedException {
 		// Only run this test if Google Cloud is enabled.
 		Assume.assumeTrue(config.getGoogleCloudEnabled());
 		// We use the large image file to force an upload with more than one part. required to test part deletion
@@ -596,7 +632,7 @@ public class IT049FileHandleTest {
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(largeImageFile);
 
 		// Upload the owner.txt to Google Cloud so we can create the storage location
-		String baseKey = "integration-test/IT049FileHandleTest-" + UUID.randomUUID().toString();
+		String baseKey = "integration-test/IT049FileHandleTest/testMultipartUploadV2ToGoogleCloud/" + UUID.randomUUID().toString();
 
 		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
 
@@ -619,7 +655,102 @@ public class IT049FileHandleTest {
 		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
 	}
 
-	private static void uploadOwnerTxtToS3(String bucket, String baseKey, String username) throws IOException {
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleFromExistingFile() throws Exception {
+		// Only run this test if Google Cloud is enabled.
+		Assume.assumeTrue(config.getGoogleCloudEnabled());
+
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String md5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+
+		// Upload the owner.txt to Google Cloud so we can create the external storage location
+		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalGoogleCloudFileHandleFromExistingFile/" + UUID.randomUUID().toString();
+		String key = baseKey + FILE_NAME;
+		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+
+		// upload the little image to Google Cloud, but not through Synapse
+		putToGoogleCloudWaitForConsistency(googleCloudBucket, key, imageFile);
+
+		// Create the storage location setting
+		ExternalGoogleCloudStorageLocationSetting storageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
+		storageLocationSetting.setBucket(googleCloudBucket);
+		storageLocationSetting.setBaseKey(baseKey);
+		storageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
+		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
+
+		GoogleCloudFileHandle fh = new GoogleCloudFileHandle();
+		fh.setStorageLocationId(storageLocationSetting.getStorageLocationId());
+		fh.setBucketName(googleCloudBucket);
+		fh.setKey(key);
+		fh.setContentMd5(md5);
+
+		// Method under test
+		GoogleCloudFileHandle result = synapse.createExternalGoogleCloudFileHandle(fh);
+		assertNotNull(result);
+		toDelete.add(result);
+		assertNotNull(result.getFileName());
+	}
+
+	private static void putToS3WaitForConsistency(String bucket, String key, File file) throws InterruptedException {
+		synapseS3Client.putObject(bucket, key, file);
+		long start = System.currentTimeMillis();
+		long waitTimeMillis = 100;
+		while (!synapseS3Client.doesObjectExist(bucket, key) && (System.currentTimeMillis()-start) < MAX_WAIT_MS) {
+			Thread.sleep(waitTimeMillis);
+			waitTimeMillis *= 2;
+		}
+		assertTrue("Failed to create " + key + " in bucket " + bucket, synapseS3Client.doesObjectExist(bucket, key));
+	}
+
+	private static void putToS3WaitForConsistency(String bucket, String key, InputStream contents, ObjectMetadata metadata) throws InterruptedException {
+		synapseS3Client.putObject(bucket, key, contents, metadata);
+		long start = System.currentTimeMillis();
+		long waitTimeMillis = 100;
+		while (!synapseS3Client.doesObjectExist(bucket, key) && (System.currentTimeMillis()-start) < MAX_WAIT_MS) {
+			Thread.sleep(waitTimeMillis);
+			waitTimeMillis *= 2;
+		}
+		assertTrue("Failed to create " + key + " in S3 bucket " + bucket, synapseS3Client.doesObjectExist(bucket, key));
+	}
+
+	private static void putToGoogleCloudWaitForConsistency(String bucket, String key, File contents) throws InterruptedException, IOException {
+		googleCloudStorageClient.putObject(bucket, key, contents);
+		long start = System.currentTimeMillis();
+		long waitTimeMillis = 100;
+		boolean objectExists = false;
+		while (!objectExists && (System.currentTimeMillis()-start) < MAX_WAIT_MS) {
+			try {
+				googleCloudStorageClient.getObject(bucket, key);
+				objectExists = true;
+			} catch (StorageException e) {
+				assertEquals("Unknown Google Cloud Storage error: " + e.getMessage(),404, e.getCode());
+			}
+			Thread.sleep(waitTimeMillis);
+			waitTimeMillis *= 2;
+		}
+		assertTrue("Failed to create " + key + " in Google Cloud bucket " + bucket, objectExists);
+	}
+
+	private static void putToGoogleCloudWaitForConsistency(String bucket, String key, InputStream contents) throws InterruptedException, IOException {
+		googleCloudStorageClient.putObject(bucket, key, contents);
+		long start = System.currentTimeMillis();
+		long waitTimeMillis = 100;
+		boolean objectExists = false;
+		while (!objectExists && (System.currentTimeMillis()-start) < MAX_WAIT_MS) {
+			try {
+				googleCloudStorageClient.getObject(bucket, key);
+				objectExists = true;
+			} catch (StorageException e) {
+				assertEquals("Unknown Google Cloud Storage error: " + e.getMessage(),404, e.getCode());
+			}
+			Thread.sleep(waitTimeMillis);
+			waitTimeMillis *= 2;
+		}
+		assertTrue("Failed to create " + key + " in Google Cloud bucket " + bucket, objectExists);
+	}
+
+	private static void uploadOwnerTxtToS3(String bucket, String baseKey, String username) throws InterruptedException {
 		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);
 
 		ObjectMetadata om = new ObjectMetadata();
@@ -627,14 +758,11 @@ public class IT049FileHandleTest {
 		om.setContentEncoding("UTF-8");
 		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(baseKey));
 		om.setContentLength(bytes.length);
-
-		synapseS3Client.putObject(bucket, baseKey + "/owner.txt", new ByteArrayInputStream(bytes), om);
+		putToS3WaitForConsistency(bucket, baseKey + "/owner.txt", new ByteArrayInputStream(bytes), om);
 	}
 
-
-	private static void uploadOwnerTxtToGoogleCloud(String bucket, String baseKey, String username) throws IOException {
+	private static void uploadOwnerTxtToGoogleCloud(String bucket, String baseKey, String username) throws InterruptedException, IOException {
 		// The Google Cloud service account must have write access to the bucket for this call to succeed
-		googleCloudStorageClient.putObject(bucket, baseKey + "owner.txt", new ByteArrayInputStream(username.getBytes(StandardCharsets.UTF_8)));
-
+		putToGoogleCloudWaitForConsistency(bucket, baseKey + "owner.txt", new ByteArrayInputStream(username.getBytes(StandardCharsets.UTF_8)));
 	}
 }
