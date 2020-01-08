@@ -263,10 +263,17 @@ public class NodeManagerImpl implements NodeManager {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getId().toString();
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
-		nodeDao.delete(nodeId);
-		if(log.isDebugEnabled()){
+		
+		boolean deleted = nodeDao.delete(nodeId);
+		
+		if (!deleted) {
+			throw new IllegalStateException("The node with id " + nodeId + " could not be deleted at this time: its sub-tree had more than 10k containers.");
+		}
+		
+		if (log.isDebugEnabled()) {
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
+		
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
@@ -710,15 +717,6 @@ public class NodeManagerImpl implements NodeManager {
 	public String lookupChild(String parentId, String entityName) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.lookupChild(parentId, entityName);
-	}
-
-
-	private static void deleteConcreteTypeAnnotation(org.sagebionetworks.repo.model.Annotations annotation){
-		Map<String, List<String>> stringAnnotations = annotation.getStringAnnotations();
-		List<String> annoValue = stringAnnotations.get(ObjectSchema.CONCRETE_TYPE);
-		if(annoValue != null && annoValue.size() == 1 && annoValue.get(0).startsWith("org.sage")){
-			stringAnnotations.remove(ObjectSchema.CONCRETE_TYPE);
-		}
 	}
 
 	@WriteTransaction

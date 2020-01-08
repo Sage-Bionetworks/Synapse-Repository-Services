@@ -57,7 +57,9 @@ public interface NodeManager {
 	public Node createNewNode(Node newNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
-	 * Delete a node using its id.
+	 * Delete a node using its id. If a node is a container and its sub-tree has more than 10k containers 
+	 * the node itself will not be deleted, the method might be invoked again or its sub-tree should be pruned.
+	 * 
 	 * @param userName
 	 * @param nodeId
 	 * @throws UnauthorizedException 

@@ -88,8 +88,8 @@ public interface NodeDAO {
 	/**
 	 * Attempts to delete the node with the given id, if the node is a container this method will delete
 	 * in a single transaction a maximum of 10k child containers first. If the sub tree contains more
-	 * than 10k containers this method returns false and should be invoked again to deleted another
-	 * batch of 10k sub tree containers.
+	 * than 10k containers this method returns false and should be invoked again to delete another
+	 * batch of 10k sub tree containers. This method runs in a new transaction.
 	 * 
 	 * @param id The if of a node
 	 * @return True if the node was deleted (or didn't exists) and its subtree has less than 10k

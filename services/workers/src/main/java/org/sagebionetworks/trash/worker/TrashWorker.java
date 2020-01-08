@@ -16,7 +16,7 @@ public class TrashWorker implements ProgressingRunner {
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
 	public static final long TRASH_DELETE_LIMIT = 10000;
 	public static final long CUTOFF_TRASH_AGE_IN_DAYS = 30; //about 1 month
-	public static final int PURGE_BATCH_SIZE = 1000;
+	private static final int PURGE_BATCH_SIZE = 1000;
 	
 	@Autowired
 	private TrashManager trashManager;
