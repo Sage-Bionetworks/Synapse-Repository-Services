@@ -2493,4 +2493,47 @@ public class TableIndexDAOImplTest {
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
+
+	//See PLFM-5999
+	@Test
+	public void testCreateAndPopulateListColumnIndexTables__DefaultValue() throws ParseException {
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel intListColumn = new ColumnModel();
+		intListColumn.setId("16");
+		intListColumn.setName("intList");
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setDefaultValue("[1,2,3]");
+
+		List<ColumnModel> schema = Arrays.asList(intColumn, intListColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		Row row = new Row();
+		row.setValues(Arrays.asList("1", null));
+		List<Row> rows = Collections.singletonList(row);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		tableIndexDAO.populateListColumnIndexTables(tableId, schema);
+
+
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		//expect a single row result
+		assertEquals(1, results.getRows().size());
+		assertEquals(tableId.toString(), results.getTableId());
+		//each row has 2 columns
+		assertEquals(2, results.getRows().get(0).getValues().size());
+		assertEquals("1", results.getRows().get(0).getValues().get(0));
+		//mysql adds spaces between the commas on returned results
+		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
+	}
 }
