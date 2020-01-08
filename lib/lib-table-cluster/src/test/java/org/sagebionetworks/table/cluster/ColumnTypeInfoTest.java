@@ -397,6 +397,23 @@ public class ColumnTypeInfoTest {
 		ColumnTypeInfo.STRING.appendDefaultValue(builder, defaultValue);
 		assertEquals("DEFAULT '123'", builder.toString());
 	}
+
+	@Test
+	public void testAppendDefault_StringList(){
+		StringBuilder builder = new StringBuilder();
+		String defaultValue = "[\"a\", \"b\", \"c\"]";
+		ColumnTypeInfo.STRING_LIST.appendDefaultValue(builder, defaultValue);
+		assertEquals("DEFAULT ('[\"a\",\"b\",\"c\"]')", builder.toString());
+	}
+
+
+	@Test
+	public void testAppendDefault_IntegerList(){
+		StringBuilder builder = new StringBuilder();
+		String defaultValue = "[1, 2, 3]";
+		ColumnTypeInfo.INTEGER_LIST.appendDefaultValue(builder, defaultValue);
+		assertEquals("DEFAULT ('[1,2,3]')", builder.toString());
+	}
 	
 	@Test
 	public void testAppendDefaultStringSqlInjection(){
