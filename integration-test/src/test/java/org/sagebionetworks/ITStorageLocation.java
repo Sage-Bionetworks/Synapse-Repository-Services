@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -30,7 +28,6 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
@@ -51,9 +48,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// PFLM-5985 - Creating storage locations with UploadType=null, associating them via project setting to a project, and
-// then calling getUploadDestinationLocations will result in a NullPointerException. This is now fixed, and this test
-// verifies the fix.
 public class ITStorageLocation {
 	private static Long userToDelete;
 	private static Long secondUser;
@@ -120,6 +114,9 @@ public class ITStorageLocation {
 		}
 	}
 
+	// PFLM-5985 - Creating storage locations with UploadType=null, associating them via project setting to a project, and
+	// then calling getUploadDestinationLocations will result in a NullPointerException. This is now fixed, and this test
+	// verifies the fix.
 	@Test
 	public void testDefaultUploadType() throws SynapseException {
 		// Create Storage Locations w/o upload type.
@@ -251,174 +248,6 @@ public class ITStorageLocation {
 		StsUploadDestination stsUploadDestination = (StsUploadDestination) uploadDestination;
 		assertTrue(stsUploadDestination.getStsEnabled());
 		assertEquals(expectedBaseKey, stsUploadDestination.getBaseKey());
-	}
-
-	@Test
-	public void cannotCreateStsOnProject() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createProjectSetting(projectSetting),
-				"Can only enable STS on a folder");
-	}
-
-	@Test
-	public void cannotUpdateToAddStsOnProject() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		projectSetting = (UploadDestinationListSetting) synapse.createProjectSetting(projectSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSettingToUpdate = projectSetting;
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.updateProjectSetting(projectSettingToUpdate),
-				"Can only enable STS on a folder");
-	}
-
-	@Test
-	public void cannotCreateStsWithOtherStorageLocations() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId(),
-				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createProjectSetting(projectSetting),
-				"An STS-enabled folder cannot add other upload destinations");
-	}
-
-	@Test
-	public void cannotUpdateToAddStsWithOtherStorageLocations() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		projectSetting = (UploadDestinationListSetting) synapse.createProjectSetting(projectSetting);
-
-		// Update project settings.
-		UploadDestinationListSetting projectSettingToUpdate = projectSetting;
-		projectSettingToUpdate.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId(),
-				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.updateProjectSetting(projectSettingToUpdate),
-				"An STS-enabled folder cannot add other upload destinations");
-	}
-
-	@Test
-	public void cannotCreateStsOnNonEmptyFolder() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Make folder non-empty by adding a subfolder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		synapse.createEntity(subFolder);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createProjectSetting(projectSetting),
-				"Can't enable STS in a non-empty folder");
-	}
-
-	@Test
-	public void cannotUpdateToAddStsToNonEmptyFolder() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		projectSetting = (UploadDestinationListSetting) synapse.createProjectSetting(projectSetting);
-
-		// Make folder non-empty by adding a subfolder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		synapse.createEntity(subFolder);
-
-		// Update project settings.
-		UploadDestinationListSetting projectSettingToUpdate = projectSetting;
-		projectSettingToUpdate.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.updateProjectSetting(projectSettingToUpdate),
-				"Can't enable STS in a non-empty folder");
-	}
-
-	@Test
-	public void cannotUpdateToRemoveStsFromNonEmptyFolder() throws SynapseException {
-		UploadDestinationListSetting projectSetting = setupFolderWithSts();
-
-		// Make folder non-empty by adding a subfolder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		synapse.createEntity(subFolder);
-
-		projectSetting.setLocations(ImmutableList.of(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.updateProjectSetting(projectSetting),
-				"Can't disable STS in a non-empty folder");
-	}
-
-	@Test
-	public void cannotDeleteStsFromNonEmptyFolder() throws SynapseException {
-		UploadDestinationListSetting projectSetting = setupFolderWithSts();
-
-		// Make folder non-empty by adding a subfolder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		synapse.createEntity(subFolder);
-
-		assertThrows(SynapseBadRequestException.class, () -> synapse.deleteProjectSetting(projectSetting.getId()),
-				"Can't disable STS in a non-empty folder");
-	}
-
-	@Test
-	public void cannotCreateStorageLocationOnChildrenOfStsFolders() throws SynapseException {
-		setupFolderWithSts();
-
-		// Create child folder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		subFolder = synapse.createEntity(subFolder);
-
-		// Attempt to add project settings to child folder.
-		UploadDestinationListSetting childProjectSetting = new UploadDestinationListSetting();
-		childProjectSetting.setProjectId(subFolder.getId());
-		childProjectSetting.setSettingsType(ProjectSettingsType.upload);
-		childProjectSetting.setLocations(ImmutableList.of(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createProjectSetting(childProjectSetting),
-				"Can't override project settings in an STS-enabled folder path");
 	}
 
 	@Test

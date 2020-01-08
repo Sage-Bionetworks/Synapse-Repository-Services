@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
@@ -37,6 +38,7 @@ import com.google.common.collect.Lists;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOProjectSettingsDAOImplTest {
+	private static final Long USER_ID = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -50,17 +52,10 @@ public class DBOProjectSettingsDAOImplTest {
 	private String projectId;
 
 	@BeforeEach
-	public void setup() throws Exception {
-		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-
-		Node project = new Node();
+	public void setup() {
+		Node project = createNodeInstance(EntityType.project, null);
 		project.setName("project");
-		project.setNodeType(EntityType.project);
-		project.setCreatedByPrincipalId(userId);
-		project.setCreatedOn(new Date());
-		project.setModifiedByPrincipalId(userId);
-		project.setModifiedOn(new Date());
-		projectId = nodeDao.createNew(project);
+		projectId = nodeDao.createNewNode(project).getId();
 	}
 
 	@AfterEach
@@ -214,5 +209,61 @@ public class DBOProjectSettingsDAOImplTest {
 		});
 		
 		assertEquals("A project setting of type 'upload' for project " + projectId + " already exists.", ex.getMessage());
+	}
+
+	@Test
+	public void testGetInheritedForEntity() {
+		// Set up test by creating a linear folder hierarchy of 4 folders.
+		Node folderA = createNodeInstance(EntityType.folder, projectId);
+		folderA = nodeDao.createNewNode(folderA);
+
+		Node folderB = createNodeInstance(EntityType.folder, folderA.getId());
+		folderB = nodeDao.createNewNode(folderB);
+
+		Node folderC = createNodeInstance(EntityType.folder, folderB.getId());
+		folderC = nodeDao.createNewNode(folderC);
+
+		Node folderD = createNodeInstance(EntityType.folder, folderC.getId());
+		folderD = nodeDao.createNewNode(folderD);
+
+		// Create Project Settings on A and C.
+		UploadDestinationListSetting settingA = new UploadDestinationListSetting();
+		settingA.setProjectId(folderA.getId());
+		settingA.setSettingsType(ProjectSettingsType.upload);
+		String settingAId = projectSettingsDao.create(settingA);
+		settingA = (UploadDestinationListSetting) projectSettingsDao.get(settingAId);
+
+		UploadDestinationListSetting settingC = new UploadDestinationListSetting();
+		settingC.setProjectId(folderC.getId());
+		settingC.setSettingsType(ProjectSettingsType.upload);
+		String settingCId = projectSettingsDao.create(settingC);
+		settingC = (UploadDestinationListSetting) projectSettingsDao.get(settingCId);
+
+		// Methods under test.
+		ProjectSetting result = projectSettingsDao.getInheritedForEntity(folderD.getId(), ProjectSettingsType.upload);
+		assertEquals(settingC, result);
+
+		result = projectSettingsDao.getInheritedForEntity(folderC.getId(), ProjectSettingsType.upload);
+		assertEquals(settingC, result);
+
+		result = projectSettingsDao.getInheritedForEntity(folderB.getId(), ProjectSettingsType.upload);
+		assertEquals(settingA, result);
+
+		result = projectSettingsDao.getInheritedForEntity(folderA.getId(), ProjectSettingsType.upload);
+		assertEquals(settingA, result);
+
+		result = projectSettingsDao.getInheritedForEntity(projectId, ProjectSettingsType.upload);
+		assertNull(result);
+	}
+
+	private static Node createNodeInstance(EntityType type, String parentId) {
+		Node node = new Node();
+		node.setNodeType(type);
+		node.setCreatedByPrincipalId(USER_ID);
+		node.setCreatedOn(new Date());
+		node.setModifiedByPrincipalId(USER_ID);
+		node.setModifiedOn(new Date());
+		node.setParentId(parentId);
+		return node;
 	}
 }

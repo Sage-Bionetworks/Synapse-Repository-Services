@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationList;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -217,10 +218,18 @@ public interface FileUploadService {
 	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
 
 	/**
-	 * Create a new file handle pointing to an existing s3 file
-	 * 
+	 * Create an external Google Cloud file handle.
 	 * @param userId
-	 * 
+	 * @param fileHandle
+	 * @return
+	 */
+	GoogleCloudFileHandle createExternalGoogleCloudFileHandle(Long userId, GoogleCloudFileHandle fileHandle);
+
+	/**
+	 * Create a new file handle pointing to an existing s3 file
+	 *
+	 * @param userId
+	 *
 	 * @param handleIdToCopyFrom
 	 * @param fileName
 	 * @param contentType

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
@@ -48,9 +48,6 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 	private UserProfileManager userProfileManager;
 	
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
@@ -58,14 +55,13 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 
 
 	private Long adminUserId;
-	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	
 	private static final String FIRST_NAME = "fname";
 	private static final String LAST_NAME = "lname";
 	private static final String COMPANY = "company";
 	private static final String LOCATION = "location";
-	String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+	private String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 	
 	private List<String> emails;
 	private String orcid;
@@ -87,7 +83,6 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -161,11 +156,6 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		assertEquals(1L, list.getTotalNumberOfResults().longValue());
 		assertEquals(1, list.getResults().size());
 		
-		VerificationState newState = new VerificationState();
-		newState.setState(VerificationStateEnum.APPROVED);
-		servletTestHelper.updateVerificationState(dispatchServlet, adminUserId, Long.parseLong(vs.getId()),
-				newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
-		
 		FileHandleAssociation fha = new FileHandleAssociation();
 		assertNotNull(fileHandleId);
 		fha.setFileHandleId(fileHandleId);
@@ -174,5 +164,21 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		fha.setAssociateObjectId(vs.getId());
 		String url = servletTestHelper.getFileHandleUrl(dispatchServlet, fha, adminUserId);
 		assertEquals(fileHandleToDelete.getExternalURL(), url);
+		
+		VerificationState newState = new VerificationState();
+		newState.setState(VerificationStateEnum.APPROVED);
+		servletTestHelper.updateVerificationState(dispatchServlet, adminUserId, Long.parseLong(vs.getId()),
+				newState, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		
+		List<VerificationSubmission> submissions = servletTestHelper.listVerificationSubmissions(
+				dispatchServlet, VerificationStateEnum.APPROVED, 
+				userInfo.getId(), 10L, 0L, adminUserId).getResults();
+		
+		// The attachments should not be included
+		assertTrue(submissions.get(0).getAttachments().isEmpty());
+		
+		// The user can still read the file handle as the creator
+		servletTestHelper.getFileHandleUrl(dispatchServlet, fha, userInfo.getId());
+		
 	}
 }

@@ -533,6 +533,17 @@ public class UrlHelpers {
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
 
+	public static final String FILE_HANDLE = "/fileHandle";
+	public static final String FILE_HANDLE_COPY = FILE_HANDLE + "/{handleIdToCopyFrom}/copy";
+	public static final String FILE_HANDLE_HANDLE_ID = FILE_HANDLE + "/{handleId}";
+	public static final String FILE_HANDLE_PREVIEW = FILE_HANDLE_HANDLE_ID + "/filepreview";
+	public static final String FILE_HANDLE_BATCH = FILE_HANDLE + "/batch";
+	public static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
+	public static final String EXTERNAL_FILE_HANDLE_S3 = EXTERNAL_FILE_HANDLE + "/s3";
+	public static final String EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD = EXTERNAL_FILE_HANDLE + "/googleCloud";
+	public static final String EXTERNAL_FILE_HANDLE_PROXY = EXTERNAL_FILE_HANDLE + "/proxy";
+
+
 	/**
 	 * URL prefix for Users in a UserGroup
 	 * 
