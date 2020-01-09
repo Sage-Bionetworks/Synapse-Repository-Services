@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -211,16 +211,10 @@ public class TrashManagerImpl implements TrashManager {
 		if (limit < 0L) {
 			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
-
-		UserInfo.validateUserInfo(currentUser);
-		UserInfo.validateUserInfo(user);
 		final String currUserId = currentUser.getId().toString();
 		final String userId = user.getId().toString();
-		if (!currentUser.isAdmin()) {
-			if (currUserId == null || !currUserId.equals(userId)) {
-				throw new UnauthorizedException("Current user " + currUserId
-						+ " does not have the permission.");
-			}
+		if (!currentUser.isAdmin() && (currUserId == null || !currUserId.equals(userId))) {
+				throw new UnauthorizedException("Current user " + currUserId+ " does not have the permission.");
 		}
 
 		return trashCanDao.getInRangeForUser(userId, false, offset, limit);
@@ -230,7 +224,7 @@ public class TrashManagerImpl implements TrashManager {
 	public List<TrashedEntity> viewTrash(UserInfo currentUser,
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException {
-
+		ValidateArgument.required(currentUser, "currentUser");
 		if (currentUser == null) {
 			throw new IllegalArgumentException("Current user cannot be null");
 		}
@@ -240,8 +234,7 @@ public class TrashManagerImpl implements TrashManager {
 		if (limit < 0L) {
 			throw new IllegalArgumentException("Limit cannot be < 0");
 		}
-
-		UserInfo.validateUserInfo(currentUser);
+		
 		if (!currentUser.isAdmin()) {
 			String currUserId = currentUser.getId().toString();
 			throw new UnauthorizedException("Current user " + currUserId
@@ -269,8 +262,7 @@ public class TrashManagerImpl implements TrashManager {
 		String userGroupId = currentUser.getId().toString();
 		boolean exists = trashCanDao.exists(userGroupId, nodeId);
 		if (!exists) {
-			throw new NotFoundException("The node " + nodeId
-					+ " is not in the trash can.");
+			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
 		if (purgeCallback != null) {

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dao;
+package org.sagebionetworks.repo.model.dbo.trash;
 
 import java.sql.Timestamp;
 import java.util.List;

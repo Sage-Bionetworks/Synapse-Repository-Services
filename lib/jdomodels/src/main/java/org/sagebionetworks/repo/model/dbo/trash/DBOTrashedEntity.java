@@ -1,10 +1,11 @@
-package org.sagebionetworks.repo.model.dbo.persistence;
+package org.sagebionetworks.repo.model.dbo.trash;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PRIORITY_PURGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TRASH_CAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
@@ -12,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -30,46 +32,67 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 		new FieldColumn("nodeName", COL_TRASH_CAN_NODE_NAME),
 		new FieldColumn("deletedBy", COL_TRASH_CAN_DELETED_BY),
 		new FieldColumn("deletedOn", COL_TRASH_CAN_DELETED_ON),
-		new FieldColumn("parentId", COL_TRASH_CAN_PARENT_ID)
+		new FieldColumn("parentId", COL_TRASH_CAN_PARENT_ID),
+		new FieldColumn("priorityPurge", COL_TRASH_CAN_PRIORITY_PURGE)
+	};
+	
+	private static final TableMapping<DBOTrashedEntity> TABLE_MAPPING = new TableMapping<DBOTrashedEntity>() {
+
+		@Override
+		public DBOTrashedEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOTrashedEntity trash = new DBOTrashedEntity();
+			trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
+			trash.setNodeName(rs.getString(COL_TRASH_CAN_NODE_NAME));
+			trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
+			trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
+			trash.setParentId(rs.getLong(COL_TRASH_CAN_PARENT_ID));
+			trash.setPriorityPurge(rs.getBoolean(COL_TRASH_CAN_PRIORITY_PURGE));
+			return trash;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_TRASH_CAN;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_TRASH_CAN;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOTrashedEntity> getDBOClass() {
+			return DBOTrashedEntity.class;
+		}
+	};
+	
+	private static final MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOTrashedEntity>() {
+		@Override
+		public DBOTrashedEntity createDatabaseObjectFromBackup(DBOTrashedEntity backup) {
+			if (backup.getPriorityPurge() == null) {
+				backup.setPriorityPurge(false);
+			}
+			return backup;
+		}
 	};
 
 	@Override
 	public TableMapping<DBOTrashedEntity> getTableMapping() {
-
-		return new TableMapping<DBOTrashedEntity>() {
-
-			@Override
-			public DBOTrashedEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOTrashedEntity trash = new DBOTrashedEntity();
-				trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
-				trash.setNodeName(rs.getString(COL_TRASH_CAN_NODE_NAME));
-				trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
-				trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
-				trash.setParentId(rs.getLong(COL_TRASH_CAN_PARENT_ID));
-				return trash;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_TRASH_CAN;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_TRASH_CAN;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOTrashedEntity> getDBOClass() {
-				return DBOTrashedEntity.class;
-			}};
+		return TABLE_MAPPING;
 	}
-
+	
+	private Long nodeId;
+	private String nodeName;
+	private Long deletedBy;
+	private Timestamp deletedOn;
+	private Long parentId;
+	private Boolean priorityPurge;
+	
 	/**
 	 * The primary key.
 	 */
@@ -153,20 +176,26 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 	public void setParentId(Long parentId) {
 		this.parentId = parentId;
 	}
+	
+	/**
+	 * @return True if the entity is flagged for a priority purge (e.g. will be deleted as soon as possible), false otherwise.
+	 */
+	public Boolean getPriorityPurge() {
+		return priorityPurge;
+	}
+	
+	/**
+	 * Set the priority purge flag, indicating if the trashed entity should be deleted as soon as possible
+	 * 
+	 * @param priorityPurge
+	 */
+	public void setPriorityPurge(Boolean priorityPurge) {
+		this.priorityPurge = priorityPurge;
+	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((deletedBy == null) ? 0 : deletedBy.hashCode());
-		result = prime * result
-				+ ((deletedOn == null) ? 0 : deletedOn.hashCode());
-		result = prime * result + ((nodeName == null) ? 0 : nodeName.hashCode());
-		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-		result = prime * result
-				+ ((parentId == null) ? 0 : parentId.hashCode());
-		return result;
+		return Objects.hash(deletedBy, deletedOn, nodeId, nodeName, parentId, priorityPurge);
 	}
 
 	@Override
@@ -178,39 +207,10 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 		if (getClass() != obj.getClass())
 			return false;
 		DBOTrashedEntity other = (DBOTrashedEntity) obj;
-		if (deletedBy == null) {
-			if (other.deletedBy != null)
-				return false;
-		} else if (!deletedBy.equals(other.deletedBy))
-			return false;
-		if (deletedOn == null) {
-			if (other.deletedOn != null)
-				return false;
-		} else if (!deletedOn.equals(other.deletedOn))
-			return false;
-		if (nodeName == null) {
-			if (other.nodeName != null)
-				return false;
-		} else if (!nodeName.equals(other.nodeName))
-			return false;
-		if (nodeId == null) {
-			if (other.nodeId != null)
-				return false;
-		} else if (!nodeId.equals(other.nodeId))
-			return false;
-		if (parentId == null) {
-			if (other.parentId != null)
-				return false;
-		} else if (!parentId.equals(other.parentId))
-			return false;
-		return true;
+		return Objects.equals(deletedBy, other.deletedBy) && Objects.equals(deletedOn, other.deletedOn)
+				&& Objects.equals(nodeId, other.nodeId) && Objects.equals(nodeName, other.nodeName)
+				&& Objects.equals(parentId, other.parentId) && Objects.equals(priorityPurge, other.priorityPurge);
 	}
-
-	private Long nodeId;
-	private String nodeName;
-	private Long deletedBy;
-	private Timestamp deletedOn;
-	private Long parentId;
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -219,7 +219,7 @@ public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEnti
 
 	@Override
 	public MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOTrashedEntity>();
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.dbo.trash.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public final class TrashedEntityUtils {

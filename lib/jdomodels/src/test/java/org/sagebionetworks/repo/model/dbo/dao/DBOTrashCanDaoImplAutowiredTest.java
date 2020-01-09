@@ -17,9 +17,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.dbo.trash.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -425,6 +425,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
 		dbo.setDeletedOn(ts);
 		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		dbo.setPriorityPurge(false);
 		basicDao.createNew(dbo);
 	}
 

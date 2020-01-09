@@ -9,7 +9,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.dbo.trash.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class TrashedEntityUtilsTest {

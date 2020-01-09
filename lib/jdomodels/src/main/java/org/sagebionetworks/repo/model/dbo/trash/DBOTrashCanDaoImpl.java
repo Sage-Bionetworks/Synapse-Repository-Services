@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.trash;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
@@ -8,17 +8,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.dbo.dao.TrashedEntityUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -99,16 +96,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 
 			" LIMIT :" + LIMIT_PARAM_NAME;
 	
-	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
-	
-	//rowMapper used in getTrashNumDaysOldNoChildren()
-	private static final RowMapper<Long> rowMapperNodeId = new RowMapper<Long>(){
-		@Override
-		public
-		Long mapRow(ResultSet rs, int rowNum) throws SQLException{
-			return rs.getLong(COL_TRASH_CAN_NODE_ID);
-		}
-	};
+	private static final RowMapper<DBOTrashedEntity> ROW_MAPPER = (new DBOTrashedEntity()).getTableMapping();
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -143,6 +131,8 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		Timestamp ts = new Timestamp(nowInSeconds);
 		dbo.setDeletedOn(ts);
 		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		// TODO false for now
+		dbo.setPriorityPurge(false);
 		this.basicDao.createNew(dbo);
 	}
 
@@ -208,7 +198,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, KeyFactory.stringToKey(nodeId));
-		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, paramMap, rowMapper);
+		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, paramMap, ROW_MAPPER);
 		if (trashList == null || trashList.size() == 0) {
 			return null;
 		}
@@ -236,7 +226,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(sortById ? SELECT_TRASH_FOR_USER_ORDER_BY_ID : SELECT_TRASH_FOR_USER,
-				paramMap, rowMapper);
+				paramMap, ROW_MAPPER);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
@@ -253,7 +243,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
-		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, paramMap, rowMapper);
+		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, paramMap, ROW_MAPPER);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 	
@@ -267,7 +257,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
 		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(
-				SELECT_TRASH_BEFORE_TIMESTAMP, paramMap, rowMapper);
+				SELECT_TRASH_BEFORE_TIMESTAMP, paramMap, ROW_MAPPER);
 
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
@@ -281,7 +271,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		paramMap.addValue(NUM_DAYS_PARAM_NAME, numDays);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		
-		return namedParameterJdbcTemplate.query(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, rowMapperNodeId);
+		return namedParameterJdbcTemplate.queryForList(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, Long.class);
 	}
 	
 	
@@ -327,7 +317,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
-		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID_FOR_USER, paramMap, rowMapper);
+		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID_FOR_USER, paramMap, ROW_MAPPER);
 		if (trashList.size() > 1) {
 			throw new DatastoreException("User " + userGroupId + ", node " + nodeId + " has more than 1 trash entry.");
 		}

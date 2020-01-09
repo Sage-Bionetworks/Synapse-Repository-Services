@@ -195,7 +195,7 @@
 	</bean>
 
 	<bean id="trashCanDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
+		class="org.sagebionetworks.repo.model.dbo.trash.DBOTrashCanDaoImpl"
 		scope="singleton">
 	</bean>
 	
