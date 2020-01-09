@@ -419,7 +419,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToTable(tableId.getId(), viewType, scope, schema);
+		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -489,7 +489,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
-		verify(mockIndexDao).copyEntityReplicationToTable(tableId.getId(), viewType, scope, schema);
+		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
 		verify(mockIndexDao).calculateCRC32ofTableView(tableId.getId());
 	}
@@ -501,7 +501,7 @@ public class TableIndexManagerImplTest {
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId.getId(), viewType, scope, schema);
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		try {
 			// call under test
 			manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);
@@ -534,7 +534,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, viewType, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
-		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId.getId(), viewType, scope, schema);
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		try {
 			// call under test
 			manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);

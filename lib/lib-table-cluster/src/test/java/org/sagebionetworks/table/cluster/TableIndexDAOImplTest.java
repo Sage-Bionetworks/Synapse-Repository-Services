@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -83,6 +84,9 @@ public class TableIndexDAOImplTest {
 	boolean isView;
 
 	List<String> listColumnIndexTablesToDrop;
+	
+	EntityDTO entityOne;
+	EntityDTO entityTwo;
 
 	@BeforeEach
 	public void before() {
@@ -1434,7 +1438,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1477,7 +1481,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		// method under test
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema).build();
@@ -1528,7 +1532,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1704,7 +1708,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -2495,34 +2499,176 @@ public class TableIndexDAOImplTest {
 	}
 	
 	
+	/*
+	 * There are five possible cases for finding the rows that are out-of-date for a view.
+	 * Each case is tested in the next five tests.
+	 * <ol>
+	 * <li>Row in Replication that is missing from the view.</li>
+	 * <li>Row in the view that has been removed from the replication.</li>
+	 * <li>Row exists in both the replication and view but with different etags.</li>
+	 * <li>Row exists in both the replication and view but with different benefactors.</li>
+	 * <li>All rows in replication and the view match.</li>
+	 * </ol>
+	 */
+	
+	/**
+	 * Test for the case where an entity is in the replication but not the view.
+	 */
 	@Test
-	public void testGetOutOfDateRowsForView(){
+	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
 		isView = true;
-		// delete all data
-		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
-		
-		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
-		file1.setParentId(333L);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
-		file2.setParentId(222L);
-		
-		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
-		
-		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
-		// Create the schema for this table
-		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
-		// Create the view index
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
 		createOrUpdateTable(schema, tableId, isView);
-		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		long limit = 100L;
+
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = dtos.stream().map(it -> it.getId()).collect(Collectors.toSet());
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where and entity has been deleted from replication but remains in the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		//delete the first row from replication
+		List<Long> toDelete = Lists.newArrayList(dtos.get(0).getId());
+		tableIndexDAO.deleteEntityData(toDelete);
 		
 		long limit = 100L;
-		// the view should now match the replication
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toDelete);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where an entity etag differs between replication and the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// change the etag of the first entity
+		EntityDTO first = dtos.get(0);
+		first.setEtag(first.getEtag()+"updated");
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where an entity benefactor differs between replication and the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// change the benefactor of the first entity
+		EntityDTO first = dtos.get(0);
+		first.setBenefactorId(first.getBenefactorId()*100);
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the case where the view is up-to-date with replication.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_ViewUpToDate(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+			
+		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
+	}
+	
+	/**
+	 * Create n number of EntityDTO with data in both replications and annotations.
+	 * @param count
+	 * @return
+	 */
+	List<EntityDTO> createFileEntityEntityDTOs(int count){
+		List<Long> newIds = new ArrayList<Long>(count);
+		List<EntityDTO> results = new ArrayList<EntityDTO>(count);
+		for(int i=0; i<count; i++) {
+			Long entityId = new Long(i+1);
+			newIds.add(entityId);
+			EntityDTO file = createEntityDTO(entityId, EntityType.file, 3);
+			file.setParentId(entityId*100);
+			results.add(file);
+		}
+		// delete all rows if they already exist
+		tableIndexDAO.deleteEntityData(newIds);
+		// create all of the rows in the replication table
+		tableIndexDAO.addEntityData(results);
+		return results;
 	}
 }

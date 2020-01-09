@@ -2739,4 +2739,49 @@ public class SQLUtilsTest {
 				") TEMP_JSON_TABLE;";
 		assertEquals(expected, sql);
 	}
+	
+	@Test
+	public void testGetOutOfDateRowsForViewSqlFileView() {
+		long viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.file) ;
+		// call under test
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String expected = "WITH DELTAS (ID, MISSING) AS ("
+				+ " SELECT R.ID, V.ROW_ID FROM ENTITY_REPLICATION R"
+				+ "    LEFT JOIN T999 V ON ("
+				+ "		 R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.PARENT_ID IN (:scopeIds)"
+				+ " UNION ALL SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
+				+ "    RIGHT JOIN T999 V ON ("
+				+ "      R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.PARENT_ID IN (:scopeIds))"
+				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForViewSqlFileProject() {
+		long viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.project) ;
+		// call under test
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String expected = "WITH DELTAS (ID, MISSING) AS ("
+				+ " SELECT R.ID, V.ROW_ID FROM ENTITY_REPLICATION R"
+				+ "    LEFT JOIN T999 V ON ("
+				+ "		 R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.ID IN (:scopeIds)"
+				+ " UNION ALL"
+				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
+				+ "    RIGHT JOIN T999 V ON ("
+				+ "      R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.ID IN (:scopeIds))"
+				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
+		assertEquals(expected, sql);
+	}
 }

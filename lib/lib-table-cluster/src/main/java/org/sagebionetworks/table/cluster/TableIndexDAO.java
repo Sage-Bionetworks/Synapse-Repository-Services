@@ -327,7 +327,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**

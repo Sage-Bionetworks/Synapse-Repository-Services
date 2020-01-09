@@ -389,14 +389,13 @@ public class TableViewManagerImpl implements TableViewManager {
 		// Continue applying change to the view until none remain.
 		do {
 			rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
-			// infinite loop detection:
+			// Are thrashing on the same Ids?
 			Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
 					previousPageRowIdsWithChanges);
 			if (intersectionWithPreviousPage.size() > 0) {
-				// The current page intersects with the previous page so we are not making
-				// progress.
-				log.warn("No progress made for " + viewId.toString() + " for rows: " + intersectionWithPreviousPage
-						+ ". Will break.");
+				log.warn("Found " + intersectionWithPreviousPage.size()
+						+ " rows that were just updated but are still out-of-date for view:" + viewId.toString()
+						+ " View update will terminate.");
 				break;
 			}
 			

@@ -306,7 +306,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(currentSchema, "currentSchema");
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToTable(tableId, viewTypeMask, allContainersInScope, currentSchema);
+			tableIndexDao.copyEntityReplicationToView(tableId, viewTypeMask, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewTypeMask);
