@@ -1940,8 +1940,8 @@ public class SQLUtils {
 			+ "   RIGHT JOIN %1$s V ON ("
 			+ "      R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
 			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
-			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
-			+ "   WHERE R.%2$s IN (:scopeIds)"
+			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
+			+ "      AND R.%2$s IN (:scopeIds))"
 			+ ")"
 			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 	
@@ -1955,5 +1955,17 @@ public class SQLUtils {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
 		String scopeColumn = SQLUtils.getViewScopeFilterColumnForType(viewTypeMask);
 		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn);
+	}
+	
+	public static final String DELETE_ROWS_FROM_VIEW_TEMPLATE = "DELETE FROM %1$s WHERE "+ROW_ID+" = ?";
+
+	/**
+	 * Create SQL to delete the given rows from a view.
+	 * @param viewId
+	 * @return
+	 */
+	public static String getDeleteRowsFromViewSql(IdAndVersion viewId) {
+		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
+		return String.format(DELETE_ROWS_FROM_VIEW_TEMPLATE, viewName);
 	}
 }

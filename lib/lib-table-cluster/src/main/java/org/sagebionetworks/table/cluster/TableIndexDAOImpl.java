@@ -1076,8 +1076,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges) {
-		// TODO Auto-generated method stub
-		
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(rowsIdsWithChanges, "rowsIdsWithChanges");
+		if(!rowsIdsWithChanges.isEmpty()) {
+			String viewName = SQLUtils.getDeleteRowsFromViewSql(viewId);
+			// BATCH DELETE
+		}
 	}
 
 	@Override

@@ -2752,12 +2752,14 @@ public class SQLUtilsTest {
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
 				+ "   WHERE R.PARENT_ID IN (:scopeIds)"
-				+ " UNION ALL SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
+				+ " UNION ALL"
+				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
 				+ "      R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
-				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.PARENT_ID IN (:scopeIds))"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
+				+ "      AND R.PARENT_ID IN (:scopeIds))"
+				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 		assertEquals(expected, sql);
 	}
@@ -2779,8 +2781,9 @@ public class SQLUtilsTest {
 				+ "    RIGHT JOIN T999 V ON ("
 				+ "      R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
-				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.ID IN (:scopeIds))"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
+				+ "      AND R.ID IN (:scopeIds))"
+				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 		assertEquals(expected, sql);
 	}

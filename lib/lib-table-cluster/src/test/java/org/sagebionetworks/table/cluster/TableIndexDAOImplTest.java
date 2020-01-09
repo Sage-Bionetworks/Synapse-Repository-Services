@@ -2498,19 +2498,6 @@ public class TableIndexDAOImplTest {
 		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
 	
-	
-	/*
-	 * There are five possible cases for finding the rows that are out-of-date for a view.
-	 * Each case is tested in the next five tests.
-	 * <ol>
-	 * <li>Row in Replication that is missing from the view.</li>
-	 * <li>Row in the view that has been removed from the replication.</li>
-	 * <li>Row exists in both the replication and view but with different etags.</li>
-	 * <li>Row exists in both the replication and view but with different benefactors.</li>
-	 * <li>All rows in replication and the view match.</li>
-	 * </ol>
-	 */
-	
 	/**
 	 * Test for the case where an entity is in the replication but not the view.
 	 */
@@ -2559,6 +2546,38 @@ public class TableIndexDAOImplTest {
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
 		assertNotNull(results);
 		Set<Long> expected = new HashSet<Long>(toDelete);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where and entity has moved out-of-scope but remains in the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// move the entity out of scope
+		EntityDTO first = dtos.get(0);
+		first.setParentId(9999L);
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
 	}
 	
@@ -2648,6 +2667,63 @@ public class TableIndexDAOImplTest {
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
+	}
+	
+	/**
+	 * Test the limit for getOutOfDateRowsForView()
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_Limit(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
+		long limit = 1L;
+
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = Sets.newHashSet(dtos.get(3).getId());
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test the limit for getOutOfDateRowsForView()
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_EmptyScope(){
+		Set<Long> scope = Collections.emptySet();
+		long limit = 1L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForView_NullTableId(){
+		tableId = null;
+		Set<Long> scope = Collections.emptySet();
+		long limit = 1L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		});
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForView_NullScope(){
+		Set<Long> scope = null;
+		long limit = 1L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		});
 	}
 	
 	/**
