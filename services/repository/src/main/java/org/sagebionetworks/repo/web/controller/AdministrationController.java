@@ -292,13 +292,13 @@ public class AdministrationController {
 	/**
 	 * Removes all information about a user to comply with data removal requests.
 	 * @param userId Principal ID of the caller. Must be an administrator
-	 * @param principalIdToClear The principal ID of the user whose information should be cleared
+	 * @param principalId The principal ID of the user whose information should be cleared
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_REMOVE_USER, method = RequestMethod.POST)
 	public @ResponseBody void clearUserProfile(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-																	 @PathVariable Long principalIdToClear)
+																	 @PathVariable Long principalId)
 			throws NotFoundException, UnauthorizedException {
-		serviceProvider.getPrincipalService().clearPrincipalInformation(userId, principalIdToClear);
+		serviceProvider.getPrincipalService().clearPrincipalInformation(userId, principalId);
 	}
 }

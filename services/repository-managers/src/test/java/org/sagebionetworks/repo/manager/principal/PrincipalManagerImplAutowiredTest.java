@@ -136,16 +136,16 @@ public class PrincipalManagerImplAutowiredTest {
 		profile.setProfilePicureFileHandleId(fileHandleId);
 		userProfileDAO.update(profile);
 
-
-
 		UserInfo adminUserInfo = new UserInfo(true);
 
 		// Call under test
 		principalManager.clearPrincipalInformation(adminUserInfo, testUser.getId());
 
+		String expectedEmail = "gdpr-synapse+" + testUser.getId() + "@sagebase.org";
 		// Verify that information has been cleared.
 		profile = userProfileDAO.get(testUser.getId().toString());
-		assertEquals(Collections.emptyList(), profile.getEmails());
+		assertEquals(expectedEmail, profile.getEmails());
+		assertEquals(Collections.singletonList(expectedEmail), profile.getEmails());
 		assertEquals("", profile.getFirstName());
 		assertEquals("", profile.getLastName());
 		assertEquals(Collections.emptyList(), profile.getOpenIds());

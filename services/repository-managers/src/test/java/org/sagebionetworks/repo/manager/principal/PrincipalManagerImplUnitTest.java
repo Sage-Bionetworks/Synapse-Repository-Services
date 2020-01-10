@@ -649,13 +649,16 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void clearUserInformationSuccess() {
+		String expectedEmail = "gdpr-synapse+" + USER_ID + "@sagebase.org";
+
 		PrincipalAlias expectedEmailAlias = new PrincipalAlias();
 		expectedEmailAlias.setPrincipalId(USER_ID);
-		expectedEmailAlias.setAlias("gdpr-synapse+" + USER_ID + "@sagebase.org");
+		expectedEmailAlias.setAlias(expectedEmail);
 		expectedEmailAlias.setType(AliasType.USER_EMAIL);
 
 		UserProfile expectedProfile = new UserProfile();
-		expectedProfile.setEmails(Collections.emptyList());
+		expectedProfile.setEmail(expectedEmail);
+		expectedProfile.setEmails(Collections.singletonList(expectedEmail));
 		expectedProfile.setFirstName("");
 		expectedProfile.setLastName("");
 		expectedProfile.setOpenIds(Collections.emptyList());

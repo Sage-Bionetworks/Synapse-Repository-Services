@@ -265,7 +265,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		notificationEmailDao.update(emailAlias);
 
 		UserProfile profile = userProfileDAO.get(principalToClear.toString());
-		profile.setEmails(Collections.emptyList());
+		profile.setEmail(gdprEmail);
+		profile.setEmails(Collections.singletonList(gdprEmail));
 		profile.setFirstName("");
 		profile.setLastName("");
 		profile.setOpenIds(Collections.emptyList());
