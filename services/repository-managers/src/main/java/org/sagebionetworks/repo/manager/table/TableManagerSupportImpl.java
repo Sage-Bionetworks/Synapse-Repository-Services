@@ -553,7 +553,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		if (indexDao != null) {
 			indexDao.deleteTable(idAndVersion);
-			indexDao.deleteSecondaryTables(idAndVersion);
 		}
 		String resetToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		ChangeMessage message = new ChangeMessage();

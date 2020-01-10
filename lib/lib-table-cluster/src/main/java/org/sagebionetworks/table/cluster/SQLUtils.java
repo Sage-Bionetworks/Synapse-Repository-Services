@@ -10,16 +10,22 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAMETER_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.INDEX_NUM;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
+import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE;
+import static org.sagebionetworks.repo.model.table.TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -228,15 +234,30 @@ public class SQLUtils {
 		}
 		builder.append(type.getTablePostFix());
 	}
-
-	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
-		ValidateArgument.required(idAndVersion, "idAndVersion");
-		ValidateArgument.required(columnId, "columnId");
-
+	
+	/**
+	 * Get the prefix shared by all multi-value tables associated with the given table.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public static String getTableNamePrefixForMultiValueColumns(IdAndVersion idAndVersion) {
 		StringBuilder builder = new StringBuilder();
 		//currently only TableType.INDEX (i.e. the original user table) have multi-value columns
 		appendTableNameForId(idAndVersion, TableType.INDEX, builder);
 		builder.append("_INDEX");
+		return builder.toString();
+	}
+
+	/**
+	 * Get the full table name for a multi-value table associated with the given table and column.
+	 * @param idAndVersion
+	 * @param columnId
+	 * @return
+	 */
+	public static String getTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId){
+		ValidateArgument.required(idAndVersion, "idAndVersion");
+		ValidateArgument.required(columnId, "columnId");
+		StringBuilder builder = new StringBuilder(getTableNamePrefixForMultiValueColumns(idAndVersion));
 		appendColumnNameForId(columnId, builder);
 		return builder.toString();
 	}
@@ -918,7 +939,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createTruncateSql(IdAndVersion tableId) {
-		return "TRUNCATE TABLE "+getTableNameForId(tableId, TableType.INDEX);
+		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX)+" WHERE "+ROW_ID+" >= 0";
 	}
 
 	
@@ -1344,7 +1365,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createSelectInsertFromEntityReplication(Long viewId, Long viewTypeMask,
-			List<ColumnModel> currentSchema) {
+			List<ColumnModel> currentSchema, boolean filterByRows) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
@@ -1352,7 +1373,7 @@ public class SQLUtils {
 		builder.append("(");
 		buildInsertValues(builder, metadata);
 		builder.append(") ");
-		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
 		return builder.toString();
 	}
 	
@@ -1364,7 +1385,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static List<String> createSelectFromEntityReplication(StringBuilder builder, Long viewId, Long viewTypeMask,
-			List<ColumnModel> currentSchema) {
+			List<ColumnModel> currentSchema, boolean filterByRows) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		builder.append("SELECT ");
 		List<String> headers = buildSelect(builder, metadata);
@@ -1381,13 +1402,17 @@ public class SQLUtils {
 		builder.append(ANNOTATION_REPLICATION_ALIAS).append(".").append(ANNOTATION_REPLICATION_COL_ENTITY_ID);
 		builder.append(")");
 		builder.append(" WHERE ");
-		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(getViewScopeFilterColumnForType(viewTypeMask));
 		builder.append(" IN (:");
-		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
+		builder.append(PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
 		builder.append(createViewTypeFilter(viewTypeMask));
+		if (filterByRows) {
+			builder.append(" AND ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID)
+					.append(" IN (:").append(ID_PARAMETER_NAME).append(")");
+		}
 		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
 		return headers;
 	}
@@ -1520,13 +1545,13 @@ public class SQLUtils {
 	 */
 	public static void buildInsertValues(StringBuilder builder,
 			List<ColumnMetadata> metadata) {
-		builder.append(TableConstants.ROW_ID);
+		builder.append(ROW_ID);
 		builder.append(", ");
-		builder.append(TableConstants.ROW_VERSION);
+		builder.append(ROW_VERSION);
 		builder.append(", ");
-		builder.append(TableConstants.ROW_ETAG);
+		builder.append(ROW_ETAG);
 		builder.append(", ");
-		builder.append(TableConstants.ROW_BENEFACTOR);
+		builder.append(ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
 			if (ColumnType.DOUBLE.equals(meta.getColumnModel().getColumnType())) {
 				builder.append(", _DBL");
@@ -1546,7 +1571,7 @@ public class SQLUtils {
 	 */
 	public static String buildTableViewCRC32Sql(Long viewId){
 		String tableName = getTableNameForId(IdAndVersion.newBuilder().setId(viewId).build(), TableType.INDEX);
-		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
+		return String.format(SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
 	/**
@@ -1711,9 +1736,9 @@ public class SQLUtils {
 	 */
 	public static String getViewScopeFilterColumnForType(Long viewTypeMask) {
 		if(ViewTypeMask.Project.getMask() == viewTypeMask) {
-			return TableConstants.ENTITY_REPLICATION_COL_ID;
+			return ENTITY_REPLICATION_COL_ID;
 		}else {
-			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+			return ENTITY_REPLICATION_COL_PARENT_ID;
 		}
 	}
 	
@@ -1726,7 +1751,7 @@ public class SQLUtils {
 	 */
 	public static String getDistinctAnnotationColumnsSql(Long viewTypeMask){
 		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
-		return String.format(TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
+		return String.format(SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
 	
 	/**
@@ -1737,7 +1762,7 @@ public class SQLUtils {
 	public static String getCalculateCRC32Sql(Long viewTypeMask){
 		String typeFilter = createViewTypeFilter(viewTypeMask);
 		String filterColumln = getViewScopeFilterColumnForType(viewTypeMask);
-		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
+		return String.format(SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
 	}
 	
 	/**
@@ -1887,6 +1912,7 @@ public class SQLUtils {
 
 
 	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+		String parentTable = getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
 		String columnName = getUnnestedColumnNameForId(columnInfo.getId());
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
@@ -1897,14 +1923,18 @@ public class SQLUtils {
 				columnName + " " + columnTypeSql + ", " +
 				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+")," +
 				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
+				",FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
 				");";
 	}
 
-	public static String truncateListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
-		return "TRUNCATE TABLE " + getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId()) +";";
-	}
-
-	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+	/**
+	 * 
+	 * @param tableIdAndVersion
+	 * @param columnInfo
+	 * @param filterRows When true a where clause to filter by ROW_ID will be included.
+	 * @return
+	 */
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows){
 		String columnName = getColumnNameForId(columnInfo.getId());
 		String unnestedColumnName = getUnnestedColumnNameForId(columnInfo.getId());
 
@@ -1914,6 +1944,10 @@ public class SQLUtils {
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");
+		String rowFilter = "";
+		if(filterRows) {
+			rowFilter = " WHERE "+tableName+"."+ROW_ID+" IN (:"+ID_PARAMETER_NAME+")";
+		}
 
 		return "INSERT INTO " + columnIndexTableName + " (" + rowIdRefColumnName + "," + INDEX_NUM + ","+ unnestedColumnName +") " +
 				"SELECT " + ROW_ID + " ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
@@ -1924,7 +1958,7 @@ public class SQLUtils {
 				" ORDINAL FOR ORDINALITY, " +
 				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
 				" )" +
-				") TEMP_JSON_TABLE;";
+				") TEMP_JSON_TABLE"+rowFilter;
 	}
 	
 	public static String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = 

@@ -463,7 +463,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.optimizeTableIndices(idAndVersion);
 
 			//for any list columns, build separate tables that serve as an index
-			indexManager.createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
+			indexManager.populateListColumnIndexTables(idAndVersion, viewSchema);
 
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);

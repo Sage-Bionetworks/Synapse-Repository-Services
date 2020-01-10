@@ -310,7 +310,6 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testDeleteTableIndex(){
 		manager.deleteTableIndex(tableId);
-		verify(mockIndexDao).deleteSecondaryTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
 	
@@ -768,7 +767,6 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 		// Building without a version should attempt to set the current schema on the index.
 		verify(mockManagerSupport).getTableSchema(tableId);
-		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test
@@ -794,7 +792,6 @@ public class TableIndexManagerImplTest {
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 		verify(mockManagerSupport).getTableSchema(tableId);
-		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test
@@ -833,7 +830,6 @@ public class TableIndexManagerImplTest {
 		// The table should be optimized
 		verify(mockIndexDao).optimizeTableIndices(anyList(), any(IdAndVersion.class), anyInt());
 		verify(mockManagerSupport).getTableSchema(tableId);
-		verify(mockIndexDao).populateListColumnIndexTables(tableId, schema);
 	}
 	
 	@Test

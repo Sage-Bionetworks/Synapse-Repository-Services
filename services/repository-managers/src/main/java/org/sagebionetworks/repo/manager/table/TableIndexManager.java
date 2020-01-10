@@ -143,7 +143,15 @@ public interface TableIndexManager {
 	 * @param tableIdAndVersion
 	 * @param schemas
 	 */
-	void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
+	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
+	
+	/**
+	 * 
+	 * @param tableIdAndVersion
+	 * @param schema
+	 * @param rowIds
+	 */
+	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schema, Set<Long> rowIds);
 
 	/**
 	 * Create a temporary copy of the table's index table.

@@ -930,7 +930,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
@@ -951,7 +950,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());

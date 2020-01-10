@@ -53,7 +53,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean deleteTable(IdAndVersion tableId); 
+	public void deleteTable(IdAndVersion tableId); 
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -126,13 +126,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public String getCurrentSchemaMD5Hex(IdAndVersion tableId);
-
-	/**
-	 * Delete all of the secondary tables used for an index if they exist.
-	 * 
-	 * @param tableId
-	 */
-	public void deleteSecondaryTables(IdAndVersion tableId);
 	
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
@@ -248,14 +241,14 @@ public interface TableIndexDAO {
 	 *            The maximum number of indices allowed on a single table.
 	 */
 	public void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
-
+	
 	/**
-	 * For any column in columnModels that has a LIST columnType, creates separate index tables for its values.
-	 * @param columnModels
-	 * @param tableIdAndVersion
+	 * Populate the separate index table for the given list column.
+	 * @param tableId
+	 * @param listColumn
+	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
 	 */
-	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels);
-
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 		/**
 		 * Create a temporary table like the given table.
@@ -320,7 +313,7 @@ public interface TableIndexDAO {
 			Long viewTypeMask, Set<Long> allContainersInScope);
 
 	/**
-	 * Copy the data from the entity replication tables to the given view's table.
+	 * Copy the data from the entity replication tables to the given view.
 	 * 
 	 * @param viewId
 	 * @param viewType
@@ -331,15 +324,16 @@ public interface TableIndexDAO {
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
+	 * Copy the data from the entity replication tables to the given view.
 	 * 
 	 * @param viewId
 	 * @param viewTypeMask
 	 * @param allContainersInScope
 	 * @param currentSchema
-	 * @param rowsIdsWithChanges Only copy rows with Ids in this set.
+	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	public void copyEntityReplicationToView(IdAndVersion viewId, Long viewTypeMask, Set<Long> allContainersInScope,
-			List<ColumnModel> currentSchema, Set<Long> rowsIdsWithChanges);
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy);
 	
 	/**
 	 * Copy the data from the entity replication tables to the given view's table.
@@ -494,11 +488,11 @@ public interface TableIndexDAO {
 	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
 
 	/**
-	 * Delete the provied rows from a view.
+	 * Delete a batch of rows from a view.
 	 * 
 	 * @param viewId
-	 * @param rowsIdsWithChanges
+	 * @param idsToDelete
 	 */
-	public void deleteRowsFromView(IdAndVersion viewId, Set<Long> rowsIdsWithChanges);
+	public void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
 
 }

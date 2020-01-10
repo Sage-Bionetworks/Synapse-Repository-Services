@@ -30,6 +30,7 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -147,7 +148,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void deleteTableIndex(final IdAndVersion tableId) {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
-		tableIndexDao.deleteSecondaryTables(tableId);
 	}
 	
 	@Override
@@ -252,8 +252,18 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void createAndPopulateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schemas){
-		tableIndexDao.populateListColumnIndexTables(tableIdAndVersion, schemas);
+	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema){
+		Set<Long> rowIds = null;
+		populateListColumnIndexTables(tableIdAndVersion, schema, rowIds);
+	}
+	
+	@Override
+	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema, Set<Long> rowIds){
+		for(ColumnModel column: schema) {
+			if (ColumnTypeListMappings.isList(column.getColumnType())) {
+				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds);
+			}
+		}
 	}
 
 	@Override
@@ -461,7 +471,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		optimizeTableIndices(idAndVersion);
-		createAndPopulateListColumnIndexTables(idAndVersion, boundSchema);
 		return lastEtag;
 	}
 	
@@ -535,10 +544,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			// First delete the provided rows from the view
-			tableIndexDao.deleteRowsFromView(viewId, rowsIdsWithChanges);
+			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
+ 			// First delete the provided rows from the view
+			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
 			// Apply any updates to the view for the given Ids
-			tableIndexDao.copyEntityReplicationToView(viewId, viewTypeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+			tableIndexDao.copyEntityReplicationToView(viewId.getId(), viewTypeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+			populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
 			return null;
 		});
 	}
