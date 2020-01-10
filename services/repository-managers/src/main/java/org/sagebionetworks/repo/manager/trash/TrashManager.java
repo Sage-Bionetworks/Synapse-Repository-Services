@@ -35,7 +35,9 @@ public interface TrashManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Retrieves trash entities deleted by the specified user.
+	 * Retrieves trash entities deleted by the specified user ordered by deletion date desc. 
+	 * 
+	 * Will not include entities that are marked with priority purge.
 	 *
 	 * @param currentUser
 	 *            The user currently logged in.
@@ -66,11 +68,23 @@ public interface TrashManager {
 	 */
 	List<TrashedEntity> viewTrash(UserInfo currentUser,
 			long offset, long limit) throws DatastoreException, UnauthorizedException;
-
+	
+	/**
+	 * Flags an entity in the trash can for immediate purge, the entity will not be shown in the trashcan and will be purged from
+	 * as soon as possible.
+	 * 
+	 * @param userInfo
+	 * @param nodeId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void flagForPurge(UserInfo userInfo, String nodeId) throws DatastoreException, NotFoundException;
+	
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity
 	 * will be permanently deleted.
 	 */
+	@Deprecated
 	void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback)
 			throws DatastoreException, NotFoundException;
 
@@ -78,12 +92,14 @@ public interface TrashManager {
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
+	@Deprecated
 	void purgeTrashForUser(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
+	@Deprecated
 	void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	// The following two methods are for the trash worker to clean trash older than a month

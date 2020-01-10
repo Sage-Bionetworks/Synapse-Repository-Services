@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.trash;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -241,6 +242,26 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		return trashCanDao.getInRange(false, offset, limit);
+	}
+	
+	@WriteTransaction
+	@Override
+	public void flagForPurge(UserInfo userInfo, String nodeId) throws DatastoreException, NotFoundException {
+		ValidateArgument.required(userInfo, "user");
+		ValidateArgument.requiredNotBlank(nodeId, "Node id");
+		
+		String userGroupId = userInfo.getId().toString();
+		
+		boolean exists = trashCanDao.exists(userGroupId, nodeId);
+		
+		if (!exists) {
+			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
+		}
+		
+		Long longId = KeyFactory.stringToKey(nodeId);
+		
+		trashCanDao.flagForPurge(Collections.singletonList(longId));
+		
 	}
 
 	@WriteTransaction

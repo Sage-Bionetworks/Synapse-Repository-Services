@@ -4,18 +4,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PRIORITY_PURGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.TrashedEntityUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -91,6 +93,11 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			" ORDER BY " + COL_TRASH_CAN_NODE_ID + 
 			" LIMIT :" + LIMIT_PARAM_NAME;
 	
+	private static final String SQL_FLAG_NODES_FOR_PURGE = 
+			"UPDATE " + TABLE_TRASH_CAN + " SET " + COL_TRASH_CAN_PRIORITY_PURGE + " = TRUE" +
+			", " + COL_TRASH_CAN_ETAG + " = UUID()" +
+		    " WHERE " + COL_TRASH_CAN_NODE_ID + " IN (:" +IDS_PARAM_NAME+")";
+	
 	private static final RowMapper<DBOTrashedEntity> ROW_MAPPER = (new DBOTrashedEntity()).getTableMapping();
 	
 	@Autowired
@@ -126,6 +133,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		Timestamp ts = new Timestamp(nowInSeconds);
 		dbo.setDeletedOn(ts);
 		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		dbo.setEtag(UUID.randomUUID().toString());
 		// TODO false for now
 		dbo.setPriorityPurge(false);
 		this.basicDao.createNew(dbo);
@@ -254,7 +262,20 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		return namedParameterJdbcTemplate.queryForList(SELECT_TRASH_BEFORE_NUM_DAYS_LEAVES_ONLY, paramMap, Long.class);
 	}
 	
-	
+	@WriteTransaction
+	@Override
+	public void flagForPurge(List<Long> nodeIds) {
+		ValidateArgument.required(nodeIds, "The list of node ids");
+		
+		if (nodeIds.isEmpty()) {
+			return;
+		}
+		
+		MapSqlParameterSource paramMap = new MapSqlParameterSource(IDS_PARAM_NAME, nodeIds);
+		
+		namedParameterJdbcTemplate.update(SQL_FLAG_NODES_FOR_PURGE, paramMap);
+		
+	}
 	
 	@WriteTransaction
 	@Override

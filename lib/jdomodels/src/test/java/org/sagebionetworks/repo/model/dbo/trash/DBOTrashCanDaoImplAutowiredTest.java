@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -395,6 +396,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
 		dbo.setDeletedOn(ts);
 		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setPriorityPurge(false);
 		basicDao.createNew(dbo);
 	}

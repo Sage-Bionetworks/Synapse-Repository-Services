@@ -68,6 +68,13 @@ public interface TrashCanDao {
 	List<Long> getTrashLeaves(long numDays, long limit) throws DatastoreException;
 	
 	/**
+	 * Flags the given list of node ids for priority purging, so that they are deleted as soon as possible
+	 * 
+	 * @param nodeIds
+	 */
+	void flagForPurge(List<Long> nodeIds);
+	
+	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.
 	 *
 	 * @throws NotFoundException When the item is not deleted by the user.
