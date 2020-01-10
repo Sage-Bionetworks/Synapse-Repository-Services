@@ -181,16 +181,12 @@ public interface TableManagerSupport {
 	ObjectType getTableType(IdAndVersion tableId);
 
 	/**
-	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
-	 * calculated as SUM(CRC23(CONCAT(ID, '-', ETAG))) given the ID and ETAG of
-	 * each entity within the view's scope.
-	 * 
-	 * Warning this call is not cheap.
+	 * Get the number currently associated with a view, for consistency checks.
 	 * 
 	 * @param table
 	 * @return
 	 */
-	public Long calculateViewCRC32(IdAndVersion table);
+	public Long getViewNumber(IdAndVersion table);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.

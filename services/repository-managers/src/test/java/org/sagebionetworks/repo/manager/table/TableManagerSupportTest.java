@@ -336,7 +336,6 @@ public class TableManagerSupportTest {
 	@Test
 	public void testIsIndexWorkRequiredFalse(){
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
 		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// node exists
@@ -344,9 +343,7 @@ public class TableManagerSupportTest {
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertFalse(workRequired);
@@ -407,8 +404,7 @@ public class TableManagerSupportTest {
 	 */
 	@Test
 	public void testIsIndexWorkRequiredStatusProcessing(){
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);	
 		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 
@@ -416,10 +412,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
-		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
@@ -612,30 +605,27 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void calculateFileViewCRC32() throws LimitExceededException{
+	public void testGetViewNumber() throws LimitExceededException{
+		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
-
-		Long crc32 = 45678L;
-		Long type = ViewTypeMask.File.getMask();
-		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
-		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
-		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		// call under test
-		Long crcResult = manager.calculateViewCRC32(idAndVersion);
-		assertEquals(crc32, crcResult);
+		Long viewNumer = manager.getViewNumber(idAndVersion);
+		assertEquals(expectedNumber, viewNumer);
+		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 	}
 	
 	@Test
-	public void calculateFileViewCRC32Veserion(){
+	public void testGetViewNumber_WithVersion(){
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		Long snapshotId = 33L;
 		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
 		// call under test
-		Long crcResult = manager.calculateViewCRC32(idAndVersion);
-		assertEquals(snapshotId, crcResult);
+		Long result = manager.getViewNumber(idAndVersion);
+		assertEquals(snapshotId, result);
+		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
+		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
 	}
 
 	@Test
@@ -672,19 +662,15 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetTableVersionForFileView() throws LimitExceededException {
+		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
-
-		Long crc32 = 45678L;
-		Long type = ViewTypeMask.File.getMask();
-		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
+
 		// call under test
 		Long version = manager.getTableVersion(idAndVersion);
-		assertEquals(crc32, version);
+		assertEquals(expectedNumber, version);
 	}
 	
 	@Test

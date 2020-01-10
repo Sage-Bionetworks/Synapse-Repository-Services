@@ -322,12 +322,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
-	 */
+	
 	@Override
-	public Long calculateViewCRC32(IdAndVersion idAndVersion) {
+	public Long getViewNumber(IdAndVersion idAndVersion) {
 		if(idAndVersion.getVersion().isPresent()) {
 			// The ID of the snapshot is used for this case.
 			return viewSnapshotDao.getSnapshotId(idAndVersion);
@@ -413,8 +410,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
-			// For FileViews the CRC of all files in the view is used.
-			return calculateViewCRC32(idAndVersion);
+			return getViewNumber(idAndVersion);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
