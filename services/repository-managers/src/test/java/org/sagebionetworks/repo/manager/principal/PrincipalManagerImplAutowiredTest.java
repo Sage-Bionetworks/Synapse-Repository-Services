@@ -144,7 +144,7 @@ public class PrincipalManagerImplAutowiredTest {
 		String expectedEmail = "gdpr-synapse+" + testUser.getId() + "@sagebase.org";
 		// Verify that information has been cleared.
 		profile = userProfileDAO.get(testUser.getId().toString());
-		assertEquals(expectedEmail, profile.getEmails());
+		assertEquals(expectedEmail, profile.getEmail());
 		assertEquals(Collections.singletonList(expectedEmail), profile.getEmails());
 		assertEquals("", profile.getFirstName());
 		assertEquals("", profile.getLastName());
