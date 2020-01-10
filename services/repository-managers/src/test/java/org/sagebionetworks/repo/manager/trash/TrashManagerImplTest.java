@@ -16,12 +16,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.util.ReflectionTestUtils.setField;
 import static org.sagebionetworks.repo.manager.trash.TrashManagerImpl.MAX_IDS_TO_LOAD;
 
-
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -587,24 +584,6 @@ public class TrashManagerImplTest {
 		verify(mockAclDAO,times(1)).delete(nodeId, ObjectType.ENTITY);
 		verify(mockTrashCanDao,times(1)).delete(trashIDList);
 	}
-
-	
-	//////////////////////////
-	// getTrashBefore() Tests
-	//////////////////////////
-	
-	@Test
-	public void testGetTrashBefore(){
-		//setup
-		Timestamp now = new Timestamp(System.currentTimeMillis());
-		
-		when(mockTrashCanDao.getTrashBefore(now)).thenReturn(trashList);
-		
-		//test
-		assertEquals(trashManager.getTrashBefore(now), trashList);
-		verify(mockTrashCanDao,times(1)).getTrashBefore(now);
-	}
-	
 	
 	/////////////////////////////////
 	// getTrashLeavesBefore() Tests

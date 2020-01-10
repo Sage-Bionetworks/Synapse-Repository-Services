@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.trash;
 
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -364,6 +363,11 @@ public class TrashManagerImpl implements TrashManager {
 		trashCanDao.delete(trashIDs);
 	}
 	
+	@Override
+	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
+		return trashCanDao.getTrashLeaves(numDays, maxTrashItems);
+	}
+	
 	private void deleteNode(String nodeId) {
 		boolean deleted = false;
 		
@@ -373,16 +377,6 @@ public class TrashManagerImpl implements TrashManager {
 		
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 		
-	}
-
-	@Override
-	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
-		return trashCanDao.getTrashBefore(timestamp);
-	}
-	
-	@Override
-	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
-		return trashCanDao.getTrashLeaves(numDays, maxTrashItems);
 	}
 
 }

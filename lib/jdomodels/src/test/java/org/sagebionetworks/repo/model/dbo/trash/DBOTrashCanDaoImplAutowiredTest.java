@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dbo.trash;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -98,17 +98,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertNotNull(trash.getDeletedOn());
 
 		Thread.sleep(1000);
-		Timestamp timestamp1 = new Timestamp(System.currentTimeMillis()/1000*1000);
-		assertTrue(trash.getDeletedOn().before(timestamp1));
-		trashList = trashCanDao.getTrashBefore(timestamp1);
-		assertNotNull(trashList);
-		assertEquals(1, trashList.size());
-		trash = trashList.get(0);
-		assertEquals(nodeId1, trash.getEntityId());
-		assertEquals(nodeName, trash.getEntityName());
-		assertEquals(userId, trash.getDeletedByPrincipalId());
-		assertEquals(parentId1, trash.getOriginalParentId());
-		assertNotNull(trash.getDeletedOn());
+		
 
 		trash = trashCanDao.getTrashedEntity(userId, nodeId1);
 		assertEquals(nodeId1, trash.getEntityId());
@@ -155,16 +145,6 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(2, count);
 		exists = trashCanDao.exists(userId, nodeId2);
 		assertTrue(exists);
-
-		trashList = trashCanDao.getTrashBefore(timestamp1);
-		assertNotNull(trashList);
-		assertEquals(1, trashList.size());
-		assertEquals(nodeId1, trashList.get(0).getEntityId());
-		Thread.sleep(1000);
-		Timestamp timestamp2 = new Timestamp(System.currentTimeMillis());
-		trashList = trashCanDao.getTrashBefore(timestamp2);
-		assertNotNull(trashList);
-		assertEquals(2, trashList.size());
 
 		trashCanDao.delete(userId, nodeId1);
 		trashList = trashCanDao.getInRange(false, 0L, 100L);
@@ -238,16 +218,6 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(1, trashList.size());
 		assertEquals(nodeName, trashList.get(0).getEntityName());
 
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetTrashLeavesNegativeNumDays(){//TODO: move to unit test?
-		trashCanDao.getTrashLeaves(-1, 123);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetTrashLeavesNegativeLimit(){//TODO: move to unit test?
-		trashCanDao.getTrashLeaves(123, -1);
 	}
 	
 	@Test 

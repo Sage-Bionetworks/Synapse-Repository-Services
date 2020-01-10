@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.trash;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -88,12 +87,6 @@ public interface TrashManager {
 	void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	// The following two methods are for the trash worker to clean trash older than a month
-
-	/**
-	 * Gets the list of trashed items that were moved the trash can before
-	 * the specified time.
-	 */
-	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
 	
 	/**
 	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.

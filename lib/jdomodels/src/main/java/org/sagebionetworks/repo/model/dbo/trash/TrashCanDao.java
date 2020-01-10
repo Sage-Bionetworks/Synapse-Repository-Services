@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.trash;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,11 +57,6 @@ public interface TrashCanDao {
 	 * and limit (the max number of items retrieved).
 	 */
 	List<TrashedEntity> getInRange(boolean sortById, long offset, long limit) throws DatastoreException;
-
-	/**
-	 * Gets all the trash items that were deleted before the specified time stamp.
-	 */
-	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
 	
 	/**
 	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.

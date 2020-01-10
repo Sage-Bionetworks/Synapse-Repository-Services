@@ -66,11 +66,6 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	private static final String SELECT_TRASH_BY_NODE_ID =
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
-
-	private static final String SELECT_TRASH_BEFORE_TIMESTAMP =
-			"SELECT * FROM " + TABLE_TRASH_CAN +
-			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON +
-			" ORDER BY " + COL_TRASH_CAN_NODE_ID;
 	
 	private static final String DELETE_TRASH_BY_IDS = 
 			"DELETE FROM " + TABLE_TRASH_CAN + 
@@ -244,21 +239,6 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(sortById ? SELECT_TRASH_ORDER_BY_ID : SELECT_TRASH, paramMap, ROW_MAPPER);
-		return TrashedEntityUtils.convertDboToDto(trashList);
-	}
-	
-	@Deprecated
-	@Override
-	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
-
-		if(timestamp == null){
-			throw new IllegalArgumentException("Time stamp cannot be null.");
-		}
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
-		List<DBOTrashedEntity> trashList = namedParameterJdbcTemplate.query(
-				SELECT_TRASH_BEFORE_TIMESTAMP, paramMap, ROW_MAPPER);
-
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 	
