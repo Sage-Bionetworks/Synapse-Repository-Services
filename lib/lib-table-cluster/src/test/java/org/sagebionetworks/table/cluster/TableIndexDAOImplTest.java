@@ -2422,8 +2422,6 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
-
-		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		Set<Long> rowsIds = null;
 		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
 
@@ -2460,7 +2458,6 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 
 		Set<Long> rowsIds = null;
-		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		String message = assertThrows(IllegalArgumentException.class, ()-> {
 			//method under test
 			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
@@ -2468,8 +2465,6 @@ public class TableIndexDAOImplTest {
 
 		assertEquals("The size of the column 'myList' is too small." +
 				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
-
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 	}
 	
 	/**
@@ -2706,6 +2701,11 @@ public class TableIndexDAOImplTest {
 	 * @return
 	 */
 	List<EntityDTO> createFileEntityEntityDTOs(int count){
+		boolean includeMultiValue = false;
+		return createFileEntityEntityDTOs(count, includeMultiValue);
+	}
+	
+	List<EntityDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue){
 		List<Long> newIds = new ArrayList<Long>(count);
 		List<EntityDTO> results = new ArrayList<EntityDTO>(count);
 		for(int i=0; i<count; i++) {
@@ -2713,6 +2713,14 @@ public class TableIndexDAOImplTest {
 			newIds.add(entityId);
 			EntityDTO file = createEntityDTO(entityId, EntityType.file, 3);
 			file.setParentId(entityId*100);
+			if(includeMultiValue) {
+				AnnotationDTO multiValue = new AnnotationDTO();
+				multiValue.setEntityId(file.getId());
+				multiValue.setKey("multiValue");
+				multiValue.setType(AnnotationType.STRING);
+				multiValue.setValue(Lists.newArrayList("one"+i, "two"+i));
+				file.getAnnotations().add(multiValue);
+			}
 			results.add(file);
 		}
 		// delete all rows if they already exist
@@ -2856,5 +2864,145 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
 		}).getMessage();
 		assertEquals("When rowIdsToCopy is provided (not null) it cannot be empty", message);
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTableView_NoIdFilter() {
+		isView = true;
+		int rowCount = 4;
+		boolean includeMultiValue = true;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowIdFilter = null;
+		// push all of the data to the view
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, multiValue.getId());
+
+		//each list value created by createRows has 2 items in the list
+		assertEquals(rowCount * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+	}
+	
+	/**
+	 * This test simulate what happens when deltas are applied to an available view.
+	 * For such cases, the multi-value index rows will be deleted when rows are
+	 * removed from the main view (foreign key cascade). Data is then added back to
+	 * the view using an rowIdFilter to both the view and the multi-value index
+	 * table.
+	 */
+	@Test
+	public void testPopulateListColumnIndexTableView_WithIdFilter() {
+		isView = true;
+		int rowCount = 4;
+		boolean includeMultiValue = true;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowIdFilter = null;
+		// push all of the data to the view
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// start will all of the data in the secondary table
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		// Should start with two row for each entity 
+		assertEquals(rowCount * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+		
+		// delete the first and last rows from the main view
+		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
+		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		// cascade delete should reduce the number of rows in the multi-value index
+		assertEquals(2 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+		
+		// add the two rows back to the view
+		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullTableId() {
+		tableId = null;
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullColumn() {
+		ColumnModel multiValue = null;
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NotListType() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("Only valid for List type columns", message);
+	}
+	
+	
+	@Test
+	public void testPopulateListColumnIndexTable_EmptyRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Collections.emptySet();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("When rowIds is provided (not null) it cannot be empty", message);
+	}
+	
+	/**
+	 * Helper to count the number of rows in a mutli-value index table.
+	 * @param idAndversion
+	 * @param columnId
+	 * @return
+	 */
+	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId);
+		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
 	}
 }
