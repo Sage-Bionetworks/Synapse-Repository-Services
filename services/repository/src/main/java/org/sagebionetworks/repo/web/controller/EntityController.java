@@ -388,7 +388,9 @@ public class EntityController {
 	}
 
 	/**
-	 * Delete an entity using its ID.
+	 * Moves an entity in the trash can, if the skipTrashCan is set to true will flag the entity for purge and it will
+	 * be deleted as soon as possible.
+	 * 
 	 * <p>
 	 * Note: To delete an Entity the caller must be granted the
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -396,8 +398,8 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the Entity to delete.
-	 * 
 	 * @param userId  - The user that is deleting the entity.
+	 * @param skipTrashCan If true the entity will be flag for priority purge and deleted as soon as possible
 	 * @param request
 	 * @throws NotFoundException     - Thrown when the entity to delete does not
 	 *                               exist.
@@ -410,11 +412,13 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.SKIP_TRASH_CAN_PARAM, required = false) Boolean skipTrashCan,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
-		if (skipTrashCan != null && skipTrashCan) {
-			serviceProvider.getEntityService().deleteEntity(userId, id);
-		} else {
-			serviceProvider.getTrashService().moveToTrash(userId, id);
+		boolean priorityPurge = false;
+		
+		if (skipTrashCan != null) {
+			priorityPurge = skipTrashCan;
 		}
+		
+		serviceProvider.getTrashService().moveToTrash(userId, id, priorityPurge);
 	}
 
 	/**

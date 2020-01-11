@@ -14,9 +14,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface TrashService {
 
 	/**
-	 * Moves an entity and its descendants to the trash can.
+	 * Moves an entity and its descendants to the trash can, if the priorityPurge flag is set to true the entity
+	 * will not be restorable and will be deleted as soon as possible
 	 */
-	void moveToTrash(Long currentUserId, String entityId)
+	void moveToTrash(Long currentUserId, String entityId, boolean priorityPurge)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -41,45 +42,9 @@ public interface TrashService {
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
-	 * Retrieves all the trash entities in the trash can.
-	 *
-	 * @param currentUserId
-	 *            The user currently logged in. Must be an administrator.
-	 * @throws UnauthorizedException
-	 *             When the current user is not an administrator.
+	 * Flags the specified entity for priority purge. After being flagged the entity will not be restorable 
+	 * and will be deleted as soon as possible.
 	 */
-	PaginatedResults<TrashedEntity> viewTrash(Long currentUserId,
-			Long offset, Long limit, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	/**
-	 * Purges the specified entity from the trash can. After purging, the entity
-	 * will be permanently deleted.
-	 */
-	void purgeTrashForUser(Long currentUserId, String entityId)
-			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Purges the trash can for the user. All the entities in the trash will be
-	 * permanently deleted.
-	 */
-	void purgeTrashForUser(Long currentUserId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Purges the trash can for the user. All the entities in the trash will be
-	 * permanently deleted.
-	 */
-	void purgeTrash(Long currentUserId)
-			throws DatastoreException, NotFoundException, UnauthorizedException;
-	
-	/**
-	 * Purges trash items with no children trash items that have been in the trash for more than daysOld.
-	 * @param currentUserId
-	 * 					The user currently logged in. Must be an administrator.
-	 * @param daysOld
-	 * 					Number of days old the trash to be purged must be.
-	 * @throws UnauthorizedException
-	 * 					When the current user is not an administrator.					
-	 */
-	void purgeTrashLeaves(Long currentUserId, Long daysOld, Long limit) throws DatastoreException, NotFoundException, UnauthorizedException;
+	void flagForPurge(Long currentUserId, String entityId)
+			throws DatastoreException, NotFoundException;	
 }

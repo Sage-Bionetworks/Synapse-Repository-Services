@@ -13,26 +13,26 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public interface TrashManager {
 
-	public interface PurgeCallback {
-		void startPurge(String id);
-		
-		void startPurge(List<Long> ids);
-
-		void endPurge();
-	}
+	/**
+	 * Moves an entity and its descendants to the trash can, if the priorityPurge flag is true will delete the node as soon as possible.
+	 */
+	void moveToTrash(UserInfo currentUser, String nodeId, boolean priorityPurge) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Flags an entity in the trash can for immediate purge, the entity will not be shown in the trash can 
+	 * and will be purged as soon as possible. Once flagged the entity will not be restorable.
+	 * 
+	 * @param userInfo
+	 * @param nodeId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void flagForPurge(UserInfo userInfo, String nodeId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Moves an entity and its descendants to the trash can.
+	 * Moves an entity and its descendants out of the trash can. If the new parent is not given (null), will restore to the original parent.
 	 */
-	void moveToTrash(UserInfo currentUser, String nodeId)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
-
-	/**
-	 * Moves an entity and its descendants out of the trash can. If the new
-	 * parent is not given (null), will restore to the original parent.
-	 */
-	void restoreFromTrash(UserInfo currrentUser, String nodeId, String newParentId)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
+	void restoreFromTrash(UserInfo currrentUser, String nodeId, String newParentId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Retrieves trash entities deleted by the specified user ordered by deletion date desc. 
@@ -42,7 +42,8 @@ public interface TrashManager {
 	 * @param currentUser
 	 *            The user currently logged in.
 	 * @param userInfo
-	 *            The user who deleted the entities into the trash can.
+	 *            The user who deleted the entities into the trash can, must be the same as the current user if the current user is not
+	 *            an administrator
 	 * @param offset
 	 * 				Offset to begin paging results. Must be > 0.
 	 * @param limit 
@@ -51,79 +52,26 @@ public interface TrashManager {
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
-	List<TrashedEntity> viewTrashForUser(UserInfo currentUser, UserInfo userInfo,
-			long offset, long limit) throws DatastoreException, UnauthorizedException;
-
-	/**
-	 * Retrieves all the trash entities in the trash can.
-	 *
-	 * @param currentUser
-	 *            The user currently logged in. Must be an administrator.
-	 * @param offset
-	 * 				Offset to begin paging results. Must be > 0.
-	 * @param limit 
-	 * 				Maximum number of results to return. Must be > 0.
-	 * @throws UnauthorizedException
-	 *             When the current user is not an administrator.
-	 */
-	List<TrashedEntity> viewTrash(UserInfo currentUser,
-			long offset, long limit) throws DatastoreException, UnauthorizedException;
+	List<TrashedEntity> listTrashedEntities(UserInfo currentUser, UserInfo userInfo, long offset, long limit) throws DatastoreException, UnauthorizedException;
+	
+	// The following two methods are for the trash worker to clean trash older than a month or flagged for purging
 	
 	/**
-	 * Flags an entity in the trash can for immediate purge, the entity will not be shown in the trashcan and will be purged from
-	 * as soon as possible.
+	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old or that are flagged for priority purge.
 	 * 
-	 * @param userInfo
-	 * @param nodeId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	void flagForPurge(UserInfo userInfo, String nodeId) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Purges the specified entity from the trash can. After purging, the entity
-	 * will be permanently deleted.
-	 */
-	@Deprecated
-	void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback)
-			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Purges the trash can for the user. All the entities in the trash will be
-	 * permanently deleted.
-	 */
-	@Deprecated
-	void purgeTrashForUser(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Purges the trash can for the user. All the entities in the trash will be
-	 * permanently deleted.
-	 */
-	@Deprecated
-	void purgeTrash(UserInfo currentUser, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	// The following two methods are for the trash worker to clean trash older than a month
-	
-	/**
-	 * Gets rowLimit amount of trash items that have no children trash items and are more than numDays old.
 	 * @param numDays number of days the item has been in the trash can
 	 * @param maxTrashItems maximum number of results to return
 	 * @return Set of IDs of the trash items as Longs
 	 * @throws DatastoreException
 	 */
-	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException;
-
-	/**
-	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
-	 */
-	public void purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback) throws DatastoreException, NotFoundException;
+	List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException;
 	
 	/**
-	 * Purges trash by a given list of their IDs as longs. User caling this must be an admin.
-	 * @param trashIDs list of trashEntity IDs as longs
+	 * Purges trash by a given list of their IDs as longs. User calling this must be an admin.
 	 * @param user must be an admin user.
+	 * @param trashIDs list of trashEntity IDs as longs
 	 * @param purgeCallback optional
 	 */
-	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user);
+	void purgeTrash(UserInfo user, List<Long> trashIDs);
 	
 }
