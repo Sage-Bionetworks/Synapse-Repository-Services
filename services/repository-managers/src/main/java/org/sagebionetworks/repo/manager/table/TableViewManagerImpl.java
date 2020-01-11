@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
@@ -64,6 +65,8 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
+	public static final String VIEW_DELTA_KEY_PREFIX = "Increment-";
+
 	static private Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
@@ -349,28 +352,40 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 	
 	/**
-	 * Attempt to apply any changes to a view that will remain available for query during this operation.
+	 * Attempt to apply any changes to a view that will remain available for query
+	 * during this operation.
 	 * 
 	 * @param idAndVersion
 	 * @param outerProgressCallback
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void applyChangesToAvailableView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
+	void applyChangesToAvailableView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback)
+			throws Exception {
 		/*
-		 * We do not want to block users from querying the view during this process but
-		 * we still need to prevent concurrent attempt apply deltas to the view.
-		 * Therefore, we use a key that is different from the key used to query/rebuild
-		 * a view.
+		 * By getting a read lock on the view, we ensure no other process is able to do
+		 * a full rebuild of the view while this runs.  The read lock also allows users
+		 * to query the view while this process runs.
 		 */
-		String key = "viewDelta"+idAndVersion.toString();
 		try {
-			tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
-					(ProgressCallback innerCallback) -> {
-						applyChangesToAvailableViewHoldingLock(idAndVersion);
+			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
+					(ProgressCallback callback) -> {
+						/*
+						 * We do not want to block users from querying the view during this process but
+						 * we still need to prevent concurrent attempt apply deltas to the view.
+						 * Therefore, we use a key that is different from the key used to query/rebuild
+						 * a view.
+						 */
+						String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
+								(ProgressCallback innerCallback) -> {
+									// while holding both locks do the work.
+									applyChangesToAvailableViewHoldingLock(idAndVersion);
+									return null;
+								});
 						return null;
 					});
-		} catch (LockUnavilableException e) {
-			log.warn("Unable to aquire lock: "+key+" so the message will be ignored.");
+		} catch (LockUnavilableException e1) {
+			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.", e1);
 		}
 	}
 	
@@ -380,32 +395,42 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @param viewId
 	 */
 	void applyChangesToAvailableViewHoldingLock(IdAndVersion viewId) {
-		TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
-		List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
-		Set<Long> rowsIdsWithChanges = null;
-		Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
-		// Continue applying change to the view until none remain.
-		do {
-			rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
-			// Are thrashing on the same Ids?
-			Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
-					previousPageRowIdsWithChanges);
-			if (intersectionWithPreviousPage.size() > 0) {
-				log.warn("Found " + intersectionWithPreviousPage.size()
-						+ " rows that were just updated but are still out-of-date for view:" + viewId.toString()
-						+ " View update will terminate.");
-				break;
-			}
-			
-			if (!rowsIdsWithChanges.isEmpty()) {
-				// update these rows in a new transaction.
-				indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
-						currentSchema);
-				previousPageRowIdsWithChanges = rowsIdsWithChanges;
-			}
-		} while (rowsIdsWithChanges != null && !rowsIdsWithChanges.isEmpty());
+		try {
+			TableIndexManager indexManager = connectionFactory.connectToTableIndex(viewId);
+			Long viewTypeMask = tableManagerSupport.getViewTypeMask(viewId);
+			Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask);
+			List<ColumnModel> currentSchema = tableManagerSupport.getTableSchema(viewId);
+			Set<Long> rowsIdsWithChanges = null;
+			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
+			// Continue applying change to the view until none remain.
+			do {
+				if(!TableState.AVAILABLE.equals(tableManagerSupport.getTableStatusState(viewId))) {
+					// no point in continuing if the table is no longer available.
+					break;
+				}
+				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
+				// Are thrashing on the same Ids?
+				Set<Long> intersectionWithPreviousPage = Sets.intersection(rowsIdsWithChanges,
+						previousPageRowIdsWithChanges);
+				if (intersectionWithPreviousPage.size() > 0) {
+					log.warn("Found " + intersectionWithPreviousPage.size()
+							+ " rows that were just updated but are still out-of-date for view:" + viewId.toString()
+							+ " View update will terminate.");
+					break;
+				}
+				
+				if (!rowsIdsWithChanges.isEmpty()) {
+					// update these rows in a new transaction.
+					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
+							currentSchema);
+					previousPageRowIdsWithChanges = rowsIdsWithChanges;
+				}
+			} while (rowsIdsWithChanges != null && !rowsIdsWithChanges.isEmpty());
+		} catch (Exception e) {
+			// failed.
+			tableManagerSupport.attemptToSetTableStatusToFailed(viewId, e);
+			throw e;
+		}
 	}
 
 	/**

@@ -1062,6 +1062,7 @@ public class TableViewIntegrationTest {
 		
 		// wait for the view.
 		waitForEntityReplication(fileViewId, fileId);
+		// Wait for the change to appear in the vie
 		results = waitForConsistentQuery(adminUserInfo, query, rowCount);
 
 		rows  = extractRows(results);
