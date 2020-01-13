@@ -1234,9 +1234,28 @@ public class TableViewManagerImplTest {
 				any(Exception.class));
 	}
 	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesNoOverlapStatusChanged() {
+		setupApplyChanges();
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
+		// Status starts as available but changes to processing which stop the updates.
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE, TableState.PROCESSING);
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+				allContainersInScope, viewSchema);
+		// page two should not be updated becuase of the swith to processing.
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+	}
+	
 	/**
-	 * If progress is made on a single page of changes, the IDs should not reappear in the next
-	 * page, and all pages should be processed.
+	 * There are multiple page with overlap.  The overlap should terminate the process.
 	 */
 	@Test
 	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesWithOverlap() {
