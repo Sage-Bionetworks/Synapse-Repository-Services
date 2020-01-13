@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
 import java.sql.ResultSet;
+import java.util.Date;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -234,6 +235,31 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
 		}
+	}
+
+	@Override
+	public Date getLastChangedOn(IdAndVersion tableId) {
+		long version = validateAndGetVersion(tableId);
+		try {
+			Long changedOn = jdbcTemplate
+					.queryForObject(
+							"SELECT " + COL_TABLE_STATUS_CHANGE_ON + " FROM " + TABLE_STATUS + " WHERE "
+									+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?",
+							Long.class, tableId.getId(), version);
+			return new Date(changedOn);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+		}
+	}
+
+	@Override
+	public boolean updateChangedOnIfAvailable(IdAndVersion tableId) {
+		long version = validateAndGetVersion(tableId);
+		long now = System.currentTimeMillis();
+		int count = jdbcTemplate.update("UPDATE " + TABLE_STATUS + " SET " + COL_TABLE_STATUS_CHANGE_ON + " = ? WHERE "
+				+ COL_TABLE_STATUS_ID + " = ?" + " AND " + COL_TABLE_STATUS_VERSION + " = ? AND "
+				+ COL_TABLE_STATUS_STATE + " = '" + TableState.AVAILABLE.name()+"'", now, tableId.getId(), version);
+		return count > 0;
 	}
 
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -113,4 +115,20 @@ public interface TableStatusDAO {
 	 * 
 	 */
 	public void clearAllTableState();
+	
+	/**
+	 * The date the given table/view as changed on.
+	 * @param tableId
+	 * @return
+	 */
+	public Date getLastChangedOn(IdAndVersion tableId);
+	
+	/**
+	 * Will update the changedOn of the given table if its state is currently available.
+	 * If the table's state is not available, this call will do nothing.
+	 * 
+	 * @param tableId
+	 * @return True if the table's state was available and changeOn was updated.
+	 */
+	public boolean updateChangedOnIfAvailable(IdAndVersion tableId);
 }
