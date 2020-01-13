@@ -22,7 +22,6 @@ import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
@@ -67,7 +66,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	public static final String VIEW_DELTA_KEY_PREFIX = "Increment-";
 
-	static private Log log = LogFactory.getLog(TableViewManagerImpl.class);	
+	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
 	/**
@@ -370,10 +369,8 @@ public class TableViewManagerImpl implements TableViewManager {
 			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
 					(ProgressCallback callback) -> {
 						/*
-						 * We do not want to block users from querying the view during this process but
-						 * we still need to prevent concurrent attempt apply deltas to the view.
-						 * Therefore, we use a key that is different from the key used to query/rebuild
-						 * a view.
+						 * A special exclusive lock is used to prevent more then one instance
+						 * from applying deltas to a view at a time.
 						 */
 						String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
 						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
@@ -385,7 +382,7 @@ public class TableViewManagerImpl implements TableViewManager {
 						return null;
 					});
 		} catch (LockUnavilableException e1) {
-			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.", e1);
+			log.warn("Unable to aquire lock: " + idAndVersion + " so the message will be ignored.");
 		}
 	}
 	
@@ -425,7 +422,7 @@ public class TableViewManagerImpl implements TableViewManager {
 							currentSchema);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
 				}
-			} while (rowsIdsWithChanges != null && !rowsIdsWithChanges.isEmpty());
+			} while (!rowsIdsWithChanges.isEmpty());
 		} catch (Exception e) {
 			// failed.
 			tableManagerSupport.attemptToSetTableStatusToFailed(viewId, e);
