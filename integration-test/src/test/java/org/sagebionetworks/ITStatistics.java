@@ -55,7 +55,7 @@ public class ITStatistics {
 	@AfterEach
 	public void after() throws Exception {
 		try {
-			adminClient.deleteAndPurgeEntityById(project.getId());
+			adminClient.deleteEntity(project);
 		} catch (SynapseNotFoundException e) {
 		}
 	}

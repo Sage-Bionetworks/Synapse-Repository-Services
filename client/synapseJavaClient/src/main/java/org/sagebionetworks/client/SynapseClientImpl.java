@@ -1454,16 +1454,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Deletes a dataset, layer, etc..
-	 */
-	@Override
-	public <T extends Entity> void deleteAndPurgeEntity(T entity)
-			throws SynapseException {
-		deleteEntity(entity);
-		purgeTrashForUser(entity.getId());
-	}
-
-	/**
 	 * Deletes a dataset, layer, etc.. This only moves the entity to the trash
 	 * can. To permanently delete the entity, use deleteAndPurgeEntity().
 	 */
@@ -1486,16 +1476,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri = uri + "?" + ServiceConstants.SKIP_TRASH_CAN_PARAM + "=true";
 		}
 		deleteUri(getRepoEndpoint(), uri);
-	}
-
-	/**
-	 * Deletes a dataset, layer, etc..
-	 */
-	@Override
-	public void deleteAndPurgeEntityById(String entityId)
-			throws SynapseException {
-		deleteEntityById(entityId);
-		purgeTrashForUser(entityId);
 	}
 
 	@Override
@@ -3238,6 +3218,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		return getPaginatedResults(getRepoEndpoint(), url, TrashedEntity.class);
 	}
+	
+	@Override
+	public void flagForPurge(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = TRASHCAN_PURGE + "/" + entityId;
+		voidPut(getRepoEndpoint(), url, null);
+	}
 
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity
@@ -3245,18 +3232,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public void purgeTrashForUser(String entityId) throws SynapseException {
-		ValidateArgument.required(entityId, "entityId");
-		String url = TRASHCAN_PURGE + "/" + entityId;
-		voidPut(getRepoEndpoint(), url, null);
-	}
-
-	/**
-	 * Purges the trash can for the user. All the entities in the trash will be
-	 * permanently deleted.
-	 */
-	@Override
-	public void purgeTrashForUser() throws SynapseException {
-		voidPut(getRepoEndpoint(), TRASHCAN_PURGE, null);
+		flagForPurge(entityId);
 	}
 
 	@Override

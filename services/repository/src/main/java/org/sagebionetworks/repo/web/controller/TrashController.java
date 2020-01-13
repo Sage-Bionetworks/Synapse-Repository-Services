@@ -119,7 +119,7 @@ public class TrashController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
-	public void purgeTrash(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public void flagForPurge(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {

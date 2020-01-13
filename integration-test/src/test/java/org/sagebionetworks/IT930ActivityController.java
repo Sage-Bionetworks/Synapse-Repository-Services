@@ -52,18 +52,9 @@ public class IT930ActivityController {
 	@After
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
-			synapse.deleteAndPurgeEntityById(id);
+			synapse.deleteEntityById(id);
 		}
-		for(String id : activitiesToDelete) {
-			synapse.deleteActivity(id);
-		}
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		if (userToDelete != null) {
-			adminSynapse.deleteUser(userToDelete);
-		}
+		// We do not delete the activity as the node will be in the trashcan
 	}
 
 	@Test 
