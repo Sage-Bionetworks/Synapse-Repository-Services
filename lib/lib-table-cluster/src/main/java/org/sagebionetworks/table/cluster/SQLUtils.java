@@ -1968,14 +1968,14 @@ public class SQLUtils {
 			+ "		 R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
 			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
 			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR+")"
-			+ "   WHERE R.%2$s IN (:scopeIds)" 
+			+ "   WHERE R.%2$s IN (:scopeIds) AND R.%3$s" 
 			+ " UNION ALL"
 			+ " SELECT V."+ROW_ID+", R."+ENTITY_REPLICATION_COL_ID+" FROM "+ENTITY_REPLICATION_TABLE+" R "
 			+ "   RIGHT JOIN %1$s V ON ("
 			+ "      R."+ENTITY_REPLICATION_COL_ID+" = V."+ROW_ID
 			+ "      AND R."+ENTITY_REPLICATION_COL_ETAG+" = V."+ROW_ETAG
 			+ "      AND R."+ENTITY_REPLICATION_COL_BENEFACTOR_ID+" = V."+ROW_BENEFACTOR
-			+ "      AND R.%2$s IN (:scopeIds))"
+			+ "      AND R.%2$s IN (:scopeIds) AND R.%3$s)"
 			+ ")"
 			+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 	
@@ -1988,7 +1988,8 @@ public class SQLUtils {
 	public static String getOutOfDateRowsForViewSql(IdAndVersion viewId, long viewTypeMask) {
 		String viewName = SQLUtils.getTableNameForId(viewId, TableType.INDEX);
 		String scopeColumn = SQLUtils.getViewScopeFilterColumnForType(viewTypeMask);
-		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn);
+		String viewTypeFilter = createViewTypeFilter(viewTypeMask);
+		return String.format(VIEW_ROWS_OUT_OF_DATE_TEMPLATE, viewName, scopeColumn, viewTypeFilter);
 	}
 	
 	public static final String DELETE_ROWS_FROM_VIEW_TEMPLATE = "DELETE FROM %1$s WHERE "+ROW_ID+" = ?";

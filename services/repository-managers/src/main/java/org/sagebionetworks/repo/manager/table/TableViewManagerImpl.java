@@ -25,6 +25,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -41,7 +42,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -615,6 +618,27 @@ public class TableViewManagerImpl implements TableViewManager {
 		// trigger an update (see: PLFM-5957)
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
 		return snapshotVersion;
+	}
+
+	@Override
+	public boolean isViewUpToDate(IdAndVersion tableId) throws TableFailedException {
+		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		if(!EntityType.entityview.equals(type)) {
+			return true;
+		}
+		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		if(TableState.PROCESSING_FAILED.equals(status.getState())) {
+			throw new TableFailedException(status);
+		}
+		if(!TableState.AVAILABLE.equals(status.getState())) {
+			return false;
+		}
+		TableIndexManager indexManager = connectionFactory.connectToTableIndex(tableId);
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
+		long limit = 1L;
+		Set<Long> changes = indexManager.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
+		return changes.isEmpty();
 	}
 
 }

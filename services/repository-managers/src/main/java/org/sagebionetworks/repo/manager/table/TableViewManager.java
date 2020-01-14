@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 /**
@@ -106,5 +107,14 @@ public interface TableViewManager {
 	 * @throws Exception
 	 */
 	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
+
+	/**
+	 * An expensive call to determine if a view is up-to-date with the entity replication data.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws TableFailedException 
+	 */
+	public boolean isViewUpToDate(IdAndVersion tableId) throws TableFailedException;
 
 }

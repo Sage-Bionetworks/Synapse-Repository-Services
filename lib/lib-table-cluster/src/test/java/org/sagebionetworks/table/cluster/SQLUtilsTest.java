@@ -2829,7 +2829,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileView() {
-		long viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.file) ;
+		long viewTypeMask = ViewTypeMask.File.getMask() ;
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
@@ -2838,14 +2838,14 @@ public class SQLUtilsTest {
 				+ "		 R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.PARENT_ID IN (:scopeIds)"
+				+ "   WHERE R.PARENT_ID IN (:scopeIds) AND R.TYPE IN ('file')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
 				+ "      R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.PARENT_ID IN (:scopeIds))"
+				+ "      AND R.PARENT_ID IN (:scopeIds) AND R.TYPE IN ('file'))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 		assertEquals(expected, sql);
@@ -2853,7 +2853,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetOutOfDateRowsForViewSqlFileProject() {
-		long viewTypeMask = ViewTypeMask.getMaskForDepricatedType(ViewType.project) ;
+		long viewTypeMask = ViewTypeMask.Project.getMask();
 		// call under test
 		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
 		String expected = "WITH DELTAS (ID, MISSING) AS ("
@@ -2862,14 +2862,14 @@ public class SQLUtilsTest {
 				+ "		 R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
-				+ "   WHERE R.ID IN (:scopeIds)"
+				+ "   WHERE R.ID IN (:scopeIds) AND R.TYPE IN ('project')"
 				+ " UNION ALL"
 				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
 				+ "    RIGHT JOIN T999 V ON ("
 				+ "      R.ID = V.ROW_ID"
 				+ "      AND R.ETAG = V.ROW_ETAG"
 				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
-				+ "      AND R.ID IN (:scopeIds))"
+				+ "      AND R.ID IN (:scopeIds) AND R.TYPE IN ('project'))"
 				+ ")"
 				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
 		assertEquals(expected, sql);

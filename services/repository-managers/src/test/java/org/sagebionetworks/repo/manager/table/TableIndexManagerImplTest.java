@@ -497,7 +497,7 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		// call under test
-		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);
+		Long resultCrc = manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
@@ -514,7 +514,7 @@ public class TableIndexManagerImplTest {
 		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		try {
 			// call under test
-			manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 			fail("Should have failed");
 		} catch (IllegalArgumentException expected) {
 			// when the cause cannot be determined the original exception is thrown.
@@ -547,7 +547,7 @@ public class TableIndexManagerImplTest {
 		doThrow(error).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scope, schema);
 		try {
 			// call under test
-			manager.populateViewFromEntityReplicationWithProgress(tableId.getId(), viewType, scope, schema);
+			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 			fail("Should have failed");
 		} catch (IllegalArgumentException expected) {
 			assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
@@ -1154,6 +1154,29 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
 		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
 		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(managerSpy, never()).determineCauseOfReplicationFailure(any(), any(), any(), any());
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransaction_ExceptionDuringUpdate() {
+		setupExecuteInWriteTransaction();
+		// setup an exception on copy
+		IllegalArgumentException exception = new IllegalArgumentException("something wrong");
+		doThrow(exception).when(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		
+		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
+		Exception thrown = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+		assertEquals(exception, thrown);
+
+		verify(mockIndexDao).executeInWriteTransaction(any());
+		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
+		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		// must attempt to determine the type of exception.
+		verify(managerSpy).determineCauseOfReplicationFailure(exception, schema, scopeIds, viewType);
+		verify(managerSpy, never()).populateListColumnIndexTables(any(), any(), any());
 	}
 	
 	@Test

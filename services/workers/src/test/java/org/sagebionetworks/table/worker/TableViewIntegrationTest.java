@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -88,6 +87,8 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -629,7 +630,7 @@ public class TableViewIntegrationTest {
 			String sql = "select * from " + fileViewId;
 			waitForConsistentQuery(adminUserInfo, sql);
 			fail("should have failed");
-		} catch (AsynchJobFailedException expected) {
+		} catch (TableFailedException expected) {
 			assertEquals(
 					"The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
 					expected.getStatus().getErrorMessage());
@@ -1330,6 +1331,16 @@ public class TableViewIntegrationTest {
 		assertEquals("val3", rows.get(2).getValues().get(0));
 		assertEquals("val4", rows.get(3).getValues().get(0));
 	}
+	
+	/**
+	 * With the fix for PLFM-5966. A query against a view that is out-of-date should
+	 * no longer trigger the view's state to change to 'PROCESSING'. Instead, the
+	 * view should remain 'AVAILABLE' while changes are applied to the view.
+	 */
+	@Test
+	public void testViewRemainsAvailableWhileChanging() {
+		
+	}
 
 
 	/**
@@ -1463,10 +1474,44 @@ public class TableViewIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
+		// Wait for the view to be up-to-date before running the query
+		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
+		waitForViewToBeUpToDate(user, viewId);
+		// The view is up-to-date so run the caller's query.
 		QueryBundleRequest request = new QueryBundleRequest();
 		request.setQuery(query);
 		request.setPartMask(options.getPartMask());
-		return startAndWaitForJob(user, request, QueryResultBundle.class);
+		QueryResultBundle results =  startAndWaitForJob(user, request, QueryResultBundle.class);
+		// Keep running queries as long as a view out-of-date
+
+		return results;
+	}
+	
+	/**
+	 * Helper to wait for a view to be up-to-date
+	 * @param user
+	 * @param viewId
+	 * @throws InterruptedException
+	 * @throws AsynchJobFailedException
+	 * @throws TableFailedException 
+	 */
+	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
+		long start = System.currentTimeMillis();
+		while(!tableViewManager.isViewUpToDate(viewId)) {
+			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			System.out.println("Waiting for view "+viewId+" to be up-to-date");
+			Thread.sleep(1000);
+		}
+	}
+	
+	/**
+	 * Helper to extract a table's ID from a query.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public IdAndVersion extractTableIdFromQuery(String sqlQuery) throws ParseException {
+		return IdAndVersion.parse(TableQueryParser.parserQuery(sqlQuery).getTableName());
 	}
 	
 	/**

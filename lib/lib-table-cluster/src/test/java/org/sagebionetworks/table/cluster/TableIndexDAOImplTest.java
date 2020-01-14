@@ -2662,6 +2662,66 @@ public class TableIndexDAOImplTest {
 	}
 	
 	/**
+	 * Test that types do not match the view type are excluded from the delta.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_FilterTypes(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		// add a non-file that should not be part of the view but is in the scope.
+		EntityDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
+		
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		long limit = 100L;
+
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		// The view should not be in the results
+		assertFalse(results.contains(viewDto.getId()));
+		Set<Long> expectedResults = dtos.stream().map(it -> it.getId()).collect(Collectors.toSet());
+		assertEquals(expectedResults, results);
+	}
+	
+	/**
+	 * Test where all types are initially in the view, then the view type is 
+	 * changed to only include files.  All non-files must be removed from the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		// add a non-file that should not be part of the view but is in the scope.
+		EntityDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
+		
+		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// start including all types
+		long startingViewTypeMaks = 0xffff;
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), startingViewTypeMaks, scope, schema);
+		
+		long limit = 100L;
+		// File only type used to indicate the new type is files-only.
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		// the folder should be removed from the view.
+		Set<Long> expectedResults = Sets.newHashSet(folderDto.getId());
+		assertEquals(expectedResults, results);
+	}
+	
+	/**
 	 * Test the limit for getOutOfDateRowsForView()
 	 */
 	@Test
@@ -2728,6 +2788,24 @@ public class TableIndexDAOImplTest {
 		// create all of the rows in the replication table
 		tableIndexDAO.addEntityData(results);
 		return results;
+	}
+	
+	/**
+	 * Create an entity of the given type.
+	 * @param index
+	 * @param type
+	 * @param parentId
+	 * @return
+	 */
+	EntityDTO createEntityOfType(int index, EntityType type, long parentId) {
+		Long entityId = new Long(index+1);
+		EntityDTO entity = createEntityDTO(entityId, type, 3);
+		entity.setParentId(parentId);
+		// delete all rows if they already exist
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(entityId));
+		// create all of the rows in the replication table
+		tableIndexDAO.addEntityData(Lists.newArrayList(entity));
+		return entity;
 	}
 	
 	@Test
