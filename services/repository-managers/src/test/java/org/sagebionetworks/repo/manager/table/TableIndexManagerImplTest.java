@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -91,6 +91,8 @@ public class TableIndexManagerImplTest {
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	
 	TableIndexManagerImpl manager;
+	TableIndexManagerImpl managerSpy;
+	
 	IdAndVersion tableId;
 	Long versionNumber;
 	SparseChangeSet sparseChangeSet;
@@ -121,10 +123,9 @@ public class TableIndexManagerImplTest {
 	@SuppressWarnings("unchecked")
 	@BeforeEach
 	public void before() throws Exception{
-		MockitoAnnotations.initMocks(this);
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport);
-		
+		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;		
 		schema = Arrays.asList(
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -1067,13 +1068,140 @@ public class TableIndexManagerImplTest {
 		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
 	
+	
+	
+	/**
+	 * The default schema does not contain any list columns.
+	 */
+	@Test
+	public void testPopulateListColumnIndexTables_NoListsColumns() {
+		// call under test
+		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(mockIndexDao, never()).populateListColumnIndexTable(any(IdAndVersion.class), any(ColumnModel.class),
+				anySet());
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTables_WithListColumns() {
+		ColumnModel notAList = new ColumnModel();
+		notAList.setId("111");
+		notAList.setColumnType(ColumnType.STRING);
+		
+		ColumnModel listOne = new ColumnModel();
+		listOne.setId("222");
+		listOne.setColumnType(ColumnType.STRING_LIST);
+		
+		ColumnModel listTwo = new ColumnModel();
+		listTwo.setId("333");
+		listTwo.setColumnType(ColumnType.STRING_LIST);
+		schema = Lists.newArrayList(notAList, listOne, listTwo);
+		
+		// call under test
+		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges);
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTables_NoChange() {
+		// call under test
+		managerSpy.populateListColumnIndexTables(tableId, schema);
+		// pass null changes
+		rowsIdsWithChanges = null;
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTables_NullRowChanges() {
+		ColumnModel listOne = new ColumnModel();
+		listOne.setId("222");
+		listOne.setColumnType(ColumnType.STRING_LIST);
+		
+		schema = Lists.newArrayList(listOne);
+		// null rowID is allowed and means apply to all rows.
+		rowsIdsWithChanges = null;
+		// call under test
+		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null);
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullTableId() {
+		tableId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		});
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullSchema() {
+		schema = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
+		});
+	}
+	
 	@Test
 	public void testUpdateViewRowsInTransaction() {
 		setupExecuteInWriteTransaction();
+		Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
 		// call under test
-		manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		managerSpy.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		verify(mockIndexDao).executeInWriteTransaction(any());
+		verify(mockIndexDao).deleteRowsFromViewBatch(tableId, rowsIdsArray);
+		verify(mockIndexDao).copyEntityReplicationToView(tableId.getId(), viewType, scopeIds, schema, rowsIdsWithChanges);
+		verify(managerSpy).populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 	}
 	
+	@Test
+	public void testUpdateViewRowsInTransaction_NullTableId() {
+		tableId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransaction_Changes() {
+		rowsIdsWithChanges = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransaction_ViewType() {
+		viewType = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransaction_ScopeIds() {
+		scopeIds = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+	}
+	
+	@Test
+	public void testUpdateViewRowsInTransaction_Schema() {
+		schema = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+		});
+	}
+	
+	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {
 		// When a write transaction callback is used, we need to call the callback.
 		doAnswer(new Answer<Void>(){

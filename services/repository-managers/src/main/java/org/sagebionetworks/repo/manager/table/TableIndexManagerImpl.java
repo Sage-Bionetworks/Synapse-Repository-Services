@@ -259,6 +259,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema, Set<Long> rowIds){
+		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
+		ValidateArgument.required(schema, "schema");
 		for(ColumnModel column: schema) {
 			if (ColumnTypeListMappings.isList(column.getColumnType())) {
 				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds);
@@ -542,6 +544,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(rowsIdsWithChanges, "rowsIdsWithChanges");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		ValidateArgument.required(currentSchema, "currentSchema");
 		// all calls are in a single transaction.
 		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
