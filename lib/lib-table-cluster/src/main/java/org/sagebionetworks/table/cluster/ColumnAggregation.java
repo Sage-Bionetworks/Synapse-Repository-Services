@@ -7,7 +7,8 @@ public class ColumnAggregation {
 
 	String columnName;
 	String columnTypeConcat;
-	Long maxSize;
+	Long maxStringElementSize;
+	Long listSize;
 	
 	public String getColumnName() {
 		return columnName;
@@ -21,19 +22,26 @@ public class ColumnAggregation {
 	public void setColumnTypeConcat(String columnTypeConcat) {
 		this.columnTypeConcat = columnTypeConcat;
 	}
-	public Long getMaxSize() {
-		return maxSize;
+	public Long getMaxStringElementSize() {
+		return maxStringElementSize;
 	}
-	public void setMaxSize(Long maxSize) {
-		this.maxSize = maxSize;
+	public void setMaxStringElementSize(Long maxStringElementSize) {
+		this.maxStringElementSize = maxStringElementSize;
 	}
+	public Long getListSize() {
+		return listSize;
+	}
+	public void setListSize(Long listSize) {
+		this.listSize = listSize;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((columnName == null) ? 0 : columnName.hashCode());
 		result = prime * result + ((columnTypeConcat == null) ? 0 : columnTypeConcat.hashCode());
-		result = prime * result + ((maxSize == null) ? 0 : maxSize.hashCode());
+		result = prime * result + ((maxStringElementSize == null) ? 0 : maxStringElementSize.hashCode());
 		return result;
 	}
 	@Override
@@ -55,17 +63,17 @@ public class ColumnAggregation {
 				return false;
 		} else if (!columnTypeConcat.equals(other.columnTypeConcat))
 			return false;
-		if (maxSize == null) {
-			if (other.maxSize != null)
+		if (maxStringElementSize == null) {
+			if (other.maxStringElementSize != null)
 				return false;
-		} else if (!maxSize.equals(other.maxSize))
+		} else if (!maxStringElementSize.equals(other.maxStringElementSize))
 			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
 		return "ColumnAggregation [columnName=" + columnName + ", columnTypeConcat=" + columnTypeConcat + ", maxSize="
-				+ maxSize + "]";
+				+ maxStringElementSize + "]";
 	}
 	
 	

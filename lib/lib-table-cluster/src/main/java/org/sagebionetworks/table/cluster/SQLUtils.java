@@ -1754,6 +1754,12 @@ public class SQLUtils {
 		ps.setString(parameterIndex++, dto.getType().name());
 		List<String> stringList = dto.getValue();
 
+		Integer maxElementStringSize = stringList.stream()
+				.map(String::length)
+				.max(Integer::compareTo)
+				.orElse(0);
+		ps.setLong(parameterIndex++, maxElementStringSize);
+
 		String stringValue = stringList.isEmpty() ? null : stringList.get(0);
 
 		ps.setString(parameterIndex++, stringValue);

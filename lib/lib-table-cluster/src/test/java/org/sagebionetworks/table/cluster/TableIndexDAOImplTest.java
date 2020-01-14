@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -1235,12 +1238,12 @@ public class TableIndexDAOImplTest {
 	public void testEntityReplication(){
 		// delete all data
 		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
-		
+
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
 		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
 		tableIndexDAO.addEntityData(Lists.newArrayList(file, folder, project));
-		
+
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
 		assertEquals(project, fetched);
@@ -1248,6 +1251,30 @@ public class TableIndexDAOImplTest {
 		assertEquals(folder, fetched);
 		fetched = tableIndexDAO.getEntityData(3L);
 		assertEquals(file, fetched);
+	}
+
+	@Test
+	public void testEntityReplication_maxStringLength(){
+		// delete all data
+		long id = 1L;
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(id));
+
+		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
+		AnnotationDTO stringAnno = new AnnotationDTO();
+		stringAnno.setEntityId(id);
+		stringAnno.setType(AnnotationType.STRING);
+		stringAnno.setKey("myStringAnno");
+		stringAnno.setValue(Arrays.asList("a", "ab", "aaa", "abc", "c"));
+		project.setAnnotations(Collections.singletonList(stringAnno));
+
+		tableIndexDAO.addEntityData(Collections.singletonList(project));
+
+		// lookup the column manually
+		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
+				" FROM " + ANNOTATION_REPLICATION_TABLE +
+				" WHERE " + ANNOTATION_REPLICATION_COL_ENTITY_ID + "=" + id;
+		long queriedMaxSize = tableIndexDAO.getConnection().queryForObject(query, Long.class);
+		assertEquals(3, queriedMaxSize);
 	}
 
 	@Test
@@ -1839,6 +1866,51 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.addEntityData(Lists.newArrayList(file1));
 	}
+
+	//PLFM-6013
+	@Test
+	public void testGetPossibleAnnotationsForContainers_ListColumns(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
+
+
+		String annoKey = "myAnnotation";
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
+		file1.setParentId(333L);
+
+		AnnotationDTO annotationDTO1 = new AnnotationDTO();
+		annotationDTO1.setKey(annoKey);
+		annotationDTO1.setType(AnnotationType.STRING);
+		annotationDTO1.setEntityId(2L);
+		annotationDTO1.setValue(Arrays.asList("123", "123456"));
+		file1.setAnnotations(Collections.singletonList(annotationDTO1));
+
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
+		file2.setParentId(222L);
+		AnnotationDTO annotationDTO2 = new AnnotationDTO();
+		annotationDTO2.setKey(annoKey);
+		annotationDTO2.setType(AnnotationType.STRING);
+		annotationDTO2.setEntityId(3L);
+		annotationDTO2.setValue(Arrays.asList("12", "1234"));
+		file2.setAnnotations(Collections.singletonList(annotationDTO2));
+
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
+
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
+		assertNotNull(columns);
+		assertEquals(1, columns.size());
+
+		ColumnModel cm = columns.get(0);
+		assertEquals(annoKey, cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(6L, cm.getMaximumSize());
+
+	}
 	
 	@Test
 	public void testExpandFromAggregation() {
@@ -1846,21 +1918,32 @@ public class TableIndexDAOImplTest {
 		ColumnAggregation one = new ColumnAggregation();
 		one.setColumnName("foo");
 		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
-		one.setMaxSize(101L);
-		
+		one.setMaxStringElementSize(101L);
+		one.setListSize(1L);
+
+
 		ColumnAggregation two = new ColumnAggregation();
 		two.setColumnName("bar");
 		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
-		two.setMaxSize(0L);
-		
+		two.setMaxStringElementSize(0L);
+		two.setListSize(1L);
+
+
 		ColumnAggregation three = new ColumnAggregation();
 		three.setColumnName("foobar");
 		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
-		three.setMaxSize(202L);
+		three.setMaxStringElementSize(202L);
+		three.setListSize(1L);
+
+		ColumnAggregation four = new ColumnAggregation();
+		four.setColumnName("barbaz");
+		four.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		four.setMaxStringElementSize(111L);
+		four.setListSize(3L);
 
 		// call under test
-		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three));
-		assertEquals(5, results.size());
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three,four));
+		assertEquals(6, results.size());
 		// zero
 		ColumnModel cm = results.get(0);
 		assertEquals("foo", cm.getName());
@@ -1885,7 +1968,12 @@ public class TableIndexDAOImplTest {
 		cm = results.get(4);
 		assertEquals("foobar", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(202), cm.getMaximumSize());		
+		assertEquals(new Long(202), cm.getMaximumSize());
+		// five
+		cm = results.get(5);
+		assertEquals("barbaz", cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(new Long(111), cm.getMaximumSize());
 	}
 	
 	/**
