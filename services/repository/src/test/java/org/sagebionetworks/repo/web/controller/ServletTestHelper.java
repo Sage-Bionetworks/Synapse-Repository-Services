@@ -1162,6 +1162,34 @@ public class ServletTestHelper {
 				accessApproval.getClass());
 	}
 
+	public PaginatedResults<AccessApproval> getEntityAccessApprovals(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_APPROVAL,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessApproval.class);
+	}
+
+	public PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/evaluation/" + id + UrlHelpers.ACCESS_APPROVAL,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessApproval.class);
+	}
+
 	public void deleteAccessApproval(HttpServlet dispatchServlet,
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
