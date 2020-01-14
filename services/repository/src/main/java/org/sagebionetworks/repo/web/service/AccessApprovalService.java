@@ -27,10 +27,6 @@ public interface AccessApprovalService {
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 
-	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
-			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-
 	public void deleteAccessApproval(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 

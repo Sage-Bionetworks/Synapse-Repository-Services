@@ -47,17 +47,6 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		return accessApprovalManager.getAccessApproval(userInfo, approvalId);
 	}
 
-	@Override
-	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 
-			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
-					throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		List<AccessApproval> results = 
-			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId, limit, offset);
-		return PaginatedResults.createMisusedPaginatedResults(results);
-	}
-
 	@WriteTransaction
 	@Override
 	public void deleteAccessApproval(Long userId, String approvalId) 
