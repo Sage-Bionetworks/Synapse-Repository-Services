@@ -53,20 +53,6 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	@Override
-	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) 
-			throws DatastoreException, UnauthorizedException, 
-			NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-	
-		List<AccessRequirement> results = 
-			accessRequirementManager.getAllUnmetAccessRequirements(userInfo, subjectId, accessType);
-
-		// This services is not actually paginated so PaginatedResults is being misused.
-		return PaginatedResults.createMisusedPaginatedResults(results);
-	}
-	
-	@Override
 	public AccessRequirement getAccessRequirement(String requirementId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		return accessRequirementManager.getAccessRequirement(requirementId);
