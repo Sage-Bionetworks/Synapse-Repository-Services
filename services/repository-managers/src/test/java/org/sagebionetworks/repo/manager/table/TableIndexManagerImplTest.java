@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager.table;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -29,14 +29,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -74,6 +76,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@ExtendWith(MockitoExtension.class)
 public class TableIndexManagerImplTest {
 	
 	@Mock
@@ -112,9 +115,11 @@ public class TableIndexManagerImplTest {
 	ColumnModel newColumn;
 	List<ColumnChangeDetails> columnChanges;
 	
+	Set<Long> rowsIdsWithChanges;
+	
 	
 	@SuppressWarnings("unchecked")
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		MockitoAnnotations.initMocks(this);
 		tableId = IdAndVersion.parse("syn123");
@@ -147,20 +152,7 @@ public class TableIndexManagerImplTest {
 		groupOne = it.next();
 		groupTwo = it.next();
 		
-		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		
-		// When a write transaction callback is used, we need to call the callback.
-		doAnswer(new Answer<Void>(){
-
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
-				callback.doInTransaction(mockTransactionStatus);
-				return null;
-			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
-		
 		crc32 = 5678L;
-		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
 		
 		containerIds = Sets.newHashSet(1l,2L,3L);
 		limit = 10L;
@@ -170,10 +162,7 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 		viewType = ViewTypeMask.File.getMask();
-		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
-		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
-		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
+
 		scope = new ViewScope();
 		scope.setScope(scopeSynIds);
 		scope.setViewTypeMask(viewType);
@@ -182,21 +171,30 @@ public class TableIndexManagerImplTest {
 		newColumn = new ColumnModel();
 		newColumn.setId("12");
 		columnChanges = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		
+		rowsIdsWithChanges = Sets.newHashSet(444L,555L);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testNullDao(){
-		new TableIndexManagerImpl(null, mockManagerSupport);	
+		assertThrows(IllegalArgumentException.class, ()->{
+			new TableIndexManagerImpl(null, mockManagerSupport);	
+		});
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testNullSupport(){
-		new TableIndexManagerImpl(mockIndexDao, null);			
+		assertThrows(IllegalArgumentException.class, ()->{
+			new TableIndexManagerImpl(mockIndexDao, null);			
+		});
 	}
 	
 	@Test
 	public void testApplyChangeSetToIndexHappy(){
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+
 		//call under test.
 		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
 		// All changes should be executed in a transaction
@@ -225,6 +223,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testApplyChangeSetToIndexNoFiles(){
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		// no files in the schema
 		schema = Arrays.asList(
 				TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -412,6 +412,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testPopulateViewFromEntityReplication(){
+		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+
 		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
@@ -453,35 +455,43 @@ public class TableIndexManagerImplTest {
 		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPopulateViewFromEntityReplicationNullViewType(){
 		viewType = null;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPopulateViewFromEntityReplicationScopeNull(){
 		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = null;
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testPopulateViewFromEntityReplicationSchemaNull(){
 		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = null;
-		// call under test
-		manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.populateViewFromEntityReplication(tableId.getId(), viewType, scope, schema);
+		});
 	}
 	
 	@Test
 	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
+		when(mockIndexDao.calculateCRC32ofTableView(any(Long.class))).thenReturn(crc32);
+
 		viewType = ViewTypeMask.File.getMask();
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
@@ -547,6 +557,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
 		assertNotNull(results);
@@ -558,6 +570,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPageNullToken(){
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
 		tokenString = null;
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
@@ -584,12 +597,14 @@ public class TableIndexManagerImplTest {
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerIsNullContainerIds(){
 		String token = nextPageToken.toToken();
 		containerIds = null;
-		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
+		});
 	}
 	
 	@Test
@@ -606,16 +621,22 @@ public class TableIndexManagerImplTest {
 	}
 	
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerIsOverLimit(){
 		limit = NextPageToken.MAX_LIMIT+1;
 		nextPageToken = new NextPageToken(limit, offset);
-		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
+		});
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForView(){
+		when(mockManagerSupport.getViewTypeMask(tableId)).thenReturn(viewType);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId, viewType)).thenReturn(containerIds);
+
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId.getId(), tokenString);
 		assertNotNull(results);
@@ -623,15 +644,19 @@ public class TableIndexManagerImplTest {
 		assertEquals(schema, results.getResults());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetPossibleAnnotationDefinitionsForViewNullId(){
 		Long viewId = null;
-		// call under test
-		manager.getPossibleColumnModelsForView(viewId, tokenString);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getPossibleColumnModelsForView(viewId, tokenString);
+		});
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
 		assertNotNull(results);
@@ -641,6 +666,9 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(Long.class), anyLong(), anyLong())).thenReturn(schema);
+		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds, viewType)).thenReturn(containerIds);
+
 		viewType = null;
 		// call under test
 		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scope, tokenString);
@@ -649,11 +677,13 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), nextPageToken.getLimitForQuery(), nextPageToken.getOffset());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
 		scope.setScope(null);
-		// call under test
-		manager.getPossibleColumnModelsForScope(scope, tokenString);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getPossibleColumnModelsForScope(scope, tokenString);
+		});
 	}
 	
 	/**
@@ -695,6 +725,9 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testApplyRowChangeToIndex() {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+
 		long changeNumber = 333l;
 		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
 		// call under test
@@ -722,6 +755,8 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testAppleyChangeToIndexRow() throws NotFoundException, IOException {
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		long changeNumber = 444L;
 		TableChangeMetaData mockChange = setupMockRowChange(changeNumber);
 		//call under test
@@ -746,6 +781,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLock() throws Exception {
+		setupExecuteInWriteTransaction();
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		when(mockManagerSupport.getTableSchema(tableId)).thenReturn(schema);
 		List<TableChangeMetaData> list = setupMockChanges();
@@ -771,6 +807,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildIndexToChangeNumberWithExclusiveLockWithVersion() throws Exception {
+		setupExecuteInWriteTransaction();
 		tableId = IdAndVersion.parse("syn123.1");
 		when(mockManagerSupport.getTableSchema(tableId)).thenReturn(schema);
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
@@ -858,9 +895,6 @@ public class TableIndexManagerImplTest {
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		String resetToken = "resetToken";
 		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenReturn(lastEtag);
 
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
@@ -879,15 +913,9 @@ public class TableIndexManagerImplTest {
 		// no work is needed
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(false);
 		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 		String lastEtag = "lastEtag";
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenReturn(lastEtag);
-
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
 		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
 		verify(mockManagerSupport, never()).startTableProcessing(any(IdAndVersion.class));
@@ -1039,6 +1067,24 @@ public class TableIndexManagerImplTest {
 		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
 	
+	@Test
+	public void testUpdateViewRowsInTransaction() {
+		setupExecuteInWriteTransaction();
+		// call under test
+		manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
+	}
+	
+	public void setupExecuteInWriteTransaction() {
+		// When a write transaction callback is used, we need to call the callback.
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
+				callback.doInTransaction(mockTransactionStatus);
+				return null;
+			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+	}
+	
 	
 	/**
 	 * Helper to setup both a row and column change within a list.
@@ -1060,13 +1106,13 @@ public class TableIndexManagerImplTest {
 	 * @throws NotFoundException 
 	 */
 	public TableChangeMetaData setupMockRowChange(long changeNumber) throws NotFoundException, IOException {
-		TableChangeMetaData mockChange = Mockito.mock(TableChangeMetaData.class);
-		when(mockChange.getChangeNumber()).thenReturn(changeNumber);
-		when(mockChange.getETag()).thenReturn("etag-"+changeNumber);
-		when(mockChange.getChangeType()).thenReturn(TableChangeType.ROW);
+		TestTableChangeMetaData<SparseChangeSet> testChange = new TestTableChangeMetaData<>();
+		testChange.setChangeNumber(changeNumber);
+		testChange.seteTag("etag-"+changeNumber);
+		testChange.setChangeType(TableChangeType.ROW);
 		ChangeData<SparseChangeSet> change = new ChangeData<SparseChangeSet>(changeNumber, sparseChangeSet);
-		when(mockChange.loadChangeData(SparseChangeSet.class)).thenReturn(change);
-		return mockChange;
+		testChange.setChangeData(change);
+		return testChange;
 	}
 	
 	/**
@@ -1076,14 +1122,14 @@ public class TableIndexManagerImplTest {
 	 * @throws NotFoundException 
 	 */
 	public TableChangeMetaData setupMockColumnChange(long changeNumber) throws NotFoundException, IOException {
-		TableChangeMetaData mockChange = Mockito.mock(TableChangeMetaData.class);
-		when(mockChange.getChangeNumber()).thenReturn(changeNumber);
-		when(mockChange.getETag()).thenReturn("etag-"+changeNumber);
-		when(mockChange.getChangeType()).thenReturn(TableChangeType.COLUMN);
+		TestTableChangeMetaData<SchemaChange> testChange = new TestTableChangeMetaData<>();
+		testChange.setChangeNumber(changeNumber);
+		testChange.seteTag("etag-"+changeNumber);
+		testChange.setChangeType(TableChangeType.COLUMN);
 		SchemaChange schemaChange = new SchemaChange(columnChanges);
 		ChangeData<SchemaChange> change = new ChangeData<SchemaChange>(changeNumber, schemaChange);
-		when(mockChange.loadChangeData(SchemaChange.class)).thenReturn(change);
-		return mockChange;
+		testChange.setChangeData(change);
+		return testChange;
 	}
 	
 	/**
