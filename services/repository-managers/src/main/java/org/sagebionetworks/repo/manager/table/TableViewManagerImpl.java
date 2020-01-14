@@ -421,6 +421,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					indexManager.updateViewRowsInTransaction(viewId, rowsIdsWithChanges, viewTypeMask, allContainersInScope,
 							currentSchema);
 					previousPageRowIdsWithChanges = rowsIdsWithChanges;
+					tableManagerSupport.updateChangedOnIfAvailable(viewId);
 				}
 			} while (!rowsIdsWithChanges.isEmpty());
 		} catch (Exception e) {

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -550,7 +551,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		if (indexDao != null) {
 			indexDao.deleteTable(idAndVersion);
 		}
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableType(idAndVersion));
@@ -581,6 +582,16 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public TableState getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException {
 		return tableStatusDAO.getTableStatusState(idAndVersion);
+	}
+	
+	@Override
+	public boolean updateChangedOnIfAvailable(IdAndVersion idAndVersion) {
+		return tableStatusDAO.updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	@Override
+	public Date getLastChangedOn(IdAndVersion idAndVersion) {
+		return tableStatusDAO.getLastChangedOn(idAndVersion);
 	}
 
 }

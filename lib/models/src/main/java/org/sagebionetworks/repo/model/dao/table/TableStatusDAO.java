@@ -117,7 +117,7 @@ public interface TableStatusDAO {
 	public void clearAllTableState();
 	
 	/**
-	 * The date the given table/view as changed on.
+	 * The the last changed on date for the given table.
 	 * @param tableId
 	 * @return
 	 */

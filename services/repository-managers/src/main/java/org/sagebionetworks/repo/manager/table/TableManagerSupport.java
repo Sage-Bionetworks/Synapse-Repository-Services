@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -438,5 +439,22 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
+
+	/**
+	 * Will update the tableStatus.changedOn for the given table if its state is
+	 * currently available. If the table's state is not available, this call will do
+	 * nothing.
+	 * 
+	 * @param tableId
+	 * @return True if the table's state was available and changeOn was updated.
+	 */
+	boolean updateChangedOnIfAvailable(IdAndVersion idAndVersion);
+
+	/**
+	 * Get table status last changed on date for the given table.
+	 * @param idAndVersion
+	 * @return
+	 */
+	Date getLastChangedOn(IdAndVersion idAndVersion);
 
 }

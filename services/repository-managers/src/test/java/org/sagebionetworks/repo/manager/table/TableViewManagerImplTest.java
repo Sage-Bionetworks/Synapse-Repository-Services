@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -1196,6 +1197,7 @@ public class TableViewManagerImplTest {
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	@Test
@@ -1210,6 +1212,7 @@ public class TableViewManagerImplTest {
 				anySet(), anyList());
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockTableManagerSupport, never()).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	/**
@@ -1232,6 +1235,7 @@ public class TableViewManagerImplTest {
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockTableManagerSupport, times(2)).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	@Test
@@ -1252,6 +1256,7 @@ public class TableViewManagerImplTest {
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	/**
@@ -1274,6 +1279,7 @@ public class TableViewManagerImplTest {
 				allContainersInScope, viewSchema);
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
 				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
 	}
 	
 	/**
