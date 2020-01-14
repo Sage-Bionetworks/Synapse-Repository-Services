@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -1008,11 +1009,12 @@ public class NodeDAOImplTest {
 		// Now try to create a new version with a null label
 		loaded.setVersionLabel(null);
 		Long newNumber = nodeDao.createNewVersion(loaded);
-		// Since creation of a new version failed we should be back to one version
+		// With a null label the version label should be assigned as the new version number
 		loaded = nodeDao.getNode(id);
 		assertNotNull(loaded);
 		assertEquals(node.getVersionComment(), loaded.getVersionComment());
 		assertEquals(newNumber.toString(), loaded.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER + 1, loaded.getVersionNumber());
 	}
 	
 	@Test
@@ -1133,6 +1135,21 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetLatestVersionNumber() throws Exception {
+		// Create a number of versions
+		int numberVersions = 5;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		
+		Node currentNode = nodeDao.getNode(id);
+		
+		// Call under test
+		Optional<Long> result = nodeDao.getLatestVersionNumber(id);
+		
+		assertTrue(result.isPresent());
+		assertEquals(currentNode.getVersionNumber(), result.get());
+	}
+	
+	@Test
 	public void testGetVersionInfo() throws Exception {
 		// Create a number of versions
 		int numberVersions = 10;
@@ -1220,20 +1237,52 @@ public class NodeDAOImplTest {
 		List<Long> startingVersions = nodeDao.getVersionNumbers(id);
 		assertNotNull(startingVersions);
 		assertEquals(numberVersions, startingVersions.size());
-		// Now delete all versions. This should fail.
-		try{
-			for(Long versionNumber: startingVersions){
-				nodeDao.deleteVersion(id, versionNumber);
-			}
-			fail("Should not have been able to delte all versions of a node");
-		}catch(IllegalArgumentException e){
-			// expected.
+		
+		// Now delete all versions but the last one.
+		for (Long versionNumber : startingVersions.subList(0, startingVersions.size() - 1)) {	
+			nodeDao.deleteVersion(id, versionNumber);
 		}
+		
+		// The following fails as it is the latest version
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			nodeDao.deleteVersion(id, startingVersions.get(startingVersions.size() - 1));
+		});
+		
 		// There should be one version left and it should be the first version.
 		node = nodeDao.getNode(id);
 		assertNotNull(node);
 		assertEquals(new Long(1), node.getVersionNumber(),
 				"Deleting all versions except the first should have left the node in place with a current version of 1.");
+	}
+	
+	// Test for PLFM-3781: Older revisions should not be recycled
+	@Test
+	public void testCreateNewVersionAfterVersionDeletion() throws Exception {
+		int numberVersions = 2;
+		
+		// Creates a node with 2 versions
+		String id = createNodeWithMultipleVersions(numberVersions);
+		
+		// Now deletes the latest version
+		Long latestVersion = nodeDao.getLatestVersionNumber(id).get();
+		
+		nodeDao.deleteVersion(id, latestVersion);
+		
+		// Creates a new version
+		Node node = nodeDao.getNode(id);
+		Node newVersion = node;
+		
+		// Reset the label to avoid duplicates
+		newVersion.setVersionLabel(null);
+		
+		Long newVersionNumber = nodeDao.createNewVersion(newVersion);
+		
+		node = nodeDao.getNode(id);
+		
+		// The new version assigned to the node should not reuse old version numbers
+		assertEquals(newVersionNumber, node.getVersionNumber());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER + numberVersions, newVersionNumber);
+		
 	}
 	
 	//anything less than 15 works

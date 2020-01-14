@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_DIGEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOCKER_COMMIT_OWNER_ID;
@@ -53,7 +53,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	private static final String UPDATE_REVISION_SQL = 
 			"UPDATE "+TABLE_REVISION+" r SET r."+COL_REVISION_MODIFIED_BY+"=?, r."+
 			COL_REVISION_MODIFIED_ON+"=? WHERE r."+COL_REVISION_OWNER_NODE+"=? "+
-			" AND r."+COL_REVISION_NUMBER+"= (SELECT n."+COL_CURRENT_REV+" FROM "+
+			" AND r."+COL_REVISION_NUMBER+"= (SELECT n."+COL_NODE_CURRENT_REV+" FROM "+
 			TABLE_NODE+" n WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+")";
 
 	// get the latest tags for an entity

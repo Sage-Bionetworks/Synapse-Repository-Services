@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
