@@ -472,14 +472,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The maximum number of entities that can be moved into the trash can at one
-	 * time.
-	 */
-	public int getTrashCanMaxTrashable() {
-		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.manager.trash.max.trashable"));
-	}
-
-	/**
 	 * Stack and instance: <stack>-<stack_instance>
 	 * 
 	 * @return
@@ -1200,5 +1192,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public int getMaximumMonthsForMonthlyStatistics() {
 		return  Integer.parseInt(configuration.getProperty("org.sagebionetworks.statistics.monthly.max"));
+	}
+	
+	@Override
+	public boolean getTrashCanPurgeEnabled() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.trashcan.purge.enabled"));
 	}
 }

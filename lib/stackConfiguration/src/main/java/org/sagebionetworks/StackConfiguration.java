@@ -285,12 +285,6 @@ public interface StackConfiguration {
 	public String getWorkflowExecutionRetentionPeriodInDays();
 
 	/**
-	 * The maximum number of entities that can be moved into the trash can at one
-	 * time.
-	 */
-	public int getTrashCanMaxTrashable();
-
-	/**
 	 * Stack and instance: <stack>-<stack_instance>
 	 * 
 	 * @return
@@ -807,5 +801,10 @@ public interface StackConfiguration {
 	 * @return The maximum number of months to process for monthly statistics
 	 */
 	public int getMaximumMonthsForMonthlyStatistics();
+	
+	/**
+	 * @return True if the purge of the trash can is enabled, false otherwise
+	 */
+	public boolean getTrashCanPurgeEnabled();
 
 }

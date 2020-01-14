@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
-import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.entity.SortBy;
@@ -87,22 +86,24 @@ public interface NodeDAO {
 	public Node getNodeForVersion(String id, Long versionNumber);
 	
 	/**
-	 * Delete a node using its id.
-	 * @param id
-	 * @return boolean
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public boolean delete(String id) throws DatastoreException;
-	
-	/**
-	 * Delete all nodes within a list of IDs. All nodes in the list must have < 14 levels of children.
-	 * @param IDs list of IDs to remove
-	 * @return int number of nodes deleted
+	 * Deletes the node with the given id. If the node is a container the sub-tree must have less than 15 levels of depth.
+	 * 
+	 * @param id The if of a node
+	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public int delete(List<Long> IDs) throws DatastoreException;
+	public void delete(String id) throws DatastoreException;
 	
+	/**
+	 * Deletes the tree of nodes rooted in the node with the given id starting from the leaves of the sub-tree. Deletes
+	 * a maximum of subTreeLimit nodes in the sub-tree. This method runs in a new transaction.
+	 * 
+	 * @param id The if of the root node
+	 * @return True if the whole sub-tree along with the node was deleted, false if the sub-tree has more than the given
+	 * number of nodes and additional calls are needed in order to delete the node.
+	 */
+	public boolean deleteTree(String id, int subTreeLimit);
+		
 	/**
 	 * Delete a specific version.
 	 * @param id
@@ -464,6 +465,16 @@ public interface NodeDAO {
 	Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
 	
 	/**
+	 * Return all the nodes in the sub tree of the node with the given id ordered (decreasing) by their distance from
+	 * the input node.
+	 *  
+	 * @param parentId The id of a (container) node
+	 * @param limit The max number of nodes to be fetched
+	 * @return The list of nodes in the sub-tree of the node with the given id, does not include the input node id
+	 */
+	List<Long> getSubTreeNodeIdsOrderByDistanceDesc(Long parentId, int limit);
+	
+	/**
 	 * Lookup a nodeId using its alias.
 	 * @param alias
 	 * @return
@@ -603,6 +614,5 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getNodeName(String nodeId);
-
 
 }

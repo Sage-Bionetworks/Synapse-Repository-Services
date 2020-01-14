@@ -583,10 +583,6 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteEntityById(String entityId, Boolean skipTrashCan) throws SynapseException;
 
-	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
-
-	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
-
 	public <T extends Entity> void deleteEntityVersion(T entity,
 			Long versionNumber) throws SynapseException;
 
@@ -1028,10 +1024,17 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit)
 			throws SynapseException;
+	
+	public void flagForPurge(String entityId) throws SynapseException;
 
+	/**
+	 * Deprecated, will have the same effect as {@link #flagForPurge(String)}
+	 * 
+	 * @param entityId
+	 * @throws SynapseException
+	 */
+	@Deprecated
 	public void purgeTrashForUser(String entityId) throws SynapseException;
-
-	public void purgeTrashForUser() throws SynapseException;
 
 	public EntityHeader addFavorite(String entityId) throws SynapseException;
 
