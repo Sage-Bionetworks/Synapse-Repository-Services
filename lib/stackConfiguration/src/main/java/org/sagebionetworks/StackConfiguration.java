@@ -801,10 +801,5 @@ public interface StackConfiguration {
 	 * @return The maximum number of months to process for monthly statistics
 	 */
 	public int getMaximumMonthsForMonthlyStatistics();
-	
-	/**
-	 * @return True if the purge of the trash can is enabled, false otherwise
-	 */
-	public boolean getTrashCanPurgeEnabled();
 
 }
