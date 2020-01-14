@@ -1,4 +1,7 @@
 package org.sagebionetworks.table.cluster;
+
+import java.util.Objects;
+
 /**
  * Results of of a column model aggregation query.
  *
@@ -35,46 +38,30 @@ public class ColumnAggregation {
 		this.listSize = listSize;
 	}
 
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		ColumnAggregation that = (ColumnAggregation) o;
+		return Objects.equals(columnName, that.columnName) &&
+				Objects.equals(columnTypeConcat, that.columnTypeConcat) &&
+				Objects.equals(maxStringElementSize, that.maxStringElementSize) &&
+				Objects.equals(listSize, that.listSize);
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((columnName == null) ? 0 : columnName.hashCode());
-		result = prime * result + ((columnTypeConcat == null) ? 0 : columnTypeConcat.hashCode());
-		result = prime * result + ((maxStringElementSize == null) ? 0 : maxStringElementSize.hashCode());
-		return result;
+		return Objects.hash(columnName, columnTypeConcat, maxStringElementSize, listSize);
 	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		ColumnAggregation other = (ColumnAggregation) obj;
-		if (columnName == null) {
-			if (other.columnName != null)
-				return false;
-		} else if (!columnName.equals(other.columnName))
-			return false;
-		if (columnTypeConcat == null) {
-			if (other.columnTypeConcat != null)
-				return false;
-		} else if (!columnTypeConcat.equals(other.columnTypeConcat))
-			return false;
-		if (maxStringElementSize == null) {
-			if (other.maxStringElementSize != null)
-				return false;
-		} else if (!maxStringElementSize.equals(other.maxStringElementSize))
-			return false;
-		return true;
-	}
+
 	@Override
 	public String toString() {
-		return "ColumnAggregation [columnName=" + columnName + ", columnTypeConcat=" + columnTypeConcat + ", maxSize="
-				+ maxStringElementSize + "]";
+		return "ColumnAggregation{" +
+				"columnName='" + columnName + '\'' +
+				", columnTypeConcat='" + columnTypeConcat + '\'' +
+				", maxStringElementSize=" + maxStringElementSize +
+				", listSize=" + listSize +
+				'}';
 	}
-	
-	
 }
