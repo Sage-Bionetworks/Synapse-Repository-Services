@@ -148,14 +148,6 @@ public class VerificationManagerImplTest {
 		PrincipalAlias actAlias = new PrincipalAlias();
 		actAlias.setAlias("Synapse Access and Compliance Team");
 		actPaList = Collections.singletonList(actAlias);
-		
-//		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
-//		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(PRIMARY_EMAIL);
-//		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
-//		when(mockPrincipalAliasDAO.listPrincipalAliases(
-//				TeamConstants.ACT_TEAM_ID, AliasType.TEAM_NAME)).
-//				thenReturn(actPaList);
-
 	}
 	
 	@Test

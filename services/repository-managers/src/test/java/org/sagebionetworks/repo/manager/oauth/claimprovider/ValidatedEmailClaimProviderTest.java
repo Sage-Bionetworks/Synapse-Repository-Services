@@ -15,18 +15,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
-
-import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ValidatedEmailClaimProviderTest {
 	
 	@Mock
 	private UserProfileManager mockUserProfileManager;
+	
+	@Mock
+	private NotificationEmailDAO mockNotificationEmailDao;
 	
 	@InjectMocks
 	private ValidatedEmailClaimProvider claimProvider;
