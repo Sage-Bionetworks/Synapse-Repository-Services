@@ -40,6 +40,7 @@ public class ValidatedEmailClaimProvider implements OIDCClaimProvider {
 		if (verificationSubmission.getEmails().size()==1) {
 			return verificationSubmission.getEmails().get(0);
 		}
+		
 		// most of the remaining can be disambiguated by the current notification email:
 		String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(userId));
 		if (verificationSubmission.getEmails().contains(currentNotificationEmail)) {

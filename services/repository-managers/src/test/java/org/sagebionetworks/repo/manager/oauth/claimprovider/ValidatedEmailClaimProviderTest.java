@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
+import com.google.common.collect.ImmutableList;
+
 @RunWith(MockitoJUnitRunner.class)
 public class ValidatedEmailClaimProviderTest {
 	
@@ -42,26 +44,70 @@ public class ValidatedEmailClaimProviderTest {
 	@Before
 	public void setUp() {
 		verificationSubmission = new VerificationSubmission();
-		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
-	}
-
-	@Test
-	public void testClaim() {
-		// method under test
-		assertEquals(OIDCClaimName.validated_email, claimProvider.getName());
-		// method under test
-		assertNotNull(claimProvider.getDescription());
-		// method under test
-		assertNull(claimProvider.getClaim(USER_ID, null));
-		
 		VerificationState verificationState = new VerificationState();
 		verificationState.setState(VerificationStateEnum.APPROVED);
 		Date now = new Date();
 		verificationState.setCreatedOn(now);
 		verificationSubmission.setStateHistory(Collections.singletonList(verificationState));
+	}
+
+	@Test
+	public void testClaimConfig() {
+		// method under test
+		assertEquals(OIDCClaimName.validated_email, claimProvider.getName());
+		// method under test
+		assertNotNull(claimProvider.getDescription());
+	}
+	
+	@Test
+	public void testNoVerificationSubmission() {
+		// method under test
+		assertNull(claimProvider.getClaim(USER_ID, null));
+	}
+	
+	@Test
+	public void testHappyCase() {
 		verificationSubmission.setNotificationEmail(EMAIL);
+		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
 		
 		// method under test
 		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
+	
+	}
+	
+	@Test
+	public void testNoNotificationEmailOneAliasEmail() {
+		verificationSubmission.setNotificationEmail(null);
+		verificationSubmission.setEmails(Collections.singletonList(EMAIL));
+		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
+		
+		// method under test
+		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
+	
+	}
+	
+	@Test
+	public void testNoNotificationEmailMultipleAliasEmailsCANDisambiguate() {
+		verificationSubmission.setNotificationEmail(null);
+		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "some other address"));
+		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
+		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn(EMAIL);
+		
+		// method under test
+		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
+	
+	}	
+	@Test
+	public void testNoNotificationEmailMultipleAliasEmailsCanNOTDisambiguate() {
+		verificationSubmission.setNotificationEmail(null);
+		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "some other address"));
+		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
+		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn("doen't match either!");
+		
+		// method under test
+		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
+	
 	}
 }
