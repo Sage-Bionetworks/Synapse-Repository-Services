@@ -1,33 +1,34 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBONodeTest {
 	
@@ -39,7 +40,7 @@ public class DBONodeTest {
 	
 	private List<Long> toDelete = null;
 	
-	@After
+	@AfterEach
 	public void after() throws DatastoreException {
 		if(dboBasicDao != null && toDelete != null){
 			for(Long id: toDelete){
@@ -50,7 +51,7 @@ public class DBONodeTest {
 		}
 	}
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		toDelete = new LinkedList<Long>();
 	}
@@ -63,7 +64,8 @@ public class DBONodeTest {
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
-		node.setCurrentRevNumber(null);
+		node.setCurrentRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
+		node.setMaxRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
 		node.seteTag("1");
 		node.setType(EntityType.project.name());
 		// Make sure we can create it
@@ -84,7 +86,8 @@ public class DBONodeTest {
 		child.setName("SomeChild");
 		child.setCreatedBy(createdById);
 		child.setCreatedOn(System.currentTimeMillis());
-		child.setCurrentRevNumber(new Long(0));
+		child.setCurrentRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
+		child.setMaxRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
 		child.seteTag("1");
 		child.setType(EntityType.folder.name());
 		child.setParentId(node.getId());
@@ -157,7 +160,8 @@ public class DBONodeTest {
 		node.setName("SomeName" + UUID.randomUUID());
 		node.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		node.setCreatedOn(System.currentTimeMillis());
-		node.setCurrentRevNumber(null);
+		node.setCurrentRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
+		node.setMaxRevNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
 		node.seteTag("1");
 		node.setType(EntityType.project.name());
 		return node;
