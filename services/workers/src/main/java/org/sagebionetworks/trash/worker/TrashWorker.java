@@ -39,6 +39,10 @@ public class TrashWorker implements ProgressingRunner {
 			// Retrieve a batch of entities to delete, this will be sorted by deletion date desc
 			// Within one run the worker will delete a maximum of TRASH_BATCH_SIZE entities to avoid starvation
 			List<Long> batch = trashManager.getTrashLeavesBefore(CUTOFF_TRASH_AGE_IN_DAYS, TRASH_BATCH_SIZE);
+			
+			if (batch.isEmpty()) {
+				return;
+			}
 
 			LOG.info("Purging {} entities, older than {} days, from the trash can", batch.size(), CUTOFF_TRASH_AGE_IN_DAYS);
 
