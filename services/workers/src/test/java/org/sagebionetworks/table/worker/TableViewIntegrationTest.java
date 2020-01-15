@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -76,6 +77,8 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -1336,10 +1339,52 @@ public class TableViewIntegrationTest {
 	 * With the fix for PLFM-5966. A query against a view that is out-of-date should
 	 * no longer trigger the view's state to change to 'PROCESSING'. Instead, the
 	 * view should remain 'AVAILABLE' while changes are applied to the view.
+	 * @throws InterruptedException 
 	 */
 	@Test
-	public void testViewRemainsAvailableWhileChanging() {
+	public void testViewRemainsAvailableWhileChanging() throws Exception {
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
+		// Wait for the 
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		// run the query again
+		int expectedRowCount = fileCount;
+		QueryOptions options = new QueryOptions().withRunQuery(true).withReturnLastUpdatedOn(true);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results);
+		Date startingLastUpdatedOn = results.getLastUpdatedOn();
+		assertNotNull(startingLastUpdatedOn);
+		// sleep to ensure lastUpdatedOnChanges
+		Thread.sleep(101);
+
+		// Update a file in the view
+		String fileIdToUpdate = fileIds.get(0);
+		FileEntity toUpdate = entityManager.getEntity(adminUserInfo, fileIdToUpdate, FileEntity.class);
+		toUpdate.setName(toUpdate.getName()+"updated");
+		boolean newVersion = false;
+		String activityId = null;
+		entityManager.updateEntity(adminUserInfo, toUpdate, newVersion, activityId);
+		toUpdate = entityManager.getEntity(adminUserInfo, fileIdToUpdate, FileEntity.class);
 		
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileIdToUpdate);
+		
+		/*
+		 * In the past this call would change the view's state to be processing when the
+		 * view as out-of-date with the replication. Now when the view is out-of-date it
+		 * must remain available for query while the worker applies deltas to the live
+		 * view.
+		 */
+		TableStatus viewStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
+		assertEquals(TableState.AVAILABLE, viewStatus.getState());
+		// wait for the query results
+		results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results.getLastUpdatedOn());
+		// The view should have been updated since the last query
+		assertTrue(results.getLastUpdatedOn().after(startingLastUpdatedOn));
 	}
 
 

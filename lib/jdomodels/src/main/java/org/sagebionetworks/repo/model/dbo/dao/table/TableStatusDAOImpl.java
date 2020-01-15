@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -252,6 +253,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		}
 	}
 
+	@NewWriteTransaction
 	@Override
 	public boolean updateChangedOnIfAvailable(IdAndVersion tableId) {
 		long version = validateAndGetVersion(tableId);
