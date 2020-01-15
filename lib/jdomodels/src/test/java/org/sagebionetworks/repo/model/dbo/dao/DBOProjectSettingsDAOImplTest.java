@@ -240,19 +240,19 @@ public class DBOProjectSettingsDAOImplTest {
 		settingC = (UploadDestinationListSetting) projectSettingsDao.get(settingCId);
 
 		// Methods under test.
-		ProjectSetting result = projectSettingsDao.getInheritedForEntity(folderD.getId(), ProjectSettingsType.upload);
-		assertEquals(settingC, result);
+		String result = projectSettingsDao.getInheritedProjectSetting(folderD.getId());
+		assertEquals(settingC.getId(), result);
 
-		result = projectSettingsDao.getInheritedForEntity(folderC.getId(), ProjectSettingsType.upload);
-		assertEquals(settingC, result);
+		result = projectSettingsDao.getInheritedProjectSetting(folderC.getId());
+		assertEquals(settingC.getId(), result);
 
-		result = projectSettingsDao.getInheritedForEntity(folderB.getId(), ProjectSettingsType.upload);
-		assertEquals(settingA, result);
+		result = projectSettingsDao.getInheritedProjectSetting(folderB.getId());
+		assertEquals(settingA.getId(), result);
 
-		result = projectSettingsDao.getInheritedForEntity(folderA.getId(), ProjectSettingsType.upload);
-		assertEquals(settingA, result);
+		result = projectSettingsDao.getInheritedProjectSetting(folderA.getId());
+		assertEquals(settingA.getId(), result);
 
-		result = projectSettingsDao.getInheritedForEntity(projectId, ProjectSettingsType.upload);
+		result = projectSettingsDao.getInheritedProjectSetting(projectId);
 		assertNull(result);
 	}
 

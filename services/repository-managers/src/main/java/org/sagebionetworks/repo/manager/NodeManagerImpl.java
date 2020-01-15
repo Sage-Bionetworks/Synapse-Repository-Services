@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -698,12 +697,7 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Override
 	public boolean isEntityEmpty(String entityId) {
-		ChildStatsRequest childStatsRequest = new ChildStatsRequest()
-				.withParentId(entityId)
-				.withIncludeTypes(ImmutableList.copyOf(EntityType.values()))
-				.withIncludeTotalChildCount(true);
-		ChildStatsResponse childStatsResponse = getChildrenStats(childStatsRequest);
-		return childStatsResponse.getTotalChildCount() == 0;
+		return !nodeDao.doesNodeHaveChildren(entityId);
 	}
 
 	@Override
