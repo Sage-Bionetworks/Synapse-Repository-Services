@@ -1,22 +1,22 @@
 package org.sagebionetworks.repo.manager.trash;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -35,17 +35,17 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dao.TrashCanDao;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TrashManagerImplAutowiredTest {
 
@@ -77,7 +77,7 @@ public class TrashManagerImplAutowiredTest {
 	
 	private AccessRequirement accessRequirementToDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		testAdminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -103,7 +103,7 @@ public class TrashManagerImplAutowiredTest {
 		cleanUp(); // Clean up leftovers from other test cases
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		cleanUp();
 		
@@ -111,7 +111,7 @@ public class TrashManagerImplAutowiredTest {
 	}
 	
 	private List<TrashedEntity> inspectUsersTrashCan(UserInfo userInfo, int expectedSize) throws Exception {
-		List<TrashedEntity> results = trashManager.viewTrashForUser(userInfo, userInfo, 0L, 1000L);
+		List<TrashedEntity> results = trashManager.listTrashedEntities(userInfo, userInfo, 0L, 1000L);
 		assertEquals(expectedSize, results.size());
 		return results;
 	}
@@ -139,14 +139,11 @@ public class TrashManagerImplAutowiredTest {
 		Node nodeChild = createNode(nodeChildName, EntityType.folder, nodeParentId);
 		final String nodeChildId = nodeChild.getId();
 
-		trashManager.moveToTrash(testUserInfo, nodeChildId);
+		trashManager.moveToTrash(testUserInfo, nodeChildId, false);
 
-		try {
-			nodeChild = nodeManager.get(testUserInfo, nodeChildId);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeChildId);
+		});
 
 		List<TrashedEntity> results = inspectUsersTrashCan(testUserInfo, 1);
 		TrashedEntity trash = results.get(0);
@@ -183,15 +180,13 @@ public class TrashManagerImplAutowiredTest {
 		accessRequirementToDelete = accessRequirementManager.createAccessRequirement(testAdminUserInfo, ar);
 		
 		// delete and try to restore to some other (unrestricted) parent
-		trashManager.moveToTrash(testUserInfo, nodeChildId);
+		trashManager.moveToTrash(testUserInfo, nodeChildId, false);
 		Node adoptiveParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Adoptive Parent",EntityType.project, null);
 		final String adoptiveParentId = adoptiveParent.getId();
-		try {
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			trashManager.restoreFromTrash(testUserInfo, nodeChildId, adoptiveParentId);
-			fail();
-		} catch (UnauthorizedException e) {
-			// as expected
-		}
+		});
 		
 		// restore to original parent
 		trashManager.restoreFromTrash(testUserInfo, nodeChildId, nodeParentId);
@@ -207,7 +202,7 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeChildId = nodeChild.getId();
 
 		// delete and try to restore to some other (unrestricted) parent
-		trashManager.moveToTrash(testUserInfo, nodeChildId);
+		trashManager.moveToTrash(testUserInfo, nodeChildId, false);
 		
 		// now delete the original parent
 		nodeManager.delete(testUserInfo, nodeParentId);
@@ -215,12 +210,11 @@ public class TrashManagerImplAutowiredTest {
 		
 		Node adoptiveParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Adoptive Parent",EntityType.project, null);
 		final String adoptiveParentId = adoptiveParent.getId();
-		try {
+		
+		Assertions.assertThrows(NotFoundException.class, () -> {
 			trashManager.restoreFromTrash(testUserInfo, nodeChildId, adoptiveParentId);
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		});
+		
 		// ACT member or Synapse administrator CAN do the operation though
 		trashManager.restoreFromTrash(testAdminUserInfo, nodeChildId, adoptiveParentId);
 	}
@@ -228,7 +222,7 @@ public class TrashManagerImplAutowiredTest {
 	@Test
 	public void testSingleNodeRoundTripRestoreToRoot() throws Exception {
 
-		List<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		List<TrashedEntity> results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
 		Node node = new Node();
@@ -253,16 +247,13 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(parentId);
 		assertEquals(nodeId, childNodeRetrieved.getParentId());
 
-		trashManager.moveToTrash(testUserInfo, nodeId);
+		trashManager.moveToTrash(testUserInfo, nodeId, false);
 
-		try {
-			nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId);
+		});
 
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1, results.size());
 		TrashedEntity trash = results.get(0);
 		assertNotNull(trash);
@@ -272,7 +263,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(trash.getDeletedOn());
 		trashManager.restoreFromTrash(testUserInfo, nodeId, parentId);
 
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
 		nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
@@ -286,7 +277,7 @@ public class TrashManagerImplAutowiredTest {
 	@Test
 	public void testMultipleNodeRoundTrip() throws Exception {
 
-		List<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		List<TrashedEntity> results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
 		//
@@ -430,9 +421,9 @@ public class TrashManagerImplAutowiredTest {
 		final String parentId22 = nodeBack22.getParentId();
 		assertEquals(nodeId12, parentId22);
 
-		trashManager.moveToTrash(testUserInfo, nodeId00);
+		trashManager.moveToTrash(testUserInfo, nodeId00, false);
 		// node01 has the same name as node00 (PLFM-1760)
-		trashManager.moveToTrash(testUserInfo, nodeId01);
+		trashManager.moveToTrash(testUserInfo, nodeId01, false);
 		
 		// Validate all ACLs were removed from the hierarchy.
 		// both node 12 and 22 should no longer have an ACL, with the trash as the benefactor
@@ -440,56 +431,38 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(TrashConstants.TRASH_FOLDER_ID_STRING, nodeDAO.getBenefactor(nodeId22));
 
 		// After moved to trash, the nodes are not accessible any more
-		try {
-			nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId00);
+		});
 
-		try {
-			nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId01);
+		});
 
-		try {
-			nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId11);
+		});
 
-		try {
-			nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId12);
+		});
 
-		try {
-			nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId21);
+		});
 
-		try {
-			nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			nodeManager.get(testUserInfo, nodeId22);
+		});
 
 		// But we can see them in the trash can
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(2, results.size());
 
 		// Restore node00 and its descendants
 		trashManager.restoreFromTrash(testUserInfo, nodeId00, parentId00);
 
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1, results.size());
 
 		nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
@@ -525,7 +498,7 @@ public class TrashManagerImplAutowiredTest {
 		// Restore node01
 		trashManager.restoreFromTrash(testUserInfo, nodeId01, null);
 
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
 		nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
@@ -538,7 +511,7 @@ public class TrashManagerImplAutowiredTest {
 	@Test
 	public void testPurgeNodeForUser() throws Exception {
 
-		List<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		List<TrashedEntity> results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 
 		//
@@ -594,338 +567,26 @@ public class TrashManagerImplAutowiredTest {
 		toClearList.add(nodeIdC1);
 		
 		// Move all of them to trash can
-		trashManager.moveToTrash(testUserInfo, nodeIdA1);
-		trashManager.moveToTrash(testUserInfo, nodeIdA2);
+		trashManager.moveToTrash(testUserInfo, nodeIdA1, false);
+		trashManager.moveToTrash(testUserInfo, nodeIdA2, false);
 
 		// Purge A2
-		trashManager.purgeTrashForUser(testUserInfo, nodeIdA2, null);
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		trashManager.flagForPurge(testUserInfo, nodeIdA2);
+		
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1, results.size());
 		for (TrashedEntity trash : results) {
-			if (nodeIdB2.equals(trash.getEntityId())) {
-				fail();
-			}
+			assertNotEquals(nodeIdB2, trash.getEntityId());
 		}
-		String testUserId = testUserInfo.getId().toString();
-		assertFalse(trashCanDao.exists(testUserId, nodeIdB2));
 
 		// Purge A1 (a root with 2 descendants)
-		trashManager.purgeTrashForUser(testUserInfo, nodeIdA1, null);
+		trashManager.flagForPurge(testUserInfo, nodeIdA1);
 
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		results = trashManager.listTrashedEntities(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(0, results.size());
 	}
 
 	@Test
-	public void testPurgeAllForUser() throws Exception {
-
-		List<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
-		assertEquals(0, results.size());
-
-		//
-		//           root
-		//           /  \
-		//          A1  A2
-		//          |    |
-		//          B1  B2
-		//          |
-		//          C1
-		//
-		final Node nodeA1 = new Node();
-		final String nodeNameA1 = "TrashManagerImplAutowiredTest.testPurge() A1";
-		nodeA1.setName(nodeNameA1);
-		nodeA1.setNodeType(EntityType.project);
-		final String nodeIdA1 = nodeManager.createNewNode(nodeA1, testUserInfo);
-		assertNotNull(nodeIdA1);
-		toClearList.add(nodeIdA1);
-
-		final Node nodeA2 = new Node();
-		final String nodeNameA2 = "TrashManagerImplAutowiredTest.testPurge() A2";
-		nodeA2.setName(nodeNameA2);
-		nodeA2.setNodeType(EntityType.project);
-		final String nodeIdA2 = nodeManager.createNewNode(nodeA2, testUserInfo);
-		assertNotNull(nodeIdA2);
-		toClearList.add(nodeIdA2);
-
-		final Node nodeB1 = new Node();
-		final String nodeNameB1 = "TrashManagerImplAutowiredTest.testPurge() B1";
-		nodeB1.setName(nodeNameB1);
-		nodeB1.setNodeType(EntityType.folder);
-		nodeB1.setParentId(nodeIdA1);
-		final String nodeIdB1 = nodeManager.createNewNode(nodeB1, testUserInfo);
-		assertNotNull(nodeIdB1);
-		toClearList.add(nodeIdB1);
-		
-		final Node nodeB2 = new Node();
-		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
-		nodeB2.setName(nodeNameB2);
-		nodeB2.setNodeType(EntityType.folder);
-		nodeB2.setParentId(nodeIdA2);
-		final String nodeIdB2 = nodeManager.createNewNode(nodeB2, testUserInfo);
-		assertNotNull(nodeIdB2);
-		toClearList.add(nodeIdB2);
-
-		final Node nodeC1 = new Node();
-		final String nodeNameC1 = "TrashManagerImplAutowiredTest.testPurge() C1";
-		nodeC1.setName(nodeNameC1);
-		nodeC1.setNodeType(EntityType.folder);
-		nodeC1.setParentId(nodeIdB1);
-		final String nodeIdC1 = nodeManager.createNewNode(nodeC1, testUserInfo);
-		assertNotNull(nodeIdC1);
-		toClearList.add(nodeIdC1);
-
-		// Move all of them to trash can
-		trashManager.moveToTrash(testUserInfo, nodeIdA1);
-		trashManager.moveToTrash(testUserInfo, nodeIdA2);
-
-		// Purge the trash can
-		trashManager.purgeTrashForUser(testUserInfo, null);
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
-		assertEquals(0, results.size());
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA1)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA2)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB1)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
-	}
-
-	@Test
-	public void testPurgeList() throws Exception {
-
-		List<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
-		assertEquals(0, results.size());
-
-		//
-		//           root
-		//           /  \
-		//          A1  A2
-		//          |    |
-		//          B1  B2
-		//          |
-		//          C1
-		//
-		Node nodeA1 = new Node();
-		final String nodeNameA1 = "TrashManagerImplAutowiredTest.testPurge() A1";
-		nodeA1.setName(nodeNameA1);
-		nodeA1.setNodeType(EntityType.project);
-		nodeA1 = nodeManager.createNode(nodeA1, testUserInfo);
-		final String nodeIdA1 = nodeA1.getId();
-		assertNotNull(nodeIdA1);
-		toClearList.add(nodeIdA1);
-
-		Node nodeA2 = new Node();
-		final String nodeNameA2 = "TrashManagerImplAutowiredTest.testPurge() A2";
-		nodeA2.setName(nodeNameA2);
-		nodeA2.setNodeType(EntityType.project);
-		nodeA2 = nodeManager.createNode(nodeA2, testUserInfo);
-		final String nodeIdA2 = nodeA2.getId();
-		assertNotNull(nodeIdA2);
-		toClearList.add(nodeIdA2);
-
-		Node nodeB1 = new Node();
-		final String nodeNameB1 = "TrashManagerImplAutowiredTest.testPurge() B1";
-		nodeB1.setName(nodeNameB1);
-		nodeB1.setNodeType(EntityType.folder);
-		nodeB1.setParentId(nodeIdA1);
-		nodeB1 = nodeManager.createNode(nodeB1, testUserInfo);
-		final String nodeIdB1 = nodeB1.getId();
-		assertNotNull(nodeIdB1);
-		toClearList.add(nodeIdB1);
-		
-		Node nodeB2 = new Node();
-		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
-		nodeB2.setName(nodeNameB2);
-		nodeB2.setNodeType(EntityType.folder);
-		nodeB2.setParentId(nodeIdA2);
-		nodeB2 = nodeManager.createNode(nodeB2, testUserInfo);
-		final String nodeIdB2 = nodeB2.getId();
-		assertNotNull(nodeIdB2);
-		toClearList.add(nodeIdB2);
-
-		Node nodeC1 = new Node();
-		final String nodeNameC1 = "TrashManagerImplAutowiredTest.testPurge() C1";
-		nodeC1.setName(nodeNameC1);
-		nodeC1.setNodeType(EntityType.folder);
-		nodeC1.setParentId(nodeIdB1);
-		nodeC1 = nodeManager.createNode(nodeC1, testUserInfo);
-		final String nodeIdC1 = nodeC1.getId();
-		assertNotNull(nodeIdC1);
-		toClearList.add(nodeIdC1);
-
-		// Move all of them to trash can
-		trashManager.moveToTrash(testUserInfo, nodeIdA1);
-		trashManager.moveToTrash(testUserInfo, nodeIdA2);
-		
-		// Purge B1, C1, A2, B2, and keep A1
-		Set<String> nodeIdsToPurge = new HashSet<String>();
-		nodeIdsToPurge.add(nodeIdA2);
-		nodeIdsToPurge.add(nodeIdB2);
-		
-		
-		final int numToPurge = 4;
-		List<TrashedEntity> allTrash = trashManager.viewTrashForUser(
-				testUserInfo, testUserInfo, 0L, 1000L);
-		List<TrashedEntity> purgeList = new ArrayList<TrashedEntity>(numToPurge);
-		for (TrashedEntity trash : allTrash) {
-			if(nodeIdsToPurge.contains(trash.getEntityId())){
-				purgeList.add(trash);
-			}
-		}
-		assertEquals(purgeList.size(),1);
-
-		// Purge A1 (a root with 2 descendants)		
-		trashManager.purgeTrash(purgeList, null);
-		
-
-		// should be able to purge already purged entities
-		trashManager.purgeTrash(purgeList, null);
-		
-		//check that metadata in trashCanDao was properly updated
-		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
-		assertEquals(1, results.size());
-		assertTrue(trashCanDao.exists(testUserInfo.getId().toString(), nodeIdA1));
-		for(String nodeId:nodeIdsToPurge){
-			assertFalse(trashCanDao.exists(testUserInfo.getId().toString(), nodeId));
-		}
-		
-		//check that the metadata in the nodeDao was properly updated
-		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA1)));
-		for(String nodeId:nodeIdsToPurge){
-			assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeId)));
-		}
-	}
-
-	@Test
-	public void testAdmin() throws Exception {
-
-		List<TrashedEntity> results = trashManager.viewTrash(
-				testAdminUserInfo, 0L, Long.MAX_VALUE);
-		assertEquals(0, results.size());
-
-		//
-		//           root
-		//           /  \
-		//          A1  A2
-		//          |    |
-		//          B1  B2
-		//          |
-		//          C1
-		//
-		// A1, B1, C1 are created by test admin user
-		// A2, B2 are create by test user
-		//
-		final Node nodeA1 = new Node();
-		final String nodeNameA1 = "TrashManagerImplAutowiredTest.testPurge() A1";
-		nodeA1.setName(nodeNameA1);
-		nodeA1.setNodeType(EntityType.project);
-		final String nodeIdA1 = nodeManager.createNewNode(nodeA1, testAdminUserInfo);
-		assertNotNull(nodeIdA1);
-		toClearList.add(nodeIdA1);
-
-		final Node nodeA2 = new Node();
-		final String nodeNameA2 = "TrashManagerImplAutowiredTest.testPurge() A2";
-		nodeA2.setName(nodeNameA2);
-		nodeA2.setNodeType(EntityType.project);
-		final String nodeIdA2 = nodeManager.createNewNode(nodeA2, testUserInfo);
-		assertNotNull(nodeIdA2);
-		toClearList.add(nodeIdA2);
-
-		final Node nodeB1 = new Node();
-		final String nodeNameB1 = "TrashManagerImplAutowiredTest.testPurge() B1";
-		nodeB1.setName(nodeNameB1);
-		nodeB1.setNodeType(EntityType.folder);
-		nodeB1.setParentId(nodeIdA1);
-		final String nodeIdB1 = nodeManager.createNewNode(nodeB1, testAdminUserInfo);
-		assertNotNull(nodeIdB1);
-		toClearList.add(nodeIdB1);
-
-		final Node nodeB2 = new Node();
-		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
-		nodeB2.setName(nodeNameB2);
-		nodeB2.setNodeType(EntityType.folder);
-		nodeB2.setParentId(nodeIdA2);
-		final String nodeIdB2 = nodeManager.createNewNode(nodeB2, testUserInfo);
-		assertNotNull(nodeIdB2);
-		toClearList.add(nodeIdB2);
-
-		final Node nodeC1 = new Node();
-		final String nodeNameC1 = "TrashManagerImplAutowiredTest.testPurge() C1";
-		nodeC1.setName(nodeNameC1);
-		nodeC1.setNodeType(EntityType.folder);
-		nodeC1.setParentId(nodeIdB1);
-		final String nodeIdC1 = nodeManager.createNewNode(nodeC1, testAdminUserInfo);
-		assertNotNull(nodeIdC1);
-		toClearList.add(nodeIdC1);
-
-		// Move all of them to trash can
-		trashManager.moveToTrash(testAdminUserInfo, nodeIdA1);
-		trashManager.moveToTrash(testUserInfo, nodeIdA2);
-
-		results = trashManager.viewTrash(testAdminUserInfo, 0L, Long.MAX_VALUE);
-		assertNotNull(results);
-		assertEquals(2, results.size());
-		results = trashManager.viewTrashForUser(testAdminUserInfo, testUserInfo, 0L, Long.MAX_VALUE);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		try {
-			results = trashManager.viewTrash(testUserInfo, 0L, Long.MAX_VALUE);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
-		try {
-			results = trashManager.viewTrashForUser(testUserInfo, testAdminUserInfo, 0L, Long.MAX_VALUE);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
-
-		try {
-			nodeManager.get(testAdminUserInfo, nodeIdA1);
-			fail("Once the entity is in trash can, even admin can't view it.");
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
-		try {
-			nodeManager.get(testAdminUserInfo, nodeIdA2);
-			fail("Once the entity is in trash can, even admin can't view it.");
-		} catch (EntityInTrashCanException e) {
-			assertTrue(true);
-		}
-
-		// Admin can restore items put in trash can by test user
-		try {
-			trashManager.restoreFromTrash(testAdminUserInfo, nodeIdA2, null);
-		} catch (UnauthorizedException e) {
-			fail("Admin should be able to restore.");
-		}
-
-		// But the test user cannot restore items put by admin
-		try {
-			trashManager.restoreFromTrash(testUserInfo, nodeIdA1, null);
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
-
-		try {
-			trashManager.purgeTrash(testUserInfo, null);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
-		trashManager.purgeTrash(testAdminUserInfo, null);
-		results = trashManager.viewTrash(testAdminUserInfo, 0L, 1000L);
-		assertEquals(0, results.size());
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA1)));
-		// Node A2 has been restored by admin
-		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA2)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB1)));
-		// Node B2 has been restored by admin
-		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
-		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
-	}
-	
-	@Test(expected=ParentInTrashCanException.class)
 	public void testRestoreToParentThatIsInTrashCan() throws Exception {
 		// A --> Parent
 		final Node nodeA = new Node();
@@ -947,14 +608,16 @@ public class TrashManagerImplAutowiredTest {
 		toClearList.add(nodeIdB);
 		
 		// Move both to trash.
-		trashManager.moveToTrash(testUserInfo, nodeIdB);
-		trashManager.moveToTrash(testUserInfo, nodeIdA);
+		trashManager.moveToTrash(testUserInfo, nodeIdB, false);
+		trashManager.moveToTrash(testUserInfo, nodeIdA, false);
 		
 		// Restore B from trash.
-		trashManager.restoreFromTrash(testUserInfo, nodeIdB, nodeIdA);
+		Assertions.assertThrows(ParentInTrashCanException.class, () -> {
+			trashManager.restoreFromTrash(testUserInfo, nodeIdB, nodeIdA);
+		});
 	}
 
-	@Test(expected=EntityInTrashCanException.class)
+	@Test
 	public void testCanDownload() throws Exception {
 		final Node node = new Node();
 		final String nodeName = "TrashManagerImplAutowiredTest.testCanDownload()";
@@ -963,8 +626,80 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeId = nodeManager.createNewNode(node, testAdminUserInfo);
 		assertNotNull(nodeId);
 		toClearList.add(nodeId);
-		trashManager.moveToTrash(testAdminUserInfo, nodeId);
-		entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+		trashManager.moveToTrash(testAdminUserInfo, nodeId, false);
+		
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+		});
+	}
+	
+	@Test
+	public void testMoveToTrashWithPriorityPurge() throws Exception {
+		Node nodeParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Parent",EntityType.project, null);
+		final String nodeParentId = nodeParent.getId();
+		String nodeChildName = "TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Child";
+		Node nodeChild = createNode(nodeChildName, EntityType.folder, nodeParentId);
+		final String nodeChildId = nodeChild.getId();
+
+		boolean priorityPurge = true;
+				
+		// Call under test
+		trashManager.moveToTrash(testUserInfo, nodeChildId, priorityPurge);
+		
+		// Should not be included in the user trash list
+		inspectUsersTrashCan(testUserInfo, 0);
+	}
+	
+	@Test
+	public void testFlagForPriorityPurge() throws Exception {
+		Node nodeParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Parent",EntityType.project, null);
+		final String nodeParentId = nodeParent.getId();
+		String nodeChildName = "TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Child";
+		Node nodeChild = createNode(nodeChildName, EntityType.folder, nodeParentId);
+		final String nodeChildId = nodeChild.getId();
+
+		boolean priorityPurge = false;
+				
+		trashManager.moveToTrash(testUserInfo, nodeChildId, priorityPurge);
+		
+
+		// Should now be in the user trash can
+		List<TrashedEntity> trash = inspectUsersTrashCan(testUserInfo, 1);
+		
+		assertEquals(nodeChildId, trash.get(0).getEntityId());
+		
+		// Call under test
+		trashManager.flagForPurge(testUserInfo, nodeChildId);
+		
+		// Should not be included in the user trash list
+		inspectUsersTrashCan(testUserInfo, 0);
+	}
+	
+	@Test
+	public void testPurgeTrashDeepHierarchy_PLFM_5932() {
+		final Node root = new Node();
+		final String rootName = "TrashManagerImplAutowiredTest.testPurgeTrashAdminDeepHierarchy() Root Node";
+		root.setName(rootName);
+		root.setNodeType(EntityType.project);
+		String rootId = nodeManager.createNewNode(root, testAdminUserInfo);
+		toClearList.add(rootId);
+		
+		String parentId = rootId;
+		int depth = 20;
+		
+		for (int i=0; i<depth; i++) {
+			Node childNode = new Node();
+			String nodeNameB = "TrashManagerImplAutowiredTest.testPurgeTrashAdminDeepHierarchy() Child " + i;
+			childNode.setName(nodeNameB);
+			childNode.setNodeType(EntityType.folder);
+			childNode.setParentId(parentId);
+			parentId = nodeManager.createNewNode(childNode, testAdminUserInfo);
+			toClearList.add(parentId);
+		}
+		
+		trashManager.moveToTrash(testAdminUserInfo, rootId, false);
+		
+		trashManager.purgeTrash(testAdminUserInfo, Collections.singletonList(KeyFactory.stringToKey(rootId)));
 	}
 
 	private void cleanUp() throws Exception {
@@ -976,11 +711,11 @@ public class TrashManagerImplAutowiredTest {
 				nodeManager.delete(testAdminUserInfo, nodeId);
 			} catch (NotFoundException e) {}
 		}
-		List<TrashedEntity> trashList = trashCanDao.getInRange(true, 0L, Long.MAX_VALUE);
-		for (TrashedEntity trash : trashList) {
-			trashCanDao.delete(trash.getDeletedByPrincipalId(), trash.getEntityId());
-		}
+		
+		trashCanDao.truncate();
+		
 		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
+		
 		for (String child : children) {
 			try {
 				nodeManager.delete(testAdminUserInfo, child);

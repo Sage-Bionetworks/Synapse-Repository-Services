@@ -183,7 +183,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
 		try {
-			adminSynapse.deleteAndPurgeEntityById(project.getId());
+			adminSynapse.deleteEntity(project);
 		} catch (SynapseException e) { }
 	}
 

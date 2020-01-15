@@ -86,7 +86,7 @@ public class IT099AsynchronousJobTest {
 	public void after() throws Exception {
 		for (Entity entity : Lists.reverse(entitiesToDelete)) {
 			try {
-				adminSynapse.deleteAndPurgeEntity(entity);
+				adminSynapse.deleteEntity(entity);
 			} catch (Exception e) {}
 		}
 		for (FileHandle fh : filesToDelete) {

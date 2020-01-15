@@ -392,6 +392,8 @@ public class SqlConstants {
 	public static final String COL_TRASH_CAN_DELETED_BY         = "DELETED_BY";
 	public static final String COL_TRASH_CAN_DELETED_ON         = "DELETED_ON";
 	public static final String COL_TRASH_CAN_PARENT_ID          = "PARENT_ID";
+	public static final String COL_TRASH_CAN_PRIORITY_PURGE     = "PRIORITY_PURGE";
+	public static final String COL_TRASH_CAN_ETAG               = "ETAG";
 	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
 	
 	// The wiki page table

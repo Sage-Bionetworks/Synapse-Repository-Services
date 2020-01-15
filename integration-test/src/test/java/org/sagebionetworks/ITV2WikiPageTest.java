@@ -128,7 +128,7 @@ public class ITV2WikiPageTest {
 	@After
 	public void after() throws Exception {
 		if(project != null){
-			synapse.deleteAndPurgeEntity(project);
+			synapse.deleteEntity(project);
 		}
 		for(WikiPageKey key: toDelete){
 			adminSynapse.deleteV2WikiPage(key);

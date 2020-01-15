@@ -64,7 +64,8 @@
 			"items":{
 				"type":"object",
 				"$ref":"org.sagebionetworks.evaluation.model.SubmissionContributor"
-			}
+			},
+			"description": "User ids of the submitter and (if a team submission) the team members involved in creating the submission."
 		}
 	}
 }
