@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -33,14 +33,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -70,9 +66,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.StorageException;
 import com.google.common.collect.Lists;
 
-// Set strictness to lenient to reduce the amount of boilerplate code.
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class ProjectSettingsManagerImplUnitTest {
 	private UserInfo userInfo;
 
@@ -219,24 +213,36 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.singletonList(projectHeader));
-		when(mockProjectSettingDao.get(eq(Collections.singletonList(Long.valueOf(PROJECT_ID))), eq(ProjectSettingsType.upload))).thenReturn(uploadDestinationListSetting);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
 		// Call under test
-		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 		assertSame(uploadDestinationListSetting, actual);
 	}
 
 	@Test
-	public void getProjectSettingForNodeEmptyPath() {
-		EntityHeader projectHeader = new EntityHeader();
-		projectHeader.setId(PROJECT_ID);
-		when(mockNodeManager.getNodePathAsAdmin(NODE_ID)).thenReturn(Collections.emptyList());
+	public void getProjectSettingForNode_Null() {
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(null);
 
 		// Call under test
-		assertThrows(DatastoreException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class));
+		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		assertNull(actual);
+	}
+
+	@Test
+	public void getProjectSettingForNode_WrongType() {
+		// Use Mockito to create an instance of ProjectSetting that's not an UploadDestinationListSetting.
+		ProjectSetting mockSetting = mock(ProjectSetting.class);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(mockSetting);
+
+		// Call under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(
+				userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class),
+				"Settings type for 'upload' is not of type UploadDestinationListSetting");
 	}
 
 	@Test
@@ -250,7 +256,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertSame(expected, actual);
 	}
 
-	private void setupCreateProjectSettingTest() {
+	@Test
+	public void createProjectSetting_StsHappyCase() {
 		// Mock dependencies.
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
@@ -266,27 +273,21 @@ public class ProjectSettingsManagerImplUnitTest {
 		// getProjectSettingForNode() tests.
 		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
-	}
 
-	@Test
-	public void createProjectSetting_StsHappyCase() {
-		// Setup.
-		setupCreateProjectSettingTest();
-
-		// Execute and verify.
+		// Method under test.
 		ProjectSetting result = projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting);
 		assertSame(uploadDestinationListSetting, result);
+		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 		verify(mockProjectSettingDao).create(uploadDestinationListSetting);
 	}
 
 	@Test
 	public void createProjectSetting_NotProjectOrFolder() {
-		// Setup.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.file);
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting), "The id is not the id of a project or folder entity");
 		verify(mockProjectSettingDao, never()).create(any());
@@ -294,12 +295,12 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_Unauthorized() {
-		// Setup.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.accessDenied("dummy error message"));
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(UnauthorizedException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting), "Cannot create settings for this project");
 		verify(mockProjectSettingDao, never()).create(any());
@@ -307,8 +308,10 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_CannotAddToParentWithSts() {
-		// Setup.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 
 		UploadDestinationListSetting parentProjectSetting = new UploadDestinationListSetting();
 		parentProjectSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID));
@@ -319,7 +322,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		parentStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(PARENT_STORAGE_LOCATION_ID)).thenReturn(parentStorageLocationSetting);
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting), "Can't override project settings in an STS-enabled folder path");
 		verify(mockProjectSettingDao, never()).create(any());
@@ -327,8 +330,16 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_CanAddToParentWithNonStsStorageLocation() {
-		// Setup.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
+		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
 		UploadDestinationListSetting parentProjectSetting = new UploadDestinationListSetting();
 		parentProjectSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID));
@@ -339,7 +350,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		parentStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(PARENT_STORAGE_LOCATION_ID)).thenReturn(parentStorageLocationSetting);
 
-		// Execute and verify.
+		// Method under test.
 		ProjectSetting result = projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting);
 		assertSame(uploadDestinationListSetting, result);
@@ -348,11 +359,20 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_Invalid() {
-		// Setup.
-		setupCreateProjectSettingTest();
-		uploadDestinationListSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID, STORAGE_LOCATION_ID));
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 
-		// Execute - expected exception.
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+
+		uploadDestinationListSetting.setLocations(ImmutableList.of(STORAGE_LOCATION_ID, PARENT_STORAGE_LOCATION_ID));
+
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting), "An STS-enabled folder cannot add other upload destinations");
 		verify(mockProjectSettingDao, never()).create(any());
@@ -360,11 +380,19 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_CannotAddStsToNonEmptyFolder() {
-		// Setup.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
 
-		// Execute - expected exception.
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting), "Can't enable STS in a non-empty folder");
 		verify(mockProjectSettingDao, never()).create(any());
@@ -372,19 +400,30 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void createProjectSetting_CanAddNonStsToNonEmptyFolder() {
-		// Setup. synapseStorageLocationSetting is the one we add.
-		setupCreateProjectSettingTest();
+		// Mock dependencies.
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
-		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
-		// Execute and verify.
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+
+		// Method under test.
 		ProjectSetting result = projectSettingsManagerImpl.createProjectSetting(userInfo,
 				uploadDestinationListSetting);
 		assertSame(uploadDestinationListSetting, result);
+		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 		verify(mockProjectSettingDao).create(uploadDestinationListSetting);
 	}
 
-	private void setupUpdateProjectSettingTest() {
+	@Test
+	public void updateProjectSetting_HappyCase() {
 		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
@@ -393,26 +432,19 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
-	}
 
-	@Test
-	public void updateProjectSetting_HappyCase() {
-		// Setup.
-		setupUpdateProjectSettingTest();
-
-		// Execute and verify.
+		// Method under test.
 		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
 		verify(mockProjectSettingDao).update(uploadDestinationListSetting);
 	}
 
 	@Test
 	public void updateProjectSetting_Unauthorized() {
-		// Setup.
-		setupUpdateProjectSettingTest();
+		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.accessDenied("dummy error message"));
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(UnauthorizedException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
 				uploadDestinationListSetting), "Cannot update settings on this project");
 		verify(mockProjectSettingDao, never()).update(any());
@@ -420,11 +452,17 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void updateProjectSetting_Invalid() {
-		// Setup.
-		setupUpdateProjectSettingTest();
-		uploadDestinationListSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID, STORAGE_LOCATION_ID));
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 
-		// Execute - expected exception.
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		uploadDestinationListSetting.setLocations(ImmutableList.of(STORAGE_LOCATION_ID, PARENT_STORAGE_LOCATION_ID));
+
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
 				uploadDestinationListSetting), "An STS-enabled folder cannot add other upload destinations");
 		verify(mockProjectSettingDao, never()).update(any());
@@ -432,11 +470,16 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void updateProjectSetting_CannotAddStsToNonEmptyFolder() {
-		// Setup.
-		setupUpdateProjectSettingTest();
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
 
-		// Execute - expected exception.
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
 				uploadDestinationListSetting), "Can't enable STS in a non-empty folder");
 		verify(mockProjectSettingDao, never()).update(any());
@@ -444,22 +487,28 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void updateProjectSetting_CanAddNonStsToNonEmptyFolder() {
-		// Setup. synapseStorageLocationSetting is the one we add.
-		setupUpdateProjectSettingTest();
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
-		synapseStorageLocationSetting.setStsEnabled(false);
 
-		// Execute and verify.
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
 		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
 		verify(mockProjectSettingDao).update(uploadDestinationListSetting);
 	}
 
 	@Test
 	public void updateProjectSetting_CannotRemoveStsFromNonEmptyFolder() {
-		// Setup. synapseStorageLocationSetting is the one we add, and it no longer has STS.
-		setupUpdateProjectSettingTest();
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+
 		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
 		UploadDestinationListSetting oldProjectSetting = new UploadDestinationListSetting();
 		oldProjectSetting.setLocations(ImmutableList.of(OLD_STORAGE_LOCATION_ID));
@@ -469,7 +518,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		oldStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(OLD_STORAGE_LOCATION_ID)).thenReturn(oldStorageLocationSetting);
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.updateProjectSetting(userInfo,
 				uploadDestinationListSetting), "Can't disable STS in a non-empty folder");
 		verify(mockProjectSettingDao, never()).update(any());
@@ -477,52 +526,49 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void updateProjectSetting_CanUpdateNonStsInNonEmptyFolder() {
-		// Setup. synapseStorageLocationSetting is the one we add, and it no longer has STS.
-		setupUpdateProjectSettingTest();
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+
 		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
 		UploadDestinationListSetting oldProjectSetting = new UploadDestinationListSetting();
 		oldProjectSetting.setLocations(ImmutableList.of(OLD_STORAGE_LOCATION_ID));
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(oldProjectSetting);
 
 		S3StorageLocationSetting oldStorageLocationSetting = new S3StorageLocationSetting();
 		oldStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(OLD_STORAGE_LOCATION_ID)).thenReturn(oldStorageLocationSetting);
 
-		// Execute and verify.
+		// Method under test.
 		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
 		verify(mockProjectSettingDao).update(uploadDestinationListSetting);
 	}
 
-	private void setupDeleteProjectSettingTest() {
+	@Test
+	public void deleteProjectSetting_HappyCase() {
 		// Mock dependencies.
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
 
-		synapseStorageLocationSetting.setStsEnabled(true);
-		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
-	}
-
-	@Test
-	public void deleteProjectSetting_HappyCase() {
-		// Setup.
-		setupDeleteProjectSettingTest();
-
-		// Execute and verify.
+		// Method under test.
 		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
+		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE);
 		verify(mockProjectSettingDao).delete(PROJECT_SETTINGS_ID);
 	}
 
 	@Test
 	public void deleteProjectSetting_Unauthorized() {
-		// Setup.
-		setupDeleteProjectSettingTest();
+		// Mock dependencies.
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.accessDenied("dummy error message"));
 
-		// Execute - expected exception.
+		// Method under test.
 		assertThrows(UnauthorizedException.class, () -> projectSettingsManagerImpl.deleteProjectSetting(userInfo,
 				PROJECT_SETTINGS_ID), "Cannot delete settings from this project");
 		verify(mockProjectSettingDao, never()).delete(any());
@@ -530,11 +576,16 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void deleteProjectSetting_CannotDeleteStsFromNonEmptyProject() {
-		// Setup.
-		setupDeleteProjectSettingTest();
+		// Mock dependencies.
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
 
-		// Execute - expected exception.
+		synapseStorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.deleteProjectSetting(userInfo,
 				PROJECT_SETTINGS_ID), "Can't disable STS in a non-empty folder");
 		verify(mockProjectSettingDao, never()).delete(any());
@@ -542,12 +593,16 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void deleteProjectSetting_CanDeleteNonStsFromNonEmptyProject() {
-		// Setup. synapseStorageLocationSetting is the one we delete.
-		setupDeleteProjectSettingTest();
+		// Mock dependencies.
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
-		synapseStorageLocationSetting.setStsEnabled(false);
 
-		// Execute and verify.
+		synapseStorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
 		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
 		verify(mockProjectSettingDao).delete(PROJECT_SETTINGS_ID);
 	}
@@ -783,6 +838,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void testCreateSynapseStorageLocationSettings_HappyCase() throws IOException {
 		// Set UploadType to null to verify that we set the default UploadType.
 		synapseStorageLocationSetting.setUploadType(null);
+		synapseStorageLocationSetting.setStsEnabled(false);
 
 		when(mockStorageLocationDAO.create(synapseStorageLocationSetting)).thenReturn(999L);
 
@@ -791,6 +847,19 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		verify(mockStorageLocationDAO).create(synapseStorageLocationSetting);
 		assertEquals(UploadType.S3, synapseStorageLocationSetting.getUploadType());
+		assertNull(synapseStorageLocationSetting.getBaseKey());
+	}
+
+	@Test
+	public void testCreateSynapseStorageLocationSettings_StsEnabledNull() throws IOException {
+		synapseStorageLocationSetting.setStsEnabled(null);
+
+		when(mockStorageLocationDAO.create(synapseStorageLocationSetting)).thenReturn(999L);
+
+		// Method under test.
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, synapseStorageLocationSetting);
+
+		verify(mockStorageLocationDAO).create(synapseStorageLocationSetting);
 		assertNull(synapseStorageLocationSetting.getBaseKey());
 	}
 
@@ -805,6 +874,15 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		verify(mockStorageLocationDAO).create(synapseStorageLocationSetting);
 		assertTrue(synapseStorageLocationSetting.getBaseKey().startsWith(USER_ID + "/"));
+	}
+
+	@Test
+	public void testCreateSynapseStorageLocationSettings_WithBaseKey() {
+		synapseStorageLocationSetting.setBaseKey("dummy base key");
+
+		// Method under test.
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createStorageLocationSetting(
+				userInfo, synapseStorageLocationSetting), "Cannot specify baseKey when creating an S3StorageLocationSetting");
 	}
 
 	@Test
@@ -943,6 +1021,84 @@ public class ProjectSettingsManagerImplUnitTest {
 		uploadDestinationListSetting.setLocations(ImmutableList.of(STORAGE_LOCATION_ID, 10L));
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.validateProjectSetting(
 				uploadDestinationListSetting, userInfo), "An STS-enabled folder cannot add other upload destinations");
+	}
+
+	@Test
+	public void testIsStsStorageLocation_NullProjectSetting() {
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(null);
+		assertFalse(result);
+		verifyZeroInteractions(mockStorageLocationDAO);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_ProjectSettingWrongSubclass() {
+		// Create a mock of ProjectSetting, so we can have a ProjectSetting instance that's not an
+		// UploadDestinationListSetting.
+		ProjectSetting input = mock(ProjectSetting.class);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(input);
+		assertFalse(result);
+		verifyZeroInteractions(mockStorageLocationDAO);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StorageLocationNotFound() {
+		// Mock dependencies.
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenThrow(NotFoundException.class);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertFalse(result);
+		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_NotStsStorageLocation() {
+		// Mock dependencies.
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalGoogleCloudStorageLocationSetting);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertFalse(result);
+		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledFalse() {
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(false);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertFalse(result);
+		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledNull() {
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(null);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertFalse(result);
+		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledTrue() {
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertTrue(result);
+		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
 	}
 
 	@Test

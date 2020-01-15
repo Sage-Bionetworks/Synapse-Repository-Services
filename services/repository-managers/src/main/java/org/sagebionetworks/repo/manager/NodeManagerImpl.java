@@ -700,12 +700,7 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Override
 	public boolean isEntityEmpty(String entityId) {
-		ChildStatsRequest childStatsRequest = new ChildStatsRequest()
-				.withParentId(entityId)
-				.withIncludeTypes(ImmutableList.copyOf(EntityType.values()))
-				.withIncludeTotalChildCount(true);
-		ChildStatsResponse childStatsResponse = getChildrenStats(childStatsRequest);
-		return childStatsResponse.getTotalChildCount() == 0;
+		return !nodeDao.doesNodeHaveChildren(entityId);
 	}
 
 	@Override
