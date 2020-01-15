@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -20,14 +21,19 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Sets;
 
 /**
  * <p>
@@ -110,7 +116,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			
 			// Get all of the containers for the given view.
 			IdAndVersion idAndVersion = IdAndVersion.parse(message.getObjectId());
-			Set<Long> containerIdsSet = tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion);
+			Set<Long> containerIdsSet = getContainersToReconcile(idAndVersion);
 			List<Long> containerIds = new ArrayList<Long>(containerIdsSet);
 			if (containerIds.isEmpty()) {
 				// nothing to do.
@@ -145,6 +151,23 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			workerLogger.logWorkerFailure(
 					EntityReplicationReconciliationWorker.class.getName(), cause,
 					willRetry);
+		}
+	}
+	
+	/**
+	 * Get the Container IDs to be checked for the given view.
+	 * @param idAndVersion
+	 * @return
+	 */
+	public Set<Long> getContainersToReconcile(IdAndVersion idAndVersion) {
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(idAndVersion);
+		if(ViewTypeMask.Project.getMask() == viewTypeMask){
+			// project views reconcile with root.
+			Long rootId = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+			return Sets.newHashSet(rootId);
+		}else{
+			// all other views reconcile one the view's scope.
+			return tableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
 		}
 	}
 

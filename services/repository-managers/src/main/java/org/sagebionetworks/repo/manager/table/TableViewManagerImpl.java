@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -621,24 +622,22 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public boolean isViewUpToDate(IdAndVersion tableId) throws TableFailedException {
+	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
 		EntityType type = tableManagerSupport.getTableEntityType(tableId);
 		if(!EntityType.entityview.equals(type)) {
-			return true;
+			// not a view
+			return Optional.empty();
 		}
 		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
-		if(TableState.PROCESSING_FAILED.equals(status.getState())) {
-			throw new TableFailedException(status);
-		}
 		if(!TableState.AVAILABLE.equals(status.getState())) {
-			return false;
+			return Optional.empty();
 		}
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(tableId);
 		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
 		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
 		long limit = 1L;
 		Set<Long> changes = indexManager.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
-		return changes.isEmpty();
+		return Optional.of(changes.isEmpty());
 	}
 
 }

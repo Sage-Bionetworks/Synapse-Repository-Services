@@ -1,6 +1,5 @@
 package org.sagebionetworks.worker.entity;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,9 +33,12 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -90,6 +92,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	IdAndEtag replicaOne;
 	IdAndEtag replicaTwo;
 	IdAndEtag replicaFour;
+	Long viewTypeMask;
 	
 	Map<Long, Long> truthCRCs;
 	Map<Long, Long> replicaCRCs;
@@ -145,6 +148,8 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		expiredContainers = Lists.newArrayList(firstParentId);
 		nowMS = 101L;
+		
+		viewTypeMask = ViewTypeMask.File.getMask();
 	}
 	
 
@@ -305,7 +310,8 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockNodeDao.getAvailableNodes(expiredContainers)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
 		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId)).thenReturn(new HashSet<>(parentIds));
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
 		when(mockIndexDao.getExpiredContainerIds(parentIds)).thenReturn(expiredContainers);
 		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
 		// call under test
@@ -340,7 +346,9 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
 				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
-		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId)).thenReturn(new HashSet<>(parentIds));
+		
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
 
 		Exception exception = new RuntimeException("Something went wrong");
 		when(mockIndexDao.getExpiredContainerIds(anyListOf(Long.class))).thenThrow(exception);
@@ -351,6 +359,29 @@ public class EntityReplicationReconciliationWorkerTest {
 		boolean willRetry = false;
 		verify(mockWorkerLog).logWorkerFailure(EntityReplicationReconciliationWorker.class.getName(), exception, willRetry);
 	}
+	
+	@Test
+	public void testGetContainersToReconcile_Project() {
+		viewTypeMask = ViewTypeMask.Project.getMask();
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		// call under test
+		Set<Long> containers = worker.getContainersToReconcile(viewId);
+		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+		assertEquals(Sets.newHashSet(root), containers);
+	}
+	
+	@Test
+	public void testGetContainersToReconcile_File() {
+		viewTypeMask = ViewTypeMask.File.getMask();
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		Set<Long> allContainers = Sets.newHashSet(111L,222L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(allContainers);
+		// call under test
+		Set<Long> containers = worker.getContainersToReconcile(viewId);
+		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+		assertEquals(allContainers, containers);
+	}
+	
 	
 	/**
 	 * Helper to create some messages.

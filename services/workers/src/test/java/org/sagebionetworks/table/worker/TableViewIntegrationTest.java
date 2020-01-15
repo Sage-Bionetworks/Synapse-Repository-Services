@@ -630,7 +630,7 @@ public class TableViewIntegrationTest {
 			String sql = "select * from " + fileViewId;
 			waitForConsistentQuery(adminUserInfo, sql);
 			fail("should have failed");
-		} catch (TableFailedException expected) {
+		} catch (AsynchJobFailedException expected) {
 			assertEquals(
 					"The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
 					expected.getStatus().getErrorMessage());
@@ -1497,7 +1497,8 @@ public class TableViewIntegrationTest {
 	 */
 	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
 		long start = System.currentTimeMillis();
-		while(!tableViewManager.isViewUpToDate(viewId)) {
+		// only wait if the view is available but out-of-date.
+		while(!tableViewManager.isViewAvailableAndUpToDate(viewId).orElse(true)) {
 			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			System.out.println("Waiting for view "+viewId+" to be up-to-date");
 			Thread.sleep(1000);

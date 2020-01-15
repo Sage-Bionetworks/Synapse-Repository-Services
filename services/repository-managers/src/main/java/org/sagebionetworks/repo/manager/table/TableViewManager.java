@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -112,9 +113,10 @@ public interface TableViewManager {
 	 * An expensive call to determine if a view is up-to-date with the entity replication data.
 	 * 
 	 * @param tableId
-	 * @return
+	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
+	 * with a status of available.
 	 * @throws TableFailedException 
 	 */
-	public boolean isViewUpToDate(IdAndVersion tableId) throws TableFailedException;
+	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException;
 
 }
