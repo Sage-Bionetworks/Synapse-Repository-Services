@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SnapshotResponse;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityServiceImplAutowiredTestNew  {
+public class EntityServiceImplAutowiredTest  {
 
 	@Autowired
 	private EntityService entityService;
@@ -338,7 +339,7 @@ public class EntityServiceImplAutowiredTestNew  {
 		assertFalse(optional.isPresent());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testTableUpdateNewVersion() {
 		List<String> columnIds = Lists.newArrayList(column.getId());
 		TableEntity table = new TableEntity();

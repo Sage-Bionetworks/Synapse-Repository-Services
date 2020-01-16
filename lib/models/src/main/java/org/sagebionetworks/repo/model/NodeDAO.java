@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -136,8 +137,16 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public List<Long> getVersionNumbers(String id);
+	List<Long> getVersionNumbers(String id);
 
+	/**
+	 * Returns an optional containing the latest version number set in the revisions of the node with the given id if any revision exist
+	 * 
+	 * @param id The if of the node
+	 * @return An optional containing the latest revision number for the node, empty if no such revision exist
+	 */
+	Optional<Long> getLatestVersionNumber(String id);
+	
 	/**
 	 * Get user annotations associated with the current version of the entity
 	 * @param id

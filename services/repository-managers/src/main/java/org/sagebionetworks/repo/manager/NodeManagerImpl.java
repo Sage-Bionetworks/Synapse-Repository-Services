@@ -224,10 +224,14 @@ public class NodeManagerImpl implements NodeManager {
 	 * @return
 	 */
 	public static void validateNodeCreationData(Long userIndividualGroupId, Node newNode){
-		if(userIndividualGroupId == null) throw new IllegalArgumentException("userIndividualGroupId cannot be null");
-		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
-			newNode.setCreatedByPrincipalId(userIndividualGroupId);
-			newNode.setCreatedOn(new Date(System.currentTimeMillis()));
+		if(userIndividualGroupId == null) {
+			throw new IllegalArgumentException("userIndividualGroupId cannot be null");
+		}
+		if(newNode == null) {
+			throw new IllegalArgumentException("New node cannot be null");
+		}
+		newNode.setCreatedByPrincipalId(userIndividualGroupId);
+		newNode.setCreatedOn(new Date(System.currentTimeMillis()));
 	}
 	
 	/**
@@ -237,7 +241,9 @@ public class NodeManagerImpl implements NodeManager {
 	 * @param existingNode
 	 */
 	public static void clearNodeCreationDataForUpdate(Node existingNode) {
-		if(existingNode == null) throw new IllegalArgumentException("Node cannot be null");
+		if(existingNode == null) {
+			throw new IllegalArgumentException("Node cannot be null");
+		}
 		existingNode.setCreatedByPrincipalId(null);
 		existingNode.setCreatedOn(null);
 	}
@@ -249,8 +255,12 @@ public class NodeManagerImpl implements NodeManager {
 	 * @return
 	 */
 	static void validateNodeModifiedData(Long userIndividualGroupId, Node newNode){
-		if(userIndividualGroupId == null) throw new IllegalArgumentException("Username cannot be null");
-		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
+		if(userIndividualGroupId == null) {
+			throw new IllegalArgumentException("Username cannot be null");
+		}
+		if(newNode == null) {
+			throw new IllegalArgumentException("New node cannot be null");
+		}
 		newNode.setModifiedByPrincipalId(userIndividualGroupId);
 		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
@@ -626,13 +636,17 @@ public class NodeManagerImpl implements NodeManager {
 	/*
 	 * Private Methods
 	 */	
-	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
-		if(activityId != null) {
-			if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) return;
-			if(!activityManager.doesActivityExist(activityId)) 
-				throw new NotFoundException("Activity id " + activityId + " not found.");
-			authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
+	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {
+		if (activityId == null) {
+			return;
 		}
+		if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) {
+			return;
+		}
+		if(!activityManager.doesActivityExist(activityId)) {
+			throw new NotFoundException("Activity id " + activityId + " not found.");
+		}
+		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 	}
 
 	@Override

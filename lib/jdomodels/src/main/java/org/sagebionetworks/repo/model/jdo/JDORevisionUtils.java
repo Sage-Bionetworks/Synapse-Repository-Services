@@ -11,11 +11,11 @@ public class JDORevisionUtils {
 	 * @param toCopy
 	 * @return
 	 */
-	public static DBORevision makeCopyForNewVersion(DBORevision toCopy){
+	public static DBORevision makeCopyForNewVersion(DBORevision toCopy, Long revisionNumber) {
 		DBORevision copy = new DBORevision();
+		
 		copy.setOwner(toCopy.getOwner());
-		// Increment the revision number
-		copy.setRevisionNumber(toCopy.getRevisionNumber() + 1);
+		copy.setRevisionNumber(revisionNumber);
 
 		if(toCopy.getEntityPropertyAnnotations() != null){
 			copy.setEntityPropertyAnnotations(Arrays.copyOf(toCopy.getEntityPropertyAnnotations(), toCopy.getEntityPropertyAnnotations().length));
