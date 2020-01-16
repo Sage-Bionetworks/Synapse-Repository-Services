@@ -2611,7 +2611,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testWriteAnnotationDtoToPreparedStatementLongList() throws SQLException{
 		// string value
-		annotationDto.setValue(Arrays.asList("123", "456", "789"));
+		annotationDto.setValue(Arrays.asList("123", "4560", "789"));
 		// Call under test
 		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
@@ -2625,10 +2625,10 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
 
-		verify(mockPreparedStatement).setString(9, "[\"123\",\"456\",\"789\"]");
-		verify(mockPreparedStatement).setString(10, "[123,456,789]");
+		verify(mockPreparedStatement).setString(9, "[\"123\",\"4560\",\"789\"]");
+		verify(mockPreparedStatement).setString(10, "[123,4560,789]");
 		verify(mockPreparedStatement).setString(11, null);
-		verify(mockPreparedStatement).setLong(12, 3);
+		verify(mockPreparedStatement).setLong(12, 4);
 
 	}
 

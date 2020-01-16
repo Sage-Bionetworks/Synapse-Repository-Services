@@ -1884,7 +1884,7 @@ public class TableIndexDAOImplTest {
 		annotationDTO1.setKey(annoKey);
 		annotationDTO1.setType(AnnotationType.STRING);
 		annotationDTO1.setEntityId(2L);
-		annotationDTO1.setValue(Arrays.asList("123", "123456"));
+		annotationDTO1.setValue(Arrays.asList("123"));
 		file1.setAnnotations(Collections.singletonList(annotationDTO1));
 
 		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
@@ -1893,8 +1893,17 @@ public class TableIndexDAOImplTest {
 		annotationDTO2.setKey(annoKey);
 		annotationDTO2.setType(AnnotationType.STRING);
 		annotationDTO2.setEntityId(3L);
-		annotationDTO2.setValue(Arrays.asList("12", "1234"));
+		annotationDTO2.setValue(Arrays.asList("12",  "123456", "1234"));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
+
+		EntityDTO file3 = createEntityDTO(4L, EntityType.file, 0);
+		file3.setParentId(222L);
+		AnnotationDTO annotationDTO3 = new AnnotationDTO();
+		annotationDTO3.setKey(annoKey);
+		annotationDTO3.setType(AnnotationType.STRING);
+		annotationDTO3.setEntityId(3L);
+		annotationDTO3.setValue(Arrays.asList("12345"));
+		file3.setAnnotations(Collections.singletonList(annotationDTO3));
 
 		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 
@@ -1919,27 +1928,27 @@ public class TableIndexDAOImplTest {
 		one.setColumnName("foo");
 		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
 		one.setMaxStringElementSize(101L);
-		one.setListSize(1L);
+		one.setMaxListSize(1L);
 
 
 		ColumnAggregation two = new ColumnAggregation();
 		two.setColumnName("bar");
 		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
 		two.setMaxStringElementSize(0L);
-		two.setListSize(1L);
+		two.setMaxListSize(1L);
 
 
 		ColumnAggregation three = new ColumnAggregation();
 		three.setColumnName("foobar");
 		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
 		three.setMaxStringElementSize(202L);
-		three.setListSize(1L);
+		three.setMaxListSize(1L);
 
 		ColumnAggregation four = new ColumnAggregation();
 		four.setColumnName("barbaz");
 		four.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
 		four.setMaxStringElementSize(111L);
-		four.setListSize(3L);
+		four.setMaxListSize(3L);
 
 		// call under test
 		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three,four));

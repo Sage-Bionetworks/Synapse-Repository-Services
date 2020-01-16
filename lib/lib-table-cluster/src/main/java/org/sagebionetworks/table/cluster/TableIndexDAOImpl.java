@@ -863,7 +863,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				aggregation.setColumnTypeConcat(rs.getString(2));
 				aggregation.setMaxStringElementSize(rs.getLong(3));
-				aggregation.setListSize(rs.getLong(4));
+				aggregation.setMaxListSize(rs.getLong(4));
 				return aggregation;
 			}
 		});
@@ -888,9 +888,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnType type = AnnotationType.valueOf(typeString).getColumnType();
 
 				//check if a LIST columnType needs to be used
-				if(aggregation.getListSize() > 1){
+				if(aggregation.getMaxListSize() > 1){
 					try {
-						type = ColumnTypeListMappings.forNonListType(type).getListType();
+						type = ColumnTypeListMappings.listType(type);
 					} catch (IllegalArgumentException e){
 						//do nothing because a list type mapping does not exist
 					}

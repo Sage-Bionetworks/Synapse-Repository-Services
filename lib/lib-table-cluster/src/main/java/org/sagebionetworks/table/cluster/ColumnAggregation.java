@@ -11,7 +11,7 @@ public class ColumnAggregation {
 	String columnName;
 	String columnTypeConcat;
 	Long maxStringElementSize;
-	Long listSize;
+	Long maxListSize;
 	
 	public String getColumnName() {
 		return columnName;
@@ -31,11 +31,11 @@ public class ColumnAggregation {
 	public void setMaxStringElementSize(Long maxStringElementSize) {
 		this.maxStringElementSize = maxStringElementSize;
 	}
-	public Long getListSize() {
-		return listSize;
+	public Long getMaxListSize() {
+		return maxListSize;
 	}
-	public void setListSize(Long listSize) {
-		this.listSize = listSize;
+	public void setMaxListSize(Long maxListSize) {
+		this.maxListSize = maxListSize;
 	}
 
 
@@ -47,12 +47,12 @@ public class ColumnAggregation {
 		return Objects.equals(columnName, that.columnName) &&
 				Objects.equals(columnTypeConcat, that.columnTypeConcat) &&
 				Objects.equals(maxStringElementSize, that.maxStringElementSize) &&
-				Objects.equals(listSize, that.listSize);
+				Objects.equals(maxListSize, that.maxListSize);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnName, columnTypeConcat, maxStringElementSize, listSize);
+		return Objects.hash(columnName, columnTypeConcat, maxStringElementSize, maxListSize);
 	}
 
 	@Override
@@ -61,7 +61,7 @@ public class ColumnAggregation {
 				"columnName='" + columnName + '\'' +
 				", columnTypeConcat='" + columnTypeConcat + '\'' +
 				", maxStringElementSize=" + maxStringElementSize +
-				", listSize=" + listSize +
+				", listSize=" + maxListSize +
 				'}';
 	}
 }
