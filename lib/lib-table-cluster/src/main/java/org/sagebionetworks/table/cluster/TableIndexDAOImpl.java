@@ -900,7 +900,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnAggregation aggregation = new ColumnAggregation();
 				aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				aggregation.setColumnTypeConcat(rs.getString(2));
-				aggregation.setMaxSize(rs.getLong(3));
+				aggregation.setMaxStringElementSize(rs.getLong(3));
+				aggregation.setMaxListSize(rs.getLong(4));
 				return aggregation;
 			}
 		});
@@ -923,9 +924,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnModel model = new ColumnModel();
 				model.setName(aggregation.getColumnName());
 				ColumnType type = AnnotationType.valueOf(typeString).getColumnType();
+
+				//check if a LIST columnType needs to be used
+				if(aggregation.getMaxListSize() > 1){
+					try {
+						type = ColumnTypeListMappings.listType(type);
+					} catch (IllegalArgumentException e){
+						//do nothing because a list type mapping does not exist
+					}
+				}
+
 				model.setColumnType(type);
-				if(ColumnType.STRING == type) {
-					model.setMaximumSize(aggregation.getMaxSize());
+				if(ColumnType.STRING == type || ColumnType.STRING_LIST==type) {
+					model.setMaximumSize(aggregation.getMaxStringElementSize());
 				}
 				results.add(model);
 			}
