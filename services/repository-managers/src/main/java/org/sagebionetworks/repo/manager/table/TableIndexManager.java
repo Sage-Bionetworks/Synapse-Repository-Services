@@ -143,7 +143,15 @@ public interface TableIndexManager {
 	 * @param tableIdAndVersion
 	 * @param schemas
 	 */
-	void createAndPopulateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
+	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schemas);
+	
+	/**
+	 * 
+	 * @param tableIdAndVersion
+	 * @param schema
+	 * @param rowIds
+	 */
+	void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> schema, Set<Long> rowIds);
 
 	/**
 	 * Create a temporary copy of the table's index table.
@@ -230,10 +238,37 @@ public interface TableIndexManager {
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input);
 
 	/**
-	 * Mark all view scopes associated the given entityId as out-of-date.
+	 * Get a single page (up to the provided limit) of rowIds that are out-of-date
+	 * for the given view. A row is out-of-date if any of these conditions are true:
+	 * <ul>
+	 * <li>A row exists in the replication table but does not exist in the
+	 * view.</li>
+	 * <li>A row exists in the view but does not exist in the replication
+	 * table.</li>
+	 * <li>The rowId, etag, or benefactorId do not match in the view and the
+	 * replication table.</li>
+	 * </ul>
 	 * 
-	 * @param objectId
+	 * @param viewId The id of the view to check.
+	 * @param viewTypeMask  The type of view.
+	 * @param allContainersInScope All of the containers that define the scope 
+	 * @param limit Limit the number of rows returned. 
+	 * @return
 	 */
-	public void markEntityScopeOutOfDate(String objectId);
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
+
+	/**
+	 * In a single transaction, update the provided rowIds for a view. For each
+	 * rowId, all data will first be deleted from the view, then copied back to the
+	 * view from the replication tables.
+	 * 
+	 * @param viewId The Id of the view.
+	 * @param rowsIdsWithChanges The Ids of the rows to be updated in this transaction.
+	 * @param viewTypeMask The type of view this is.
+	 * @param allContainersInScope The container Ids that define the scope of this view.
+	 * @param currentSchema The current schema of the view.
+	 */
+	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 
 }

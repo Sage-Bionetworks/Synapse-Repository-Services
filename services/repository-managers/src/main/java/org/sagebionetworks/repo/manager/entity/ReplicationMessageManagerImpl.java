@@ -61,29 +61,6 @@ public class ReplicationMessageManagerImpl implements ReplicationMessageManager 
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.entity.ReplicationMessageManager#
-	 * pushContainerIdsToReconciliationQueue(java.util.List)
-	 */
-	@Override
-	public void pushContainerIdsToReconciliationQueue(List<Long> toPush) {
-		ValidateArgument.required(toPush, "toPush");
-		if (toPush.isEmpty()) {
-			// nothing to do.
-			return;
-		}
-		// Partition into batches that are under the max size.
-		List<List<Long>> batches = Lists.partition(toPush, MAX_CONTAINERS_IDS_PER_RECONCILIATION_MESSAGE);
-		for (List<Long> batch : batches) {
-			IdList messages = new IdList();
-			messages.setList(batch);
-			String messageBody = createMessageBodyJSON(messages);
-			sqsClient.sendMessage(new SendMessageRequest(reconciliationQueueUrl, messageBody));
-		}
-	}
-
 	/**
 	 * Helper to create a message body from JSONEntity without a checked exception.
 	 * 

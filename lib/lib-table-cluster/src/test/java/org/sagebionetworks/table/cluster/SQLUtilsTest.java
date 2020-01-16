@@ -18,9 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +28,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -40,13 +39,14 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.doubles.AbstractDouble;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLUtilsTest {
@@ -235,6 +235,18 @@ public class SQLUtilsTest {
 		assertThrows(IllegalArgumentException.class, ()-> {
 			SQLUtils.getTableNameForMultiValueColumnIndex(tableId, null );
 		});
+	}
+	
+	@Test
+	public void testGetTableNamePrefixForMultiValueColumns_Id_NoVersion(){
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123"));
+		assertEquals("T123_INDEX", tableName);
+	}
+
+	@Test
+	public void testGetTableNamePrefixForMultiValueColumns_Id_WithVersion(){
+		String tableName = SQLUtils.getTableNamePrefixForMultiValueColumns(IdAndVersion.parse("syn123.456"));
+		assertEquals("T123_456_INDEX", tableName);
 	}
 
 	@Test
@@ -1051,7 +1063,7 @@ public class SQLUtilsTest {
 					" INDEX_NUM BIGINT(20) NOT NULL," +
 					" _C123__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
 					" PRIMARY KEY (ROW_ID_REF_C123_, INDEX_NUM)," +
-					"INDEX _C123__UNNEST_IDX (_C123__UNNEST ASC) );");
+					"INDEX _C123__UNNEST_IDX (_C123__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 
 	}
@@ -1114,7 +1126,7 @@ public class SQLUtilsTest {
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
 						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
-						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) );",
+						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
 				"DROP TABLE IF EXISTS T999_INDEX_C123_;");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
 	}
@@ -1144,14 +1156,14 @@ public class SQLUtilsTest {
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
 						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
-						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) );",
+						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
 				"DROP TABLE IF EXISTS T999_INDEX_C123_;",
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (" +
 						"ROW_ID_REF_C101112_ BIGINT(20) NOT NULL, " +
 						"INDEX_NUM BIGINT(20) NOT NULL, " +
 						"_C101112__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C101112_, INDEX_NUM)," +
-						"INDEX _C101112__UNNEST_IDX (_C101112__UNNEST ASC) );",
+						"INDEX _C101112__UNNEST_IDX (_C101112__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C101112_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
 				"DROP TABLE IF EXISTS T999_INDEX_C161718_;");
 		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
 	}
@@ -1190,7 +1202,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateTruncateSql(){
 		String sql = SQLUtils.createTruncateSql(tableId);
-		assertEquals("TRUNCATE TABLE T999", sql);
+		assertEquals("DELETE FROM T999 WHERE ROW_ID >= 0", sql);
 	}
 
 	@Test
@@ -1996,7 +2008,8 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
 		StringBuilder builder = new StringBuilder();
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema);
+		boolean filterByRows = false;
+		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema, filterByRows);
 		String sql = builder.toString();
 		assertEquals("SELECT"
 				+ " R.ID,"
@@ -2015,6 +2028,37 @@ public class SQLUtilsTest {
 				+ " GROUP BY R.ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
+	
+	@Test
+	public void testCreateSelectFromEntityReplicationFilterByRows(){
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		StringBuilder builder = new StringBuilder();
+		boolean filterByRows = true;
+		// call under test
+		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, schema, filterByRows);
+		String sql = builder.toString();
+		assertEquals("SELECT"
+				+ " R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(R.ID) AS ID"
+				+ " FROM"
+				+ " ENTITY_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE"
+				+ " R.PARENT_ID IN (:parentIds)"
+				+ " AND TYPE IN ('file')"
+				+ " AND R.ID IN (:ids)"
+				+ " GROUP BY R.ID", sql);
+		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
+	}
 
 
 	@Test
@@ -2024,7 +2068,8 @@ public class SQLUtilsTest {
 		id.setId("2");
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema);
+		boolean filterByRows = false;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.ID,"
@@ -2042,6 +2087,34 @@ public class SQLUtilsTest {
 				+ " AND TYPE IN ('file')"
 				+ " GROUP BY R.ID", sql);
 	}
+	
+	@Test
+	public void testCreateSelectInsertFromEntityReplicationFilterByRows(){
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		Long viewTypeMask = ViewTypeMask.File.getMask();
+		boolean filterByRows = true;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
+				+ " SELECT"
+				+ " R.ID,"
+				+ " MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
+				+ " MAX(R.ETAG) AS ETAG,"
+				+ " MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID,"
+				+ " MAX(IF(A.ANNO_KEY ='col_1', A.STRING_VALUE, NULL)) AS _C1_,"
+				+ " MAX(R.ID) AS ID"
+				+ " FROM"
+				+ " ENTITY_REPLICATION R"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A"
+				+ " ON(R.ID = A.ENTITY_ID)"
+				+ " WHERE"
+				+ " R.PARENT_ID IN (:parentIds)"
+				+ " AND TYPE IN ('file')"
+				+ " AND R.ID IN (:ids)"
+				+ " GROUP BY R.ID", sql);
+	}
 
 	@Test
 	public void testCreateSelectInsertFromEntityReplicationProjectView(){
@@ -2050,7 +2123,8 @@ public class SQLUtilsTest {
 		id.setId("2");
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		Long viewTypeMask = ViewTypeMask.Project.getMask();
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema);
+		boolean filterByRows = false;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
 				+ " SELECT"
 				+ " R.ID,"
@@ -2076,7 +2150,8 @@ public class SQLUtilsTest {
 		doubleAnnotation.setName("doubleAnnotation");
 		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
 		Long viewTypeMask = ViewTypeMask.File.getMask();
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema);
+		boolean filterByRows = false;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, schema, filterByRows);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
 				+ " SELECT"
 				+ " R.ID, MAX(R.CURRENT_VERSION) AS CURRENT_VERSION,"
@@ -2708,17 +2783,8 @@ public class SQLUtilsTest {
 				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
 				"INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC) " +
-				");";
+				",FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);";
 		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testTruncateListColumnIndexTable(){
-		ColumnModel columnInfo = new ColumnModel();
-		columnInfo.setColumnType(ColumnType.STRING_LIST);
-		columnInfo.setId("0");
-		columnInfo.setMaximumSize(42L);
-		assertEquals("TRUNCATE TABLE T999_INDEX_C0_;", SQLUtils.truncateListColumnIndexTable(tableId, columnInfo));
 	}
 
 	@Test
@@ -2727,7 +2793,8 @@ public class SQLUtilsTest {
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo);
+		boolean filterRows = false;
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
@@ -2736,7 +2803,82 @@ public class SQLUtilsTest {
 				" ORDINAL FOR ORDINALITY," +
 				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
 				")" +
-				") TEMP_JSON_TABLE;";
+				") TEMP_JSON_TABLE";
 		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testInsertIntoListColumnIndexTableFilterRows(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		boolean filterRows = true;
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
+		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
+				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
+				" FROM T999, JSON_TABLE(" +
+				"_C0_," +
+				" '$[*]' COLUMNS (" +
+				" ORDINAL FOR ORDINALITY," +
+				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
+				")" +
+				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForViewSqlFileView() {
+		long viewTypeMask = ViewTypeMask.File.getMask() ;
+		// call under test
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String expected = "WITH DELTAS (ID, MISSING) AS ("
+				+ " SELECT R.ID, V.ROW_ID FROM ENTITY_REPLICATION R"
+				+ "    LEFT JOIN T999 V ON ("
+				+ "		 R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.PARENT_ID IN (:scopeIds) AND R.TYPE IN ('file')"
+				+ " UNION ALL"
+				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
+				+ "    RIGHT JOIN T999 V ON ("
+				+ "      R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
+				+ "      AND R.PARENT_ID IN (:scopeIds) AND R.TYPE IN ('file'))"
+				+ ")"
+				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForViewSqlFileProject() {
+		long viewTypeMask = ViewTypeMask.Project.getMask();
+		// call under test
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(tableId, viewTypeMask);
+		String expected = "WITH DELTAS (ID, MISSING) AS ("
+				+ " SELECT R.ID, V.ROW_ID FROM ENTITY_REPLICATION R"
+				+ "    LEFT JOIN T999 V ON ("
+				+ "		 R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR)"
+				+ "   WHERE R.ID IN (:scopeIds) AND R.TYPE IN ('project')"
+				+ " UNION ALL"
+				+ " SELECT V.ROW_ID, R.ID FROM ENTITY_REPLICATION R"
+				+ "    RIGHT JOIN T999 V ON ("
+				+ "      R.ID = V.ROW_ID"
+				+ "      AND R.ETAG = V.ROW_ETAG"
+				+ "      AND R.BENEFACTOR_ID = V.ROW_BENEFACTOR"
+				+ "      AND R.ID IN (:scopeIds) AND R.TYPE IN ('project'))"
+				+ ")"
+				+ "SELECT ID FROM DELTAS WHERE MISSING IS NULL ORDER BY ID DESC LIMIT :limitParam";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetDeleteRowsFromViewSql() {
+		// call under test
+		String sql = SQLUtils.getDeleteRowsFromViewSql(tableId);
+		assertEquals("DELETE FROM T999 WHERE ROW_ID = ?", sql);
 	}
 }

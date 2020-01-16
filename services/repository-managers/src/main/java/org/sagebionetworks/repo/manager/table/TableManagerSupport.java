@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -40,6 +42,14 @@ public interface TableManagerSupport {
 	 */
 	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
 			throws NotFoundException;
+	
+	/**
+	 * Get the current state of the given table.
+	 * @param idAndVersion
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public TableState getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -172,16 +182,25 @@ public interface TableManagerSupport {
 	ObjectType getTableType(IdAndVersion tableId);
 
 	/**
-	 * Calculate a Cyclic Redundancy Check (CRC) of a TableView. The CRC is
-	 * calculated as SUM(CRC23(CONCAT(ID, '-', ETAG))) given the ID and ETAG of
-	 * each entity within the view's scope.
-	 * 
-	 * Warning this call is not cheap.
+	 * Get the number currently associated with a view, for consistency checks.
 	 * 
 	 * @param table
 	 * @return
 	 */
-	public Long calculateViewCRC32(IdAndVersion table);
+	public Long getViewNumber(IdAndVersion table);
+	
+	/**
+	 * Get the set of container ids (Projects and Folders) for a view's scope.
+	 * The resulting set will include the scope containers plus all folders
+	 * contained within each scope.
+	 * 
+	 * All FileEntities within the the given view will have a parentId from the
+	 * returned set.
+	 * 
+	 * @param idAndVersion
+	 * @return
+	 */
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -274,6 +293,18 @@ public interface TableManagerSupport {
 	public <R> R tryRunWithTableNonexclusiveLock(
 			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
 			ProgressingCallable<R> runner) throws Exception;
+	
+	/**
+	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback, IdAndVersion, int, ProgressingCallable)
+	 * @param callback
+	 * @param key
+	 * @param timeoutSeconds
+	 * @param runner
+	 * @return
+	 * @throws Exception 
+	 */
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
+			int timeoutSeconds, ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
@@ -387,16 +418,6 @@ public interface TableManagerSupport {
 	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
 
 	/**
-	 * This will trigger a worker to detect and reconcile any entity replication
-	 * data that is out-of-synch with the truth for the given view's scope.
-	 * 
-	 * @param type
-	 * @param expandedScope
-	 *            The fully expanded scope of the view.
-	 */
-	void triggerScopeReconciliation(Long viewTypeMask, Set<Long> expandedScope);
-
-	/**
 	 * Does the given table exist?  If the table is in the trash then this will
 	 * return true.  Will only return true if the table no longer exists.
 	 * @param tableId
@@ -418,5 +439,22 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
+
+	/**
+	 * Will update the tableStatus.changedOn for the given table if its state is
+	 * currently available. If the table's state is not available, this call will do
+	 * nothing.
+	 * 
+	 * @param tableId
+	 * @return True if the table's state was available and changeOn was updated.
+	 */
+	boolean updateChangedOnIfAvailable(IdAndVersion idAndVersion);
+
+	/**
+	 * Get table status last changed on date for the given table.
+	 * @param idAndVersion
+	 * @return
+	 */
+	Date getLastChangedOn(IdAndVersion idAndVersion);
 
 }

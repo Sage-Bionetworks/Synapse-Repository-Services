@@ -1,9 +1,9 @@
 package org.sagebionetworks.worker.entity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -12,34 +12,38 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.IdAndEtag;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.Clock;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -47,7 +51,7 @@ import com.google.common.collect.Sets;
  * Unit test for EntityReplicationDeltaWorker.
  *
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EntityReplicationReconciliationWorkerTest {
 
 	@Mock
@@ -71,46 +75,42 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Mock
 	Clock mockClock;
 	
+	@Mock
+	TableManagerSupport mockTableManagerSupport;
 	
+	@InjectMocks
 	EntityReplicationReconciliationWorker worker;
 	
+	IdAndVersion viewId;
 	Long firstParentId;
 	List<Long> parentIds;
 	Set<Long> trashedParents;
+	List<Long> expiredContainers;
 	IdAndEtag truthOne;
 	IdAndEtag truthTwo;
 	IdAndEtag truthThree;
 	IdAndEtag replicaOne;
 	IdAndEtag replicaTwo;
 	IdAndEtag replicaFour;
+	Long viewTypeMask;
 	
-	Message message;
+	Map<Long, Long> truthCRCs;
+	Map<Long, Long> replicaCRCs;
+	
+	ChangeMessage message;
 	long nowMS;
 	
-	@Before
+	@BeforeEach
 	public void before() throws JSONObjectAdapterException{
-		worker = new EntityReplicationReconciliationWorker();
-		ReflectionTestUtils.setField(worker, "nodeDao", mockNodeDao);
-		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
-		ReflectionTestUtils.setField(worker, "replicationMessageManager", mockReplicationMessageManager);
-		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLog);
-		ReflectionTestUtils.setField(worker, "clock", mockClock);
-		
-		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
-		// default to under the max messages.
-		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
-				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
-		
 		// truth
-		Map<Long, Long> truthCRCs = new HashMap<Long, Long>();
+		truthCRCs = new HashMap<Long, Long>();
 		truthCRCs.put(1L, 111L);
 		truthCRCs.put(2L, 222L);
 		truthCRCs.put(3L, 333L);
 		truthCRCs.put(4L, 333L);
 		truthCRCs.put(6L, 666L);
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
 		// replica
-		Map<Long, Long> replicaCRCs = new HashMap<Long, Long>();
+		replicaCRCs = new HashMap<Long, Long>();
 		// 1 is missing
 		// 2 matches
 		replicaCRCs.put(2L, 222L);
@@ -121,21 +121,16 @@ public class EntityReplicationReconciliationWorkerTest {
 		// 5 in in replica but not truth.
 		replicaCRCs.put(5L, 555L);
 		// 6 is missing from the replica and in the trash.
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
 		
 		firstParentId = 1L;
 		parentIds = Lists.newArrayList(1L,2L,3L,4L,5L,6L);
 		
 		trashedParents = Sets.newHashSet(3L,6L);
-		when(mockNodeDao.getAvailableNodes(parentIds)).thenReturn(Sets.newHashSet(
-				1L,2L,4L,5L
-		));
 		
 		// setup the check for the first parent.
 		truthOne = new IdAndEtag(111L, "et1", 444L);
 		truthTwo = new IdAndEtag(222L, "et2", 444L);
 		truthThree = new IdAndEtag(333L, "et3", 444L);
-		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
 		// one matches the truth
 		replicaOne = new IdAndEtag(111L, "et1", 444L);
 		// two does not match
@@ -143,23 +138,26 @@ public class EntityReplicationReconciliationWorkerTest {
 		// three does not exist in  replica
 		// four does not exist in truth.
 		replicaFour = new IdAndEtag(444L,"et4", 444L);
-		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
-		IdList list = new IdList();
-		list.setList(parentIds);
-		message = new Message();
-		message.setBody(EntityFactory.createJSONStringForEntity(list));
+		viewId = IdAndVersion.parse("syn987");
 		
-		// only the first parent is expired.
-		when(mockIndexDao.getExpiredContainerIds(parentIds)).thenReturn(Lists.newArrayList(firstParentId));
+		message = new ChangeMessage();
+		message.setObjectType(ObjectType.ENTITY_VIEW);
+		message.setObjectId(viewId.toString());
+		message.setTimestamp(new Date(1L));
+		
+		expiredContainers = Lists.newArrayList(firstParentId);
 		nowMS = 101L;
-		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
+		
+		viewTypeMask = ViewTypeMask.File.getMask();
 	}
 	
 
 	
 	@Test
 	public void testCompareCheckSums(){
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
 		// see before() for test setup.
 		Set<Long> trashedParents = Sets.newHashSet(3L, 6L);
 		// call under test
@@ -196,6 +194,9 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testFindChangesForParentIdParentNotInTrash(){
+		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		
 		// see before() for setup.
 		boolean parentInTrash = false;		
 		// call under test
@@ -246,6 +247,9 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testPLFM_5352BenefactorDoesNotMatch(){
+		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		
 		// setup some differences between the truth and replica.
 		Long parentId = firstParentId;
 		boolean parentInTrash = false;
@@ -268,6 +272,10 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testFindDeltas() throws Exception{
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
+		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		// see before() for test setup.
 		// call under test
 		worker.findChildrenDeltas(mockProgressCallback, mockIndexDao, parentIds, trashedParents);
@@ -283,48 +291,29 @@ public class EntityReplicationReconciliationWorkerTest {
 		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(anyListOf(ChangeMessage.class));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetContainerIdsFromMessageNullMessage() throws JSONObjectAdapterException{
-		Message message = null;
-		// call under test
-		worker.getContainerIdsFromMessage(message);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetContainerIdsFromMessageNullBody() throws JSONObjectAdapterException{
-		Message message = new Message();
-		message.setBody(null);
-		// call under test
-		worker.getContainerIdsFromMessage(message);
-	}
-	
-	@Test
-	public void testGetContainerIdsFromMessage() throws JSONObjectAdapterException{
-		// call under test
-		List<Long> results = worker.getContainerIdsFromMessage(message);
-		assertEquals(parentIds, results);
-	}
-	
+
 	@Test
 	public void testGetTrashedContainers(){
+		when(mockNodeDao.getAvailableNodes(parentIds)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
 		// call under test
 		Set<Long> results = worker.getTrashedContainers(parentIds);
 		assertEquals(trashedParents, results);
 	}
 	
 	@Test
-	public void testRunEmptyContainers() throws Exception {
-		IdList emptyList = new IdList();
-		emptyList.setList(new LinkedList<Long>());
-		message.setBody(EntityFactory.createJSONStringForEntity(emptyList));
-		// call under test
-		worker.run(mockProgressCallback, message);
-		// since there are not messages, nothing should happen
-		verify(mockConnectionFactory, never()).getAllConnections();
-	}
-	
-	@Test
 	public void testRun(){
+		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
+		when(mockNodeDao.getAvailableNodes(expiredContainers)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
+		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
+		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
+		when(mockIndexDao.getExpiredContainerIds(parentIds)).thenReturn(expiredContainers);
+		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
 		// call under test
 		worker.run(mockProgressCallback, message);
 		// The expiration should be set for the first parent
@@ -353,6 +342,14 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testRunFailure(){
+		
+		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
+		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
+				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
+		
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
+
 		Exception exception = new RuntimeException("Something went wrong");
 		when(mockIndexDao.getExpiredContainerIds(anyListOf(Long.class))).thenThrow(exception);
 		// call under test
@@ -362,6 +359,29 @@ public class EntityReplicationReconciliationWorkerTest {
 		boolean willRetry = false;
 		verify(mockWorkerLog).logWorkerFailure(EntityReplicationReconciliationWorker.class.getName(), exception, willRetry);
 	}
+	
+	@Test
+	public void testGetContainersToReconcile_Project() {
+		viewTypeMask = ViewTypeMask.Project.getMask();
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		// call under test
+		Set<Long> containers = worker.getContainersToReconcile(viewId);
+		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+		assertEquals(Sets.newHashSet(root), containers);
+	}
+	
+	@Test
+	public void testGetContainersToReconcile_File() {
+		viewTypeMask = ViewTypeMask.File.getMask();
+		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
+		Set<Long> allContainers = Sets.newHashSet(111L,222L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(allContainers);
+		// call under test
+		Set<Long> containers = worker.getContainersToReconcile(viewId);
+		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+		assertEquals(allContainers, containers);
+	}
+	
 	
 	/**
 	 * Helper to create some messages.

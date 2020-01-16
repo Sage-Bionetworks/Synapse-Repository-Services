@@ -47,10 +47,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.sql.DataSource;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
@@ -90,6 +89,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -158,14 +160,46 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean deleteTable(IdAndVersion tableId) {
+	public void deleteTable(IdAndVersion tableId) {
+		deleteMultiValueTablesForTable(tableId);
+		// Find and delete any 
 		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
 			template.update(dropTableDML);
-			return true;
 		} catch (BadSqlGrammarException e) {
 			// This is thrown when the table does not exist
-			return false;
+		}
+		deleteSecondaryTables(tableId);
+	}
+	
+	/**
+	 * Delete secondary table associated with the given tableId.
+	 * @param tableId
+	 */
+	void deleteSecondaryTables(IdAndVersion tableId) {
+		for(TableType type: SQLUtils.SECONDARY_TYPES){
+			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
+			try {
+				template.update(dropStatusTableDML);
+			} catch (BadSqlGrammarException e) {
+				// This is thrown when the table does not exist
+			}
+		}	
+	}
+	
+	/**
+	 * Delete all multi-value tables associated with the given tableId.
+	 * @param tableId
+	 */
+	void deleteMultiValueTablesForTable(IdAndVersion tableId) {
+		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
+		List<String> tablesToDelete = template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
+		for(String tableNames: tablesToDelete) {
+			try {
+				template.update("DROP TABLE "+tableNames);
+			} catch (BadSqlGrammarException e) {
+				// This is thrown when the table does not exist
+			}
 		}
 	}
 
@@ -248,18 +282,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			// Spring throws this when the table is empty
 			return EMPTY_SCHEMA_MD5;
 		}
-	}
-
-	@Override
-	public void deleteSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
-			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
-			try {
-				template.update(dropStatusTableDML);
-			} catch (BadSqlGrammarException e) {
-				// This is thrown when the table does not exist
-			}
-		}	
 	}
 	
 	@Override
@@ -531,33 +553,33 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		template.update(alterSql);
 	}
+	
 
 	@Override
-	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
-		for(ColumnModel columnModel : columnModels) {
-			//only operate on list column types
-			if (!ColumnTypeListMappings.isList(columnModel.getColumnType())) {
-				continue;
-			}
-			//index tables for list columns have already been created when column changes were applied
-
-			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
-			template.update(truncateTablesql);
-
-			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel);
-			try {
-				template.update(insertIntoSql);
-			} catch (DataIntegrityViolationException e){
-				if (columnModel.getColumnType() == ColumnType.STRING_LIST){
-					throw new IllegalArgumentException("The size of the column '"+ columnModel.getName()+ "' is too small." +
-							" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
-				}
-				throw e;
-			}
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(listColumn, "listColumn");
+		//only operate on list column types
+		if (!ColumnTypeListMappings.isList(listColumn.getColumnType())) {
+			throw new IllegalArgumentException("Only valid for List type columns");
+		}
+		if(rowIds != null && rowIds.isEmpty()) {
+			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
+		}
+		boolean filterRows = rowIds != null;
+		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		if(filterRows) {
+			param.addValue(ID_PARAMETER_NAME, rowIds);
+		}
+		try {
+			namedTemplate.update(insertIntoSql, param);
+		} catch (DataIntegrityViolationException e){
+			throw new IllegalArgumentException("The size of the column '"+ listColumn.getName()+ "' is too small." +
+					" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
 		}
 	}
-
-
 
 
 	@Override
@@ -798,18 +820,33 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		Set<Long> rowIdsToCopy = null;
+		copyEntityReplicationToView(viewId, viewTypeMask, allContainersInScope, currentSchema, rowIdsToCopy);
+	}
+	
+	@Override
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()){
 			// nothing to do if the scope is empty.
 			return;
 		}
+		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
+			throw new IllegalArgumentException("When rowIdsToCopy is provided (not null) it cannot be empty");
+		}
+		// Filter by rows only if provided.
+		boolean filterByRows = rowIdsToCopy != null;
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema);
+		if(filterByRows) {
+			param.addValue(ID_PARAMETER_NAME, rowIdsToCopy);
+		}
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema, filterByRows);
 		namedTemplate.update(sql, param);
 	}
 	
@@ -826,7 +863,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		StringBuilder builder = new StringBuilder();
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		boolean filterByRows = false;
+		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
@@ -1054,4 +1092,41 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			template.batchUpdate(sql, batch);
 		}
 	}
+	
+	@Override
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+			long limit) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()) {
+			return Collections.emptySet();
+		}
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, viewTypeMask);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("scopeIds", allContainersInScope);
+		param.addValue("limitParam", limit);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
+		return new LinkedHashSet<Long>(deltas);
+	}
+
+	@Override
+	public void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(idsToDelete, "batch");
+		String sql = SQLUtils.getDeleteRowsFromViewSql(viewId);
+		this.template.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, idsToDelete[i]);
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return idsToDelete.length;
+			}
+		});
+	}
+
 }

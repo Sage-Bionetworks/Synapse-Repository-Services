@@ -1,27 +1,31 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class ViewScopeDaoImplTest {
 
@@ -30,7 +34,7 @@ public class ViewScopeDaoImplTest {
 	@Autowired
 	DBOBasicDao basicDao;
 	
-	@After
+	@AfterEach
 	public void after(){
 		viewScopeDao.truncateAll();
 	}
@@ -45,6 +49,16 @@ public class ViewScopeDaoImplTest {
 		Set<Long> fetched = viewScopeDao.getViewScope(viewId1);
 		assertEquals(containers, fetched);
 		assertEquals(new Long(ViewTypeMask.File.getMask()), viewScopeDao.getViewTypeMask(viewId1));
+	}
+	
+	
+	@Test
+	public void testSetViewTypeMaskNotFound(){
+		long viewId1 = 123L;
+		assertThrows(NotFoundException.class, ()->{
+			// call under test
+			viewScopeDao.getViewTypeMask(viewId1);
+		});
 	}
 	
 	@Test
@@ -72,7 +86,7 @@ public class ViewScopeDaoImplTest {
 		// check the etag
 		dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
 		assertNotNull(dboType.getEtag());
-		assertFalse("Etag should have changed",startEtag.equals(dboType.getEtag()));
+		assertFalse(startEtag.equals(dboType.getEtag()));
 	}
 	
 	@Test
