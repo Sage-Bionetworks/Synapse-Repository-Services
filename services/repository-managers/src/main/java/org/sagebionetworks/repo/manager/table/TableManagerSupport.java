@@ -187,7 +187,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long getViewNumber(IdAndVersion table);
+	public Long getViewStateNumber(IdAndVersion table);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.

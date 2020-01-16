@@ -365,7 +365,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		viewTypeMask = ViewTypeMask.Project.getMask();
 		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
 		// call under test
-		Set<Long> containers = worker.getContainersToReconcile(viewId);
+		List<Long> containers = worker.getContainersToReconcile(viewId);
 		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
 		assertEquals(Sets.newHashSet(root), containers);
 	}
@@ -377,8 +377,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		Set<Long> allContainers = Sets.newHashSet(111L,222L);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(allContainers);
 		// call under test
-		Set<Long> containers = worker.getContainersToReconcile(viewId);
-		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
+		List<Long> containers = worker.getContainersToReconcile(viewId);
 		assertEquals(allContainers, containers);
 	}
 	

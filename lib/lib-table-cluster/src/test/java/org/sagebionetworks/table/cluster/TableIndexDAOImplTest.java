@@ -3084,7 +3084,7 @@ public class TableIndexDAOImplTest {
 		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
 	}
 
-	//See PLFM-5999
+	//See PLFM-6017
 	@Test
 	public void testCreateAndPopulateListColumnIndexTables__DefaultValue() throws ParseException {
 		ColumnModel intColumn = new ColumnModel();
@@ -3107,10 +3107,9 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = Collections.singletonList(row);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
-
-		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
-		tableIndexDAO.populateListColumnIndexTables(tableId, schema);
-
+		Set<Long> rowIds = null;
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds);
 
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema).build();
 		// Now query for the results

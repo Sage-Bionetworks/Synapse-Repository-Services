@@ -605,24 +605,24 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetViewNumber() throws LimitExceededException{
+	public void testGetViewStateNumber() throws LimitExceededException{
 		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		// call under test
-		Long viewNumer = manager.getViewNumber(idAndVersion);
+		Long viewNumer = manager.getViewStateNumber(idAndVersion);
 		assertEquals(expectedNumber, viewNumer);
 		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 	}
 	
 	@Test
-	public void testGetViewNumber_WithVersion(){
+	public void testGetViewStateNumber_WithVersion(){
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		Long snapshotId = 33L;
 		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
 		// call under test
-		Long result = manager.getViewNumber(idAndVersion);
+		Long result = manager.getViewStateNumber(idAndVersion);
 		assertEquals(snapshotId, result);
 		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
 		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
