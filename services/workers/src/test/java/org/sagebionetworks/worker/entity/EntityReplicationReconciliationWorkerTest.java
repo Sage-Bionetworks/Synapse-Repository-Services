@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -367,7 +368,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		// call under test
 		List<Long> containers = worker.getContainersToReconcile(viewId);
 		Long root = KeyFactory.stringToKey(NodeUtils.ROOT_ENTITY_ID);
-		assertEquals(Sets.newHashSet(root), containers);
+		assertEquals(Lists.newArrayList(root), containers);
 	}
 	
 	@Test
@@ -378,7 +379,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(allContainers);
 		// call under test
 		List<Long> containers = worker.getContainersToReconcile(viewId);
-		assertEquals(allContainers, containers);
+		assertEquals(new ArrayList<Long>(allContainers), containers);
 	}
 	
 	
