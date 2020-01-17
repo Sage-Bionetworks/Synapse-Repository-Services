@@ -123,6 +123,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
+	NamedParameterJdbcTemplate namedTemplate;
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -146,6 +147,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		this.template = new JdbcTemplate(dataSource);
 		// See comments above.
 		this.template.setFetchSize(Integer.MIN_VALUE);
+		this.namedTemplate = new NamedParameterJdbcTemplate(this.template);
 	}
 
 	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
@@ -162,13 +164,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void deleteTable(IdAndVersion tableId) {
 		deleteMultiValueTablesForTable(tableId);
-		// Find and delete any 
-		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
-		try {
-			template.update(dropTableDML);
-		} catch (BadSqlGrammarException e) {
-			// This is thrown when the table does not exist
-		}
+		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
 		deleteSecondaryTables(tableId);
 	}
 	
@@ -179,11 +175,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	void deleteSecondaryTables(IdAndVersion tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
-			try {
-				template.update(dropStatusTableDML);
-			} catch (BadSqlGrammarException e) {
-				// This is thrown when the table does not exist
-			}
+			template.update(dropStatusTableDML);
 		}	
 	}
 	
@@ -195,11 +187,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
 		List<String> tablesToDelete = template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
 		for(String tableNames: tablesToDelete) {
-			try {
-				template.update("DROP TABLE "+tableNames);
-			} catch (BadSqlGrammarException e) {
-				// This is thrown when the table does not exist
-			}
+			template.update("DROP TABLE IF EXISTS "+tableNames);
 		}
 	}
 
@@ -321,7 +309,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
 	}
 	
@@ -330,7 +317,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -568,7 +554,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		boolean filterRows = rowIds != null;
 		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if(filterRows) {
 			param.addValue(ID_PARAMETER_NAME, rowIds);
@@ -798,7 +783,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(allContainersInScope.isEmpty()){
 			return -1L;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.getCalculateCRC32Sql(viewTypeMask);
@@ -840,7 +824,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		if(filterByRows) {
@@ -859,7 +842,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			// nothing to do if the scope is empty.
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		StringBuilder builder = new StringBuilder();
@@ -886,7 +868,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(containerIds.isEmpty()){
 			return new LinkedList<>();
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
@@ -953,7 +934,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
 			
 			@Override
@@ -1000,7 +980,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAMETER_NAME, entityContainerIds);
 		param.addValue(EXPIRES_PARAM, System.currentTimeMillis());
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
 		// remove all that are not expired.
 		expiredId.removeAll(nonExpiredIds);
@@ -1044,7 +1023,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForList(sql, new MapSqlParameterSource(parameters), Long.class);
 	}
 
@@ -1054,7 +1032,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(rowIds.isEmpty()) {
 			return 0L;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
 		if(sum == null) {
 			sum =  0L;
@@ -1065,7 +1042,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback) {
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
 			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
 			stats.setId(rs.getString(1));
@@ -1116,7 +1092,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("scopeIds", allContainersInScope);
 		param.addValue("limitParam", limit);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
 		return new LinkedHashSet<Long>(deltas);
 	}

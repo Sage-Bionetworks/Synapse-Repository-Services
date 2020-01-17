@@ -1202,7 +1202,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateTruncateSql(){
 		String sql = SQLUtils.createTruncateSql(tableId);
-		assertEquals("DELETE FROM T999 WHERE ROW_ID >= 0", sql);
+		assertEquals("DELETE FROM T999", sql);
 	}
 
 	@Test

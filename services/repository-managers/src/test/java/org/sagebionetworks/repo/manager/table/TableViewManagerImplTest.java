@@ -1145,6 +1145,8 @@ public class TableViewManagerImplTest {
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
 				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
 	}
 	
 	@Test
@@ -1156,6 +1158,7 @@ public class TableViewManagerImplTest {
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
 				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
 	@Test
@@ -1165,10 +1168,11 @@ public class TableViewManagerImplTest {
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
 				anyString(), anyInt(), any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
-		assertThrows(IllegalArgumentException.class, () -> {
+		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		});
+		assertEquals(exception, result);
 	}
 	
 	@Test
@@ -1180,8 +1184,10 @@ public class TableViewManagerImplTest {
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
 		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
 				anySet(), anyList());
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
 	@Test
@@ -1207,12 +1213,9 @@ public class TableViewManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
-		verify(mockIndexManager, never()).getOutOfDateRowsForView(any(IdAndVersion.class), anyLong(), anySet(),  anyLong());
-		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
-				anySet(), anyList());
-		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
-				any(Exception.class));
-		verify(mockTableManagerSupport, never()).updateChangedOnIfAvailable(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexManager);
 	}
 	
 	/**

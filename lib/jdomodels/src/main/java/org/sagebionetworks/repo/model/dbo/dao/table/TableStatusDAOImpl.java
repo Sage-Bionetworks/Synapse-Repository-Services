@@ -42,6 +42,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
  */
 public class TableStatusDAOImpl implements TableStatusDAO {
 	
+	private static final String SELECT_STATUS_TEMPLATE = "SELECT %1$s FROM " + TABLE_STATUS + " WHERE "
+			+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?";
+
 	public static final int MAX_ERROR_MESSAGE_CHARS = 1000;
 
 	/**
@@ -228,8 +231,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		try {
 			return jdbcTemplate
 					.queryForObject(
-							"SELECT " + COL_TABLE_STATUS_STATE + " FROM " + TABLE_STATUS + " WHERE "
-									+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?",
+							String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_STATE),
 							(ResultSet rs, int rowNum) -> {
 								return TableState.valueOf(rs.getString(COL_TABLE_STATUS_STATE));
 							}, tableId.getId(), version);
@@ -244,8 +246,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		try {
 			Long changedOn = jdbcTemplate
 					.queryForObject(
-							"SELECT " + COL_TABLE_STATUS_CHANGE_ON + " FROM " + TABLE_STATUS + " WHERE "
-									+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?",
+							String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_CHANGE_ON),
 							Long.class, tableId.getId(), version);
 			return new Date(changedOn);
 		} catch (EmptyResultDataAccessException e) {
