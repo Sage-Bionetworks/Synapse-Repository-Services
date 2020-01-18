@@ -1,0 +1,15 @@
+{
+	"description": "An StsStorageLocation provides settings to enable Synapse to call AWS Security Token Service (STS) to get temporary AWS credentials",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting"
+		}
+	],
+	"properties": {
+		"stsEnabled": {
+			"type": "boolean",
+			"description": "Enables STS on this Storage Location"
+		}
+	}
+}

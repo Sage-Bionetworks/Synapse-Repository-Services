@@ -113,9 +113,6 @@
 		</property>
 
 	</bean>
-
-	<!-- Trash manager -->
-	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />
 	
 	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
 	
@@ -300,7 +297,7 @@
 		factory-method="createAmazonSimpleEmailServiceClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
-			
+
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
 	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>

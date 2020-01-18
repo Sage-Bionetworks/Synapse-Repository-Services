@@ -325,7 +325,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	
 	@Override
-	public Long getViewNumber(IdAndVersion idAndVersion) {
+	public Long getViewStateNumber(IdAndVersion idAndVersion) {
 		if(idAndVersion.getVersion().isPresent()) {
 			// The ID of the snapshot is used for this case.
 			return viewSnapshotDao.getSnapshotId(idAndVersion);
@@ -411,7 +411,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
-			return getViewNumber(idAndVersion);
+			return getViewStateNumber(idAndVersion);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MAX_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -26,10 +27,8 @@ public class DBONodeMapper implements RowMapper<DBONode> {
 			node.setParentId(null);
 		}
 		node.setName(rs.getString(COL_NODE_NAME));
-		node.setCurrentRevNumber(rs.getLong(COL_CURRENT_REV));
-		if(rs.wasNull()){
-			node.setCurrentRevNumber(null);
-		}
+		node.setCurrentRevNumber(rs.getLong(COL_NODE_CURRENT_REV));
+		node.setMaxRevNumber(rs.getLong(COL_NODE_MAX_REV));
 		node.seteTag(rs.getString(COL_NODE_ETAG));
 		node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 		node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));

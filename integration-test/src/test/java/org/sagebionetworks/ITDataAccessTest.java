@@ -86,7 +86,7 @@ public class ITDataAccessTest {
 	@After
 	public void after() throws Exception {
 		try {
-			adminSynapse.deleteAndPurgeEntityById(project.getId());
+			adminSynapse.deleteEntity(project);
 		} catch (SynapseNotFoundException e) {}
 	}
 

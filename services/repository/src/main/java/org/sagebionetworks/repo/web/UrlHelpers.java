@@ -95,7 +95,7 @@ public class UrlHelpers {
 	public static final String ACL = "/acl";
 	
 	public static final String BENEFACTOR = "/benefactor";
-	
+
 	/**
 	 * The request parameter to enforce ACL inheritance of child nodes.
 	 */
@@ -456,32 +456,12 @@ public class UrlHelpers {
 	 * Purges the trash can for the current user.
 	 */
 	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
-	
-	/**
-	 * Purges the trash can for the current user of all trash items with no children trash items.
-	 */
-	public static final String TRASHCAN_PURGE_LEAVES = TRASHCAN + "/purgeleaves";
 
 	/**
 	 * Views the current trash can.
 	 */
 	public static final String TRASHCAN_PURGE_ENTITY = TRASHCAN_PURGE + ID;
-
-	/**
-	 * Views everything in the trash can.
-	 */
-	public static final String ADMIN_TRASHCAN_VIEW = ADMIN + TRASHCAN_VIEW;
-
-	/**
-	 * Purges everything in the trash can.
-	 */
-	public static final String ADMIN_TRASHCAN_PURGE = ADMIN + TRASHCAN_PURGE;
 	
-	/**
-	 * Purges all trash items in the trash can with no children trash items.
-	 */
-	public static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + TRASHCAN_PURGE_LEAVES;
-
 	/**
 	 * URL path for query controller
 	 * 
@@ -532,6 +512,17 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
 
 	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
+
+	public static final String FILE_HANDLE = "/fileHandle";
+	public static final String FILE_HANDLE_COPY = FILE_HANDLE + "/{handleIdToCopyFrom}/copy";
+	public static final String FILE_HANDLE_HANDLE_ID = FILE_HANDLE + "/{handleId}";
+	public static final String FILE_HANDLE_PREVIEW = FILE_HANDLE_HANDLE_ID + "/filepreview";
+	public static final String FILE_HANDLE_BATCH = FILE_HANDLE + "/batch";
+	public static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
+	public static final String EXTERNAL_FILE_HANDLE_S3 = EXTERNAL_FILE_HANDLE + "/s3";
+	public static final String EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD = EXTERNAL_FILE_HANDLE + "/googleCloud";
+	public static final String EXTERNAL_FILE_HANDLE_PROXY = EXTERNAL_FILE_HANDLE + "/proxy";
+
 
 	/**
 	 * URL prefix for Users in a UserGroup

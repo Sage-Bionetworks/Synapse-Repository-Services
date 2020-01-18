@@ -121,10 +121,10 @@ public class IT100TableControllerTest {
 	@AfterEach
 	public void after() throws Exception {
 		for (Entity entity : tablesToDelete) {
-			adminSynapse.deleteAndPurgeEntity(entity);
+			adminSynapse.deleteEntity(entity);
 		}
 		for (Entity entity : entitiesToDelete) {
-			adminSynapse.deleteAndPurgeEntity(entity);
+			adminSynapse.deleteEntity(entity);
 		}
 		for (File tempFile : tempFiles) {
 			tempFile.delete();

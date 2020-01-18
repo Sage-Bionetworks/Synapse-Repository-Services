@@ -139,6 +139,7 @@ import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -582,10 +583,6 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteEntityById(String entityId, Boolean skipTrashCan) throws SynapseException;
 
-	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
-
-	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
-
 	public <T extends Entity> void deleteEntityVersion(T entity,
 			Long versionNumber) throws SynapseException;
 
@@ -635,7 +632,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws SynapseException;
-	
+
+	/**
+	 * Create an GoogleCloudFileHandle using a pre-configured ExternalGoogleCloudStorageLocationSetting ID.
+	 * @param handle
+	 * @return
+	 * @throws SynapseException
+	 */
+	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(GoogleCloudFileHandle handle) throws SynapseException;
+
 	/**
 	 * Create a new file handle with optionally a new name and a new content type
 	 * 
@@ -1019,10 +1024,17 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit)
 			throws SynapseException;
+	
+	public void flagForPurge(String entityId) throws SynapseException;
 
+	/**
+	 * Deprecated, will have the same effect as {@link #flagForPurge(String)}
+	 * 
+	 * @param entityId
+	 * @throws SynapseException
+	 */
+	@Deprecated
 	public void purgeTrashForUser(String entityId) throws SynapseException;
-
-	public void purgeTrashForUser() throws SynapseException;
 
 	public EntityHeader addFavorite(String entityId) throws SynapseException;
 

@@ -732,7 +732,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		
 		// Move the table to the trash
-		this.trashManager.moveToTrash(adminUserInfo, tableId);
+		this.trashManager.moveToTrash(adminUserInfo, tableId, false);
 		
 		try {
 			queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);

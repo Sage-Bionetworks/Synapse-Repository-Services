@@ -140,7 +140,7 @@ public interface EntityManager {
 
 
 	/**
-	 * Delete an existing dataset.
+	 * Delete an existing entity. This is deprecated and should never be exposed from the API (The cascade of container deletion is limited to 15 levels of depth).
 	 * 
 	 * @param userInfo
 	 * @param entityId
@@ -148,6 +148,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
+	@Deprecated
 	public void deleteEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**

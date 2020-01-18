@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,7 +34,6 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -1002,7 +1002,31 @@ public class NodeManagerImplUnitTest {
 		assertEquals(1L, outputString.size());
 		assertTrue(outputString.contains("2"));
 	}
-	
+
+	@Test
+	public void testIsEntityEmptyTrue() {
+		// Mock dao.
+		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
+
+		// Method under test.
+		boolean result = nodeManager.isEntityEmpty(nodeId);
+		assertTrue(result);
+
+		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+	}
+
+	@Test
+	public void testIsEntityEmptyFalse() {
+		// Mock dao.
+		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(true);
+
+		// Method under test.
+		boolean result = nodeManager.isEntityEmpty(nodeId);
+		assertFalse(result);
+
+		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+	}
+
 	@Test
 	public void testValidateChildCountFileUnder(){
 		nodeManager.validateChildCount(parentId, type);

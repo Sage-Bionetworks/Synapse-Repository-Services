@@ -160,7 +160,7 @@ public class IT500SynapseJavaClientTeamTest {
 	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
-				adminSynapse.deleteAndPurgeEntityById(id);
+				adminSynapse.deleteEntityById(id);
 			} catch (SynapseNotFoundException e) {}
 		}
 

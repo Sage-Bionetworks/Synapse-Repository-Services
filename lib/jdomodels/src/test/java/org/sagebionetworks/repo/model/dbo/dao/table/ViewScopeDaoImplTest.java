@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,7 +84,7 @@ public class ViewScopeDaoImplTest {
 		// check the etag
 		dboType = basicDao.getObjectByPrimaryKey(DBOViewType.class, param);
 		assertNotNull(dboType.getEtag());
-		assertFalse(startEtag.equals(dboType.getEtag()));
+		assertNotEquals(startEtag, dboType.getEtag());
 	}
 	
 	@Test

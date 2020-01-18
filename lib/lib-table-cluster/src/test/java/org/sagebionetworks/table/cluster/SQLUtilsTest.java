@@ -1202,7 +1202,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateTruncateSql(){
 		String sql = SQLUtils.createTruncateSql(tableId);
-		assertEquals("DELETE FROM T999 WHERE ROW_ID >= 0", sql);
+		assertEquals("DELETE FROM T999", sql);
 	}
 
 	@Test
@@ -2573,7 +2573,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testWriteAnnotationDtoToPreparedStatementStringList() throws SQLException{
 		// string value
-		annotationDto.setValue(Arrays.asList("abc", "def"));
+		annotationDto.setValue(Arrays.asList("abc", "defg"));
 		// Call under test
 		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
@@ -2586,9 +2586,11 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
 
-		verify(mockPreparedStatement).setString(9, "[\"abc\",\"def\"]");
+		verify(mockPreparedStatement).setString(9, "[\"abc\",\"defg\"]");
 		verify(mockPreparedStatement).setString(10, null);
 		verify(mockPreparedStatement).setString(11, null);
+		verify(mockPreparedStatement).setLong(12, 4);
+
 	}
 
 	@Test
@@ -2638,6 +2640,7 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(9, "[\"false\",\"true\",\"false\"]");
 		verify(mockPreparedStatement).setString(10, null);
 		verify(mockPreparedStatement).setString(11, "[false,true,false]");
+		verify(mockPreparedStatement).setLong(12, 5);
 	}
 
 	@Test
@@ -2683,7 +2686,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testWriteAnnotationDtoToPreparedStatementLongList() throws SQLException{
 		// string value
-		annotationDto.setValue(Arrays.asList("123", "456", "789"));
+		annotationDto.setValue(Arrays.asList("123", "4560", "789"));
 		// Call under test
 		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
 		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
@@ -2697,9 +2700,11 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
 
-		verify(mockPreparedStatement).setString(9, "[\"123\",\"456\",\"789\"]");
-		verify(mockPreparedStatement).setString(10, "[123,456,789]");
+		verify(mockPreparedStatement).setString(9, "[\"123\",\"4560\",\"789\"]");
+		verify(mockPreparedStatement).setString(10, "[123,4560,789]");
 		verify(mockPreparedStatement).setString(11, null);
+		verify(mockPreparedStatement).setLong(12, 4);
+
 	}
 
 	@Test

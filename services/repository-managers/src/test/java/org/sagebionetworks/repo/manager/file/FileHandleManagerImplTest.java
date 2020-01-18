@@ -46,8 +46,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -74,8 +72,10 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalGoogleCloudUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalS3UploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -86,6 +86,8 @@ import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
@@ -103,7 +105,9 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
+import com.google.cloud.storage.StorageException;
 import com.google.common.collect.Lists;
 
 /**
@@ -113,9 +117,11 @@ import com.google.common.collect.Lists;
  *
  */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class FileHandleManagerImplTest {
-	
+	private static final String BANNER = "dummy banner text";
+	private static final String BASE_KEY = "some-base-key";
+	private static final String PARENT_ENTITY_ID = "syn123";
+
 	@Mock
 	FileHandleDao mockFileHandleDao;
 	@Mock
@@ -153,6 +159,7 @@ public class FileHandleManagerImplTest {
 	ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	S3FileHandle externals3FileHandle;
 
+	Long proxyStorageLocationId;
 	ProxyStorageLocationSettings proxyStorageLocationSettings;
 	ProxyFileHandle externalProxyFileHandle;
 
@@ -163,6 +170,10 @@ public class FileHandleManagerImplTest {
 	Long externalGoogleCloudStorageLocationId;
 	ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting;
 	GoogleCloudFileHandle googleCloudFileHandle;
+	GoogleCloudFileHandle externalGoogleCloudFileHandle;
+
+	Long synapseStorageLocationId;
+	S3StorageLocationSetting synapseStorageLocationSetting;
 
 	List<FileHandleAssociation> associations;
 	FileHandleAssociation fha1;
@@ -173,6 +184,9 @@ public class FileHandleManagerImplTest {
 
 	@BeforeEach
 	public void before() throws IOException, NoSuchAlgorithmException{
+		bucket = "some-bucket";
+		key = BASE_KEY + "/some-key";
+
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
 
@@ -203,45 +217,49 @@ public class FileHandleManagerImplTest {
 		googleCloudFileHandle.setContentSize(new Long(contentBytes.length));
 		googleCloudFileHandle.setContentMd5(contentMD5);
 		googleCloudFileHandle.setFileName(fileName);
-		googleCloudFileHandle.setBucketName("bucket");
-		googleCloudFileHandle.setKey("key");
+		googleCloudFileHandle.setBucketName(bucket);
+		googleCloudFileHandle.setKey(key);
 
-		bucket = "some-bucket";
-		key = "some-key";
 		md5 = "0123456789abcdef0123456789abcdef";
 		fileSize = 103L;
 		externalS3StorageLocationId = 987L;
 		// setup a storage location
 		externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
+		externalS3StorageLocationSetting.setBanner(BANNER);
+		externalS3StorageLocationSetting.setBaseKey(BASE_KEY);
 		externalS3StorageLocationSetting.setBucket(bucket);
 		externalS3StorageLocationSetting.setCreatedBy(mockUser.getId());
-		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
-		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(mockMeta);
-		when(mockMeta.getETag()).thenReturn(md5);
-		when(mockMeta.getContentLength()).thenReturn(fileSize);
-		
+		externalS3StorageLocationSetting.setStorageLocationId(externalS3StorageLocationId);
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		externalS3StorageLocationSetting.setUploadType(UploadType.S3);
+
 		externals3FileHandle = new S3FileHandle();
 		externals3FileHandle.setBucketName(bucket);
 		externals3FileHandle.setKey(key);
 		externals3FileHandle.setStorageLocationId(externalS3StorageLocationId);
 		externals3FileHandle.setContentMd5(md5);
-		
-		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
 		externalGoogleCloudStorageLocationId = 10241L;
 		externalGoogleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
+		externalGoogleCloudStorageLocationSetting.setBanner(BANNER);
+		externalGoogleCloudStorageLocationSetting.setBaseKey(BASE_KEY);
 		externalGoogleCloudStorageLocationSetting.setBucket(bucket);
 		externalGoogleCloudStorageLocationSetting.setCreatedBy(mockUser.getId());
-		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(externalGoogleCloudStorageLocationSetting);
-		when(mockFileHandleDao.createFile(googleCloudFileHandle)).thenReturn(googleCloudFileHandle);
+		externalGoogleCloudStorageLocationSetting.setStorageLocationId(externalGoogleCloudStorageLocationId);
+		externalGoogleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
+
+		externalGoogleCloudFileHandle = new GoogleCloudFileHandle();
+		externalGoogleCloudFileHandle.setBucketName(bucket);
+		externalGoogleCloudFileHandle.setKey(key);
+		externalGoogleCloudFileHandle.setStorageLocationId(externalGoogleCloudStorageLocationId);
+		externalGoogleCloudFileHandle.setContentMd5(md5);
 
 		// proxy storage location setup.
+		proxyStorageLocationId = 5555L;
 		proxyStorageLocationSettings = new ProxyStorageLocationSettings();
-		proxyStorageLocationSettings.setStorageLocationId(5555L);
+		proxyStorageLocationSettings.setStorageLocationId(proxyStorageLocationId);
 		proxyStorageLocationSettings.setCreatedBy(mockUser.getId());
-		when(mockStorageLocationDao.get(proxyStorageLocationSettings.getStorageLocationId())).thenReturn(proxyStorageLocationSettings);
-		
+
 		externalProxyFileHandle = new ProxyFileHandle();
 		externalProxyFileHandle.setContentMd5("0123456789abcdef0123456789abcdef");
 		externalProxyFileHandle.setContentSize(123L);
@@ -250,22 +268,31 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setFilePath("/pathParent/pathChild");
 		externalProxyFileHandle.setStorageLocationId(proxyStorageLocationSettings.getStorageLocationId());
 		externalProxyFileHandle.setId("444444");
-		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
 
 		//set up external object store
 		endpointUrl = "https://www.url.com";
 		externalObjectStorageLocationId = 96024L;
 		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageLocationSetting.setBanner(BANNER);
 		externalObjectStorageLocationSetting.setStorageLocationId(externalObjectStorageLocationId);
 		externalObjectStorageLocationSetting.setBucket(bucket);
 		externalObjectStorageLocationSetting.setEndpointUrl(endpointUrl);
-		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalObjectStorageLocationSetting);
+		externalObjectStorageLocationSetting.setUploadType(UploadType.HTTPS);
 
 		externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
 		externalObjectStoreFileHandle.setStorageLocationId(externalObjectStorageLocationId);
 		externalObjectStoreFileHandle.setContentMd5(md5);
 		externalObjectStoreFileHandle.setContentSize(fileSize);
 		externalObjectStoreFileHandle.setFileKey(key);
+
+		// Set up Synapse Storage Location.
+		synapseStorageLocationId = 97981L;
+		synapseStorageLocationSetting = new S3StorageLocationSetting();
+		synapseStorageLocationSetting.setBanner(BANNER);
+		synapseStorageLocationSetting.setBaseKey(BASE_KEY);
+		synapseStorageLocationSetting.setStorageLocationId(synapseStorageLocationId);
+		synapseStorageLocationSetting.setStsEnabled(true);
+		synapseStorageLocationSetting.setUploadType(UploadType.S3);
 
 		// one
 		fha1 = new FileHandleAssociation();
@@ -284,23 +311,8 @@ public class FileHandleManagerImplTest {
 		fhaMissing.setFileHandleId("555");
 		associations = Lists.newArrayList(fha1, fha2, fhaMissing);
 		
-		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
-		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
-		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
-		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
-		
 		successRecord = FileHandleManagerImpl.createObjectRecord(mockUser.getId().toString(), fha2, 123L);
-		
-		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
-		
-		FileHandle fh2 = new S3FileHandle();
-		fh2.setId(fha2.getFileHandleId());
-		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
-		handleMap.put(fh2.getId(), fh2);
-		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
-		
-		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
-		
+
 		batchRequest = new BatchFileRequest();
 		batchRequest.setRequestedFiles(associations);
 		batchRequest.setIncludeFileHandles(true);
@@ -321,7 +333,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleUnAuthrozied() throws DatastoreException, NotFoundException{
+	public void testGetFileHandleUnAuthorized() throws DatastoreException, NotFoundException{
 		// You must be authorized to see a file handle
 		String handleId = "123";
 		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
@@ -680,8 +692,6 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		String expecedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
 		assertThrows(UnauthorizedException.class, () -> manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId()));
 	}
@@ -727,10 +737,21 @@ public class FileHandleManagerImplTest {
 					 associateObjectId)
 		);
 	}
-	
-	
+
+	///////////////////////////////////////////////////
+	// createExternalS3FileHandle tests
+	///////////////////////////////////////////////////
+
+
 	@Test
 	public void testCreateExternalS3FileHandleHappy(){
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(mockMeta);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+
 		// call under test
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 		assertNotNull(result);
@@ -771,6 +792,8 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateExternalS3FileHandleUnauthorized(){
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
 		// In this case the esl created by does not match the caller.
 		externalS3StorageLocationSetting.setCreatedBy(mockUser.getId()+1);
 		// should fails since the user is not the creator of the storage location.
@@ -778,7 +801,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateExternalS3FileHandleWongStorageType(){
+	public void testCreateExternalS3FileHandleWrongStorageType(){
 		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(new S3StorageLocationSetting());
 		// should fail
 		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle));
@@ -833,11 +856,138 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateExternalS3FileHandleS3Error(){
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
 		when(mockS3Client.getObjectMetadata(bucket, key)).thenThrow(new AmazonClientException("Something is wrong"));
+
 		// should fail
-		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser, externals3FileHandle));
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
+				externals3FileHandle), "Unable to access the file at bucket: " + bucket + " key: " + key + ".");
 	}
 
+	///////////////////////////////////////////////////
+	// createExternalGoogleCloudFileHandle tests
+	///////////////////////////////////////////////////
+
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleHappy(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
+		Blob mockGCBlob = Mockito.mock(Blob.class);
+		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
+		when(mockGCBlob.getSize()).thenReturn(fileSize);
+
+		// call under test
+		GoogleCloudFileHandle result = manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle);
+		assertNotNull(result);
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(md5, result.getContentMd5());
+		assertEquals(fileSize, result.getContentSize());
+		assertNotNull(result.getEtag());
+		assertEquals(bucket, result.getBucketName());
+		assertEquals(key, result.getKey());
+		assertEquals(externalGoogleCloudStorageLocationId, result.getStorageLocationId());
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleNullMD5(){
+		externalGoogleCloudFileHandle.setContentMd5(null);
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleInvalidMD5(){
+		externalGoogleCloudFileHandle.setContentMd5("not hex string");
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle),
+				"FileHandle.contentMd5 is required and must not be the empty string.");
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleEmptyMD5(){
+		externalGoogleCloudFileHandle.setContentMd5("");
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle),
+				"FileHandle.contentMd5 is required and must not be the empty string.");
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleUnauthorized(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		// In this case the esl created by does not match the caller.
+		externalGoogleCloudStorageLocationSetting.setCreatedBy(mockUser.getId()+1);
+		// should fails since the user is not the creator of the storage location.
+		assertThrows(UnauthorizedException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleWrongStorageType(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(new ExternalS3StorageLocationSetting());
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleEmptyBucket(){
+		externalGoogleCloudFileHandle.setBucketName("");
+		assertThrows(IllegalArgumentException.class, () ->
+						manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle),
+				"FileHandle.bucket is required and must not be the empty string.");
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleNullBucket(){
+		externalGoogleCloudFileHandle.setBucketName(null);
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleNullKey(){
+		externalGoogleCloudFileHandle.setKey(null);
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleEmptyKey(){
+		externalGoogleCloudFileHandle.setKey("");
+		// should fail
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle),
+				"FileHandle.key is required and must not be the empty string.");
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleNullStorageId(){
+		externalGoogleCloudFileHandle.setStorageLocationId(null);
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleBucketDoesNotMatchLocation(){
+		// must match the storage location bucket.
+		externalS3StorageLocationSetting.setBucket(bucket);
+		externalGoogleCloudFileHandle.setBucketName(bucket+"no-match");
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleGoogleCloudError(){
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenThrow(new StorageException(403, "Something is wrong"));
+		// should fail
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
+	}
 
 	///////////////////////////////////////////////////
 	// createExternalFileHandle(ProxyFileHandle) tests
@@ -845,6 +995,9 @@ public class FileHandleManagerImplTest {
 
 	@Test
 	public void testCreateExternalProxyFileHandleHappy() {
+		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
+		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
+
 		// call under test
 		ProxyFileHandle pfh = manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 		assertNotNull(pfh);
@@ -855,6 +1008,8 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateExternalProxyFileHandleNotCreatorBenefactorNull() {
+		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
+
 		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
 		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
 		proxyStorageLocationSettings.setBenefactorId(null);
@@ -864,6 +1019,8 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateExternalProxyFileHandleNotCreatorBenefactorNotAuthroized() {
+		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
+
 		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
 		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
 		String benefactorId = "syn99999";
@@ -876,6 +1033,9 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testCreateExternalProxyFileHandleNotCreatorBenefactorAuthroized() {
+		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
+		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
+
 		// The user did not create the proxyStorageLocationSettings and no benefactor is set.
 		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
 		String benefactorId = "syn99999";
@@ -1007,6 +1167,8 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testCreateExternalObjectStoreFileHandle(){
 		when(mockFileHandleDao.createFile(externalObjectStoreFileHandle)).thenReturn(externalObjectStoreFileHandle);
+		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(
+				externalObjectStorageLocationSetting);
 
 		//method under test
 		ExternalObjectStoreFileHandle result = manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
@@ -1156,6 +1318,20 @@ public class FileHandleManagerImplTest {
 	
 	@Test
 	public void testGetFileHandleAndUrlBatch() throws Exception {
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1213,6 +1389,21 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(null);
 		batchRequest.setIncludePreSignedURLs(true);
 		batchRequest.setIncludePreviewPreSignedURLs(null);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1238,6 +1429,21 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(true);
 		batchRequest.setIncludePreviewPreSignedURLs(false);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1263,12 +1469,22 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(false);
 		batchRequest.setIncludePreviewPreSignedURLs(true);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL("https", "host","/a-url"));
+
 		S3FileHandle fh = new S3FileHandle();
 		fh.setId(fha2.getFileHandleId());
 		fh.setPreviewId(fha2.getFileHandleId());
 		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
 		handleMap.put(fh.getId(), fh);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1295,6 +1511,19 @@ public class FileHandleManagerImplTest {
 		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(false);
 		batchRequest.setIncludePreviewPreSignedURLs(true);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1320,6 +1549,19 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleAndUrlBatchHandlesOnlyWithNullValue() throws Exception {
 		batchRequest.setIncludeFileHandles(true);
 		batchRequest.setIncludePreSignedURLs(null);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1343,6 +1585,19 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleAndUrlBatchHandlesOnly() throws Exception {
 		batchRequest.setIncludeFileHandles(true);
 		batchRequest.setIncludePreSignedURLs(false);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
+		FileHandle fh2 = new S3FileHandle();
+		fh2.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<>();
+		handleMap.put(fh2.getId(), fh2);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any())).thenReturn(handleMap);
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1453,6 +1708,13 @@ public class FileHandleManagerImplTest {
 		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
 		handleMap.put(fh.getId(), fh);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+
+		FileHandleAssociationAuthorizationStatus status1 = new FileHandleAssociationAuthorizationStatus(fha1, AuthorizationStatus.accessDenied(""));
+		FileHandleAssociationAuthorizationStatus status2 = new FileHandleAssociationAuthorizationStatus(fha2, AuthorizationStatus.authorized());
+		FileHandleAssociationAuthorizationStatus missingStatus = new FileHandleAssociationAuthorizationStatus(fhaMissing, AuthorizationStatus.authorized());
+		List<FileHandleAssociationAuthorizationStatus> authResults = Lists.newArrayList(status1, status2, missingStatus);
+		when(mockFileHandleAuthorizationManager.canDownLoadFile(mockUser, associations)).thenReturn(authResults);
+
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1684,7 +1946,68 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testGetUploadDestination_Default() {
+		// Note that this generates a new UploadDestination instance, so we use equals, not same.
+		UploadDestination result = manager.getUploadDestination(mockUser, PARENT_ENTITY_ID,
+				DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
+		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(), result);
+	}
+
+	@Test
+	public void testGetUploadDestination_Synapse() {
+		when(mockStorageLocationDao.get(synapseStorageLocationId)).thenReturn(synapseStorageLocationSetting);
+
+		UploadDestination result = manager.getUploadDestination(mockUser, PARENT_ENTITY_ID, synapseStorageLocationId);
+		assertEquals(BANNER, result.getBanner());
+		assertEquals(synapseStorageLocationId, result.getStorageLocationId());
+		assertEquals(UploadType.S3, result.getUploadType());
+
+		assertTrue(result instanceof S3UploadDestination);
+		S3UploadDestination synapseUploadDestination = (S3UploadDestination) result;
+		assertEquals(BASE_KEY, synapseUploadDestination.getBaseKey());
+		assertTrue(synapseUploadDestination.getStsEnabled());
+	}
+
+	@Test
+	public void testGetUploadDestination_ExternalS3() {
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		UploadDestination result = manager.getUploadDestination(mockUser, PARENT_ENTITY_ID,
+				externalS3StorageLocationId);
+		assertEquals(BANNER, result.getBanner());
+		assertEquals(externalS3StorageLocationId, result.getStorageLocationId());
+		assertEquals(UploadType.S3, result.getUploadType());
+
+		assertTrue(result instanceof ExternalS3UploadDestination);
+		ExternalS3UploadDestination externalS3UploadDestination = (ExternalS3UploadDestination) result;
+		assertEquals(BASE_KEY, externalS3UploadDestination.getBaseKey());
+		assertEquals(bucket, externalS3UploadDestination.getBucket());
+		assertTrue(externalS3UploadDestination.getStsEnabled());
+	}
+
+	@Test
+	public void testGetUploadDestination_ExternalGoogleCloud() {
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+
+		UploadDestination result = manager.getUploadDestination(mockUser, PARENT_ENTITY_ID,
+				externalGoogleCloudStorageLocationId);
+		assertEquals(BANNER, result.getBanner());
+		assertEquals(externalGoogleCloudStorageLocationId, result.getStorageLocationId());
+		assertEquals(UploadType.GOOGLECLOUDSTORAGE, result.getUploadType());
+
+		assertTrue(result instanceof ExternalGoogleCloudUploadDestination);
+		ExternalGoogleCloudUploadDestination externalGoogleCloudUploadDestination =
+				(ExternalGoogleCloudUploadDestination) result;
+		assertEquals(BASE_KEY, externalGoogleCloudUploadDestination.getBaseKey());
+		assertEquals(bucket, externalGoogleCloudUploadDestination.getBucket());
+	}
+
+	@Test
 	public void testGetUploadDestinationExternalObjectStore(){
+		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(
+				externalObjectStorageLocationSetting);
+
 		ExternalObjectStoreUploadDestination result = (ExternalObjectStoreUploadDestination) manager.getUploadDestination(mockUser, "syn123", externalObjectStorageLocationId);
 		assertNotNull(result);
 		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
@@ -1692,7 +2015,14 @@ public class FileHandleManagerImplTest {
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
 		assertEquals(bucket, result.getBucket());
 		assertEquals(endpointUrl, result.getEndpointUrl());
-		assertEquals(externalObjectStorageLocationSetting.getUploadType(), result.getUploadType());
-		assertEquals(externalObjectStorageLocationSetting.getBanner(), result.getBanner());
+		assertEquals(UploadType.HTTPS, result.getUploadType());
+		assertEquals(BANNER, result.getBanner());
+	}
+
+	@Test
+	public void testGetUploadDestination_ProxyStorageNotSupported() {
+		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
+		assertThrows(IllegalArgumentException.class, () -> manager.getUploadDestination(mockUser, PARENT_ENTITY_ID, proxyStorageLocationId),
+				"Cannot handle upload destination location setting of type: org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings");
 	}
 }

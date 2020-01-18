@@ -52,7 +52,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
+				<bean class="org.sagebionetworks.repo.model.dbo.trash.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiAttachmentReservation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.wikiV2.V2DBOWikiMarkdown" />
@@ -199,7 +199,7 @@
 				<!--  in stack-28, nodes, evaluations and teams must migrate before ACLs -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
+				<bean class="org.sagebionetworks.repo.model.dbo.trash.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChallenge" />

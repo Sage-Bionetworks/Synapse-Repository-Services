@@ -176,7 +176,7 @@ public class IT500SynapseJavaClient {
 	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
-				adminSynapse.deleteAndPurgeEntityById(id);
+				adminSynapse.deleteEntityById(id);
 			} catch (SynapseNotFoundException e) {}
 		}
 

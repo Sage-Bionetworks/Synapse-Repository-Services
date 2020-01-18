@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -50,9 +49,10 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * The Sage business logic for node management.
@@ -224,10 +224,14 @@ public class NodeManagerImpl implements NodeManager {
 	 * @return
 	 */
 	public static void validateNodeCreationData(Long userIndividualGroupId, Node newNode){
-		if(userIndividualGroupId == null) throw new IllegalArgumentException("userIndividualGroupId cannot be null");
-		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
-			newNode.setCreatedByPrincipalId(userIndividualGroupId);
-			newNode.setCreatedOn(new Date(System.currentTimeMillis()));
+		if(userIndividualGroupId == null) {
+			throw new IllegalArgumentException("userIndividualGroupId cannot be null");
+		}
+		if(newNode == null) {
+			throw new IllegalArgumentException("New node cannot be null");
+		}
+		newNode.setCreatedByPrincipalId(userIndividualGroupId);
+		newNode.setCreatedOn(new Date(System.currentTimeMillis()));
 	}
 	
 	/**
@@ -237,7 +241,9 @@ public class NodeManagerImpl implements NodeManager {
 	 * @param existingNode
 	 */
 	public static void clearNodeCreationDataForUpdate(Node existingNode) {
-		if(existingNode == null) throw new IllegalArgumentException("Node cannot be null");
+		if(existingNode == null) {
+			throw new IllegalArgumentException("Node cannot be null");
+		}
 		existingNode.setCreatedByPrincipalId(null);
 		existingNode.setCreatedOn(null);
 	}
@@ -249,8 +255,12 @@ public class NodeManagerImpl implements NodeManager {
 	 * @return
 	 */
 	static void validateNodeModifiedData(Long userIndividualGroupId, Node newNode){
-		if(userIndividualGroupId == null) throw new IllegalArgumentException("Username cannot be null");
-		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
+		if(userIndividualGroupId == null) {
+			throw new IllegalArgumentException("Username cannot be null");
+		}
+		if(newNode == null) {
+			throw new IllegalArgumentException("New node cannot be null");
+		}
 		newNode.setModifiedByPrincipalId(userIndividualGroupId);
 		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
@@ -262,10 +272,13 @@ public class NodeManagerImpl implements NodeManager {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getId().toString();
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
+		
 		nodeDao.delete(nodeId);
-		if(log.isDebugEnabled()){
+				
+		if (log.isDebugEnabled()) {
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
+		
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
@@ -623,13 +636,17 @@ public class NodeManagerImpl implements NodeManager {
 	/*
 	 * Private Methods
 	 */	
-	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
-		if(activityId != null) {
-			if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) return;
-			if(!activityManager.doesActivityExist(activityId)) 
-				throw new NotFoundException("Activity id " + activityId + " not found.");
-			authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
+	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {
+		if (activityId == null) {
+			return;
 		}
+		if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) {
+			return;
+		}
+		if(!activityManager.doesActivityExist(activityId)) {
+			throw new NotFoundException("Activity id " + activityId + " not found.");
+		}
+		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
@@ -696,18 +713,14 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
+	public boolean isEntityEmpty(String entityId) {
+		return !nodeDao.doesNodeHaveChildren(entityId);
+	}
+
+	@Override
 	public String lookupChild(String parentId, String entityName) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.lookupChild(parentId, entityName);
-	}
-
-
-	private static void deleteConcreteTypeAnnotation(org.sagebionetworks.repo.model.Annotations annotation){
-		Map<String, List<String>> stringAnnotations = annotation.getStringAnnotations();
-		List<String> annoValue = stringAnnotations.get(ObjectSchema.CONCRETE_TYPE);
-		if(annoValue != null && annoValue.size() == 1 && annoValue.get(0).startsWith("org.sage")){
-			stringAnnotations.remove(ObjectSchema.CONCRETE_TYPE);
-		}
 	}
 
 	@WriteTransaction

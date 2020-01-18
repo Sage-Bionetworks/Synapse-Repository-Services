@@ -49,7 +49,7 @@ public class TrashController {
 			@PathVariable String id,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().moveToTrash(userId, id);
+		this.serviceProvider.getTrashService().moveToTrash(userId, id, false);
 	}
 
 	/**
@@ -112,71 +112,18 @@ public class TrashController {
 	}
 
 	/**
-	 * Purges the specified entity from the trash can. Once purging is done, the entity
+	 * Flags the specified entity for priority purge. The entity will be deleted as soon as possible. Once purging is done, the entity
 	 * will be permanently deleted from the system.
 	 *
 	 * @param id  The ID of the entity to be purged.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
-	public void purgeTrashForUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public void flagForPurge(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purgeTrashForUser(userId, id);
+		this.serviceProvider.getTrashService().flagForPurge(userId, id);
 	}
 
-	/**
-	 * Purges everything in the trash can for the current user. Once purging is done, items in
-	 * the trash can will permanently removed from the system.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE}, method = RequestMethod.PUT)
-	public void purgeTrashForUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purgeTrashForUser(userId);
-	}
-
-	// For administrators
-
-	/**
-	 * For administrators to view the entire trash can.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_VIEW}, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<TrashedEntity> viewTrash(
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
-			HttpServletRequest request) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTrashService().viewTrash(userId, offset, limit, request);
-	}
-
-	/**
-	 * For administrators to purge the entire trash can.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_PURGE}, method = RequestMethod.PUT)
-	public void purge(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purgeTrash(userId);
-	}
-	
-	/**
-	 * For administrators to purge trash items with no children trash items that are more than some days old
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES}, method = RequestMethod.PUT)
-	public void purgeLeaves(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_TRASH_CAN_DELETE_LIMIT) Long limit,
-			@RequestParam(value = ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN) Long daysOld,
-			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purgeTrashLeaves(userId, daysOld, limit);
-	}
 }

@@ -407,7 +407,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			do {
 				if(!TableState.AVAILABLE.equals(tableManagerSupport.getTableStatusState(viewId))) {
 					// no point in continuing if the table is no longer available.
-					break;
+					return;
 				}
 				rowsIdsWithChanges = indexManager.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope,  MAX_ROWS_PER_TRANSACTION);
 				// Are thrashing on the same Ids?
@@ -417,7 +417,7 @@ public class TableViewManagerImpl implements TableViewManager {
 					log.warn("Found " + intersectionWithPreviousPage.size()
 							+ " rows that were just updated but are still out-of-date for view:" + viewId.toString()
 							+ " View update will terminate.");
-					break;
+					return;
 				}
 				
 				if (!rowsIdsWithChanges.isEmpty()) {
@@ -619,25 +619,6 @@ public class TableViewManagerImpl implements TableViewManager {
 		// trigger an update (see: PLFM-5957)
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(resultingIdAndVersion);
 		return snapshotVersion;
-	}
-
-	@Override
-	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
-		EntityType type = tableManagerSupport.getTableEntityType(tableId);
-		if(!EntityType.entityview.equals(type)) {
-			// not a view
-			return Optional.empty();
-		}
-		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
-		if(!TableState.AVAILABLE.equals(status.getState())) {
-			return Optional.empty();
-		}
-		TableIndexManager indexManager = connectionFactory.connectToTableIndex(tableId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
-		long limit = 1L;
-		Set<Long> changes = indexManager.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
-		return Optional.of(changes.isEmpty());
 	}
 
 }

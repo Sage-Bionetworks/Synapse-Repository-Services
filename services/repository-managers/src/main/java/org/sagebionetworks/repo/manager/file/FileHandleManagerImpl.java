@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.FileHandleMetadataType;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
+import org.sagebionetworks.repo.model.file.BaseKeyUploadDestination;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -90,11 +91,13 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
+import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -103,6 +106,7 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -122,6 +126,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
+import com.google.cloud.storage.Blob;
 import com.google.common.collect.Lists;
 
 /**
@@ -840,13 +845,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
 			ExternalS3UploadDestination externalS3UploadDestination = new ExternalS3UploadDestination();
 			externalS3UploadDestination.setBucket(externalS3StorageLocationSetting.getBucket());
-			externalS3UploadDestination.setBaseKey(externalS3StorageLocationSetting.getBaseKey());
 			uploadDestination = externalS3UploadDestination;
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
 			ExternalGoogleCloudUploadDestination externalGoogleCloudUploadDestination = new ExternalGoogleCloudUploadDestination();
 			externalGoogleCloudUploadDestination.setBucket(externalGoogleCloudStorageLocationSetting.getBucket());
-			externalGoogleCloudUploadDestination.setBaseKey(externalGoogleCloudStorageLocationSetting.getBaseKey());
 			uploadDestination = externalGoogleCloudUploadDestination;
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
 			String filename = UUID.randomUUID().toString();
@@ -863,6 +866,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());
+		}
+
+		if (storageLocationSetting instanceof BaseKeyStorageLocationSetting) {
+			((BaseKeyUploadDestination) uploadDestination).setBaseKey(
+					((BaseKeyStorageLocationSetting) storageLocationSetting).getBaseKey());
+		}
+		if (storageLocationSetting instanceof StsStorageLocationSetting) {
+			((StsUploadDestination) uploadDestination).setStsEnabled(
+					((StsStorageLocationSetting)storageLocationSetting).getStsEnabled());
 		}
 
 		uploadDestination.setStorageLocationId(storageLocationId);
@@ -1066,16 +1078,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		 *  the only one that can create an S3FileHandle using that storage location Id. 
 		 */
 		if(!esls.getCreatedBy().equals(userInfo.getId())){
-			throw new UnauthorizedException("Only the creator of ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external S3FileHandle with storagaeLocationId = "+fileHandle.getStorageLocationId());
+			throw new UnauthorizedException("Only the creator of ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external S3FileHandle with storageLocationId = "+fileHandle.getStorageLocationId());
 		}
+		ObjectMetadata summary;
 		try {
-			ObjectMetadata summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
-			if (fileHandle.getContentSize() == null) {
-				fileHandle.setContentSize(summary.getContentLength());
-			}
+			summary = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
-		} 
+		}
+		if (fileHandle.getContentSize() == null) {
+			fileHandle.setContentSize(summary.getContentLength());
+		}
+
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());
@@ -1084,6 +1098,64 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Save the file metadata to the DB.
 		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
+
+	@Override
+	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(UserInfo userInfo,
+												   GoogleCloudFileHandle fileHandle) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(fileHandle, "fileHandle");
+		ValidateArgument.required(fileHandle.getStorageLocationId(), "FileHandle.storageLocationId");
+		ValidateArgument.requiredNotEmpty(fileHandle.getBucketName(), "FileHandle.bucket");
+		ValidateArgument.requiredNotEmpty(fileHandle.getKey(), "FileHandle.key");
+		ValidateArgument.requiredNotEmpty(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		if (fileHandle.getFileName() == null) {
+			fileHandle.setFileName(NOT_SET);
+		}
+		if (fileHandle.getContentType() == null) {
+			fileHandle.setContentType(NOT_SET);
+		}
+
+		if (!MD5ChecksumHelper.isValidMd5Digest(fileHandle.getContentMd5())) {
+			throw new IllegalArgumentException("The content MD5 digest must be a valid hexadecimal string of length 32.");
+		}
+
+		// Lookup the storage location
+		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
+		ExternalGoogleCloudStorageLocationSetting esls = null;
+		if(!(sls instanceof ExternalGoogleCloudStorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ExternalGoogleCloudStorageLocationSetting.class.getName());
+		}
+		esls = (ExternalGoogleCloudStorageLocationSetting) sls;
+		if(!fileHandle.getBucketName().equals(esls.getBucket())){
+			throw new IllegalArgumentException("The bucket for ExternalGoogleCloudStorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
+		}
+
+		/*
+		 *  The creation of the ExternalGoogleCloudStorageLocationSetting already validates that the user has
+		 *  permission to update the bucket. So the creator of the storage location is
+		 *  the only one that can create an GoogleCloudFileHandle using that storage location Id.
+		 */
+		if(!esls.getCreatedBy().equals(userInfo.getId())){
+			throw new UnauthorizedException("Only the creator of ExternalGoogleCloudStorageLocationSetting.id="+fileHandle.getStorageLocationId()+" can create an external GoogleCloudFileHandle with storageLocationId = "+fileHandle.getStorageLocationId());
+		}
+		Blob summary;
+		try {
+			summary = googleCloudStorageClient.getObject(fileHandle.getBucketName(), fileHandle.getKey());
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
+		}
+		if (fileHandle.getContentSize() == null) {
+			fileHandle.setContentSize(summary.getSize());
+		}
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setCreatedOn(new Date());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		// Save the file metadata to the DB.
+		return (GoogleCloudFileHandle) fileHandleDao.createFile(fileHandle);
+	}
+
 
 	@Override
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
