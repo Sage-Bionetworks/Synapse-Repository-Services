@@ -77,6 +77,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jacoco.branch.minumum>0.10</jacoco.branch.minumum>
+    <jacoco.line.minumum>0.40</jacoco.line.minumum>
   </properties>
 
 </project>

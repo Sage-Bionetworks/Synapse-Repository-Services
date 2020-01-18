@@ -949,6 +949,11 @@
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.3</version>
 				<configuration>
+					<excludes>
+						<!-- No point in testing exceptions, since they are entirely boilerplate code. -->
+						<exclude>org/sagebionetworks/client/exceptions/*</exclude>
+						<exclude>org/sagebionetworks/repo/model/exception/*</exclude>
+					</excludes>
 					<rules>
 						<rule>
 							<element>BUNDLE</element>

@@ -120,6 +120,9 @@
 	<properties>
 		<!-- Build time-determined default property values -->
 		<org.sagebionetworks.base.endpoint>http://localhost:8080/services-repository-${project.version}</org.sagebionetworks.base.endpoint>
+
+		<jacoco.branch.minumum>0.60</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.50</jacoco.line.minumum>
 	</properties>
 
 	<build>
