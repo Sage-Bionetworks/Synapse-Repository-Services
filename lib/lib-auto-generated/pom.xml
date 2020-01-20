@@ -101,4 +101,8 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 	</dependencies>
+
+	<properties>
+		<jacoco.skip>true</jacoco.skip>
+	</properties>
 </project>
