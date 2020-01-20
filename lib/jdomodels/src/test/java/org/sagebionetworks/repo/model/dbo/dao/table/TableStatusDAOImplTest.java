@@ -441,9 +441,10 @@ public class TableStatusDAOImplTest {
 	
 	@Test
 	public void testGetTableStatusStateDoesNotExist() {
+		IdAndVersion doesNotExist = IdAndVersion.parse("syn999.888");
 		assertThrows(NotFoundException.class, ()->{
 			// call under test
-			 tableStatusDAO.getTableStatusState(tableIdNoVersion);
+			 tableStatusDAO.getTableStatusState(doesNotExist);
 		});
 	}
 	

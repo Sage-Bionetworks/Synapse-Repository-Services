@@ -109,14 +109,4 @@ public interface TableViewManager {
 	 */
 	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
 
-	/**
-	 * An expensive call to determine if a view is up-to-date with the entity replication data.
-	 * 
-	 * @param tableId
-	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
-	 * with a status of available.
-	 * @throws TableFailedException 
-	 */
-	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException;
-
 }

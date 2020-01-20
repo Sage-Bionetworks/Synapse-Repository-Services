@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -905,6 +906,9 @@ public class IT100TableControllerTest {
 		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
 	}
 
+	// This test will not work because it has not mechanism to wait for the view to be consisted.
+	// Will be moved to the TableViewIntegrationTest PLFM-6043.
+	@Ignore
 	@Test
 	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
 		Project project = new Project();
