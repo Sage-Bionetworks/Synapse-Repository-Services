@@ -999,7 +999,7 @@
 		<gwtVersion>2.5.1</gwtVersion>
 		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>5.1.5.RELEASE</org.springframework.version>
+		<org.springframework.version>5.2.3.RELEASE</org.springframework.version>
 		<jackson.version>2.9.9</jackson.version>
 		<jackson.databind.version>2.9.10.1</jackson.databind.version>
 		<xstream.version>1.4.11.1</xstream.version>
