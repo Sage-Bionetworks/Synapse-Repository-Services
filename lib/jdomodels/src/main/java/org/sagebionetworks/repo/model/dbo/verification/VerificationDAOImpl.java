@@ -193,7 +193,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		return dto;
 	}
 	
-	private static byte[] serializeDTO(VerificationSubmission dto) {
+	public static byte[] serializeDTO(VerificationSubmission dto) { // TODO move to helper
 		try {
 			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
@@ -201,7 +201,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 		}
 	}
 	
-	private static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) {
+	public static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) { // TODO move to helper
 		try {
 			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
 		} catch (IOException e) {
