@@ -432,7 +432,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue("456");
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
-		assertEquals("_C123_ BIGINT(20) DEFAULT 456 COMMENT 'INTEGER'", builder.toString());
+		assertEquals("_C123_ BIGINT DEFAULT 456 COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -444,7 +444,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue(null);
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
-		assertEquals("_C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("_C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 
@@ -456,7 +456,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -468,7 +468,7 @@ public class SQLUtilsTest {
 		isFirst = false;
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals(", ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals(", ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -647,7 +647,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -667,7 +667,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -687,7 +687,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -707,7 +707,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
 
@@ -869,7 +869,7 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
@@ -903,7 +903,7 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE TEMPT999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
