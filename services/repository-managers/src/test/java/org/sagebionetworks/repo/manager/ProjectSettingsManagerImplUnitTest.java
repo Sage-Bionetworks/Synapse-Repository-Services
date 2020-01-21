@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -113,6 +114,9 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Mock
 	private BufferedReader mockBufferedReader;
+	
+	@Mock
+	private BaseKeyStorageLocationSetting mockBaseKeyStorageLocationSetting;
 
 	List<PrincipalAlias> principalAliases;
 	private UploadDestinationListSetting uploadDestinationListSetting;
@@ -166,6 +170,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		proxyStorageLocationSettings.setSecretKey(RandomStringUtils.randomAlphabetic(36));
 
 		synapseStorageLocationSetting = new S3StorageLocationSetting();
+		
 	}
 
 	@Test
@@ -883,6 +888,45 @@ public class ProjectSettingsManagerImplUnitTest {
 		// Method under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.createStorageLocationSetting(
 				userInfo, synapseStorageLocationSetting), "Cannot specify baseKey when creating an S3StorageLocationSetting");
+	}
+	
+	@Test
+	public void testCreateBaseKeyStorageLocationSettingWithEmptyBaseKey() throws IOException {
+		String baseKey = "";
+		
+		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
+			
+		// Call under test
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
+		
+		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
+		
+	}
+	
+	@Test
+	public void testCreateBaseKeyStorageLocationSettingWithNullBaseKey() throws IOException {
+		String baseKey = null;
+		
+		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
+			
+		// Call under test
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
+		
+		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
+		
+	}
+	
+	@Test
+	public void testCreateBaseKeyStorageLocationSettingWithBlankBaseKey() throws IOException {
+		String baseKey = "    ";
+		
+		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
+			
+		// Call under test
+		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
+		
+		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
+		
 	}
 
 	@Test

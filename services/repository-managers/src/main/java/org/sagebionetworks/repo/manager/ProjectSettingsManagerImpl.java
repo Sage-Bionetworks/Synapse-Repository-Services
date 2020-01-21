@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
@@ -208,22 +209,31 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends StorageLocationSetting> T createStorageLocationSetting(UserInfo userInfo,
 			T storageLocationSetting) throws DatastoreException, NotFoundException, IOException {
+		
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(storageLocationSetting, "The storage location");
+		
+		if (storageLocationSetting instanceof BaseKeyStorageLocationSetting) {
+			BaseKeyStorageLocationSetting baseKeyStorageLocationSetting = (BaseKeyStorageLocationSetting) storageLocationSetting;
+			
+			// Makes sure that the base key is set to null if empty (See SWC-5088 and PLFM-6057)
+			if (StringUtils.isBlank(baseKeyStorageLocationSetting.getBaseKey())) {
+				baseKeyStorageLocationSetting.setBaseKey(null);
+			}
+			
+		}
+		
 		if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
 			ExternalS3StorageLocationSetting externalS3StorageLocationSetting = (ExternalS3StorageLocationSetting) storageLocationSetting;
-			// A valid bucket name must also be a valid domain name
-			ValidateArgument.requirement(InternetDomainName.isValid(externalS3StorageLocationSetting.getBucket()),
-					"Invalid Bucket Name");
-
+			
+			validateBucketName(externalS3StorageLocationSetting.getBucket());
 			externalS3StorageLocationSetting.setUploadType(UploadType.S3);
 			validateS3BucketAccess(externalS3StorageLocationSetting);
 			validateS3BucketOwnership(externalS3StorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
 		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
 			ExternalGoogleCloudStorageLocationSetting externalGoogleCloudStorageLocationSetting = (ExternalGoogleCloudStorageLocationSetting) storageLocationSetting;
-			// A valid bucket name must also be a valid domain name
-			ValidateArgument.requirement(
-					InternetDomainName.isValid(externalGoogleCloudStorageLocationSetting.getBucket()),
-					"Invalid Bucket Name");
-
+			
+			validateBucketName(externalGoogleCloudStorageLocationSetting.getBucket());
 			externalGoogleCloudStorageLocationSetting.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
 			validateGoogleCloudBucketOwnership(externalGoogleCloudStorageLocationSetting, getBucketOwnerAliases(userInfo.getId()));
 		} else if (storageLocationSetting instanceof ExternalStorageLocationSetting) {
@@ -238,10 +248,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 			// validate url
 			ValidateArgument.validExternalUrl(strippedEndpoint);
-			// A valid bucket name must also be a valid domain name
-			ValidateArgument.requirement(InternetDomainName.isValid(externalObjectStorageLocationSetting.getBucket()),
-					"Invalid Bucket Name");
-
+			validateBucketName(externalObjectStorageLocationSetting.getBucket());
 			// passed validation, set endpoint as the stripped version
 			externalObjectStorageLocationSetting.setEndpointUrl(strippedEndpoint);
 		} else if (storageLocationSetting instanceof ProxyStorageLocationSettings) {
@@ -388,6 +395,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			// If the storage location somehow doesn't exist, then it's not an StsStorageLocation.
 			return false;
 		}
+	}
+	
+	private void validateBucketName(String bucketName) {
+		// A valid bucket name must also be a valid domain name
+		ValidateArgument.requirement(InternetDomainName.isValid(bucketName), "Invalid Bucket Name");
 	}
 
 	private void validateS3BucketAccess(ExternalS3StorageLocationSetting externalS3StorageLocationSetting) {
