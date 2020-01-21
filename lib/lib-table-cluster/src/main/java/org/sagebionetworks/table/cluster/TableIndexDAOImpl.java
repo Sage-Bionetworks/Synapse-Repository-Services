@@ -469,11 +469,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					info.setHasIndex(!"".equals(key));
 					String typeString = rs.getString("Type");
 					info.setType(MySqlColumnType.parserType(typeString));
-
-					if(info.type.hasSize()){
-						info.setMaxSize(MySqlColumnType.parseSize(typeString));
-					}
-
+					info.setMaxSize(MySqlColumnType.parseSize(typeString));
 					String comment = rs.getString("Comment");
 					if(comment != null && !"".equals(comment)){
 						info.setColumnType(ColumnType.valueOf(comment));

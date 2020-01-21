@@ -1010,9 +1010,8 @@ public class TableIndexDAOImplTest {
 
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
-//		assertEquals(new Integer(20), info.getMaxSize());
-		assertEquals(null, info.getColumnType());
-		
+		assertNull(info.getColumnType());
+
 		// one
 		info = infoList.get(2);
 		assertEquals("_C12_", info.getColumnName());
@@ -1021,7 +1020,6 @@ public class TableIndexDAOImplTest {
 		assertEquals("_C12_idx_", info.getIndexName());
 
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
-//		assertEquals(new Integer(20), info.getMaxSize());
 		assertNull(info.getMaxSize());
 
 		assertEquals(ColumnType.INTEGER, info.getColumnType());

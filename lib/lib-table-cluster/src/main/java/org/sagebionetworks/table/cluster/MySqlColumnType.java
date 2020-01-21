@@ -10,7 +10,7 @@ public enum MySqlColumnType {
 	DOUBLE(false),
 	BOOLEAN(false),
 	MEDIUMTEXT(false),
-	TINYINT(true),
+	TINYINT(false),
 	ENUM(false),
 	JSON(false);
 
@@ -39,7 +39,8 @@ public enum MySqlColumnType {
 		String[] split = typeString.split("\\(");
 		return valueOf(split[0].toUpperCase());
 	}
-	
+
+
 	/**
 	 * Parse the size from the given type string.
 	 * 
