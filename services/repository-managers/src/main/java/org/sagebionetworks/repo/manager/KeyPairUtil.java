@@ -32,7 +32,7 @@ public class KeyPairUtil {
 	
 	public static final String SHA_256 = "SHA-256";
 	
-	private static final String KEY_USE_SIGNATURE = "SIGNATURE";
+	private static final String KEY_USE_SIGNATURE = "sig";
 
 	public static X509Certificate getX509CertificateFromPEM(String pem) {
 		try {
@@ -121,7 +121,7 @@ public class KeyPairUtil {
 			RSAPublicKey rsaPublicKey = (RSAPublicKey)keyPair.getPublic();
 			JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
 			// these would be set for all algorithms
-			rsaKey.setKty(SignatureAlgorithm.RS256.name());
+			rsaKey.setKty(RSA);
 			rsaKey.setUse(KEY_USE_SIGNATURE);
 			rsaKey.setKid(kid);
 			// these are specific to the RSA algorithm

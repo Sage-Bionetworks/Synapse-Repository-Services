@@ -110,8 +110,8 @@ public class KeyPairUtilTest {
 		assertTrue(keys.get(0) instanceof JsonWebKeyRSA);
 		JsonWebKeyRSA key = (JsonWebKeyRSA)keys.get(0);
 		assertEquals("FPQF:TYN3:DMDM:URKQ:BRS4:BX2W:5VSW:3HXA:4D7Z:KOTS:EI26:GPJ6", key.getKid());
-		assertEquals("RS256", key.getKty());
-		assertEquals("SIGNATURE", key.getUse());
+		assertEquals("RSA", key.getKty());
+		assertEquals("sig", key.getUse());
 		assertNotNull(key.getE());
 		assertNotNull(key.getN());		
 	}
