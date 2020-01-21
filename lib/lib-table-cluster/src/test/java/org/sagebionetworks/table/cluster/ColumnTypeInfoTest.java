@@ -164,7 +164,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.INTEGER.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", sql);
+		assertEquals("BIGINT DEFAULT NULL COMMENT 'INTEGER'", sql);
 	}
 	
 	@Test
@@ -172,7 +172,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.INTEGER.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'INTEGER'", sql);
+		assertEquals("BIGINT DEFAULT 123 COMMENT 'INTEGER'", sql);
 	}
 	
 	@Test
@@ -180,7 +180,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.FILEHANDLEID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'FILEHANDLEID'", sql);
+		assertEquals("BIGINT DEFAULT NULL COMMENT 'FILEHANDLEID'", sql);
 	}
 	
 	@Test
@@ -188,7 +188,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.FILEHANDLEID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'FILEHANDLEID'", sql);
+		assertEquals("BIGINT DEFAULT 123 COMMENT 'FILEHANDLEID'", sql);
 	}
 	
 	@Test
@@ -196,7 +196,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.USERID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'USERID'", sql);
+		assertEquals("BIGINT DEFAULT NULL COMMENT 'USERID'", sql);
 	}
 	
 	@Test
@@ -204,7 +204,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.USERID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'USERID'", sql);
+		assertEquals("BIGINT DEFAULT 123 COMMENT 'USERID'", sql);
 	}
 	
 	@Test
@@ -212,7 +212,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.DATE.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'DATE'", sql);
+		assertEquals("BIGINT DEFAULT NULL COMMENT 'DATE'", sql);
 	}
 	
 	@Test
@@ -220,7 +220,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.DATE.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'DATE'", sql);
+		assertEquals("BIGINT DEFAULT 123 COMMENT 'DATE'", sql);
 	}
 	
 	@Test
@@ -228,7 +228,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT DEFAULT NULL COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test
@@ -236,7 +236,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "syn123";
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT DEFAULT 123 COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
