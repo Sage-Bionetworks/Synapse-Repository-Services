@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -15,6 +14,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -1543,11 +1545,37 @@ public class TableViewIntegrationTest {
 	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
 		long start = System.currentTimeMillis();
 		// only wait if the view is available but out-of-date.
-		while(!tableViewManager.isViewAvailableAndUpToDate(viewId).orElse(true)) {
+		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
 			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			System.out.println("Waiting for view "+viewId+" to be up-to-date");
 			Thread.sleep(1000);
 		}
+	}
+	
+	/**
+	 * An expensive call to determine if a view is up-to-date with the entity replication data.
+	 * 
+	 * @param tableId
+	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
+	 * with a status of available.
+	 * @throws TableFailedException 
+	 */
+	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
+		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		if(!EntityType.entityview.equals(type)) {
+			// not a view
+			return Optional.empty();
+		}
+		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		if(!TableState.AVAILABLE.equals(status.getState())) {
+			return Optional.empty();
+		}
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
+		long limit = 1L;
+		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
+		return Optional.of(changes.isEmpty());
 	}
 	
 	/**

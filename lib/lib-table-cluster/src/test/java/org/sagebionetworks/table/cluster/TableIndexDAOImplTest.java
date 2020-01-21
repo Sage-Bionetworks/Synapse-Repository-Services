@@ -2572,7 +2572,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2582,7 +2582,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
 		assertNotNull(results);
-		Set<Long> expected = dtos.stream().map(it -> it.getId()).collect(Collectors.toSet());
+		Set<Long> expected = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
 		assertEquals(expected, results);
 	}
 	
@@ -2594,7 +2594,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2623,7 +2623,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2655,7 +2655,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2687,7 +2687,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2719,7 +2719,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 2;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2731,8 +2731,7 @@ public class TableIndexDAOImplTest {
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
+		assertEquals(Collections.emptySet(), results);
 	}
 	
 	/**
@@ -2743,7 +2742,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2769,7 +2768,7 @@ public class TableIndexDAOImplTest {
 		// add a non-file that should not be part of the view but is in the scope.
 		EntityDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
 		
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2781,7 +2780,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		// The view should not be in the results
 		assertFalse(results.contains(viewDto.getId()));
-		Set<Long> expectedResults = dtos.stream().map(it -> it.getId()).collect(Collectors.toSet());
+		Set<Long> expectedResults = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
 		assertEquals(expectedResults, results);
 	}
 	
@@ -2797,7 +2796,7 @@ public class TableIndexDAOImplTest {
 		// add a non-file that should not be part of the view but is in the scope.
 		EntityDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
 		
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		// Create the empty view
@@ -2827,8 +2826,7 @@ public class TableIndexDAOImplTest {
 		long limit = 1L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
-		assertNotNull(results);
-		assertTrue(results.isEmpty());
+		assertEquals(Collections.emptySet(), results);
 	}
 	
 	@Test
@@ -2910,7 +2908,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
@@ -2937,7 +2935,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
@@ -2981,7 +2979,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3009,7 +3007,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3028,7 +3026,7 @@ public class TableIndexDAOImplTest {
 		isView = true;
 		int rowCount = 4;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
 		createOrUpdateTable(schema, tableId, isView);
 		
@@ -3047,7 +3045,7 @@ public class TableIndexDAOImplTest {
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
 		multiValue.setColumnType(ColumnType.STRING_LIST);
@@ -3082,7 +3080,7 @@ public class TableIndexDAOImplTest {
 		int rowCount = 4;
 		boolean includeMultiValue = true;
 		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
-		Set<Long> scope = dtos.stream().map(it -> it.getParentId()).collect(Collectors.toSet());
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
 		ColumnModel multiValue = new ColumnModel();
 		multiValue.setId("886");
 		multiValue.setColumnType(ColumnType.STRING_LIST);

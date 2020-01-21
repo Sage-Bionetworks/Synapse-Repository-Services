@@ -413,7 +413,7 @@ public class SQLUtils {
 	 */
 	public static String dropTableSQL(IdAndVersion tableId, TableType type) {
 		String tableName = getTableNameForId(tableId, type);
-		return "DROP TABLE " + tableName;
+		return "DROP TABLE IF EXISTS " + tableName;
 	}
 
 	/**
@@ -939,7 +939,7 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String createTruncateSql(IdAndVersion tableId) {
-		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX)+" WHERE "+ROW_ID+" >= 0";
+		return "DELETE FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 
 	
