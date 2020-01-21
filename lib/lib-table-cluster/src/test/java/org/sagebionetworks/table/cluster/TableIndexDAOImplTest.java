@@ -1,12 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
@@ -1013,8 +1007,10 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(5), info.getCardinality());
 		assertEquals("PRIMARY", info.getIndexName());
 		assertTrue(info.hasIndex());
+
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
-		assertEquals(new Integer(20), info.getMaxSize());
+		assertNull(info.getMaxSize());
+//		assertEquals(new Integer(20), info.getMaxSize());
 		assertEquals(null, info.getColumnType());
 		
 		// one
@@ -1023,8 +1019,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(5), info.getCardinality());
 		assertTrue(info.hasIndex());
 		assertEquals("_C12_idx_", info.getIndexName());
+
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
-		assertEquals(new Integer(20), info.getMaxSize());
+//		assertEquals(new Integer(20), info.getMaxSize());
+		assertNull(info.getMaxSize());
+
 		assertEquals(ColumnType.INTEGER, info.getColumnType());
 		
 		// two

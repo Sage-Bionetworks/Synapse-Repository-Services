@@ -5,7 +5,7 @@ package org.sagebionetworks.table.cluster;
  *
  */
 public enum MySqlColumnType {
-	BIGINT(true),
+	BIGINT(false),
 	VARCHAR(true),
 	DOUBLE(false),
 	BOOLEAN(false),
