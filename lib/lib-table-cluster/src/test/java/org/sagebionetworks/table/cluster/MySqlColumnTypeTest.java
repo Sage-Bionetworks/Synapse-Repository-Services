@@ -56,7 +56,7 @@ public class MySqlColumnTypeTest {
 
 	@Test
 	public void testBigIntHasSize(){
-		assertTrue(MySqlColumnType.BIGINT.hasSize());
+		assertFalse(MySqlColumnType.BIGINT.hasSize());
 	}
 	
 	@Test
