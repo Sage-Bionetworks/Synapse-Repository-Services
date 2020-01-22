@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,11 +15,8 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.file.StsUploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -34,12 +30,10 @@ import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -251,84 +245,6 @@ public class ITStorageLocation {
 	}
 
 	@Test
-	public void cannotOverrideAclsOnChildOfStsFolder() throws SynapseException {
-		setupFolderWithSts();
-
-		// Create child folder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		subFolder = synapse.createEntity(subFolder);
-
-		// Attempt to add ACL to child folder.
-		ResourceAccess firstUserResourceAccess = new ResourceAccess();
-		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
-		firstUserResourceAccess.setPrincipalId(userToDelete);
-
-		ResourceAccess secondUserResourceAccess = new ResourceAccess();
-		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
-		secondUserResourceAccess.setPrincipalId(secondUser);
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(subFolder.getId());
-		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createACL(acl),
-				"Cannot override ACLs in a child of an STS-enabled folder");
-	}
-
-	@Test
-	public void canOverrideAclsOnStsFolder() throws SynapseException {
-		setupFolderWithSts();
-
-		// Add ACLs to STS folder.
-		ResourceAccess firstUserResourceAccess = new ResourceAccess();
-		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
-		firstUserResourceAccess.setPrincipalId(userToDelete);
-
-		ResourceAccess secondUserResourceAccess = new ResourceAccess();
-		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
-		secondUserResourceAccess.setPrincipalId(secondUser);
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(folder.getId());
-		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
-		synapse.createACL(acl);
-	}
-
-	@Test
-	public void canOverrideAclsOnChildOfNonStsFolder() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(false);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		synapse.createProjectSetting(projectSetting);
-
-		// Create child folder.
-		Folder subFolder = new Folder();
-		subFolder.setParentId(folder.getId());
-		subFolder = synapse.createEntity(subFolder);
-
-		// Attempt to add ACL to child folder.
-		ResourceAccess firstUserResourceAccess = new ResourceAccess();
-		firstUserResourceAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
-		firstUserResourceAccess.setPrincipalId(userToDelete);
-
-		ResourceAccess secondUserResourceAccess = new ResourceAccess();
-		secondUserResourceAccess.setAccessType(EnumSet.of(ACCESS_TYPE.READ));
-		secondUserResourceAccess.setPrincipalId(secondUser);
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(subFolder.getId());
-		acl.setResourceAccess(ImmutableSet.of(firstUserResourceAccess, secondUserResourceAccess));
-		synapse.createACL(acl);
-	}
-
-	@Test
 	public void cannotAddNonFileNonFolderToStsFolder() throws SynapseException {
 		setupFolderWithSts();
 
@@ -339,7 +255,7 @@ public class ITStorageLocation {
 				"Can only create Files and Folders inside STS-enabled folders");
 	}
 
-	private UploadDestinationListSetting setupFolderWithSts() throws SynapseException {
+	private void setupFolderWithSts() throws SynapseException {
 		// Create storage location.
 		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
 		stsStorageLocationSetting.setStsEnabled(true);
@@ -350,7 +266,7 @@ public class ITStorageLocation {
 		projectSetting.setProjectId(folder.getId());
 		projectSetting.setSettingsType(ProjectSettingsType.upload);
 		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		return (UploadDestinationListSetting) synapse.createProjectSetting(projectSetting);
+		synapse.createProjectSetting(projectSetting);
 	}
 
 	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {
