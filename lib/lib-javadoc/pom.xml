@@ -87,6 +87,9 @@
 			tool -->
 		<auto.generated.classpath>${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
 		<test.javadoc.output.directory>${project.build.directory}/javadoc</test.javadoc.output.directory>
+
+		<jacoco.branch.minumum>0.40</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.60</jacoco.line.minumum>
 	</properties>
 	<build>
 		<resources>

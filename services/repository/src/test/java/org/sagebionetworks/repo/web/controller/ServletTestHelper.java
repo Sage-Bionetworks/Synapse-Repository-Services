@@ -1752,18 +1752,11 @@ public class ServletTestHelper {
 				HttpStatus.OK);
 	}
 
-	public void purgeEntityInTrash(Long userId, String entityId)
+	public void flagEntityForPurge(Long userId, String entityId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE + "/" + entityId,
 				userId, null);
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.OK);
-	}
-
-	public void purgeTrash(Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE, userId, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
@@ -1775,32 +1768,6 @@ public class ServletTestHelper {
 				userId, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
-	}
-
-	public void adminPurgeTrash(Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE, userId, null);
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.OK);
-	}
-	
-	public void adminPurgeTrashLeaves(DispatcherServlet dispatchServlet, Long userId, Long numDaysInTrash, Long limit) throws Exception{
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE_LEAVES, userId, null);
-		request.addParameter(ServiceConstants.DAYS_IN_TRASH_CAN_PARAM, numDaysInTrash.toString());
-		request.addParameter(ServiceConstants.TRASH_CAN_DELETE_LIMIT_PARAM, limit.toString());
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-	}
-
-	public PaginatedResults<TrashedEntity> adminGetTrashCan(Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ADMIN_TRASHCAN_VIEW, userId, null);
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				TrashedEntity.class);
 	}
 	
 	public S3FileHandle getFileHandle(Long userId, String fileHandleId) throws Exception {

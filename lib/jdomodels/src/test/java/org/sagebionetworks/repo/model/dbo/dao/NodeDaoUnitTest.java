@@ -1,24 +1,31 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
@@ -31,9 +38,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.Lists;
-
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class NodeDaoUnitTest {
 	
 	@Mock
@@ -55,11 +60,11 @@ public class NodeDaoUnitTest {
 	private NodeDAOImpl nodeDao;
 	
 	@Captor
-	ArgumentCaptor<MessageToSend> messageCaptor;
+	private ArgumentCaptor<MessageToSend> messageCaptor;
 	
-	Node node;
+	private Node node;
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		node = new Node();
 		node.setCreatedByPrincipalId(123L);
@@ -182,7 +187,7 @@ public class NodeDaoUnitTest {
 		assertEquals(userId, sent.getUserId());
 		assertEquals(changeType, sent.getChangeType());
 	}
-	
+
 	@Test
 	public void testDelete() {
 		String nodeId = "syn456";
@@ -190,15 +195,77 @@ public class NodeDaoUnitTest {
 		nodeDao.delete(nodeId);
 		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(nodeId, ObjectType.ENTITY);
 	}
-
-
-	@Test(expected = IllegalArgumentException.class)
+	
+	@Test
+	public void testDeleteTreeWithEmtpySubtree() {
+		String nodeId = "syn456";
+		Long longId = 456L;
+		
+		int limit = 2;
+		
+		List<Long> subTree = Collections.emptyList();
+		
+		when(mockJdbcTemplate.queryForList(anyString(), eq(Long.class), eq(longId), eq(limit + 1)))
+			.thenReturn(subTree);
+			
+		// call under test
+		boolean result = nodeDao.deleteTree(nodeId, limit);
+		
+		assertTrue(result);
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(nodeId, ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testDeleteTreeWithSubtree() {
+		String nodeId = "syn456";
+		Long longId = 456L;
+		
+		int limit = 2;
+		
+		List<Long> subTree = Arrays.asList(123L, 678L);
+		
+		when(mockJdbcTemplate.queryForList(anyString(), eq(Long.class), eq(longId), eq(limit + 1)))
+			.thenReturn(subTree);
+			
+		// call under test
+		boolean result = nodeDao.deleteTree(nodeId, limit);
+		
+		// The subtree size is lesser or equal to the limit, the node is deleted
+		assertTrue(result);
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(nodeId, ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testDeleteTreeWithSubtreeGreaterThanLimit() {
+		String nodeId = "syn456";
+		Long longId = 456L;
+		
+		int limit = 2;
+		
+		List<Long> subTree = Arrays.asList(123L, 678L, 768L);
+		
+		when(mockJdbcTemplate.queryForList(anyString(), eq(Long.class), eq(longId), eq(limit + 1)))
+			.thenReturn(subTree);
+			
+		// call under test
+		boolean result = nodeDao.deleteTree(nodeId, limit);
+		
+		// The subtree size is greater than the limit, the node is not deleted
+		assertFalse(result);
+		verifyZeroInteractions(mockTransactionalMessenger);
+	}
+	
+	@Test
 	public void testUpdateAnnotations_nullNodeId(){
-		nodeDao.updateAnnotations(null, new Annotations(), "any columname works");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			nodeDao.updateAnnotations(null, new Annotations(), "any columname works");
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateAnnotations_nullAnnotations(){
-		nodeDao.updateAnnotations("syn123", null, "any columname works");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			nodeDao.updateAnnotations("syn123", null, "any columname works");
+		});
 	}
 }

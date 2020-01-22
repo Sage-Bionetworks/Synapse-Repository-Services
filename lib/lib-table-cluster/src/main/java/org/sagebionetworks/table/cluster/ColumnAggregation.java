@@ -1,4 +1,7 @@
 package org.sagebionetworks.table.cluster;
+
+import java.util.Objects;
+
 /**
  * Results of of a column model aggregation query.
  *
@@ -7,7 +10,8 @@ public class ColumnAggregation {
 
 	String columnName;
 	String columnTypeConcat;
-	Long maxSize;
+	Long maxStringElementSize;
+	Long maxListSize;
 	
 	public String getColumnName() {
 		return columnName;
@@ -21,52 +25,43 @@ public class ColumnAggregation {
 	public void setColumnTypeConcat(String columnTypeConcat) {
 		this.columnTypeConcat = columnTypeConcat;
 	}
-	public Long getMaxSize() {
-		return maxSize;
+	public Long getMaxStringElementSize() {
+		return maxStringElementSize;
 	}
-	public void setMaxSize(Long maxSize) {
-		this.maxSize = maxSize;
+	public void setMaxStringElementSize(Long maxStringElementSize) {
+		this.maxStringElementSize = maxStringElementSize;
 	}
+	public Long getMaxListSize() {
+		return maxListSize;
+	}
+	public void setMaxListSize(Long maxListSize) {
+		this.maxListSize = maxListSize;
+	}
+
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		ColumnAggregation that = (ColumnAggregation) o;
+		return Objects.equals(columnName, that.columnName) &&
+				Objects.equals(columnTypeConcat, that.columnTypeConcat) &&
+				Objects.equals(maxStringElementSize, that.maxStringElementSize) &&
+				Objects.equals(maxListSize, that.maxListSize);
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((columnName == null) ? 0 : columnName.hashCode());
-		result = prime * result + ((columnTypeConcat == null) ? 0 : columnTypeConcat.hashCode());
-		result = prime * result + ((maxSize == null) ? 0 : maxSize.hashCode());
-		return result;
+		return Objects.hash(columnName, columnTypeConcat, maxStringElementSize, maxListSize);
 	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		ColumnAggregation other = (ColumnAggregation) obj;
-		if (columnName == null) {
-			if (other.columnName != null)
-				return false;
-		} else if (!columnName.equals(other.columnName))
-			return false;
-		if (columnTypeConcat == null) {
-			if (other.columnTypeConcat != null)
-				return false;
-		} else if (!columnTypeConcat.equals(other.columnTypeConcat))
-			return false;
-		if (maxSize == null) {
-			if (other.maxSize != null)
-				return false;
-		} else if (!maxSize.equals(other.maxSize))
-			return false;
-		return true;
-	}
+
 	@Override
 	public String toString() {
-		return "ColumnAggregation [columnName=" + columnName + ", columnTypeConcat=" + columnTypeConcat + ", maxSize="
-				+ maxSize + "]";
+		return "ColumnAggregation{" +
+				"columnName='" + columnName + '\'' +
+				", columnTypeConcat='" + columnTypeConcat + '\'' +
+				", maxStringElementSize=" + maxStringElementSize +
+				", listSize=" + maxListSize +
+				'}';
 	}
-	
-	
 }

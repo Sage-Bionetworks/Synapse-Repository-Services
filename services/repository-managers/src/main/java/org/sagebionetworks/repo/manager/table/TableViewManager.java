@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 /**

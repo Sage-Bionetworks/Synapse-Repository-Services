@@ -38,14 +38,11 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ObjectTypeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DataType;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -104,8 +101,6 @@ public class TableManagerSupportTest {
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
 	ProgressCallback mockCallback;
-	@Mock
-	ReplicationMessageManagerAsynch mockReplicationMessageManager;
 	@Mock
 	ObjectTypeManager mockObjectTypeManager;
 	@Mock
@@ -341,7 +336,6 @@ public class TableManagerSupportTest {
 	@Test
 	public void testIsIndexWorkRequiredFalse(){
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
 		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		// node exists
@@ -349,9 +343,7 @@ public class TableManagerSupportTest {
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.AVAILABLE);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertFalse(workRequired);
@@ -412,8 +404,7 @@ public class TableManagerSupportTest {
 	 */
 	@Test
 	public void testIsIndexWorkRequiredStatusProcessing(){
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);		
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);	
 		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 
@@ -421,10 +412,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
-		// available
-		TableStatus status = new TableStatus();
-		status.setState(TableState.PROCESSING);
-		when(mockTableStatusDAO.getTableStatus(idAndVersion)).thenReturn(status);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);
@@ -617,54 +605,27 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void calculateFileViewCRC32() throws LimitExceededException{
+	public void testGetViewStateNumber() throws LimitExceededException{
+		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
-
-		Long crc32 = 45678L;
-		Long type = ViewTypeMask.File.getMask();
-		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
-		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
-		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		// call under test
-		Long crcResult = manager.calculateViewCRC32(idAndVersion);
-		assertEquals(crc32, crcResult);
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+		Long viewNumer = manager.getViewStateNumber(idAndVersion);
+		assertEquals(expectedNumber, viewNumer);
+		verify(mockTableIndexDAO).getMaxCurrentCompleteVersionForTable(idAndVersion);
 		verify(mockViewSnapshotDao, never()).getSnapshot(any(IdAndVersion.class));
 	}
 	
 	@Test
-	public void calculateFileViewCRC32Veserion(){
+	public void testGetViewStateNumber_WithVersion(){
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		Long snapshotId = 33L;
 		when(mockViewSnapshotDao.getSnapshotId(idAndVersion)).thenReturn(snapshotId);
 		// call under test
-		Long crcResult = manager.calculateViewCRC32(idAndVersion);
-		assertEquals(snapshotId, crcResult);
-		verify(mockReplicationMessageManager, never()).pushContainerIdsToReconciliationQueue(any());
-	}
-	
-	@Test
-	public void testTriggerScopeReconciliationFileView(){
-		Long type = ViewTypeMask.File.getMask();
-		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
-		// call under test
-		manager.triggerScopeReconciliation(type, containersInScope);
-		// the scope should be sent
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
-	}
-	
-	@Test
-	public void testTriggerScopeReconciliationProjectView(){
-		Long type = ViewTypeMask.Project.getMask();
-		Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
-		// project views reconcile on root.
-		List<Long> toReconcile = Lists.newArrayList(rootId);
-		// call under test
-		manager.triggerScopeReconciliation(type, containersInScope);
-		// the scope should be sent
-		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+		Long result = manager.getViewStateNumber(idAndVersion);
+		assertEquals(snapshotId, result);
+		verify(mockTableIndexDAO, never()).getMaxCurrentCompleteVersionForTable(any(IdAndVersion.class));
+		verify(mockViewSnapshotDao).getSnapshotId(idAndVersion);
 	}
 
 	@Test
@@ -701,19 +662,15 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetTableVersionForFileView() throws LimitExceededException {
+		Long expectedNumber = 123L;
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(idAndVersion)).thenReturn(expectedNumber);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
-		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(anyCollection(), anyInt())).thenReturn(containersInScope);
-
-		Long crc32 = 45678L;
-		Long type = ViewTypeMask.File.getMask();
-		when(mockViewScopeDao.getViewTypeMask(tableIdLong)).thenReturn(type);
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
-		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
+
 		// call under test
 		Long version = manager.getTableVersion(idAndVersion);
-		assertEquals(crc32, version);
+		assertEquals(expectedNumber, version);
 	}
 	
 	@Test
@@ -959,7 +916,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
@@ -980,7 +936,6 @@ public class TableManagerSupportTest {
 		// call under test
 		manager.rebuildTable(mockAdmin, idAndVersion);
 		verify(mockTableIndexDAO).deleteTable(idAndVersion);
-		verify(mockTableIndexDAO).deleteSecondaryTables(idAndVersion);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(idAndVersion);
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());

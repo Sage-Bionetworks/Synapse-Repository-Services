@@ -30,6 +30,7 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -147,7 +148,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void deleteTableIndex(final IdAndVersion tableId) {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
-		tableIndexDao.deleteSecondaryTables(tableId);
 	}
 	
 	@Override
@@ -252,8 +252,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 
 	@Override
-	public void createAndPopulateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schemas){
-		tableIndexDao.populateListColumnIndexTables(tableIdAndVersion, schemas);
+	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema){
+		Set<Long> rowIds = null;
+		populateListColumnIndexTables(tableIdAndVersion, schema, rowIds);
+	}
+	
+	@Override
+	public void populateListColumnIndexTables(final IdAndVersion tableIdAndVersion, final List<ColumnModel> schema, Set<Long> rowIds){
+		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
+		ValidateArgument.required(schema, "schema");
+		for(ColumnModel column: schema) {
+			if (ColumnTypeListMappings.isList(column.getColumnType())) {
+				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds);
+			}
+		}
 	}
 
 	@Override
@@ -277,36 +289,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public long populateViewFromEntityReplication(final Long tableId, final Long viewTypeMask,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
-		try {
-			return populateViewFromEntityReplicationWithProgress(tableId,
-					viewTypeMask, allContainersInScope, currentSchema);
-		} catch (Exception e) {
-			if (e instanceof RuntimeException) {
-				throw ((RuntimeException) e);
-			} else {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-	
-	/**
-	 * Populate the view table from the entity replication tables.
-	 * After the view has been populated a the sum of the cyclic redundancy check (CRC)
-	 * will be calculated on the concatenation of ROW_ID & ETAG of the resulting table.
-	 * 
-	 * @param viewType
-	 * @param allContainersInScope
-	 * @param currentSchema
-	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
-	 * @throws Exception 
-	 */
-	long populateViewFromEntityReplicationWithProgress(final Long tableId, Long viewTypeMask, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
 		// copy the data from the entity replication tables to table's index
 		try {
-			tableIndexDao.copyEntityReplicationToTable(tableId, viewTypeMask, allContainersInScope, currentSchema);
+			tableIndexDao.copyEntityReplicationToView(tableId, viewTypeMask, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
 			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewTypeMask);
@@ -322,13 +310,17 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param currentSchema
 	 * @throws Exception 
 	 */
-	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope, Long viewTypeMask) throws Exception{
+	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope, Long viewTypeMask) {
 		// Calculate the schema from the annotations
 		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, viewTypeMask, Long.MAX_VALUE, 0L);
 		// check the 
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
-		throw exception;
+		if(exception instanceof RuntimeException) {
+			throw (RuntimeException)exception;
+		}else {
+			throw new RuntimeException(exception);
+		}
 	}
 	
 	@Override
@@ -461,7 +453,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 		// now that table is created and populated the indices on the table can be optimized.
 		optimizeTableIndices(idAndVersion);
-		createAndPopulateListColumnIndexTables(idAndVersion, boundSchema);
 		return lastEtag;
 	}
 	
@@ -523,10 +514,36 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input) {
 		tableIndexDao.populateViewFromSnapshot(idAndVersion, input, MAX_BYTES_PER_BATCH);
 	}
-	@Override
-	public void markEntityScopeOutOfDate(String entityId) {
 
-		
+	@Override
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+			long limit) {
+		return tableIndexDao.getOutOfDateRowsForView(viewId, viewTypeMask, allContainersInScope, limit);
+	}
+	
+	@Override
+	public void updateViewRowsInTransaction(IdAndVersion viewId, Set<Long> rowsIdsWithChanges, Long viewTypeMask,
+			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(rowsIdsWithChanges, "rowsIdsWithChanges");
+		ValidateArgument.required(viewTypeMask, "viewTypeMask");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		ValidateArgument.required(currentSchema, "currentSchema");
+		// all calls are in a single transaction.
+		tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
+			Long[] rowsIdsArray = rowsIdsWithChanges.stream().toArray(Long[] ::new); 
+ 			// First delete the provided rows from the view
+			tableIndexDao.deleteRowsFromViewBatch(viewId, rowsIdsArray);
+			try {
+				// Apply any updates to the view for the given Ids
+				tableIndexDao.copyEntityReplicationToView(viewId.getId(), viewTypeMask, allContainersInScope, currentSchema, rowsIdsWithChanges);
+				populateListColumnIndexTables(viewId, currentSchema, rowsIdsWithChanges);
+			} catch (Exception e) {
+				// if the copy failed. Attempt to determine the cause.  This will always throw an exception.
+				determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewTypeMask);
+			}
+			return null;
+		});
 	}
 
 }

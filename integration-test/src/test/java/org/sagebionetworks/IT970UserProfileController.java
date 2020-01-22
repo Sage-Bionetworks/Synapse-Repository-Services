@@ -68,7 +68,7 @@ public class IT970UserProfileController {
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
 			try {
-				synapse.deleteAndPurgeEntityById(id);
+				synapse.deleteEntityById(id);
 			} catch (Exception e) {
 				try {
 					synapse.purgeTrashForUser(id);

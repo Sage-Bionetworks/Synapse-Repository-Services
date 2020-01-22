@@ -213,8 +213,8 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode() {
-		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(
-				uploadDestinationListSetting);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
 		// Call under test
 		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
@@ -224,7 +224,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode_Null() {
-		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(null);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(null);
 
 		// Call under test
 		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
@@ -236,7 +236,8 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void getProjectSettingForNode_WrongType() {
 		// Use Mockito to create an instance of ProjectSetting that's not an UploadDestinationListSetting.
 		ProjectSetting mockSetting = mock(ProjectSetting.class);
-		when(mockProjectSettingDao.getInheritedForEntity(NODE_ID, ProjectSettingsType.upload)).thenReturn(mockSetting);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(mockSetting);
 
 		// Call under test.
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(
@@ -558,16 +559,6 @@ public class ProjectSettingsManagerImplUnitTest {
 		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
 		verify(authorizationManager).canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE);
 		verify(mockProjectSettingDao).delete(PROJECT_SETTINGS_ID);
-	}
-
-	@Test
-	public void deleteProjectSetting_NotFound() {
-		// Mock dependencies.
-		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(null);
-
-		// Method under test.
-		assertThrows(NotFoundException.class, () -> projectSettingsManagerImpl.deleteProjectSetting(userInfo,
-				PROJECT_SETTINGS_ID), "Project setting " + PROJECT_SETTINGS_ID + "not found");
 	}
 
 	@Test
@@ -1110,8 +1101,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenThrow(NotFoundException.class);
 
 		// Method under test.
-		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.isStsStorageLocationSetting(
-				uploadDestinationListSetting), "Storage location " + STORAGE_LOCATION_ID + " not found");
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
+		assertFalse(result);
 		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
 	}
 

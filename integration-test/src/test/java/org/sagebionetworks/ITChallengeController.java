@@ -117,7 +117,7 @@ public class ITChallengeController {
 			registeredTeam=null;
 		}
 		for(String id : entitiesToDelete) {
-			synapse.deleteAndPurgeEntityById(id);
+			synapse.deleteEntityById(id);
 		}
 		for(String id : activitiesToDelete) {
 			synapse.deleteActivity(id);

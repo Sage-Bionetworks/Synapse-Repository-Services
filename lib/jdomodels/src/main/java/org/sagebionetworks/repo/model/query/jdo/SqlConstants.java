@@ -23,7 +23,8 @@ public class SqlConstants {
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
-	public static final String COL_CURRENT_REV			= "CURRENT_REV_NUM";
+	public static final String COL_NODE_CURRENT_REV			= "CURRENT_REV_NUM";
+	public static final String COL_NODE_MAX_REV			= "MAX_REV_NUM";
 	public static final String COL_NODE_ALIAS 			= "ALIAS";
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
@@ -392,6 +393,8 @@ public class SqlConstants {
 	public static final String COL_TRASH_CAN_DELETED_BY         = "DELETED_BY";
 	public static final String COL_TRASH_CAN_DELETED_ON         = "DELETED_ON";
 	public static final String COL_TRASH_CAN_PARENT_ID          = "PARENT_ID";
+	public static final String COL_TRASH_CAN_PRIORITY_PURGE     = "PRIORITY_PURGE";
+	public static final String COL_TRASH_CAN_ETAG               = "ETAG";
 	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
 	
 	// The wiki page table

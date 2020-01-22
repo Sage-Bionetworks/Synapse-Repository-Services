@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -21,9 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -66,6 +68,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
 public class TableIndexDAOImplTest {
@@ -81,8 +86,9 @@ public class TableIndexDAOImplTest {
 
 	IdAndVersion tableId;
 	boolean isView;
-
-	List<String> listColumnIndexTablesToDrop;
+	
+	EntityDTO entityOne;
+	EntityDTO entityTwo;
 
 	@BeforeEach
 	public void before() {
@@ -91,10 +97,7 @@ public class TableIndexDAOImplTest {
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
-		tableIndexDAO.deleteSecondaryTables(tableId);
 		isView = false;
-
-		listColumnIndexTablesToDrop = new LinkedList<>();
 	}
 
 	@AfterEach
@@ -102,11 +105,6 @@ public class TableIndexDAOImplTest {
 		// Drop the table
 		if (tableId != null && tableIndexDAO != null) {
 			tableIndexDAO.deleteTable(tableId);
-			tableIndexDAO.deleteSecondaryTables(tableId);
-		}
-		for(String table : listColumnIndexTablesToDrop) {
-			//drop the created temporary index table
-			tableIndexDAO.getConnection().update("DROP TABLE " + table);
 		}
 	}
 	
@@ -329,8 +327,6 @@ public class TableIndexDAOImplTest {
 		maxVersion = tableIndexDAO
 				.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(4L, maxVersion.longValue());
-
-		tableIndexDAO.deleteSecondaryTables(tableId);
 	}
 	
 	@Test
@@ -761,18 +757,6 @@ public class TableIndexDAOImplTest {
 		}
 		createOrUpdateTable(schema, tableId, isView);
 	}
-	
-	@Test
-	public void testCreateSecondaryTablesCreateDeleteIdempotent(){
-		// ensure the secondary tables for this index exist
-		this.tableIndexDAO.createSecondaryTables(tableId);
-		// must be able to call this again.
-		this.tableIndexDAO.createSecondaryTables(tableId);
-		// The delete must also be idempotent
-		this.tableIndexDAO.deleteSecondaryTables(tableId);
-		// must be able to call this again
-		this.tableIndexDAO.deleteSecondaryTables(tableId);
-	}
 
 	/**
 	 * Test for the secondary table used to bind file handle IDs to a table.
@@ -815,8 +799,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testBindFileHandlesTableDoesNotExist() {
-		// test with no secondary table.
-		this.tableIndexDAO.deleteSecondaryTables(tableId);
+		this.tableIndexDAO.deleteTable(tableId);
 		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertNotNull(results);
@@ -1235,12 +1218,12 @@ public class TableIndexDAOImplTest {
 	public void testEntityReplication(){
 		// delete all data
 		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
-		
+
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		EntityDTO folder = createEntityDTO(2L, EntityType.folder, 5);
 		EntityDTO file = createEntityDTO(3L, EntityType.file, 10);
 		tableIndexDAO.addEntityData(Lists.newArrayList(file, folder, project));
-		
+
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
 		assertEquals(project, fetched);
@@ -1248,6 +1231,30 @@ public class TableIndexDAOImplTest {
 		assertEquals(folder, fetched);
 		fetched = tableIndexDAO.getEntityData(3L);
 		assertEquals(file, fetched);
+	}
+
+	@Test
+	public void testEntityReplication_maxStringLength(){
+		// delete all data
+		long id = 1L;
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(id));
+
+		EntityDTO project = createEntityDTO(id, EntityType.project, 0);
+		AnnotationDTO stringAnno = new AnnotationDTO();
+		stringAnno.setEntityId(id);
+		stringAnno.setType(AnnotationType.STRING);
+		stringAnno.setKey("myStringAnno");
+		stringAnno.setValue(Arrays.asList("a", "ab", "aaa", "abc", "c"));
+		project.setAnnotations(Collections.singletonList(stringAnno));
+
+		tableIndexDAO.addEntityData(Collections.singletonList(project));
+
+		// lookup the column manually
+		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
+				" FROM " + ANNOTATION_REPLICATION_TABLE +
+				" WHERE " + ANNOTATION_REPLICATION_COL_ENTITY_ID + "=" + id;
+		long queriedMaxSize = tableIndexDAO.getConnection().queryForObject(query, Long.class);
+		assertEquals(3, queriedMaxSize);
 	}
 
 	@Test
@@ -1434,7 +1441,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1477,7 +1484,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		// method under test
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 
 		// This is our query
 		SqlQuery query = new SqlQueryBuilder("select foo from " + tableId, schema).build();
@@ -1528,7 +1535,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -1704,7 +1711,7 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
-		tableIndexDAO.copyEntityReplicationToTable(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
@@ -1839,6 +1846,60 @@ public class TableIndexDAOImplTest {
 		// call under test
 		tableIndexDAO.addEntityData(Lists.newArrayList(file1));
 	}
+
+	//PLFM-6013
+	@Test
+	public void testGetPossibleAnnotationsForContainers_ListColumns(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(2L,3L));
+
+
+		String annoKey = "myAnnotation";
+
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
+		file1.setParentId(333L);
+
+		AnnotationDTO annotationDTO1 = new AnnotationDTO();
+		annotationDTO1.setKey(annoKey);
+		annotationDTO1.setType(AnnotationType.STRING);
+		annotationDTO1.setEntityId(2L);
+		annotationDTO1.setValue(Arrays.asList("123"));
+		file1.setAnnotations(Collections.singletonList(annotationDTO1));
+
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
+		file2.setParentId(222L);
+		AnnotationDTO annotationDTO2 = new AnnotationDTO();
+		annotationDTO2.setKey(annoKey);
+		annotationDTO2.setType(AnnotationType.STRING);
+		annotationDTO2.setEntityId(3L);
+		annotationDTO2.setValue(Arrays.asList("12",  "123456", "1234"));
+		file2.setAnnotations(Collections.singletonList(annotationDTO2));
+
+		EntityDTO file3 = createEntityDTO(4L, EntityType.file, 0);
+		file3.setParentId(222L);
+		AnnotationDTO annotationDTO3 = new AnnotationDTO();
+		annotationDTO3.setKey(annoKey);
+		annotationDTO3.setType(AnnotationType.STRING);
+		annotationDTO3.setEntityId(3L);
+		annotationDTO3.setValue(Arrays.asList("12345"));
+		file3.setAnnotations(Collections.singletonList(annotationDTO3));
+
+		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
+
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, ViewTypeMask.File.getMask(), limit, offset);
+		assertNotNull(columns);
+		assertEquals(1, columns.size());
+
+		ColumnModel cm = columns.get(0);
+		assertEquals(annoKey, cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(6L, cm.getMaximumSize());
+
+	}
 	
 	@Test
 	public void testExpandFromAggregation() {
@@ -1846,21 +1907,32 @@ public class TableIndexDAOImplTest {
 		ColumnAggregation one = new ColumnAggregation();
 		one.setColumnName("foo");
 		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
-		one.setMaxSize(101L);
-		
+		one.setMaxStringElementSize(101L);
+		one.setMaxListSize(1L);
+
+
 		ColumnAggregation two = new ColumnAggregation();
 		two.setColumnName("bar");
 		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
-		two.setMaxSize(0L);
-		
+		two.setMaxStringElementSize(0L);
+		two.setMaxListSize(1L);
+
+
 		ColumnAggregation three = new ColumnAggregation();
 		three.setColumnName("foobar");
 		three.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
-		three.setMaxSize(202L);
+		three.setMaxStringElementSize(202L);
+		three.setMaxListSize(1L);
+
+		ColumnAggregation four = new ColumnAggregation();
+		four.setColumnName("barbaz");
+		four.setColumnTypeConcat(concatTypes(AnnotationType.STRING));
+		four.setMaxStringElementSize(111L);
+		four.setMaxListSize(3L);
 
 		// call under test
-		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three));
-		assertEquals(5, results.size());
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three,four));
+		assertEquals(6, results.size());
 		// zero
 		ColumnModel cm = results.get(0);
 		assertEquals("foo", cm.getName());
@@ -1885,7 +1957,12 @@ public class TableIndexDAOImplTest {
 		cm = results.get(4);
 		assertEquals("foobar", cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
-		assertEquals(new Long(202), cm.getMaximumSize());		
+		assertEquals(new Long(202), cm.getMaximumSize());
+		// five
+		cm = results.get(5);
+		assertEquals("barbaz", cm.getName());
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(new Long(111), cm.getMaximumSize());
 	}
 	
 	/**
@@ -2442,16 +2519,13 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
-
-		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
-		tableIndexDAO.populateListColumnIndexTables(tableId, schema);
+		Set<Long> rowsIds = null;
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
 
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
 
 		//each list value created by createRows has 2 items in the list
 		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
-
-		listColumnIndexTablesToDrop.add(listColumnindexTableName);
 	}
 
 	//See PLFM-5999
@@ -2480,17 +2554,670 @@ public class TableIndexDAOImplTest {
 		stringListColumn.setMaximumSize(1L);
 		createOrUpdateTable(schema, tableId, isView);
 
-
-		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		Set<Long> rowsIds = null;
 		String message = assertThrows(IllegalArgumentException.class, ()-> {
 			//method under test
-			tableIndexDAO.populateListColumnIndexTables(tableId, schema);
+			tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
 		}).getMessage();
 
 		assertEquals("The size of the column 'myList' is too small." +
 				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
+	}
+	
+	/**
+	 * Test for the case where an entity is in the replication but not the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		long limit = 100L;
 
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
-		listColumnIndexTablesToDrop.add(listColumnindexTableName);
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where and entity has been deleted from replication but remains in the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		//delete the first row from replication
+		List<Long> toDelete = Lists.newArrayList(dtos.get(0).getId());
+		tableIndexDAO.deleteEntityData(toDelete);
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toDelete);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where and entity has moved out-of-scope but remains in the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// move the entity out of scope
+		EntityDTO first = dtos.get(0);
+		first.setParentId(9999L);
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where an entity etag differs between replication and the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// change the etag of the first entity
+		EntityDTO first = dtos.get(0);
+		first.setEtag(first.getEtag()+"updated");
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the cases where an entity benefactor differs between replication and the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		
+		// change the benefactor of the first entity
+		EntityDTO first = dtos.get(0);
+		first.setBenefactorId(first.getBenefactorId()*100);
+		List<Long> toUpdate = Lists.newArrayList(first.getId());
+		tableIndexDAO.deleteEntityData(toUpdate);
+		tableIndexDAO.addEntityData(Lists.newArrayList(first));
+		
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = new HashSet<Long>(toUpdate);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test for the case where the view is up-to-date with replication.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_ViewUpToDate(){
+		isView = true;
+		int rowCount = 2;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+			
+		long limit = 100L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertEquals(Collections.emptySet(), results);
+	}
+	
+	/**
+	 * Test the limit for getOutOfDateRowsForView()
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_Limit(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
+		long limit = 1L;
+
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		Set<Long> expected = Sets.newHashSet(dtos.get(3).getId());
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Test that types do not match the view type are excluded from the delta.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_FilterTypes(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		// add a non-file that should not be part of the view but is in the scope.
+		EntityDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
+		
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		long limit = 100L;
+
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		// The view should not be in the results
+		assertFalse(results.contains(viewDto.getId()));
+		Set<Long> expectedResults = dtos.stream().map(EntityDTO::getId).collect(Collectors.toSet());
+		assertEquals(expectedResults, results);
+	}
+	
+	/**
+	 * Test where all types are initially in the view, then the view type is 
+	 * changed to only include files.  All non-files must be removed from the view.
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		// add a non-file that should not be part of the view but is in the scope.
+		EntityDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
+		
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		// first row to define the schema
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		// Create the empty view
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// start including all types
+		long startingViewTypeMaks = 0xffff;
+		// add all of the rows to the view.
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), startingViewTypeMaks, scope, schema);
+		
+		long limit = 100L;
+		// File only type used to indicate the new type is files-only.
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(results);
+		// the folder should be removed from the view.
+		Set<Long> expectedResults = Sets.newHashSet(folderDto.getId());
+		assertEquals(expectedResults, results);
+	}
+	
+	/**
+	 * Test the limit for getOutOfDateRowsForView()
+	 */
+	@Test
+	public void testGetOutOfDateRowsForView_EmptyScope(){
+		Set<Long> scope = Collections.emptySet();
+		long limit = 1L;
+		// call under test
+		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertEquals(Collections.emptySet(), results);
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForView_NullTableId(){
+		tableId = null;
+		Set<Long> scope = Collections.emptySet();
+		long limit = 1L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		});
+	}
+	
+	@Test
+	public void testGetOutOfDateRowsForView_NullScope(){
+		Set<Long> scope = null;
+		long limit = 1L;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		});
+	}
+	
+	/**
+	 * Create n number of EntityDTO with data in both replications and annotations.
+	 * @param count
+	 * @return
+	 */
+	List<EntityDTO> createFileEntityEntityDTOs(int count){
+		boolean includeMultiValue = false;
+		return createFileEntityEntityDTOs(count, includeMultiValue);
+	}
+	
+	List<EntityDTO> createFileEntityEntityDTOs(int count, boolean includeMultiValue){
+		List<Long> newIds = new ArrayList<Long>(count);
+		List<EntityDTO> results = new ArrayList<EntityDTO>(count);
+		for(int i=0; i<count; i++) {
+			Long entityId = new Long(i+1);
+			newIds.add(entityId);
+			EntityDTO file = createEntityDTO(entityId, EntityType.file, 3);
+			file.setParentId(entityId*100);
+			if(includeMultiValue) {
+				AnnotationDTO multiValue = new AnnotationDTO();
+				multiValue.setEntityId(file.getId());
+				multiValue.setKey("multiValue");
+				multiValue.setType(AnnotationType.STRING);
+				multiValue.setValue(Lists.newArrayList("one"+i, "two"+i));
+				file.getAnnotations().add(multiValue);
+			}
+			results.add(file);
+		}
+		// delete all rows if they already exist
+		tableIndexDAO.deleteEntityData(newIds);
+		// create all of the rows in the replication table
+		tableIndexDAO.addEntityData(results);
+		return results;
+	}
+	
+	/**
+	 * Create an entity of the given type.
+	 * @param index
+	 * @param type
+	 * @param parentId
+	 * @return
+	 */
+	EntityDTO createEntityOfType(int index, EntityType type, long parentId) {
+		Long entityId = new Long(index+1);
+		EntityDTO entity = createEntityDTO(entityId, type, 3);
+		entity.setParentId(parentId);
+		// delete all rows if they already exist
+		tableIndexDAO.deleteEntityData(Lists.newArrayList(entityId));
+		// create all of the rows in the replication table
+		tableIndexDAO.addEntityData(Lists.newArrayList(entity));
+		return entity;
+	}
+	
+	@Test
+	public void testDeleteRowsFromView() {
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		long limit = 100;
+		// All rows should be in the view.
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertTrue(deltas.isEmpty());
+		
+		// delete the first and last
+		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
+		// call under test
+		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		// Deleted rows should now show as deltas
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertEquals(2, deltas.size());
+		assertTrue(deltas.contains(toDelete[0]));
+		assertTrue(deltas.contains(toDelete[1]));
+	}
+	
+	@Test
+	public void testDeleteRowsFromViewEmpty() {
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema);
+		long limit = 100;
+		// All rows should be in the view.
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertTrue(deltas.isEmpty());
+		// delete the first and last
+		Long[] toDelete = new Long[0];
+		// call under test
+		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		// nothing should be deleted
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertTrue(deltas.isEmpty());
+	}
+	
+	@Test
+	public void testDeleteRowsFromViewNullTableId() {
+		Long[] toDelete = new Long[] {123L};
+		tableId = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		});
+	}
+	
+	@Test
+	public void testDeleteRowsFromViewNullIds() {
+		Long[] toDelete = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		});
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToViewWithRowFilter() {
+		long limit = 100;
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		Long idThatDoesNotExist = 999L;
+		// Only add the first and last row to the view and a row that does not exist
+		Set<Long> rowFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
+		// call under test
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
+		
+		Set<Long> expectedMissing = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertEquals(expectedMissing, deltas);
+		// Add the remaining rows
+		rowFilter = Sets.newHashSet(dtos.get(1).getId(), dtos.get(2).getId());
+		// call under test
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
+		deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertTrue(deltas.isEmpty());
+	}
+
+	@Test
+	public void testCopyEntityReplicationToViewWithRowFilterNull() {
+		long limit = 100;
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowFilter = null;
+		// call under test
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
+		// all rows should be added
+		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, ViewTypeMask.File.getMask(), scope, limit);
+		assertNotNull(deltas);
+		assertTrue(deltas.isEmpty());
+	}
+	
+	@Test
+	public void testCopyEntityReplicationToViewWithRowFilterEmpty() {
+		isView = true;
+		int rowCount = 4;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		List<ColumnModel> schema = createSchemaFromEntityDTO(dtos.get(0));
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowFilter = Collections.emptySet();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowFilter);
+		}).getMessage();
+		assertEquals("When rowIdsToCopy is provided (not null) it cannot be empty", message);
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTableView_NoIdFilter() {
+		isView = true;
+		int rowCount = 4;
+		boolean includeMultiValue = true;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowIdFilter = null;
+		// push all of the data to the view
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, multiValue.getId());
+
+		//each list value created by createRows has 2 items in the list
+		assertEquals(rowCount * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+	}
+	
+	/**
+	 * This test simulate what happens when deltas are applied to an available view.
+	 * For such cases, the multi-value index rows will be deleted when rows are
+	 * removed from the main view (foreign key cascade). Data is then added back to
+	 * the view using an rowIdFilter to both the view and the multi-value index
+	 * table.
+	 */
+	@Test
+	public void testPopulateListColumnIndexTableView_WithIdFilter() {
+		isView = true;
+		int rowCount = 4;
+		boolean includeMultiValue = true;
+		List<EntityDTO> dtos = createFileEntityEntityDTOs(rowCount, includeMultiValue);
+		Set<Long> scope = dtos.stream().map(EntityDTO::getParentId).collect(Collectors.toSet());
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		List<ColumnModel> schema = Lists.newArrayList(multiValue);
+		createOrUpdateTable(schema, tableId, isView);
+		
+		// Null row filter will add all rows
+		Set<Long> rowIdFilter = null;
+		// push all of the data to the view
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// start will all of the data in the secondary table
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		// Should start with two row for each entity 
+		assertEquals(rowCount * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+		
+		// delete the first and last rows from the main view
+		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
+		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
+		// cascade delete should reduce the number of rows in the multi-value index
+		assertEquals(2 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+		
+		// add the two rows back to the view
+		rowIdFilter = Sets.newHashSet(dtos.get(0).getId(), dtos.get(3).getId());
+		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		assertEquals(4 * 2,countRowsInMultiValueIndex(tableId, multiValue.getId()));
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullTableId() {
+		tableId = null;
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NullColumn() {
+		ColumnModel multiValue = null;
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+	
+	@Test
+	public void testPopulateListColumnIndexTable_NotListType() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("Only valid for List type columns", message);
+	}
+	
+	
+	@Test
+	public void testPopulateListColumnIndexTable_EmptyRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Collections.emptySet();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("When rowIds is provided (not null) it cannot be empty", message);
+	}
+	
+	/**
+	 * Helper to count the number of rows in a mutli-value index table.
+	 * @param idAndversion
+	 * @param columnId
+	 * @return
+	 */
+	Long countRowsInMultiValueIndex(IdAndVersion idAndversion, String columnId) {
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId);
+		return tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap());
+	}
+
+	//See PLFM-6017
+	@Test
+	public void testCreateAndPopulateListColumnIndexTables__DefaultValue() throws ParseException {
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel intListColumn = new ColumnModel();
+		intListColumn.setId("16");
+		intListColumn.setName("intList");
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setDefaultValue("[1,2,3]");
+
+		List<ColumnModel> schema = Arrays.asList(intColumn, intListColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		Row row = new Row();
+		row.setValues(Arrays.asList("1", null));
+		List<Row> rows = Collections.singletonList(row);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+		Set<Long> rowIds = null;
+		// call under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, intListColumn, rowIds);
+
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, schema).build();
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		//expect a single row result
+		assertEquals(1, results.getRows().size());
+		assertEquals(tableId.toString(), results.getTableId());
+		//each row has 2 columns
+		assertEquals(2, results.getRows().get(0).getValues().size());
+		assertEquals("1", results.getRows().get(0).getValues().get(0));
+		//mysql adds spaces between the commas on returned results
+		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
 	}
 }

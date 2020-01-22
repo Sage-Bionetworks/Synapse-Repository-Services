@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -38,11 +40,11 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -77,6 +79,8 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
@@ -88,6 +92,8 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -1062,6 +1068,7 @@ public class TableViewIntegrationTest {
 		
 		// wait for the view.
 		waitForEntityReplication(fileViewId, fileId);
+		// Wait for the change to appear in the vie
 		results = waitForConsistentQuery(adminUserInfo, query, rowCount);
 
 		rows  = extractRows(results);
@@ -1329,6 +1336,58 @@ public class TableViewIntegrationTest {
 		assertEquals("val3", rows.get(2).getValues().get(0));
 		assertEquals("val4", rows.get(3).getValues().get(0));
 	}
+	
+	/**
+	 * With the fix for PLFM-5966. A query against a view that is out-of-date should
+	 * no longer trigger the view's state to change to 'PROCESSING'. Instead, the
+	 * view should remain 'AVAILABLE' while changes are applied to the view.
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testViewRemainsAvailableWhileChanging() throws Exception {
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
+		// Wait for the 
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		// run the query again
+		int expectedRowCount = fileCount;
+		QueryOptions options = new QueryOptions().withRunQuery(true).withReturnLastUpdatedOn(true);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results);
+		Date startingLastUpdatedOn = results.getLastUpdatedOn();
+		assertNotNull(startingLastUpdatedOn);
+		// sleep to ensure lastUpdatedOnChanges
+		Thread.sleep(101);
+
+		// Update a file in the view
+		String fileIdToUpdate = fileIds.get(0);
+		FileEntity toUpdate = entityManager.getEntity(adminUserInfo, fileIdToUpdate, FileEntity.class);
+		toUpdate.setName(toUpdate.getName()+"updated");
+		boolean newVersion = false;
+		String activityId = null;
+		entityManager.updateEntity(adminUserInfo, toUpdate, newVersion, activityId);
+		toUpdate = entityManager.getEntity(adminUserInfo, fileIdToUpdate, FileEntity.class);
+		
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileIdToUpdate);
+		
+		/*
+		 * In the past this call would change the view's state to be processing when the
+		 * view as out-of-date with the replication. Now when the view is out-of-date it
+		 * must remain available for query while the worker applies deltas to the live
+		 * view.
+		 */
+		TableStatus viewStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
+		assertEquals(TableState.AVAILABLE, viewStatus.getState());
+		// wait for the query results
+		results = waitForConsistentQuery(adminUserInfo, query, options, expectedRowCount);
+		assertNotNull(results.getLastUpdatedOn());
+		// The view should have been updated since the last query
+		assertTrue(results.getLastUpdatedOn().after(startingLastUpdatedOn));
+	}
 
 
 	/**
@@ -1462,10 +1521,71 @@ public class TableViewIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
+		// Wait for the view to be up-to-date before running the query
+		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
+		waitForViewToBeUpToDate(user, viewId);
+		// The view is up-to-date so run the caller's query.
 		QueryBundleRequest request = new QueryBundleRequest();
 		request.setQuery(query);
 		request.setPartMask(options.getPartMask());
-		return startAndWaitForJob(user, request, QueryResultBundle.class);
+		QueryResultBundle results =  startAndWaitForJob(user, request, QueryResultBundle.class);
+		// Keep running queries as long as a view out-of-date
+
+		return results;
+	}
+	
+	/**
+	 * Helper to wait for a view to be up-to-date
+	 * @param user
+	 * @param viewId
+	 * @throws InterruptedException
+	 * @throws AsynchJobFailedException
+	 * @throws TableFailedException 
+	 */
+	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
+		long start = System.currentTimeMillis();
+		// only wait if the view is available but out-of-date.
+		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
+			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			System.out.println("Waiting for view "+viewId+" to be up-to-date");
+			Thread.sleep(1000);
+		}
+	}
+	
+	/**
+	 * An expensive call to determine if a view is up-to-date with the entity replication data.
+	 * 
+	 * @param tableId
+	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
+	 * with a status of available.
+	 * @throws TableFailedException 
+	 */
+	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
+		EntityType type = tableManagerSupport.getTableEntityType(tableId);
+		if(!EntityType.entityview.equals(type)) {
+			// not a view
+			return Optional.empty();
+		}
+		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+		if(!TableState.AVAILABLE.equals(status.getState())) {
+			return Optional.empty();
+		}
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
+		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
+		long limit = 1L;
+		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
+		return Optional.of(changes.isEmpty());
+	}
+	
+	/**
+	 * Helper to extract a table's ID from a query.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public IdAndVersion extractTableIdFromQuery(String sqlQuery) throws ParseException {
+		return IdAndVersion.parse(TableQueryParser.parserQuery(sqlQuery).getTableName());
 	}
 	
 	/**

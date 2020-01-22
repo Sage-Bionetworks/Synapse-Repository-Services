@@ -104,8 +104,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		ProjectSetting projectSetting = projectSettingsDao.getInheritedForEntity(nodeId, type);
-		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
+		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
+		if (projectSettingId == null) {
+			// Not having a setting is normal.
+			return null;
+		}
+
+		// Note that get throws NotFoundException if the project setting somehow doesn't exist.
+		ProjectSetting projectSetting = projectSettingsDao.get(projectSettingId);
+		if (!expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
 		return expectedType.cast(projectSetting);
@@ -182,10 +189,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
+		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
-		if (projectSetting == null) {
-			throw new NotFoundException("Project setting " + id + "not found");
-		}
 		if (!authorizationManager
 				.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
 				.isAuthorized()) {
@@ -386,7 +391,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
 			return isStsStorageLocationSetting(storageLocationSetting);
 		} catch (NotFoundException e) {
-			throw new IllegalArgumentException("Storage location " + storageLocationId + " not found");
+			// If the storage location somehow doesn't exist, then it's not an StsStorageLocation.
+			return false;
 		}
 	}
 

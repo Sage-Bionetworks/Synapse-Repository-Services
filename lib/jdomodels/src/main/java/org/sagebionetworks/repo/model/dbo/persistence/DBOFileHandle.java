@@ -21,8 +21,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Base64;
 import java.util.List;
 
+import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
@@ -33,6 +35,8 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * The DBO object for file metadata.
@@ -144,7 +148,9 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return new MigratableTableTranslation<DBOFileHandle, FileHandleBackup>() {
 			@Override
 			public DBOFileHandle createDatabaseObjectFromBackup(FileHandleBackup backup) {
-				return FileMetadataUtils.createDBOFromBackup(backup);
+				DBOFileHandle dboFileHandle =  FileMetadataUtils.createDBOFromBackup(backup);
+				base64MD5ToHex(dboFileHandle);
+				return dboFileHandle;
 			}
 			
 			@Override
@@ -153,6 +159,32 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 			}
 		};
 	}
+
+	@TemporaryCode(author = "zdong", comment = "Single stack migration change to be removed after stack 293")
+	// According to base64 encoding, data is split into blocks of 3 bytes resulting in ceil(16/3)=6 blocks
+	// Each blocks converts into a 4 character base64 string, resulting in 6*4=24 characters total
+	private static final int BASE_64_MD5_STRING_LEN = 24;
+
+	@TemporaryCode(author = "zdong", comment = "Single stack migration change to be removed after stack 293")
+	static void base64MD5ToHex(DBOFileHandle dboFileHandle){
+		if(dboFileHandle != null
+			&& dboFileHandle.getContentMD5() != null
+			&& dboFileHandle.getContentMD5().length() == BASE_64_MD5_STRING_LEN ){
+
+			try {
+				byte[] decoded = Base64.getDecoder().decode(dboFileHandle.getContentMD5());
+				String hexMd5 = Hex.encodeHexString(decoded);
+
+				if(MD5ChecksumHelper.isValidMd5Digest(hexMd5)){
+					dboFileHandle.setContentMD5(hexMd5);
+				}
+			} catch (IllegalArgumentException e) {
+				//nothing to do if it is not a base64 string
+			}
+		}
+
+	}
+
 
 	@Override
 	public Class<? extends FileHandleBackup> getBackupClass() {

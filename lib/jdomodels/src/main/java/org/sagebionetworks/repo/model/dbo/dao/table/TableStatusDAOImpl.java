@@ -12,6 +12,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
+import java.sql.ResultSet;
+import java.util.Date;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -39,6 +42,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
  */
 public class TableStatusDAOImpl implements TableStatusDAO {
 	
+	private static final String SELECT_STATUS_TEMPLATE = "SELECT %1$s FROM " + TABLE_STATUS + " WHERE "
+			+ COL_TABLE_STATUS_ID + " = ? AND " + COL_TABLE_STATUS_VERSION + " = ?";
+
 	public static final int MAX_ERROR_MESSAGE_CHARS = 1000;
 
 	/**
@@ -217,6 +223,46 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			throw new IllegalArgumentException("IdAndVersion.id cannot be null");
 		}
 		return idAndVersion.getVersion().orElse(NULL_VERSION);
+	}
+
+	@Override
+	public TableState getTableStatusState(IdAndVersion tableId) throws NotFoundException {
+		long version = validateAndGetVersion(tableId);
+		try {
+			return jdbcTemplate
+					.queryForObject(
+							String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_STATE),
+							(ResultSet rs, int rowNum) -> {
+								return TableState.valueOf(rs.getString(COL_TABLE_STATUS_STATE));
+							}, tableId.getId(), version);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+		}
+	}
+
+	@Override
+	public Date getLastChangedOn(IdAndVersion tableId) {
+		long version = validateAndGetVersion(tableId);
+		try {
+			Long changedOn = jdbcTemplate
+					.queryForObject(
+							String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_CHANGE_ON),
+							Long.class, tableId.getId(), version);
+			return new Date(changedOn);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+		}
+	}
+
+	@NewWriteTransaction
+	@Override
+	public boolean updateChangedOnIfAvailable(IdAndVersion tableId) {
+		long version = validateAndGetVersion(tableId);
+		long now = System.currentTimeMillis();
+		int count = jdbcTemplate.update("UPDATE " + TABLE_STATUS + " SET " + COL_TABLE_STATUS_CHANGE_ON + " = ? WHERE "
+				+ COL_TABLE_STATUS_ID + " = ?" + " AND " + COL_TABLE_STATUS_VERSION + " = ? AND "
+				+ COL_TABLE_STATUS_STATE + " = '" + TableState.AVAILABLE.name()+"'", now, tableId.getId(), version);
+		return count > 0;
 	}
 
 }
