@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -173,6 +176,29 @@ public class AllTypesValidatorTest {
 			// This should not be valid
 			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, path, null));
 		});
+	}
+	
+	@Test
+	public void testValidateCreateEntityWithNullParent() throws Exception {
+		for (EntityType type : EntityType.values()) {
+			
+			Class<? extends Entity> clazz = EntityTypeUtils.getClassForType(type);
+			
+			Entity entity = clazz.newInstance();
+			EntityEvent event = new EntityEvent(EventType.CREATE, null, null);
+			
+			if (EntityType.project == type) {
+				// Call under test, should be fine for project
+				allTypesValidator.validateEntity(entity, event);
+			} else {
+				IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()-> {
+					// Call under test, should throw for any other type
+					allTypesValidator.validateEntity(entity, event);
+				});
+				String expectedMessage = "Entity type: " + clazz.getName() + " cannot have a parent of type: null";
+				assertEquals(expectedMessage, ex.getMessage());
+			}
+		}
 	}
 
 }
