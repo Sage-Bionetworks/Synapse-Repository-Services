@@ -8,7 +8,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
@@ -93,6 +95,40 @@ public class MultipartUtilsTest {
 	public void testCreateNewKeyStorageLocationExternalBaseNull(){
 		ExternalS3StorageLocationSetting location = new ExternalS3StorageLocationSetting();
 		location.setBaseKey(null);
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith(userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
+	@Test
+	public void testCreateNewKey_ExternalGoogleStorageLocation(){
+		ExternalGoogleCloudStorageLocationSetting location = new ExternalGoogleCloudStorageLocationSetting();
+		location.setBaseKey("keyBase");
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith("keyBase/"+userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
+	@Test
+	public void testCreateNewKey_SynapseStorageLocation(){
+		S3StorageLocationSetting location = new S3StorageLocationSetting();
+		location.setStsEnabled(true);
+		location.setBaseKey("keyBase");
+		//call under test
+		String key = MultipartUtils.createNewKey(userId, fileName, location);
+		assertNotNull(key);
+		assertTrue(key.startsWith("keyBase/"+userId));
+		assertTrue(key.endsWith(fileName));
+	}
+
+	// branch coverage
+	@Test
+	public void testCreateNewKey_NonBaseKeyLocation(){
+		ProxyStorageLocationSettings location = new ProxyStorageLocationSettings();
 		//call under test
 		String key = MultipartUtils.createNewKey(userId, fileName, location);
 		assertNotNull(key);

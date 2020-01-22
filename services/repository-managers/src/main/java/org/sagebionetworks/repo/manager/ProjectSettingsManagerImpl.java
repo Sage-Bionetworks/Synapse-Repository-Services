@@ -366,6 +366,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
+	public boolean isStsStorageLocationSetting(StorageLocationSetting storageLocationSetting) {
+		return storageLocationSetting instanceof StsStorageLocationSetting &&
+				Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+	}
+
+	@Override
 	public boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
 		if (!(projectSetting instanceof UploadDestinationListSetting)) {
 			// Impossible code path, but add this check here to future-proof this against ClassCastExceptions.
@@ -378,8 +384,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		long storageLocationId = storageLocationIdList.get(0);
 		try {
 			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
-			return storageLocationSetting instanceof StsStorageLocationSetting &&
-					Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+			return isStsStorageLocationSetting(storageLocationSetting);
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("Storage location " + storageLocationId + " not found");
 		}

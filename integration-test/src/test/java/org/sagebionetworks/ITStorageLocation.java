@@ -13,7 +13,6 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
 import java.io.ByteArrayInputStream;
@@ -39,7 +37,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITStorageLocation {
@@ -242,31 +239,6 @@ public class ITStorageLocation {
 		StsUploadDestination stsUploadDestination = (StsUploadDestination) uploadDestination;
 		assertTrue(stsUploadDestination.getStsEnabled());
 		assertEquals(expectedBaseKey, stsUploadDestination.getBaseKey());
-	}
-
-	@Test
-	public void cannotAddNonFileNonFolderToStsFolder() throws SynapseException {
-		setupFolderWithSts();
-
-		// Attempt to add a table to the STS folder.
-		TableEntity table = new TableEntity();
-		table.setParentId(folder.getId());
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createEntity(table),
-				"Can only create Files and Folders inside STS-enabled folders");
-	}
-
-	private void setupFolderWithSts() throws SynapseException {
-		// Create storage location.
-		StsStorageLocationSetting stsStorageLocationSetting = new S3StorageLocationSetting();
-		stsStorageLocationSetting.setStsEnabled(true);
-		stsStorageLocationSetting = synapse.createStorageLocationSetting(stsStorageLocationSetting);
-
-		// Create project settings.
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(folder.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(ImmutableList.of(stsStorageLocationSetting.getStorageLocationId()));
-		synapse.createProjectSetting(projectSetting);
 	}
 
 	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {

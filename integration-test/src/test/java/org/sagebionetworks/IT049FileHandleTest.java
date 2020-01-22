@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,7 +34,6 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -732,13 +730,6 @@ public class IT049FileHandleTest {
 		assertEquals(config.getS3Bucket(), externalS3FileHandleCopy.getBucketName());
 		assertEquals(externalS3FileHandle.getKey(), externalS3FileHandleCopy.getKey());
 
-		// Note that the way the integration tests are set up, our "external S3 bucket" actually points to the same
-		// bucket as Synapse storage. Attempt to create the S3FileHandle from Synapse Storage as an external S3
-		// file handle in the External S3 Storage Location, but it will fail because it's base key prefix is wrong.
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createExternalS3FileHandle(synapseFileHandle),
-				"The baseKey for ExternalS3StorageLocationSetting.id=" + externalS3StorageLocationId +
-						" does not match the provided key: " + externalS3FileHandle.getKey());
-
 		// Create folders for the project.
 		Folder synapseFolder = new Folder();
 		synapseFolder.setParentId(project.getId());
@@ -787,39 +778,6 @@ public class IT049FileHandleTest {
 		nonStsFileEntity = synapse.createEntity(nonStsFileEntity);
 		assertNotNull(nonStsFileEntity);
 		fileEntitiesToDelete.add(nonStsFileEntity);
-
-		// Can't add file handle from a non-STS storage location in an STS folder.
-		FileEntity wrongFileEntity = new FileEntity();
-		wrongFileEntity.setDataFileHandleId(nonStsFileHandle.getId());
-		wrongFileEntity.setParentId(externalS3FolderId);
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createEntity(wrongFileEntity),
-				"Folders with STS-enabled storage locations can only accept files with the same storage location");
-
-		// Can't add files in STS storage locations to non-STS folders (such as project root).
-		FileEntity wrongFileEntity2 = new FileEntity();
-		wrongFileEntity2.setDataFileHandleId(externalS3FileHandle.getId());
-		wrongFileEntity2.setParentId(project.getId());
-		assertThrows(SynapseBadRequestException.class, () -> synapse.createEntity(wrongFileEntity2),
-				"Files in STS-enabled storage locations can only be placed in folders with the same storage location");
-
-		// Can't update the non-STS file entity to turn it into an STS file entity.
-		FileEntity wrongFileEntity3 = nonStsFileEntity;
-		wrongFileEntity3.setDataFileHandleId(externalS3FileHandle.getId());
-		assertThrows(SynapseBadRequestException.class, () -> synapse.putEntity(wrongFileEntity3),
-				"Files in STS-enabled storage locations can only be placed in folders with the same storage location");
-
-		// Can't update STS file entity to turn it into a non-STS file entity.
-		FileEntity wrongFileEntity4 = externalS3FileEntity;
-		wrongFileEntity4.setDataFileHandleId(nonStsFileHandle.getId());
-		assertThrows(SynapseBadRequestException.class, () -> synapse.putEntity(wrongFileEntity4),
-				"Folders with STS-enabled storage locations can only accept files with the same storage location");
-
-		// Can update the STS file entity to a different STS file handle in the same storage location.
-		FileEntity externalS3FileEntityV2 = externalS3FileEntity;
-		externalS3FileEntityV2.setDataFileHandleId(externalS3FileHandleCopy.getId());
-		externalS3FileEntityV2 = synapse.putEntity(externalS3FileEntityV2);
-		assertNotNull(externalS3FileEntityV2);
-		assertNotEquals(externalS3FileEntity.getVersionNumber(), externalS3FileEntityV2.getVersionNumber());
 	}
 
 	public void testCreateExternalGoogleCloudFileHandleFromExistingFile() throws Exception {

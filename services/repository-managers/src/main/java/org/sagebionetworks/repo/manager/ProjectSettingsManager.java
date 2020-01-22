@@ -33,6 +33,12 @@ public interface ProjectSettingsManager {
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Helper method to check if a StorageLocationSetting is a an STS-enabled storage location. That is, the storage
+	 * location is an StsStorageLocation with StsEnabled=true.
+	 */
+	boolean isStsStorageLocationSetting(StorageLocationSetting storageLocationSetting);
+
+	/**
 	 * Helper method to check if a ProjectSetting is a an STS-enabled storage location. That is, the storage location
 	 * referenced in the project setting is an StsStorageLocation with StsEnabled=true.
 	 */

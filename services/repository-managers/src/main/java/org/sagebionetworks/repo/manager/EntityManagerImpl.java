@@ -99,17 +99,18 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, NotFoundException {
 		validateEntity(newEntity);
 		if (newEntity instanceof FileEntity) {
-			validateFileEntityWithParent(userInfo, (FileEntity) newEntity);
+			validateFileEntityStsRestrictions(userInfo, (FileEntity) newEntity);
 		}
 
 		// If the parent lives inside an STS-enabled folder, only Files and Folders are allowed.
-		String parentId = newEntity.getParentId();
-		if (parentId != null) {
-			ProjectSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
-					ProjectSettingsType.upload, UploadDestinationListSetting.class);
-			if (projectSetting != null && projectSettingsManager.isStsStorageLocationSetting(projectSetting)
-					&& !(newEntity instanceof FileEntity) && !(newEntity instanceof Folder)) {
-				throw new IllegalArgumentException("Can only create Files and Folders inside STS-enabled folders");
+		if (!(newEntity instanceof FileEntity) && !(newEntity instanceof Folder)) {
+			String parentId = newEntity.getParentId();
+			if (parentId != null) {
+				ProjectSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
+						ProjectSettingsType.upload, UploadDestinationListSetting.class);
+				if (projectSetting != null && projectSettingsManager.isStsStorageLocationSetting(projectSetting)) {
+					throw new IllegalArgumentException("Can only create Files and Folders inside STS-enabled folders");
+				}
 			}
 		}
 
@@ -312,7 +313,7 @@ public class EntityManagerImpl implements EntityManager {
 		}
 
 		if (updated instanceof FileEntity) {
-			validateFileEntityWithParent(userInfo, (FileEntity) updated);
+			validateFileEntityStsRestrictions(userInfo, (FileEntity) updated);
 		}
 
 		Node node = nodeManager.get(userInfo, updated.getId());
@@ -595,15 +596,15 @@ public class EntityManagerImpl implements EntityManager {
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
 	}
 
-	// todo doc
-	private void validateFileEntityWithParent(UserInfo userInfo, FileEntity fileEntity) {
+	// Validates whether a FileEntity satisfies the STS restrictions of its parent.
+	// Package-scoped to facilitate unit tests.
+	void validateFileEntityStsRestrictions(UserInfo userInfo, FileEntity fileEntity) {
 		// Is the file STS-enabled?
 		FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileEntity.getDataFileHandleId());
 		Long fileStorageLocationId = fileHandle.getStorageLocationId();
 		StorageLocationSetting fileStorageLocationSetting = projectSettingsManager.getStorageLocationSetting(
 				fileStorageLocationId);
-		boolean fileStsEnabled = fileStorageLocationSetting instanceof StsStorageLocationSetting &&
-				Boolean.TRUE.equals(((StsStorageLocationSetting) fileStorageLocationSetting).getStsEnabled());
+		boolean fileStsEnabled = projectSettingsManager.isStsStorageLocationSetting(fileStorageLocationSetting);
 
 		// Is the parent STS-enabled?
 		Long parentStorageLocationId = null;
