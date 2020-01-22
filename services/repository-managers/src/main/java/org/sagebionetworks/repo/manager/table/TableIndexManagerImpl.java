@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,6 +33,7 @@ import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
+import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -39,18 +43,17 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
-	
-	public static final int TIMEOUT_SECONDS = 1200;
+public static final int TIMEOUT_SECONDS = 1200;
 
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
-	
+
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
-	
+
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
-	
+
 	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
@@ -63,7 +66,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * getCurrentVersionOfIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -76,7 +79,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * applyChangeSetToIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -91,6 +94,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		final long currentVersion = tableIndexDao
 				.getMaxCurrentCompleteVersionForTable(tableId);
 		if (changeSetVersionNumber > currentVersion) {
+			//tracks id of all rows that were modified for list columns
+			Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
+
 			// apply all changes in a transaction
 			tableIndexDao
 					.executeInWriteTransaction(new TransactionCallback<Void>() {
@@ -99,6 +105,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
 								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
+								recordListColumnChanges(listColumnsToRowIdMap, grouping);
 							}
 							// Extract all file handle IDs from this set
 							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
@@ -112,6 +119,30 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							return null;
 						}
 					});
+
+			for(Map.Entry<ColumnModel, Set<Long>> entry : listColumnsToRowIdMap.entrySet()){
+				tableIndexDao.populateListColumnIndexTable(tableId, entry.getKey(), entry.getValue());
+			}
+		}
+	}
+
+	public void recordListColumnChanges(Map<ColumnModel, Set<Long>> listColumnsToRowIdMap, Grouping grouping){//TODO: test
+		//intentionally left initially as null so we don't perform computation if there are no changes to LIST type columns
+		List<Long> rowIdsOfModifiedRows = null;
+
+		for(ColumnModel columnModel: grouping.getColumnsWithValues()){
+			if(ColumnTypeListMappings.isList(columnModel.getColumnType())) {
+				//only compute list of modified row Id once a list type column has been found
+				if(rowIdsOfModifiedRows == null){
+					rowIdsOfModifiedRows = grouping.getRows().stream()
+							.map(SparseRow::getRowId)
+							.collect(Collectors.toList());
+				}
+
+				//for each affected list column, add the set of modified row_ids to it
+				listColumnsToRowIdMap.computeIfAbsent(columnModel, (ColumnModel key) -> new HashSet<>())
+						.addAll(rowIdsOfModifiedRows);
+			}
 		}
 	}
 
