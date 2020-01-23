@@ -790,7 +790,7 @@ public class TableIndexManagerImplTest {
 		long targetChangeNumber = 1L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToLatestChange(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(list.get(1).getETag(), lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 1L);
@@ -817,7 +817,7 @@ public class TableIndexManagerImplTest {
 		long targetChangeNumber = 1L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToLatestChange(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(list.get(1).getETag(), lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 1L);
@@ -841,7 +841,7 @@ public class TableIndexManagerImplTest {
 		long targetChangeNumber = 0L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToLatestChange(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(list.get(0).getETag(), lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport).attemptToUpdateTableProgress(tableId, resetToken, "Applying change: 0", 0L, 0L);
@@ -858,7 +858,7 @@ public class TableIndexManagerImplTest {
 		long targetChangeNumber = 1L;
 		String resetToken = "resetToken";
 		// call under test
-		String lastEtag = manager.buildIndexToChangeNumberWithExclusiveLock(tableId, iterator, targetChangeNumber, resetToken);
+		String lastEtag = manager.buildIndexToLatestChange(tableId, iterator, targetChangeNumber, resetToken);
 		assertEquals(null, lastEtag);
 		// Progress should be made for both changes
 		verify(mockManagerSupport, never()).attemptToUpdateTableProgress(any(IdAndVersion.class), anyString(), anyString(), anyLong(), anyLong());
@@ -872,19 +872,155 @@ public class TableIndexManagerImplTest {
 	
 	@Test
 	public void testBuildIndexToChangeNumber() throws Exception {
+		setupTryRunWithTableExclusiveLock();
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		// call under test
+		managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		verify(mockManagerSupport).tryRunWithTableExclusiveLock(eq(mockCallback), eq(tableId), eq(TableIndexManagerImpl.TIMEOUT_SECONDS), any());
+		verify(managerSpy).buildTableIndexWithLock(mockCallback, tableId, iterator);
+	}
+	
+	/**
+	 * LockUnavilableException translates to RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_LockUnavilableException() throws Exception {
+		LockUnavilableException exception = new LockUnavilableException("no lock for you!");
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(result.getCause(), exception);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * TableUnavailableException translates to RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_TableUnavilableException() throws Exception {
+		TableUnavailableException exception = new TableUnavailableException(null);
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(result.getCause(), exception);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * InterruptedException translates to RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_InterruptedException() throws Exception {
+		InterruptedException exception = new InterruptedException();
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(result.getCause(), exception);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * IOException translates to RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_IOException() throws Exception {
+		IOException exception = new IOException();
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(result.getCause(), exception);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * RuntimeException is just thrown
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_RuntimeException() throws Exception {
+		IllegalArgumentException exception = new IllegalArgumentException("some runtime");
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RuntimeException result = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(exception, result);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * Checked Exception is wrapped in runtime.
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildIndexToChangeNumber_CheckedException() throws Exception {
+		Exception exception = new Exception("nope");
+		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
+				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		RuntimeException result = assertThrows(RuntimeException.class, ()->{
+			// call under test
+			managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		});
+		assertEquals(result.getCause(), exception);
+		verify(managerSpy, never()).buildTableIndexWithLock(any(), any(), any());
+	}
+	
+	/**
+	 * Helper to setup mockManagerSupport.tryRunWithTableExclusiveLock to
+	 * forward to the callback
+	 * @throws Exception 
+	 */
+	public void setupTryRunWithTableExclusiveLock() throws Exception {
+		doAnswer((InvocationOnMock invocation) -> {
+			ProgressCallback callback = invocation.getArgument(0, ProgressCallback.class);
+			ProgressingCallable callable = invocation.getArgument(3, ProgressingCallable.class);
+			callable.call(callback);
+			return null;
+		}).when(mockManagerSupport).tryRunWithTableExclusiveLock(any(), any(IdAndVersion.class), anyInt(), any());
+	}
+	
+	@Test
+	public void testBuildTableIndexWithLock() throws Exception {
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		String resetToken = "resetToken";
 		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenReturn(lastEtag);
-
+		String lastEtag = "etag-1";
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		long targetChangeNumber = 1;
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), 
@@ -892,7 +1028,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testBuildIndexToChangeNumberNoSnapshot() throws Exception {
+	public void testBuildTableIndexWithLockNoSnapshot() throws Exception {
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		String resetToken = "resetToken";
 		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
@@ -902,7 +1038,7 @@ public class TableIndexManagerImplTest {
 		// No change number for this case.
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		manager.buildTableIndexWithLock(mockCallback, tableId, iterator);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(), anyString());
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
 		// should fail
@@ -910,7 +1046,7 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testBuildIndexToChangeNumberNoWorkNeeded() throws Exception {
+	public void testBuildTableIndexWithLockNoWorkNeeded() throws Exception {
 		// no work is needed
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(false);
 		String resetToken = "resetToken";
@@ -918,157 +1054,22 @@ public class TableIndexManagerImplTest {
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		manager.buildTableIndexWithLock(mockCallback, tableId, iterator);
 		verify(mockManagerSupport, never()).startTableProcessing(any(IdAndVersion.class));
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), any(Exception.class));
 	}
 	
-	/**
-	 * LockUnavilableException should translate to RecoverableMessageException
-	 * @throws Exception
-	 */
 	@Test
-	public void testBuildIndexToChangeNumberLockUnavilableException() throws Exception {
-		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		LockUnavilableException exception = new LockUnavilableException("no lock for you!");
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
-
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
-		try {
-			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-			fail();
-		} catch (RecoverableMessageException e) {
-			assertEquals(exception, e.getCause());
-		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
-				any(Exception.class));
-	}
-	
-	/**
-	 * TableUnavailableException should translate to RecoverableMessageException
-	 * @throws Exception
-	 */
-	@Test
-	public void testBuildIndexToChangeNumberTableUnavailableException() throws Exception {
-		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		TableUnavailableException exception = new TableUnavailableException(null);
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
-
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
-		try {
-			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-			fail();
-		} catch (RecoverableMessageException e) {
-			assertEquals(exception, e.getCause());
-		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
-				any(Exception.class));
-	}
-	
-	@Test
-	public void testBuildIndexToChangeNumberErrorOnIsIndexWorkRequired() throws Exception {
+	public void testBuildTableIndexWithLockErrorOnIsIndexWorkRequired() throws Exception {
 		IllegalArgumentException exception = new IllegalArgumentException("wrong");
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
+		manager.buildTableIndexWithLock(mockCallback, tableId, iterator);
 		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
 	}
-	
-	/**
-	 * InterruptedException should translate to RecoverableMessageException
-	 * @throws Exception
-	 */
-	@Test
-	public void testBuildIndexToChangeNumberInterruptedException() throws Exception {
-		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		InterruptedException exception = new InterruptedException("interrupted");
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
-		try {
-			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-			fail();
-		} catch (RecoverableMessageException e) {
-			assertEquals(exception, e.getCause());
-		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
-				any(Exception.class));
-	}
-	
-	/**
-	 * IOException should translate to RecoverableMessageException
-	 * @throws Exception
-	 */
-	@Test
-	public void testBuildIndexToChangeNumberIOException() throws Exception {
-		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		IOException exception = new IOException("IO things went wrong");
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
-		try {
-			// call under test
-			manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-			fail();
-		} catch (RecoverableMessageException e) {
-			assertEquals(exception, e.getCause());
-		}
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
-				any(Exception.class));
-	}
-	
-	@Test
-	public void testBuildIndexToChangeNumberNonRetryException() throws Exception {
-		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
-		String resetToken = "resetToken";
-		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
-		String lastEtag = "lastEtag";
-		IllegalArgumentException exception = new IllegalArgumentException("Cannot retry this");
-		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
-		List<TableChangeMetaData> list = setupMockChanges();
-		Iterator<TableChangeMetaData> iterator = list.iterator();
-		long targetChangeNumber = 1;
-		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
-		// call under test
-		manager.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-		// should fail the table.
-		verify(mockManagerSupport).attemptToSetTableStatusToFailed(tableId, exception);
-	}
-	
-	
 	
 	/**
 	 * The default schema does not contain any list columns.
