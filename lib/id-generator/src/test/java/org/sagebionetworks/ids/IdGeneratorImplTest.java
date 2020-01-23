@@ -124,8 +124,8 @@ public class IdGeneratorImplTest {
 		assertEquals(3, split.length);
 		assertEquals("# ACCESS_APPROVAL_ID", split[0]);
 		assertEquals("CREATE TABLE IF NOT EXISTS ACCESS_APPROVAL_ID ("
-				+ " ID bigint(20) NOT NULL AUTO_INCREMENT"
-				+ ", CREATED_ON bigint(20) NOT NULL"
+				+ " ID BIGINT NOT NULL AUTO_INCREMENT"
+				+ ", CREATED_ON BIGINT NOT NULL"
 				+ ", PRIMARY KEY (ID)) ENGINE=InnoDB AUTO_INCREMENT=0;", split[1]);
 		long maxValue = idGenerator.getMaxValueForType(type);
 		// should insert the max value

@@ -150,7 +150,7 @@ public class MigratableTableDAOImplAutowireTest {
 		jdbcTemplate.execute("DROP TABLE IF EXISTS `KEY_TEST`");
 		// setup a simple table.
 		jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS `KEY_TEST` (" + 
-				"  `ID` bigint(20) NOT NULL," + 
+				"  `ID` BIGINT NOT NULL," +
 				"  `ETAG` char(36) NOT NULL," + 
 				"  PRIMARY KEY (`ID`)," + 
 				"  UNIQUE KEY `ETAG` (`ETAG`)" + 
