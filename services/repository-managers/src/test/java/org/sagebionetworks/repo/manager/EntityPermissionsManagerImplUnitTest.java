@@ -13,9 +13,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -39,6 +42,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -46,6 +50,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,14 +94,18 @@ public class EntityPermissionsManagerImplUnitTest {
 	private ProjectStatsManager mockProjectStatsManager;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private ObjectTypeManager mockObjectTypeManager;
 	
-	Set<Long> mockUsersGroups;
-	Set<Long> nonvisibleIds;
+	private UserInfo anonymousUser;
 	
-	String entityId;
-	Long userId;
+	private Set<Long> mockUsersGroups;
+	private Set<Long> nonvisibleIds;
 	
-	String newEtag;
+	private String entityId;
+	private Long userId;
+	
+	private String newEtag;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@BeforeEach
@@ -154,8 +163,10 @@ public class EntityPermissionsManagerImplUnitTest {
     	when(mockNodeDao.getNode(dockerRepoId)).thenReturn(dockerRepo);
     	when(mockNodeDao.getNodeTypeById(dockerRepoId)).thenReturn(EntityType.dockerrepo);
    	
-    	UserInfo anonymousUser = new UserInfo(false);
+    	anonymousUser = new UserInfo(false);
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+    	anonymousUser.setGroups(ImmutableSet.of(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+    	
     	when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())).thenReturn(anonymousUser);
 
 		when(mockNodeDao.getBenefactor(anyString())).thenReturn(benefactorId);
@@ -332,10 +343,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testAnonymousCannotDownloadDockerRepo() throws Exception {
-    	UserInfo anonymousUser = new UserInfo(false);
-    	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		assertFalse(entityPermissionsManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
+		assertFalse(entityPermissionsManager.hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, anonymousUser).isAuthorized());
 		
 	}
 	
@@ -483,4 +491,87 @@ public class EntityPermissionsManagerImplUnitTest {
 		entityPermissionsManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
+	
+	// Tests for PLFM-6059
+	
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsAnonymous() {
+		testHasDownloadAccessWithOpenData(anonymousUser);
+	}
+	
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsAnonymousWithUnmetAccessRequirements() {
+		List<Long> unmetAccessRequirements = Arrays.asList(1L);
+		testHasDownloadAccessWithOpenData(anonymousUser, unmetAccessRequirements);
+	}
+	
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsCertifiedUser() {
+		testHasDownloadAccessWithOpenData(certifiedUserInfo);
+	}
+	
+	@Test
+	public void testHasDownloadAccessWihoutOpenDataAsAnonymous() {
+		
+		UserInfo userInfo = anonymousUser;
+		String nodeId = fileId;
+		DataType dataType = DataType.SENSITIVE_DATA;
+		String benefactorId = nodeId;
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		
+		// Call under test
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		assertFalse(status.isAuthorized());
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).getBenefactor(nodeId);
+		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+	}
+	
+	private void testHasDownloadAccessWithOpenData(UserInfo userInfo) {
+		testHasDownloadAccessWithOpenData(userInfo, Collections.emptyList());
+	}
+
+	private void testHasDownloadAccessWithOpenData(UserInfo userInfo, List<Long> unmetAccessRequirements) {
+		
+		String nodeId = fileId;
+		DataType dataType = DataType.OPEN_DATA;
+		String benefactorId = nodeId;
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
+		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		
+		// Call under test
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		boolean expected = unmetAccessRequirements.isEmpty();
+		
+		assertEquals(expected, status.isAuthorized());
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).getBenefactor(nodeId);
+		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getEntityPathIds(nodeId, false);
+		verify(mockNodeDao).getNode(nodeId);
+		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
+		
+	}
+	
+	
 }
