@@ -35,6 +35,7 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	
 	private String oidcSignatureKeyId;
 	private PrivateKey oidcSignaturePrivateKey;
+	private JsonWebKeySet jsonWebKeySetDeprecated;
 	private JsonWebKeySet jsonWebKeySet;
 
 	@Autowired
@@ -43,12 +44,19 @@ public class OIDCTokenHelperImpl implements InitializingBean, OIDCTokenHelper {
 	@Override
 	public void afterPropertiesSet() {
 		List<String> pemEncodedRsaPrivateKeys = stackConfiguration.getOIDCSignatureRSAPrivateKeys();
+		this.jsonWebKeySetDeprecated = KeyPairUtil.getJSONWebKeySetForPEMEncodedRsaKeysDeprecated(pemEncodedRsaPrivateKeys);
 		this.jsonWebKeySet = KeyPairUtil.getJSONWebKeySetForPEMEncodedRsaKeys(pemEncodedRsaPrivateKeys);
 		
 		// grab the latest private key to be used for signing
 		KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(pemEncodedRsaPrivateKeys.get(pemEncodedRsaPrivateKeys.size()-1));
 		this.oidcSignaturePrivateKey=keyPair.getPrivate();
 		this.oidcSignatureKeyId = KeyPairUtil.computeKeyId(keyPair.getPublic());
+	}
+
+	@Deprecated
+	@Override
+	public JsonWebKeySet getJSONWebKeySetDeprecated() {
+		return jsonWebKeySetDeprecated;
 	}
 
 	@Override

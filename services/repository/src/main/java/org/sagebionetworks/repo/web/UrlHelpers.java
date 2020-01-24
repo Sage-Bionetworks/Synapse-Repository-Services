@@ -1075,6 +1075,10 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String WELL_KNOWN = "/.well-known";
+	// The OIDC spec' defines the following as <issuer>/.well-known/openid-configuration
+	// See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
+	// implicitiy the <issuer> URI is <host>/auth/v1, so the openid config 
+	// is .../auth/v1/.well-known/openid-configuration
 	public static final String WELL_KNOWN_OPENID_CONFIGURATION = WELL_KNOWN+"/openid-configuration";
 
 	/**
@@ -1088,6 +1092,17 @@ public class UrlHelpers {
 	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
+	
+	/** 
+	 * To revise the JWKS document without making a breaking API change requires introducing 
+	 * a second version of the services
+	 */
+	public static final String OIDC_ISSUER = "/oidc";
+	public static final String OIDC_WELL_KNOWN_OPENID_CONFIGURATION = OIDC_ISSUER+WELL_KNOWN_OPENID_CONFIGURATION;
+	public static final String OIDC_TOKEN = OIDC_ISSUER+"/token";
+	public static final String OIDC_USER_INFO = OIDC_ISSUER+"/userinfo";
+	public static final String OIDC_JWKS = OIDC_ISSUER+"/jwks";
+	
 	
 
 	public static final String AUTH_LOGIN = "/login";

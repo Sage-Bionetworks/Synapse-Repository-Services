@@ -87,9 +87,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
-		ValidateArgument.required(endpoint, "OAuth Endpoint");
-		String issuer = endpoint;
+	public OIDConnectConfiguration getOIDCConfigurationDeprecated(String authEndpoint) {
+		ValidateArgument.required(authEndpoint, "Auth Endpoint");
+		String issuer = authEndpoint;
 		OIDConnectConfiguration result = new OIDConnectConfiguration();
 		result.setIssuer(issuer);
 		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
@@ -110,6 +110,34 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
+	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
+		ValidateArgument.required(endpoint, "Auth Endpoint");
+		String issuer = endpoint+UrlHelpers.OIDC_ISSUER;
+		OIDConnectConfiguration result = new OIDConnectConfiguration();
+		result.setIssuer(issuer);
+		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
+		result.setToken_endpoint(issuer+UrlHelpers.OIDC_TOKEN);
+		result.setUserinfo_endpoint(issuer+UrlHelpers.OIDC_USER_INFO);
+		result.setJwks_uri(issuer+UrlHelpers.OIDC_JWKS);
+		result.setRegistration_endpoint(issuer+UrlHelpers.OAUTH_2_CLIENT);
+		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
+		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
+		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code));
+		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
+		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
+		result.setService_documentation("https://docs.synapse.org");
+		result.setClaims_parameter_supported(true);
+		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+		return result;
+	}
+
+	@Override
+	public JsonWebKeySet getOIDCJsonWebKeySetDeprecated() {
+		return oidcTokenHelper.getJSONWebKeySetDeprecated();
+	}
+
+	@Override
 	public JsonWebKeySet getOIDCJsonWebKeySet() {
 		return oidcTokenHelper.getJSONWebKeySet();
 	}
@@ -127,9 +155,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
-			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
+			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String issuer) {
 		if (OAuthGrantType.authorization_code==grantType) {
-			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
+			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, issuer);
 		} else {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);
 		}

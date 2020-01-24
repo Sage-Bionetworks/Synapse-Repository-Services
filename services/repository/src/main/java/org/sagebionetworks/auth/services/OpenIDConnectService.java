@@ -75,9 +75,21 @@ public interface OpenIDConnectService {
 	
 	/**
 	 * 
+	 * @return the old OIDC Discovery Document
+	 */
+	public OIDConnectConfiguration getOIDCConfigurationDeprecated(String authEndpoint);
+	
+	/**
+	 * 
 	 * @return the OIDC Discovery Document
 	 */
-	public OIDConnectConfiguration getOIDCConfiguration(String endpoint);
+	public OIDConnectConfiguration getOIDCConfiguration(String authEndpoint);
+	
+	/**
+	 * Return the public keys used to validate OIDC JSON Web Token signatures
+	 * Note the data format deviates from the standard and so this has been deprecated
+	 */
+	public JsonWebKeySet getOIDCJsonWebKeySetDeprecated();
 	
 	/**
 	 * Return the public keys used to validate OIDC JSON Web Token signatures
@@ -108,10 +120,11 @@ public interface OpenIDConnectService {
 	 * @param refreshToken
 	 * @param scope
 	 * @param claims
+	 * @param issuer
 	 * @return
 	 */
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, String authorizationCode, 
-			String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint);
+			String redirectUri, String refreshToken, String scope, String claims, String issuer);
 		
 	/**
 	 * 

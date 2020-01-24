@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+
 public class KeyPairUtil {
 	
 	public static final String X509 = "X.509";
@@ -111,6 +113,29 @@ public class KeyPairUtil {
 
 	private static String bigIntToBase64URLEncoded(BigInteger i) {
 		return Base64.encodeBase64URLSafeString(i.toByteArray());
+	}
+
+	@Deprecated
+	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeysDeprecated(List<String> pemEncodedKeyPairs) {
+		JsonWebKeySet jsonWebKeySet = new JsonWebKeySet();
+		List<JsonWebKey> publicKeys = new ArrayList<JsonWebKey>();
+		jsonWebKeySet.setKeys(publicKeys);
+		if (pemEncodedKeyPairs==null) return jsonWebKeySet;
+		for (String s : pemEncodedKeyPairs) {
+			KeyPair keyPair = getRSAKeyPairFromPrivateKey(s);
+			String kid = computeKeyId(keyPair.getPublic());
+			RSAPublicKey rsaPublicKey = (RSAPublicKey)keyPair.getPublic();
+			JsonWebKeyRSA rsaKey = new JsonWebKeyRSA();
+			// these would be set for all algorithms
+			rsaKey.setKty(SignatureAlgorithm.RS256.name());
+			rsaKey.setUse("SIGNATURE");
+			rsaKey.setKid(kid);
+			// these are specific to the RSA algorithm
+			rsaKey.setE(rsaPublicKey.getPublicExponent().toString());
+			rsaKey.setN(rsaPublicKey.getModulus().toString());
+			publicKeys.add(rsaKey);
+		}
+		return jsonWebKeySet;
 	}
 
 	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeys(List<String> pemEncodedKeyPairs) {

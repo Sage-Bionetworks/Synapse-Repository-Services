@@ -272,11 +272,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 
 	@Override
-	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String oauthEndpoint) {
+	public OIDCTokenResponse getAccessToken(String code, String verifiedClientId, String redirectUri, String issuer) {
 		ValidateArgument.required(code, "Authorization Code");
 		ValidateArgument.required(verifiedClientId, "OAuth Client ID");
 		ValidateArgument.required(redirectUri, "Redirect URI");
-		ValidateArgument.required(oauthEndpoint, "Authorization Endpoint");
+		ValidateArgument.required(issuer, "Issuer");
 		
 		validateClientVerificationStatus(verifiedClientId);
 		
@@ -325,13 +325,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), 
 					scopes, ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), ID_TOKEN_CLAIMS_KEY));
-			String idToken = oidcTokenHelper.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
+			String idToken = oidcTokenHelper.createOIDCIdToken(issuer, ppid, oauthClientId, now, 
 					authorizationRequest.getNonce(), authTime, idTokenId, userInfo);
 			result.setId_token(idToken);
 		}
 
 		String accessTokenId = UUID.randomUUID().toString();
-		String accessToken = oidcTokenHelper.createOIDCaccessToken(oauthEndpoint, ppid, 
+		String accessToken = oidcTokenHelper.createOIDCaccessToken(issuer, ppid, 
 				oauthClientId, now, authTime, accessTokenId, scopes, 
 				ClaimsJsonUtil.getClaimsMapFromClaimsRequestParam(authorizationRequest.getClaims(), USER_INFO_CLAIMS_KEY));
 		result.setAccess_token(accessToken);

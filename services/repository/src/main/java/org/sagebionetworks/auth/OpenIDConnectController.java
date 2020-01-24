@@ -46,17 +46,35 @@ public class OpenIDConnectController {
 		return uriComponentsBuilder.fragment(null).replaceQuery(null).path(UrlHelpers.AUTH_PATH).build().toString();	
 	}
 
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
+	public @ResponseBody
+	OIDConnectConfiguration getOIDCConfigurationDeprecated(UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().
+				getOIDCConfigurationDeprecated(getEndpoint(uriComponentsBuilder));
+	}
+	
 	/**
 	 * Get the Open ID Configuration ("Discovery Document") for the Synapse OIDC service.
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OIDC_WELL_KNOWN_OPENID_CONFIGURATION, method = RequestMethod.GET)
 	public @ResponseBody
 	OIDConnectConfiguration getOIDCConfiguration(UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
 				getOIDCConfiguration(getEndpoint(uriComponentsBuilder));
+	}
+	
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonWebKeySet getOIDCJsonWebKeySetDeprecated() {
+		return serviceProvider.getOpenIDConnectService().
+				getOIDCJsonWebKeySetDeprecated();
 	}
 	
 	/**
@@ -66,7 +84,7 @@ public class OpenIDConnectController {
 	 * @return the JSON Web Key Set
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_JWKS, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OIDC_JWKS, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonWebKeySet getOIDCJsonWebKeySet() {
 		return serviceProvider.getOpenIDConnectService().
@@ -236,6 +254,24 @@ public class OpenIDConnectController {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
+	@Deprecated
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
+	public @ResponseBody
+	OIDCTokenResponse getTokenResponseDeprecated(
+			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_GRANT_TYPE_PARAM, required=true) OAuthGrantType grant_type,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CODE_PARAM, required=false) String code,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REDIRECT_URI_PARAM, required=false) String redirectUri,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_REFRESH_TOKEN_PARAM, required=false) String refresh_token,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_SCOPE_PARAM, required=false) String scope,
+			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
+			UriComponentsBuilder uriComponentsBuilder
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, 
+				redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+	}
+		
 	/**
 	 * 
 	 *  Get access, refresh and id tokens, as per the 
@@ -256,7 +292,7 @@ public class OpenIDConnectController {
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_TOKEN, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.OIDC_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody
 	OIDCTokenResponse getTokenResponse(
 			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
@@ -268,9 +304,22 @@ public class OpenIDConnectController {
 			@RequestParam(value = AuthorizationConstants.OAUTH2_CLAIMS_PARAM, required=false) String claims,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getTokenResponse(verifiedClientId, grant_type, code, 
+				redirectUri, refresh_token, scope, claims, getEndpoint(uriComponentsBuilder)+UrlHelpers.OIDC_ISSUER);
 	}
 		
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
+	public @ResponseBody
+	Object getUserInfoGETDeprecated(
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			UriComponentsBuilder uriComponentsBuilder
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder));
+	}
+	
 	/**
 	 * The result is either a JSON Object or a JSON Web Token, depending on whether the client registered a
 	 * signing algorithm in its userinfo_signed_response_alg field, as per the
@@ -283,9 +332,21 @@ public class OpenIDConnectController {
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.GET})
+	@RequestMapping(value = UrlHelpers.OIDC_USER_INFO, method = {RequestMethod.GET})
 	public @ResponseBody
 	Object getUserInfoGET(
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			UriComponentsBuilder uriComponentsBuilder
+			)  throws NotFoundException, OAuthClientNotVerifiedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, getEndpoint(uriComponentsBuilder)+UrlHelpers.OIDC_ISSUER);
+	}
+
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
+	public @ResponseBody
+	Object getUserInfoPOSTDeprecated(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
@@ -304,7 +365,7 @@ public class OpenIDConnectController {
 	 * @throws OAuthClientNotVerifiedException if the client is not verified
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OAUTH_2_USER_INFO, method = {RequestMethod.POST})
+	@RequestMapping(value = UrlHelpers.OIDC_USER_INFO, method = {RequestMethod.POST})
 	public @ResponseBody
 	Object getUserInfoPOST(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
