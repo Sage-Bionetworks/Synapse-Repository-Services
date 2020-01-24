@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.util.ArrayList;
@@ -14,15 +14,16 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -47,9 +47,9 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthorizationManagerImplTest {
 
@@ -72,9 +72,6 @@ public class AuthorizationManagerImplTest {
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
-	private NodeDAO nodeDao;
-	
-	@Autowired
 	private ActivityManager activityManager;
 
 	@Autowired
@@ -82,6 +79,9 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private TokenGenerator tokenGenerator;
+	
+	@Autowired
+	private ObjectTypeManager objectTypeManager;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -123,7 +123,7 @@ public class AuthorizationManagerImplTest {
 		return node;
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
@@ -176,7 +176,7 @@ public class AuthorizationManagerImplTest {
 		forumId = "1";
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
 		this.node=null;
@@ -310,6 +310,39 @@ public class AuthorizationManagerImplTest {
 		assertFalse(uep.getCanUpload());
 		assertFalse(uep.getCanEdit());
 		assertFalse(uep.getCanEnableInheritance());
+	}
+	
+	@Test
+	public void testCanDownloadAsAnonymousWhenOpenAccessAndReadAccess() throws Exception {
+		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), anonInfo);
+		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.READ);
+		
+		acl = entityPermissionsManager.updateACL(acl, adminUser);
+		
+		// Can read now
+		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
+		// Cannot download initially
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized());
+		
+		// Set the entity as open access
+		objectTypeManager.changeObjectsDataType(adminUser, node.getId(), ObjectType.ENTITY, DataType.OPEN_DATA);
+		
+		// Call under test
+		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized());
+	}
+	
+	@Test
+	public void testCanDownloadAsAnonymousWhenOpenAccessWithoutReadAccess() throws Exception {		
+		// Cannot read now
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).isAuthorized());
+		// Cannot download initially
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized());
+		
+		// Set the entity as open access
+		objectTypeManager.changeObjectsDataType(adminUser, node.getId(), ObjectType.ENTITY, DataType.OPEN_DATA);
+		
+		// Call under test
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized());
 	}
 	
 	@Test
@@ -472,6 +505,28 @@ public class AuthorizationManagerImplTest {
 
 		// admin creates a node with no parent.  should work
 		assertTrue(authorizationManager.canCreate(adminUser, null, EntityType.project).isAuthorized());
+	}
+	
+	@Test
+	public void testGetUserPermissionForOpenAccessEntityForAnonymous() throws Exception {
+		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), anonInfo);
+		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.READ);
+		
+		acl = entityPermissionsManager.updateACL(acl, adminUser);
+		
+		// Set the entity as open access
+		objectTypeManager.changeObjectsDataType(adminUser, node.getId(), ObjectType.ENTITY, DataType.OPEN_DATA);
+		
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());
+		
+		assertEquals(false, uep.getCanAddChild());
+		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanChangeSettings());
+		assertEquals(false, uep.getCanDelete());
+		assertEquals(false, uep.getCanEdit());
+		assertEquals(true, uep.getCanView());
+		assertEquals(true, uep.getCanDownload());
+		assertEquals(false, uep.getCanUpload());
 	}
 
 	@Test
@@ -657,20 +712,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitation(userInfo, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
+				assertTrue(inviteeAuthorization.isAuthorized(), inviteeAuthorization.getMessage());
 			} else {
-				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
+				assertFalse(inviteeAuthorization.isAuthorized(), inviteeAuthorization.getMessage());
 			}
 			// Team admin can only create, read or delete the invitation
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitation(teamAdmin, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
-				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
+				assertTrue(teamAdminAuthorization.isAuthorized(), teamAdminAuthorization.getMessage());
 			} else {
-				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
+				assertFalse(teamAdminAuthorization.isAuthorized(), teamAdminAuthorization.getMessage());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitation(adminUser, mis, accessType);
-			assertTrue(adminAuthorization.getMessage(), adminAuthorization.isAuthorized());
+			assertTrue(adminAuthorization.isAuthorized(), adminAuthorization.getMessage());
 		}
 	}
 
@@ -736,20 +791,20 @@ public class AuthorizationManagerImplTest {
 			// Invitee can only read or delete the invitation
 			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipRequest(userInfo, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
+				assertTrue(inviteeAuthorization.isAuthorized(), inviteeAuthorization.getMessage());
 			} else {
-				assertFalse(inviteeAuthorization.getMessage(), inviteeAuthorization.isAuthorized());
+				assertFalse(inviteeAuthorization.isAuthorized(), inviteeAuthorization.getMessage());
 			}
 			// Team admin can only read or delete the request
 			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipRequest(teamAdmin, mr, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				assertTrue(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
+				assertTrue(teamAdminAuthorization.isAuthorized(), teamAdminAuthorization.getMessage());
 			} else {
-				assertFalse(teamAdminAuthorization.getMessage(), teamAdminAuthorization.isAuthorized());
+				assertFalse(teamAdminAuthorization.isAuthorized(), teamAdminAuthorization.getMessage());
 			}
 			// Synapse admin has access of any type
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipRequest(adminUser, mr, accessType);
-			assertTrue(adminAuthorization.getMessage(), adminAuthorization.isAuthorized());
+			assertTrue(adminAuthorization.isAuthorized(), adminAuthorization.getMessage());
 		}
 	}
 }
