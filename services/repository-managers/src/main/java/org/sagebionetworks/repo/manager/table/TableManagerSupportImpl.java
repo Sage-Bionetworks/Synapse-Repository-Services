@@ -11,10 +11,8 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.ObjectTypeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -106,8 +104,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
 	@Autowired
 	AuthorizationManager authorizationManager;
-	@Autowired
-	ObjectTypeManager objectTypeManager;
 	@Autowired
 	ViewSnapshotDao viewSnapshotDao;
 	
@@ -454,12 +450,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
 		if (ObjectType.TABLE.equals(type)) {
-			// If the table's DataType is not OPEN then the caller must have the download permission (see PLFM-5240).
-			if (!DataType.OPEN_DATA.equals(objectTypeManager.getObjectsDataType(idAndVersion.getId().toString(), ObjectType.ENTITY))) {
-				// And they must have download permission to access table content.
-				authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
-			}
-
+			// And they must have download permission to access table content.
+			authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 		}
 		return entityTpe;
 	}
