@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -21,8 +22,6 @@ import org.apache.commons.net.util.Base64;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
-
-import io.jsonwebtoken.SignatureAlgorithm;
 
 public class KeyPairUtil {
 	
@@ -109,7 +108,11 @@ public class KeyPairUtil {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
+	private static String bigIntToBase64URLEncoded(BigInteger i) {
+		return Base64.encodeBase64URLSafeString(i.toByteArray());
+	}
+
 	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeys(List<String> pemEncodedKeyPairs) {
 		JsonWebKeySet jsonWebKeySet = new JsonWebKeySet();
 		List<JsonWebKey> publicKeys = new ArrayList<JsonWebKey>();
@@ -125,8 +128,8 @@ public class KeyPairUtil {
 			rsaKey.setUse(KEY_USE_SIGNATURE);
 			rsaKey.setKid(kid);
 			// these are specific to the RSA algorithm
-			rsaKey.setE(rsaPublicKey.getPublicExponent().toString());
-			rsaKey.setN(rsaPublicKey.getModulus().toString());
+			rsaKey.setE(bigIntToBase64URLEncoded(rsaPublicKey.getPublicExponent()));
+			rsaKey.setN(bigIntToBase64URLEncoded(rsaPublicKey.getModulus()));
 			publicKeys.add(rsaKey);
 		}
 		return jsonWebKeySet;
