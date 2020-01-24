@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -67,15 +68,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private AuthenticationManager authenticationManager;
 	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
-	@Autowired
 	private StackConfiguration configuration;
-
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-
+	@Autowired
+	private ObjectTypeManager objectTypeManager;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -316,7 +315,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus certifiedUserHasAccess(String entityId, EntityType entityType, ACCESS_TYPE accessType, UserInfo userInfo)
+	private AuthorizationStatus certifiedUserHasAccess(String entityId, EntityType entityType, ACCESS_TYPE accessType, UserInfo userInfo)
 				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
@@ -328,9 +327,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
 		
-		// Anonymous can at most READ
+		// Anonymous can at most READ (or DOWNLOAD when the entity is marked with OPEN_ACCESS)
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ) {
+			if (accessType != ACCESS_TYPE.READ && accessType != ACCESS_TYPE.DOWNLOAD) {
 				return AuthorizationStatus.accessDenied("Anonymous users have only READ access permission.");
 			}
 		}
@@ -346,6 +345,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (accessType == UPLOAD) {
 			return canUpload(userInfo, entityId);
 		}
+		
 		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
@@ -413,37 +413,51 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	// entities have to meet access requirements (ARs)
 	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		
-		// if the ACL and access requirements permit DOWNLOAD, then its permitted,
-		// and this applies to any type of entity
-		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
-		if (meetsAccessRequirements.isAuthorized() && aclAllowsDownload) {
+		if (userInfo.isAdmin()) {
 			return AuthorizationStatus.authorized();
 		}
 		
-		// at this point the entity is NOT authorized via ACL+access requirements
-		if (!aclAllowsDownload) return AuthorizationStatus.accessDenied("You lack DOWNLOAD access to the requested entity.");
-		return meetsAccessRequirements;
+		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
+		boolean checkTermsOfUse = true;
+		
+		DataType entityDataType = objectTypeManager.getObjectsDataType(entityId, ObjectType.ENTITY);
+		
+		// If the access type is OPEN_DATA then the user can download as long as it has READ access (See PLFM-6059)
+		// We do not check DOWNLOAD access since historically tables marked as OPEN_DATA were checked on READ access only
+		if (DataType.OPEN_DATA == entityDataType) {
+			accessTypeCheck = READ;
+			checkTermsOfUse = false;
+		}
+		
+		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
+		
+		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
+		// and this applies to any type of entity
+		if (aclAllowsDownload && meetsAccessRequirements(userInfo, entityId, checkTermsOfUse)) {
+			return AuthorizationStatus.authorized();
+		}
+		
+		return AuthorizationStatus.accessDenied("You lack DOWNLOAD access to the requested entity.");		
 	}
 	
-	private AuthorizationStatus meetsAccessRequirements(UserInfo userInfo, final String nodeId)
+	private boolean meetsAccessRequirements(final UserInfo userInfo, final String nodeId, final boolean checkTermsOfUse)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return AuthorizationStatus.authorized();
-		if (!agreesToTermsOfUse(userInfo)) return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+		if (userInfo.isAdmin()) {
+			return true;
+		}
+		
+		if (checkTermsOfUse && !agreesToTermsOfUse(userInfo)) {
+			return false;
+		}
 		
 		// if there are any unmet access requirements return false
 		List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
-		if (accessRequirementIds.isEmpty()) {
-			return AuthorizationStatus.authorized();
-		} else {
-			return AuthorizationStatus
-					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
-		}
+		
+		return accessRequirementIds.isEmpty();
 		
 	}
 	
