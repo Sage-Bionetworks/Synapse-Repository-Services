@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ObjectTypeTest {
+public class EntityTypeUtilsTest {
 
 	@Test
 	public void testGetNodeTypeForClass(){
@@ -22,9 +22,25 @@ public class ObjectTypeTest {
 	
 	
 	@Test
-	public void testProjectValidParent(){
+	public void testProjectValidParent() {
 		EntityType[] expectedValid = new EntityType[]{null};
 		testValidParents(expectedValid, EntityType.project);
+	}
+	
+	// Test for PLFM-3324
+	@Test
+	public void testIsValidParentTypeWithWithNullParent() {
+		
+		for (EntityType type : EntityType.values()) {
+			boolean isValid = EntityTypeUtils.isValidParentType(type, null);
+			boolean expected = false;
+			// Only the project type can have a null parent
+			if (EntityType.project == type) {
+				expected = true;
+			}
+			assertEquals(expected, isValid);
+		}
+		
 	}
 	
 	/**

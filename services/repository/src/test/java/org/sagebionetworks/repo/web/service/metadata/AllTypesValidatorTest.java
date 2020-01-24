@@ -1,73 +1,72 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
-import org.sagebionetworks.util.ReflectionStaticTestUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 
-public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
+@ExtendWith(MockitoExtension.class)
+public class AllTypesValidatorTest {
 
-	@Autowired
-	AllTypesValidator allTypesValidator;
+	@Mock
+	private NodeDAO mockNodeDAO;
 
-	NodeDAO mockNodeDAO;
-
-	private Object oldNodeDao;
+	@InjectMocks
+	private AllTypesValidatorImpl allTypesValidator;
 	
-	@Before
-	public void setUp() throws Exception {
-		oldNodeDao = ReflectionStaticTestUtils.getField(allTypesValidator, "nodeDAO");
-		mockNodeDAO = mock(NodeDAO.class);
-	}
+	@Mock
+	private EntityEvent mockEvent;
 
-	@After
-	public void tearDown() throws Exception {
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", oldNodeDao);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testNullEntity() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
-		EntityEvent mockEvent = mock(EntityEvent.class);
-		allTypesValidator.validateEntity(null, mockEvent);
-	}
-	
-	
 	@Test
-	public void testNullList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testNullEntity() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		Entity entity = null;
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			allTypesValidator.validateEntity(entity, mockEvent);
+		});
+	}
+
+	@Test
+	public void testNullList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
 		Project project = new Project();
+
+		// This should work
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, null, null));
 	}
-	
+
 	@Test
-	public void testEmptyList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testEmptyList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
 		Project project = new Project();
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, new ArrayList<EntityHeader>(), null));
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testProjectWithProjectParent() throws Exception {
-		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
-		
 		String parentId = "123";
 		String childId = "456";
+
+		when(mockNodeDAO.isNodeRoot(parentId)).thenReturn(false);
+
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
@@ -75,20 +74,23 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		parentHeader.setType(Project.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
-		
+
 		Project project = new Project();
 		project.setParentId(parentId);
 		project.setId(childId);
-		// This should be valid
-		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+		});
 	}
 
-	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testFolderWithSelfParent() throws Exception {
-		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		String parentId = "123";
+
+		when(mockNodeDAO.isNodeRoot(parentId)).thenReturn(false);
+
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
@@ -96,21 +98,25 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
-		
+
 		Project project = new Project();
 		project.setParentId(parentId);
 		project.setId(parentId);
-		// This should not be valid
-		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+		});
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testFolderWithSelfAncestor() throws Exception {
-		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		String grandparentId = "123";
 		String parentId = "456";
+
+		when(mockNodeDAO.isNodeRoot(parentId)).thenReturn(false);
 		
+
 		// This is our grandparent header
 		EntityHeader grandparentHeader = new EntityHeader();
 		grandparentHeader.setId(grandparentId);
@@ -118,36 +124,42 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		grandparentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(grandparentHeader);
-		
+
 		// This is our direct parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("p");
 		parentHeader.setType(Folder.class.getName());
 		path.add(parentHeader);
-				
+
 		Project project = new Project();
 		project.setParentId(parentId);
 		project.setId(grandparentId);
-		// This should not be valid
-		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+		});
 	}
-	
-	@Test(expected=IllegalArgumentException.class)
+
+	@Test
 	public void testFolderNullParent() throws Exception {
 		Folder folder = new Folder();
 		folder.setId("123");
 		folder.setParentId(null);
-		// This should not be valid
-		allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, null, null));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, null, null));
+		});
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testFolderRootParent() throws Exception {
-		String rootId="456";
-		when(mockNodeDAO.isNodeRoot(eq(rootId))).thenReturn(true);
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
-				
+		String rootId = "456";
+		
+		when(mockNodeDAO.isNodeRoot(rootId)).thenReturn(true);
+		
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		// This is our direct parent header
 		EntityHeader parentHeader = new EntityHeader();
@@ -159,8 +171,34 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		Folder folder = new Folder();
 		folder.setId("123");
 		folder.setParentId(rootId);
-		// This should not be valid
-		allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, path, null));
+		
+		assertThrows(IllegalArgumentException.class, ()-> {
+			// This should not be valid
+			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, path, null));
+		});
+	}
+	
+	@Test
+	public void testValidateCreateEntityWithNullParent() throws Exception {
+		for (EntityType type : EntityType.values()) {
+			
+			Class<? extends Entity> clazz = EntityTypeUtils.getClassForType(type);
+			
+			Entity entity = clazz.newInstance();
+			EntityEvent event = new EntityEvent(EventType.CREATE, null, null);
+			
+			if (EntityType.project == type) {
+				// Call under test, should be fine for project
+				allTypesValidator.validateEntity(entity, event);
+			} else {
+				IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()-> {
+					// Call under test, should throw for any other type
+					allTypesValidator.validateEntity(entity, event);
+				});
+				String expectedMessage = "Entity type: " + clazz.getName() + " cannot have a parent of type: null";
+				assertEquals(expectedMessage, ex.getMessage());
+			}
+		}
 	}
 
 }
