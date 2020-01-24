@@ -30,7 +30,14 @@ public class MySqlColumnTypeTest {
 		Integer size = MySqlColumnType.parseSize(typeString);
 		assertNull(size);
 	}
-	
+
+	@Test
+	public void testParseSizeVarChar(){
+		String typeString = "VARCHAR(255)";
+		Integer size = MySqlColumnType.parseSize(typeString);
+		assertEquals(new Integer(255), size);
+	}
+
 	@Test
 	public void testParseSizeDouble(){
 		String typeString = "double";
