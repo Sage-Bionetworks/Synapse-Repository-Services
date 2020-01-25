@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -694,7 +695,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testCreateOrUpdateViewIndex_AvailableNoVersion() throws Exception {
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		// call under test
 		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(managerSpy).applyChangesToAvailableView(idAndVersion, mockProgressCallback);
@@ -704,7 +705,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testCreateOrUpdateViewIndex_AvailableWithVersion() throws Exception {
 		idAndVersion = IdAndVersion.parse("syn123.456");
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		// call under test
 		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
@@ -713,7 +714,7 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testCreateOrUpdateViewIndex_ProcessingFailed() throws Exception {
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING_FAILED);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING_FAILED));
 		// call under test
 		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
@@ -722,7 +723,16 @@ public class TableViewManagerImplTest {
 	
 	@Test
 	public void testCreateOrUpdateViewProcessing() throws Exception {
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
+		// call under test
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewStateDoesNotExist() throws Exception {
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
 		// call under test
 		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
@@ -1179,7 +1189,7 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableViewHoldingLock_NothingToDo() {
 		setupApplyChanges();
 		Set<Long> rowsToUpdate = Collections.emptySet();
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
@@ -1194,7 +1204,7 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableViewHoldingLock_OnePage() {
 		setupApplyChanges();
 		Set<Long> rowsToUpdate = Sets.newHashSet(101L,102L);
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
 		// call under test
@@ -1210,7 +1220,19 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableViewHoldingLock_OnePageNotAvailable() {
 		setupApplyChanges();
 		// do no work when not available.
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexManager);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_OnePageNoState() {
+		setupApplyChanges();
+		// do no work when not available.
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
 		// call under test
 		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
 		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
@@ -1227,7 +1249,7 @@ public class TableViewManagerImplTest {
 		setupApplyChanges();
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
@@ -1247,7 +1269,7 @@ public class TableViewManagerImplTest {
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
 		// Status starts as available but changes to processing which stop the updates.
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE, TableState.PROCESSING);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE), Optional.of(TableState.PROCESSING));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
@@ -1270,7 +1292,7 @@ public class TableViewManagerImplTest {
 		setupApplyChanges();
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
 		Set<Long> pageTwo = Sets.newHashSet(102L,103L);
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
 		// call under test
@@ -1292,7 +1314,7 @@ public class TableViewManagerImplTest {
 	public void testApplyChangesToAvailableViewHoldingLock_Failed() {
 		setupApplyChanges();
 		Set<Long> pageOne = Sets.newHashSet(101L,102L);
-		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
 				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne);
 		// setup a failure

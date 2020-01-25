@@ -147,7 +147,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
-	void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
+	public void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
 		// lookup the table type.
 		ObjectType tableType = getTableType(idAndVersion);
 		
@@ -247,8 +247,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return true;
 		}
 		// work is needed if the current state is processing.
-		TableState state = tableStatusDAO.getTableStatusState(idAndVersion);
-		return TableState.PROCESSING.equals(state);
+		Optional<TableState> optional = tableStatusDAO.getTableStatusState(idAndVersion);
+		if(!optional.isPresent()) {
+			// there is no state for this table so work is required.
+			return true;
+		}
+		return TableState.PROCESSING.equals(optional.get());
 	}
 
 	/*
@@ -572,7 +576,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public TableState getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException {
+	public Optional<TableState> getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException {
 		return tableStatusDAO.getTableStatusState(idAndVersion);
 	}
 	

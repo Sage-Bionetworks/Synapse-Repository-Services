@@ -339,10 +339,26 @@ public class TableManagerSupportTest {
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
 		// available
-		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertFalse(workRequired);
+	}
+	
+	@Test
+	public void testIsIndexWorkRequired_NoState(){
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(columnIds);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
+		// node exists
+		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
+		// synchronized
+		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
+		// empty
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
+		// call under test
+		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
+		assertTrue(workRequired);
 	}
 	
 	@Test
@@ -408,7 +424,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.isNodeAvailable(tableIdLong)).thenReturn(true);
 		// synchronized
 		when(mockTableIndexDAO.doesIndexStateMatch(any(IdAndVersion.class), anyLong(), anyString())).thenReturn(true);
-		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
 		// call under test
 		boolean workRequired = manager.isIndexWorkRequired(idAndVersion);
 		assertTrue(workRequired);

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -424,9 +425,10 @@ public class TableStatusDAOImplTest {
 		// This should insert a row for this table.
 		tableStatusDAO.resetTableStatusToProcessing(tableIdWithVersion);
 		// call under test
-		TableState withVersion = tableStatusDAO.getTableStatusState(tableIdWithVersion);
-		assertNotNull(withVersion);
-		assertEquals(TableState.PROCESSING, withVersion);
+		Optional<TableState> optional = tableStatusDAO.getTableStatusState(tableIdWithVersion);
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(TableState.PROCESSING, optional.get());
 	}
 	
 	@Test
@@ -434,18 +436,19 @@ public class TableStatusDAOImplTest {
 		// This should insert a row for this table.
 		tableStatusDAO.resetTableStatusToProcessing(tableIdNoVersion);
 		// call under test
-		TableState withVersion = tableStatusDAO.getTableStatusState(tableIdNoVersion);
-		assertNotNull(withVersion);
-		assertEquals(TableState.PROCESSING, withVersion);
+		Optional<TableState> optional = tableStatusDAO.getTableStatusState(tableIdNoVersion);
+		assertNotNull(optional);
+		assertTrue(optional.isPresent());
+		assertEquals(TableState.PROCESSING, optional.get());
 	}
 	
 	@Test
 	public void testGetTableStatusStateDoesNotExist() {
 		IdAndVersion doesNotExist = IdAndVersion.parse("syn999.888");
-		assertThrows(NotFoundException.class, ()->{
-			// call under test
-			 tableStatusDAO.getTableStatusState(doesNotExist);
-		});
+		// call under test
+		Optional<TableState> optional = tableStatusDAO.getTableStatusState(doesNotExist);
+		assertNotNull(optional);
+		assertFalse(optional.isPresent());
 	}
 	
 	@Test
