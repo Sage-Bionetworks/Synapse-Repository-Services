@@ -960,7 +960,45 @@ public class TableIndexDAOImplTest {
 			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class);
 		});
 	}
-	
+
+	@Test
+	public void testVarCharMaxSize(){
+		ColumnModel stringColumn = new ColumnModel();
+		stringColumn.setId("15");
+		stringColumn.setName("syn");
+		stringColumn.setColumnType(ColumnType.STRING);
+		stringColumn.setMaximumSize(255L);
+
+		List<ColumnModel> schema = Lists.newArrayList(stringColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
+
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(schema));
+		set.setTableId(tableId.toString());
+
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+
+		createOrUpdateOrDeleteRows(tableId, set, schema);
+
+		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
+		assertNotNull(infoList);
+
+		DatabaseColumnInfo info = infoList.get(2);
+		assertEquals("_C15_", info.getColumnName());
+		assertEquals(new Long(5), info.getCardinality());
+
+		assertEquals(MySqlColumnType.VARCHAR, info.getType());
+		assertEquals(255, info.getMaxSize());
+
+	}
 	
 	@Test
 	public void testColumnInfoAndCardinality(){
