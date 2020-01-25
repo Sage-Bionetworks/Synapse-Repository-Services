@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS
 
 import java.sql.ResultSet;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -226,17 +227,17 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	}
 
 	@Override
-	public TableState getTableStatusState(IdAndVersion tableId) throws NotFoundException {
+	public Optional<TableState> getTableStatusState(IdAndVersion tableId) {
 		long version = validateAndGetVersion(tableId);
 		try {
-			return jdbcTemplate
+			return Optional.of(jdbcTemplate
 					.queryForObject(
 							String.format(SELECT_STATUS_TEMPLATE, COL_TABLE_STATUS_STATE),
 							(ResultSet rs, int rowNum) -> {
 								return TableState.valueOf(rs.getString(COL_TABLE_STATUS_STATE));
-							}, tableId.getId(), version);
+							}, tableId.getId(), version));
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Table status does not exist for: " + tableId.toString());
+			return Optional.empty();
 		}
 	}
 
