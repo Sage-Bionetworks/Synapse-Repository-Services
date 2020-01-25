@@ -45,11 +45,12 @@ public interface TableManagerSupport {
 	
 	/**
 	 * Get the current state of the given table.
+	 * 
 	 * @param idAndVersion
-	 * @return
-	 * @throws NotFoundException
+	 * @return Optional.empty() is returned if there is no state information for the
+	 *         table/view.
 	 */
-	public TableState getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException;
+	public Optional<TableState> getTableStatusState(IdAndVersion idAndVersion);
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
