@@ -41,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITStorageLocation {
 	private static Long userToDelete;
-	private static Long secondUser;
 	private static StackConfiguration config;
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
@@ -62,9 +61,6 @@ public class ITStorageLocation {
 
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-
-		SynapseClient secondSynapseClient = new SynapseAdminClientImpl();
-		secondUser = SynapseClientHelper.createUser(adminSynapse, secondSynapseClient);
 
 		synapseS3Client = AwsClientFactory.createAmazonS3Client();
 	}
@@ -94,12 +90,6 @@ public class ITStorageLocation {
 	public static void afterClass() {
 		try {
 			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseException e) {
-			// Ignore possible exceptions
-		}
-
-		try {
-			adminSynapse.deleteUser(secondUser);
 		} catch (SynapseException e) {
 			// Ignore possible exceptions
 		}
