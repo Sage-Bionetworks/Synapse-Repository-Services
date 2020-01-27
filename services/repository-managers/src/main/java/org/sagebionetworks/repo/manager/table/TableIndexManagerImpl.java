@@ -40,7 +40,7 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	
-	public static final int TIMEOUT_SECONDS = 120;
+	public static final int TIMEOUT_SECONDS = 1200;
 
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
