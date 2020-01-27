@@ -70,6 +70,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private AuthenticationManager authenticationManager;
 	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
+	@Autowired
 	private StackConfiguration configuration;
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
