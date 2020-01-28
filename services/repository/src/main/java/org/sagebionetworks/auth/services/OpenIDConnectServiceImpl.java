@@ -109,8 +109,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setClaims_parameter_supported(true);
 		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
 		result.setToken_endpoint_auth_methods_supported(TOKEN_ENDPOINT_AUTHENTICATION_TYPES);
-
-
 		return result;
 	}
 

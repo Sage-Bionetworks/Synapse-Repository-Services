@@ -7,8 +7,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.Base64;
 
-import org.apache.commons.codec.binary.Base64;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -72,12 +72,10 @@ public class JSONWebTokenHelper {
 	}
 	
 	private static BigInteger base64URLEncodedToBigInteger(String s) {
-		byte[] bytes = Base64.decodeBase64(s);
+		byte[] bytes = Base64.getDecoder().decode(s);
 		return new BigInteger(bytes);
 	}
 
-
-	
 	public static RSAPublicKey getRSAPublicKeyForJsonWebKeyRSA(JsonWebKeyRSA jwkRsa) {
 		BigInteger modulus = base64URLEncodedToBigInteger(jwkRsa.getN());
 		BigInteger publicExponent = base64URLEncodedToBigInteger(jwkRsa.getE());

@@ -4,14 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -112,7 +112,7 @@ public class KeyPairUtilTest {
 		assertEquals("FPQF:TYN3:DMDM:URKQ:BRS4:BX2W:5VSW:3HXA:4D7Z:KOTS:EI26:GPJ6", key.getKid());
 		assertEquals("RSA", key.getKty());
 		assertEquals("sig", key.getUse());
-		assertNotNull(key.getE());
-		assertNotNull(key.getN());		
+		new BigInteger(Base64.getDecoder().decode(key.getE())); // make sure its a Base64 encoded integer string
+		new BigInteger(Base64.getDecoder().decode(key.getN())); // make sure its a Base64 encoded integer string	
 	}
 }
