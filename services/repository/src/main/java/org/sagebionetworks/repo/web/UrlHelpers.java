@@ -1093,17 +1093,6 @@ public class UrlHelpers {
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	
-	/** 
-	 * To revise the JWKS document without making a breaking API change requires introducing 
-	 * a second version of the services
-	 */
-	public static final String OIDC_ISSUER = "/oidc";
-	public static final String OIDC_WELL_KNOWN_OPENID_CONFIGURATION = OIDC_ISSUER+WELL_KNOWN_OPENID_CONFIGURATION;
-	public static final String OIDC_TOKEN = OIDC_ISSUER+"/token";
-	public static final String OIDC_USER_INFO = OIDC_ISSUER+"/userinfo";
-	public static final String OIDC_JWKS = OIDC_ISSUER+"/jwks";
-	
-	
 
 	public static final String AUTH_LOGIN = "/login";
 	

@@ -55,7 +55,7 @@ public class OpenIDConnectServiceImplTest {
 	public void testGetOIDCConfiguration() throws Exception {
 		
 		// method under test
-		OIDConnectConfiguration config = oidcServiceImpl.getOIDCConfigurationDeprecated(OAUTH_ENDPOINT);
+		OIDConnectConfiguration config = oidcServiceImpl.getOIDCConfiguration(OAUTH_ENDPOINT);
 		
 		assertEquals("http://localhost:8080/authorize", config.getAuthorization_endpoint());
 		assertTrue(config.getClaims_parameter_supported());

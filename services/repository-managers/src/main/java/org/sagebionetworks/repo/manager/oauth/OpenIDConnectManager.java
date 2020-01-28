@@ -31,10 +31,9 @@ public interface OpenIDConnectManager {
 	 * @param authorizationCode
 	 * @param verifiedClientId Client ID verified via client authentication
 	 * @param redirectUri
-	 * @param issuer
 	 * @return
 	 */
-	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri, String issuer);
+	OIDCTokenResponse getAccessToken(String authorizationCode, String verifiedClientId, String redirectUri, String oauthEndpoint);
 	
 	/**
 	 * Given an OAuth access token with an audience and subject, 'decode' the

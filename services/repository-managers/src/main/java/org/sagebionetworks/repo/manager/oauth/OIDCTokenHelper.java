@@ -47,9 +47,6 @@ public interface OIDCTokenHelper {
 	String createOIDCaccessToken(String issuer, String subject, String oauthClientId, long now, Date authTime,
 			String tokenId, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
-	@Deprecated
-	JsonWebKeySet getJSONWebKeySetDeprecated();
-
 	/**
 	 * Return the *public* side of the signature keys in the stack configuration, in the JSON Web Key Set (JWKS) format
 	 * @return a JSON object holding the JWKS

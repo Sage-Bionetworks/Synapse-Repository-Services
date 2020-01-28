@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -31,6 +32,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
+	private static final List<String> TOKEN_ENDPOINT_AUTHENTICATION_TYPES = Collections.singletonList("client_secret_basic");
 	
 	@Autowired
 	private UserManager userManager;
@@ -87,9 +89,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public OIDConnectConfiguration getOIDCConfigurationDeprecated(String authEndpoint) {
-		ValidateArgument.required(authEndpoint, "Auth Endpoint");
-		String issuer = authEndpoint;
+	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
+		ValidateArgument.required(endpoint, "OAuth Endpoint");
+		String issuer = endpoint;
 		OIDConnectConfiguration result = new OIDConnectConfiguration();
 		result.setIssuer(issuer);
 		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
@@ -106,35 +108,10 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
-		return result;
-	}
+		result.setToken_endpoint_auth_methods_supported(TOKEN_ENDPOINT_AUTHENTICATION_TYPES);
 
-	@Override
-	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
-		ValidateArgument.required(endpoint, "Auth Endpoint");
-		String issuer = endpoint+UrlHelpers.OIDC_ISSUER;
-		OIDConnectConfiguration result = new OIDConnectConfiguration();
-		result.setIssuer(issuer);
-		result.setAuthorization_endpoint(StackConfigurationSingleton.singleton().getOAuthAuthorizationEndpoint());
-		result.setToken_endpoint(issuer+UrlHelpers.OIDC_TOKEN);
-		result.setUserinfo_endpoint(issuer+UrlHelpers.OIDC_USER_INFO);
-		result.setJwks_uri(issuer+UrlHelpers.OIDC_JWKS);
-		result.setRegistration_endpoint(issuer+UrlHelpers.OAUTH_2_CLIENT);
-		result.setScopes_supported(Arrays.asList(OAuthScope.values()));
-		result.setResponse_types_supported(Arrays.asList(OAuthResponseType.values()));
-		result.setGrant_types_supported(Collections.singletonList(OAuthGrantType.authorization_code));
-		result.setSubject_types_supported(Arrays.asList(OIDCSubjectIdentifierType.values()));
-		result.setId_token_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
-		result.setClaims_supported(Arrays.asList(OIDCClaimName.values()));
-		result.setService_documentation("https://docs.synapse.org");
-		result.setClaims_parameter_supported(true);
-		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
-		return result;
-	}
 
-	@Override
-	public JsonWebKeySet getOIDCJsonWebKeySetDeprecated() {
-		return oidcTokenHelper.getJSONWebKeySetDeprecated();
+		return result;
 	}
 
 	@Override
@@ -155,9 +132,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public OIDCTokenResponse getTokenResponse(String verifiedClientId, OAuthGrantType grantType, 
-			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String issuer) {
+			String authorizationCode, String redirectUri, String refreshToken, String scope, String claims, String oauthEndpoint) {
 		if (OAuthGrantType.authorization_code==grantType) {
-			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, issuer);
+			return oidcManager.getAccessToken(authorizationCode, verifiedClientId, redirectUri, oauthEndpoint);
 		} else {
 			throw new IllegalArgumentException("Unsupported grant type"+grantType);
 		}

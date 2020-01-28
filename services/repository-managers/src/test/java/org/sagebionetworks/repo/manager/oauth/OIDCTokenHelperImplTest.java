@@ -118,13 +118,13 @@ public class OIDCTokenHelperImplTest {
 	@Test
 	public void testGetJSONWebKeySet() throws Exception {
 		// below we test that the keys can be used to verify a signature.  Here we just check that they were generated
-		JsonWebKeySet jwks = oidcTokenHelper.getJSONWebKeySetDeprecated();
+		JsonWebKeySet jwks = oidcTokenHelper.getJSONWebKeySet();
 		assertFalse(jwks.getKeys().isEmpty());
 	}
 	
 	// get the public side of the current signing key
 	private PublicKey getPublicSigningKey() {
-		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySetDeprecated().getKeys().get(0);
+		JsonWebKey jwk = oidcTokenHelper.getJSONWebKeySet().getKeys().get(0);
 		return JSONWebTokenHelper.getRSAPublicKeyForJsonWebKeyRSA((JsonWebKeyRSA)jwk);
 	}
 	
@@ -152,7 +152,7 @@ public class OIDCTokenHelperImplTest {
 	    // the TLS server validation MAY be used to validate the issuer in place of checking the token signature. The Client MUST 
 	    // validate the signature of all other ID Tokens according to JWS using the algorithm specified in the JWT alg Header 
 	    // Parameter. The Client MUST use the keys provided by the Issuer.
-	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenHelper.getJSONWebKeySetDeprecated());
+	    Jwt<JwsHeader,Claims> signedJWT = JSONWebTokenHelper.parseJWT(jwtString, oidcTokenHelper.getJSONWebKeySet());
 		assertNotNull(signedJWT);
 	    
 	    
@@ -172,7 +172,7 @@ public class OIDCTokenHelperImplTest {
 	    assertNull(claimsSet.get("azp")); // i.e. verify no azp Claim
 
 	    // by the way, the key ID in the token header should match that in the JWK
-	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenHelper.getJSONWebKeySetDeprecated().getKeys().get(0).getKid());
+	    assertEquals(signedJWT.getHeader().getKeyId(), oidcTokenHelper.getJSONWebKeySet().getKeys().get(0).getKid());
 
 		// The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
 	    assertEquals("RS256", signedJWT.getHeader().getAlgorithm());
