@@ -1071,7 +1071,17 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!fileHandle.getBucketName().equals(esls.getBucket())){
 			throw new IllegalArgumentException("The bucket for ExternalS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
 		}
-		
+
+		// For backwards compatibility, only check base key if stsEnabled is true.
+		if (Boolean.TRUE.equals(esls.getStsEnabled())) {
+			String baseKey = esls.getBaseKey();
+			if (baseKey != null && !fileHandle.getKey().startsWith(baseKey)) {
+				throw new IllegalArgumentException("The baseKey for ExternalS3StorageLocationSetting.id=" +
+						fileHandle.getStorageLocationId() + " does not match the provided key: " +
+						fileHandle.getKey());
+			}
+		}
+
 		/*
 		 *  The creation of the ExternalS3StorageLocationSetting already validates that the user has
 		 *  permission to update the bucket. So the creator of the storage location is

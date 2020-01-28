@@ -864,6 +864,99 @@ public class FileHandleManagerImplTest {
 				externals3FileHandle), "Unable to access the file at bucket: " + bucket + " key: " + key + ".");
 	}
 
+	@Test
+	public void testCreateExternalS3FileHandle_StsEnabledNullAllowsAnyBaseKey(){
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(null);
+		externalS3StorageLocationSetting.setBaseKey(BASE_KEY);
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		externals3FileHandle.setKey("mismatched-key");
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+
+		// Method under test - Most of this is tested above. Just test that FileHandleDao.createFile() is called.
+		manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+		verify(mockFileHandleDao).createFile(externals3FileHandle);
+	}
+
+	@Test
+	public void testCreateExternalS3FileHandle_StsEnabledFalseAllowsAnyBaseKey(){
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(false);
+		externalS3StorageLocationSetting.setBaseKey(BASE_KEY);
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		externals3FileHandle.setKey("mismatched-key");
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+
+		// Method under test - Most of this is tested above. Just test that FileHandleDao.createFile() is called.
+		manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+		verify(mockFileHandleDao).createFile(externals3FileHandle);
+	}
+
+	@Test
+	public void testCreateExternalS3FileHandle_StsEnabledTrueWithoutBaseKey(){
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		externalS3StorageLocationSetting.setBaseKey(null);
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		externals3FileHandle.setKey("mismatched-key");
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+
+		// Method under test - Most of this is tested above. Just test that FileHandleDao.createFile() is called.
+		manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+		verify(mockFileHandleDao).createFile(externals3FileHandle);
+	}
+
+	@Test
+	public void testCreateExternalS3FileHandle_StsEnabledTrueBaseKeyMatches(){
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		externalS3StorageLocationSetting.setBaseKey(BASE_KEY);
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		externals3FileHandle.setKey(BASE_KEY + "/subfolder/some-file");
+		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
+
+		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
+		when(mockMeta.getContentLength()).thenReturn(fileSize);
+
+		// Method under test - Most of this is tested above. Just test that FileHandleDao.createFile() is called.
+		manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
+		verify(mockFileHandleDao).createFile(externals3FileHandle);
+	}
+
+	@Test
+	public void testCreateExternalS3FileHandle_StsEnabledTrueBaseKeyDoesNotMatch(){
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(true);
+		externalS3StorageLocationSetting.setBaseKey(BASE_KEY);
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+
+		String mismatchedKey = "mismatched-key";
+		externals3FileHandle.setKey(mismatchedKey);
+
+		// Method under test - Throws.
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
+				externals3FileHandle), "The baseKey for ExternalS3StorageLocationSetting.id=" +
+				externalS3StorageLocationId + " does not match the provided key: " + mismatchedKey);
+		verify(mockFileHandleDao, never()).createFile(any());
+	}
+
 	///////////////////////////////////////////////////
 	// createExternalGoogleCloudFileHandle tests
 	///////////////////////////////////////////////////

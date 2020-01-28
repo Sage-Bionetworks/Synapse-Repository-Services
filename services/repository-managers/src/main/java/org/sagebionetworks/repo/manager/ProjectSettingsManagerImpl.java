@@ -367,10 +367,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 	}
 
-	// Helper method to check if a ProjectSetting is a an STS-enabled storage location. That is, the storage location
-	// referenced in the project setting is an StsStorageLocation with StsEnabled=true.
-	// Package-scoped for unit tests.
-	boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
+	@Override
+	public boolean isStsStorageLocationSetting(StorageLocationSetting storageLocationSetting) {
+		return storageLocationSetting instanceof StsStorageLocationSetting &&
+				Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+	}
+
+	@Override
+	public boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
 		if (!(projectSetting instanceof UploadDestinationListSetting)) {
 			// Impossible code path, but add this check here to future-proof this against ClassCastExceptions.
 			return false;
@@ -382,8 +386,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		long storageLocationId = storageLocationIdList.get(0);
 		try {
 			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
-			return storageLocationSetting instanceof StsStorageLocationSetting &&
-					Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+			return isStsStorageLocationSetting(storageLocationSetting);
 		} catch (NotFoundException e) {
 			// If the storage location somehow doesn't exist, then it's not an StsStorageLocation.
 			return false;

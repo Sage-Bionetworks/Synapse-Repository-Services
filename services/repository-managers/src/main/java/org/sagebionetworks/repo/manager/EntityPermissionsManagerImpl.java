@@ -43,6 +43,8 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -67,6 +69,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private UserManager userManager;
 	@Autowired
 	private AuthenticationManager authenticationManager;
+	@Autowired
+	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private StackConfiguration configuration;
 	@Autowired
@@ -154,6 +158,18 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
+
+		// Can't override ACL inheritance if the entity lives inside an STS-enabled folder.
+		UploadDestinationListSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo,
+				entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		if (projectSetting != null && !KeyFactory.equals(projectSetting.getProjectId(), entityId)) {
+			// If the project setting is defined on the current entity, you can still override ACL inheritance.
+			// Overriding ACL inheritance is only blocked for child entities.
+			if (projectSettingsManager.isStsStorageLocationSetting(projectSetting)) {
+				throw new IllegalArgumentException("Cannot override ACLs in a child of an STS-enabled folder");
+			}
+		}
+
 		// Before we can update the ACL we must grab the lock on the node.
 		String newEtag = nodeDao.touch(userInfo.getId(), entityId);
 		// persist acl and return
