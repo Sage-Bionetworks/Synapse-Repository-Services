@@ -112,7 +112,7 @@ public class KeyPairUtilTest {
 		assertEquals("FPQF:TYN3:DMDM:URKQ:BRS4:BX2W:5VSW:3HXA:4D7Z:KOTS:EI26:GPJ6", key.getKid());
 		assertEquals("RSA", key.getKty());
 		assertEquals("sig", key.getUse());
-		new BigInteger(Base64.getDecoder().decode(key.getE())); // make sure its a Base64 encoded integer string
-		new BigInteger(Base64.getDecoder().decode(key.getN())); // make sure its a Base64 encoded integer string	
+		new BigInteger(Base64.getUrlDecoder().decode(key.getE())); // make sure its a Base64 encoded integer string
+		new BigInteger(Base64.getUrlDecoder().decode(key.getN())); // make sure its a Base64 encoded integer string	
 	}
 }

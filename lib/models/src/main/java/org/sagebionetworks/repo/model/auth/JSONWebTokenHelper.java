@@ -72,7 +72,7 @@ public class JSONWebTokenHelper {
 	}
 	
 	private static BigInteger base64URLEncodedToBigInteger(String s) {
-		byte[] bytes = Base64.getDecoder().decode(s);
+		byte[] bytes = Base64.getUrlDecoder().decode(s);
 		return new BigInteger(bytes);
 	}
 
