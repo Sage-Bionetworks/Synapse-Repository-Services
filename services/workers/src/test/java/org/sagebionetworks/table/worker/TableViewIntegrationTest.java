@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -140,6 +141,8 @@ public class TableViewIntegrationTest {
 	RepositoryMessagePublisher repositoryMessagePublisher;
 	@Autowired
 	DBOChangeDAO changeDAO;
+	@Autowired
+	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 	
 	
 	ProgressCallback mockProgressCallbackVoid;
@@ -1595,7 +1598,7 @@ public class TableViewIntegrationTest {
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
 		// Wait for the view to be up-to-date before running the query
 		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
-		waitForViewToBeUpToDate(user, viewId);
+		asynchronousJobWorkerHelper.waitForViewToBeUpToDate(viewId, MAX_WAIT_MS);
 		// The view is up-to-date so run the caller's query.
 		QueryBundleRequest request = new QueryBundleRequest();
 		request.setQuery(query);
@@ -1604,50 +1607,6 @@ public class TableViewIntegrationTest {
 		// Keep running queries as long as a view out-of-date
 
 		return results;
-	}
-	
-	/**
-	 * Helper to wait for a view to be up-to-date
-	 * @param user
-	 * @param viewId
-	 * @throws InterruptedException
-	 * @throws AsynchJobFailedException
-	 * @throws TableFailedException 
-	 */
-	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
-		long start = System.currentTimeMillis();
-		// only wait if the view is available but out-of-date.
-		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
-			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			System.out.println("Waiting for view "+viewId+" to be up-to-date");
-			Thread.sleep(1000);
-		}
-	}
-	
-	/**
-	 * An expensive call to determine if a view is up-to-date with the entity replication data.
-	 * 
-	 * @param tableId
-	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
-	 * with a status of available.
-	 * @throws TableFailedException 
-	 */
-	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
-		EntityType type = tableManagerSupport.getTableEntityType(tableId);
-		if(!EntityType.entityview.equals(type)) {
-			// not a view
-			return Optional.empty();
-		}
-		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
-		if(!TableState.AVAILABLE.equals(status.getState())) {
-			return Optional.empty();
-		}
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
-		long limit = 1L;
-		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
-		return Optional.of(changes.isEmpty());
 	}
 	
 	/**
