@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS `ANNOTATED_EXAMPLE_TEST` (
-	`ID` bigint(20) not null AUTO_INCREMENT,
-	`NUMBER` bigint(20) not null,
-	`NUMBER_OR_NULL` bigint(20),
+	`ID` BIGINT not null AUTO_INCREMENT,
+	`NUMBER` BIGINT not null,
+	`NUMBER_OR_NULL` BIGINT,
 	`BLOB_ONE` mediumblob,
 	`CUSTOM` blob,
 	`SERIALIZED` blob,
@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS `ANNOTATED_EXAMPLE_TEST` (
 	`NAME` CHAR(16) default null,
 	`ETAG` CHAR(36) default null,
 	`MODIFIED_BY` VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci not null,
-	`MODIFIED_ON` bigint(20) not null,
-	`PARENT_ID` bigint(20),
+	`MODIFIED_ON` BIGINT not null,
+	`PARENT_ID` BIGINT,
 	PRIMARY KEY (`ID`),
 	constraint PARENT_FK foreign key (`PARENT_ID`) references `ANNOTATED_EXAMPLE_TEST` (`ID`) on delete cascade
 )

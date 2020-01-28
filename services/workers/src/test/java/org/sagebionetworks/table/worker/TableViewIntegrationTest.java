@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -43,6 +45,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -55,9 +58,14 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -127,6 +135,15 @@ public class TableViewIntegrationTest {
 	AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	TableStatusDAO tableStatusDao;
+	@Autowired
+	RepositoryMessagePublisher repositoryMessagePublisher;
+	@Autowired
+	DBOChangeDAO changeDAO;
+	@Autowired
+	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
+	
 	
 	ProgressCallback mockProgressCallbackVoid;
 	
@@ -1389,6 +1406,64 @@ public class TableViewIntegrationTest {
 		assertTrue(results.getLastUpdatedOn().after(startingLastUpdatedOn));
 	}
 
+	/**
+	 * Existing views need to get built on a new stack even though
+	 * the view state does not exist (see PLFM-6060). 
+	 */
+	@Test
+	public void testPLFM_6060() throws Exception {
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		IdAndVersion viewId = IdAndVersion.parse(fileViewId);
+		// wait for the view to become available to ensure the worker is done with the view.
+		waitForViewToBeAvailable(viewId);
+		
+		// simulate the case where there is no state for the view
+		tableStatusDao.clearAllTableState();
+		this.tableConnectionFactory.getConnection(viewId).deleteTable(viewId);
+
+		// simulate what happens after the migration of new stack, 
+		// sending a change message to the view worker.
+		broadcastChangeMessageToViewWorker(viewId);
+		// The view should become available only from the message
+		waitForViewToBeAvailable(viewId);
+	}
+	
+	/**
+	 * Broadcast a change message to the view worker.
+	 * 
+	 * @param viewId
+	 */
+	void broadcastChangeMessageToViewWorker(IdAndVersion viewId) {
+		// Send a message to the worker to build the view
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectType(ObjectType.ENTITY_VIEW);
+		message.setObjectId(viewId.toString());
+		message = changeDAO.replaceChange(message);
+		this.repositoryMessagePublisher.publishToTopic(message);
+	}
+
+	/**
+	 * Wait for the view to become available.
+	 * 
+	 * @param viewId
+	 * @throws InterruptedException
+	 */
+	void waitForViewToBeAvailable(IdAndVersion viewId) throws InterruptedException {
+		long startTime = System.currentTimeMillis();
+		while(true) {
+			Optional<TableState> optional = tableManagerSupport.getTableStatusState(viewId);
+			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
+				break;
+			}
+			assertTrue("Timed out waiting for a view to become available.",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+			System.out.println("Waiting for view to become available.");
+			Thread.sleep(2000);
+		}
+	}
+	
 
 	/**
 	 * Helper to update a view using a result set.
@@ -1523,7 +1598,7 @@ public class TableViewIntegrationTest {
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
 		// Wait for the view to be up-to-date before running the query
 		IdAndVersion viewId = extractTableIdFromQuery(query.getSql());
-		waitForViewToBeUpToDate(user, viewId);
+		asynchronousJobWorkerHelper.waitForViewToBeUpToDate(viewId, MAX_WAIT_MS);
 		// The view is up-to-date so run the caller's query.
 		QueryBundleRequest request = new QueryBundleRequest();
 		request.setQuery(query);
@@ -1532,50 +1607,6 @@ public class TableViewIntegrationTest {
 		// Keep running queries as long as a view out-of-date
 
 		return results;
-	}
-	
-	/**
-	 * Helper to wait for a view to be up-to-date
-	 * @param user
-	 * @param viewId
-	 * @throws InterruptedException
-	 * @throws AsynchJobFailedException
-	 * @throws TableFailedException 
-	 */
-	private void waitForViewToBeUpToDate(UserInfo user, IdAndVersion viewId) throws InterruptedException, AsynchJobFailedException, TableFailedException {
-		long start = System.currentTimeMillis();
-		// only wait if the view is available but out-of-date.
-		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
-			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			System.out.println("Waiting for view "+viewId+" to be up-to-date");
-			Thread.sleep(1000);
-		}
-	}
-	
-	/**
-	 * An expensive call to determine if a view is up-to-date with the entity replication data.
-	 * 
-	 * @param tableId
-	 * @return Optional<Boolean> A non-empty result is only returned if the ID belongs view
-	 * with a status of available.
-	 * @throws TableFailedException 
-	 */
-	public Optional<Boolean> isViewAvailableAndUpToDate(IdAndVersion tableId) throws TableFailedException {
-		EntityType type = tableManagerSupport.getTableEntityType(tableId);
-		if(!EntityType.entityview.equals(type)) {
-			// not a view
-			return Optional.empty();
-		}
-		TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
-		if(!TableState.AVAILABLE.equals(status.getState())) {
-			return Optional.empty();
-		}
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		Long viewTypeMask = tableManagerSupport.getViewTypeMask(tableId);
-		Set<Long> allContainersInScope = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewTypeMask);
-		long limit = 1L;
-		Set<Long> changes = indexDao.getOutOfDateRowsForView(tableId, viewTypeMask, allContainersInScope,  limit);
-		return Optional.of(changes.isEmpty());
 	}
 	
 	/**

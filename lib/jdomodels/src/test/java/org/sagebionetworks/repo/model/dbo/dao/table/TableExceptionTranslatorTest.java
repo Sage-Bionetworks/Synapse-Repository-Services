@@ -54,7 +54,7 @@ public class TableExceptionTranslatorTest {
 		int vendorCode = 1366;
 		SQLException sqlException = new SQLException(reason, sqlState, vendorCode);
 		String task = "StatementCallback";
-		String sql = "ALTER TABLE TEMP9974056 CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'";
+		String sql = "ALTER TABLE TEMP9974056 CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'";
 		uncategorizedSQLException = new UncategorizedSQLException(task, sql,sqlException);
 		
 		task = "PreparedStatementCallback";

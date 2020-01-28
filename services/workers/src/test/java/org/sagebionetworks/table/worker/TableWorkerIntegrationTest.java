@@ -1897,7 +1897,8 @@ public class TableWorkerIntegrationTest {
 		query.setOffset(5L);
 		query.setLimit(1L);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -1965,7 +1966,7 @@ public class TableWorkerIntegrationTest {
 		query.setLimit(1L);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -2041,7 +2042,7 @@ public class TableWorkerIntegrationTest {
 		query.setLimit(1L);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -2182,7 +2183,7 @@ public class TableWorkerIntegrationTest {
 		query.setSql(sql);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle results = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle results = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		assertNotNull(results);
 		assertNotNull(results);
 		assertNotNull(results.getQueryResult());
@@ -2660,11 +2661,15 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	private QueryResult waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
+		QueryResultBundle bundle = waitForConsistentQueryBundle(user, query, options);
+		return bundle.getQueryResult();
+	}
+	
+	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, Query query, QueryOptions options) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
-				return queryResult.getQueryResult();
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

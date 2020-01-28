@@ -335,7 +335,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback)
 			throws Exception {
-		if (TableState.AVAILABLE.equals(tableManagerSupport.getTableStatusState(idAndVersion))
+		Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(idAndVersion);
+		if (optionalState.isPresent() && optionalState.get() == TableState.AVAILABLE
 				&& !idAndVersion.getVersion().isPresent()) {
 			/*
 			 * The view is currently available and this is not a "snapshot". This route will
@@ -405,7 +406,8 @@ public class TableViewManagerImpl implements TableViewManager {
 			Set<Long> previousPageRowIdsWithChanges = Collections.emptySet();
 			// Continue applying change to the view until none remain.
 			do {
-				if(!TableState.AVAILABLE.equals(tableManagerSupport.getTableStatusState(viewId))) {
+				Optional<TableState> optionalState = tableManagerSupport.getTableStatusState(viewId);
+				if(!optionalState.isPresent() || optionalState.get() != TableState.AVAILABLE) {
 					// no point in continuing if the table is no longer available.
 					return;
 				}

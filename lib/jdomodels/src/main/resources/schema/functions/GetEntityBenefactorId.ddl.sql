@@ -1,5 +1,5 @@
 /* Function to find the first entity in an entity's hierarchy with an ACL.*/
-CREATE FUNCTION `getEntityBenefactorId`(inputEntityId BIGINT) RETURNS bigint(20)
+CREATE FUNCTION `getEntityBenefactorId`(inputEntityId BIGINT) RETURNS BIGINT
     READS SQL DATA
 BEGIN
  	DECLARE entityId BIGINT;
