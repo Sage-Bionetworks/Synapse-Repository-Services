@@ -2808,7 +2808,8 @@ public class SQLUtilsTest {
 				" ORDINAL FOR ORDINALITY," +
 				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
 				")" +
-				") TEMP_JSON_TABLE";
+				") TEMP_JSON_TABLE" +
+				" ON DUPLICATE KEY UPDATE _C0__UNNEST=TEMP_JSON_TABLE.COLUMN_EXPAND";
 		assertEquals(expected, sql);
 	}
 	
@@ -2828,7 +2829,8 @@ public class SQLUtilsTest {
 				" ORDINAL FOR ORDINALITY," +
 				"  COLUMN_EXPAND VARCHAR(42) PATH '$' " +
 				")" +
-				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)";
+				") TEMP_JSON_TABLE WHERE T999.ROW_ID IN (:ids)" +
+				" ON DUPLICATE KEY UPDATE _C0__UNNEST=TEMP_JSON_TABLE.COLUMN_EXPAND";
 		assertEquals(expected, sql);
 	}
 	

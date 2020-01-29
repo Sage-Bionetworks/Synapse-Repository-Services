@@ -2597,6 +2597,48 @@ public class TableIndexDAOImplTest {
 		assertEquals("The size of the column 'myList' is too small." +
 				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
 	}
+
+	@Test
+	public void testCreateAndPopulateListColumnIndexTables__DuplicateKeyInsert() {
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setId("15");
+		stringListColumn.setName("myList");
+		stringListColumn.setMaximumSize(54L);
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+
+
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		int numRows = 5;
+		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+		Set<Long> rowsIds = null;
+
+		//method under test
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
+		//method under test again. populate a second time to simulate update of values
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
+
+		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
+
+		//each list value created by createRows has 2 items in the list
+		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+
+	}
 	
 	/**
 	 * Test for the case where an entity is in the replication but not the view.
