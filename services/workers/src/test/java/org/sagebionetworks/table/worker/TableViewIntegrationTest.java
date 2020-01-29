@@ -1429,6 +1429,61 @@ public class TableViewIntegrationTest {
 		// The view should become available only from the message
 		waitForViewToBeAvailable(viewId);
 	}
+
+	@Test
+	public void testEntityView_multipleValueColumnRoundTrip() throws InterruptedException {
+		String multiValueKey = "multiValueKey";
+		ColumnModel listColumnModel = new ColumnModel();
+		listColumnModel.setColumnType(ColumnType.STRING_LIST);
+		listColumnModel.setName(multiValueKey);
+		defaultSchema.add(listColumnModel);
+
+		createFileView();
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		waitForEntityReplication(fileViewId, file.getId());
+
+		Map<String, String> rowValues = new HashMap<String, String>();
+		rowValues.put(anno1Column.getId(), "123456789");
+		rowValues.put(etagColumn.getId(), file.getEtag());
+		PartialRow row = new PartialRow();
+		row.setRowId(fileId);
+		row.setValues(rowValues);
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		rowSet.setTableId(file.getId());
+
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(fileViewId);
+		appendRequest.setToAppend(rowSet);
+
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		List<TableUpdateRequest> changes = new LinkedList<TableUpdateRequest>();
+		changes.add(appendRequest);
+		transactionRequest.setChanges(changes);
+		transactionRequest.setEntityId(fileViewId);
+		//  start the job to update the table
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse rep = response.getResults().get(0);
+		assertTrue(rep instanceof EntityUpdateResults);
+		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
+		assertNotNull(updateResults.getUpdateResults());
+		assertEquals(1, updateResults.getUpdateResults().size());
+		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
+		assertNotNull(eur);
+		assertEquals(file.getId(), eur.getEntityId());
+		System.out.println(eur.getFailureMessage());
+		assertNull(eur.getFailureCode());
+		assertNull(eur.getFailureMessage());
+
+		// is the annotation changed?
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
+	}
 	
 	/**
 	 * Broadcast a change message to the view worker.
