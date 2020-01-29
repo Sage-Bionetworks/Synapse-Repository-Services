@@ -433,22 +433,23 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
 		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
-		// and this applies to any type of entity
-		if (aclAllowsDownload && meetsAccessRequirements(userInfo, entityId, checkTermsOfUse)) {
+		// and this applies to any type of entity		
+		if (aclAllowsDownload) {
+			return meetsAccessRequirements(userInfo, entityId, checkTermsOfUse);
+		}
+		
+		return AuthorizationStatus.accessDenied("You lack " + accessTypeCheck.name() + " access to the requested entity.");
+		
+	}
+	
+	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String nodeId, final boolean checkTermsOfUse)
+			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) {
 			return AuthorizationStatus.authorized();
 		}
 		
-		return AuthorizationStatus.accessDenied("You lack DOWNLOAD access to the requested entity.");		
-	}
-	
-	private boolean meetsAccessRequirements(final UserInfo userInfo, final String nodeId, final boolean checkTermsOfUse)
-			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) {
-			return true;
-		}
-		
 		if (checkTermsOfUse && !agreesToTermsOfUse(userInfo)) {
-			return false;
+			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		}
 		
 		// if there are any unmet access requirements return false
@@ -457,7 +458,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		
-		return accessRequirementIds.isEmpty();
+		if (accessRequirementIds.isEmpty()) {
+			return AuthorizationStatus.authorized();
+		} else {
+			return AuthorizationStatus
+					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
+		}
 		
 	}
 	
