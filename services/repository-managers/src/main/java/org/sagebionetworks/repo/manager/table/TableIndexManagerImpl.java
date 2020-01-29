@@ -94,14 +94,14 @@ public static final int TIMEOUT_SECONDS = 1200;
 		final long currentVersion = tableIndexDao
 				.getMaxCurrentCompleteVersionForTable(tableId);
 		if (changeSetVersionNumber > currentVersion) {
-			//tracks id of all rows that were modified for list columns
-			Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
-
 			// apply all changes in a transaction
 			tableIndexDao
 					.executeInWriteTransaction(new TransactionCallback<Void>() {
 						@Override
 						public Void doInTransaction(TransactionStatus status) {
+							//tracks id of all rows that were modified for list columns
+							Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
+
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
 								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
@@ -116,32 +116,36 @@ public static final int TIMEOUT_SECONDS = 1200;
 							// set the new max version for the index
 							tableIndexDao.setMaxCurrentCompleteVersionForTable(
 									tableId, changeSetVersionNumber);
+
+							//once all changes to main table are applied, populate the list-type columns with the changes.
+							for(Map.Entry<ColumnModel, Set<Long>> entry : listColumnsToRowIdMap.entrySet()){
+								tableIndexDao.populateListColumnIndexTable(tableId, entry.getKey(), entry.getValue());
+							}
 							return null;
 						}
 					});
 
-			for(Map.Entry<ColumnModel, Set<Long>> entry : listColumnsToRowIdMap.entrySet()){
-				tableIndexDao.populateListColumnIndexTable(tableId, entry.getKey(), entry.getValue());
-			}
+
 		}
 	}
 
-	public void recordListColumnChanges(Map<ColumnModel, Set<Long>> listColumnsToRowIdMap, Grouping grouping){//TODO: test
+	public static void recordListColumnChanges(Map<ColumnModel, Set<Long>> listColumnsToRowIdMap, Grouping grouping){
 		//intentionally left initially as null so we don't perform computation if there are no changes to LIST type columns
-		List<Long> rowIdsOfModifiedRows = null;
+		List<Long> modifiedRowsInGroup = null;
 
 		for(ColumnModel columnModel: grouping.getColumnsWithValues()){
 			if(ColumnTypeListMappings.isList(columnModel.getColumnType())) {
 				//only compute list of modified row Id once a list type column has been found
-				if(rowIdsOfModifiedRows == null){
-					rowIdsOfModifiedRows = grouping.getRows().stream()
+				if(modifiedRowsInGroup == null){
+					modifiedRowsInGroup = grouping.getRows().stream()
 							.map(SparseRow::getRowId)
 							.collect(Collectors.toList());
 				}
 
-				//for each affected list column, add the set of modified row_ids to it
-				listColumnsToRowIdMap.computeIfAbsent(columnModel, (ColumnModel key) -> new HashSet<>())
-						.addAll(rowIdsOfModifiedRows);
+				//for each list column, add the set of modified row_ids to it
+				Set<Long> modifiedRowsOfColumn = listColumnsToRowIdMap.computeIfAbsent(columnModel,
+						(ColumnModel key) -> new HashSet<>());
+				modifiedRowsOfColumn.addAll(modifiedRowsInGroup);
 			}
 		}
 	}

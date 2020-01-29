@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,10 +24,12 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -250,6 +253,43 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+	}
+
+	@Test
+	public void testApplyChangeSetToIndex_PopulateListColumns(){
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "strList", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(101L, "intList", ColumnType.INTEGER_LIST)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row.setCellValue("101", "[1,2,3,4]");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row2.setCellValue("101", "[1,2,3,4]");
+
+		//call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+
+		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
 	}
 	
 	@Test
@@ -1298,5 +1338,137 @@ public class TableIndexManagerImplTest {
 		}
 		return schema;
 	}
-	
+
+	@Test
+	public void testRecordListColumnChanges_hasListColumnChanges(){
+		ColumnModel cm = new ColumnModel();
+		cm.setId("1");
+		cm.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setId("2");
+		cm2.setColumnType(ColumnType.INTEGER_LIST);
+
+		ColumnModel cm3 = new ColumnModel();
+		cm3.setId("3");
+		cm3.setColumnType(ColumnType.STRING);
+
+		ColumnModel cm4 = new ColumnModel();
+		cm4.setId("3");
+		cm4.setColumnType(ColumnType.STRING_LIST);
+
+		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
+		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(2L), new SparseRowTestImpl(8L), new SparseRowTestImpl(9L));
+		Grouping grouping = new Grouping(Arrays.asList(cm, cm2, cm3, cm4), sparseRows);
+
+		//method under test
+		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
+
+		assertEquals(2, listColumnsToRowIdMap.size());
+		Set<Long> expected = Sets.newHashSet(2L,8L, 9L);
+		assertEquals(expected, listColumnsToRowIdMap.get(cm2));
+		assertEquals(expected, listColumnsToRowIdMap.get(cm4));
+
+	}
+
+	@Test
+	public void testRecordListColumnChanges_noListColumnChanges(){
+		ColumnModel cm = new ColumnModel();
+		cm.setId("1");
+		cm.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setId("2");
+		cm2.setColumnType(ColumnType.STRING);
+
+		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
+		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(2L), new SparseRowTestImpl(8L), new SparseRowTestImpl(9L));
+		Grouping grouping = new Grouping(Arrays.asList(cm, cm2), sparseRows);
+
+		//method under test
+		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
+
+		assertTrue(listColumnsToRowIdMap.isEmpty());
+	}
+
+
+	@Test
+	public void testRecordListColumnChanges_addToExistingChanges(){
+		ColumnModel cm = new ColumnModel();
+		cm.setId("1");
+		cm.setColumnType(ColumnType.STRING_LIST);
+
+		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
+		//preload some values into the map
+		listColumnsToRowIdMap.put(cm, Sets.newHashSet(1L,2L,3L));
+
+		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(3L), new SparseRowTestImpl(4L), new SparseRowTestImpl(5L));
+		Grouping grouping = new Grouping(Arrays.asList(cm), sparseRows);
+
+		//method under test
+		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
+
+		assertEquals(Sets.newHashSet(1L,2L,3L,4L,5L), listColumnsToRowIdMap.get(cm));
+	}
+
+	private class SparseRowTestImpl implements SparseRow{
+		long rowId;
+
+		SparseRowTestImpl(long rowId){
+			this.rowId = rowId;
+		}
+
+		@Override
+		public Long getRowId() {
+			return this.rowId;
+		}
+
+		@Override
+		public void setRowId(Long rowId) {
+			this.rowId = rowId;
+		}
+
+		@Override
+		public void setVersionNumber(Long rowVersionNumber) {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public Long getVersionNumber() {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public void setRowEtag(String etag) {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public String getRowEtag() {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public boolean hasCellValue(String columnId) {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+
+		@Override
+		public String getCellValue(String columnId) throws NotFoundException {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public void setCellValue(String columnId, String value) {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public void removeValue(String columnId) {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public int getRowIndex() {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+		@Override
+		public boolean isDelete() {
+			throw new UnsupportedOperationException("Not Implemented");
+		}
+	}
+
 }
