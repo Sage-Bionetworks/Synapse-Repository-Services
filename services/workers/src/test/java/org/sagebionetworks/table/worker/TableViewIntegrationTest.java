@@ -1,11 +1,6 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,10 +13,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -104,12 +99,13 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableViewIntegrationTest {
 	
@@ -170,7 +166,7 @@ public class TableViewIntegrationTest {
 	ColumnModel entityIdColumn;
 	ColumnModel stringListColumn;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -284,12 +280,12 @@ public class TableViewIntegrationTest {
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-		entitiesToDelete.add(view.getId());
+		entitiesToDelete.add(fileViewId);
 		return viewId;
 	}
 	
 	
-	@After
+	@AfterEach
 	public void after(){
 		// Delete children before parents
 		Collections.reverse(entitiesToDelete);
@@ -331,7 +327,7 @@ public class TableViewIntegrationTest {
 		// run the query again
 		QueryResultBundle results = waitForConsistentQuery(userInfo, sql);
 		List<Row> rows  = extractRows(results);
-		assertTrue("The user has no access to the files in the project so the view should appear empty",rows.isEmpty());
+		assertTrue(rows.isEmpty(), "The user has no access to the files in the project so the view should appear empty");
 		// since the user has no access to files the results should be empty
 		assertEquals(new Long(0), results.getQueryCount());
 		
@@ -744,7 +740,7 @@ public class TableViewIntegrationTest {
 		String sql = "select * from "+viewId;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, scope.size());
 		List<Row> rows  = extractRows(results);
-		assertEquals("Should have one row for each scope.",scope.size(), rows.size());
+		assertEquals(scope.size(), rows.size(), "Should have one row for each scope.");
 	}
 
 	/**
@@ -1431,58 +1427,57 @@ public class TableViewIntegrationTest {
 	}
 
 	@Test
-	public void testEntityView_multipleValueColumnRoundTrip() throws InterruptedException {
-		String multiValueKey = "multiValueKey";
-		ColumnModel listColumnModel = new ColumnModel();
-		listColumnModel.setColumnType(ColumnType.STRING_LIST);
-		listColumnModel.setName(multiValueKey);
-		defaultSchema.add(listColumnModel);
-
+	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
+		defaultColumnIds.add(stringListColumn.getId());
 		createFileView();
+
+		assertTrue(fileCount >= 2, "setup() needs to create at least 2 entities for this test to work");
+
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
-		// lookup the file
-		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
-		waitForEntityReplication(fileViewId, file.getId());
 
-		Map<String, String> rowValues = new HashMap<String, String>();
-		rowValues.put(anno1Column.getId(), "123456789");
-		rowValues.put(etagColumn.getId(), file.getEtag());
-		PartialRow row = new PartialRow();
-		row.setRowId(fileId);
-		row.setValues(rowValues);
-		PartialRowSet rowSet = new PartialRowSet();
-		rowSet.setRows(Lists.newArrayList(row));
-		rowSet.setTableId(file.getId());
+		//set annotations for 2 files
+		Annotations fileAnnotation1 = entityManager.getAnnotations(adminUserInfo, fileIds.get(0));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation1, stringListColumn.getName(), Arrays.asList("val1", "val2"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(0), fileAnnotation1);
 
-		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
-		appendRequest.setEntityId(fileViewId);
-		appendRequest.setToAppend(rowSet);
+		Annotations fileAnnotation2 = entityManager.getAnnotations(adminUserInfo, fileIds.get(1));
+		AnnotationsV2TestUtils.putAnnotations(fileAnnotation2, stringListColumn.getName(), Arrays.asList("val2", "val3"), AnnotationsValueType.STRING);
+		entityManager.updateAnnotations(adminUserInfo, fileIds.get(1), fileAnnotation2);
 
-		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
-		List<TableUpdateRequest> changes = new LinkedList<TableUpdateRequest>();
-		changes.add(appendRequest);
-		transactionRequest.setChanges(changes);
-		transactionRequest.setEntityId(fileViewId);
-		//  start the job to update the table
-		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
-		assertNotNull(response);
-		assertNotNull(response.getResults());
-		assertEquals(1, response.getResults().size());
-		TableUpdateResponse rep = response.getResults().get(0);
-		assertTrue(rep instanceof EntityUpdateResults);
-		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
-		assertNotNull(updateResults.getUpdateResults());
-		assertEquals(1, updateResults.getUpdateResults().size());
-		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
-		assertNotNull(eur);
-		assertEquals(file.getId(), eur.getEntityId());
-		System.out.println(eur.getFailureMessage());
-		assertNull(eur.getFailureCode());
-		assertNull(eur.getFailureMessage());
 
-		// is the annotation changed?
-		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
-		assertEquals("123456789", AnnotationsV2Utils.getSingleValue(annos, anno1Column.getName()));
+		waitForEntityReplication(fileViewId, fileIds.get(0));
+
+
+		assertEquals(fileCount, waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount).getQueryCount());
+		
+		//only 1 annotation has "val1" as a value
+		assertEquals(1, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1')").getQueryCount());
+		//both annotations have "val2" as a value
+		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val2')").getQueryCount());
+		//HAS "val1" or "val3" should also cover both values
+		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('val1', 'val3')").getQueryCount());
+
+
+		//modify annotation values by using updates to table view
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, "select id, etag, "+ stringListColumn.getName() +" from " + fileViewId, fileCount);
+		//still expecting all rows
+		assertEquals(fileCount, results.getQueryCount());
+
+		//change multiValueKey to new values
+		RowSet rowsets = results.getQueryResult().getQueryResults();
+
+		String firstChangeId = rowsets.getRows().get(0).getValues().get(0);
+		rowsets.getRows().get(0).getValues().set(2, "[\"newVal1\", \"newVal2\"]");
+		String secondChangeId = rowsets.getRows().get(1).getValues().get(0);
+		rowsets.getRows().get(1).getValues().set(2, "[\"newVal4\", \"newVal5\", \"newVal6\"]");
+		//push modified values to view
+		updateView(rowsets, fileViewId);
+
+		//check view is updated
+		assertEquals(2, waitForConsistentQuery(adminUserInfo, "select * from "+ fileViewId + " where "+ stringListColumn.getName() +" HAS ('newVal1', 'newVal6')", 2).getQueryCount());
+		//check Annotations on entities are updated
+		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
+		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 	}
 	
 	/**
@@ -1513,7 +1508,7 @@ public class TableViewIntegrationTest {
 			if(optional.isPresent() && TableState.AVAILABLE.equals(optional.get())) {
 				break;
 			}
-			assertTrue("Timed out waiting for a view to become available.",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for a view to become available.");
 			System.out.println("Waiting for view to become available.");
 			Thread.sleep(2000);
 		}
@@ -1578,7 +1573,7 @@ public class TableViewIntegrationTest {
 			case FAILED:
 				throw new AsynchJobFailedException(status);
 			case PROCESSING:
-				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-startTime) < MAX_WAIT_MS, "Timed out waiting for job to complete");
 				System.out.println("Waiting for job: "+status.getProgressMessage());
 				Thread.sleep(1000);
 				break;
@@ -1624,7 +1619,7 @@ public class TableViewIntegrationTest {
 				return results;
 			}
 			System.out.println("Waiting for row count: "+rowCount+". Current count: "+rows.size());
-			assertTrue("Timed out waiting for table view worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view worker to make the table available.");
 			Thread.sleep(1000);
 		}
 	}
@@ -1691,7 +1686,7 @@ public class TableViewIntegrationTest {
 		while(true){
 			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
-				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);
 			}else{
