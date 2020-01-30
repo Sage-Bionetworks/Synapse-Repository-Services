@@ -502,9 +502,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
-		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
-		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
 		
 		// Call under test
@@ -513,11 +511,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(status.isAuthorized());
 		assertEquals("You have not yet agreed to the Synapse Terms of Use.", status.getMessage());
 		
-		
-		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
-		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userInfo.getId());
 	}
 	
 	// Tests for PLFM-6059
