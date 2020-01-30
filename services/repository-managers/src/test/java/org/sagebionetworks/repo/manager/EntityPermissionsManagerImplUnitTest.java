@@ -675,11 +675,12 @@ public class EntityPermissionsManagerImplUnitTest {
 		entityPermissionsManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
-	
+		
+	// Tests for PLFM-6059
+
 	@Test
 	public void testHasDownloadAccessAsCertifiedUserAndUnacceptedTermOfUse() {
 		String nodeId = fileId;
-		DataType dataType = DataType.SENSITIVE_DATA;
 		String benefactorId = nodeId;
 		UserInfo userInfo = certifiedUserInfo;
 		boolean acceptedTermsOfUse = false;
@@ -687,7 +688,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
-		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
@@ -699,8 +699,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userInfo.getId());
 	}
-	
-	// Tests for PLFM-6059
 	
 	@Test
 	public void testHasDownloadAccessWithOpenDataAsAnonymous() {
@@ -779,9 +777,11 @@ public class EntityPermissionsManagerImplUnitTest {
 		String benefactorId = nodeId;
 		UserInfo userInfo = certifiedUserInfo;
 		List<Long> unmetAccessRequirements = Collections.emptyList();
+		boolean acceptedTermsOfUse = true;
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
@@ -817,11 +817,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
-		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
-		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
-		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
-				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.emptyList());
+
 		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
 		
 		// Call under test
