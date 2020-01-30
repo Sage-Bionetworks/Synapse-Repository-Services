@@ -418,8 +418,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 		
+		// We check on the terms of use agreement if the user is not anonymous
+		if (!AuthorizationUtils.isUserAnonymous(userInfo) && !agreesToTermsOfUse(userInfo)) {
+			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
+		}
+		
 		ACCESS_TYPE accessTypeCheck = DOWNLOAD;
-		boolean checkTermsOfUse = true;
 		
 		DataType entityDataType = objectTypeManager.getObjectsDataType(entityId, ObjectType.ENTITY);
 		
@@ -427,38 +431,34 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// We do not check DOWNLOAD access since historically tables marked as OPEN_DATA were checked on READ access only
 		if (DataType.OPEN_DATA == entityDataType) {
 			accessTypeCheck = READ;
-			checkTermsOfUse = false;
 		}
 		
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
+		if (!aclAllowsDownload) {
+			return AuthorizationStatus.accessDenied("You lack " + accessTypeCheck.name() + " access to the requested entity.");	
+		}
+		
 		// if the ACL and access requirements permit DOWNLOAD (or READ for OPEN_DATA), then its permitted,
 		// and this applies to any type of entity
-		if (aclAllowsDownload && meetsAccessRequirements(userInfo, entityId, checkTermsOfUse)) {
-			return AuthorizationStatus.authorized();
-		}
+		return meetsAccessRequirements(userInfo, entityId);
 		
-		return AuthorizationStatus.accessDenied("You lack DOWNLOAD access to the requested entity.");		
 	}
 	
-	private boolean meetsAccessRequirements(final UserInfo userInfo, final String nodeId, final boolean checkTermsOfUse)
+	private AuthorizationStatus meetsAccessRequirements(final UserInfo userInfo, final String nodeId)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) {
-			return true;
-		}
-		
-		if (checkTermsOfUse && !agreesToTermsOfUse(userInfo)) {
-			return false;
-		}
-		
 		// if there are any unmet access requirements return false
 		List<Long> nodeAncestorIds = nodeDao.getEntityPathIds(nodeId, false);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		
-		return accessRequirementIds.isEmpty();
+		if (!accessRequirementIds.isEmpty()) {		
+			return AuthorizationStatus
+					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
+		}
 		
+		return AuthorizationStatus.authorized();
 	}
 	
 	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentOrNodeId)
