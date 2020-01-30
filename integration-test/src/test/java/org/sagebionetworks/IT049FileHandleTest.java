@@ -1,11 +1,11 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.collections4.IterableUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -102,7 +102,7 @@ public class IT049FileHandleTest {
 
 	private static SynapseS3Client synapseS3Client;
 
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() throws Exception {
 		config = StackConfigurationSingleton.singleton();
 		// Create a user
@@ -121,10 +121,10 @@ public class IT049FileHandleTest {
 		}
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
-		toDelete = new ArrayList<FileHandle>();
+		toDelete = new ArrayList<>();
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -134,18 +134,20 @@ public class IT049FileHandleTest {
 		project = synapse.createEntity(project);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		for (FileHandle handle: toDelete) {
 			try {
 				synapse.deleteFileHandle(handle.getId());
-			} catch (SynapseNotFoundException e) {
-			} catch (SynapseClientException e) { }
+			} catch (SynapseNotFoundException | SynapseClientException e) {
+				// Ignore exceptions
+			}
 		}
+
 		synapse.deleteEntity(project, true);
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
@@ -171,7 +173,7 @@ public class IT049FileHandleTest {
 		while(handle.getPreviewId() == null){
 			System.out.println("Waiting for a preview to be created...");
 			Thread.sleep(1000);
-			assertTrue("Timed out waiting for a preview image to be created.", (System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) < MAX_WAIT_MS, "Timed out waiting for a preview image to be created.");
 			handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
 		}
 		// Get the preview file handle.
@@ -186,7 +188,7 @@ public class IT049FileHandleTest {
 		while(handle.getPreviewId() == null){
 			System.out.println("Waiting for a preview to be recreated...");
 			Thread.sleep(1000);
-			assertTrue("Timed out waiting for a preview image to be created.", (System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) < MAX_WAIT_MS, "Timed out waiting for a preview image to be created.");
 			handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
 		}
 		preview = (S3FileHandle) synapse.getRawFileHandle(handle.getPreviewId());
@@ -507,7 +509,7 @@ public class IT049FileHandleTest {
 			} catch (SynapseResultNotReadyException e) {
 				System.out.println("Waiting for job: "+e.getJobStatus());
 			}
-			assertTrue("Timed out waiting for bulk download job.",System.currentTimeMillis() - start < MAX_WAIT_MS);
+			assertTrue(System.currentTimeMillis() - start < MAX_WAIT_MS, "Timed out waiting for bulk download job.");
 			Thread.sleep(2000);
 		}
 	}
@@ -625,7 +627,7 @@ public class IT049FileHandleTest {
 	@Test
 	public void testMultipartUploadV2ToGoogleCloud() throws SynapseException, IOException, InterruptedException {
 		// Only run this test if Google Cloud is enabled.
-		Assume.assumeTrue(config.getGoogleCloudEnabled());
+		Assumptions.assumeTrue(config.getGoogleCloudEnabled());
 		// We use the large image file to force an upload with more than one part. required to test part deletion
 		assertNotNull(largeImageFile);
 		assertTrue(largeImageFile.exists());
@@ -655,10 +657,9 @@ public class IT049FileHandleTest {
 		assertTrue(IterableUtils.isEmpty(googleCloudStorageClient.getObjects(result.getBucketName(), result.getKey() + "/")));
 	}
 
-	@Test
 	public void testCreateExternalGoogleCloudFileHandleFromExistingFile() throws Exception {
 		// Only run this test if Google Cloud is enabled.
-		Assume.assumeTrue(config.getGoogleCloudEnabled());
+		Assumptions.assumeTrue(config.getGoogleCloudEnabled());
 
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
@@ -700,7 +701,7 @@ public class IT049FileHandleTest {
 			Thread.sleep(waitTimeMillis);
 			waitTimeMillis *= 2;
 		}
-		assertTrue("Failed to create " + key + " in bucket " + bucket, synapseS3Client.doesObjectExist(bucket, key));
+		assertTrue(synapseS3Client.doesObjectExist(bucket, key), "Failed to create " + key + " in bucket " + bucket);
 	}
 
 	private static void putToS3WaitForConsistency(String bucket, String key, InputStream contents, ObjectMetadata metadata) throws InterruptedException {
@@ -711,7 +712,7 @@ public class IT049FileHandleTest {
 			Thread.sleep(waitTimeMillis);
 			waitTimeMillis *= 2;
 		}
-		assertTrue("Failed to create " + key + " in S3 bucket " + bucket, synapseS3Client.doesObjectExist(bucket, key));
+		assertTrue(synapseS3Client.doesObjectExist(bucket, key), "Failed to create " + key + " in S3 bucket " + bucket);
 	}
 
 	private static void putToGoogleCloudWaitForConsistency(String bucket, String key, File contents) throws InterruptedException, IOException {
@@ -724,12 +725,12 @@ public class IT049FileHandleTest {
 				googleCloudStorageClient.getObject(bucket, key);
 				objectExists = true;
 			} catch (StorageException e) {
-				assertEquals("Unknown Google Cloud Storage error: " + e.getMessage(),404, e.getCode());
+				assertEquals(404, e.getCode(), "Unknown Google Cloud Storage error: " + e.getMessage());
 			}
 			Thread.sleep(waitTimeMillis);
 			waitTimeMillis *= 2;
 		}
-		assertTrue("Failed to create " + key + " in Google Cloud bucket " + bucket, objectExists);
+		assertTrue(objectExists, "Failed to create " + key + " in Google Cloud bucket " + bucket);
 	}
 
 	private static void putToGoogleCloudWaitForConsistency(String bucket, String key, InputStream contents) throws InterruptedException, IOException {
@@ -742,12 +743,12 @@ public class IT049FileHandleTest {
 				googleCloudStorageClient.getObject(bucket, key);
 				objectExists = true;
 			} catch (StorageException e) {
-				assertEquals("Unknown Google Cloud Storage error: " + e.getMessage(),404, e.getCode());
+				assertEquals(404, e.getCode(), "Unknown Google Cloud Storage error: " + e.getMessage());
 			}
 			Thread.sleep(waitTimeMillis);
 			waitTimeMillis *= 2;
 		}
-		assertTrue("Failed to create " + key + " in Google Cloud bucket " + bucket, objectExists);
+		assertTrue(objectExists, "Failed to create " + key + " in Google Cloud bucket " + bucket);
 	}
 
 	private static void uploadOwnerTxtToS3(String bucket, String baseKey, String username) throws InterruptedException {

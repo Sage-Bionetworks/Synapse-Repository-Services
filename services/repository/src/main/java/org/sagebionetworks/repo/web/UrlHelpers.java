@@ -1075,6 +1075,10 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String WELL_KNOWN = "/.well-known";
+	// The OIDC spec' defines the following as <issuer>/.well-known/openid-configuration
+	// See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
+	// implicitiy the <issuer> URI is <host>/auth/v1, so the openid config 
+	// is .../auth/v1/.well-known/openid-configuration
 	public static final String WELL_KNOWN_OPENID_CONFIGURATION = WELL_KNOWN+"/openid-configuration";
 
 	/**
