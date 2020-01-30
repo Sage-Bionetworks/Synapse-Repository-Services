@@ -111,7 +111,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Override
 	public void attemptToSetTableStatusToFailed(IdAndVersion tableIdString,
 			String errorMessage, String errorDetails)
-			throws ConflictingUpdateException, NotFoundException {
+			throws InvalidStatusTokenException, NotFoundException {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
 		String resetToken = null;
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.PROCESSING_FAILED, null, errorMessage, errorDetails, null);
@@ -121,7 +121,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@WriteTransaction
 	@Override
 	public void attemptToSetTableStatusToAvailable(IdAndVersion tableIdString,
-			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
+			String resetToken, String tableChangeEtag) throws InvalidStatusTokenException, NotFoundException {
 		ValidateArgument.required(resetToken, "resetToken");
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
@@ -139,14 +139,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	 * @throws ConflictingUpdateException Thrown if the passed reset-token does not match the current reset-token, indicating it have been reset since the processing started.
 	 */
 	private void attemptToSetTableEndState(IdAndVersion idAndVersion,
-			String resetToken, TableState state, String progressMessage, String errorMessage, String errorDetails, String tableChangeEtag) throws NotFoundException, ConflictingUpdateException{
+			String resetToken, TableState state, String progressMessage, String errorMessage, String errorDetails, String tableChangeEtag) throws NotFoundException, InvalidStatusTokenException{
 		// This method cannot be used to reset to processing
 		if(TableState.PROCESSING.equals(state)) {
 			throw new IllegalArgumentException("This method cannot be used to change the state to PROCESSING because it does not change the reset-token");
 		}
 		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion);
 		if(resetToken != null && !current.getResetToken().equals(resetToken)) {
-			throw new ConflictingUpdateException(CONFLICT_MESSAGE);
+			throw new InvalidStatusTokenException(CONFLICT_MESSAGE);
 		}
 		// With no conflict make the changes
 		long now = System.currentTimeMillis();

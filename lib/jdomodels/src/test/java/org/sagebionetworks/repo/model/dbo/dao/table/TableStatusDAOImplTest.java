@@ -184,7 +184,7 @@ public class TableStatusDAOImplTest {
 		// Status should start as processing
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
-		assertThrows(ConflictingUpdateException.class, ()->{
+		assertThrows(InvalidStatusTokenException.class, ()->{
 			// This should fail since the passed token does not match the current token
 			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken+"invalidated", UUID.randomUUID().toString());
 		});
@@ -199,7 +199,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status);
 		// This should pass
 		tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, UUID.randomUUID().toString());
-		assertThrows(ConflictingUpdateException.class, ()->{
+		assertThrows(InvalidStatusTokenException.class, ()->{
 			// A second time should fail
 			tableStatusDAO.attemptToSetTableStatusToAvailable(tableIdNoVersion, resetToken, UUID.randomUUID().toString());
 		});
