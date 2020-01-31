@@ -877,7 +877,7 @@ public class TableIndexManagerImplTest {
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		// call under test
 		managerSpy.buildIndexToChangeNumber(mockCallback, tableId, iterator);
-		verify(mockManagerSupport).tryRunWithTableExclusiveLock(eq(mockCallback), eq(tableId), eq(TableIndexManagerImpl.TIMEOUT_SECONDS), any());
+		verify(mockManagerSupport).tryRunWithTableExclusiveLock(eq(mockCallback), eq(tableId), any());
 		verify(managerSpy).buildTableIndexWithLock(mockCallback, tableId, iterator);
 	}
 	
@@ -889,7 +889,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_LockUnavilableException() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("no lock for you!");
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
@@ -908,7 +908,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_TableUnavilableException() throws Exception {
 		TableUnavailableException exception = new TableUnavailableException(null);
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
@@ -927,7 +927,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_InterruptedException() throws Exception {
 		InterruptedException exception = new InterruptedException();
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
@@ -946,7 +946,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_IOException() throws Exception {
 		IOException exception = new IOException();
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				 any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
@@ -965,7 +965,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_RuntimeException() throws Exception {
 		IllegalArgumentException exception = new IllegalArgumentException("some runtime");
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RuntimeException result = assertThrows(RuntimeException.class, ()->{
@@ -984,7 +984,7 @@ public class TableIndexManagerImplTest {
 	public void testBuildIndexToChangeNumber_CheckedException() throws Exception {
 		Exception exception = new Exception("nope");
 		when(mockManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(exception);
+				any(ProgressingCallable.class))).thenThrow(exception);
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
 		RuntimeException result = assertThrows(RuntimeException.class, ()->{
@@ -1003,10 +1003,10 @@ public class TableIndexManagerImplTest {
 	public void setupTryRunWithTableExclusiveLock() throws Exception {
 		doAnswer((InvocationOnMock invocation) -> {
 			ProgressCallback callback = invocation.getArgument(0, ProgressCallback.class);
-			ProgressingCallable callable = invocation.getArgument(3, ProgressingCallable.class);
+			ProgressingCallable callable = invocation.getArgument(2, ProgressingCallable.class);
 			callable.call(callback);
 			return null;
-		}).when(mockManagerSupport).tryRunWithTableExclusiveLock(any(), any(IdAndVersion.class), anyInt(), any());
+		}).when(mockManagerSupport).tryRunWithTableExclusiveLock(any(), any(IdAndVersion.class), any());
 	}
 	
 	@Test

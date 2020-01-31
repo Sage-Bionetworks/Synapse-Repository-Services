@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -1106,10 +1105,10 @@ public class TableViewManagerImplTest {
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verify(managerSpy).applyChangesToAvailableViewHoldingLock(idAndVersion);
 	}
 	
@@ -1126,7 +1125,7 @@ public class TableViewManagerImplTest {
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any(ProgressingCallable.class));
 	}
 	
 	/**
@@ -1142,32 +1141,32 @@ public class TableViewManagerImplTest {
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), anyInt(), any(ProgressingCallable.class));
+				anyString(), any(ProgressingCallable.class));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
 		setupNonexclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException("not now");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(Integer.class), any(ProgressingCallable.class));
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any(Integer.class), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any(ProgressingCallable.class));
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
@@ -1176,7 +1175,7 @@ public class TableViewManagerImplTest {
 		setupNonexclusiveLockToForwardToCallack();
 		IllegalArgumentException exception = new IllegalArgumentException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), anyInt(), any(ProgressingCallable.class));
+				anyString(), any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
 		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
