@@ -334,21 +334,12 @@ public class IT500SynapseJavaClient {
 		// should not be able to download
 		assertFalse(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		subjectId.setId(file.getId());
-		PaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
-		assertEquals(1, vcpr.getResults().size());
-		
 		// now add the ToU approval
 		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(otherProfile.getOwnerId());
 		aa.setRequirementId(ar.getId());
 		
 		synapseTwo.createAccessApproval(aa);
-		
-		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
-		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
 		assertTrue(synapseTwo.canAccess(file.getId(), ACCESS_TYPE.DOWNLOAD));
@@ -711,34 +702,14 @@ public class IT500SynapseJavaClient {
 		// check that another can't download
 		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		// get unmet access requirements
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		subjectId.setId(layer.getId());
-		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
-		assertEquals(1, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
-		AccessRequirement clone = ars.getResults().get(0);
-		assertEquals(r.getConcreteType(), clone.getConcreteType());
-		assertTrue(clone instanceof TermsOfUseAccessRequirement);
-		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
-		
-		// check that access type param works
-		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L));
-		
 		// create approval for the requirement
 		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
-		approval.setRequirementId(clone.getId());
+		approval.setRequirementId(r.getId());
 		AccessApproval created = synapseTwo.createAccessApproval(approval);
 		
 		// make sure we can retrieve by ID
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
-		
-		// get unmet requirements -- should be empty
-		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
-		assertEquals(0, ars.getTotalNumberOfResults());
-		assertEquals(0, ars.getResults().size());
 		
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
