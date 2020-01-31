@@ -1,15 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,9 +28,9 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.ListColumnChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
-import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -99,13 +96,9 @@ public static final int TIMEOUT_SECONDS = 1200;
 					.executeInWriteTransaction(new TransactionCallback<Void>() {
 						@Override
 						public Void doInTransaction(TransactionStatus status) {
-							//tracks id of all rows that were modified for list columns
-							Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
-
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
 								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
-								recordListColumnChanges(listColumnsToRowIdMap, grouping);
 							}
 							// Extract all file handle IDs from this set
 							Set<Long> fileHandleIds = rowset.getFileHandleIdsInSparseChangeSet();
@@ -118,35 +111,15 @@ public static final int TIMEOUT_SECONDS = 1200;
 									tableId, changeSetVersionNumber);
 
 							//once all changes to main table are applied, populate the list-type columns with the changes.
-							for(Map.Entry<ColumnModel, Set<Long>> entry : listColumnsToRowIdMap.entrySet()){
-								tableIndexDao.populateListColumnIndexTable(tableId, entry.getKey(), entry.getValue());
+							for(ListColumnChanges listColumnChange : rowset.groupListColumnChanges()){
+								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
 							}
 							return null;
 						}
 					});
 
 
-		}
-	}
-
-	public static void recordListColumnChanges(Map<ColumnModel, Set<Long>> listColumnsToRowIdMap, Grouping grouping){
-		//intentionally left initially as null so we don't perform computation if there are no changes to LIST type columns
-		List<Long> modifiedRowsInGroup = null;
-
-		for(ColumnModel columnModel: grouping.getColumnsWithValues()){
-			if(ColumnTypeListMappings.isList(columnModel.getColumnType())) {
-				//only compute list of modified row Id once a list type column has been found
-				if(modifiedRowsInGroup == null){
-					modifiedRowsInGroup = grouping.getRows().stream()
-							.map(SparseRow::getRowId)
-							.collect(Collectors.toList());
-				}
-
-				//for each list column, add the set of modified row_ids to it
-				Set<Long> modifiedRowsOfColumn = listColumnsToRowIdMap.computeIfAbsent(columnModel,
-						(ColumnModel key) -> new HashSet<>());
-				modifiedRowsOfColumn.addAll(modifiedRowsInGroup);
-			}
 		}
 	}
 

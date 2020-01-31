@@ -288,6 +288,8 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
 
 		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
+		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
+		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
 		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
 	}
@@ -1337,78 +1339,6 @@ public class TableIndexManagerImplTest {
 			cm.setId(""+i);
 		}
 		return schema;
-	}
-
-	@Test
-	public void testRecordListColumnChanges_hasListColumnChanges(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("1");
-		cm.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel cm2 = new ColumnModel();
-		cm2.setId("2");
-		cm2.setColumnType(ColumnType.INTEGER_LIST);
-
-		ColumnModel cm3 = new ColumnModel();
-		cm3.setId("3");
-		cm3.setColumnType(ColumnType.STRING);
-
-		ColumnModel cm4 = new ColumnModel();
-		cm4.setId("3");
-		cm4.setColumnType(ColumnType.STRING_LIST);
-
-		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
-		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(2L), new SparseRowTestImpl(8L), new SparseRowTestImpl(9L));
-		Grouping grouping = new Grouping(Arrays.asList(cm, cm2, cm3, cm4), sparseRows);
-
-		//method under test
-		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
-
-		assertEquals(2, listColumnsToRowIdMap.size());
-		Set<Long> expected = Sets.newHashSet(2L,8L, 9L);
-		assertEquals(expected, listColumnsToRowIdMap.get(cm2));
-		assertEquals(expected, listColumnsToRowIdMap.get(cm4));
-
-	}
-
-	@Test
-	public void testRecordListColumnChanges_noListColumnChanges(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("1");
-		cm.setColumnType(ColumnType.INTEGER);
-
-		ColumnModel cm2 = new ColumnModel();
-		cm2.setId("2");
-		cm2.setColumnType(ColumnType.STRING);
-
-		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
-		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(2L), new SparseRowTestImpl(8L), new SparseRowTestImpl(9L));
-		Grouping grouping = new Grouping(Arrays.asList(cm, cm2), sparseRows);
-
-		//method under test
-		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
-
-		assertTrue(listColumnsToRowIdMap.isEmpty());
-	}
-
-
-	@Test
-	public void testRecordListColumnChanges_addToExistingChanges(){
-		ColumnModel cm = new ColumnModel();
-		cm.setId("1");
-		cm.setColumnType(ColumnType.STRING_LIST);
-
-		Map<ColumnModel, Set<Long>> listColumnsToRowIdMap = new HashMap<>();
-		//preload some values into the map
-		listColumnsToRowIdMap.put(cm, Sets.newHashSet(1L,2L,3L));
-
-		List<SparseRow> sparseRows = Arrays.asList(new SparseRowTestImpl(3L), new SparseRowTestImpl(4L), new SparseRowTestImpl(5L));
-		Grouping grouping = new Grouping(Arrays.asList(cm), sparseRows);
-
-		//method under test
-		TableIndexManagerImpl.recordListColumnChanges(listColumnsToRowIdMap, grouping);
-
-		assertEquals(Sets.newHashSet(1L,2L,3L,4L,5L), listColumnsToRowIdMap.get(cm));
 	}
 
 	private class SparseRowTestImpl implements SparseRow{
