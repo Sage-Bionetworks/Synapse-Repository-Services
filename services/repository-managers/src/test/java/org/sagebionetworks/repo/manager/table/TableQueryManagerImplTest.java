@@ -522,9 +522,27 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results);
 		assertEquals(null, results.getColumnModels());
 		assertEquals(null, results.getSelectColumns());
+		assertEquals(null, results.getLastUpdatedOn());
 		assertEquals(count, results.getQueryCount());
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
+	}
+	
+	@Test
+	public void testQueryAsStreamAfterAuthorization_LastUpdatedOn() throws Exception {
+		Date lastUpdatedOn = new Date(567L);
+		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(lastUpdatedOn);
+		Long count = 201L;
+		// setup count results
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+		// non-null handler indicates the query should be run.
+		RowHandler rowHandler = new SinglePageRowHandler();
+		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
+		// call under test
+		QueryResultBundle results = manager.queryAsStreamAfterAuthorization(mockProgressCallbackVoid, query, rowHandler, queryOptions);
+		assertNotNull(results);
+		assertEquals(lastUpdatedOn, results.getLastUpdatedOn());
 	}
 	
 	

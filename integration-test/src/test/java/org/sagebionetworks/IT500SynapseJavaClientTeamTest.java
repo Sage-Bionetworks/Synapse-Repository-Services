@@ -160,7 +160,7 @@ public class IT500SynapseJavaClientTeamTest {
 	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
-				adminSynapse.deleteAndPurgeEntityById(id);
+				adminSynapse.deleteEntityById(id);
 			} catch (SynapseNotFoundException e) {}
 		}
 
@@ -533,10 +533,6 @@ public class IT500SynapseJavaClientTeamTest {
 		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 10L);
 		assertTrue(paginatedResults.getResults().isEmpty());
 
-		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
 		// Create AccessApproval
 		AccessApproval aa = new AccessApproval();
 		aa.setRequirementId(tou.getId());
@@ -544,14 +540,7 @@ public class IT500SynapseJavaClientTeamTest {
 		
 		// Query AccessRestriction
 		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
-		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
-		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
-		assertTrue(paginatedResults.getResults().isEmpty());
-		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);		
 	}
 
 	@Test

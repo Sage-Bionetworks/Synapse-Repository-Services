@@ -94,7 +94,7 @@ public class IT054FileEntityTest {
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
 
-		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, true);
 		fileHandlesToDelete.add(fileHandle.getId());
 		
 		// create a folder

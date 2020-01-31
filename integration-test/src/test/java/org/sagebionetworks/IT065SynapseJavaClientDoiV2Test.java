@@ -66,7 +66,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 		StackConfiguration config = StackConfigurationSingleton.singleton();
 		if (config.getDoiDataciteEnabled()) {
 			if (entity != null) {
-				synapse.deleteAndPurgeEntityById(entity.getId());
+				synapse.deleteEntity(entity);
 			}
 			adminSynapse.clearDoi();
 			try {

@@ -17,10 +17,13 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 
 public class ViewScopeDaoImpl implements ViewScopeDao {
 	
@@ -88,6 +91,10 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 
 	@Override
 	public Long getViewTypeMask(Long tableId) {
-		return jdbcTemplate.queryForObject(SQL_SELECT_VIEW_TYPE, Long.class, tableId);
+		try {
+			return jdbcTemplate.queryForObject(SQL_SELECT_VIEW_TYPE, Long.class, tableId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(""+tableId);
+		}
 	}
 }

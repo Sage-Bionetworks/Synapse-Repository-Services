@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_PRINCIPAL_ID;
@@ -81,7 +81,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 																"WHERE f."+ COL_FAVORITE_PRINCIPAL_ID +" = :"+ COL_FAVORITE_PRINCIPAL_ID +" " +
 																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
 																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
-																"AND n."+ COL_CURRENT_REV +" = r."+ COL_REVISION_NUMBER +" " +
+																"AND n."+ COL_NODE_CURRENT_REV +" = r."+ COL_REVISION_NUMBER +" " +
 																"AND n."+ COL_NODE_PARENT_ID +" <> " + TRASH_FOLDER_ID;
 
 	

@@ -10,7 +10,6 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -39,9 +38,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 	protected static final String ADMIN = "/admin";
 	protected static final String ADMIN_STACK_STATUS = ADMIN + "/synapse/status";
-	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
-	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
-	private static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + "/trashcan/purgeleaves";
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
 	private static final String ADMIN_FIRE_MESSAGES = ADMIN + "/messages/refire";
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
@@ -100,23 +96,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	 */
 	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException {
 		return putJSONEntity(getRepoEndpoint(), ADMIN_STACK_STATUS, updated, StackStatus.class);
-	}
-
-	@Override
-	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
-		String url = ADMIN_TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		return getPaginatedResults(getRepoEndpoint(), url, TrashedEntity.class);
-	}
-
-	@Override
-	public void purgeTrash() throws SynapseException {
-		putUri(getRepoEndpoint(), ADMIN_TRASHCAN_PURGE);
-	}
-	
-	@Override
-	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException {
-		String uri = ADMIN_TRASHCAN_PURGE_LEAVES + "?" + DAYS_IN_TRASH_PARAM + "=" + numDaysInTrash + "&" + LIMIT + "=" + limit;
-		putUri(getRepoEndpoint(), uri);
 	}
 	
 	@Override

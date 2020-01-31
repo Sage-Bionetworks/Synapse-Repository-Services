@@ -4,7 +4,6 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -140,25 +139,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Clears the Synapse DOI table. Note this does not clear the DOIs registered outside Synapse.
 	 */
 	public void clearDoi() throws SynapseException;
-
-	/**
-	 * Gets everything in the trash can.
-	 */
-	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit)
-			throws SynapseException;
-
-	/**
-	 * Purges everything in the trash can. All the entities in the trash will be permanently deleted.
-	 */
-	public void purgeTrash() throws SynapseException;
-	
-	/**
-	 * Purges trash without children trash items in the trash can.
-	 * @param numDaysInTrash number of days the trash items must have been in the trash can
-	 * @param limit number of trash items to delete
-	 * @throws SynapseException
-	 */
-	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException;
 	
 	/**
 	 * List change messages.

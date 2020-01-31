@@ -83,4 +83,9 @@
             <artifactId>spring-jdbc</artifactId>
         </dependency>
 	</dependencies>
+
+	<properties>
+		<jacoco.branch.minumum>0.80</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.80</jacoco.line.minumum>
+	</properties>
 </project>

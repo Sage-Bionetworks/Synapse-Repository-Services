@@ -456,32 +456,12 @@ public class UrlHelpers {
 	 * Purges the trash can for the current user.
 	 */
 	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
-	
-	/**
-	 * Purges the trash can for the current user of all trash items with no children trash items.
-	 */
-	public static final String TRASHCAN_PURGE_LEAVES = TRASHCAN + "/purgeleaves";
 
 	/**
 	 * Views the current trash can.
 	 */
 	public static final String TRASHCAN_PURGE_ENTITY = TRASHCAN_PURGE + ID;
-
-	/**
-	 * Views everything in the trash can.
-	 */
-	public static final String ADMIN_TRASHCAN_VIEW = ADMIN + TRASHCAN_VIEW;
-
-	/**
-	 * Purges everything in the trash can.
-	 */
-	public static final String ADMIN_TRASHCAN_PURGE = ADMIN + TRASHCAN_PURGE;
 	
-	/**
-	 * Purges all trash items in the trash can with no children trash items.
-	 */
-	public static final String ADMIN_TRASHCAN_PURGE_LEAVES = ADMIN + TRASHCAN_PURGE_LEAVES;
-
 	/**
 	 * URL path for query controller
 	 * 
@@ -519,8 +499,6 @@ public class UrlHelpers {
 
 	public static final String ACCESS_REQUIREMENT_CONVERSION = ACCESS_REQUIREMENT+"/conversion";
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";
-
-	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 
@@ -727,10 +705,8 @@ public class UrlHelpers {
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	public static final String SUBMISSION_CONTRIBUTOR = SUBMISSION_WITH_ID+"/contributor";
 	
-	public static final String ACCESS_REQUIREMENT_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_REQUIREMENT;
-	public static final String EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = EVALUATION_WITH_ID+"/accessRequirementUnfulfilled";
 	public static final String ACCESS_APPROVAL_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_APPROVAL;
-
+	
 	public static final String EVALUATION_ACL = EVALUATION + ACL;
 	public static final String EVALUATION_ID_ACL = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + ACL;
 	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
@@ -907,9 +883,8 @@ public class UrlHelpers {
 	public static final String TEAM_ID_ACL = TEAM_ID+"/acl";
 	
 	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
-	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";
 	public static final String ACCESS_APPROVAL_WITH_TEAM_ID = TEAM_ID+ACCESS_APPROVAL;
-
+	
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
@@ -1100,6 +1075,10 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String WELL_KNOWN = "/.well-known";
+	// The OIDC spec' defines the following as <issuer>/.well-known/openid-configuration
+	// See https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
+	// implicitiy the <issuer> URI is <host>/auth/v1, so the openid config 
+	// is .../auth/v1/.well-known/openid-configuration
 	public static final String WELL_KNOWN_OPENID_CONFIGURATION = WELL_KNOWN+"/openid-configuration";
 
 	/**

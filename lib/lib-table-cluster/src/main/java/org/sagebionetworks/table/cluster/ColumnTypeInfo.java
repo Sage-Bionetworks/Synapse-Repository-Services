@@ -150,7 +150,7 @@ public enum ColumnTypeInfo {
 	 * Append the a default value for this type to the passed builder.
 	 * 
 	 * @param builder
-	 * @param defalutValue
+	 * @param defaultValue
 	 */
 	public void appendDefaultValue(StringBuilder builder, String defaultValue){
 		builder.append("DEFAULT ");
@@ -164,12 +164,18 @@ public enum ColumnTypeInfo {
 			defaultValue = StringUtils.replace(defaultValue, "'", "''");
 			// Validate the default can be applied.
 			Object objectValue = parseValueForDatabaseWrite(defaultValue);
-			if(isStringType()){
+			if(mySqlType == MySqlColumnType.JSON){
+				builder.append("(");
+			}
+			if(isStringType() || mySqlType == MySqlColumnType.JSON){
 				builder.append("'");
 			}
 			builder.append(objectValue.toString());
-			if(isStringType()){
+			if(isStringType() || mySqlType == MySqlColumnType.JSON){
 				builder.append("'");
+			}
+			if(mySqlType == MySqlColumnType.JSON){
+				builder.append(")");
 			}
 		}
 	}

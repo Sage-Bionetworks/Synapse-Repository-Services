@@ -41,8 +41,8 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	// Create table template
 	private static final String CREATE_TABLE_TEMPLATE =
 			"CREATE TABLE IF NOT EXISTS %1$S ("
-			+ " ID bigint(20) NOT NULL AUTO_INCREMENT,"
-			+ " CREATED_ON bigint(20) NOT NULL,"
+			+ " ID BIGINT NOT NULL AUTO_INCREMENT,"
+			+ " CREATED_ON BIGINT NOT NULL,"
 			+ " PRIMARY KEY (ID)"
 			+ ") ENGINE=InnoDB AUTO_INCREMENT=0";
 

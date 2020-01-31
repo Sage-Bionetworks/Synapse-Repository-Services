@@ -1,39 +1,45 @@
 package org.sagebionetworks.worker.entity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityReplicationReconciliationWorkerIntegrationTest {
 	
@@ -49,6 +55,12 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	UserManager userManager;
 	@Autowired
 	ReplicationMessageManager replicationMessageManager;
+	@Autowired
+	ColumnModelManager columnModelManager;
+	@Autowired
+	TableManagerSupport tableManagerSupport;
+	@Autowired
+	TableViewManager viewManager;
 	
 	@Mock
 	ProgressCallback mockProgressCallback;
@@ -61,9 +73,9 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	String projectId;
 	Long projectIdLong;
 	
-	@Before
+	@BeforeEach
 	public void before(){
-		MockitoAnnotations.initMocks(this);
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		project = new Project();
@@ -76,7 +88,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		indexDao.truncateReplicationSyncExpiration();
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		if(project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
@@ -90,13 +102,17 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		assertNotNull(dto);
 		assertEquals(projectIdLong, dto.getId());
 		
+		// create a view for this project
+		List<String> scope = Lists.newArrayList(project.getParentId());
+		long viewTypeMask = 0x02;
+		EntityView view = createView(scope, viewTypeMask);
+		IdAndVersion viewId = IdAndVersion.parse(view.getId());
+		
 		// Simulate out-of-synch by deleting the project's replication data
 		indexDao.deleteEntityData(Lists.newArrayList(projectIdLong));
-		
-		// trigger the reconciliation of the container.
-		Long projectParent = KeyFactory.stringToKey(project.getParentId());
-		List<Long> scope = Arrays.asList(projectParent);
-		replicationMessageManager.pushContainerIdsToReconciliationQueue(scope);
+			
+		// Getting the status of the view should trigger the reconciliation.
+		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
 		
 		// wait for reconciliation to restore the deleted data.
 		dto = waitForEntityDto(projectId);
@@ -117,19 +133,44 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		// wait for the folder to replicated
 		EntityDTO dto = waitForEntityDto(folder.getId());
 		assertNotNull(dto);
+		
+		// create a view for this project
+		List<String> scope = Lists.newArrayList(project.getParentId());
+		long viewTypeMask = 0x08;
+		EntityView view = createView(scope, viewTypeMask);
+		IdAndVersion viewId = IdAndVersion.parse(view.getId());
+		
 		// simulate a stale benefactor on the folder
 		indexDao.deleteEntityData(Lists.newArrayList(KeyFactory.stringToKey(folder.getId())));
 		dto.setBenefactorId(dto.getParentId());
 		indexDao.addEntityData(Lists.newArrayList(dto));
 		
-		// trigger the reconciliation of the container.
-		List<Long> scope = KeyFactory.stringToKey(Lists.newArrayList(project.getParentId(), folder.getParentId(), folder.getId()));
-		replicationMessageManager.pushContainerIdsToReconciliationQueue(scope);
+		// Getting the status of the view should trigger the reconciliation.
+		tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId);
 		
 		// Wait for the benefactor to be fixed
 		Long expectedBenefactor = projectIdLong;
 		dto = waitForEntityDto(folder.getId(), expectedBenefactor);
 		assertNotNull(dto);
+	}
+	
+	EntityView createView(List<String> scopeIds, long viewTypeMask) {
+		EntityView view = new EntityView();
+		view.setName(UUID.randomUUID().toString());
+		view.setScopeIds(scopeIds);
+		view.setViewTypeMask(viewTypeMask);
+		view.setParentId(projectId);
+		ColumnModel cm = tableManagerSupport.getColumnModel(EntityField.name);
+		view.setColumnIds(Lists.newArrayList(cm.getId()));
+		String activityId = null;
+		String viewId = entityManager.createEntity(adminUserInfo, view, activityId);
+		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
+		ViewScope scope = new ViewScope();
+		scope.setScope(view.getScopeIds());
+		scope.setViewType(view.getType());
+		scope.setViewTypeMask(view.getViewTypeMask());
+		viewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), scope,  view.getId());
+		return view;
 	}
 	
 	/**
@@ -184,7 +225,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 			}
 			System.out.println("Waiting for entity data to be replicated for id: "+entityId);
 			Thread.sleep(2000);
-			assertTrue("Timed-out waiting for entity data to be replicated.",System.currentTimeMillis()-startTimeMS < MAX_WAIT_MS);
+			assertTrue(System.currentTimeMillis()-startTimeMS < MAX_WAIT_MS,"Timed-out waiting for entity data to be replicated.");
 		}
 	}
 }

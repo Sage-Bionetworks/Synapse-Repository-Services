@@ -472,14 +472,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * The maximum number of entities that can be moved into the trash can at one
-	 * time.
-	 */
-	public int getTrashCanMaxTrashable() {
-		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.manager.trash.max.trashable"));
-	}
-
-	/**
 	 * Stack and instance: <stack>-<stack_instance>
 	 * 
 	 * @return

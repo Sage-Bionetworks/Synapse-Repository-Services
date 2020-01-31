@@ -132,7 +132,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
 		if (!transactionSynchronizationManager.isSynchronizationActive())
-			throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
+			throw new IllegalStateException("Cannot send a transactional message because there is no transaction");
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
 		Map<MessageKey, Message> currentMessages = getCurrentBoundMessages();

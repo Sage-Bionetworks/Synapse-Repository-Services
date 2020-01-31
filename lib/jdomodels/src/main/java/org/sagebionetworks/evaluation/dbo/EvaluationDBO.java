@@ -355,12 +355,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			@Override
 			public EvaluationDBO createDatabaseObjectFromBackup(
 					EvaluationBackup backup) {
-				EvaluationDBO dbo =  EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
-				// fill out start and end time stamps
-				Evaluation dto = new Evaluation();
-				EvaluationDBOUtil.copyDboToDto(dbo, dto);
-				EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
-				return dbo;
+				return EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
 			}
 
 			@Override

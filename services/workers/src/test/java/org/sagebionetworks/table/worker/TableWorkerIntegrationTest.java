@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -116,7 +117,6 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.TimeUtils;
@@ -732,7 +732,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		
 		// Move the table to the trash
-		this.trashManager.moveToTrash(adminUserInfo, tableId);
+		this.trashManager.moveToTrash(adminUserInfo, tableId, false);
 		
 		try {
 			queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
@@ -1897,7 +1897,8 @@ public class TableWorkerIntegrationTest {
 		query.setOffset(5L);
 		query.setLimit(1L);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -1941,6 +1942,8 @@ public class TableWorkerIntegrationTest {
 		
 	}
 	
+	// Multiple values are not currently supported on tables (only supported on views). See: PLFM-6043
+	@Ignore
 	@Test
 	public void testFacet_SingleValueColumnSelected() throws Exception{
 		facetTestSetup();
@@ -1963,7 +1966,7 @@ public class TableWorkerIntegrationTest {
 		query.setLimit(1L);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -2015,6 +2018,8 @@ public class TableWorkerIntegrationTest {
 		assertEquals((Long) 1L, enumListValues.get(3).getCount());
 	}
 
+	// Multiple values are not currently supported on tables (only supported on views). See: PLFM-6043
+	@Ignore
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
 		facetTestSetup();
@@ -2037,7 +2042,7 @@ public class TableWorkerIntegrationTest {
 		query.setLimit(1L);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle queryResultBundle = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		List<FacetColumnResult> facets = queryResultBundle.getFacets();
 		assertNotNull(facets);
 		assertEquals(3, facets.size());
@@ -2178,7 +2183,7 @@ public class TableWorkerIntegrationTest {
 		query.setSql(sql);
 		query.setSelectedFacets(selectedFacets);
 		queryOptions.withReturnFacets(true);
-		QueryResultBundle results = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, query, queryOptions);
+		QueryResultBundle results = waitForConsistentQueryBundle(adminUserInfo, query, queryOptions);
 		assertNotNull(results);
 		assertNotNull(results);
 		assertNotNull(results.getQueryResult());
@@ -2237,7 +2242,6 @@ public class TableWorkerIntegrationTest {
 		// Trigger a full rebuild of the table
 		TableIndexDAO dao = tableConnectionFactory.getConnection(idAndVersion);
 		dao.deleteTable(idAndVersion);
-		dao.deleteSecondaryTables(idAndVersion);
 		// The rebuild should not fails
 		status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){
@@ -2657,11 +2661,15 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	private QueryResult waitForConsistentQuery(UserInfo user, Query query, QueryOptions options) throws Exception {
+		QueryResultBundle bundle = waitForConsistentQueryBundle(user, query, options);
+		return bundle.getQueryResult();
+	}
+	
+	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, Query query, QueryOptions options) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				QueryResultBundle queryResult = tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
-				return queryResult.getQueryResult();
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

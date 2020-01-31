@@ -140,17 +140,6 @@ public class QueryOptionsTest {
 	}
 	
 	@Test
-	public void testEstimateUpToDate() {
-		// call under test
-		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_ESTIMATED_UP_TO_DATE);
-		assertTrue(options.isEstimatedUpToDate());
-		// the rest of the values should be false
-		options.withRunSumFileSizes(false);
-		boolean expectedValue = false;
-		assertAll(expectedValue, options);
-	}
-	
-	@Test
 	public void testGetMaskNone() {
 		QueryOptions options = new QueryOptions();
 		// call under test
@@ -160,7 +149,7 @@ public class QueryOptionsTest {
 	
 	@Test
 	public void testGetMaskAll() {
-		long inMask = 0x7f;
+		long inMask = 0xff;
 		QueryOptions options = new QueryOptions().withMask(inMask);
 		// call under test
 		long mask = options.getPartMask();
@@ -223,6 +212,25 @@ public class QueryOptionsTest {
 		assertEquals(QueryOptions.BUNDLE_MASK_SUM_FILE_SIZES, mask);
 	}
 	
+	@Test
+	public void testReturnLastUpdatedOn() {
+		QueryOptions options = new QueryOptions().withReturnLastUpdatedOn(true);
+		// call under test
+		long mask = options.getPartMask();
+		assertEquals(QueryOptions.BUNDLE_MASK_LAST_UPDATED_ON, mask);
+	}
+	
+	@Test
+	public void testReturnLastUpdatedOnMask() {
+		// call under test
+		QueryOptions options = new QueryOptions().withMask(BUNDLE_MASK_LAST_UPDATED_ON);
+		assertTrue(options.returnLastUpdatedOn);
+		// the rest of the values should be false
+		options.withReturnLastUpdatedOn(false);
+		boolean expectedValue = false;
+		assertAll(expectedValue, options);
+	}
+	
 	/**
 	 * Helper to assert all values match the given value.
 	 * @param value
@@ -236,6 +244,7 @@ public class QueryOptionsTest {
 		assertEquals(value, options.returnColumnModels());
 		assertEquals(value, options.returnFacets());
 		assertEquals(value, options.runSumFileSizes());
+		assertEquals(value, options.returnLastUpdatedOn());
 	}
 
 }

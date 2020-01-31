@@ -2,23 +2,18 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.HashSet;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.ObjectTypeManager;
-import org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerAsynch;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -30,7 +25,6 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
@@ -111,10 +105,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
-	ReplicationMessageManagerAsynch replicationMessageManagerAsynch;
-	@Autowired
-	ObjectTypeManager objectTypeManager;
-	@Autowired
 	ViewSnapshotDao viewSnapshotDao;
 	
 	/*
@@ -139,6 +129,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			}
 			// Status is Available, is the index synchronized with the truth?
 			if(isIndexSynchronizedWithTruth(idAndVersion)){
+				// Send an asynchronous signal that there was activity on this table/view
+				sendAsynchronousActivitySignal(idAndVersion);
 				// Available and synchronized.
 				return status;
 			}else{
@@ -155,6 +147,19 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 	}
 	
+	public void sendAsynchronousActivitySignal(IdAndVersion idAndVersion) {
+		// lookup the table type.
+		ObjectType tableType = getTableType(idAndVersion);
+		
+		// Currently we only signal non-snapshot views.
+		if(ObjectType.ENTITY_VIEW.equals(tableType) && !idAndVersion.getVersion().isPresent()) {
+			// notify all listeners.
+			transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
+					.withObjectVersion(idAndVersion.getVersion().orElse(null))
+					.withObjectType(tableType).withChangeType(ChangeType.UPDATE));
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#setTableToProcessingAndTriggerUpdate(java.lang.String)
@@ -242,8 +247,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return true;
 		}
 		// work is needed if the current state is processing.
-		TableStatus status = tableStatusDAO.getTableStatus(idAndVersion);
-		return TableState.PROCESSING.equals(status.getState());
+		Optional<TableState> optional = tableStatusDAO.getTableStatusState(idAndVersion);
+		if(!optional.isPresent()) {
+			// there is no state for this table so work is required.
+			return true;
+		}
+		return TableState.PROCESSING.equals(optional.get());
 	}
 
 	/*
@@ -314,41 +323,28 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
-	 */
+	
 	@Override
-	public Long calculateViewCRC32(IdAndVersion idAndVersion) {
+	public Long getViewStateNumber(IdAndVersion idAndVersion) {
 		if(idAndVersion.getVersion().isPresent()) {
 			// The ID of the snapshot is used for this case.
 			return viewSnapshotDao.getSnapshotId(idAndVersion);
 		}else {
+			/*
+			 * By returning the version already associated with the view index,
+			 * we ensure this call will not trigger a view to be rebuilt.
+			 */
 			TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(idAndVersion);
-			// Start with all container IDs that define the view's scope
-			Long viewTypeMask = getViewTypeMask(idAndVersion);
-			Set<Long> viewContainers = getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
-			// Trigger the reconciliation of this view's scope.
-			triggerScopeReconciliation(viewTypeMask, viewContainers);
-			return indexDao.calculateCRC32ofEntityReplicationScope(viewTypeMask, viewContainers);
+			return indexDao.getMaxCurrentCompleteVersionForTable(idAndVersion);
 		}
-	}
-
-	@Override
-	public void triggerScopeReconciliation(Long viewTypeMask, Set<Long> viewContainers) {
-		// Trigger the reconciliation of this view
-		List<Long> containersToReconcile = new LinkedList<Long>();
-		if(ViewTypeMask.Project.getMask() == viewTypeMask){
-			// project views reconcile with root.
-			Long rootId = KeyFactory.stringToKey(StackConfigurationSingleton.singleton().getRootFolderEntityId());
-			containersToReconcile.add(rootId);
-		}else{
-			// all other views reconcile one the view's scope.
-			containersToReconcile.addAll(viewContainers);
-		}
-		this.replicationMessageManagerAsynch.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
 	
+	
+	@Override
+	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion) {
+		Long viewTypeMask = getViewTypeMask(idAndVersion);
+		return getAllContainerIdsForViewScope(idAndVersion, viewTypeMask);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -415,8 +411,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			Optional<Long> value = getLastTableChangeNumber(idAndVersion);
 			return value.orElse(-1L);
 		case ENTITY_VIEW:
-			// For FileViews the CRC of all files in the view is used.
-			return calculateViewCRC32(idAndVersion);
+			return getViewStateNumber(idAndVersion);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
@@ -429,6 +424,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
+	}
+	
+	@Override
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
+			int timeoutSeconds, ProgressingCallable<R> runner) throws Exception {
+		// The semaphore runner does all of the lock work.
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSeconds, runner);
 	}
 
 	@Override
@@ -452,12 +454,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ObjectType type = getObjectTypeForEntityType(entityTpe);
 		// User must have the download permission to read from a TableEntity.
 		if (ObjectType.TABLE.equals(type)) {
-			// If the table's DataType is not OPEN then the caller must have the download permission (see PLFM-5240).
-			if (!DataType.OPEN_DATA.equals(objectTypeManager.getObjectsDataType(idAndVersion.getId().toString(), ObjectType.ENTITY))) {
-				// And they must have download permission to access table content.
-				authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
-			}
-
+			// And they must have download permission to access table content.
+			authorizationManager.canAccess(userInfo, idAndVersion.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).checkAuthorizationOrElseThrow();
 		}
 		return entityTpe;
 	}
@@ -548,9 +546,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
 		if (indexDao != null) {
 			indexDao.deleteTable(idAndVersion);
-			indexDao.deleteSecondaryTables(idAndVersion);
 		}
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectType(getTableType(idAndVersion));
@@ -576,6 +573,21 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion) {
 		return columnModelManager.getColumnModelsForObject(idAndVersion);
+	}
+
+	@Override
+	public Optional<TableState> getTableStatusState(IdAndVersion idAndVersion) throws NotFoundException {
+		return tableStatusDAO.getTableStatusState(idAndVersion);
+	}
+	
+	@Override
+	public boolean updateChangedOnIfAvailable(IdAndVersion idAndVersion) {
+		return tableStatusDAO.updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	@Override
+	public Date getLastChangedOn(IdAndVersion idAndVersion) {
+		return tableStatusDAO.getLastChangedOn(idAndVersion);
 	}
 
 }

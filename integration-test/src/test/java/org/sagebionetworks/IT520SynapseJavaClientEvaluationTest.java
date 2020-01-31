@@ -222,7 +222,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// clean up nodes
 		for (String id : entitiesToDelete) {
 			try {
-				adminSynapse.deleteAndPurgeEntityById(id);
+				adminSynapse.deleteEntityById(id);
 			} catch (SynapseNotFoundException e) {}
 		}
 		

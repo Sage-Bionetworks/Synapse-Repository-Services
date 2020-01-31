@@ -118,43 +118,6 @@ public class ReplicationMessageManagerImplTest {
 	}
 	
 	@Test
-	public void testPushContainerIdsToReconciliationQueue(){
-		// single message
-		List<Long> toPush = Lists.newArrayList(111L);
-		// call under test
-		manager.pushContainerIdsToReconciliationQueue(toPush);
-		IdList messages = new IdList();
-		messages.setList(toPush);
-		String expectedBody = manager.createMessageBodyJSON(messages);
-		verify(mockSqsClient, times(1)).sendMessage(new SendMessageRequest(reconciliationQueueUrl,
-				expectedBody));
-	}
-	
-	@Test
-	public void testPushContainerIdsToReconciliationQueueOverMax(){
-		// pushing more than the max messages should result in multiple batches.
-		List<Long> toPush = createLongMessages(ReplicationMessageManagerImpl.MAX_CONTAINERS_IDS_PER_RECONCILIATION_MESSAGE+1);
-		// call under test
-		manager.pushContainerIdsToReconciliationQueue(toPush);
-		verify(mockSqsClient, times(2)).sendMessage(any(SendMessageRequest.class));
-	}
-	
-	@Test
-	public void testPushContainerIdsToReconciliationQueueEmpty(){
-		List<Long> empty = new LinkedList<Long>();
-		// call under test
-		manager.pushContainerIdsToReconciliationQueue(empty);
-		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testPushContainerIdsToReconciliationQueueNull(){
-		List<Long> empty = null;
-		// call under test
-		manager.pushContainerIdsToReconciliationQueue(empty);
-	}
-	
-	@Test
 	public void testGetApproximateNumberOfMessageOnReplicationQueue() {
 		// call under test
 		long count = manager.getApproximateNumberOfMessageOnReplicationQueue();

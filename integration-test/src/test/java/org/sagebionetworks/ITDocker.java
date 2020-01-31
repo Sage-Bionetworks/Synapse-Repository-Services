@@ -99,7 +99,7 @@ public class ITDocker {
 	
 	@After
 	public void after() throws Exception {
-		if (projectId!=null) synapseOne.deleteAndPurgeEntityById(projectId);
+		if (projectId!=null) synapseOne.deleteEntityById(projectId);
 		projectId=null;
 	}
 
