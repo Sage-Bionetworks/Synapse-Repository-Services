@@ -1965,8 +1965,7 @@ public class SQLUtils {
 				" ORDINAL FOR ORDINALITY, " +
 				" COLUMN_EXPAND " + columnExpandTypeSQl + " PATH '$'" +
 				" )" +
-				") TEMP_JSON_TABLE"+rowFilter+
-				" ON DUPLICATE KEY UPDATE " + unnestedColumnName + "=" + "TEMP_JSON_TABLE.COLUMN_EXPAND";
+				") TEMP_JSON_TABLE"+rowFilter;
 	}
 	
 	public static String VIEW_ROWS_OUT_OF_DATE_TEMPLATE = 
