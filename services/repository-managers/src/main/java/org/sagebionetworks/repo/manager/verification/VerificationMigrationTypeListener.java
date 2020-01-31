@@ -28,27 +28,27 @@ public class VerificationMigrationTypeListener implements MigrationTypeListener 
 			VerificationSubmission dto = VerificationDAOImpl.deserializeDTO(dbo); // TODO move to a helper class
 			if (dto.getNotificationEmail()!=null) {
 				// no backfill required
-				return;
+				continue;
 			}
 			
 			// if there is just one captured email then it must have been the notification email
 			if(dto.getEmails().size()==1) {
 				dto.setNotificationEmail(dto.getEmails().get(0));
-			}
-			
-			// most of the remaining can be disambiguated by the current notification email:
-			// TODO ensure that notifications addresses migrate first
-			String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(dto.getCreatedBy()));
-			if (dto.getEmails().contains(currentNotificationEmail)) {
-				dto.setNotificationEmail(currentNotificationEmail);
 			} else {
-				// For a tiny number we'll just return the first of the list
-				dto.setNotificationEmail(dto.getEmails().get(0));
+				// most of the remaining can be disambiguated by the current notification email:
+				// TODO ensure that notifications addresses migrate first
+				String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(dto.getCreatedBy()));
+				if (dto.getEmails().contains(currentNotificationEmail)) {
+					dto.setNotificationEmail(currentNotificationEmail);
+				} else {
+					// For a tiny number we'll just use the first of the list
+					dto.setNotificationEmail(dto.getEmails().get(0));
+				}
 			}
 			
 			dbo.setSerialized(VerificationDAOImpl.serializeDTO(dto));
 			
-			basicDao.update(dbo); // TODO are there any considerations around transactions?
+			basicDao.update(dbo);
 			
 		}
 

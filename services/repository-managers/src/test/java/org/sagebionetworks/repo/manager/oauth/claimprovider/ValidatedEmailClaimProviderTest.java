@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -29,9 +28,6 @@ public class ValidatedEmailClaimProviderTest {
 	@Mock
 	private UserProfileManager mockUserProfileManager;
 	
-	@Mock
-	private NotificationEmailDAO mockNotificationEmailDao;
-	
 	@InjectMocks
 	private ValidatedEmailClaimProvider claimProvider;
 	
@@ -44,70 +40,26 @@ public class ValidatedEmailClaimProviderTest {
 	@Before
 	public void setUp() {
 		verificationSubmission = new VerificationSubmission();
+		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
+	}
+
+	@Test
+	public void testClaim() {
+		// method under test
+		assertEquals(OIDCClaimName.validated_email, claimProvider.getName());
+		// method under test
+		assertNotNull(claimProvider.getDescription());
+		// method under test
+		assertNull(claimProvider.getClaim(USER_ID, null));
+		
 		VerificationState verificationState = new VerificationState();
 		verificationState.setState(VerificationStateEnum.APPROVED);
 		Date now = new Date();
 		verificationState.setCreatedOn(now);
 		verificationSubmission.setStateHistory(Collections.singletonList(verificationState));
-	}
-
-	@Test
-	public void testClaimConfig() {
-		// method under test
-		assertEquals(OIDCClaimName.validated_email, claimProvider.getName());
-		// method under test
-		assertNotNull(claimProvider.getDescription());
-	}
-	
-	@Test
-	public void testNoVerificationSubmission() {
-		// method under test
-		assertNull(claimProvider.getClaim(USER_ID, null));
-	}
-	
-	@Test
-	public void testHappyCase() {
 		verificationSubmission.setNotificationEmail(EMAIL);
-		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
 		
 		// method under test
 		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
-	
-	}
-	
-	@Test
-	public void testNoNotificationEmailOneAliasEmail() {
-		verificationSubmission.setNotificationEmail(null);
-		verificationSubmission.setEmails(Collections.singletonList(EMAIL));
-		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
-		
-		// method under test
-		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
-	
-	}
-	
-	@Test
-	public void testNoNotificationEmailMultipleAliasEmailsCANDisambiguate() {
-		verificationSubmission.setNotificationEmail(null);
-		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "some other address"));
-		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
-		
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn(EMAIL);
-		
-		// method under test
-		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
-	
-	}	
-	@Test
-	public void testNoNotificationEmailMultipleAliasEmailsCanNOTDisambiguate() {
-		verificationSubmission.setNotificationEmail(null);
-		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "some other address"));
-		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
-		
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn("doen't match either!");
-		
-		// method under test
-		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));
-	
 	}
 }
