@@ -79,7 +79,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String VERIFIED = "/verified";
 	private static final String MESSAGE = "/message";
 
-	private static final String REMOVE_USER = "/remove/user";
+	private static final String REDACT_USER = "/redact/user";
 
 	public SynapseAdminClientImpl() {
 		super();
@@ -392,9 +392,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public void clearUserInformation(String principalId) throws SynapseException {
+	public void redactUserInformation(String principalId) throws SynapseException {
 		validateStringAsLong(principalId);
-		String uri = ADMIN + REMOVE_USER + "/" + principalId;
+		String uri = ADMIN + REDACT_USER + "/" + principalId;
 		voidPost(getRepoEndpoint(), uri, null, null);
 	}
 }

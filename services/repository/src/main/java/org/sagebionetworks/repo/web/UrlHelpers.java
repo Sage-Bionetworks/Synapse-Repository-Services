@@ -582,7 +582,7 @@ public class UrlHelpers {
 	/**
 	 * Principal/User information removal for administrators.
 	 */
-	public static final String ADMIN_REMOVE_USER = ADMIN + "/remove/user/{principalId}";
+	public static final String ADMIN_REDACT_USER = ADMIN + "/redact/user/{principalId}";
 
 	/**
 	 * Public access for Synapse user and group info

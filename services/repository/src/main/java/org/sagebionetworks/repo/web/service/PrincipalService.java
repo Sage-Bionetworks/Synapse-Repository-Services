@@ -103,5 +103,5 @@ public interface PrincipalService {
 	 * @param userId Principal ID of the caller. Must be an administrator
 	 * @param principalToClear The principal ID of the user whose information should be cleared
 	 */
-	void clearPrincipalInformation(Long userId, Long principalToClear);
+	void redactPrincipalInformation(Long userId, Long principalToClear);
 }

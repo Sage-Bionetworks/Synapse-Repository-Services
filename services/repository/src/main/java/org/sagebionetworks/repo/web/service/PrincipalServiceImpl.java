@@ -135,7 +135,7 @@ public class PrincipalServiceImpl implements PrincipalService {
 	}
 
 	@Override
-	public void clearPrincipalInformation(Long userId, Long principalToClear) {
+	public void redactPrincipalInformation(Long userId, Long principalToClear) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		principalManager.clearPrincipalInformation(userInfo, principalToClear);
 	}

@@ -70,7 +70,7 @@ public class ITUserInfoRemoval {
 		client.updateMyProfile(profile);
 
 		// Method under test
-		adminClient.clearUserInformation(userId.toString());
+		adminClient.redactUserInformation(userId.toString());
 
 		String expectedEmail = "gdpr-synapse+" + userId.toString() + "@sagebase.org";
 

@@ -271,6 +271,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param principalId
 	 * @throws SynapseException
 	 */
-	void clearUserInformation(String principalId) throws SynapseException;
+	void redactUserInformation(String principalId) throws SynapseException;
 
 }
