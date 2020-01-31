@@ -9,14 +9,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -106,21 +104,18 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		// Access to this method is not exposed externally, so we can use admin credentials to find the project setting
-		List<EntityHeader> nodePath = nodeManager.getNodePathAsAdmin(nodeId);
-		// the root of the node path should be the project
-		if (nodePath.isEmpty()) {
-			throw new DatastoreException("No path for this parentId could be found");
+		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
+		if (projectSettingId == null) {
+			// Not having a setting is normal.
+			return null;
 		}
-		List<Long> nodePathIds = nodePath.stream().map(input -> KeyFactory.stringToKey(input.getId()))
-				.collect(Collectors.toList());
 
-		// get the first available project setting of the correct type
-		ProjectSetting projectSetting = projectSettingsDao.get(nodePathIds, type);
-		if (projectSetting != null && !expectedType.isInstance(projectSetting)) {
+		// Note that get throws NotFoundException if the project setting somehow doesn't exist.
+		ProjectSetting projectSetting = projectSettingsDao.get(projectSettingId);
+		if (!expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
-		return (T) projectSetting;
+		return expectedType.cast(projectSetting);
 	}
 
 	@Override
@@ -157,7 +152,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add an StsStorageLocation to a non-empty entity.
-		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(parentId)) {
+		if (!nodeManager.isEntityEmpty(parentId) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 		}
 
@@ -194,15 +189,16 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
+		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
-		if (projectSetting != null && !authorizationManager
+		if (!authorizationManager
 				.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
 				.isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 
 		// Can't delete an StsStorageLocation on a non-empty entity.
-		if (isStsStorageLocationSetting(projectSetting) && !nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
+		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId()) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 		}
 
@@ -266,9 +262,13 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			}
 		} else if (storageLocationSetting instanceof S3StorageLocationSetting) {
 			S3StorageLocationSetting synapseS3StorageLocationSetting = (S3StorageLocationSetting) storageLocationSetting;
+			if (synapseS3StorageLocationSetting.getBaseKey() != null) {
+				throw new IllegalArgumentException("Cannot specify baseKey when creating an S3StorageLocationSetting");
+			}
+
 			if (Boolean.TRUE.equals(synapseS3StorageLocationSetting.getStsEnabled())) {
 				// This is the S3 bucket we own, so we need to auto-generate the base key.
-				String baseKey = userInfo.getId() + "/" + System.currentTimeMillis();
+				String baseKey = userInfo.getId() + "/" + UUID.randomUUID();
 				synapseS3StorageLocationSetting.setBaseKey(baseKey);
 			}
 
@@ -367,9 +367,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 	}
 
-	// Helper method to check if a ProjectSetting is a an STS-enabled storage location. That is, the storage location
-	// referenced in the project setting is an StsStorageLocation with StsEnabled=true.
-	private boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
+	@Override
+	public boolean isStsStorageLocationSetting(StorageLocationSetting storageLocationSetting) {
+		return storageLocationSetting instanceof StsStorageLocationSetting &&
+				Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+	}
+
+	@Override
+	public boolean isStsStorageLocationSetting(ProjectSetting projectSetting) {
 		if (!(projectSetting instanceof UploadDestinationListSetting)) {
 			// Impossible code path, but add this check here to future-proof this against ClassCastExceptions.
 			return false;
@@ -381,10 +386,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		long storageLocationId = storageLocationIdList.get(0);
 		try {
 			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(storageLocationId);
-			return storageLocationSetting instanceof StsStorageLocationSetting &&
-					Boolean.TRUE.equals(((StsStorageLocationSetting) storageLocationSetting).getStsEnabled());
+			return isStsStorageLocationSetting(storageLocationSetting);
 		} catch (NotFoundException e) {
-			throw new IllegalArgumentException("Storage location " + storageLocationId + " not found");
+			// If the storage location somehow doesn't exist, then it's not an StsStorageLocation.
+			return false;
 		}
 	}
 

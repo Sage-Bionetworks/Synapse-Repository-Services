@@ -1,7 +1,14 @@
 package org.sagebionetworks;
 
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -22,6 +29,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -120,10 +128,10 @@ public class IT100TableControllerTest {
 	@AfterEach
 	public void after() throws Exception {
 		for (Entity entity : tablesToDelete) {
-			adminSynapse.deleteAndPurgeEntity(entity);
+			adminSynapse.deleteEntity(entity);
 		}
 		for (Entity entity : entitiesToDelete) {
-			adminSynapse.deleteAndPurgeEntity(entity);
+			adminSynapse.deleteEntity(entity);
 		}
 		for (File tempFile : tempFiles) {
 			tempFile.delete();
@@ -905,6 +913,7 @@ public class IT100TableControllerTest {
 		assertEquals("SELECT * FROM syn123 WHERE ( ( \"foo\" BETWEEN '0' AND '100' ) )", resultSql);
 	}
 
+	@Disabled("This test will not work because it has no mechanism to wait for the view to be consisted. Will be moved to the TableViewIntegrationTest PLFM-6043.")
 	@Test
 	public void testEntityView_multipleValueColumnRoundTrip() throws Exception {
 		Project project = new Project();

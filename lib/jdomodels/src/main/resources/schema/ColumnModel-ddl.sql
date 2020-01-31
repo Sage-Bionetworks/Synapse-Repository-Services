@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS `COLUMN_MODEL` (
-  `ID` bigint(20) NOT NULL,
+  `ID` BIGINT NOT NULL,
   `NAME` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `HASH` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `BYTES` mediumblob,

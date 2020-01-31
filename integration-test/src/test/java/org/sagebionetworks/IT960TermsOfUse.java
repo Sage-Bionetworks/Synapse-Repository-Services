@@ -72,7 +72,7 @@ public class IT960TermsOfUse {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteAndPurgeEntity(project);
+		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(userToDelete);
 	}
 	

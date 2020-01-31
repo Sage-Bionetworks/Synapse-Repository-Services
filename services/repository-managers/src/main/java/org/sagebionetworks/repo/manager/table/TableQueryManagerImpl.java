@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -320,6 +321,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(options.runSumFileSizes()) {
 			SumFileSizes sumFileSizes = runSumFileSize(queryToRun, indexDao);
 			bundle.setSumFileSizes(sumFileSizes);
+		}
+		
+		if(options.returnLastUpdatedOn()) {
+			Date lastUpdatedOn = tableManagerSupport.getLastChangedOn(idAndVersion);
+			bundle.setLastUpdatedOn(lastUpdatedOn);
 		}
 
 		return bundle;

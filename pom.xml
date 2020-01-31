@@ -868,7 +868,6 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>3.0.0-M3</version>
 					<configuration>
-						<argLine>-Xmx1024m -Xms128m</argLine>
 						<runOrder>alphabetical</runOrder>
 					</configuration>
 				</plugin>
@@ -938,12 +937,61 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+
+		<!--
+			The previous section "pluginManagement" configures plugins but doesn't run them. The "plugins" section
+			below causes the listed plugins to be run for all submodules.
+		-->
+		<plugins>
+			<!-- JaCoCo Code Coverage Tool -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.3</version>
+				<configuration>
+					<excludes>
+						<!-- No point in testing exceptions, since they are entirely boilerplate code. -->
+						<exclude>org/sagebionetworks/client/exceptions/*</exclude>
+						<exclude>org/sagebionetworks/repo/model/exception/*</exclude>
+					</excludes>
+					<rules>
+						<rule>
+							<element>BUNDLE</element>
+							<limits>
+								<limit>
+									<counter>INSTRUCTION</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>${jacoco.line.minumum}</minimum>
+								</limit>
+								<limit>
+									<counter>BRANCH</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>${jacoco.branch.minumum}</minimum>
+								</limit>
+							</limits>
+						</rule>
+					</rules>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+							<goal>report</goal>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
 	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
+		<argLine>-Xmx1024m -Xms128m</argLine>
+		<jacoco.branch.minumum>0.00</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.00</jacoco.line.minumum>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
@@ -951,7 +999,7 @@
 		<gwtVersion>2.5.1</gwtVersion>
 		<guavaVersion>27.1-jre</guavaVersion>
 		<reflectionsVersion>0.9.9-RC1</reflectionsVersion>
-		<org.springframework.version>5.1.5.RELEASE</org.springframework.version>
+		<org.springframework.version>5.2.3.RELEASE</org.springframework.version>
 		<jackson.version>2.9.9</jackson.version>
 		<jackson.databind.version>2.9.10.1</jackson.databind.version>
 		<xstream.version>1.4.11.1</xstream.version>

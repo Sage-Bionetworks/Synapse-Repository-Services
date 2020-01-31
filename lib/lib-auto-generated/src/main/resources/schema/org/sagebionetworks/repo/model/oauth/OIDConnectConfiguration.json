@@ -85,6 +85,13 @@
 		"claims_parameter_supported": {
 			"type": "boolean",
 			"description": "Boolean value specifying whether Synapse supports use of the claims parameter, with true indicating support."
+		},
+		"token_endpoint_auth_methods_supported": {
+			"type": "array",
+			"description": "a list of Client Authentication methods supported by Synapse's Token Endpoint.  See https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication",
+			"items":{
+				"type":"string"
+			}
 		}
 	}
 }

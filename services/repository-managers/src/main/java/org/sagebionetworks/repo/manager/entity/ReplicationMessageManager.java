@@ -20,15 +20,6 @@ public interface ReplicationMessageManager {
 	 * @throws JSONObjectAdapterException
 	 */
 	void pushChangeMessagesToReplicationQueue(List<ChangeMessage> toPush);
-
-	/**
-	 * Push the given container IDs to the Replication Delta queue. The worker
-	 * listing to this queue will reconcile any differences between the truth
-	 * and replication data for all of the given container IDs. .
-	 * 
-	 * @param scopeIds
-	 */
-	void pushContainerIdsToReconciliationQueue(List<Long> scopeIds);
 	
 	/**
 	 * Get the approximate age of the oldest message on the queue.

@@ -8,12 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -27,11 +31,13 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -43,6 +49,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -70,12 +78,14 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -130,6 +140,8 @@ public class TableViewManagerImplTest {
 	@InjectMocks
 	TableViewManagerImpl manager;
 	
+	TableViewManagerImpl managerSpy;
+	
 	UserInfo userInfo;
 	List<String> schema;
 	List<String> scope;
@@ -151,9 +163,12 @@ public class TableViewManagerImplTest {
 	ColumnModel intListColumn;
 	SparseRowDto row;
 	SnapshotRequest snapshotOptions;
+	Set<Long> allContainersInScope;
+	Long viewTypeMask;
 	
 	org.sagebionetworks.repo.model.Annotations annotations;
 	Annotations annotationsV2;
+	
 
 	@BeforeEach
 	public void before(){
@@ -222,6 +237,10 @@ public class TableViewManagerImplTest {
 		
 		snapshotOptions = new SnapshotRequest();
 		snapshotOptions.setSnapshotComment("a comment");
+		allContainersInScope = Sets.newHashSet(123L, 456L);;
+		viewTypeMask = ViewTypeMask.File.getMask();
+		
+		managerSpy = Mockito.spy(manager);
 	}
 	
 	@Test
@@ -675,11 +694,49 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateOrUpdateViewIndex() throws Exception {
+	public void testCreateOrUpdateViewIndex_AvailableNoVersion() throws Exception {
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
 		// call under test
-		manager.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
-		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy).applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).createOrRebuildView(any(IdAndVersion.class), any(ProgressCallback.class));
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndex_AvailableWithVersion() throws Exception {
+		idAndVersion = IdAndVersion.parse("syn123.456");
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		// call under test
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewIndex_ProcessingFailed() throws Exception {
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING_FAILED));
+		// call under test
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewProcessing() throws Exception {
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
+		// call under test
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
+	}
+	
+	@Test
+	public void testCreateOrUpdateViewStateDoesNotExist() throws Exception {
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
+		// call under test
+		managerSpy.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		verify(managerSpy, never()).applyChangesToAvailableView(any(IdAndVersion.class), any(ProgressCallback.class));
+		verify(managerSpy).createOrRebuildView(idAndVersion, mockProgressCallback);
 	}
 	
 	@Test
@@ -755,10 +812,10 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingNoWorkRequired() {
+	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 		verifyNoMoreInteractions(mockConnectionFactory);
@@ -768,7 +825,7 @@ public class TableViewManagerImplTest {
 	 * Populate a view from entity replication.
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingWorkeRequired() {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequired() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -784,7 +841,7 @@ public class TableViewManagerImplTest {
 		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema)).thenReturn(viewCRC);
 		
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
@@ -802,7 +859,7 @@ public class TableViewManagerImplTest {
 				viewSchema);
 		verify(mockIndexManager, never()).populateViewFromSnapshot(any(IdAndVersion.class), any());
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
-		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
+		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
@@ -817,7 +874,7 @@ public class TableViewManagerImplTest {
 	 * @throws IOException
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingWorkeRequiredWithVersion() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
@@ -833,7 +890,7 @@ public class TableViewManagerImplTest {
 		setupReader("foo,bar");
 		
 		// call under test
-		manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+		manager.createOrRebuildViewHoldingLock(idAndVersion);
 
 		verify(mockTableManagerSupport).isIndexWorkRequired(idAndVersion);
 		verify(mockTableManagerSupport).startTableProcessing(idAndVersion);
@@ -851,7 +908,7 @@ public class TableViewManagerImplTest {
 		verify(mockIndexManager).populateViewFromSnapshot(eq(idAndVersion), any());
 		verify(mockFile).delete();
 		verify(mockIndexManager).optimizeTableIndices(idAndVersion);
-		verify(mockIndexManager).createAndPopulateListColumnIndexTables(idAndVersion, viewSchema);
+		verify(mockIndexManager).populateListColumnIndexTables(idAndVersion, viewSchema);
 		verify(mockIndexManager).setIndexVersionAndSchemaMD5Hex(idAndVersion, snapshotId, originalSchemaMD5Hex);
 		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
 				TableViewManagerImpl.DEFAULT_ETAG);
@@ -867,19 +924,19 @@ public class TableViewManagerImplTest {
 	 * @throws IOException
 	 */
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingPLFM_5939() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockPLFM_5939() throws IOException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		IllegalArgumentException exception = new IllegalArgumentException("nope");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenThrow(exception);
 		assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
 		});
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
 	}
 	
 	@Test
-	public void testCreateOrUpdateViewIndexHoldingError() {
+	public void testCreateOrRebuildViewHoldingLockError() {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -888,7 +945,7 @@ public class TableViewManagerImplTest {
 		
 		assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.createOrUpdateViewIndexHoldingLock(idAndVersion);
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
 		});
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());
@@ -1040,5 +1097,248 @@ public class TableViewManagerImplTest {
 		assertEquals(snapshotVersion, snapshot.getVersion());
 		assertEquals(idAndVersion.getId(), snapshot.getViewId());
 		
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableView() throws Exception {
+		setupNonexclusiveLockToForwardToCallack();
+		setupExclusiveLockToForwardToCallack();
+		// call under test
+		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		verify(managerSpy).applyChangesToAvailableViewHoldingLock(idAndVersion);
+	}
+	
+	/**
+	 * Setup the tryRunWithTableNonexclusiveLock() to forward the call to the passed callback.
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	void setupNonexclusiveLockToForwardToCallack() throws Exception {
+		doAnswer((InvocationOnMock invocation) -> {
+			// Last argument is the callback
+			Object[] args = invocation.getArguments();
+			ProgressingCallable callable = (ProgressingCallable) args[args.length - 1];
+			callable.call(mockProgressCallback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+	}
+	
+	/**
+	 * Setup the tryRunWithTableExclusiveLock() to forward the call to the passed callback.
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	void setupExclusiveLockToForwardToCallack() throws Exception {
+		doAnswer((InvocationOnMock invocation) -> {
+			// Last argument is the callback
+			Object[] args = invocation.getArguments();
+			ProgressingCallable callable = (ProgressingCallable) args[args.length - 1];
+			callable.call(mockProgressCallback);
+			return null;
+		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				anyString(), anyInt(), any(ProgressingCallable.class));
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
+		setupNonexclusiveLockToForwardToCallack();
+		LockUnavilableException exception = new LockUnavilableException("not now");
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(Integer.class), any(ProgressingCallable.class));
+		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
+		// call under test
+		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
+		LockUnavilableException exception = new LockUnavilableException("not now");
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), any(Integer.class), any(ProgressingCallable.class));
+		// call under test
+		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
+				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableView_OtherException() throws Exception {
+		setupNonexclusiveLockToForwardToCallack();
+		IllegalArgumentException exception = new IllegalArgumentException("not now");
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
+				anyString(), anyInt(), any(ProgressingCallable.class));
+		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
+		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
+		});
+		assertEquals(exception, result);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_NothingToDo() {
+		setupApplyChanges();
+		Set<Long> rowsToUpdate = Collections.emptySet();
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
+				anySet(), anyList());
+		verifyNoMoreInteractions(mockTableManagerSupport);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_OnePage() {
+		setupApplyChanges();
+		Set<Long> rowsToUpdate = Sets.newHashSet(101L,102L);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(rowsToUpdate);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, rowsToUpdate, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_OnePageNotAvailable() {
+		setupApplyChanges();
+		// do no work when not available.
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.PROCESSING));
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexManager);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_OnePageNoState() {
+		setupApplyChanges();
+		// do no work when not available.
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.empty());
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockTableManagerSupport).getTableStatusState(idAndVersion);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexManager);
+	}
+	
+	/**
+	 * If progress is made on a single page of changes, the IDs should not reappear in the next
+	 * page, and all pages should be processed.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesNoOverlap() {
+		setupApplyChanges();
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(2)).updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesNoOverlapStatusChanged() {
+		setupApplyChanges();
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		Set<Long> pageTwo = Sets.newHashSet(103L,104L);
+		// Status starts as available but changes to processing which stop the updates.
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE), Optional.of(TableState.PROCESSING));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+				allContainersInScope, viewSchema);
+		// page two should not be updated becuase of the swith to processing.
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	/**
+	 * There are multiple page with overlap.  The overlap should terminate the process.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_MultiplePagesWithOverlap() {
+		setupApplyChanges();
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		Set<Long> pageTwo = Sets.newHashSet(102L,103L);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne, pageTwo);
+		// call under test
+		manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+				allContainersInScope, viewSchema);
+		// page two should be ignored since it overlaps with page one.
+		verify(mockIndexManager, never()).updateViewRowsInTransaction(idAndVersion, pageTwo, viewTypeMask,
+				allContainersInScope, viewSchema);
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+		verify(mockTableManagerSupport, times(1)).updateChangedOnIfAvailable(idAndVersion);
+	}
+	
+	/**
+	 * Any failure should change change the table's status to failed.
+	 */
+	@Test
+	public void testApplyChangesToAvailableViewHoldingLock_Failed() {
+		setupApplyChanges();
+		Set<Long> pageOne = Sets.newHashSet(101L,102L);
+		when(mockTableManagerSupport.getTableStatusState(idAndVersion)).thenReturn(Optional.of(TableState.AVAILABLE));
+		when(mockIndexManager.getOutOfDateRowsForView(idAndVersion, viewTypeMask, allContainersInScope,
+				TableViewManagerImpl.MAX_ROWS_PER_TRANSACTION)).thenReturn(pageOne);
+		// setup a failure
+		IllegalArgumentException exception = new IllegalArgumentException("Something is wrong...");
+		doThrow(exception).when(mockIndexManager).updateViewRowsInTransaction(any(IdAndVersion.class), anySet(), anyLong(),
+				anySet(), anyList());
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.applyChangesToAvailableViewHoldingLock(idAndVersion);
+		});
+		verify(mockIndexManager).updateViewRowsInTransaction(idAndVersion, pageOne, viewTypeMask,
+				allContainersInScope, viewSchema);
+		// should fail and change the table status.
+		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+	}
+
+	/**
+	 * Helper to setup a call to applyChangesToAvailableViewHoldingLock()
+	 */
+	void setupApplyChanges() {
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask))
+				.thenReturn(allContainersInScope);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(viewSchema);
 	}
 }

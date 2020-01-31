@@ -70,7 +70,7 @@ public class IT510SynapseJavaClientSearchTest {
 		}
 		
 		if (synapse != null && project != null) {
-			synapse.deleteAndPurgeEntity(project);
+			synapse.deleteEntity(project);
 		}
 		
 		adminSynapse.deleteUser(userToDelete);

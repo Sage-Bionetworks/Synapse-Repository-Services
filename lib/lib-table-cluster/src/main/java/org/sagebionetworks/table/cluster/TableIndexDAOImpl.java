@@ -47,10 +47,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.sql.DataSource;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
@@ -91,6 +90,9 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 public class TableIndexDAOImpl implements TableIndexDAO {
 
 	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
@@ -121,6 +123,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
+	NamedParameterJdbcTemplate namedTemplate;
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -144,6 +147,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		this.template = new JdbcTemplate(dataSource);
 		// See comments above.
 		this.template.setFetchSize(Integer.MIN_VALUE);
+		this.namedTemplate = new NamedParameterJdbcTemplate(this.template);
 	}
 
 	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
@@ -158,14 +162,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public boolean deleteTable(IdAndVersion tableId) {
-		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
-		try {
-			template.update(dropTableDML);
-			return true;
-		} catch (BadSqlGrammarException e) {
-			// This is thrown when the table does not exist
-			return false;
+	public void deleteTable(IdAndVersion tableId) {
+		deleteMultiValueTablesForTable(tableId);
+		template.update(SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX));
+		deleteSecondaryTables(tableId);
+	}
+	
+	/**
+	 * Delete secondary table associated with the given tableId.
+	 * @param tableId
+	 */
+	void deleteSecondaryTables(IdAndVersion tableId) {
+		for(TableType type: SQLUtils.SECONDARY_TYPES){
+			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
+			template.update(dropStatusTableDML);
+		}	
+	}
+	
+	/**
+	 * Delete all multi-value tables associated with the given tableId.
+	 * @param tableId
+	 */
+	void deleteMultiValueTablesForTable(IdAndVersion tableId) {
+		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
+		List<String> tablesToDelete = template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
+		for(String tableNames: tablesToDelete) {
+			template.update("DROP TABLE IF EXISTS "+tableNames);
 		}
 	}
 
@@ -249,18 +271,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return EMPTY_SCHEMA_MD5;
 		}
 	}
-
-	@Override
-	public void deleteSecondaryTables(IdAndVersion tableId) {
-		for(TableType type: SQLUtils.SECONDARY_TYPES){
-			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
-			try {
-				template.update(dropStatusTableDML);
-			} catch (BadSqlGrammarException e) {
-				// This is thrown when the table does not exist
-			}
-		}	
-	}
 	
 	@Override
 	public void createSecondaryTables(IdAndVersion tableId) {
@@ -299,7 +309,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForObject(sql, new MapSqlParameterSource(parameters), Long.class);
 	}
 	
@@ -308,7 +317,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
@@ -461,7 +469,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					info.setHasIndex(!"".equals(key));
 					String typeString = rs.getString("Type");
 					info.setType(MySqlColumnType.parserType(typeString));
-					info.setMaxSize(MySqlColumnType.parseSize(typeString));
+					if(info.getType() != null && info.getType().hasSize()){
+						info.setMaxSize(MySqlColumnType.parseSize(typeString));
+					}
 					String comment = rs.getString("Comment");
 					if(comment != null && !"".equals(comment)){
 						info.setColumnType(ColumnType.valueOf(comment));
@@ -531,33 +541,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		template.update(alterSql);
 	}
+	
 
 	@Override
-	public void populateListColumnIndexTables(IdAndVersion tableIdAndVersion, List<ColumnModel> columnModels){
-		for(ColumnModel columnModel : columnModels) {
-			//only operate on list column types
-			if (!ColumnTypeListMappings.isList(columnModel.getColumnType())) {
-				continue;
-			}
-			//index tables for list columns have already been created when column changes were applied
-
-			String truncateTablesql = SQLUtils.truncateListColumnIndexTable(tableIdAndVersion, columnModel);
-			template.update(truncateTablesql);
-
-			String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableIdAndVersion, columnModel);
-			try {
-				template.update(insertIntoSql);
-			} catch (DataIntegrityViolationException e){
-				if (columnModel.getColumnType() == ColumnType.STRING_LIST){
-					throw new IllegalArgumentException("The size of the column '"+ columnModel.getName()+ "' is too small." +
-							" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
-				}
-				throw e;
-			}
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(listColumn, "listColumn");
+		//only operate on list column types
+		if (!ColumnTypeListMappings.isList(listColumn.getColumnType())) {
+			throw new IllegalArgumentException("Only valid for List type columns");
+		}
+		if(rowIds != null && rowIds.isEmpty()) {
+			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
+		}
+		boolean filterRows = rowIds != null;
+		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		if(filterRows) {
+			param.addValue(ID_PARAMETER_NAME, rowIds);
+		}
+		try {
+			namedTemplate.update(insertIntoSql, param);
+		} catch (DataIntegrityViolationException e){
+			throw new IllegalArgumentException("The size of the column '"+ listColumn.getName()+ "' is too small." +
+					" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", e);
 		}
 	}
-
-
 
 
 	@Override
@@ -776,7 +785,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(allContainersInScope.isEmpty()){
 			return -1L;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.getCalculateCRC32Sql(viewTypeMask);
@@ -798,18 +806,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void copyEntityReplicationToTable(Long viewId, Long viewTypeMask,
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema) {
+		Set<Long> rowIdsToCopy = null;
+		copyEntityReplicationToView(viewId, viewTypeMask, allContainersInScope, currentSchema, rowIdsToCopy);
+	}
+	
+	@Override
+	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		if(allContainersInScope.isEmpty()){
 			// nothing to do if the scope is empty.
 			return;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		if(rowIdsToCopy != null && rowIdsToCopy.isEmpty()) {
+			throw new IllegalArgumentException("When rowIdsToCopy is provided (not null) it cannot be empty");
+		}
+		// Filter by rows only if provided.
+		boolean filterByRows = rowIdsToCopy != null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema);
+		if(filterByRows) {
+			param.addValue(ID_PARAMETER_NAME, rowIdsToCopy);
+		}
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema, filterByRows);
 		namedTemplate.update(sql, param);
 	}
 	
@@ -822,11 +844,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			// nothing to do if the scope is empty.
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		StringBuilder builder = new StringBuilder();
-		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema);
+		boolean filterByRows = false;
+		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
 		// push the headers to the stream
 		outputStream.writeNext(headers.toArray(new String[headers.size()]));
 		namedTemplate.query(builder.toString(), param, (ResultSet rs) -> {
@@ -848,7 +870,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(containerIds.isEmpty()){
 			return new LinkedList<>();
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
@@ -862,7 +883,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnAggregation aggregation = new ColumnAggregation();
 				aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				aggregation.setColumnTypeConcat(rs.getString(2));
-				aggregation.setMaxSize(rs.getLong(3));
+				aggregation.setMaxStringElementSize(rs.getLong(3));
+				aggregation.setMaxListSize(rs.getLong(4));
 				return aggregation;
 			}
 		});
@@ -885,9 +907,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ColumnModel model = new ColumnModel();
 				model.setName(aggregation.getColumnName());
 				ColumnType type = AnnotationType.valueOf(typeString).getColumnType();
+
+				//check if a LIST columnType needs to be used
+				if(aggregation.getMaxListSize() > 1){
+					try {
+						type = ColumnTypeListMappings.listType(type);
+					} catch (IllegalArgumentException e){
+						//do nothing because a list type mapping does not exist
+					}
+				}
+
 				model.setColumnType(type);
-				if(ColumnType.STRING == type) {
-					model.setMaximumSize(aggregation.getMaxSize());
+				if(ColumnType.STRING == type || ColumnType.STRING_LIST==type) {
+					model.setMaximumSize(aggregation.getMaxStringElementSize());
 				}
 				results.add(model);
 			}
@@ -904,7 +936,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
 			
 			@Override
@@ -951,7 +982,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAMETER_NAME, entityContainerIds);
 		param.addValue(EXPIRES_PARAM, System.currentTimeMillis());
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
 		// remove all that are not expired.
 		expiredId.removeAll(nonExpiredIds);
@@ -995,7 +1025,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		ValidateArgument.required(sql, "sql");
 		ValidateArgument.required(parameters, "parameters");
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		return namedTemplate.queryForList(sql, new MapSqlParameterSource(parameters), Long.class);
 	}
 
@@ -1005,7 +1034,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if(rowIds.isEmpty()) {
 			return 0L;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
 		if(sum == null) {
 			sum =  0L;
@@ -1016,7 +1044,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback) {
 		// We use spring to create create the prepared statement
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
 			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
 			stats.setId(rs.getString(1));
@@ -1054,4 +1081,40 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			template.batchUpdate(sql, batch);
 		}
 	}
+	
+	@Override
+	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope,
+			long limit) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(allContainersInScope, "allContainersInScope");
+		if(allContainersInScope.isEmpty()) {
+			return Collections.emptySet();
+		}
+		String sql = SQLUtils.getOutOfDateRowsForViewSql(viewId, viewTypeMask);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("scopeIds", allContainersInScope);
+		param.addValue("limitParam", limit);
+		List<Long> deltas = namedTemplate.queryForList(sql, param, Long.class);
+		return new LinkedHashSet<Long>(deltas);
+	}
+
+	@Override
+	public void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(idsToDelete, "batch");
+		String sql = SQLUtils.getDeleteRowsFromViewSql(viewId);
+		this.template.batchUpdate(sql, new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, idsToDelete[i]);
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return idsToDelete.length;
+			}
+		});
+	}
+
 }

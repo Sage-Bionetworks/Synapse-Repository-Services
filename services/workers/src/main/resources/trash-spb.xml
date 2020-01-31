@@ -9,6 +9,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<aop:aspectj-autoproxy />
+	
+	<bean id="trashWorker" class="org.sagebionetworks.trash.worker.TrashWorker"></bean>
 
 	<bean id="trashWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
@@ -22,9 +24,7 @@
 						<constructor-arg index="1">
 							<bean
 								class="org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration">
-								<property name="progressingRunner">
-									<bean class="org.sagebionetworks.trash.worker.TrashWorker" />
-								</property>
+								<property name="progressingRunner" ref="trashWorker" />
 								<property name="semaphoreLockKey" value="trashWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockTimeoutSec" value="3600" />
@@ -41,9 +41,8 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="93867" />
-		<!-- Runs every 10 hours. A long interval to give a grace period for data 
-			migration. -->
-		<property name="repeatInterval" value="36000000" />
+		<!-- Runs every minute, will process a batch of 10K (trashed) elements -->
+		<property name="repeatInterval" value="60000" />
 	</bean>
 
 </beans>

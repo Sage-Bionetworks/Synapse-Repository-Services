@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_MAX_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -15,8 +16,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
@@ -27,6 +30,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -41,7 +45,8 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("id", COL_NODE_ID, true).withIsBackupId(true),
 			new FieldColumn("parentId", COL_NODE_PARENT_ID).withIsSelfForeignKey(true),
 			new FieldColumn("name", COL_NODE_NAME),
-			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
+			new FieldColumn("currentRevNumber", COL_NODE_CURRENT_REV),
+			new FieldColumn("maxRevNumber", COL_NODE_MAX_REV),
 			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
@@ -78,16 +83,27 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			return DBONode.class;
 		}
 	};
-
-	@Override
-	public TableMapping<DBONode> getTableMapping() {
-		return TABLE_MAPPING;
-	}
+	
+	private static final MigratableTableTranslation<DBONode, DBONode> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBONode>() {
+		
+		@Override
+		@TemporaryCode(author = "marco.marasca@sagebase.org", comment = "PLFM-3781: This can be removed after stack-294")
+		public DBONode createDatabaseObjectFromBackup(DBONode backup) {
+			if (backup.getMaxRevNumber() == null) {
+				// If the max revision was not recorded yet we just use the current revision number
+				backup.setMaxRevNumber(backup.getCurrentRevNumber());
+			}
+			return backup;
+		}
+	};
+	
+	private static final List<MigratableDatabaseObject<?,?>> SECONDARY_TYPES = Collections.singletonList(new DBORevision());
 	
 	private Long id;
 	private Long parentId;
 	private String name;
 	private Long currentRevNumber;
+	private Long maxRevNumber;
 	private byte[] description;
 	private String eTag;
 	private Long createdBy;
@@ -118,6 +134,12 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	}
 	public void setCurrentRevNumber(Long currentRevNumber) {
 		this.currentRevNumber = currentRevNumber;
+	}
+	public Long getMaxRevNumber() {
+		return maxRevNumber;
+	}
+	public void setMaxRevNumber(Long maxRevNumber) {
+		this.maxRevNumber = maxRevNumber;
 	}
 	public byte[] getDescription() {
 		return description;
@@ -159,12 +181,16 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		this.eTag = eTag;
 	}
 	@Override
+	public TableMapping<DBONode> getTableMapping() {
+		return TABLE_MAPPING;
+	}
+	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.NODE;
 	}
 	@Override
 	public MigratableTableTranslation<DBONode, DBONode> getTranslator() {
-		return new BasicMigratableTableTranslation<DBONode>();
+		return MIGRATION_TRANSLATOR;
 	}
 	@Override
 	public Class<? extends DBONode> getBackupClass() {
@@ -177,15 +203,14 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBORevision());
-		return list;
+		return SECONDARY_TYPES;
 	}
 	
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.ENTITY;
 	}
+	
 	@Override
 	public String getIdString() {
 		return KeyFactory.keyToString(id);
@@ -195,27 +220,16 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public String getEtag() {
 		return eTag;
 	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((alias == null) ? 0 : alias.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime
-				* result
-				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + Objects.hash(alias, createdBy, createdOn, currentRevNumber, eTag, id, maxRevNumber, name, parentId, type);
 		return result;
 	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -225,59 +239,17 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		if (getClass() != obj.getClass())
 			return false;
 		DBONode other = (DBONode) obj;
-		if (alias == null) {
-			if (other.alias != null)
-				return false;
-		} else if (!alias.equals(other.alias))
-			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (currentRevNumber == null) {
-			if (other.currentRevNumber != null)
-				return false;
-		} else if (!currentRevNumber.equals(other.currentRevNumber))
-			return false;
-		if (!Arrays.equals(description, other.description))
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (parentId == null) {
-			if (other.parentId != null)
-				return false;
-		} else if (!parentId.equals(other.parentId))
-			return false;
-		if (type == null) {
-			if (other.type != null)
-				return false;
-		} else if (!type.equals(other.type))
-			return false;
-		return true;
+		return Objects.equals(alias, other.alias) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(currentRevNumber, other.currentRevNumber)
+				&& Arrays.equals(description, other.description) && Objects.equals(eTag, other.eTag) && Objects.equals(id, other.id)
+				&& Objects.equals(maxRevNumber, other.maxRevNumber) && Objects.equals(name, other.name)
+				&& Objects.equals(parentId, other.parentId) && Objects.equals(type, other.type);
 	}
+	
 	@Override
 	public String toString() {
 		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="
-				+ name + ", currentRevNumber=" + currentRevNumber
+				+ name + ", currentRevNumber=" + currentRevNumber + ", maxRevNumber=" + maxRevNumber
 				+ ", description=" + Arrays.toString(description) + ", eTag="
 				+ eTag + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", type=" + type + ", alias=" + alias + "]";

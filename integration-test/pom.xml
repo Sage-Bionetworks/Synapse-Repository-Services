@@ -14,6 +14,7 @@
 	<name>Integration Tests for All services</name>
 
 	<properties>
+		<jacoco.skip>true</jacoco.skip>
 		<tomcat-version>7.0.32</tomcat-version>
 		<tomcat-file>apache-tomcat-${tomcat-version}</tomcat-file>
 		<!-- This is where the repository war will be deployed -->

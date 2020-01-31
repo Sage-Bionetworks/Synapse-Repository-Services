@@ -19,7 +19,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -127,7 +130,7 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testAddQuery() throws InterruptedException {
+	public void testAddQuery() throws InterruptedException, AsynchJobFailedException, TableFailedException {
 		// create a view of the project.
 		Long viewTypeMask = 0x01L;
 		List<String> scope = Lists.newArrayList(project.getId());
@@ -135,6 +138,8 @@ public class AddFilesToDownloadListWorkerIntegrationTest {
 		
 		// Wait for the file to appear in the table's database.
 		asynchronousJobWorkerHelper.waitForEntityReplication(adminUserInfo, view.getId(), file.getId(), MAX_WAIT_MS);
+		IdAndVersion viewId = IdAndVersion.parse(view.getId());
+		asynchronousJobWorkerHelper.waitForViewToBeUpToDate(viewId, MAX_WAIT_MS);
 		
 		AddFileToDownloadListRequest request = new AddFileToDownloadListRequest();
 		Query query = new Query();

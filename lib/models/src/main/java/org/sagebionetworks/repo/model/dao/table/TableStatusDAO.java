@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dao.table;
 
+import java.util.Date;
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -91,6 +95,15 @@ public interface TableStatusDAO {
 	 *             table.
 	 */
 	public TableStatus getTableStatus(IdAndVersion tableId) throws NotFoundException;
+	
+	/**
+	 * Get the current state of the given table.
+	 * 
+	 * @param idAndVersion
+	 * @return Optional.empty() is returned if there is no state information for the
+	 *         table/view.
+	 */
+	public Optional<TableState> getTableStatusState(IdAndVersion tableId) throws NotFoundException;
 
 	/**
 	 * Delete the table status for this table. Called during migration if table was updated in staging and we don't want
@@ -104,4 +117,20 @@ public interface TableStatusDAO {
 	 * 
 	 */
 	public void clearAllTableState();
+	
+	/**
+	 * The the last changed on date for the given table.
+	 * @param tableId
+	 * @return
+	 */
+	public Date getLastChangedOn(IdAndVersion tableId);
+	
+	/**
+	 * Will update the changedOn of the given table if its state is currently available.
+	 * If the table's state is not available, this call will do nothing.
+	 * 
+	 * @param tableId
+	 * @return True if the table's state was available and changeOn was updated.
+	 */
+	public boolean updateChangedOnIfAvailable(IdAndVersion tableId);
 }

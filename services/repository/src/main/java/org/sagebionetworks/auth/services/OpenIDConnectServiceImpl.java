@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -31,6 +32,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class OpenIDConnectServiceImpl implements OpenIDConnectService {
+	private static final List<String> TOKEN_ENDPOINT_AUTHENTICATION_TYPES = Collections.singletonList("client_secret_basic");
 	
 	@Autowired
 	private UserManager userManager;
@@ -106,6 +108,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		result.setService_documentation("https://docs.synapse.org");
 		result.setClaims_parameter_supported(true);
 		result.setUserinfo_signing_alg_values_supported(Arrays.asList(OIDCSigningAlgorithm.values()));
+		result.setToken_endpoint_auth_methods_supported(TOKEN_ENDPOINT_AUTHENTICATION_TYPES);
 		return result;
 	}
 
