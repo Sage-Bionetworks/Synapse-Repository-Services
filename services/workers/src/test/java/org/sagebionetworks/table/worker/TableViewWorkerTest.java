@@ -145,6 +145,19 @@ public class TableViewWorkerTest {
 	}
 	
 	@Test
+	public void testRunRecoverableMessageException() throws Exception {
+		RecoverableMessageException exception = new RecoverableMessageException("no lock");
+		doThrow(exception).when(mockTableViewManager)
+				.createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			worker.run(mockProgressCallback, change);
+		});
+		assertEquals(result, exception);
+		verifyZeroInteractions(mockLogger);
+	}
+	
+	@Test
 	public void testRunUnknownException() throws Exception {
 		IllegalArgumentException exception = new IllegalArgumentException("no lock");
 		doThrow(exception).when(mockTableViewManager)
