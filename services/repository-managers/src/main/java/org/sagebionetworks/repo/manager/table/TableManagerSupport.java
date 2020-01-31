@@ -253,14 +253,12 @@ public interface TableManagerSupport {
 	 * 
 	 * @param callback
 	 * @param tableId
-	 * @param timeoutSeconds The maximum number of seconds the lock should be held
-	 *                       before treated as expired.
 	 * @param runner
 	 * @return
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			IdAndVersion tableId, int timeoutSeconds, ProgressingCallable<R> runner)
+			IdAndVersion tableId, ProgressingCallable<R> runner)
 			throws Exception;
 	
 	/**
@@ -285,27 +283,24 @@ public interface TableManagerSupport {
 	 * 
 	 * @param callback
 	 * @param tableId
-	 * @param timeoutSeconds The maximum number of seconds the lock should be held
-	 *                       before treated as expired.
 	 * @param runner
 	 * @return
 	 * @throws Exception
 	 */
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, IdAndVersion tableId, int timeoutSeconds,
+			ProgressCallback callback, IdAndVersion tableId,
 			ProgressingCallable<R> runner) throws Exception;
 	
 	/**
 	 * @see TableManagerSupport#tryRunWithTableExclusiveLock(ProgressCallback, IdAndVersion, int, ProgressingCallable)
 	 * @param callback
 	 * @param key
-	 * @param timeoutSeconds
 	 * @param runner
 	 * @return
 	 * @throws Exception 
 	 */
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
-			int timeoutSeconds, ProgressingCallable<R> runner) throws Exception;
+			ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.

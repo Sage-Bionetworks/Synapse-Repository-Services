@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -117,7 +116,7 @@ public class TableEntityTransactionManagerTest {
 	@Test
 	public void testUpdateTableWithTransaction() throws Exception {
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenReturn(response);
+				any(ProgressingCallable.class))).thenReturn(response);
 		// call under test.
 		TableUpdateTransactionResponse results = manager.updateTableWithTransaction(progressCallback, userInfo,
 				request);
@@ -130,7 +129,7 @@ public class TableEntityTransactionManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionTableUnavailableException() throws Exception {
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(new TableUnavailableException(null));
+				any(ProgressingCallable.class))).thenThrow(new TableUnavailableException(null));
 		assertThrows(TableUnavailableException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -141,7 +140,7 @@ public class TableEntityTransactionManagerTest {
 	@Test
 	public void testUpdateTableWithTransactionLockUnavilableException() throws Exception {
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
+				any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
 		assertThrows(LockUnavilableException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -153,7 +152,7 @@ public class TableEntityTransactionManagerTest {
 	public void testUpdateTableWithTransactionRecoverableMessageException() throws Exception {
 
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(new RecoverableMessageException());
+				any(ProgressingCallable.class))).thenThrow(new RecoverableMessageException());
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -165,7 +164,7 @@ public class TableEntityTransactionManagerTest {
 	public void testUpdateTableWithTransactionRuntimeException() throws Exception {
 
 		when(tableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class),
-				anyInt(), any(ProgressingCallable.class))).thenThrow(new RuntimeException());
+				any(ProgressingCallable.class))).thenThrow(new RuntimeException());
 		assertThrows(RuntimeException.class, () -> {
 			// call under test.
 			manager.updateTableWithTransaction(progressCallback, userInfo, request);

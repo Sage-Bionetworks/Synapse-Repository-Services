@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -40,8 +41,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
-public static final int TIMEOUT_SECONDS = 1200;
-
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
@@ -384,7 +383,7 @@ public static final int TIMEOUT_SECONDS = 1200;
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		try {
 			// Run with the exclusive lock on the table if we can get it.
-			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, TIMEOUT_SECONDS,
+			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion,
 					(ProgressCallback callback) -> {
 						buildTableIndexWithLock(callback, idAndVersion, iterator);
 						return null;
@@ -431,7 +430,12 @@ public static final int TIMEOUT_SECONDS = 1200;
 					tableResetToken);
 			log.info("Completed index update for: " + idAndVersion);
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
-		}catch (Exception e) {
+		} catch (InvalidStatusTokenException e) {
+			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but
+			// instead should be retried later.
+			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
 			// Any other error is a table failure.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			// This is not an error we can recover from.

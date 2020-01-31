@@ -584,8 +584,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	public void setTableSchema(final UserInfo userInfo, final List<String> newSchema, final String tableId) {
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS,
+			SynchronizedProgressCallback callback = new SynchronizedProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_SECONDS);
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, idAndVersion,
 					(ProgressCallback callbackInner) -> {
 						setTableSchemaWithExclusiveLock(callbackInner, userInfo, newSchema, tableId);
 						return null;
