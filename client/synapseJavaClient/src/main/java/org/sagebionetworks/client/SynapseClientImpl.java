@@ -441,8 +441,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String ACCESS_REQUIREMENT = "/accessRequirement";
 
-	private static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
-
 	private static final String ACCESS_APPROVAL = "/accessApproval";
 
 	private static final String VERSION_INFO = "/version";
@@ -1273,30 +1271,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
 		deleteUri(getRepoEndpoint(), ACCESS_REQUIREMENT + "/" + arId);
-	}
-
-	@Override
-	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType,
-			Long limit, Long offset) throws SynapseException {
-		String uri = null;
-		switch (subjectId.getType()) {
-			case ENTITY:
-				uri = ENTITY + "/" + subjectId.getId() + ACCESS_REQUIREMENT_UNFULFILLED;
-				break;
-			case EVALUATION:
-				throw new SynapseBadRequestException();
-			case TEAM:
-				uri = TEAM + "/" + subjectId.getId() + ACCESS_REQUIREMENT_UNFULFILLED;
-				break;
-			default: 
-				throw new SynapseClientException("Unsupported type " + subjectId.getType());
-		}
-		uri += "?limit="+limit+"&offset="+offset;
-		if (accessType != null) {
-			uri += "&" + ACCESS_TYPE_PARAMETER + "=" + accessType;
-		}
-		return getPaginatedResults(getRepoEndpoint(), uri, AccessRequirement.class);
 	}
 
 	@Override

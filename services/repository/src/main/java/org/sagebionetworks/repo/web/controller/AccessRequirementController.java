@@ -142,60 +142,7 @@ public class AccessRequirementController {
 			) throws Exception {
 		return serviceProvider.getAccessRequirementService().createLockAccessRequirement(userId, id);
 	}
-	
 
-	/**
-	 * Retrieve all unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
-	 * @param userId
-	 * @param entityId the id of the entity whose unmet Access Requirements are retrieved
-	 * @param accessType the type of access to filter on
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getUnfulfilledEntityAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
-	}
-
-	/**
-	 * Retrieve all unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
-	 * @param userId
-	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
-	 * @param accessType the type of access to filter on
-	 * @param loginRequest
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getUnfulfilledTeamAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = true) ACCESS_TYPE accessType
-	) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(id);
-		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
-	}
 	/**
 	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
 	 * @param userId

@@ -553,9 +553,6 @@ public interface SynapseClient extends BaseClient {
 	public LockAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 
-	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType, Long limit, Long offset) throws SynapseException;
-
 	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
 	

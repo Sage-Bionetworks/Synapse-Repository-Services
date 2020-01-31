@@ -500,8 +500,6 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_CONVERSION = ACCESS_REQUIREMENT+"/conversion";
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";
 
-	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
-
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
@@ -702,10 +700,8 @@ public class UrlHelpers {
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	public static final String SUBMISSION_CONTRIBUTOR = SUBMISSION_WITH_ID+"/contributor";
 	
-	public static final String ACCESS_REQUIREMENT_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_REQUIREMENT;
-	public static final String EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = EVALUATION_WITH_ID+"/accessRequirementUnfulfilled";
 	public static final String ACCESS_APPROVAL_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_APPROVAL;
-
+	
 	public static final String EVALUATION_ACL = EVALUATION + ACL;
 	public static final String EVALUATION_ID_ACL = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + ACL;
 	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
@@ -882,9 +878,8 @@ public class UrlHelpers {
 	public static final String TEAM_ID_ACL = TEAM_ID+"/acl";
 	
 	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
-	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";
 	public static final String ACCESS_APPROVAL_WITH_TEAM_ID = TEAM_ID+ACCESS_APPROVAL;
-
+	
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;

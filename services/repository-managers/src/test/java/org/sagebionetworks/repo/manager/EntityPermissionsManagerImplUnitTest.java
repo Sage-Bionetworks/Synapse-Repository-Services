@@ -675,58 +675,38 @@ public class EntityPermissionsManagerImplUnitTest {
 		entityPermissionsManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
-	
-	// Tests for PLFM-6059
-	
-	@Test
-	public void testHasDownloadAccessWithOpenDataAsAnonymous() {
-		testHasDownloadAccessWithOpenData(anonymousUser);
-	}
-	
-	@Test
-	public void testHasDownloadAccessWithOpenDataAsAnonymousWithUnmetAccessRequirements() {
-		List<Long> unmetAccessRequirements = Arrays.asList(1L);
-		testHasDownloadAccessWithOpenData(anonymousUser, unmetAccessRequirements);
-	}
-	
-	@Test
-	public void testHasDownloadAccessWithOpenDataAsCertifiedUser() {
-		testHasDownloadAccessWithOpenData(certifiedUserInfo);
-	}
-	
-	@Test
-	public void testHasDownloadAccessWihoutOpenDataAsAnonymous() {
 		
-		UserInfo userInfo = anonymousUser;
+	// Tests for PLFM-6059
+
+	@Test
+	public void testHasDownloadAccessAsCertifiedUserAndUnacceptedTermOfUse() {
 		String nodeId = fileId;
-		DataType dataType = DataType.SENSITIVE_DATA;
 		String benefactorId = nodeId;
+		UserInfo userInfo = certifiedUserInfo;
+		boolean acceptedTermsOfUse = false;
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
-		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
-		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
 		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
+		assertEquals("You have not yet agreed to the Synapse Terms of Use.", status.getMessage());
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
-		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userInfo.getId());
 	}
 	
-	private void testHasDownloadAccessWithOpenData(UserInfo userInfo) {
-		testHasDownloadAccessWithOpenData(userInfo, Collections.emptyList());
-	}
-
-	private void testHasDownloadAccessWithOpenData(UserInfo userInfo, List<Long> unmetAccessRequirements) {
-		
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsAnonymous() {
 		String nodeId = fileId;
 		DataType dataType = DataType.OPEN_DATA;
 		String benefactorId = nodeId;
+		UserInfo userInfo = anonymousUser;
+		List<Long> unmetAccessRequirements = Collections.emptyList();
 		
 		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
@@ -741,21 +721,115 @@ public class EntityPermissionsManagerImplUnitTest {
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
-		boolean expected = unmetAccessRequirements.isEmpty();
+		assertTrue(status.isAuthorized());
 		
-		assertEquals(expected, status.isAuthorized());
-		
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(mockNodeDao).getEntityPathIds(nodeId, false);
 		verify(mockNodeDao).getNode(nodeId);
 		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
 				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
-		
 	}
 	
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsAnonymousWithUnmetAccessRequirements() {
+		
+		String nodeId = fileId;
+		DataType dataType = DataType.OPEN_DATA;
+		String benefactorId = nodeId;
+		UserInfo userInfo = anonymousUser;
+		List<Long> unmetAccessRequirements = Arrays.asList(1L);
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
+		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		
+		// Call under test
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		assertFalse(status.isAuthorized());
+		assertEquals("There are unmet access requirements that must be met to read content in the requested container.", status.getMessage());
+		
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).getBenefactor(nodeId);
+		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockNodeDao).getEntityPathIds(nodeId, false);
+		verify(mockNodeDao).getNode(nodeId);
+		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
+	}
+	
+	@Test
+	public void testHasDownloadAccessWithOpenDataAsCertifiedUser() {
+		String nodeId = fileId;
+		DataType dataType = DataType.OPEN_DATA;
+		String benefactorId = nodeId;
+		UserInfo userInfo = certifiedUserInfo;
+		List<Long> unmetAccessRequirements = Collections.emptyList();
+		boolean acceptedTermsOfUse = true;
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
+		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockNodeDao.getEntityPathIds(nodeId, false)).thenReturn(Collections.emptyList());
+		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetAccessRequirements);
+		
+		// Call under test
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		assertTrue(status.isAuthorized());
+		
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).getBenefactor(nodeId);
+		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockNodeDao).getEntityPathIds(nodeId, false);
+		verify(mockNodeDao).getNode(nodeId);
+		verify(mockAccessRequirementDAO).getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(nodeId)), RestrictableObjectType.ENTITY, userInfo.getGroups(), 
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD));
+	}
+	
+	@Test
+	public void testHasDownloadAccessWihoutOpenDataAsAnonymous() {
+		
+		UserInfo userInfo = anonymousUser;
+		String nodeId = fileId;
+		DataType dataType = DataType.SENSITIVE_DATA;
+		String benefactorId = nodeId;
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
+
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		
+		// Call under test
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		assertFalse(status.isAuthorized());
+		assertEquals("You lack DOWNLOAD access to the requested entity.", status.getMessage());
+		
+		verify(mockNodeDao).getNodeTypeById(nodeId);
+		verify(mockNodeDao).getBenefactor(nodeId);
+		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+	}	
 	
 }
