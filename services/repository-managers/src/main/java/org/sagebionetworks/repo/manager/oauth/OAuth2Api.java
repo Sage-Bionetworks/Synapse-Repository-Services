@@ -126,7 +126,6 @@ public class OAuth2Api extends DefaultApi20 {
             Response response = request.send();
             return api.getAccessTokenExtractor().extract(response.getBody());
         }
-
-	}
+    }
 
 }
