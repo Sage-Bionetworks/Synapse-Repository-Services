@@ -280,7 +280,7 @@ public class TableViewIntegrationTest {
 		viewScope.setScope(view.getScopeIds());
 		viewScope.setViewType(view.getType());
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), viewScope, viewId);
-		entitiesToDelete.add(fileViewId);
+		entitiesToDelete.add(view.getId());
 		return viewId;
 	}
 	
@@ -293,7 +293,7 @@ public class TableViewIntegrationTest {
 			for(String id: entitiesToDelete){
 				try {
 					entityManager.deleteEntity(adminUserInfo, id);
-				} catch (Exception e) {} 
+				} catch (Exception e) {}
 			}
 		}
 		
