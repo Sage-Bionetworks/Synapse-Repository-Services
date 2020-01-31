@@ -1024,9 +1024,61 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
+	public void testIsStsStorageLocation_NullStorageLocationSetting() {
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting((ProjectSetting) null);
+		assertFalse(result);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StorageLocationSettingWrongClass() {
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(
+				new ExternalGoogleCloudStorageLocationSetting());
+		assertFalse(result);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_NotStsStorageLocation() {
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(
+				externalGoogleCloudStorageLocationSetting);
+		assertFalse(result);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledFalse() {
+		externalS3StorageLocationSetting.setStsEnabled(false);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(externalS3StorageLocationSetting);
+		assertFalse(result);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledNull() {
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(null);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(externalS3StorageLocationSetting);
+		assertFalse(result);
+	}
+
+	@Test
+	public void testIsStsStorageLocation_StsEnabledTrue() {
+		// Mock dependencies.
+		externalS3StorageLocationSetting.setStsEnabled(true);
+
+		// Method under test.
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(externalS3StorageLocationSetting);
+		assertTrue(result);
+	}
+
+	@Test
 	public void testIsStsStorageLocation_NullProjectSetting() {
 		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(null);
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting((ProjectSetting) null);
 		assertFalse(result);
 		verifyZeroInteractions(mockStorageLocationDAO);
 	}
@@ -1055,42 +1107,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
-	public void testIsStsStorageLocation_NotStsStorageLocation() {
-		// Mock dependencies.
-		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalGoogleCloudStorageLocationSetting);
-
-		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
-		assertFalse(result);
-		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
-	}
-
-	@Test
-	public void testIsStsStorageLocation_StsEnabledFalse() {
-		// Mock dependencies.
-		externalS3StorageLocationSetting.setStsEnabled(false);
-		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);
-
-		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
-		assertFalse(result);
-		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
-	}
-
-	@Test
-	public void testIsStsStorageLocation_StsEnabledNull() {
-		// Mock dependencies.
-		externalS3StorageLocationSetting.setStsEnabled(null);
-		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);
-
-		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(uploadDestinationListSetting);
-		assertFalse(result);
-		verify(mockStorageLocationDAO).get(STORAGE_LOCATION_ID);
-	}
-
-	@Test
-	public void testIsStsStorageLocation_StsEnabledTrue() {
+	public void testIsStsStorageLocation_NormalCase() {
 		// Mock dependencies.
 		externalS3StorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(externalS3StorageLocationSetting);

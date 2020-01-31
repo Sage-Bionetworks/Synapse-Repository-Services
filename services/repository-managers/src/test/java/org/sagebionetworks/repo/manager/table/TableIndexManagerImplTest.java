@@ -44,6 +44,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -1023,6 +1024,38 @@ public class TableIndexManagerImplTest {
 		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
 		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), 
+				any(Exception.class));
+	}
+	
+	/**
+	 * An InvalidStatusTokenException should not cause the table's state to be set to failed.  Instead
+	 * the rebuild should be restarted by pushing the message back on the queue.  
+	 * @throws Exception
+	 */
+	@Test
+	public void testBuildTableIndexWithLockInvalidStatusTokenException() throws Exception {
+		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
+		String resetToken = "resetToken";
+		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
+		String lastEtag = "etag-1";
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		long targetChangeNumber = 1;
+		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.of(targetChangeNumber));
+		
+		InvalidStatusTokenException exception = new InvalidStatusTokenException("wrong token");
+		doThrow(exception).when(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, ()->{
+			// call under test
+			managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		});
+		assertEquals(exception, result.getCause());
+
+		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, lastEtag);
+		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
+		// should not fail
 		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class), 
 				any(Exception.class));
 	}

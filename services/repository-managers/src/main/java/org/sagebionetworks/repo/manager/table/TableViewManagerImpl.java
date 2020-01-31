@@ -26,10 +26,16 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+<<<<<<< HEAD
+=======
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.EntityType;
+>>>>>>> develop
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
@@ -53,6 +59,7 @@ import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVReaderIterator;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -452,8 +459,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * during this call.
 	 * 
 	 * @param idAndVersion
+	 * @throws RecoverableMessageException 
 	 */
-	void createOrRebuildViewHoldingLock(IdAndVersion idAndVersion) {
+	void createOrRebuildViewHoldingLock(IdAndVersion idAndVersion) throws RecoverableMessageException {
 		try {
 			// Is the index out-of-synch?
 			if (!tableManagerSupport.isIndexWorkRequired(idAndVersion)) {
@@ -491,6 +499,11 @@ public class TableViewManagerImpl implements TableViewManager {
 			indexManager.setIndexVersionAndSchemaMD5Hex(idAndVersion, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
+		} catch (InvalidStatusTokenException e) {
+			// PLFM-6069, invalid tokens should not cause the view state to be set to failed, but
+			// instead should be retried later.
+			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			// failed.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);

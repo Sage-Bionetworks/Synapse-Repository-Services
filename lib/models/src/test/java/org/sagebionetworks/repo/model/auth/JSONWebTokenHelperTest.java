@@ -28,6 +28,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.DefaultClaims;
 
+
 public class JSONWebTokenHelperTest {
 	
 	private BigInteger rsaModulus;
@@ -36,6 +37,10 @@ public class JSONWebTokenHelperTest {
 	private static final String ISSUER = "this site";
 	private static final String KEY_ID = "foo";
 	private JsonWebKeySet jsonWebKeySet;
+	
+	private static String bigIntToBase64URLEncoded(BigInteger i) {
+		return Base64.getUrlEncoder().encodeToString(i.toByteArray());
+	}
 	
 	@Before
 	public void setUp() throws Exception {
@@ -80,8 +85,8 @@ public class JSONWebTokenHelperTest {
 		
 		jsonWebKeySet = new  JsonWebKeySet();
 		JsonWebKeyRSA pubKey = new JsonWebKeyRSA();
-		pubKey.setE(rsaExponent.toString());
-		pubKey.setN(rsaModulus.toString());
+		pubKey.setE(bigIntToBase64URLEncoded(rsaExponent));
+		pubKey.setN(bigIntToBase64URLEncoded(rsaModulus));
 		pubKey.setKid(KEY_ID);
 		
 		JsonWebKeyRSA secondKey = new JsonWebKeyRSA();
@@ -169,12 +174,11 @@ public class JSONWebTokenHelperTest {
 
 	}
 
-	
 	@Test
 	public void testGetRSAPublicKeyForJsonWebKeyRSA() throws Exception {
 		JsonWebKeyRSA key = new JsonWebKeyRSA();
-		key.setE(rsaExponent.toString());
-		key.setN(rsaModulus.toString());
+		key.setE(bigIntToBase64URLEncoded(rsaExponent));
+		key.setN(bigIntToBase64URLEncoded(rsaModulus));
 		
 		// method under test
 		RSAPublicKey rsaPublicKey = JSONWebTokenHelper.getRSAPublicKeyForJsonWebKeyRSA(key);

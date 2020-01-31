@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -422,7 +423,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					tableResetToken);
 			log.info("Completed index update for: " + idAndVersion);
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
-		}catch (Exception e) {
+		} catch (InvalidStatusTokenException e) {
+			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but
+			// instead should be retried later.
+			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
 			// Any other error is a table failure.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			// This is not an error we can recover from.

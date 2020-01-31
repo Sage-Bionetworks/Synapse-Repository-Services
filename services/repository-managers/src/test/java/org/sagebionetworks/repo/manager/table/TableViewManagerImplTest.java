@@ -58,6 +58,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -65,6 +66,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
@@ -84,6 +86,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.AmazonServiceException;
@@ -811,7 +814,7 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() {
+	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() throws RecoverableMessageException {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
 		manager.createOrRebuildViewHoldingLock(idAndVersion);
@@ -822,9 +825,10 @@ public class TableViewManagerImplTest {
 	
 	/**
 	 * Populate a view from entity replication.
+	 * @throws RecoverableMessageException 
 	 */
 	@Test
-	public void testCreateOrRebuildViewHoldingLockWorkeRequired() {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequired() throws RecoverableMessageException {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -871,9 +875,10 @@ public class TableViewManagerImplTest {
 	/**
 	 * Populate a view from a snapshot.
 	 * @throws IOException
+	 * @throws RecoverableMessageException 
 	 */
 	@Test
-	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException, RecoverableMessageException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
@@ -949,6 +954,46 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+	}
+	
+	/**
+	 * A InvalidStatusTokenException thrown while attempting to set the view to available should not
+	 * result in setting the view's state to failed.  Instead, the message should returned to the queue
+	 * for a retry at a later time.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testCreateOrRebuildViewHoldingLockInvalidStatusTokenException() throws IOException {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		Long viewTypeMask = 1L;
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		String originalSchemaMD5Hex = "startMD5";
+		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		Set<Long> scope = Sets.newHashSet(124L, 455L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema))
+				.thenReturn(viewCRC);
+		
+		// conflict is thrown if the state has changed since the process was started.
+		InvalidStatusTokenException conflictException = new InvalidStatusTokenException();
+		doThrow(conflictException).when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
+		});
+		assertEquals(conflictException, result.getCause());
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		// conflict should not set the view to failed.
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
 	}
 	
 	/**

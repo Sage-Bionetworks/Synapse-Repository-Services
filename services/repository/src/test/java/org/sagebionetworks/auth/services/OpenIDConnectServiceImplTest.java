@@ -73,6 +73,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/token", config.getToken_endpoint());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/userinfo", config.getUserinfo_endpoint());
 		assertEquals(Collections.singletonList(OIDCSigningAlgorithm.RS256), config.getUserinfo_signing_alg_values_supported());
+		assertEquals(Collections.singletonList("client_secret_basic"), config.getToken_endpoint_auth_methods_supported());
 	}
 	
 	@Test

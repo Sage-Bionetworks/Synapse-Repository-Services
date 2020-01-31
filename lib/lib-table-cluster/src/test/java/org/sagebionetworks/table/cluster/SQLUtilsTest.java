@@ -432,7 +432,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue("456");
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
-		assertEquals("_C123_ BIGINT(20) DEFAULT 456 COMMENT 'INTEGER'", builder.toString());
+		assertEquals("_C123_ BIGINT DEFAULT 456 COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -444,7 +444,7 @@ public class SQLUtilsTest {
 		cm.setDefaultValue(null);
 		// call under test
 		SQLUtils.appendColumnDefinition(builder, cm, useDepricatedUtf8ThreeBytes);
-		assertEquals("_C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("_C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 
@@ -456,7 +456,7 @@ public class SQLUtilsTest {
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -468,7 +468,7 @@ public class SQLUtilsTest {
 		isFirst = false;
 		// call under test
 		SQLUtils.appendAddColumn(builder, cm, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals(", ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals(", ADD COLUMN _C123_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -647,7 +647,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -667,7 +667,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -687,7 +687,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 
 	@Test
@@ -707,7 +707,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst, useDepricatedUtf8ThreeBytes);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
+		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER'"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
 
@@ -869,7 +869,7 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE T999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
@@ -903,7 +903,7 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change, change2), tableId, alterTemp);
 		assertEquals("ALTER TABLE TEMPT999 "
-				+ "CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER', "
+				+ "CHANGE COLUMN _C123_ _C456_ BIGINT DEFAULT NULL COMMENT 'INTEGER', "
 				+ "CHANGE COLUMN _C111_ _C222_ VARCHAR(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'foo' COMMENT 'STRING', "
 				+ "DROP COLUMN _DBL_C111_", results);
 	}
@@ -1059,8 +1059,8 @@ public class SQLUtilsTest {
 
 		List<String> expected = Collections.singletonList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C123_ (" +
-					"ROW_ID_REF_C123_ BIGINT(20) NOT NULL," +
-					" INDEX_NUM BIGINT(20) NOT NULL," +
+					"ROW_ID_REF_C123_ BIGINT NOT NULL," +
+					" INDEX_NUM BIGINT NOT NULL," +
 					" _C123__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
 					" PRIMARY KEY (ROW_ID_REF_C123_, INDEX_NUM)," +
 					"INDEX _C123__UNNEST_IDX (_C123__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);");
@@ -1122,8 +1122,8 @@ public class SQLUtilsTest {
 
 		List<String> expected = Arrays.asList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID_REF_C456_ BIGINT(20) NOT NULL, " +
-						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"ROW_ID_REF_C456_ BIGINT NOT NULL, " +
+						"INDEX_NUM BIGINT NOT NULL, " +
 						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
 						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
@@ -1152,15 +1152,15 @@ public class SQLUtilsTest {
 
 		List<String> expected = Arrays.asList(
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID_REF_C456_ BIGINT(20) NOT NULL, " +
-						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"ROW_ID_REF_C456_ BIGINT NOT NULL, " +
+						"INDEX_NUM BIGINT NOT NULL, " +
 						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
 						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
 				"DROP TABLE IF EXISTS T999_INDEX_C123_;",
 				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (" +
-						"ROW_ID_REF_C101112_ BIGINT(20) NOT NULL, " +
-						"INDEX_NUM BIGINT(20) NOT NULL, " +
+						"ROW_ID_REF_C101112_ BIGINT NOT NULL, " +
+						"INDEX_NUM BIGINT NOT NULL, " +
 						"_C101112__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 						"PRIMARY KEY (ROW_ID_REF_C101112_, INDEX_NUM)," +
 						"INDEX _C101112__UNNEST_IDX (_C101112__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C101112_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
@@ -1179,8 +1179,8 @@ public class SQLUtilsTest {
 		// call under test
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
-				+ "ROW_ID bigint(20) NOT NULL, "
-				+ "ROW_VERSION bigint(20) NOT NULL, "
+				+ "ROW_ID BIGINT NOT NULL, "
+				+ "ROW_VERSION BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID))", sql);
 	}
 
@@ -1190,10 +1190,10 @@ public class SQLUtilsTest {
 		// call under test
 		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		assertEquals("CREATE TABLE IF NOT EXISTS T999( "
-				+ "ROW_ID bigint(20) NOT NULL, "
-				+ "ROW_VERSION bigint(20) NOT NULL, "
+				+ "ROW_ID BIGINT NOT NULL, "
+				+ "ROW_VERSION BIGINT NOT NULL, "
 				+ "ROW_ETAG varchar(36) NOT NULL, "
-				+ "ROW_BENEFACTOR bigint(20) NOT NULL, "
+				+ "ROW_BENEFACTOR BIGINT NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID), "
 				+ "KEY `IDX_ETAG` (ROW_ETAG), "
 				+ "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR))", sql);
@@ -2783,8 +2783,8 @@ public class SQLUtilsTest {
 		columnInfo.setMaximumSize(42L);
 		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
-				"ROW_ID_REF_C0_ BIGINT(20) NOT NULL, " +
-				"INDEX_NUM BIGINT(20) NOT NULL, " +
+				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
+				"INDEX_NUM BIGINT NOT NULL, " +
 				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
 				"INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC) " +

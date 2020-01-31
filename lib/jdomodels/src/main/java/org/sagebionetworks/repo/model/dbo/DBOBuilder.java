@@ -390,9 +390,9 @@ public class DBOBuilder<T> {
 		String type = fieldAnnotation.type();
 		if (Strings.isNullOrEmpty(type)) {
 			if (fieldClazz == Long.class) {
-				type = "bigint(20)";
+				type = "BIGINT";
 			} else if (fieldClazz == Date.class) {
-				type = "bigint(20)";
+				type = "BIGINT";
 			} else if (fieldClazz == String.class) {
 				if (fieldAnnotation.varchar() != 0) {
 					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci";

@@ -17,11 +17,6 @@ public interface AccessRequirementService {
 
 	public AccessRequirement createLockAccessRequirement(Long userId,
 			String entityId) throws Exception;
-
-	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
-			throws DatastoreException, UnauthorizedException,
-			NotFoundException;
 	
 	public AccessRequirement getAccessRequirement(String requirementId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;

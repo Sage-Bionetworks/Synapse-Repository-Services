@@ -147,11 +147,11 @@ public class SQLUtils {
 		switch (type) {
 		case STATUS:
 			columnDefinitions.append("single_key ENUM('1') NOT NULL PRIMARY KEY, ");
-			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL,");
+			columnDefinitions.append(ROW_VERSION).append(" BIGINT NOT NULL,");
 			columnDefinitions.append(SCHEMA_HASH).append(" CHAR(35) NOT NULL");
 			break;
 		case FILE_IDS:
-			columnDefinitions.append(FILE_ID).append(" bigint(20) NOT NULL PRIMARY KEY");
+			columnDefinitions.append(FILE_ID).append(" BIGINT NOT NULL PRIMARY KEY");
 			break;
 		default:
 			throw new IllegalArgumentException("Cannot handle type " + type);
@@ -686,11 +686,11 @@ public class SQLUtils {
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append("( ");
-		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
-		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+		builder.append(ROW_ID).append(" BIGINT NOT NULL, ");
+		builder.append(ROW_VERSION).append(" BIGINT NOT NULL, ");
 		if(isView){
 			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
-			builder.append(ROW_BENEFACTOR).append(" bigint(20) NOT NULL, ");
+			builder.append(ROW_BENEFACTOR).append(" BIGINT NOT NULL, ");
 		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		if(isView){
@@ -1925,8 +1925,8 @@ public class SQLUtils {
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
 		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);
 		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
-				rowIdRefColumnName+" BIGINT(20) NOT NULL, " +
-				INDEX_NUM + " BIGINT(20) NOT NULL, " + //index of value in its list
+				rowIdRefColumnName+" BIGINT NOT NULL, " +
+				INDEX_NUM + " BIGINT NOT NULL, " + //index of value in its list
 				columnName + " " + columnTypeSql + ", " +
 				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+")," +
 				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
