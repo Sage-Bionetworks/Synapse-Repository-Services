@@ -2557,10 +2557,8 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowsIds = null;
 		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
 
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
-
 		//each list value created by createRows has 2 items in the list
-		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 	}
 
 	//See PLFM-5999
@@ -2608,20 +2606,23 @@ public class TableIndexDAOImplTest {
 		multiValue.setName("multiValue");
 		multiValue.setMaximumSize(100L);
 		Set<Long> rowIdFilter = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		});
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("tableId is required.", message);
+
 	}
 
 	@Test
 	public void testDeleteFromListColumnIndexTable_NullColumn() {
 		ColumnModel multiValue = null;
-		Set<Long> rowIdFilter = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
 			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		});
+		}).getMessage();
+		assertEquals("listColumn is required.", message);
 	}
 
 	@Test
@@ -2646,9 +2647,10 @@ public class TableIndexDAOImplTest {
 		multiValue.setColumnType(ColumnType.STRING_LIST);
 		multiValue.setName("multiValue");
 		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, null);
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
 		}).getMessage();
 		assertEquals("rowIds is required and must not be empty.", message);
 	}
@@ -2699,15 +2701,14 @@ public class TableIndexDAOImplTest {
 
 		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null);
 
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
-		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 
 		//method under test
 		//delete 2 rows from index table
 		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId()));
 
 		//deleted 2 rows so expect 2*2=4 less rows in the index table
-		assertEquals((numRows-2) * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals((numRows-2) * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 	}
 	
 	/**
@@ -3206,11 +3207,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, multiValue.getId());
 
 		//each list value created by createRows has 2 items in the list
-		assertEquals(rowCount * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals(rowCount * 2, countRowsInMultiValueIndex(tableId, multiValue.getId()));
 	}
 	
 	/**

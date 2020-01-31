@@ -106,20 +106,19 @@ public static final int TIMEOUT_SECONDS = 1200;
 								tableIndexDao.applyFileHandleIdsToTable(
 										tableId, fileHandleIds);
 							}
-							// set the new max version for the index
-							tableIndexDao.setMaxCurrentCompleteVersionForTable(
-									tableId, changeSetVersionNumber);
 
 							//once all changes to main table are applied, populate the list-type columns with the changes.
 							for(ListColumnChanges listColumnChange : rowset.groupListColumnChanges()){
 								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
 								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
 							}
+
+							// set the new max version for the index
+							tableIndexDao.setMaxCurrentCompleteVersionForTable(
+									tableId, changeSetVersionNumber);
 							return null;
 						}
 					});
-
-
 		}
 	}
 
