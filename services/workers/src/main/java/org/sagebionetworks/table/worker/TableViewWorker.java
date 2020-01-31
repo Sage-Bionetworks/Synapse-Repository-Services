@@ -53,6 +53,8 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 					// create or update the index
 					tableViewManager.createOrUpdateViewIndex(idAndVersion, progressCallback);
 				}
+			} catch (RecoverableMessageException e) {
+				throw e;
 			} catch (TableIndexConnectionUnavailableException | TableUnavailableException | LockUnavilableException e) {
 				// try again later.
 				throw new RecoverableMessageException(e);
