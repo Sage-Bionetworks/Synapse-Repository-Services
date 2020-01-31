@@ -47,7 +47,7 @@ public class AddFilesToDownloadListWorker implements MessageDrivenRunner {
 			if(request.getFolderId() != null) {
 				resultList = bulkDownloadManager.addFilesFromFolder(user, request.getFolderId());
 			}else if(request.getQuery() != null) {
-				resultList = bulkDownloadManager.addFilesFromQuery(user, request.getQuery());
+				resultList = bulkDownloadManager.addFilesFromQuery(progressCallback, user, request.getQuery());
 			}else {
 				throw new IllegalArgumentException(MUST_PROVIDE_EITHER_FOLDER_ID_OR_QUERY);
 			}

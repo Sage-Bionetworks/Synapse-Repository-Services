@@ -26,8 +26,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -45,9 +43,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -76,10 +72,6 @@ public class TableViewManagerImpl implements TableViewManager {
 	static Log log = LogFactory.getLog(TableViewManagerImpl.class);	
 
 	public static final String DEFAULT_ETAG = "DEFAULT";
-	/**
-	 * See: PLFM-5456
-	 */
-	public static int TIMEOUT_SECONDS = 60 * 10;
 
 	public static final String PROJECT_TYPE_CANNOT_BE_COMBINED_WITH_ANY_OTHER_TYPE = "The Project type cannot be combined with any other type.";
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '" + EntityField.etag.name()
@@ -374,14 +366,14 @@ public class TableViewManagerImpl implements TableViewManager {
 		 * to query the view while this process runs.
 		 */
 		try {
-			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
+			tableManagerSupport.tryRunWithTableNonexclusiveLock(outerProgressCallback, idAndVersion,
 					(ProgressCallback callback) -> {
 						/*
 						 * A special exclusive lock is used to prevent more then one instance
 						 * from applying deltas to a view at a time.
 						 */
 						String key = VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
-						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key, TIMEOUT_SECONDS,
+						tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, key,
 								(ProgressCallback innerCallback) -> {
 									// while holding both locks do the work.
 									applyChangesToAvailableViewHoldingLock(idAndVersion);
@@ -449,7 +441,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * @throws Exception
 	 */
 	void createOrRebuildView(IdAndVersion idAndVersion, ProgressCallback outerProgressCallback) throws Exception {
-		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, idAndVersion, TIMEOUT_SECONDS,
+		tableManagerSupport.tryRunWithTableExclusiveLock(outerProgressCallback, idAndVersion,
 				(ProgressCallback innerCallback) -> {
 					createOrRebuildViewHoldingLock(idAndVersion);
 					return null;

@@ -41,8 +41,6 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	
-	public static final int TIMEOUT_SECONDS = 1200;
-
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
@@ -378,7 +376,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		try {
 			// Run with the exclusive lock on the table if we can get it.
-			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, TIMEOUT_SECONDS,
+			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion,
 					(ProgressCallback callback) -> {
 						buildTableIndexWithLock(callback, idAndVersion, iterator);
 						return null;

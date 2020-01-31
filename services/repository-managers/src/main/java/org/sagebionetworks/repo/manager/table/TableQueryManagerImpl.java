@@ -53,8 +53,6 @@ import org.springframework.jdbc.BadSqlGrammarException;
 
 public class TableQueryManagerImpl implements TableQueryManager {
 
-	public static final int READ_LOCK_TIMEOUT_SEC = 60;
-	
 	public static final long MAX_ROWS_PER_CALL = 100;
 
 	@Autowired
@@ -239,7 +237,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, EmptyResultException {
 
 		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, idAndversion, READ_LOCK_TIMEOUT_SEC,
+			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, idAndversion,
 					runner);
 		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
 			// runtime exceptions are unchanged.

@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -125,12 +125,11 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	@WriteTransaction
 	@Override
-	public DownloadList addFilesFromQuery(UserInfo user, Query query)
+	public DownloadList addFilesFromQuery(ProgressCallback progressCallback, UserInfo user, Query query)
 			throws DatastoreException, NotFoundException, TableFailedException, RecoverableMessageException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
 		try {
-			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
 			QueryBundleRequest queryBundle = new QueryBundleRequest();
 			queryBundle.setPartMask(QUERY_ONLY_PART_MASK);
 			queryBundle.setQuery(query);
@@ -140,7 +139,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 			 * too many rows.
 			 */
 			query.setLimit(MAX_FILES_PER_DOWNLOAD_LIST + 1L);
-			QueryResultBundle queryResult = this.tableQueryManager.queryBundle(callback, user, queryBundle);
+			QueryResultBundle queryResult = this.tableQueryManager.queryBundle(progressCallback, user, queryBundle);
 			// validate this is query against a file view.
 			String tableId = queryResult.getQueryResult().getQueryResults().getTableId();
 			EntityType tableType = entityManager.getEntityType(user, tableId);
