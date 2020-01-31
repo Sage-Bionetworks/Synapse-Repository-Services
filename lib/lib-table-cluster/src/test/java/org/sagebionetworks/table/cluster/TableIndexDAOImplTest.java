@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2599,7 +2600,77 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testCreateAndPopulateListColumnIndexTables__DuplicateKeyInsert() {
+	public void testDeleteFromListColumnIndexTable_NullTableId() {
+		tableId = null;
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_NullColumn() {
+		ColumnModel multiValue = null;
+		Set<Long> rowIdFilter = null;
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		});
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_NotListType() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("Only valid for List type columns", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_nullRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, null);
+		}).getMessage();
+		assertEquals("rowIds is required and must not be empty.", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_EmptyRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Collections.emptySet();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("rowIds is required and must not be empty.", message);
+	}
+
+
+	@Test
+	public void testDeleteFromListColumnIndexTable() {
 		// create a table with a long column.
 		ColumnModel intColumn = new ColumnModel();
 		intColumn.setId("12");
@@ -2626,18 +2697,17 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
 
-		Set<Long> rowsIds = null;
-
-		//method under test
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
-		//method under test again. populate a second time to simulate update of values
-		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null);
 
 		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
-
-		//each list value created by createRows has 2 items in the list
 		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
 
+		//method under test
+		//delete 2 rows from index table
+		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId()));
+
+		//deleted 2 rows so expect 2*2=4 less rows in the index table
+		assertEquals((numRows-2) * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
 	}
 	
 	/**
