@@ -1944,9 +1944,7 @@ public class TableWorkerIntegrationTest {
 		}
 		
 	}
-	
-	// Multiple values are not currently supported on tables (only supported on views). See: PLFM-6043
-	@Ignore
+
 	@Test
 	public void testFacet_SingleValueColumnSelected() throws Exception{
 		facetTestSetup();
@@ -2021,8 +2019,6 @@ public class TableWorkerIntegrationTest {
 		assertEquals((Long) 1L, enumListValues.get(3).getCount());
 	}
 
-	// Multiple values are not currently supported on tables (only supported on views). See: PLFM-6043
-	@Ignore
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
 		facetTestSetup();

@@ -250,7 +250,15 @@ public interface TableIndexDAO {
 	 */
 	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
-		/**
+	/**
+	 * Delete rows from an a specific list column's index table.
+	 * @param tableId
+	 * @param listColumn
+	 * @param rowIds
+	 */
+	void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
+
+	/**
 		 * Create a temporary table like the given table.
 		 * @param tableId
 		 */

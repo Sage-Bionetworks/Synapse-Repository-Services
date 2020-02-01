@@ -568,6 +568,21 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 	}
 
+	@Override
+	public void deleteFromListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(listColumn, "listColumn");
+		ValidateArgument.required(listColumn.getId(), "listColumn.id");
+		ValidateArgument.requiredNotEmpty(rowIds, "rowIds");
+		ValidateArgument.requirement(ColumnTypeListMappings.isList(listColumn.getColumnType()), "Only valid for List type columns");
+
+		String rowIdsParameter = "rowIds";
+
+		namedTemplate.update("DELETE FROM " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, listColumn.getId()) +
+				" WHERE " + SQLUtils.getRowIdRefColumnNameForId(listColumn.getId()) + " IN (:"+rowIdsParameter+")" ,
+				Collections.singletonMap(rowIdsParameter, rowIds));
+	}
+
 
 	@Override
 	public void createTemporaryTable(IdAndVersion tableId) {

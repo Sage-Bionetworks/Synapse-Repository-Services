@@ -29,6 +29,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.ListColumnChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -40,16 +41,15 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
-	
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
-	
+
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
-	
+
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
-	
+
 	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
@@ -62,7 +62,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * getCurrentVersionOfIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -75,7 +75,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * applyChangeSetToIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -105,6 +105,13 @@ public class TableIndexManagerImpl implements TableIndexManager {
 								tableIndexDao.applyFileHandleIdsToTable(
 										tableId, fileHandleIds);
 							}
+
+							//once all changes to main table are applied, populate the list-type columns with the changes.
+							for(ListColumnChanges listColumnChange : rowset.groupListColumnChanges()){
+								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+							}
+
 							// set the new max version for the index
 							tableIndexDao.setMaxCurrentCompleteVersionForTable(
 									tableId, changeSetVersionNumber);
