@@ -556,14 +556,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>synapsePythonClient</artifactId>
-				<version>${project.version}</version>
-				<classifier>synapse-python-client-assembly</classifier>
-				<type>zip</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>wikiutil</artifactId>
 				<version>${project.version}</version>
 			</dependency>
