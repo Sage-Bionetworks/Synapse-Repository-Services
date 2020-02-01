@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -27,7 +29,7 @@ public class TableQueryUtilsTest {
 	QueryBundleRequest queryRequest;
 	QueryNextPageToken nextPageToken;
 	
-	@Before
+	@BeforeEach
 	public void before(){
 		
 		tableId = "syn123";
@@ -74,10 +76,12 @@ public class TableQueryUtilsTest {
 		assertEquals(tableId, resultTableId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testExtractTableIdFromSqlNull(){
 		String sql = null;
-		TableQueryUtils.extractTableIdFromSql(sql);
+		assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.extractTableIdFromSql(sql);
+		});
 	}
 	
 	@Test
@@ -86,10 +90,12 @@ public class TableQueryUtilsTest {
 		assertEquals(tableId, resultTableId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetTableIdDownloadFromTableRequestNull(){
 		DownloadFromTableRequest request = null;
-		TableQueryUtils.getTableId(request);
+		assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.getTableId(request);
+		});
 	}
 	
 	@Test
@@ -98,10 +104,12 @@ public class TableQueryUtilsTest {
 		assertEquals(tableId, resultTableId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetTableIdQueryBundleRequestNull(){
 		QueryBundleRequest request = null;
-		TableQueryUtils.getTableId(request);
+		assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.getTableId(request);
+		});
 	}
 	
 	@Test
@@ -110,16 +118,20 @@ public class TableQueryUtilsTest {
 		assertEquals(tableId, requestTableId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetTableIdQueryNextPageTokenNull(){
 		QueryNextPageToken request = null;
-		TableQueryUtils.getTableId(request);
+		assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.getTableId(request);
+		});
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testGetTableIdFromRequestBodydUnknownType(){
 		CacheableRequestBody unknownType = Mockito.mock(CacheableRequestBody.class);
-		TableQueryUtils.getTableIdFromRequestBody(unknownType);
+		assertThrows(IllegalArgumentException.class, ()->{
+			TableQueryUtils.getTableIdFromRequestBody(unknownType);
+		});
 	}
 	
 	@Test
@@ -138,5 +150,20 @@ public class TableQueryUtilsTest {
 	public void testGetTableIdFromRequestBodyQueryNextPageToken(){
 		String requestTableId = TableQueryUtils.getTableIdFromRequestBody(nextPageToken);
 		assertEquals(tableId, requestTableId);
+	}
+	
+	/**
+	 * For PLFM-6027, a user's query contained an unknown character ("\u2018") resulting in a 
+	 * org.sagebionetworks.table.query.TokenMgrError exception.  Since this exception was
+	 * not mapped in the controllers, we returned a 500.
+	 * 
+	 * We expanded the parser to ignore characters in this range.
+	 */
+	@Test
+	public void testPLFM_6027() {
+		char unknownChar = 0x2018;
+		String sql = "select * from syn123 "+unknownChar;
+		String result = TableQueryUtils.extractTableIdFromSql(sql);
+		assertEquals("syn123", result);
 	}
 }

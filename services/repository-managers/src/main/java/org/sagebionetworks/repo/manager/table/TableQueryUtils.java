@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.TokenMgrError;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class TableQueryUtils {
@@ -128,7 +129,9 @@ public class TableQueryUtils {
 		ValidateArgument.required(sql, "SQL string");
 		try {
 			return new TableQueryParser(sql).querySpecification().getTableExpression().getFromClause().getTableReference().getTableName();
-		} catch (ParseException e) {
+		} catch (TokenMgrError e) {
+			throw new IllegalArgumentException("The provided SQL query could not be parsed.",e);
+		}catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
 	}
