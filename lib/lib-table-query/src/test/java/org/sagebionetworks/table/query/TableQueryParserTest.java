@@ -1,13 +1,14 @@
 package org.sagebionetworks.table.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -251,8 +252,8 @@ public class TableQueryParserTest {
 		assertNotNull(sq);
 		assertEquals(null,  sq.getSetQuantifier());
 		assertNotNull(sq.getSelectList());
-		assertEquals("Simple select * was missing the asterisk", Boolean.TRUE,  sq.getSelectList().getAsterisk());
-		assertEquals("Select * should not have any columns", null,  sq.getSelectList().getColumns());
+		assertEquals(Boolean.TRUE,  sq.getSelectList().getAsterisk(),"Simple select * was missing the asterisk");
+		assertEquals(null,  sq.getSelectList().getColumns(), "Select * should not have any columns");
 		assertNotNull(sq.getTableExpression());
 		assertNotNull(sq.getTableExpression().getFromClause());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference());
@@ -310,10 +311,12 @@ public class TableQueryParserTest {
 		assertEquals("SELECT foo, COUNT(bar) FROM syn456 WHERE bar = 'cat''s' GROUP BY foo ORDER BY bar LIMIT 1 OFFSET 2", sql);
 	}
 	
-	@Test (expected=ParseException.class)
+	@Test
 	public void testQueryEndOfFile() throws ParseException{
-		// There must not be anything at the end of the query.
-		TableQueryParser.parserQuery("select foo from syn456 limit 1 offset 2 select foo");
+		assertThrows(ParseException.class, ()->{
+			// There must not be anything at the end of the query.
+			TableQueryParser.parserQuery("select foo from syn456 limit 1 offset 2 select foo");
+		});
 	}
 	
 	/**
@@ -386,19 +389,30 @@ public class TableQueryParserTest {
 		assertEquals("SELECT * FROM syn123.567 WHERE foo = 'bar'",	element.toSql());
 	}
 	
-	@Test (expected=ParseException.class)
+	@Test
 	public void testTableNameTooManyDots() throws ParseException {
-		TableQueryParser.parserQuery("select * from syn123.567.333 where foo = 'bar'");
+		assertThrows(ParseException.class, ()->{
+			TableQueryParser.parserQuery("select * from syn123.567.333 where foo = 'bar'");
+		});
 	}
 	
-	@Test (expected=ParseException.class)
+	@Test
 	public void testTableNameTrailingDot() throws ParseException {
-		TableQueryParser.parserQuery("select * from syn123.567. where foo = 'bar'");
+		assertThrows(ParseException.class, ()->{
+			TableQueryParser.parserQuery("select * from syn123.567. where foo = 'bar'");
+		});
 	}
 	
 	@Test
 	public void testEntityIdColumnName() throws ParseException {
 		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 where syn567 = 'bar'");
 		assertEquals("SELECT * FROM syn123 WHERE syn567 = 'bar'", element.toSql());
+	}
+	
+	@Test
+	public void testUnknownCharacters() throws ParseException {
+		char unknownChar = 0xffff;
+		QuerySpecification element = TableQueryParser.parserQuery("select * from syn123 "+unknownChar);
+		assertEquals("SELECT * FROM syn123", element.toSql());
 	}
 }

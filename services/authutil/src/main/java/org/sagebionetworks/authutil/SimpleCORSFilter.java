@@ -62,25 +62,9 @@ public class SimpleCORSFilter implements Filter {
 			response.addHeader(ACCESS_CONTROL_ALLOW_METHODS, METHODS);
 			// header indicates that the actual request can include user credentials (send cookies from another domain).
 			response.addHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
-			// We do not pass along the pre-flight requests, we just return with the header.
-			log.info("Pre-flight request headers: ");
-			logHeaders(request);
 		} else {
 			// pass along all non-pre-flight requests.
 			chain.doFilter(request, response);
-		}
-	}
-
-	/**
-	 * Write the headers to the log
-	 * @param request
-	 */
-	private void logHeaders(HttpServletRequest request) {
-		Enumeration headers = request.getHeaderNames();
-		while(headers.hasMoreElements()){
-			String key = (String) headers.nextElement();
-			String value = request.getHeader(key);
-			log.info("\t "+key+" = "+value);
 		}
 	}
 

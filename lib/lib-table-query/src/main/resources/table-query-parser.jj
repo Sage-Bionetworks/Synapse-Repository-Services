@@ -140,7 +140,7 @@ SKIP : /* WHITE SPACE */
 | "\f"
 | "\n"
 | < LOW_SPECIAL_ASCII: (["\u0000"-"\u001f"]) >
-| < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
+| < HIGH_SPECIAL_ASCII: (["\u007f"-"\uffff"]) >
 }
 
 /* Numeric tokens */

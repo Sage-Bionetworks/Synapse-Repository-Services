@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.ViewScope;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -45,6 +47,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	TableManagerSupport tableMangerSupport;
 	@Autowired
 	TableViewManager tableViewManager;
+	@Autowired
+	TableEntityManager tableEntityManager;
 
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> T startAndWaitForJob(UserInfo user,
@@ -162,6 +166,21 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  maxWaitMS);
 			System.out.println("Waiting for view "+viewId+" to be up-to-date");
 			Thread.sleep(1000);
+		}
+	}
+
+	@Override
+	public void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS) throws InterruptedException {
+		long start = System.currentTimeMillis();
+		while(true) {
+			try {
+				tableEntityManager.setTableSchema(userInfo, newSchema, tableId);
+				return;
+			} catch (TemporarilyUnavailableException e) {
+				System.out.println("Waiting for excluisve lock on "+tableId+"...");
+				Thread.sleep(1000);
+			}
+			assertTrue("Timed out Waiting for excluisve lock on "+tableId, (System.currentTimeMillis()-start) <  maxWaitMS);
 		}
 	}
 

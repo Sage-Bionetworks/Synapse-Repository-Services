@@ -69,4 +69,16 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	void waitForViewToBeUpToDate(IdAndVersion viewId, long maxWaitMS)
 			throws InterruptedException, AsynchJobFailedException, TableFailedException;
+	
+
+	/**
+	 * Set the schema for the given table and wait for the lock as needed.
+	 * @param userInfo
+	 * @param newSchema
+	 * @param tableId
+	 * @param maxWaitMS
+	 * @throws InterruptedException
+	 */
+	void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS)
+			throws InterruptedException;
 }
