@@ -149,8 +149,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 	private static TableMapping<DBOVerificationState> DBO_VERIFICATION_STATE_MAPPING =
 			new DBOVerificationState().getTableMapping();
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
-
 	@WriteTransaction
 	@Override
 	public VerificationSubmission createVerificationSubmission(
@@ -172,13 +170,13 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
-		dbo.setSerialized(serializeDTO(dto));
+		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
 		dbo.setEtag(UUID.randomUUID().toString());
 		return dbo;
 	}
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
-		VerificationSubmission dto = deserializeDTO(dbo);
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo);
 		
 		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
 		
@@ -191,22 +189,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dto.setStateHistory(stateHistory);
 		
 		return dto;
-	}
-	
-	public static byte[] serializeDTO(VerificationSubmission dto) { // TODO move to helper
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	public static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) { // TODO move to helper
-		try {
-			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 	
 	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {

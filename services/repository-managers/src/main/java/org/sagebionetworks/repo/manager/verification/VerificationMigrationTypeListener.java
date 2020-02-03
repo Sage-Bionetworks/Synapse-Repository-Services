@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAOImpl;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationSubmissionHelper;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,7 @@ public class VerificationMigrationTypeListener implements MigrationTypeListener 
 		if (type!=MigrationType.VERIFICATION_SUBMISSION) return;
 		for (D record : delta) {
 			DBOVerificationSubmission dbo = (DBOVerificationSubmission) record;
-			VerificationSubmission dto = VerificationDAOImpl.deserializeDTO(dbo); // TODO move to a helper class
+			VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo);
 			if (dto.getNotificationEmail()!=null) {
 				// no backfill required
 				continue;
@@ -36,7 +37,9 @@ public class VerificationMigrationTypeListener implements MigrationTypeListener 
 				dto.setNotificationEmail(dto.getEmails().get(0));
 			} else {
 				// most of the remaining can be disambiguated by the current notification email:
-				// TODO ensure that notifications addresses migrate first
+				//
+				// Note: org.sagebionetworks.repo.model.migration.MigrationType shows that 
+				// VERIFICATION_SUBMISSION migrates *after* NOTIFICATION_EMAIL
 				String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(dto.getCreatedBy()));
 				if (dto.getEmails().contains(currentNotificationEmail)) {
 					dto.setNotificationEmail(currentNotificationEmail);
@@ -46,7 +49,7 @@ public class VerificationMigrationTypeListener implements MigrationTypeListener 
 				}
 			}
 			
-			dbo.setSerialized(VerificationDAOImpl.serializeDTO(dto));
+			dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
 			
 			basicDao.update(dbo);
 			
