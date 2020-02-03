@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ValidatedEmailClaimProvider implements OIDCClaimProvider {
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
+
 	@Override
 	public OIDCClaimName getName() {
 		return OIDCClaimName.validated_email;
@@ -24,10 +24,11 @@ public class ValidatedEmailClaimProvider implements OIDCClaimProvider {
 	@Override
 	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
 		VerificationSubmission verificationSubmission = userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
-		if (verificationSubmission==null || !VerificationHelper.isVerified(verificationSubmission)) {
+		if (VerificationHelper.isVerified(verificationSubmission)) {
+			 return verificationSubmission.getNotificationEmail();
+		} else {
 			return null;
 		}
-		return verificationSubmission.getNotificationEmail();
 	}
 
 }
