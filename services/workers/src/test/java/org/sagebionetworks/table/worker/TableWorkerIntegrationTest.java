@@ -32,6 +32,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
@@ -189,6 +190,9 @@ public class TableWorkerIntegrationTest {
 	
 	@Autowired
 	private TrashManager trashManager;
+	
+	@Autowired
+	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 
 	private UserInfo adminUserInfo;
 	private UserInfo anonymousUser;
@@ -884,7 +888,7 @@ public class TableWorkerIntegrationTest {
 		// add new column
 		schema.add(columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.STRING)));
 		headers = TableModelUtils.getIds(schema);
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		asynchronousJobWorkerHelper.setTableSchema(adminUserInfo, headers, tableId, MAX_WAIT_MS);
 		String newColumnId = ""+headers.get(headers.size()-1);
 		// set data on new column
 		
@@ -905,7 +909,7 @@ public class TableWorkerIntegrationTest {
 		// remove column a
 		schema.remove(0);
 		headers = TableModelUtils.getIds(schema);
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		asynchronousJobWorkerHelper.setTableSchema(adminUserInfo, headers, tableId, MAX_WAIT_MS);
 
 		// wait for table to be available
 		sql = "select * from " + tableId;
