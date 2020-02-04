@@ -20,8 +20,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-import com.google.common.collect.ImmutableList;
-
 @RunWith(MockitoJUnitRunner.class)
 public class ValidatedEmailClaimProviderTest {
 	

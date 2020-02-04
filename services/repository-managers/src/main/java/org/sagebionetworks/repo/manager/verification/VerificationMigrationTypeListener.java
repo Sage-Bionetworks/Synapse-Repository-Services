@@ -26,7 +26,7 @@ public class VerificationMigrationTypeListener implements MigrationTypeListener 
 		if (type!=MigrationType.VERIFICATION_SUBMISSION) return;
 		for (D record : delta) {
 			DBOVerificationSubmission dbo = (DBOVerificationSubmission) record;
-			VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo);
+			VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
 			if (dto.getNotificationEmail()!=null) {
 				// no backfill required
 				continue;

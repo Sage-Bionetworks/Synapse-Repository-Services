@@ -176,7 +176,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 	}
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
-		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo);
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
 		
 		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
 		

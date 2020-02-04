@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.verification;
 import java.io.IOException;
 
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
@@ -18,9 +17,9 @@ public class VerificationSubmissionHelper {
 		}
 	}
 	
-	public static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) {
+	public static VerificationSubmission deserializeDTO(byte[] serialized) {
 		try {
-			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
+			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serialized);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
