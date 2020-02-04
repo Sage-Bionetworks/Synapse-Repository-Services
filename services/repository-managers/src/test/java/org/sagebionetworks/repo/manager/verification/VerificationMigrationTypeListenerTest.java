@@ -1,20 +1,25 @@
 package org.sagebionetworks.repo.manager.verification;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -24,9 +29,10 @@ import org.sagebionetworks.repo.model.dbo.verification.VerificationSubmissionHel
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-@RunWith(MockitoJUnitRunner.class)
+import com.google.common.collect.ImmutableList;
+
+@ExtendWith(MockitoExtension.class)
 public class VerificationMigrationTypeListenerTest {
-	
 	@Mock
 	private NotificationEmailDAO mockNotificationEmailDao;
 	
@@ -36,30 +42,81 @@ public class VerificationMigrationTypeListenerTest {
 	@InjectMocks
 	private VerificationMigrationTypeListener listener;
 	
+	private static final String USER_ID = "111";
 	private static final String EMAIL = "me@company.com";
 	
 	@Captor
-	ArgumentCaptor<DBOVerificationSubmission> dboCaptor;
-
+	private ArgumentCaptor<DBOVerificationSubmission> dboCaptor;
+	
+	private DBOVerificationSubmission dbo;
+	private List<DatabaseObject<?>> delta;
+	
+	@BeforeEach
+	public void before() {
+		dbo = new DBOVerificationSubmission();
+		delta = Collections.singletonList(dbo);
+		
+	}
+	
+	private void setEmails(List<String> emails) {
+		VerificationSubmission dto = new VerificationSubmission();
+		dto.setCreatedBy(USER_ID);
+		dto.setNotificationEmail(null); // it's the job of the migration listener to fill this in
+		dto.setEmails(emails);
+		assertNotNull(dbo);
+		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));		
+	}
+	
+	private static String getNotificationEmail(DBOVerificationSubmission dbo) {
+		byte[] serialized = dbo.getSerialized();
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(serialized);
+		return dto.getNotificationEmail();
+	}
 
 	@Test
 	public void testJustOneEmail() {
-		MigrationType type = MigrationType.VERIFICATION_SUBMISSION;
-		DBOVerificationSubmission dbo = new DBOVerificationSubmission();
-		List<DatabaseObject<?>> delta = Collections.singletonList(dbo);
-		
-		VerificationSubmission dto = new VerificationSubmission();
-		dto.setNotificationEmail(null); // it's the job of the migration listener to fill this in
-		dto.setEmails(Collections.singletonList(EMAIL)); // we captured just one email, so this is the notification email
-		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
-		
+		setEmails(Collections.singletonList(EMAIL)); // we captured just one email, so this is the notification email
+
 		// method under test
-		listener.afterCreateOrUpdate(type, delta);
+		listener.afterCreateOrUpdate(MigrationType.VERIFICATION_SUBMISSION, delta);
+		
+		// no ambiguity, so never needed to check the current notification email address
+		verify(mockNotificationEmailDao, never()).getNotificationEmailForPrincipal(eq(Long.parseLong(USER_ID)));
 		
 		verify(mockBasicDao).update(dboCaptor.capture());
-		byte[] serialized = dboCaptor.getValue().getSerialized();
-		VerificationSubmission updated = VerificationSubmissionHelper.deserializeDTO(serialized);
-		assertEquals(updated.getNotificationEmail(), EMAIL);
+		assertEquals(getNotificationEmail(dboCaptor.getValue()), EMAIL);
+	}
+
+	@Test
+	public void testMultipleEmailsFoundNotification() {
+		setEmails(ImmutableList.of("some@other.com", EMAIL)); 
+		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn(EMAIL);
+		
+		// method under test
+		listener.afterCreateOrUpdate(MigrationType.VERIFICATION_SUBMISSION, delta);
+		
+		// check the current notification email address
+		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(Long.parseLong(USER_ID));
+		
+		verify(mockBasicDao).update(dboCaptor.capture());
+		assertEquals(getNotificationEmail(dboCaptor.getValue()), EMAIL);
+	}
+
+	@Test
+	public void testMultipleEmailsNoNotification() {
+		setEmails(ImmutableList.of(EMAIL, "some@other.com")); 
+		
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(USER_ID))).thenReturn("yet@another.com");
+		
+		// method under test
+		listener.afterCreateOrUpdate(MigrationType.VERIFICATION_SUBMISSION, delta);
+		
+		// check the current notification email address
+		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(Long.parseLong(USER_ID));
+		
+		verify(mockBasicDao).update(dboCaptor.capture());
+		assertEquals(getNotificationEmail(dboCaptor.getValue()), EMAIL);
 	}
 
 	@Test
