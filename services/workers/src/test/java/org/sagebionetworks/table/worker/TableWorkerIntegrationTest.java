@@ -1,11 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -740,13 +739,11 @@ public class TableWorkerIntegrationTest {
 		
 		// Move the table to the trash
 		this.trashManager.moveToTrash(adminUserInfo, tableId, false);
-		
-		try {
-			queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
-			fail();
-		} catch (EntityInTrashCanException e) {
-			//expected
-		}
+		// change the query to avoid the cache.
+		query.setSql(sql+" limit 100");
+		assertThrows(EntityInTrashCanException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		});
 		// should do nothing
 		tableEntityManager.deleteTableIfDoesNotExist(tableId);
 		// restore the table to the original project
@@ -757,12 +754,9 @@ public class TableWorkerIntegrationTest {
 		
 		// Now actually delete the table.
 		entityManager.deleteEntity(adminUserInfo, tableId);
-		try {
-			queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
-			fail();
-		} catch (NotFoundException e) {
-			//expected
-		}
+		assertThrows(NotFoundException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		});
 		// should be able to call this multiple times.
 		tableEntityManager.deleteTableIfDoesNotExist(tableId);
 		tableEntityManager.deleteTableIfDoesNotExist(tableId);
@@ -797,7 +791,7 @@ public class TableWorkerIntegrationTest {
 
 		final IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		final TableIndexDAO tableIndexDAO = tableConnectionFactory.getConnection(idAndVersion);
-		assertTrue("Index table was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
 				return tableIndexDAO.getRowCountForTable(idAndVersion) != null;
@@ -1071,11 +1065,9 @@ public class TableWorkerIntegrationTest {
 			failRowSet.setRows(failRow);
 			failRowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 			failRowSet.setTableId(tableId);
-			try {
+			assertThrows(IllegalArgumentException.class, ()->{
 				appendRows(adminUserInfo, tableId, failRowSet, mockProgressCallback);
-				fail("Should have rejected as boolean: " + failingBoolean);
-			} catch (IllegalArgumentException e) {
-			}
+			});
 		}
 
 		// Wait for the table to become available
@@ -1179,7 +1171,7 @@ public class TableWorkerIntegrationTest {
 		query.setSql(sql);
 		query.setLimit(100L);
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
-		assertEquals("TableId: " + tableId, 2, queryResult.getQueryResults().getRows().size());
+		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertEquals("updatestring333", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("updatestring555", queryResult.getQueryResults().getRows().get(1).getValues().get(0));
 	}
@@ -1419,13 +1411,11 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getQueryResults().getEtag());
 
-		try {
-			query.setSql("select A, Has Space from " + tableId);
-			query.setLimit(100L);
-			queryResult = waitForConsistentQuery(adminUserInfo, query, queryOptions);
-			fail("not acceptible sql");
-		} catch (IllegalArgumentException e) {
-		}
+		query.setSql("select A, Has Space from " + tableId);
+		query.setLimit(100L);
+		assertThrows(IllegalArgumentException.class, ()->{
+			waitForConsistentQuery(adminUserInfo, query, queryOptions);
+		});
 
 		// select a string literal
 		query.setSql("select A, 'Has Space' from " + tableId);
@@ -1504,7 +1494,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults());
 		assertNotNull(queryResult.getQueryResults().getEtag());
 		assertEquals(tableId, queryResult.getQueryResults().getTableId());
-		assertTrue("TableId: " + tableId, queryResult.getQueryResults().getRows() == null
+		assertTrue(queryResult.getQueryResults().getRows() == null
 				|| queryResult.getQueryResults().getRows().isEmpty());
 	}
 	
@@ -1744,22 +1734,17 @@ public class TableWorkerIntegrationTest {
 		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
 		appendRows(owner, tableId,
 				createRowSet(headers), mockProgressCallback);
-
-		try {
+		assertThrows(UnauthorizedException.class, ()->{
 			appendRows(notOwner, tableId,
 					createRowSet(headers), mockProgressCallback);
-			fail("no update permissions");
-		} catch (UnauthorizedException e) {
-		}
+		});
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		waitForConsistentQuery(owner, sql, null, 8L);
-		try {
+		assertThrows(UnauthorizedException.class, ()->{
 			waitForConsistentQuery(notOwner, sql, null, 8L);
-			fail("no read permissions");
-		} catch (UnauthorizedException e) {
-		}
+		});
 
 		// add users to acl
 		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
@@ -1786,12 +1771,9 @@ public class TableWorkerIntegrationTest {
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
 		TermsOfUseAccessRequirement downloadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-
-		try {
-			waitForConsistentQuery(notOwner, sql, null, 8L);
-			fail();
-		} catch (UnauthorizedException e) {
-		}
+		assertThrows(UnauthorizedException.class, ()->{
+			waitForConsistentQuery(notOwner, sql+" limit 100", null, 8L);
+		});
 
 		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(notOwner.getId().toString());
@@ -2250,7 +2232,7 @@ public class TableWorkerIntegrationTest {
 		if(status.getErrorDetails() != null){
 			System.out.println(status.getErrorDetails());
 		}
-		assertTrue("Job failed after rebuild",TableState.AVAILABLE.equals(status.getState()));
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
 	}
 	
 	/**
@@ -2323,13 +2305,10 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		query.setSql(sql);
 		query.setLimit(8L);
-		try {
+		assertThrows(UnauthorizedException.class, ()->{
 			// cannot query a sensitive data table
 			waitForConsistentQuery(anonymousUser, query, queryOptions);
-			fail();
-		} catch (UnauthorizedException e) {
-			// expected
-		}
+		});
 	}
 	
 	/**
@@ -2520,7 +2499,7 @@ public class TableWorkerIntegrationTest {
 		while(true){
 			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion);
 			if(TableState.PROCESSING.equals(status.getState())){
-				assertTrue("Timed out waiting for table status to change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table status to change.");
 				System.out.println("Waiting for table status to be available...");
 				Thread.sleep(1000);
 			}else{
@@ -2669,42 +2648,25 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, Query query, QueryOptions options) throws Exception {
-		long start = System.currentTimeMillis();
-		while(true){
-			try {
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, options);
-			} catch (LockUnavilableException e) {
-				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
-			} catch (TableUnavailableException e) {
-				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-			}
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			Thread.sleep(1000);
-		}
+		QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
+		queryBundleRequest.setQuery(query);
+		queryBundleRequest.setPartMask(options.getPartMask());
+		return asynchronousJobWorkerHelper.startAndWaitForJob(user, queryBundleRequest, MAX_WAIT_MS,
+				QueryResultBundle.class);
 	}
 	
-	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, String sql, Long offset, Long limit) throws Exception {
-		long start = System.currentTimeMillis();
-		while (true) {
-			try {
-				QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
-				queryBundleRequest.setPartMask(-1L);
-				Query query = new Query();
-				query.setIsConsistent(true);
-				query.setSql(sql);
-				query.setOffset(offset);
-				query.setLimit(limit);
-				queryBundleRequest.setQuery(query);
-				QueryResultBundle queryResult = tableQueryManger.queryBundle(mockProgressCallbackVoid, user, queryBundleRequest);
-				return queryResult;
-			} catch (LockUnavilableException e) {
-				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
-			} catch (TableUnavailableException e) {
-				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-			}
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			Thread.sleep(1000);
-		}
+	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, String sql, Long offset, Long limit)
+			throws Exception {
+		QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
+		queryBundleRequest.setPartMask(-1L);
+		Query query = new Query();
+		query.setIsConsistent(true);
+		query.setSql(sql);
+		query.setOffset(offset);
+		query.setLimit(limit);
+		queryBundleRequest.setQuery(query);
+		return asynchronousJobWorkerHelper.startAndWaitForJob(user, queryBundleRequest, MAX_WAIT_MS,
+				QueryResultBundle.class);
 	}
 
 	/**
@@ -2734,7 +2696,7 @@ public class TableWorkerIntegrationTest {
 			} catch (TableUnavailableException e) {
 				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
 			}
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table index worker to make the table available.");
 			Thread.sleep(1000);
 		}
 	}
