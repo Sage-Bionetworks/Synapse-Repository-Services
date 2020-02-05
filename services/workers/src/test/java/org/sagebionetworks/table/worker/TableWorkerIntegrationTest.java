@@ -2091,6 +2091,252 @@ public class TableWorkerIntegrationTest {
 		}
 
 	}
+
+
+	@Test
+	public void testRenameListColumn() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING_LIST);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"1\",\"2\",\"3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"3\",\"4\",\"5\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+
+
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.STRING_LIST);
+		updateColumn.setName("updatedColumn");
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+		updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
+
+		// wait for the table.
+		status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		//query the column expecting the index table to be populated
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where updatedColumn has ('3')", null, null);
+		assertEquals(2, result.getQueryResults().getRows().size());
+		//result should not have changed
+		assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+	}
+
+
+
+	@Test
+	public void testChangeNonListColumnToList() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "asdf"),
+				TableModelTestUtils.createRow(null, null, "qwer")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("asdf"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("qwer"), result.getQueryResults().getRows().get(1).getValues());
+
+
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.STRING_LIST);
+		updateColumn.setName("updatedColumn");
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+		updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
+
+		// wait for the table.
+		status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		//query the column expecting the index table to be populated
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where updatedColumn has ('asdf')", null, null);
+		assertEquals(1, result.getQueryResults().getRows().size());
+		//should be wrapped in a list now
+		assertEquals(Arrays.asList("[\"asdf\"]"), result.getQueryResults().getRows().get(0).getValues());
+
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where updatedColumn has ('qwer')", null, null);
+		assertEquals(1, result.getQueryResults().getRows().size());
+		//should be wrapped in a list now
+		assertEquals(Arrays.asList("[\"qwer\"]"), result.getQueryResults().getRows().get(0).getValues());
+
+	}
+
+	@Test
+	public void testChangeNonListColumnToList_exceedMaxSize() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "asdf"),
+				TableModelTestUtils.createRow(null, null, "qwer")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("asdf"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("qwer"), result.getQueryResults().getRows().get(1).getValues());
+
+
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.STRING_LIST);
+		updateColumn.setMaximumSize(2L);
+		updateColumn.setName("updatedColumn");
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+
+		//TODO: expect exception somewhere
+		updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
+
+	}
+
+	@Test
+	public void testChangeListColumnTypeToOtherList() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.STRING_LIST);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "[\"1\",\"2\",\"3\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"3\",\"4\",\"5\"]")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = appendRows(adminUserInfo, tableId,
+				rowSet, mockProgressCallback);
+
+		//query the column expecting the index table for it to be populated
+		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where startColumn has ('3')", null, null);
+
+		assertEquals(2, result.getQueryResults().getRows().size());
+		assertEquals(Arrays.asList("[\"1\", \"2\", \"3\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"3\", \"4\", \"5\"]"), result.getQueryResults().getRows().get(1).getValues());
+
+
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.INTEGER_LIST);
+		updateColumn.setName("updatedColumn");
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+		updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
+
+		// wait for the table.
+		status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+
+		//query the column expecting the index table to be populated
+		result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where updatedColumn has ('3')", null, null);
+		assertEquals(2, result.getQueryResults().getRows().size());
+		//result should not have changed
+		assertEquals(Arrays.asList("[1, 2, 3]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[3, 4, 5]"), result.getQueryResults().getRows().get(1).getValues());
+	}
 	
 	@Test
 	public void testPLFM_4161() throws Exception{
