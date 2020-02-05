@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
@@ -160,12 +161,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 
 		// Can't override ACL inheritance if the entity lives inside an STS-enabled folder.
-		UploadDestinationListSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo,
+		// Note that even though the method  is called getProjectId(), it can actually refer to either a Project or a
+		// Folder.
+		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo,
 				entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		if (projectSetting != null && !KeyFactory.equals(projectSetting.getProjectId(), entityId)) {
+		if (projectSetting.isPresent() && !KeyFactory.equals(projectSetting.get().getProjectId(), entityId)) {
 			// If the project setting is defined on the current entity, you can still override ACL inheritance.
 			// Overriding ACL inheritance is only blocked for child entities.
-			if (projectSettingsManager.isStsStorageLocationSetting(projectSetting)) {
+			if (projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
 				throw new IllegalArgumentException("Cannot override ACLs in a child of an STS-enabled folder");
 			}
 		}

@@ -102,12 +102,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public <T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
+	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
 		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
 		if (projectSettingId == null) {
 			// Not having a setting is normal.
-			return null;
+			return Optional.empty();
 		}
 
 		// Note that get throws NotFoundException if the project setting somehow doesn't exist.
@@ -115,7 +115,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
-		return expectedType.cast(projectSetting);
+		return Optional.of(expectedType.cast(projectSetting));
 	}
 
 	@Override
@@ -143,9 +143,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 
 		// Can't create project settings if a parent has an StsStorageLocation.
-		ProjectSetting parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
+		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
 				ProjectSetting.class);
-		if (isStsStorageLocationSetting(parentSetting)) {
+		if (parentSetting.isPresent() && isStsStorageLocationSetting(parentSetting.get())) {
 			throw new IllegalArgumentException("Can't override project settings in an STS-enabled folder path");
 		}
 

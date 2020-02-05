@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
@@ -21,11 +20,9 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -37,12 +34,6 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -61,10 +52,7 @@ public class EntityManagerImpl implements EntityManager {
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
 	public static final String ROOT_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
-	
-	public static final int MAX_NAME_CHARS  = 256;
-	public static final int MAX_DESCRIPTION_CHARS  = 1000;
-	
+
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
@@ -72,17 +60,11 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	FileHandleManager fileHandleManager;
 	@Autowired
-	ProjectSettingsManager projectSettingsManager;
-	@Autowired
 	UserManager userManager;
 	@Autowired
 	ObjectTypeManager objectTypeManager;
 	
 	boolean allowCreationOfOldEntities = true;
-
-	//Temporary fields!
-	@Autowired
-	NodeDAO nodeDAO;
 
 	/**
 	 * Injected via spring.
@@ -97,23 +79,6 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
-		validateEntity(newEntity);
-		if (newEntity instanceof FileEntity) {
-			validateFileEntityStsRestrictions(userInfo, (FileEntity) newEntity);
-		}
-
-		// If the parent lives inside an STS-enabled folder, only Files and Folders are allowed.
-		if (!(newEntity instanceof FileEntity) && !(newEntity instanceof Folder)) {
-			String parentId = newEntity.getParentId();
-			if (parentId != null) {
-				ProjectSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
-						ProjectSettingsType.upload, UploadDestinationListSetting.class);
-				if (projectSetting != null && projectSettingsManager.isStsStorageLocationSetting(projectSetting)) {
-					throw new IllegalArgumentException("Can only create Files and Folders inside STS-enabled folders");
-				}
-			}
-		}
-
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
@@ -301,20 +266,6 @@ public class EntityManagerImpl implements EntityManager {
 			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
-
-		validateEntity(updated);
-		
-		if (updated.getId() == null) {
-			throw new IllegalArgumentException("The id of the entity should be present");
-		}
-		
-		if (updated.getParentId() == null) {
-			throw new IllegalArgumentException("The parentId of the entity should be present");
-		}
-
-		if (updated instanceof FileEntity) {
-			validateFileEntityStsRestrictions(userInfo, (FileEntity) updated);
-		}
 
 		Node node = nodeManager.get(userInfo, updated.getId());
 		// Now get the annotations for this node
@@ -594,67 +545,5 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(entityId, "id");
 		ValidateArgument.required(dataType, "DataType");
 		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
-	}
-
-	// Validates whether a FileEntity satisfies the STS restrictions of its parent.
-	// Package-scoped to facilitate unit tests.
-	void validateFileEntityStsRestrictions(UserInfo userInfo, FileEntity fileEntity) {
-		// Is the file STS-enabled?
-		FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileEntity.getDataFileHandleId());
-		Long fileStorageLocationId = fileHandle.getStorageLocationId();
-		StorageLocationSetting fileStorageLocationSetting = projectSettingsManager.getStorageLocationSetting(
-				fileStorageLocationId);
-		boolean fileStsEnabled = projectSettingsManager.isStsStorageLocationSetting(fileStorageLocationSetting);
-
-		// Is the parent STS-enabled?
-		Long parentStorageLocationId = null;
-		boolean parentStsEnabled = false;
-		String parentId = fileEntity.getParentId();
-		if (parentId != null) {
-			UploadDestinationListSetting projectSetting = projectSettingsManager.getProjectSettingForNode(userInfo,
-					parentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
-			if (projectSetting != null) {
-				// Short-cut: Just grab the first storage location ID. We only compare storage location IDs if STS is
-				// enabled, and folders with STS enabled can't have multiple storage locations.
-				parentStsEnabled = projectSettingsManager.isStsStorageLocationSetting(projectSetting);
-				parentStorageLocationId = projectSetting.getLocations().get(0);
-			}
-		}
-
-		// If either the file's storage location or the parent's storage location has STS enabled, then the storage
-		// locations must be the same. ie, Files in STS-enabled Storage Locations must be placed in a folder with the
-		// same storage location, and folders with STS-enabled Storage Locations can only contain files from that
-		// storage location.
-		if ((fileStsEnabled || parentStsEnabled) && !Objects.equals(fileStorageLocationId, parentStorageLocationId)) {
-			// Determine which error message to throw depending on whether the file is STS-enabled or the parent.
-			if (fileStsEnabled) {
-				throw new IllegalArgumentException("Files in STS-enabled storage locations can only be placed in " +
-						"folders with the same storage location");
-			}
-			//noinspection ConstantConditions
-			if (parentStsEnabled) {
-				throw new IllegalArgumentException("Folders with STS-enabled storage locations can only accept " +
-						"files with the same storage location");
-			}
-		}
-	}
-
-	/**
-	 * Validate entity is not null and all values are within limit.
-	 * 
-	 * @param entity
-	 */
-	public static void validateEntity(Entity entity) {
-		ValidateArgument.required(entity, "entity");
-		if(entity.getName() != null) {
-			if(entity.getName().length() > MAX_NAME_CHARS) {
-				throw new IllegalArgumentException("Name must be "+MAX_NAME_CHARS+" characters or less");				
-			}
-		}
-		if(entity.getDescription() != null) {
-			if(entity.getDescription().length() > MAX_DESCRIPTION_CHARS) {
-				throw new IllegalArgumentException("Description must be "+MAX_DESCRIPTION_CHARS+" characters or less");
-			}
-		}
 	}
 }

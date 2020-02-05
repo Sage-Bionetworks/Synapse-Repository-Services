@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -26,8 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +47,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -63,11 +59,6 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.file.ChildStatsRequest;
 import org.sagebionetworks.repo.model.file.ChildStatsResponse;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Lists;
@@ -79,9 +70,6 @@ public class EntityManagerImplUnitTest {
 	private static final String ENTITY_ID = "entity-id";
 	private static final String FILE_HANDLE_ID = "file-handle-id";
 	private static final String PARENT_ENTITY_ID = "parent-entity-id";
-	private static final long STS_STORAGE_LOCATION_ID = 123;
-	private static final long NON_STS_STORAGE_LOCATION_ID = 456;
-	private static final long DIFFERENT_STS_STORAGE_LOCATION_ID = 789;
 
 	@Mock
 	private FileHandleManager mockFileHandleManager;
@@ -111,9 +99,6 @@ public class EntityManagerImplUnitTest {
 	List<EntityHeader> childPage;
 
 	private FileEntity fileEntity;
-	private S3FileHandle fileHandle;
-	private S3StorageLocationSetting storageLocationSetting;
-	private UploadDestinationListSetting projectSetting;
 
 	@BeforeEach
 	public void before(){
@@ -131,37 +116,13 @@ public class EntityManagerImplUnitTest {
 		fileEntity.setId(ENTITY_ID);
 		fileEntity.setDataFileHandleId(FILE_HANDLE_ID);
 		fileEntity.setParentId(PARENT_ENTITY_ID);
-
-		fileHandle = new S3FileHandle();
-		fileHandle.setId(FILE_HANDLE_ID);
-
-		storageLocationSetting = new S3StorageLocationSetting();
-
-		projectSetting = new UploadDestinationListSetting();
 	}
 
 	@Test
-	public void createEntity_ValidateFileEntityStsRestrictions() {
-		// Spy validateFileEntityStsRestrictions(). This is tested elsewhere and involves mocking a bunch of other
-		// mocks that we don't want to deal with here.
-		String testErrorMessage = "test exception from validateFileEntityStsRestrictions";
-		doThrow(new IllegalArgumentException(testErrorMessage)).when(entityManager).validateFileEntityStsRestrictions(
-				mockUser, fileEntity);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.createEntity(mockUser, fileEntity,
-				ACTIVITY_ID), testErrorMessage);
-	}
-
-	@Test
-	public void createEntity_CanAddFile() {
+	public void createEntity() {
 		// Mock dependencies.
 		when(mockNodeManager.createNewNode(any(), any(), any())).thenAnswer(invocation -> invocation
 				.getArgument(0));
-
-		// Spy validateFileEntityStsRestrictions(). This is tested elsewhere and involves mocking a bunch of other
-		// mocks that we don't want to deal with here.
-		doNothing().when(entityManager).validateFileEntityStsRestrictions(mockUser, fileEntity);
 
 		// Method under test.
 		// Note that the ID generator would be called to fill in the ID, but that doesn't happen here because of our
@@ -173,83 +134,6 @@ public class EntityManagerImplUnitTest {
 		Node node = nodeCaptor.getValue();
 		assertEquals(EntityType.file, node.getNodeType());
 		assertEquals(ACTIVITY_ID, node.getActivityId());
-	}
-
-	@Test
-	public void createEntity_CanAddFolder() {
-		// Mock dependencies.
-		when(mockNodeManager.createNewNode(any(), any(), any())).thenAnswer(invocation -> invocation
-				.getArgument(0));
-
-		// Method under test.
-		// Note that the ID generator would be called to fill in the ID, but that doesn't happen here because of our
-		// test environment.
-		Folder folder = new Folder();
-		entityManager.createEntity(mockUser, folder, ACTIVITY_ID);
-
-		ArgumentCaptor<Node> nodeCaptor = ArgumentCaptor.forClass(Node.class);
-		verify(mockNodeManager).createNewNode(nodeCaptor.capture(), notNull(), same(mockUser));
-		Node node = nodeCaptor.getValue();
-		assertEquals(EntityType.folder, node.getNodeType());
-		assertEquals(ACTIVITY_ID, node.getActivityId());
-	}
-
-	@Test
-	public void createEntity_CannotAddTableToStsParent() {
-		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
-
-		// Method under test.
-		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
-		assertThrows(IllegalArgumentException.class, () -> entityManager.createEntity(mockUser, tableEntity,
-				ACTIVITY_ID), "Can only create Files and Folders inside STS-enabled folders");
-	}
-
-	@Test
-	public void createEntity_CanAddTableToNonStsParent() {
-		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
-		when(mockNodeManager.createNewNode(any(), any(), any())).thenAnswer(invocation -> invocation
-				.getArgument(0));
-
-		// Method under test.
-		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
-		entityManager.createEntity(mockUser, tableEntity, ACTIVITY_ID);
-		verify(mockNodeManager).createNewNode(notNull(), notNull(), same(mockUser));
-	}
-
-	@Test
-	public void createEntity_CanAddTableToParentWithoutProjectSetting() {
-		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(null);
-		when(mockNodeManager.createNewNode(any(), any(), any())).thenAnswer(invocation -> invocation
-				.getArgument(0));
-
-		// Method under test.
-		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
-		entityManager.createEntity(mockUser, tableEntity, ACTIVITY_ID);
-		verify(mockNodeManager).createNewNode(notNull(), notNull(), same(mockUser));
-	}
-
-	@Test
-	public void createEntity_CanAddTableWithoutParent() {
-		// Mock dependencies.
-		when(mockNodeManager.createNewNode(any(), any(), any())).thenAnswer(invocation -> invocation
-				.getArgument(0));
-
-		// Method under test.
-		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(null);
-		entityManager.createEntity(mockUser, tableEntity, ACTIVITY_ID);
-		verify(mockNodeManager).createNewNode(notNull(), notNull(), same(mockUser));
 	}
 
 	@Test
@@ -322,29 +206,6 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateEntity_NullId() {
-		fileEntity.setId(null);
-
-		// Method under test.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.updateEntity(mockUser, fileEntity,
-				false, ACTIVITY_ID), "The id of the entity should be present");
-		verifyZeroInteractions(mockNodeManager);
-	}
-
-	/**
-	 * Test for PLFM-5873
-	 */
-	@Test
-	public void testUpdateEntityWithNullParent() {
-		fileEntity.setParentId(null);
-
-		// Method under test
-		assertThrows(IllegalArgumentException.class, ()-> entityManager.updateEntity(mockUser, fileEntity, false,
-				ACTIVITY_ID), "The parentId of the entity should be present" );
-		verifyZeroInteractions(mockNodeManager);
-	}
-	
-	@Test
 	public void testDeleteActivityId() throws Exception {
 		String id = "123";
 		String parentId = "456";
@@ -387,19 +248,6 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateEntity_ValidateFileEntityStsRestrictions() {
-		// Spy validateFileEntityStsRestrictions(). This is tested elsewhere and involves mocking a bunch of other
-		// mocks that we don't want to deal with here.
-		String testErrorMessage = "test exception from validateFileEntityStsRestrictions";
-		doThrow(new IllegalArgumentException(testErrorMessage)).when(entityManager).validateFileEntityStsRestrictions(
-				mockUser, fileEntity);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.updateEntity(mockUser, fileEntity,
-				false, ACTIVITY_ID), testErrorMessage);
-	}
-
-	@Test
 	public void testUpdateFileHandleId() throws Exception {
 		// Mock dependencies.
 		String id = "123";
@@ -419,10 +267,6 @@ public class EntityManagerImplUnitTest {
 		entity.setDataFileHandleId(dataFileHandleId);
 		entity.setVersionComment("a comment for the original version");
 		entity.setVersionLabel("a label for the original version");
-
-		// Spy validateFileEntityStsRestrictions(). This is tested elsewhere and involves mocking a bunch of other
-		// mocks that we don't want to deal with here.
-		doNothing().when(entityManager).validateFileEntityStsRestrictions(mockUser, entity);
 
 		boolean newVersion = false; // even though new version is false the
 		// modified file handle will trigger a version update
@@ -690,247 +534,6 @@ public class EntityManagerImplUnitTest {
 		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType);
 	}
 
-	@Test
-	public void validateFileEntityStsRestrictions_StsFileInSameStsParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(true);
-
-		projectSetting.setLocations(ImmutableList.of(STS_STORAGE_LOCATION_ID));
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
-
-		// Method under test - Does not throw.
-		entityManager.validateFileEntityStsRestrictions(mockUser, fileEntity);
-	}
-
-	@Test
-	public void validateFileEntityStsRestrictions_StsFileInDifferentStsParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(true);
-
-		projectSetting.setLocations(ImmutableList.of(DIFFERENT_STS_STORAGE_LOCATION_ID));
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.validateFileEntityStsRestrictions(mockUser,
-				fileEntity), "Files in STS-enabled storage locations can only be placed in " +
-				"folders with the same storage location");
-	}
-
-	@Test
-	public void validateFileEntityStsRestrictions_StsFileInNonStsParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(true);
-
-		projectSetting.setLocations(ImmutableList.of(NON_STS_STORAGE_LOCATION_ID));
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.validateFileEntityStsRestrictions(mockUser,
-				fileEntity), "Files in STS-enabled storage locations can only be placed in " +
-				"folders with the same storage location");
-	}
-
-	@Test
-	public void validateFileEntityStsRestrictions_StsFileInParentWithoutProjectSettings() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(true);
-
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(null);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.validateFileEntityStsRestrictions(mockUser,
-				fileEntity), "Files in STS-enabled storage locations can only be placed in " +
-				"folders with the same storage location");
-	}
-
-	// branch coverage: This is theoretically possible if someone forgets to specify the parent ID. In this case, the
-	// file gets added to the root project (which is not STS enabled) in a later step.
-	@Test
-	public void validateFileEntityStsRestrictions_StsFileWithNoParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(true);
-
-		fileEntity.setParentId(null);
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.validateFileEntityStsRestrictions(mockUser,
-				fileEntity), "Files in STS-enabled storage locations can only be placed in " +
-				"folders with the same storage location");
-	}
-
-	@Test
-	public void validateFileEntityStsRestrictions_NonStsFileInStsParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(false);
-
-		projectSetting.setLocations(ImmutableList.of(STS_STORAGE_LOCATION_ID));
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
-
-		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> entityManager.validateFileEntityStsRestrictions(mockUser,
-				fileEntity), "Folders with STS-enabled storage locations can only accept " +
-				"files with the same storage location");
-	}
-
-	@Test
-	public void validateFileEntityStsRestrictions_NonStsFileInNonStsParent() {
-		// Mock dependencies.
-		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
-
-		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(
-				storageLocationSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)).thenReturn(false);
-
-		projectSetting.setLocations(ImmutableList.of(NON_STS_STORAGE_LOCATION_ID));
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
-				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(projectSetting);
-		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
-
-		// Method under test - Does not throw.
-		entityManager.validateFileEntityStsRestrictions(mockUser, fileEntity);
-	}
-
-	@Test
-	public void testValidateEntityNull() {
-		Project project = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			EntityManagerImpl.validateEntity(project);
-		});
-	}
-	
-	@Test
-	public void testValidateEntityDescriptionNull() {
-		Project project = new Project();
-		project.setDescription(null);
-		// call under test
-		EntityManagerImpl.validateEntity(project);
-	}
-	
-	@Test
-	public void testValidateEntityDescriptionAtLimit() {
-		Project project = new Project();
-		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS);
-		project.setDescription(description);
-		// call under test
-		EntityManagerImpl.validateEntity(project);
-	}
-	
-	@Test
-	public void testValidateEntityNameNull() {
-		Project project = new Project();
-		project.setName(null);
-		// call under test
-		EntityManagerImpl.validateEntity(project);
-	}
-	
-	@Test
-	public void testValidateEntityNameAtLimit() {
-		Project project = new Project();
-		String name = StringUtils.repeat("b", EntityManagerImpl.MAX_NAME_CHARS);
-		project.setName(name);
-		// call under test
-		EntityManagerImpl.validateEntity(project);
-	}
-	
-	@Test
-	public void testValidateEntityNameOverLimit() {
-		Project project = new Project();
-		String name = StringUtils.repeat("b", EntityManagerImpl.MAX_NAME_CHARS+1);
-		project.setName(name);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			EntityManagerImpl.validateEntity(project);
-		}).getMessage();
-		assertEquals("Name must be "+EntityManagerImpl.MAX_NAME_CHARS+" characters or less", message);
-	}
-	
-	@Test
-	public void testValidateEntityDescriptionOverLimit() {
-		Project project = new Project();
-		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
-		project.setDescription(description);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			EntityManagerImpl.validateEntity(project);
-		}).getMessage();
-		assertEquals("Description must be "+EntityManagerImpl.MAX_DESCRIPTION_CHARS+" characters or less", message);
-
-	}
-	
-	@Test
-	public void testCreateEntityDescriptionOverLimit() {
-		String activityId = null;
-		Project project = new Project();
-		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
-		project.setDescription(description);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			entityManager.createEntity(mockUser, project, activityId);
-		}).getMessage();
-		assertTrue(message.startsWith("Description must be"));
-	}
-	
-	@Test
-	public void testUpdateEntityDescriptionOverLimit() {
-		String activityId = null;
-		boolean newVersion = true;
-		Project project = new Project();
-		String description = StringUtils.repeat("b", EntityManagerImpl.MAX_DESCRIPTION_CHARS+1);
-		project.setDescription(description);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			entityManager.updateEntity(mockUser, project, newVersion, activityId);
-		}).getMessage();
-		assertTrue(message.startsWith("Description must be"));
-	}
-	
 	@Test
 	public void testEntityUpdateUnderVersionLimit() {
 		String activityId = null;

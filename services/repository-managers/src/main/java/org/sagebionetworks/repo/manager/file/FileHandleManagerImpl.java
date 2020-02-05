@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -811,18 +812,18 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public List<UploadDestinationLocation> getUploadDestinationLocations(UserInfo userInfo, String parentId) throws DatastoreException,
 			NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
+		Optional<UploadDestinationListSetting> uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
-		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getLocations() == null
-				|| uploadDestinationsSettings.getLocations().isEmpty()) {
+		if (!uploadDestinationsSettings.isPresent() || uploadDestinationsSettings.get().getLocations() == null
+				|| uploadDestinationsSettings.get().getLocations().isEmpty()) {
 			UploadDestinationLocation uploadDestinationLocation = new UploadDestinationLocation();
 			uploadDestinationLocation.setStorageLocationId(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID);
 			uploadDestinationLocation.setUploadType(UploadType.S3);
-			return Collections.<UploadDestinationLocation> singletonList(uploadDestinationLocation);
+			return Collections.singletonList(uploadDestinationLocation);
 		} else {
-			return projectSettingsManager.getUploadDestinationLocations(userInfo, uploadDestinationsSettings.getLocations());
+			return projectSettingsManager.getUploadDestinationLocations(userInfo, uploadDestinationsSettings.get().getLocations());
 		}
 	}
 
@@ -885,19 +886,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = 
+		Optional<UploadDestinationListSetting> uploadDestinationsSettings =
 				projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
 		Long storageLocationId;
-		if (uploadDestinationsSettings == null ||
-				uploadDestinationsSettings.getLocations() == null ||
-				uploadDestinationsSettings.getLocations().isEmpty() ||
-				uploadDestinationsSettings.getLocations().get(0) == null) {
+		if (!uploadDestinationsSettings.isPresent() ||
+				uploadDestinationsSettings.get().getLocations() == null ||
+				uploadDestinationsSettings.get().getLocations().isEmpty() ||
+				uploadDestinationsSettings.get().getLocations().get(0) == null) {
 			storageLocationId = DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID;
 		} else {
-			storageLocationId = uploadDestinationsSettings.getLocations().get(0);
+			storageLocationId = uploadDestinationsSettings.get().getLocations().get(0);
 		}
 		return getUploadDestination(userInfo, parentId, storageLocationId);
 	}
