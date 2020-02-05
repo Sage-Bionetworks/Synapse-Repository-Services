@@ -314,6 +314,41 @@ public class StorageLocationUtilsTest {
 
 		assertNotEquals(copyHash, settingHash);
 	}
+	
+	@Test
+	public void testStripStringWithEmptyString() {
+		String inputString = "";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithBlankString() {
+		String inputString = "    ";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTabsString() {
+		String inputString = "		";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTrailingSlashes() {
+		String inputString = "/somestring/";
+		String expected = "somestring";
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTrailingSlashesAndSpaces() {
+		String inputString = " / somestring / / /  ";
+		String expected = "somestring";
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
 
 	private <T extends StorageLocationSetting> T fillCommon(T setting) {
 		setting.setStorageLocationId(123l);

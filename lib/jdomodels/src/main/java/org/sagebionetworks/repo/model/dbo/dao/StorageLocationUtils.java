@@ -56,7 +56,7 @@ public class StorageLocationUtils {
 		return stripString(endpointUrl);
 	}
 	
-	private static String stripString(final String input) {
+	static String stripString(final String input) {
 		if (input == null) {
 			return null;
 		}
