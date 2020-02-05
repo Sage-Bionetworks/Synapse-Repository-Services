@@ -22,7 +22,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.StorageException;
 
 @ExtendWith(MockitoExtension.class)
-public class GCObjectReaderTest {
+public class GCBucketObjectReaderTest {
 
 	private static final String BUCKET_NAME = "somebucket";
 	private static final String OBJECT_KEY = "someObjectKey";

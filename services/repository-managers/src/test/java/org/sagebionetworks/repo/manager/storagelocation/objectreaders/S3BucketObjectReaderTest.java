@@ -2,9 +2,11 @@ package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.junit.jupiter.api.Test;
@@ -22,7 +24,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
 @ExtendWith(MockitoExtension.class)
-public class S3ObjectReaderTest {
+public class S3BucketObjectReaderTest {
 
 	private static final String BUCKET_NAME = "somebucket";
 	private static final String OBJECT_KEY = "someObjectKey";
@@ -110,7 +112,7 @@ public class S3ObjectReaderTest {
 	}
 
 	@Test
-	public void testOpenStreamWithOtherException() {
+	public void testOpenStreamWithOtherException() throws IOException {
 		String errorMsg = "Some AWS error";
 		when(mockAWSException.getMessage()).thenReturn(errorMsg);
 		when(mockS3Client.getObject(BUCKET_NAME, OBJECT_KEY)).thenThrow(mockAWSException);
@@ -120,6 +122,44 @@ public class S3ObjectReaderTest {
 			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
 		});
 
+		assertEquals("Could not read S3 object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME + ": " + errorMsg, e.getMessage());
+	}
+	
+	@Test
+	public void testOpenStreamWithExceptionOnRead() throws IOException {
+		String errorMsg = "Some AWS error";
+		
+		when(mockAWSException.getMessage()).thenReturn(errorMsg);
+		when(mockS3Client.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenThrow(mockAWSException);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		verify(mockS3Object).close();
+		assertEquals("Could not read S3 object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME + ": " + errorMsg, e.getMessage());
+	}
+	
+	@Test
+	public void testOpenStreamWithExceptionOnClose() throws IOException {
+		String errorMsg = "Some AWS error";
+		
+		when(mockAWSException.getMessage()).thenReturn(errorMsg);
+		when(mockS3Client.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockS3Object);
+		when(mockS3Object.getObjectContent()).thenThrow(mockAWSException);
+		
+		IOException ex = new IOException("Some I/O exception");
+		
+		doThrow(ex).when(mockS3Object).close();
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		verify(mockS3Object).close();
 		assertEquals("Could not read S3 object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME + ": " + errorMsg, e.getMessage());
 	}
 

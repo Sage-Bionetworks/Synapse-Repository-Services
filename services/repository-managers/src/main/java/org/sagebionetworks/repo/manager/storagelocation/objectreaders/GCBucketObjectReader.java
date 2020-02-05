@@ -38,18 +38,37 @@ public class GCBucketObjectReader implements BucketObjectReader {
 
 	@Override
 	public InputStream openStream(String bucketName, String key) {
-		ReadChannel readChannel;
-		
+
+		ReadChannel readChannel = null;
+
 		try {
 			Blob blob = googleCloudStorageClient.getObject(bucketName, key);
+
 			if (blob == null) {
 				throw new IllegalArgumentException("Did not find Google Cloud object at key " + key + " from bucket " + bucketName);
 			}
+
 			readChannel = blob.reader();
-		} catch (StorageException e) {
+
+			return Channels.newInputStream(readChannel);
+
+		} catch (Throwable e) {
+
+			dispose(readChannel);
+
+			if (e instanceof IllegalArgumentException) {
+				throw e;
+			}
+
 			throw new IllegalArgumentException("Could not read object at key " + key + " from bucket " + bucketName, e);
 		}
-		
-		return Channels.newInputStream(readChannel);
+
+	}
+	
+	private void dispose(ReadChannel readChannel) {
+		if (readChannel == null) {
+			return;
+		}
+		readChannel.close();
 	}
 }

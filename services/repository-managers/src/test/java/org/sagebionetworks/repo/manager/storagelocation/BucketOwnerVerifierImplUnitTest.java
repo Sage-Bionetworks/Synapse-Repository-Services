@@ -145,12 +145,14 @@ public class BucketOwnerVerifierImplUnitTest {
 		
 		BucketOwnerVerifierImpl bucketOwnerVerifierSpy = Mockito.spy(bucketOwnerVerifier);
 		
-		doNothing().when(bucketOwnerVerifierSpy).inspectUsername(any(), any(), any(), any());
+		when(bucketOwnerVerifierSpy.newStreamReader(mockInputStream)).thenReturn(mockBufferedReader);
+		doNothing().when(bucketOwnerVerifierSpy).validateOwnerContent(any(), any(), any(), any());
 		
 		// Call under test
 		bucketOwnerVerifierSpy.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
 		
 		verify(mockObjectReader).openStream(BUCKET_NAME, OWNER_MARKER);
+		verify(mockBufferedReader).readLine();
 	}
 	
 	@Test
@@ -164,12 +166,14 @@ public class BucketOwnerVerifierImplUnitTest {
 		
 		BucketOwnerVerifierImpl bucketOwnerVerifierSpy = Mockito.spy(bucketOwnerVerifier);
 		
-		doNothing().when(bucketOwnerVerifierSpy).inspectUsername(any(), any(), any(), any());
+		when(bucketOwnerVerifierSpy.newStreamReader(mockInputStream)).thenReturn(mockBufferedReader);
+		doNothing().when(bucketOwnerVerifierSpy).validateOwnerContent(any(), any(), any(), any());
 		
 		// Call under test
 		bucketOwnerVerifierSpy.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
 		
 		verify(mockObjectReader).openStream(BUCKET_NAME, BASE_KEY + "/" + OWNER_MARKER);
+		verify(mockBufferedReader).readLine();
 	}
 	
 	@Test
@@ -195,63 +199,79 @@ public class BucketOwnerVerifierImplUnitTest {
 	}
 	
 	@Test
-	public void inspectUsername() throws IOException {
-		when(mockBufferedReader.readLine()).thenReturn(USER_NAME);
-
+	public void testVerifyBucketOwnershipWithExceptionOnRead() throws IOException {
+		when(mockUserInfo.getId()).thenReturn(USER_ID);
+		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
+		when(mockStorageLocation.getBaseKey()).thenReturn(BASE_KEY);
+		when(mockBucketObjectReaderMap.get(any())).thenReturn(mockObjectReader);
+		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
+		when(mockObjectReader.openStream(BUCKET_NAME, BASE_KEY + "/" + OWNER_MARKER)).thenReturn(mockInputStream);
+		
+		BucketOwnerVerifierImpl bucketOwnerVerifierSpy = Mockito.spy(bucketOwnerVerifier);
+		
+		when(bucketOwnerVerifierSpy.newStreamReader(mockInputStream)).thenReturn(mockBufferedReader);
+		
+		IOException ex = new IOException("I/O Exception");
+		
+		when(mockBufferedReader.readLine()).thenThrow(ex);
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			bucketOwnerVerifierSpy.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+		});
+		
+		assertTrue(e.getMessage().contains("Could not read username from key " + BASE_KEY + "/" + OWNER_MARKER + " from bucket " + BUCKET_NAME + ". For security purposes"));
+		
+		verify(mockObjectReader).openStream(BUCKET_NAME, BASE_KEY + "/" + OWNER_MARKER);
+		verify(mockInputStream).close();
+	}
+	
+	@Test
+	public void testValidateOwnerContent() {
 		// Call under test
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER);
-		verify(mockBufferedReader).close();
+		bucketOwnerVerifier.validateOwnerContent(USER_NAME, principalAliases, BUCKET_NAME, OWNER_MARKER);
 	}
 
 	@Test
-	public void inspectUsernameWithEmailAddress() throws IOException {
-		when(mockBufferedReader.readLine()).thenReturn(USER_EMAIL);
-
+	public void testValidateOwnerContentWithEmailAddress() {
 		// Call under test
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER);
-		verify(mockBufferedReader).close();
+		bucketOwnerVerifier.validateOwnerContent(USER_EMAIL, principalAliases, BUCKET_NAME, OWNER_MARKER);
 	}
 
 	@Test
-	public void inspectUsernameIOException() throws IOException {
-		when(mockBufferedReader.readLine()).thenThrow(new IOException());
+	public void testValidateOwnerContentNullUsername() {
+		String userName = null;
 
-		// Call under test
-		assertThrows(IllegalArgumentException.class, () ->
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER));
-		verify(mockBufferedReader).close();
-	}
-
-	@Test
-	public void inspectUsernameNullUsername() throws IOException {
-		when(mockBufferedReader.readLine()).thenReturn(null);
-
-		// Call under test
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			bucketOwnerVerifier.validateOwnerContent(userName, principalAliases, BUCKET_NAME, OWNER_MARKER);
+		});
+		
 		assertTrue(e.getMessage().contains("No username found"));
-		verify(mockBufferedReader).close();
 	}
 
 	@Test
-	public void inspectUsernameBlankUsername() throws IOException {
-		when(mockBufferedReader.readLine()).thenReturn("");
-
-		// Call under test
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER));
+	public void testValidateOwnerContentBlankUsername() throws IOException {
+		String userName = "";
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			bucketOwnerVerifier.validateOwnerContent(userName, principalAliases, BUCKET_NAME, OWNER_MARKER);
+		});
+		
 		assertTrue(e.getMessage().contains("No username found"));
-		verify(mockBufferedReader).close();
 	}
 
 	@Test
-	public void inspectUsernameUnexpected() throws IOException {
-		when(mockBufferedReader.readLine()).thenReturn(USER_NAME + "-incorrect");
-		// Call under test
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
-		bucketOwnerVerifier.inspectUsername(mockBufferedReader, principalAliases, BUCKET_NAME, OWNER_MARKER));
+	public void testValidateOwnerContentUnexpected() {
+		String userName = USER_NAME + "-incorrect";
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			bucketOwnerVerifier.validateOwnerContent(userName, principalAliases, BUCKET_NAME, OWNER_MARKER);
+		});
+		
 		assertTrue(e.getMessage().contains("The username " + USER_NAME + "-incorrect found under"));
-		verify(mockBufferedReader).close();
 	}
 	
 }

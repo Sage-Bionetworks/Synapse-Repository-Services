@@ -54,17 +54,22 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 
 		List<PrincipalAlias> ownerAliases = getBucketOwnerAliases(userInfo.getId());
 
-		InputStream stream;
+		String ownerContent;
 
-		try {
-			stream = reader.openStream(bucketName, ownerKey);
+		try (InputStream stream = reader.openStream(bucketName, ownerKey)) {
+
+			BufferedReader content = newStreamReader(stream);
+
+			ownerContent = content.readLine();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Could not read username from key " + ownerKey + " from bucket " + bucketName + ". "
+					+ getExplanation(ownerAliases, bucketName, ownerKey));
 		} catch (Exception e) {
 			throw new IllegalArgumentException(e.getMessage() + ". " + getExplanation(ownerAliases, bucketName, ownerKey), e);
 		}
 
-		BufferedReader content = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+		validateOwnerContent(ownerContent, ownerAliases, bucketName, ownerKey);
 
-		inspectUsername(content, ownerAliases, bucketName, ownerKey);
 	}
 
 	BucketObjectReader getObjectReader(BucketOwnerStorageLocationSetting storageLocation) {
@@ -75,6 +80,23 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 		return reader;
 	}
 
+	BufferedReader newStreamReader(InputStream stream) {
+		return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
+	}
+
+	void validateOwnerContent(String ownerContent, List<PrincipalAlias> expectedAliases, String bucket, String key) {
+
+		if (StringUtils.isBlank(ownerContent)) {
+			throw new IllegalArgumentException(
+					"No username found under key " + key + " from bucket " + bucket + ". " + getExplanation(expectedAliases, bucket, key));
+		}
+
+		if (!checkForCorrectName(expectedAliases, ownerContent)) {
+			throw new IllegalArgumentException("The username " + ownerContent + " found under key " + key + " from bucket " + bucket
+					+ " is not what was expected. " + getExplanation(expectedAliases, bucket, key));
+		}
+	}
+	
 	/**
 	 * Collects the possible aliases that can be used to verify ownership of an S3 bucket. Currently, this is a user's
 	 * username and their email addresses.
@@ -84,27 +106,6 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 	 */
 	private List<PrincipalAlias> getBucketOwnerAliases(Long userId) {
 		return principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_NAME, AliasType.USER_EMAIL);
-	}
-
-	void inspectUsername(BufferedReader reader, List<PrincipalAlias> expectedAliases, String bucket, String key) {
-		String actualUsername;
-
-		try (BufferedReader br = reader) {
-			actualUsername = br.readLine();
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not read username from key " + key + " from bucket " + bucket + ". "
-					+ getExplanation(expectedAliases, bucket, key));
-		}
-
-		if (StringUtils.isBlank(actualUsername)) {
-			throw new IllegalArgumentException(
-					"No username found under key " + key + " from bucket " + bucket + ". " + getExplanation(expectedAliases, bucket, key));
-		}
-
-		if (!checkForCorrectName(expectedAliases, actualUsername)) {
-			throw new IllegalArgumentException("The username " + actualUsername + " found under key " + key + " from bucket " + bucket
-					+ " is not what was expected. " + getExplanation(expectedAliases, bucket, key));
-		}
 	}
 
 	private static String getExplanation(List<PrincipalAlias> aliases, String bucket, String key) {

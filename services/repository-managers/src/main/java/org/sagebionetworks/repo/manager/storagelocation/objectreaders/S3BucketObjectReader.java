@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -31,20 +32,45 @@ public class S3BucketObjectReader implements BucketObjectReader {
 
 	@Override
 	public InputStream openStream(String bucketName, String key) {
-		S3Object s3object;
+		S3Object s3object = null;
+		
 		try {
 			s3object = s3client.getObject(bucketName, key);
-		} catch (AmazonServiceException e) {
-			if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(e.getErrorCode())) {
-				throw new IllegalArgumentException("Did not find S3 bucket " + bucketName);
-			} else if (AmazonErrorCodes.S3_NOT_FOUND.equals(e.getErrorCode())
-					|| AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(e.getErrorCode())) {
-				throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucketName);
+			
+			return s3object.getObjectContent();
+		
+		} catch (Throwable e) {
 
+			dispose(s3object);
+			
+			if (e instanceof AmazonServiceException) {
+				handleAmazonServiceException((AmazonServiceException) e, bucketName, key);
 			}
+			
 			throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucketName + ": " + e.getMessage());
 		}
-		return s3object.getObjectContent();
+	}
+	
+	private void handleAmazonServiceException(AmazonServiceException e, String bucketName, String key) {
+		String errorCode = e.getErrorCode();
+		if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(errorCode)) {
+			throw new IllegalArgumentException("Did not find S3 bucket " + bucketName);
+		} 
+		if (AmazonErrorCodes.S3_NOT_FOUND.equals(errorCode) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(errorCode)) {
+			throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucketName);
+		}
+	}
+	
+	private void dispose(S3Object s3object) {
+		if (s3object == null) {
+			return;
+		}
+		
+		try {
+			s3object.close();
+		} catch (IOException ex) {
+			// Nothing we can do
+		}
 	}
 
 }
