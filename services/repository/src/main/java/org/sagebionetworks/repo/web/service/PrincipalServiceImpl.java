@@ -134,4 +134,10 @@ public class PrincipalServiceImpl implements PrincipalService {
 		return principalManager.lookupPrincipalId(request);
 	}
 
+	@Override
+	public void redactPrincipalInformation(Long userId, Long principalToClear) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		principalManager.clearPrincipalInformation(userInfo, principalToClear);
+	}
+
 }
