@@ -1,0 +1,16 @@
+{
+	"description": "A storage location that needs to provide a bucket name",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+		}
+	],
+	"properties": {
+		"bucket": {
+			"type": "string",
+			"description": "The bucket name",
+			"required": true
+		}
+	}
+}

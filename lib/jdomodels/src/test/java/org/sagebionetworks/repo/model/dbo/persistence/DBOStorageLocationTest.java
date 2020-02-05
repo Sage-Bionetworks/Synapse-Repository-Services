@@ -9,15 +9,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 
 public class DBOStorageLocationTest {
-	private ExternalS3StorageLocationSetting extS3sls;
+	private ExternalGoogleCloudStorageLocationSetting storageLocation;
 
 	@BeforeEach
 	public void before() {
-		extS3sls = new ExternalS3StorageLocationSetting();
-		extS3sls.setUploadType(UploadType.HTTPS);
+		storageLocation = new ExternalGoogleCloudStorageLocationSetting();
+		storageLocation.setBucket("some.bucket");
+		storageLocation.setUploadType(UploadType.GOOGLECLOUDSTORAGE);
 	}
 
 	/**
@@ -26,9 +27,9 @@ public class DBOStorageLocationTest {
 	@Test
 	public void createDatabaseObjectFromBackupRemoveSlashes() {
 		String expected = "remove-trailing-slash";
-		extS3sls.setBaseKey(expected + "/");
+		storageLocation.setBaseKey(expected + "/");
 		DBOStorageLocation result = executeTest(true);
-		ExternalS3StorageLocationSetting resultData = (ExternalS3StorageLocationSetting) result.getData();
+		ExternalGoogleCloudStorageLocationSetting resultData = (ExternalGoogleCloudStorageLocationSetting) result.getData();
 		assertEquals(expected, resultData.getBaseKey());
 	}
 
@@ -38,9 +39,9 @@ public class DBOStorageLocationTest {
 	@Test
 	public void createDatabaseObjectFromBackupNoSlashesToRemove() {
 		String expected = "remove-trailing-slash";
-		extS3sls.setBaseKey(expected);
+		storageLocation.setBaseKey(expected);
 		DBOStorageLocation result = executeTest(false);
-		ExternalS3StorageLocationSetting resultData = (ExternalS3StorageLocationSetting) result.getData();
+		ExternalGoogleCloudStorageLocationSetting resultData = (ExternalGoogleCloudStorageLocationSetting) result.getData();
 		assertEquals(expected, resultData.getBaseKey());
 	}
 
@@ -49,35 +50,18 @@ public class DBOStorageLocationTest {
 	 */
 	@Test
 	public void createDatabaseObjectFromBackupNullBaseKey() {
-		extS3sls.setBaseKey(null);
+		storageLocation.setBaseKey(null);
 		DBOStorageLocation result = executeTest(false);
-		ExternalS3StorageLocationSetting resultData = (ExternalS3StorageLocationSetting) result.getData();
+		ExternalGoogleCloudStorageLocationSetting resultData = (ExternalGoogleCloudStorageLocationSetting) result.getData();
 		assertNull(resultData.getBaseKey());
-	}
-
-	/** Test for PLFM-5985 */
-	@Test
-	public void createDatabaseObjectFromBackup_NullUploadType() {
-		extS3sls.setUploadType(null);
-		DBOStorageLocation result = executeTest(true);
-		assertEquals(UploadType.NONE, result.getData().getUploadType());
-		assertEquals(UploadType.NONE, result.getUploadType());
-	}
-
-	/** Test for PLFM-5985 */
-	@Test
-	public void createDatabaseObjectFromBackup_ExistingUploadType() {
-		extS3sls.setUploadType(UploadType.SFTP);
-		DBOStorageLocation result = executeTest(false);
-		assertEquals(UploadType.SFTP, result.getData().getUploadType());
 	}
 
 	private DBOStorageLocation executeTest(boolean isChanged) {
 		// Setup backup object.
-		String prevHash = StorageLocationUtils.computeHash(extS3sls);
+		String prevHash = StorageLocationUtils.computeHash(storageLocation);
 
 		DBOStorageLocation dbo = new DBOStorageLocation();
-		dbo.setData(extS3sls);
+		dbo.setData(storageLocation);
 		dbo.setDataHash(prevHash);
 
 		// Call under test.

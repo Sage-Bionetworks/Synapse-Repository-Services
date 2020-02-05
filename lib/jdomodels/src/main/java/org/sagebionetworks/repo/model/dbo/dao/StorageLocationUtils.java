@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -45,6 +46,30 @@ public class StorageLocationUtils {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} 
+	}
+	
+	public static String sanitizeBaseKey(final String baseKey) {
+		return stripString(baseKey);
+	}
+	
+	public static String sanitizeEndpointUrl(final String endpointUrl) {
+		return stripString(endpointUrl);
+	}
+	
+	static String stripString(final String input) {
+		if (input == null) {
+			return null;
+		}
+		
+		// Remove any trailing slash and/or spaces
+		String sanitizedBaseKey = StringUtils.strip(input, "/ \t");
+
+		// Makes sure that the base key is set to null if empty (See SWC-5088 and PLFM-6057)
+		if (StringUtils.isBlank(sanitizedBaseKey)) {
+			sanitizedBaseKey = null;
+		}
+		
+		return sanitizedBaseKey;
 	}
 	
 	private static StorageLocationSetting copyNormalized(final StorageLocationSetting setting) {

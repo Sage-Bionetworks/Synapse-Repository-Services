@@ -120,7 +120,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		if (stackConfiguration.getGoogleCloudEnabled()) {
 			// Create the owner.txt on the bucket
 			String baseKey = "integration-test/MultipartManagerV2AutowiredTest-" + UUID.randomUUID().toString();
-			googleCloudStorageClient.putObject(googleCloudBucket, baseKey + "owner.txt", new ByteArrayInputStream(principalAliasDao.getUserName(adminUserInfo.getId()).getBytes(StandardCharsets.UTF_8)));
+			googleCloudStorageClient.putObject(googleCloudBucket, baseKey + "/owner.txt", new ByteArrayInputStream(principalAliasDao.getUserName(adminUserInfo.getId()).getBytes(StandardCharsets.UTF_8)));
 
 			googleCloudStorageLocationSetting = new ExternalGoogleCloudStorageLocationSetting();
 			googleCloudStorageLocationSetting.setBucket(googleCloudBucket);

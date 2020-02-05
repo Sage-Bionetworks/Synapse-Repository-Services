@@ -4,8 +4,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.springframework.util.StringUtils;
@@ -26,10 +25,8 @@ public class MultipartUtils {
 		String bucket;
 		if (storageLocationSetting == null || storageLocationSetting instanceof S3StorageLocationSetting) {
 			bucket = StackConfigurationSingleton.singleton().getS3Bucket();
-		} else if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {
-			bucket = ((ExternalS3StorageLocationSetting) storageLocationSetting).getBucket();
-		} else if (storageLocationSetting instanceof ExternalGoogleCloudStorageLocationSetting) {
-			bucket = ((ExternalGoogleCloudStorageLocationSetting) storageLocationSetting).getBucket();
+		} else if (storageLocationSetting instanceof BucketOwnerStorageLocationSetting) {
+			bucket = ((BucketOwnerStorageLocationSetting) storageLocationSetting).getBucket();
 		} else {
 			throw new IllegalArgumentException("Cannot get bucket from storage location setting type " + storageLocationSetting.getClass());
 		}
