@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.storagelocation.processors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 @ExtendWith(MockitoExtension.class)
 public class ExternalObjectStorageLocationProcessorTest {
@@ -25,6 +27,9 @@ public class ExternalObjectStorageLocationProcessorTest {
 
 	@Mock
 	private ExternalObjectStorageLocationSetting mockStorageLocation;
+	
+	@Mock
+	private StorageLocationSetting mockUnsupportedStorageLocation;
 
 	@Mock
 	private UserInfo mockUserInfo;
@@ -33,6 +38,12 @@ public class ExternalObjectStorageLocationProcessorTest {
 	public void testSupports() {
 		assertTrue(processor.supports(mockStorageLocation.getClass()));
 	}
+	
+	@Test
+	public void testSupportsFalse() {
+		assertFalse(processor.supports(mockUnsupportedStorageLocation.getClass()));
+	}
+
 
 	@Test
 	public void testBeforeCreate() {

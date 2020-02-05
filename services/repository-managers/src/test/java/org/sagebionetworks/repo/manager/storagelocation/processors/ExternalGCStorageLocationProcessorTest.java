@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.storagelocation.processors;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
@@ -13,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 @ExtendWith(MockitoExtension.class)
 public class ExternalGCStorageLocationProcessorTest {
@@ -22,6 +24,9 @@ public class ExternalGCStorageLocationProcessorTest {
 
 	@Mock
 	private ExternalGoogleCloudStorageLocationSetting mockStorageLocation;
+	
+	@Mock
+	private StorageLocationSetting mockUnsupportedStorageLocation;
 
 	@Mock
 	private UserInfo mockUserInfo;
@@ -29,6 +34,11 @@ public class ExternalGCStorageLocationProcessorTest {
 	@Test
 	public void testSupports() {
 		assertTrue(processor.supports(mockStorageLocation.getClass()));
+	}
+	
+	@Test
+	public void testSupportsFalse() {
+		assertFalse(processor.supports(mockUnsupportedStorageLocation.getClass()));
 	}
 
 	@Test

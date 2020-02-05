@@ -2,14 +2,17 @@ package org.sagebionetworks.repo.manager.storagelocation;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 /**
- * Common interface for processing storage locations, each processor should not depend from the result of other processors
+ * Common interface for processing storage locations
  * 
  * @author Marco
  *
  * @param <T>
  */
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
 public interface StorageLocationProcessor<T extends StorageLocationSetting> {
 
 	/**

@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +28,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.storagelocation.BucketOwnerVerifier;
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
@@ -39,14 +37,9 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -71,8 +64,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	private static final String NODE_ID = "3524";
 	private static final long STORAGE_LOCATION_ID = 4;
 
-	private static final String USER_NAME = "user-name";
-	private static final String USER_EMAIL = "testuser@my.info.net";
 	private static final Long USER_ID = 101L;
 	private static final String BUCKET_NAME = "bucket.name";
 
@@ -86,25 +77,13 @@ public class ProjectSettingsManagerImplUnitTest {
 	private StorageLocationDAO mockStorageLocationDAO;
 
 	@Mock
-	private FileHandleDao mockFileHandleDao;
-
-	@Mock
 	private ProjectSettingsDAO mockProjectSettingDao;
 
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDao;
 	
 	@Mock
-	private BucketOwnerVerifier mockBucketOwnerVerifier;
-	
-	@Mock
 	private StorageLocationSetting mockStorageLocationSetting;
-	
-	@Mock
-	private BaseKeyStorageLocationSetting mockBaseKeyStorageLocationSetting;
-	
-	@Mock
-	private BucketOwnerStorageLocationSetting mockBucketOwnerStorageLocationSetting;
 	
 	@Mock
 	private StorageLocationProcessor<? extends StorageLocationSetting> mockStorageLocationProcessor;
@@ -112,8 +91,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	@InjectMocks
 	@Spy
 	private ProjectSettingsManagerImpl projectSettingsManagerImpl;
-
-	List<PrincipalAlias> principalAliases;
 	
 	private UploadDestinationListSetting uploadDestinationListSetting;
 	private ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
@@ -123,20 +100,6 @@ public class ProjectSettingsManagerImplUnitTest {
 	@BeforeEach
 	public void before() {
 		userInfo = new UserInfo(false, USER_ID);
-
-		PrincipalAlias username = new PrincipalAlias();
-		username.setPrincipalId(USER_ID);
-		username.setType(AliasType.USER_NAME);
-		username.setAlias(USER_NAME);
-		PrincipalAlias email1 = new PrincipalAlias();
-		email1.setPrincipalId(USER_ID);
-		email1.setType(AliasType.USER_EMAIL);
-		email1.setAlias(USER_EMAIL);
-		PrincipalAlias email2 = new PrincipalAlias();
-		email2.setPrincipalId(USER_ID);
-		email2.setType(AliasType.USER_EMAIL);
-		email2.setAlias("institutional-email@institution.edu");
-		principalAliases = Arrays.asList(username, email1, email2);
 
 		uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(PROJECT_ID);
@@ -631,7 +594,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void testCreateStorageLocationWithNullUser() {
 		UserInfo userInfo = null;
-		StorageLocationSetting storageLocation = mockBucketOwnerStorageLocationSetting;
+		StorageLocationSetting storageLocation = mockStorageLocationSetting;
 		
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()-> {
 			// Call under test
@@ -653,73 +616,6 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertEquals("The storage location is required.", ex.getMessage());
 	}
 	
-	@Test
-	public void testCreateBucketOwnerStorageLocation() {
-		
-		doNothing().when(projectSettingsManagerImpl).processStorageLocation(any(), any());
-		// Call under test
-		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBucketOwnerStorageLocationSetting);
-		
-		verify(mockBucketOwnerVerifier).verifyBucketOwnership(userInfo, mockBucketOwnerStorageLocationSetting);
-		
-	}
-	
-	@Test
-	public void testCreateBaseKeyStorageLocationSettingWithEmptyBaseKey() {
-		String baseKey = "";
-		
-		doNothing().when(projectSettingsManagerImpl).processStorageLocation(any(), any());
-		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
-			
-		// Call under test
-		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
-		
-		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
-		
-	}
-	
-	@Test
-	public void testCreateBaseKeyStorageLocationSettingWithNullBaseKey() {
-		String baseKey = null;
-		
-		doNothing().when(projectSettingsManagerImpl).processStorageLocation(any(), any());
-		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
-			
-		// Call under test
-		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
-		
-		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
-		
-	}
-	
-	@Test
-	public void testCreateBaseKeyStorageLocationSettingWithBlankBaseKey() {
-		String baseKey = "    ";
-		
-		doNothing().when(projectSettingsManagerImpl).processStorageLocation(any(), any());
-		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
-			
-		// Call under test
-		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
-		
-		verify(mockBaseKeyStorageLocationSetting).setBaseKey(null);
-		
-	}
-	
-	@Test
-	public void testCreateBaseKeyStorageLocationSettingWithTrailingSlashes() {
-		String baseKey = "someBaseKey/ ";
-		
-		doNothing().when(projectSettingsManagerImpl).processStorageLocation(any(), any());
-		when(mockBaseKeyStorageLocationSetting.getBaseKey()).thenReturn(baseKey);		
-			
-		// Call under test
-		projectSettingsManagerImpl.createStorageLocationSetting(userInfo, mockBaseKeyStorageLocationSetting);
-		
-		verify(mockBaseKeyStorageLocationSetting).setBaseKey("someBaseKey");
-		
-	}
-
 	@Test
 	public void validateProjectSetting() {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();

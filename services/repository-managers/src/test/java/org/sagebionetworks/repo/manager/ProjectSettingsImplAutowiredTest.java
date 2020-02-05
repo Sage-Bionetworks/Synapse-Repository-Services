@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,11 +13,10 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -34,13 +34,13 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectSettingsImplAutowiredTest {
 
@@ -69,8 +69,8 @@ public class ProjectSettingsImplAutowiredTest {
 	private String childChildId;
 	private List<Long> storageLocationsDelete;
 
-	@Before
-	public void setUp() throws Exception {
+	@BeforeEach
+	public void setUp() throws Exception {		
 		NewUser user = new NewUser();
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
@@ -117,7 +117,7 @@ public class ProjectSettingsImplAutowiredTest {
 		storageLocationsDelete.add(externalS3LocationSetting.getStorageLocationId());
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		entityManager.deleteEntity(adminUserInfo, childChildId);
@@ -233,8 +233,8 @@ public class ProjectSettingsImplAutowiredTest {
 		//call under test
 		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
 		assertNotNull(result);
-		Assert.assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
-		Assert.assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
+		assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
+		assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
 		assertNotNull(result.getStorageLocationId());
 		storageLocationsDelete.add(result.getStorageLocationId());
 	}
@@ -251,37 +251,52 @@ public class ProjectSettingsImplAutowiredTest {
 		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
 
 		assertNotNull(result);
-		Assert.assertEquals(endpoint, result.getEndpointUrl());
-		Assert.assertEquals(bucket, result.getBucket());
+		assertEquals(endpoint, result.getEndpointUrl());
+		assertEquals(bucket, result.getBucket());
 		assertNotNull(result.getStorageLocationId());
 		storageLocationsDelete.add(result.getStorageLocationId());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExternalObjectStorageSettingInvalidBucket() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket(" ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
-		//call under test
-		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			//call under test
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		});
+		
+		assertEquals("Invalid bucket name.", ex.getMessage());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExternalObjectStorageSettingInvalidBucketWithSlashes() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket(" / / / / / ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
-		//call under test
-		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			//call under test
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		});
+		
+		assertEquals("Invalid bucket name.", ex.getMessage());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExternalObjectStorageSettingInvalidURL() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket("someBucket");
 		externalObjectStorageSetting.setEndpointUrl("not a url");
-		//call under test
-		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			//call under test
+			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+		});
+		
+		assertEquals("The External URL is not a valid url: not a url", ex.getMessage());
 	}
 
 }

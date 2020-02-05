@@ -22,8 +22,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 
-	public static final String OWNER_MARKER = "owner.txt";
-
 	public static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
 
 	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains the text '%s'. Also see "

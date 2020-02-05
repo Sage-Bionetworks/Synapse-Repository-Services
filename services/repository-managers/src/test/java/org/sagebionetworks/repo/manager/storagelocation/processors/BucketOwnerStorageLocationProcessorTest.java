@@ -4,33 +4,34 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.storagelocation.BucketOwnerVerifier;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 @ExtendWith(MockitoExtension.class)
-public class ExternalS3StorageLocationProcessorTest {
+public class BucketOwnerStorageLocationProcessorTest {
+	
+	@Mock
+	private BucketOwnerVerifier mockBucketOwnerVerifier;
 	
 	@InjectMocks
-	private ExternalS3StorageLocationProcessor processor;
-
+	private BucketOwnerStorageLocationProcessor processor;
+	
 	@Mock
-	private ExternalS3StorageLocationSetting mockStorageLocation;
+	private BucketOwnerStorageLocationSetting mockStorageLocation;
 	
 	@Mock
 	private StorageLocationSetting mockUnsupportedStorageLocation;
-
+	
 	@Mock
 	private UserInfo mockUserInfo;
-
+	
 	@Test
 	public void testSupports() {
 		assertTrue(processor.supports(mockStorageLocation.getClass()));
@@ -42,11 +43,11 @@ public class ExternalS3StorageLocationProcessorTest {
 	}
 	
 	@Test
-	public void testBeforeCreate() throws IOException {
-
+	public void testBeforeCreate() {
+		
 		// Call under test
 		processor.beforeCreate(mockUserInfo, mockStorageLocation);
-
-		verify(mockStorageLocation).setUploadType(UploadType.S3);
+		
+		verify(mockBucketOwnerVerifier).verifyBucketOwnership(mockUserInfo, mockStorageLocation);
 	}
 }

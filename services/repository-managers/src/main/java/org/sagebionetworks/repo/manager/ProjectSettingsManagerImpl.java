@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.manager.storagelocation.BucketOwnerVerifier;
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -17,12 +16,9 @@ import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -54,9 +50,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
-	
-	@Autowired
-	private BucketOwnerVerifier bucketOwnerVerifier;
 	
 	private List<StorageLocationProcessor<? extends StorageLocationSetting>> storageLocationProcessors;
 	
@@ -185,18 +178,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throws DatastoreException, NotFoundException {
 		ValidateArgument.required(userInfo, "The user");
 		ValidateArgument.required(storageLocationSetting, "The storage location");
-		
-		if (storageLocationSetting instanceof BaseKeyStorageLocationSetting) {
-			sanitizeBaseKey((BaseKeyStorageLocationSetting) storageLocationSetting);
-		}
-		
-		// Runs additional processors that do not depend on each other
+
 		this.processStorageLocation(userInfo, storageLocationSetting);
-		
-		// Verifies the bucket ownership
-		if (storageLocationSetting instanceof BucketOwnerStorageLocationSetting) {
-			bucketOwnerVerifier.verifyBucketOwnership(userInfo, (BucketOwnerStorageLocationSetting) storageLocationSetting);
-		}
 		
 		// Default UploadType to null.
 		if (storageLocationSetting.getUploadType() == null) {
@@ -244,11 +227,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}
-	}
-	
-	void sanitizeBaseKey(BaseKeyStorageLocationSetting storageLocation) {
-		String sanitizedBaseKey = StorageLocationUtils.sanitizeBaseKey(storageLocation.getBaseKey());
-		storageLocation.setBaseKey(sanitizedBaseKey);
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
