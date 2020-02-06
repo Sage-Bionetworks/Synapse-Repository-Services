@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +8,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
@@ -56,11 +56,18 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, request);
 		long start = System.currentTimeMillis();
 		while (!AsynchJobState.COMPLETE.equals(status.getJobState())) {
-			assertFalse("Job Failed: " + status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
+			try {
+				AsynchJobUtils.throwExceptionIfFailed(status);
+			} catch (Throwable e) {
+				if(e instanceof RuntimeException) {
+					throw (RuntimeException)e;
+				}else {
+					throw new RuntimeException(e);
+				}
+			}
 			System.out.println("Waiting for job to complete: Message: " + status.getProgressMessage() + " progress: "
 					+ status.getProgressCurrent() + "/" + status.getProgressTotal());
-			assertTrue("Timed out waiting for job with request type: " + request.getClass().getName(),
-					(System.currentTimeMillis() - start) < maxWaitMS);
+			assertTrue((System.currentTimeMillis() - start) < maxWaitMS, "Timed out waiting for job with request type: " + request.getClass().getName());
 			Thread.sleep(1000);
 			// Get the status again
 			status = this.asynchJobStatusManager.getJobStatus(user, status.getJobId());
@@ -86,7 +93,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		while(true){
 			EntityDTO dto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));
 			if(dto == null || !dto.getEtag().equals(entity.getEtag())){
-				assertTrue("Timed out waiting for table view status change.", (System.currentTimeMillis()-start) <  maxWaitMS);
+				assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for table view status change.");
 				System.out.println("Waiting for entity replication. id: "+entityId+" etag: "+entity.getEtag());
 				Thread.sleep(1000);
 			}else{
@@ -163,7 +170,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		long start = System.currentTimeMillis();
 		// only wait if the view is available but out-of-date.
 		while(!isViewAvailableAndUpToDate(viewId).orElse(true)) {
-			assertTrue("Timed out waiting for table view to be up-to-date.", (System.currentTimeMillis()-start) <  maxWaitMS);
+			assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out waiting for table view to be up-to-date.");
 			System.out.println("Waiting for view "+viewId+" to be up-to-date");
 			Thread.sleep(1000);
 		}
@@ -180,7 +187,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 				System.out.println("Waiting for excluisve lock on "+tableId+"...");
 				Thread.sleep(1000);
 			}
-			assertTrue("Timed out Waiting for excluisve lock on "+tableId, (System.currentTimeMillis()-start) <  maxWaitMS);
+			assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out Waiting for excluisve lock on "+tableId);
 		}
 	}
 
