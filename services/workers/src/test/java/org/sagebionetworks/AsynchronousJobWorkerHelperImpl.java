@@ -2,10 +2,16 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
@@ -20,7 +26,10 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -34,6 +43,9 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 
 public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHelper {
 
@@ -49,6 +61,10 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	TableViewManager tableViewManager;
 	@Autowired
 	TableEntityManager tableEntityManager;
+	@Autowired
+	FileHandleDao fileHandleDao;
+	@Autowired
+	SynapseS3Client s3Client;
 
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> T startAndWaitForJob(UserInfo user,
@@ -188,6 +204,27 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 				Thread.sleep(1000);
 			}
 			assertTrue((System.currentTimeMillis()-start) <  maxWaitMS, "Timed out Waiting for excluisve lock on "+tableId);
+		}
+	}
+	
+
+	/**
+	 * Helper to download the contents of the given FileHandle ID to a string.
+	 * @param fileHandleId
+	 * @return
+	 * @throws IOException
+	 */
+	@Override
+	public String downloadFileHandleFromS3(String fileHandleId) throws IOException {
+		FileHandle fh = fileHandleDao.get(fileHandleId);
+		if (!(fh instanceof S3FileHandle)) {
+			throw new IllegalArgumentException("Not a S3 file handle: " + fh.getClass().getName());
+		}
+		S3FileHandle s3Handle = (S3FileHandle) fh;
+		try (Reader reader = new InputStreamReader(
+				s3Client.getObject(s3Handle.getBucketName(), s3Handle.getKey()).getObjectContent(),
+				StandardCharsets.UTF_8)) {
+			return IOUtils.toString(reader);
 		}
 	}
 

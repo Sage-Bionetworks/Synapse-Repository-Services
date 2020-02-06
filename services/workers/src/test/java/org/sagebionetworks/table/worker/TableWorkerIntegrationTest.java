@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,14 +22,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
@@ -82,6 +80,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -113,7 +112,6 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -122,12 +120,9 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
@@ -136,9 +131,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableWorkerIntegrationTest {
 
@@ -212,7 +206,7 @@ public class TableWorkerIntegrationTest {
 	Query query;
 	QueryOptions queryOptions;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		users = Lists.newArrayList();
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
@@ -233,7 +227,7 @@ public class TableWorkerIntegrationTest {
 		projectId = entityManager.createEntity(adminUserInfo, project, null);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (tableId != null) {
 			try {
@@ -314,9 +308,9 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults().getRows());
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getQueryResults().getEtag());
-		assertEquals("The etag for the last applied change set should be set for the status and the results", referenceSet.getEtag(),
+		assertEquals(referenceSet.getEtag(),
 				queryResult.getQueryResults().getEtag());
-		assertEquals("The etag should also match the rereferenceSet.etag", referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
+		assertEquals(referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
 	}
 	
 	/**
@@ -539,21 +533,27 @@ public class TableWorkerIntegrationTest {
 
 
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullNextPageToken() throws Exception {
-		tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, null);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testEmptyNextPageToken() throws Exception {
-		tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, new QueryNextPageToken());
+		assertThrows(IllegalArgumentException.class, ()->{
+			tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, new QueryNextPageToken());
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testInvalidNextPageToken() throws Exception {
 		QueryNextPageToken token = new QueryNextPageToken();
 		token.setToken("<invalid/>");
-		tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, token);
+		assertThrows(IllegalArgumentException.class, ()->{
+			tableQueryManger.queryNextPage(mockProgressCallbackVoid, adminUserInfo, token);
+		});
 	}
 
 	@Test
@@ -1536,17 +1536,15 @@ public class TableWorkerIntegrationTest {
 		// Now wait for the table index to be ready
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, 100L);
 		assertNotNull(queryResult.getQueryResults());
-		// Now stream the query results to a CSV
-		StringWriter stringWriter = new StringWriter();
-		CSVWriter csvWriter = new CSVWriter(stringWriter);
-		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		DownloadFromTableResult response = waitForConsistentStreamQuery("select * from " + tableId, proxy, null, includeRowIdAndVersion, true);
+		DownloadFromTableResult response = waitForConsistentStreamQuery("select * from " + tableId, null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		String resultFileContents = asynchronousJobWorkerHelper.downloadFileHandleFromS3(response.getResultsFileHandleId());
 		// Read the results
-		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		CSVReader copyReader = new CSVReader(new StringReader(resultFileContents));
 		List<String[]> copy = copyReader.readAll();
 		assertNotNull(copy);
 		// the results should include a header.
@@ -1557,16 +1555,15 @@ public class TableWorkerIntegrationTest {
 		assertEquals(Arrays.asList("2", "1",  null, "3", "1.2" ).toString(), Arrays.toString(copy.get(2)));
 
 		// test with aggregate columns
-		stringWriter = new StringWriter();
-		csvWriter = new CSVWriter(stringWriter);
-		proxy = new CSVWriterStreamProxy(csvWriter);
 		includeRowIdAndVersion = false;
-		response = waitForConsistentStreamQuery("select count(a), a from " + tableId + " group by a order by a", proxy,
+		response = waitForConsistentStreamQuery("select count(a), a from " + tableId + " group by a order by a",
 				null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		resultFileContents = asynchronousJobWorkerHelper.downloadFileHandleFromS3(response.getResultsFileHandleId());
 		// Read the results
-		copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		copyReader = new CSVReader(new StringReader(resultFileContents));
 		List<String[]> counts = copyReader.readAll();
 		assertNotNull(counts);
 		// the first two columns should include the rowId can verionNumber
@@ -1585,13 +1582,14 @@ public class TableWorkerIntegrationTest {
 		appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				response.getEtag(), null, null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
-		stringWriter = new StringWriter();
-		csvWriter = new CSVWriter(stringWriter);
-		proxy = new CSVWriterStreamProxy(csvWriter);
 		includeRowIdAndVersion = false;
-		response = waitForConsistentStreamQuery("select c, a, b from " + tableId, proxy, null, includeRowIdAndVersion, true);
+		response = waitForConsistentStreamQuery("select c, a, b from " + tableId, null, includeRowIdAndVersion, true);
+		assertNotNull(response);
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		resultFileContents = asynchronousJobWorkerHelper.downloadFileHandleFromS3(response.getResultsFileHandleId());
 		// read the results
-		copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		copyReader = new CSVReader(new StringReader(resultFileContents));
 		copy = copyReader.readAll();
 		assertNotNull(copy);
 		// As long as the updated data does not includes rowIds and row version we can use it to create a new table.
@@ -1635,17 +1633,15 @@ public class TableWorkerIntegrationTest {
 			assertArrayEquals(expectedResults[i], queryResult.getQueryResults().getRows().get(i - 1).getValues().toArray(new String[0]));
 		}
 
-		// Now stream the query results to a CSV
-		StringWriter stringWriter = new StringWriter();
-		CSVWriter csvWriter = new CSVWriter(stringWriter);
-		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		DownloadFromTableResult response = waitForConsistentStreamQuery(aggregateSql, proxy, null, includeRowIdAndVersion, true);
+		DownloadFromTableResult response = waitForConsistentStreamQuery(aggregateSql, null, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		String resultFileContents = asynchronousJobWorkerHelper.downloadFileHandleFromS3(response.getResultsFileHandleId());
 		// Read the results
-		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		CSVReader copyReader = new CSVReader(new StringReader(resultFileContents));
 		List<String[]> copy = copyReader.readAll();
 		copyReader.close();
 		assertNotNull(copy);
@@ -1661,38 +1657,26 @@ public class TableWorkerIntegrationTest {
 		facetTestSetup();
 		boolean includeRowIdAndVersion = false;
 		String sql = "select i0 from " + tableId;
-		StringWriter stringWriter = new StringWriter();
-		CSVWriter csvWriter = new CSVWriter(stringWriter);
-		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		FacetColumnValuesRequest facetRequest = new FacetColumnValuesRequest();
 		facetRequest.setColumnName("i0");
 		facetRequest.setFacetValues(Sets.newHashSet("string0", "string2"));
 		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
 		selectedFacets.add(facetRequest);
 		
-		// Downlaod the data to a csv
-		DownloadFromTableResult response = waitForConsistentStreamQuery(sql, proxy, selectedFacets, includeRowIdAndVersion, true);
+		// download the data to a csv
+		DownloadFromTableResult response = waitForConsistentStreamQuery(sql, selectedFacets, includeRowIdAndVersion, true);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
-		
+		assertNotNull(response.getResultsFileHandleId());
+		String resultFileContents = asynchronousJobWorkerHelper.downloadFileHandleFromS3(response.getResultsFileHandleId());
 		// Read the results
-		CSVReader copyReader = new CSVReader(new StringReader(stringWriter.toString()));
+		CSVReader copyReader = new CSVReader(new StringReader(resultFileContents));
 		List<String[]> copy = copyReader.readAll();
 		copyReader.close();
 		assertNotNull(copy);
 		
 		//compare the results
 		String[][] expectedResults = { { "i0" }, { "string0" }, { "string2" } };
-		if(expectedResults.length != copy.size()) {
-			System.out.println("Will fail, the data in copy is:");
-			StringJoiner joiner = new StringJoiner(",");
-			for(String[] row: copy) {
-				for(int i=0; i<row.length; i++) {
-					joiner.add(row[i]);
-				}
-			}
-			System.out.println(joiner.toString());
-		}
 		assertEquals(expectedResults.length, copy.size());
 		for (int i = 0; i < copy.size(); i++) {
 			assertArrayEquals(expectedResults[i], copy.get(i));
@@ -2690,26 +2674,16 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private DownloadFromTableResult waitForConsistentStreamQuery(String sql, CSVWriterStream writer, List<FacetColumnRequest> selectedFacets,boolean includeRowIdAndVersion,
+	DownloadFromTableResult waitForConsistentStreamQuery(String sql, List<FacetColumnRequest> selectedFacets,boolean includeRowIdAndVersion,
 			boolean writeHeader) throws Exception {
-		long start = System.currentTimeMillis();
-		while(true){
-			try {
-				tableQueryManger.validateTableIsAvailable(tableId);
-				DownloadFromTableRequest request = new DownloadFromTableRequest();
-				request.setSql(sql);
-				request.setSelectedFacets(selectedFacets);
-				request.setIncludeRowIdAndRowVersion(includeRowIdAndVersion);
-				request.setWriteHeader(writeHeader);
-				return tableQueryManger.runQueryDownloadAsStream(mockProgressCallbackVoid, adminUserInfo, request, writer);
-			}  catch (LockUnavilableException e) {
-				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
-			} catch (TableUnavailableException e) {
-				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
-			}
-			assertTrue((System.currentTimeMillis()-start) <  MAX_WAIT_MS, "Timed out waiting for table index worker to make the table available.");
-			Thread.sleep(1000);
-		}
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setIncludeRowIdAndRowVersion(includeRowIdAndVersion);
+		request.setSelectedFacets(selectedFacets);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(writeHeader);
+		request.setCsvTableDescriptor(descriptor);
+		return asynchronousJobWorkerHelper.startAndWaitForJob(adminUserInfo, request, MAX_WAIT_MS, DownloadFromTableResult.class);
 	}
 
 	private void compareValues(RowSet expected, int offset, int count, RowSet actual) {
@@ -2717,7 +2691,7 @@ public class TableWorkerIntegrationTest {
 		int expectedIndex = offset;
 		int actualIndex = 0;
 		for (int i = 0; i < count; i++, expectedIndex++, actualIndex++) {
-			assertEquals("Row " + i, expected.getRows().get(expectedIndex).getValues().toString(), actual.getRows().get(actualIndex)
+			assertEquals(expected.getRows().get(expectedIndex).getValues().toString(), actual.getRows().get(actualIndex)
 					.getValues().toString());
 		}
 	}
