@@ -14,9 +14,7 @@
   <name>Platform Clients</name>
 
   <modules>
-
     <module>synapseJavaClient</module>
-    <module>commandLineInterface</module>
   </modules>
 
 </project>

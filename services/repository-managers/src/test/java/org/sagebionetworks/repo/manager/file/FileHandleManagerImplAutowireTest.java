@@ -29,8 +29,8 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
-import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.storagelocation.processors.ProxyStorageLocationProcessor;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -437,7 +437,7 @@ public class FileHandleManagerImplAutowireTest {
 	public void testProxyStorageLocationSettingsSecretTooSmall() throws DatastoreException, NotFoundException {
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();
 		proxy.setProxyUrl("https://host.org:8080/path");
-		proxy.setSecretKey(new String(new char[ProjectSettingsManagerImpl.MIN_SECRET_KEY_CHARS-1]));
+		proxy.setSecretKey(new String(new char[ProxyStorageLocationProcessor.MIN_SECRET_KEY_CHARS-1]));
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
 				userInfo, proxy));

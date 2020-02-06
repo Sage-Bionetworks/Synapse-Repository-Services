@@ -19,10 +19,11 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 
 /**
@@ -56,11 +57,32 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	@Field(name = COL_STORAGE_LOCATION_CREATED_ON, nullable = false)
 	private Date createdOn;
 
-	private static TableMapping<DBOStorageLocation> tableMapping = AutoTableMapping.create(DBOStorageLocation.class);
+	private static final TableMapping<DBOStorageLocation> TABLE_MAPPING = AutoTableMapping.create(DBOStorageLocation.class);
+	
+	private static final MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<DBOStorageLocation>() {
+	
+	@Override
+		public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
+			StorageLocationSetting setting = backup.getData();
+			if (setting != null) {
+				if (setting instanceof ExternalGoogleCloudStorageLocationSetting) {
+					ExternalGoogleCloudStorageLocationSetting storageLocation = (ExternalGoogleCloudStorageLocationSetting) setting;
+					String sanitiedBaseKey = StorageLocationUtils.sanitizeBaseKey(storageLocation.getBaseKey());
+					storageLocation.setBaseKey(sanitiedBaseKey);
+					backup.setDataHash(null);
+				}
+				if (backup.getDataHash() == null) {
+					String settingHash = StorageLocationUtils.computeHash(setting);
+					backup.setDataHash(settingHash);
+				}
+			}
+			return backup;
+		}
+	};
 
 	@Override
 	public TableMapping<DBOStorageLocation> getTableMapping() {
-		return tableMapping;
+		return TABLE_MAPPING;
 	}
 
 	@Override
@@ -205,54 +227,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	@Override
 	public MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> getTranslator() {
-		return new MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation>() {
-			
-			@Override
-			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
-				if (backup.getData() != null) {
-					// PLFM-5769 - Remove after migrated
-					if (backup.getData() instanceof ExternalS3StorageLocationSetting) {
-						ExternalS3StorageLocationSetting data = (ExternalS3StorageLocationSetting) backup.getData();
-						if (data.getBaseKey() != null) {
-							// Base keys should not have trailing slashes
-							data.setBaseKey(removeTrailingSlashes(data.getBaseKey()));
-							// Set the hash to null to recompute it
-							backup.setDataHash(null);
-						}
-					}
-					// ^^^ PLFM-5769 code ends here
-
-					// PLFM-5985
-					if (backup.getData().getUploadType() == null) {
-						// UploadType is no longer nullable. Default UploadType is NONE.
-						backup.getData().setUploadType(UploadType.NONE);
-						backup.setUploadType(UploadType.NONE);
-						// Set the hash to null to recompute it.
-						backup.setDataHash(null);
-					}
-					// PLFM-5985
-				}
-
-				if (backup.getDataHash() == null && backup.getData() != null) {
-					StorageLocationSetting setting = backup.getData();
-					String settingHash = StorageLocationUtils.computeHash(setting);
-					backup.setDataHash(settingHash);
-				}
-				return backup;
-			}
-			
-			@Override
-			public DBOStorageLocation createBackupFromDatabaseObject(DBOStorageLocation dbo) {
-				return dbo;
-			}
-		};
-	}
-
-	private static String removeTrailingSlashes(String s) {
-		while (s.endsWith("/")){
-			s = s.substring(0, s.length() - 1);
-		}
-		return s;
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override

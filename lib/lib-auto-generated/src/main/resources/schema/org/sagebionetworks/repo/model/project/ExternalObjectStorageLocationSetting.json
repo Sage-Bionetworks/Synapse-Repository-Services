@@ -2,18 +2,13 @@
 	"description": "The external upload destination setting contains information to generate an upload destination for an S3 object storage NOT managed by Synapse. This is different from ExternalS3StorageLocationSetting, which contains information about an external S3 storage that is managed by Synapse",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
+			"$ref": "org.sagebionetworks.repo.model.project.BucketStorageLocationSetting"
 		}
 	],
 	"properties": {
 		"endpointUrl": {
 			"type": "string",
 			"description": "endpoint URL of the S3 service (for example: 'https://s3.amazonaws.com')",
-			"required": true
-		},
-		"bucket": {
-			"type": "string",
-			"description": "the bucket to use",
 			"required": true
 		}
 	}

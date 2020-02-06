@@ -5,6 +5,5 @@
 			"$ref": "org.sagebionetworks.repo.model.project.StsStorageLocationSetting"
 		}
 	],
-	"properties": {
-	}
+	"properties": { }
 }

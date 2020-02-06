@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2556,10 +2557,8 @@ public class TableIndexDAOImplTest {
 		Set<Long> rowsIds = null;
 		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, rowsIds);
 
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, stringListColumn.getId());
-
 		//each list value created by createRows has 2 items in the list
-		assertEquals(numRows * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 	}
 
 	//See PLFM-5999
@@ -2596,6 +2595,120 @@ public class TableIndexDAOImplTest {
 
 		assertEquals("The size of the column 'myList' is too small." +
 				" Unable to automatically determine the necessary size to fit all values in a STRING_LIST column", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_NullTableId() {
+		tableId = null;
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("tableId is required.", message);
+
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_NullColumn() {
+		ColumnModel multiValue = null;
+		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("listColumn is required.", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_NotListType() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Sets.newHashSet(1L);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("Only valid for List type columns", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_nullRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = null;
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("rowIds is required and must not be empty.", message);
+	}
+
+	@Test
+	public void testDeleteFromListColumnIndexTable_EmptyRowFilter() {
+		ColumnModel multiValue = new ColumnModel();
+		multiValue.setId("886");
+		multiValue.setColumnType(ColumnType.STRING_LIST);
+		multiValue.setName("multiValue");
+		multiValue.setMaximumSize(100L);
+		Set<Long> rowIdFilter = Collections.emptySet();
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			tableIndexDAO.deleteFromListColumnIndexTable(tableId, multiValue, rowIdFilter);
+		}).getMessage();
+		assertEquals("rowIds is required and must not be empty.", message);
+	}
+
+
+	@Test
+	public void testDeleteFromListColumnIndexTable() {
+		// create a table with a long column.
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("12");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel stringListColumn = new ColumnModel();
+		stringListColumn.setId("15");
+		stringListColumn.setName("myList");
+		stringListColumn.setMaximumSize(54L);
+		stringListColumn.setColumnType(ColumnType.STRING_LIST);
+
+
+		ColumnModel booleanColumn = new ColumnModel();
+		booleanColumn.setId("13");
+		booleanColumn.setName("bar");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+
+		List<ColumnModel> schema = Lists.newArrayList(intColumn, stringListColumn ,booleanColumn);
+
+		createOrUpdateTable(schema, tableId, isView);
+
+		int numRows = 5;
+		List<Row> rows = TableModelTestUtils.createRows(schema, numRows);
+		createOrUpdateOrDeleteRows(tableId, rows, schema);
+
+		tableIndexDAO.populateListColumnIndexTable(tableId, stringListColumn, null);
+
+		assertEquals(numRows * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
+
+		//method under test
+		//delete 2 rows from index table
+		tableIndexDAO.deleteFromListColumnIndexTable(tableId, stringListColumn, Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId()));
+
+		//deleted 2 rows so expect 2*2=4 less rows in the index table
+		assertEquals((numRows-2) * 2, countRowsInMultiValueIndex(tableId, stringListColumn.getId()));
 	}
 	
 	/**
@@ -3094,11 +3207,9 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.copyEntityReplicationToView(tableId.getId(), ViewTypeMask.File.getMask(), scope, schema, rowIdFilter);
 		// call under test
 		tableIndexDAO.populateListColumnIndexTable(tableId, multiValue, rowIdFilter);
-		
-		String listColumnindexTableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, multiValue.getId());
 
 		//each list value created by createRows has 2 items in the list
-		assertEquals(rowCount * 2, tableIndexDAO.countQuery("SELECT COUNT(*) FROM `" + listColumnindexTableName + "`", Collections.emptyMap()));
+		assertEquals(rowCount * 2, countRowsInMultiValueIndex(tableId, multiValue.getId()));
 	}
 	
 	/**

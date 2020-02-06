@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,10 +24,12 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -251,6 +254,45 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
 		// The new version should be set
 		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+	}
+
+	@Test
+	public void testApplyChangeSetToIndex_PopulateListColumns(){
+		setupExecuteInWriteTransaction();
+		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		// no files in the schema
+		schema = Arrays.asList(
+				TableModelTestUtils.createColumn(99L, "strList", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(101L, "intList", ColumnType.INTEGER_LIST)
+		);
+
+		sparseChangeSet = new SparseChangeSet(tableId.toString(), schema);
+		SparseRow row = sparseChangeSet.addEmptyRow();
+		row.setRowId(0L);
+		row.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row.setCellValue("101", "[1,2,3,4]");
+
+		SparseRow row2 = sparseChangeSet.addEmptyRow();
+		row2.setRowId(5L);
+		row2.setCellValue("99", "[\"some string\", \"some other string\"]");
+		row2.setCellValue("101", "[1,2,3,4]");
+
+		//call under test.
+		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
+		// All changes should be executed in a transaction
+		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		// change should be written to the index
+		verify(mockIndexDao).createOrUpdateOrDeleteRows(eq(tableId), any(Grouping.class));
+		// there are no files
+		verify(mockIndexDao, never()).applyFileHandleIdsToTable(any(IdAndVersion.class), anySet());
+		// The new version should be set
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, versionNumber);
+
+		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
+		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
+		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
 	}
 	
 	@Test
@@ -1331,5 +1373,5 @@ public class TableIndexManagerImplTest {
 		}
 		return schema;
 	}
-	
+
 }
