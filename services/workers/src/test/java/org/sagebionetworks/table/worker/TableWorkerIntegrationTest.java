@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -2156,7 +2157,6 @@ public class TableWorkerIntegrationTest {
 	}
 
 
-
 	@Test
 	public void testChangeNonListColumnToList() throws Exception{
 		// setup an EntityId column.
@@ -2271,9 +2271,9 @@ public class TableWorkerIntegrationTest {
 		schemaChangeRequest.setChanges(Lists.newArrayList(change));
 		schemaChangeRequest.setEntityId(tableId);
 
-		//TODO: expect exception somewhere
-		updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
-
+		assertThrows(IllegalArgumentException.class, () -> {
+			updateTable(mockProgressCallback, adminUserInfo, schemaChangeRequest);
+		});
 	}
 
 	@Test
