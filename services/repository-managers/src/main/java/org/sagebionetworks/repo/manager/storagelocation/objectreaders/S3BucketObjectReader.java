@@ -47,7 +47,7 @@ public class S3BucketObjectReader implements BucketObjectReader {
 				handleAmazonServiceException((AmazonServiceException) e, bucketName, key);
 			}
 			
-			throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucketName + ": " + e.getMessage());
+			throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucketName + ": " + e.getMessage(), e);
 		}
 	}
 	
