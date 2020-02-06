@@ -3365,4 +3365,78 @@ public class TableIndexDAOImplTest {
 		//mysql adds spaces between the commas on returned results
 		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
 	}
+
+
+	@Test
+	public void testGetMultivalueColumnIndexTableColumnIds(){
+		ColumnModel strListColumn = new ColumnModel();
+		strListColumn.setId("12");
+		strListColumn.setName("foo");
+		strListColumn.setMaximumSize(14L);
+		strListColumn.setColumnType(ColumnType.STRING_LIST);
+
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("14");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel intListColumn = new ColumnModel();
+		intListColumn.setId("16");
+		intListColumn.setName("intList");
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setDefaultValue("[1,2,3]");
+
+		List<ColumnModel> schema = Arrays.asList(strListColumn, intColumn, intListColumn);
+		createOrUpdateTable(schema, tableId, isView);
+
+		//method under test
+		List<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertTrue(Sets.newHashSet(12L,16L).containsAll(columnIds));
+	}
+
+	@Test
+	public void testGetMultivalueColumnIndexTableColumnIds__emptyList(){
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("14");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		List<ColumnModel> schema = Arrays.asList(intColumn);
+		createOrUpdateTable(schema, tableId, isView);
+
+		//method under test
+		List<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertEquals(Collections.emptyList(), columnIds);
+	}
+
+
+
+	@Test
+	public void testCreateAndDeleteMultivalueColumnIndexTable(){
+		// This will be an add, so the old is null.
+		ColumnModel column = new ColumnModel();
+		column.setColumnType(ColumnType.STRING_LIST);
+		Long columnId = 1337L;
+		column.setId(columnId.toString());
+		column.setMaximumSize(50L);
+		column.setName("StringList");
+		// Create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		boolean alterTemp = false;
+		//add column
+		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column);
+
+
+		//check index table was created
+		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString()) + "'", String.class));
+
+		//delete column
+		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, columnId);
+
+
+		//check index table was deleted
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString()) + "'", String.class);
+		});
+	}
 }

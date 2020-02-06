@@ -1212,6 +1212,12 @@ public class SQLUtils {
 		}
 	}
 
+	static long getColumnIdFromMultivalueColumnIndexTableName(IdAndVersion tableId, String indexTableName){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.requiredNotEmpty(indexTableName, "columnName");
+		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId).length()));
+	}
+
 	/**
 	 * The name of the temporary table for the given table Id.
 	 * 
@@ -1918,12 +1924,16 @@ public class SQLUtils {
 	}
 
 
-	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnModel){
+		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
+		ValidateArgument.required(columnModel, "columnModel");
+		ValidateArgument.requirement(ColumnTypeListMappings.isList(columnModel.getColumnType()), "columnModel's type must be a LIST type");
+
 		String parentTable = getTableNameForId(tableIdAndVersion, TableType.INDEX);
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
-		String columnName = getUnnestedColumnNameForId(columnInfo.getId());
-		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
-		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId());
+		String columnName = getUnnestedColumnNameForId(columnModel.getId());
+		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnModel.getId());
+		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnModel.getColumnType())).toSql(columnModel.getMaximumSize(), null, false);
 		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
 				rowIdRefColumnName+" BIGINT NOT NULL, " +
 				INDEX_NUM + " BIGINT NOT NULL, " + //index of value in its list

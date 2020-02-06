@@ -194,11 +194,6 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 	}
 
-	@Override
-	public List<String> getTableSchema(String tableId) {
-		return columModelManager.getColumnIdsForTable(IdAndVersion.parse(tableId));
-	}
-
 	/**
 	 * Update an Entity using data form a view.
 	 * 

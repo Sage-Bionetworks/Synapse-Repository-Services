@@ -431,14 +431,7 @@ public class TableViewManagerImplTest {
 		// expected
 		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 	}
-	
-	@Test
-	public void testGetTableSchema(){
-		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
-		List<String> retrievedSchema = manager.getTableSchema(viewId);
-		assertEquals(schema, retrievedSchema);
-	}
-	
+
 	@Test
 	public void testUpdateAnnotationsFromValues(){
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();

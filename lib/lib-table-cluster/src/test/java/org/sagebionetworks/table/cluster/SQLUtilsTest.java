@@ -1652,6 +1652,29 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullTableId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(null, "_T123_123__INDEX_C555_");
+		});
+	}
+	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullIndexTableName(){
+		IdAndVersion tableId = IdAndVersion.parse("syn123");
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, null);
+		});
+
+	}
+
+	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName(){
+		IdAndVersion tableId = IdAndVersion.parse("syn123.456");
+		String indexTableName = "T123_456_INDEX_C555_";
+
+		assertEquals(555, SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName));
+	}
+
+	@Test
 	public void testTemporaryTableName(){
 		String temp = SQLUtils.getTemporaryTableName(tableId);
 		assertEquals("TEMPT999", temp);
@@ -2773,6 +2796,42 @@ public class SQLUtilsTest {
 		String[] row = new String[] {"foo","barbar"};
 		long bytes = SQLUtils.calculateBytes(row);
 		assertEquals(3*4+6*4, bytes);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable__nullTableId(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setId("0");
+		columnModel.setMaximumSize(42L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.createListColumnIndexTable(null, columnModel);
+		}).getMessage();
+		assertEquals("tableIdAndVersion is required.", errorMessage);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable__nullColumnModel(){
+		ColumnModel nullColumnModel = null;
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
+			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel);
+		}).getMessage();
+		assertEquals("columnModel is required.", errorMessage);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable__columnModelNotListType(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setId("0");
+		columnModel.setMaximumSize(42L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
+			SQLUtils.createListColumnIndexTable(tableId, columnModel);
+		}).getMessage();
+
+		assertEquals("columnModel's type must be a LIST type", errorMessage);
 	}
 
 	@Test

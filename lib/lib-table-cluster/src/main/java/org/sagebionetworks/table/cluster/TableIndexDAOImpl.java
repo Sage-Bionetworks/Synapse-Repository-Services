@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -184,8 +185,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	 * @param tableId
 	 */
 	void deleteMultiValueTablesForTable(IdAndVersion tableId) {
-		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
-		List<String> tablesToDelete = template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
+		List<String> tablesToDelete = getMultivalueColumnIndexTableNames(tableId);
 		for(String tableNames: tablesToDelete) {
 			template.update("DROP TABLE IF EXISTS "+tableNames);
 		}
@@ -447,6 +447,30 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 
 		return true;
+	}
+
+	@Override
+	public List<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
+		return getMultivalueColumnIndexTableNames(tableId)
+				.stream()
+				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
+				.collect(Collectors.toList());
+	}
+
+	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId){
+		String multiValueTableNamePrefix = SQLUtils.getTableNamePrefixForMultiValueColumns(tableId);
+		return template.queryForList("SHOW TABLES LIKE '"+multiValueTableNamePrefix+"%'", String.class);
+	}
+
+	@Override
+	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel){
+		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel));
+	}
+
+	@Override
+	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString());
+		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
 	@Override
