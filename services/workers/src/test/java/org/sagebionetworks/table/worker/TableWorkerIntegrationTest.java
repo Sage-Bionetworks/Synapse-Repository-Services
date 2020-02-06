@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -1692,6 +1693,16 @@ public class TableWorkerIntegrationTest {
 		
 		//compare the results
 		String[][] expectedResults = { { "i0" }, { "string0" }, { "string2" } };
+		if(expectedResults.length != copy.size()) {
+			System.out.println("Will fail, the data in copy is:");
+			StringJoiner joiner = new StringJoiner(",");
+			for(String[] row: copy) {
+				for(int i=0; i<row.length; i++) {
+					joiner.add(row[i]);
+				}
+			}
+			System.out.println(joiner.toString());
+		}
 		assertEquals(expectedResults.length, copy.size());
 		for (int i = 0; i < copy.size(); i++) {
 			assertArrayEquals(expectedResults[i], copy.get(i));
