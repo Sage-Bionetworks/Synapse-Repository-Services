@@ -112,8 +112,4 @@ public class SynapseGoogleCloudStorageClientImpl implements SynapseGoogleCloudSt
 		return storage.get(bucket, Storage.BucketGetOption.fields()) != null;
 	}
 
-	@Override
-	public InputStream getObjectContent(String bucket, String key) {
-		return Channels.newInputStream(this.getObject(bucket, key).reader());
-	}
 }

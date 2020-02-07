@@ -15,6 +15,7 @@ public interface BucketObjectReader {
 	 * Verifies that we have access to the bucket with the given name
 	 * 
 	 * @param bucketName
+	 * @throws IllegalArgumentException If synapse cannot access the given bucket
 	 */
 	void verifyBucketAccess(String bucketName);
 
@@ -24,6 +25,8 @@ public interface BucketObjectReader {
 	 * @param bucketName
 	 * @param key
 	 * @return
+	 * 
+	 * @throws IllegalArgumentException If synapse cannot open a stream to the given key
 	 */
 	InputStream openStream(String bucketName, String key);
 	
