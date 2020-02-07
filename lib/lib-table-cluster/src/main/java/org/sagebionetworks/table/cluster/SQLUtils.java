@@ -733,6 +733,7 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+	//TODO: remove
 	public static List<String> listColumnIndexTableCreateOrDropStatements(List<ColumnChangeDetails> changes, IdAndVersion tableId){
 		List<String> statements = new ArrayList<>();
 

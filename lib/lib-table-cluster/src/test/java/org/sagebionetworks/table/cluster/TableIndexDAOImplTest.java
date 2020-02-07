@@ -3390,8 +3390,8 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 
 		//method under test
-		List<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
-		assertTrue(Sets.newHashSet(12L,16L).containsAll(columnIds));
+		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertEquals(Sets.newHashSet(12L,16L), columnIds);
 	}
 
 	@Test
@@ -3405,8 +3405,8 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, tableId, isView);
 
 		//method under test
-		List<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
-		assertEquals(Collections.emptyList(), columnIds);
+		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertEquals(Collections.emptySet(), columnIds);
 	}
 
 

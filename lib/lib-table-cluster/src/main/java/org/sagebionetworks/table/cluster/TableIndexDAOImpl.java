@@ -450,11 +450,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
+	public Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId){
 		return getMultivalueColumnIndexTableNames(tableId)
 				.stream()
 				.map((String indexTableName) -> SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName))
-				.collect(Collectors.toList());
+				.collect(Collectors.toSet());
 	}
 
 	List<String> getMultivalueColumnIndexTableNames(IdAndVersion tableId){

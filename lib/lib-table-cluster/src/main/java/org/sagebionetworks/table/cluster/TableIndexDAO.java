@@ -196,7 +196,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	List<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
+	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
 
 	/**
 	 * Creates an index table for the multi-value column described in the columnModel.

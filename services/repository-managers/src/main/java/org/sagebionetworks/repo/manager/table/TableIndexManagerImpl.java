@@ -1,16 +1,22 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
@@ -29,7 +35,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.model.ListColumnChanges;
+import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -38,7 +44,6 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
@@ -92,9 +97,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		if (changeSetVersionNumber > currentVersion) {
 			// apply all changes in a transaction
 			tableIndexDao
-					.executeInWriteTransaction(new TransactionCallback<Void>() {
-						@Override
-						public Void doInTransaction(TransactionStatus status) {
+					.executeInWriteTransaction((TransactionStatus status) -> {
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
 								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
@@ -107,7 +110,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							}
 
 							//once all changes to main table are applied, populate the list-type columns with the changes.
-							for(ListColumnChanges listColumnChange : rowset.groupListColumnChanges()){
+							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
 								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
 								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
 							}
@@ -117,7 +120,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 									tableId, changeSetVersionNumber);
 							return null;
 						}
-					});
+					);
 		}
 	}
 
@@ -157,26 +160,114 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 	}
-	
-	@Override
-	public String getCurrentSchemaMD5Hex(final IdAndVersion tableId) {
-		return tableIndexDao.getCurrentSchemaMD5Hex(tableId);
-	}
-	
-	@Override
-	public void setIndexVersion(final IdAndVersion tableId, Long versionNumber) {
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(
-				tableId, versionNumber);
-	}
-	
+
 	@Override
 	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
 
-	//TODO: columchange deatails -> index table add/delete details
 	//TODO: full schema -> diff between schema and existing index -> index table add/ delete details
-	
+	//TODO: temp changes vs normal changes
+	//TODO: optimization: classify renames differently from column changes
+	//TODO: optimization: classify type changes differntly from column changes
+	//TODO: changing one list type to another needs to handle type switch in JSON?
+	//TODO: changing from non-list to list needs to handle wrapping values
+	//TODO: TRACK USE LIST OF UPDATE TABLE ON COLUMNNS TO HANDLE WRAPPING AND CONVERTING VALUES(e.g.  JSON_ARRAY( cast(1 as char(20)), cast('123' as signed)) )
+
+
+	/**
+	 * Given the expected schema, figure out changes that need to be applied to list column index tables.
+	 * NOTE: !!!!!!!This should ONLY BE USED for reconciling schema before RowSet changes!!!!!!!!
+	 *       ONLY additions and deletions will be. RENAMES and TYPE CHANGES can NOT BE HANDLED by this.
+	 *       USE {@link #listColumnIndexTableChangesFromChangeDetails(IdAndVersion, List<ColumnChangeDetails>)}
+	 *       for SCHEMA-ONLY changes
+	 * @param expectedSchema
+	 * @return
+	 */
+	public static List<ListColumnIndexTableChange> listColumnIndexTableChangesFromExpectedSchema(List<ColumnModel> expectedSchema, Set<Long> existingMultiValueIndexColumns){
+		//TODO: test
+		Map<Long,ColumnModel> listsColumnsOnly = expectedSchema.stream()
+				.filter((columnModel) ->ColumnTypeListMappings.isList(columnModel.getColumnType()))
+				.collect(Collectors.toMap((ColumnModel cm) -> Long.parseLong(cm.getId()), Function.identity()));
+
+		List<ListColumnIndexTableChange> result = new ArrayList<>();
+
+		for(ColumnModel columnModel : listsColumnsOnly.values()){
+			long columnModelId = Long.parseLong(columnModel.getId());
+			if(existingMultiValueIndexColumns.contains(columnModelId)){
+				//index table already exists so skip
+				continue;
+			}
+
+			//otherwise, we need to create a new column index for this
+			result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.ADD, null, columnModel));
+		}
+
+		for(Long existingIndexTableColumnId : existingMultiValueIndexColumns){
+			if(listsColumnsOnly.containsKey(existingIndexTableColumnId)){
+				//no deletion necessary for existing table
+				continue;
+			}
+			result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.REMOVE, existingIndexTableColumnId, null));
+		}
+
+		return result;
+	}
+
+	public List<ListColumnIndexTableChange> listColumnIndexTableChangesFromChangeDetails(List<ColumnChangeDetails> changes, Set<Long> existingMultiValueIndexColumns){
+		List<ListColumnIndexTableChange> result = new ArrayList<>();
+
+		for(ColumnChangeDetails changeDetails : changes){
+			ColumnModel oldColumn = changeDetails.getOldColumn();
+			ColumnModel newColumn = changeDetails.getNewColumn();
+
+			Long oldColumnId = oldColumn != null ? Long.parseLong(oldColumn.getId()) : null;
+
+			Long newColumnId = newColumn != null ? Long.parseLong(newColumn.getId()) : null;
+
+			//TODO: handle case where given current index state, the old column in an update was deleted?
+			// or new column already exists
+			if( oldColumn != null && ColumnTypeListMappings.isList(oldColumn.getColumnType())
+				&& newColumn != null && ColumnTypeListMappings.isList(newColumn.getColumnType())
+			){
+				//either no change, rename, or type change
+
+				// no change at all
+				if(oldColumn.equals(newColumn)){
+					continue;
+				}
+
+				//type change
+				if(oldColumn.getColumnType() != newColumn.getColumnType() ||
+					!Objects.equals(oldColumn.getMaximumSize(), newColumn.getMaximumSize())
+				){
+					result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.TYPE_CHANGE, oldColumnId, newColumn));
+
+				//rename
+				}else if (!oldColumn.getName().equals(newColumn.getName())){
+					result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.RENAME, oldColumnId, newColumn));
+
+
+				}else{
+					throw new IllegalArgumentException("Unexpected column change");
+
+				}
+
+			}else if (oldColumn != null && ColumnTypeListMappings.isList(oldColumn.getColumnType())){
+
+				//delete old column
+				result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.REMOVE, oldColumnId, null) );
+
+			} else if (newColumn != null && ColumnTypeListMappings.isList(newColumn.getColumnType())){
+				//add new column
+				result.add(new ListColumnIndexTableChange(ListColumnIndexTableChange.ListIndexTableChangeType.ADD, null, newColumn));
+			}
+		}
+
+		return result;
+	}
+
+
 	@Override
 	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
@@ -507,7 +598,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
 		boolean isTableView = false;
 		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
-		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
+		// set the new max version for the index
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
 	}
 	
 	/**
