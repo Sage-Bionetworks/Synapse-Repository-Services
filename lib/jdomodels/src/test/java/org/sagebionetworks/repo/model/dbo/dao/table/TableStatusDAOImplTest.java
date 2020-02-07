@@ -16,7 +16,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -315,7 +314,7 @@ public class TableStatusDAOImplTest {
 	}
 	
 	@Test
-	public void testAttemptToUpdateTableProgressNotFound() throws ConflictingUpdateException, NotFoundException{
+	public void testAttemptToUpdateTableProgressNotFound() throws NotFoundException{
 		assertThrows(NotFoundException.class, ()->{
 			// Not make available
 			tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion,"fakeToken", "message", 0L, 100L);
@@ -330,7 +329,7 @@ public class TableStatusDAOImplTest {
 		TableStatus status = tableStatusDAO.getTableStatus(tableIdNoVersion);
 		assertNotNull(status);
 
-		assertThrows(ConflictingUpdateException.class, ()->{
+		assertThrows(InvalidStatusTokenException.class, ()->{
 			// This should fail since the passed token does not match the current token
 			tableStatusDAO.attemptToUpdateTableProgress(tableIdNoVersion, resetToken+"invalidated", "message", 1L, 100L);
 		});
