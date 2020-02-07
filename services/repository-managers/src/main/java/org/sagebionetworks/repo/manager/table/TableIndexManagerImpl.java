@@ -173,7 +173,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
-	
+
+	//TODO: columchange deatails -> index table add/delete details
+	//TODO: full schema -> diff between schema and existing index -> index table add/ delete details
 	
 	@Override
 	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
@@ -183,7 +185,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.createSecondaryTables(tableId);
 		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(tableId, changes, alterTemp);
+		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -204,25 +206,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public boolean alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
-		return alterTableAsNeededWithProgress(tableId, changes, alterTemp);
+		return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 	}
-	
-	/**
-	 * Alter the table schema using an auto-progressing callback.
-	 * @param progressCallback
-	 * @param tableId
-	 * @param changes
-	 * @return
-	 * @throws Exception
-	 */
-	boolean alterTableAsNeededWithProgress(final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
-		try {
-			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
+
 	/**
 	 * Alter a table as needed within the auto-progress using the provided changes.
 	 * Note: If a column update is requested but the column does not actual exist in the index
