@@ -213,6 +213,13 @@ public interface TableIndexDAO {
 	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId);
 
 	/**
+	 * Drop the multi-value column index table associated with the table id and column id
+	 * @param tableId
+	 * @param columnId
+	 */
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn);
+
+	/**
 	 * Truncate all of the data in the given table.
 	 * 
 	 * @param tableId

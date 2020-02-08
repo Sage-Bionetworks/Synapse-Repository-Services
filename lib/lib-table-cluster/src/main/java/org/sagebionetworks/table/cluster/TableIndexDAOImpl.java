@@ -473,6 +473,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
+
+	@Override
+	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
+		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString());
+		//todo: alter table and take into account of temp
+
+	}
+
+
 	@Override
 	public void truncateTable(IdAndVersion tableId) {
 		String sql = SQLUtils.createTruncateSql(tableId);

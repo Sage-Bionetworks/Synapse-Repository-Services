@@ -16,8 +16,7 @@ public class ListColumnIndexTableChange {
 		ValidateArgument.required(listIndexTableChangeType, "listChangeType");
 
 		if(listIndexTableChangeType == ListIndexTableChangeType.ADD
-				|| listIndexTableChangeType == ListIndexTableChangeType.RENAME
-				|| listIndexTableChangeType == ListIndexTableChangeType.TYPE_CHANGE){
+				|| listIndexTableChangeType == ListIndexTableChangeType.UPDATE){
 			ValidateArgument.required(newColumnChange, "newColumnChange");
 			ValidateArgument.required(newColumnChange.getId(), "newColumnChange.id");
 			ValidateArgument.requirement(ColumnTypeListMappings.isList(newColumnChange.getColumnType()), "newColumnChange must be a LIST type");
@@ -27,8 +26,7 @@ public class ListColumnIndexTableChange {
 		}
 
 		if(listIndexTableChangeType == ListIndexTableChangeType.REMOVE
-				|| listIndexTableChangeType == ListIndexTableChangeType.RENAME
-				|| listIndexTableChangeType == ListIndexTableChangeType.TYPE_CHANGE){
+				|| listIndexTableChangeType == ListIndexTableChangeType.UPDATE){
 			ValidateArgument.required(oldColumnId, "oldColumnId");
 		}
 
@@ -56,7 +54,6 @@ public class ListColumnIndexTableChange {
 	public enum ListIndexTableChangeType {
 		ADD,
 		REMOVE,
-		RENAME,
-		TYPE_CHANGE;
+		UPDATE,
 	}
 }

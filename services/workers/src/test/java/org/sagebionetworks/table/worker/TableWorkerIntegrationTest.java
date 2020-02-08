@@ -2225,10 +2225,10 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testChangeNonListColumnToList_exceedMaxSize() throws Exception{
+	public void testChangeListColumnToList_exceedMaxSize() throws Exception{
 		// setup an EntityId column.
 		ColumnModel startColumn = new ColumnModel();
-		startColumn.setColumnType(ColumnType.STRING);
+		startColumn.setColumnType(ColumnType.STRING_LIST);
 		startColumn.setName("startColumn");
 		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
 		schema = Lists.newArrayList(startColumn);
@@ -2243,8 +2243,8 @@ public class TableWorkerIntegrationTest {
 
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Lists.newArrayList(
-				TableModelTestUtils.createRow(null, null, "asdf"),
-				TableModelTestUtils.createRow(null, null, "qwer")));
+				TableModelTestUtils.createRow(null, null, "[\"asdf\"]"),
+				TableModelTestUtils.createRow(null, null, "[\"qwer\"]")));
 		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
 		rowSet.setTableId(tableId);
 		referenceSet = appendRows(adminUserInfo, tableId,
