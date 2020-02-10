@@ -27,6 +27,8 @@ public class EvaluationTranslationUtil {
 		dbo.setSubmissionInstructionsMessage(backup.getSubmissionInstructions());
 		dbo.setSubmissionReceiptMessage(backup.getSubmissionReceiptMessage());
 		dbo.setQuota(backup.getQuota());
+		dbo.setStartTimestamp(backup.getStartTimestamp());
+		dbo.setEndTimestamp(backup.getEndTimestamp());
 		return dbo;
 	}
 
@@ -43,6 +45,8 @@ public class EvaluationTranslationUtil {
 		backup.setSubmissionInstructions(dbo.getSubmissionInstructionsMessage());
 		backup.setSubmissionReceiptMessage(dbo.getSubmissionReceiptMessage());
 		backup.setQuota(dbo.getQuota());
+		backup.setStartTimestamp(dbo.getStartTimestamp());
+		backup.setEndTimestamp(dbo.getEndTimestamp());
 		return backup;
 	}
 	

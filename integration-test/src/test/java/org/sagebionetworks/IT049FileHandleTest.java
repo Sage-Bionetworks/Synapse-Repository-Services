@@ -570,8 +570,8 @@ public class IT049FileHandleTest {
 
 		// Upload the owner.txt to S3 so we can create the external storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalS3FileHandleFromExistingFile/" + UUID.randomUUID().toString();
-		String key = baseKey + FILE_NAME;
 		uploadOwnerTxtToS3(config.getS3Bucket(), baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
+		String key = baseKey + "/" + FILE_NAME;
 
 		// upload the little image to S3, but not through Synapse
 		putToS3WaitForConsistency(config.getS3Bucket(), key, imageFile);
@@ -667,9 +667,9 @@ public class IT049FileHandleTest {
 
 		// Upload the owner.txt to Google Cloud so we can create the external storage location
 		String baseKey = "integration-test/IT049FileHandleTest/testCreateExternalGoogleCloudFileHandleFromExistingFile/" + UUID.randomUUID().toString();
-		String key = baseKey + FILE_NAME;
 		uploadOwnerTxtToGoogleCloud(googleCloudBucket, baseKey, synapse.getUserProfile(userToDelete.toString()).getUserName());
 
+		String key = baseKey + "/" + FILE_NAME;
 		// upload the little image to Google Cloud, but not through Synapse
 		putToGoogleCloudWaitForConsistency(googleCloudBucket, key, imageFile);
 
@@ -764,6 +764,6 @@ public class IT049FileHandleTest {
 
 	private static void uploadOwnerTxtToGoogleCloud(String bucket, String baseKey, String username) throws InterruptedException, IOException {
 		// The Google Cloud service account must have write access to the bucket for this call to succeed
-		putToGoogleCloudWaitForConsistency(bucket, baseKey + "owner.txt", new ByteArrayInputStream(username.getBytes(StandardCharsets.UTF_8)));
+		putToGoogleCloudWaitForConsistency(bucket, baseKey + "/owner.txt", new ByteArrayInputStream(username.getBytes(StandardCharsets.UTF_8)));
 	}
 }

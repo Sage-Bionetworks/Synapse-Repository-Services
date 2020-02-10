@@ -580,6 +580,11 @@ public class UrlHelpers {
 	public static final String ADMIN_STORAGE_SUMMARY_PER_ENTITY = ADMIN_STORAGE_SUMMARY + "/perEntity";
 
 	/**
+	 * Principal/User information removal for administrators.
+	 */
+	public static final String ADMIN_REDACT_USER = ADMIN + "/redact/user/{principalId}";
+
+	/**
 	 * Public access for Synapse user and group info
 	 */
 	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";

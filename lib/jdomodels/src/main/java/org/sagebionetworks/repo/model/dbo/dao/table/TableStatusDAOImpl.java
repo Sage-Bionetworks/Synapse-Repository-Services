@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -190,12 +189,11 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 
 	@Override
 	public void attemptToUpdateTableProgress(IdAndVersion idAndVersion, String resetToken,
-			String progressMessage, Long currentProgress, Long totalProgress)
-			throws ConflictingUpdateException, NotFoundException {
+			String progressMessage, Long currentProgress, Long totalProgress)throws NotFoundException {
 		// Ensure the reset-token matches.
 		DBOTableStatus current = selectResetTokenForUpdate(idAndVersion);
 		if(!current.getResetToken().equals(resetToken)) {
-			throw new ConflictingUpdateException(CONFLICT_MESSAGE);
+			throw new InvalidStatusTokenException(CONFLICT_MESSAGE);	
 		}
 		// With no conflict make the changes
 		long now = System.currentTimeMillis();

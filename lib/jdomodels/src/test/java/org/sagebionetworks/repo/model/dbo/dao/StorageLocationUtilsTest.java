@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import java.time.Instant;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,7 @@ public class StorageLocationUtilsTest {
 	@Test
 	public void testDifferentStorageLocationImplementation() {
 		StorageLocationSetting setting = fillCommon(new S3StorageLocationSetting());
-		StorageLocationSetting copy = fillCommon(new ExternalS3StorageLocationSetting());
+		StorageLocationSetting copy = fillCommon(new ExternalStorageLocationSetting());
 
 		String settingHash = StorageLocationUtils.computeHash(setting);
 		String copyHash = StorageLocationUtils.computeHash(copy);
@@ -131,6 +130,9 @@ public class StorageLocationUtilsTest {
 	public void testExternalS3StorageLocationSetting() {
 		ExternalS3StorageLocationSetting setting = fillCommon(new ExternalS3StorageLocationSetting());
 		ExternalS3StorageLocationSetting copy = fillCommon(new ExternalS3StorageLocationSetting());
+		
+		setting.setBucket("Some bucket");
+		copy.setBucket("Some bucket");
 
 		String settingHash = StorageLocationUtils.computeHash(setting);
 		String copyHash = StorageLocationUtils.computeHash(copy);
@@ -141,8 +143,10 @@ public class StorageLocationUtilsTest {
 	@Test
 	public void testExternalS3StorageLocationSettingWithDifferentBaseKey() {
 		ExternalS3StorageLocationSetting setting = fillCommon(new ExternalS3StorageLocationSetting());
+		setting.setBucket("Some bucket");
 		setting.setBaseKey("Some base key");
 		ExternalS3StorageLocationSetting copy = fillCommon(new ExternalS3StorageLocationSetting());
+		copy.setBucket("Some bucket");
 		copy.setBaseKey("Some other base key");
 
 		String settingHash = StorageLocationUtils.computeHash(setting);
@@ -167,8 +171,10 @@ public class StorageLocationUtilsTest {
 	@Test
 	public void testExternalS3StorageLocationSettingWithDifferentEndpoint() {
 		ExternalS3StorageLocationSetting setting = fillCommon(new ExternalS3StorageLocationSetting());
+		setting.setBucket("Some bucket");
 		setting.setEndpointUrl("Some endpoint");
 		ExternalS3StorageLocationSetting copy = fillCommon(new ExternalS3StorageLocationSetting());
+		copy.setBucket("Some bucket");
 		copy.setEndpointUrl("Some other endpoint");
 
 		String settingHash = StorageLocationUtils.computeHash(setting);
@@ -307,6 +313,41 @@ public class StorageLocationUtilsTest {
 		String copyHash = StorageLocationUtils.computeHash(copy);
 
 		assertNotEquals(copyHash, settingHash);
+	}
+	
+	@Test
+	public void testStripStringWithEmptyString() {
+		String inputString = "";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithBlankString() {
+		String inputString = "    ";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTabsString() {
+		String inputString = "		";
+		String expected = null;
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTrailingSlashes() {
+		String inputString = "/somestring/";
+		String expected = "somestring";
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
+	}
+	
+	@Test
+	public void testStripStringWithTrailingSlashesAndSpaces() {
+		String inputString = " / somestring / / /  ";
+		String expected = "somestring";
+		assertEquals(expected, StorageLocationUtils.stripString(inputString));
 	}
 
 	private <T extends StorageLocationSetting> T fillCommon(T setting) {

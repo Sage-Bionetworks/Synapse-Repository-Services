@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,4 +70,24 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	void waitForViewToBeUpToDate(IdAndVersion viewId, long maxWaitMS)
 			throws InterruptedException, AsynchJobFailedException, TableFailedException;
+	
+
+	/**
+	 * Set the schema for the given table and wait for the lock as needed.
+	 * @param userInfo
+	 * @param newSchema
+	 * @param tableId
+	 * @param maxWaitMS
+	 * @throws InterruptedException
+	 */
+	void setTableSchema(UserInfo userInfo, List<String> newSchema, String tableId, long maxWaitMS)
+			throws InterruptedException;
+
+	/**
+	 * Helper to download the contents of the given FileHandle ID to a string.
+	 * @param fileHandleId
+	 * @return
+	 * @throws IOException
+	 */
+	String downloadFileHandleFromS3(String fileHandleId) throws IOException;
 }
