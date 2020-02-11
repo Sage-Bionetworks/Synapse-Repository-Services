@@ -202,8 +202,9 @@ public interface TableIndexDAO {
 	 * Creates an index table for the multi-value column described in the columnModel.
 	 * @param tableId
 	 * @param columnModel
+	 * @param alterTemp
 	 */
-	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel);
+	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and column id
@@ -217,7 +218,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param columnId
 	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn);
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp);
 
 	/**
 	 * Truncate all of the data in the given table.

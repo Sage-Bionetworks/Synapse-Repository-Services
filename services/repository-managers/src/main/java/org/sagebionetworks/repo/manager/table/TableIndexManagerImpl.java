@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -152,6 +151,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(tableId, isTableView, changes);
+
+		//apply changes to multi-value column indexes
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId);
+		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromExpectedSchema(newSchema, existingListColumnIndexTableNames);
+		applyListColumnIndexTableChanges(tableId, listColumnIndexTableChanges, false);
 		return changes;
 	}
 
@@ -166,10 +170,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
 
-	//TODO: full schema -> diff between schema and existing index -> index table add/ delete details
+	//DONE: full schema -> diff between schema and existing index -> index table add/ delete details
 	//TODO: temp changes vs normal changes
-	//TODO: optimization: classify renames differently from column changes
-	//TODO: optimization: classify type changes differntly from column changes
 	//TODO: changing one list type to another needs to handle type switch in JSON?
 	//TODO: changing from non-list to list needs to handle wrapping values
 	//TODO: TRACK USE LIST OF UPDATE TABLE ON COLUMNNS TO HANDLE WRAPPING AND CONVERTING VALUES(e.g.  JSON_ARRAY( cast(1 as char(20)), cast('123' as signed)) )
@@ -256,11 +258,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		for(ListColumnIndexTableChange change : changes){
 			switch (change.getListIndexTableChangeType()){
 				case ADD:
-					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange());
+					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange(), alterTemp);
+					break;
 				case REMOVE:
-					tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId()); //TODO: altertemp
+					if(!alterTemp) {
+						tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId());
+					}
 					break;
 				case UPDATE:
+					tableIndexDao.updateMultivalueColumnIndexTable(tableId, change.getOldColumnId(), change.getNewColumnChange(), alterTemp);
 					break;
 			}
 		}
@@ -598,6 +604,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
 		boolean isTableView = false;
 		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
+
+		//apply changes to multi-value column indexes
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
+		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(schemaChangeData.getChange().getDetails(), existingListColumnIndexTableNames);
+		try {
+			applyListColumnIndexTableChanges(idAndVersion, listColumnIndexTableChanges, false);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+
 		// set the new max version for the index
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
 	}

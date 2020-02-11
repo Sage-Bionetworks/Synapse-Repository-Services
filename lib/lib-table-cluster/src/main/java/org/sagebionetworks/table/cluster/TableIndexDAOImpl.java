@@ -439,13 +439,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		// apply the update
 		template.update(sql);
-
-
-		//for any columns that have list columns delete their table indexes
-		for(String sqlStatement : SQLUtils.listColumnIndexTableCreateOrDropStatements(changes, tableId)){
-			template.update(sqlStatement);
-		}
-
 		return true;
 	}
 
@@ -463,22 +456,21 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel){
-		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel));
+	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){//todo: ALTERtEMP
+		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
 	}
 
 	@Override
-	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){
+	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){ //TODO: maybe need altertemp?
 		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString());
 		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
 
 	@Override
-	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
-		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString());
-		//todo: alter table and take into account of temp
-
+	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){//TODO: test
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
+		template.update(sql);
 	}
 
 

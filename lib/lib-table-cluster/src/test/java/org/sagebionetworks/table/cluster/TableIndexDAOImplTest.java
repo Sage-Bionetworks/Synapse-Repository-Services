@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -3424,7 +3423,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		boolean alterTemp = false;
 		//add column
-		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column);
+		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column, alterTemp);
 
 
 		//check index table was created

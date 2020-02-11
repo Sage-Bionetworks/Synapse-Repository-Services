@@ -2234,8 +2234,8 @@ public class TableWorkerIntegrationTest {
 		QueryResult result = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null);
 
 		assertEquals(2, result.getQueryResults().getRows().size());
-		assertEquals(Arrays.asList("asdf"), result.getQueryResults().getRows().get(0).getValues());
-		assertEquals(Arrays.asList("qwer"), result.getQueryResults().getRows().get(1).getValues());
+		assertEquals(Arrays.asList("[\"asdf\"]"), result.getQueryResults().getRows().get(0).getValues());
+		assertEquals(Arrays.asList("[\"qwer\"]"), result.getQueryResults().getRows().get(1).getValues());
 
 
 		// now rename the column

@@ -875,6 +875,46 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testCreateAlterListColumnIndexTable_alterTempFalse(){
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("42");
+		newColumn.setName("testerino");
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(58L);
+
+		Long oldColumn = 21L;
+
+
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, false);
+		String expected = "ALTER TABLE T999_INDEX_C21_" +
+				" DROP INDEX _C21__UNNEST_IDX," +
+				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
+				" RENAME T999_INDEX_C42_";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testCreateAlterListColumnIndexTable_alterTempTrue(){
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("42");
+		newColumn.setName("testerino");
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(58L);
+
+		Long oldColumn = 21L;
+
+
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn, true);
+		String expected = "ALTER TABLE TEMPT999_INDEX_C21_" +
+				" DROP INDEX _C21__UNNEST_IDX," +
+				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
+				" RENAME TEMPT999_INDEX_C42_";
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testCreateAlterTableSqlMultipleTempTrue(){
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
@@ -2806,7 +2846,7 @@ public class SQLUtilsTest {
 		columnModel.setMaximumSize(42L);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
-			SQLUtils.createListColumnIndexTable(null, columnModel);
+			SQLUtils.createListColumnIndexTable(null, columnModel, false);
 		}).getMessage();
 		assertEquals("tableIdAndVersion is required.", errorMessage);
 	}
@@ -2815,7 +2855,7 @@ public class SQLUtilsTest {
 	public void testCreateListColumnIndexTable__nullColumnModel(){
 		ColumnModel nullColumnModel = null;
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel);
+			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel, false);
 		}).getMessage();
 		assertEquals("columnModel is required.", errorMessage);
 	}
@@ -2828,20 +2868,39 @@ public class SQLUtilsTest {
 		columnModel.setMaximumSize(42L);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
-			SQLUtils.createListColumnIndexTable(tableId, columnModel);
+			SQLUtils.createListColumnIndexTable(tableId, columnModel, false);
 		}).getMessage();
 
 		assertEquals("columnModel's type must be a LIST type", errorMessage);
 	}
 
 	@Test
-	public void testCreateListColumnIndexTable(){
+	public void testCreateListColumnIndexTable_alterTempFalse(){
 		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
-		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo);
+		boolean alterTemp = false;
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, alterTemp);
 		String expected = "CREATE TABLE IF NOT EXISTS T999_INDEX_C0_ (" +
+				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
+				"INDEX_NUM BIGINT NOT NULL, " +
+				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
+				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
+				"INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC) " +
+				",FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable_alterTempTrue(){
+		ColumnModel columnInfo = new ColumnModel();
+		columnInfo.setColumnType(ColumnType.STRING_LIST);
+		columnInfo.setId("0");
+		columnInfo.setMaximumSize(42L);
+		boolean alterTemp = true;
+		String sql = SQLUtils.createListColumnIndexTable(tableId, columnInfo, alterTemp);
+		String expected = "CREATE TABLE IF NOT EXISTS TEMPT999_INDEX_C0_ (" +
 				"ROW_ID_REF_C0_ BIGINT NOT NULL, " +
 				"INDEX_NUM BIGINT NOT NULL, " +
 				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
