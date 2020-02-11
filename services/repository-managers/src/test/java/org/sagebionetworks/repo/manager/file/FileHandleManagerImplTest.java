@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,6 +12,8 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -27,7 +30,6 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,16 +37,18 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
@@ -88,6 +92,7 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
@@ -144,6 +149,7 @@ public class FileHandleManagerImplTest {
 	EventsCollector mockStatisticsCollector;
 
 	@InjectMocks
+	@Spy
 	FileHandleManagerImpl manager;
 
 	UserInfo mockUser;
@@ -748,7 +754,7 @@ public class FileHandleManagerImplTest {
 		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
 		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		ObjectMetadata mockMeta = mock(ObjectMetadata.class);
 		when(mockS3Client.getObjectMetadata(bucket, key)).thenReturn(mockMeta);
 		when(mockMeta.getContentLength()).thenReturn(fileSize);
 
@@ -874,7 +880,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey("mismatched-key");
 		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		ObjectMetadata mockMeta = mock(ObjectMetadata.class);
 		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
 		when(mockMeta.getContentLength()).thenReturn(fileSize);
 
@@ -893,7 +899,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey("mismatched-key");
 		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		ObjectMetadata mockMeta = mock(ObjectMetadata.class);
 		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
 		when(mockMeta.getContentLength()).thenReturn(fileSize);
 
@@ -912,7 +918,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey("mismatched-key");
 		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		ObjectMetadata mockMeta = mock(ObjectMetadata.class);
 		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
 		when(mockMeta.getContentLength()).thenReturn(fileSize);
 
@@ -931,7 +937,7 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey(BASE_KEY + "/subfolder/some-file");
 		when(mockFileHandleDao.createFile(externals3FileHandle)).thenReturn(externals3FileHandle);
 
-		ObjectMetadata mockMeta = Mockito.mock(ObjectMetadata.class);
+		ObjectMetadata mockMeta = mock(ObjectMetadata.class);
 		when(mockS3Client.getObjectMetadata(bucket, externals3FileHandle.getKey())).thenReturn(mockMeta);
 		when(mockMeta.getContentLength()).thenReturn(fileSize);
 
@@ -967,7 +973,7 @@ public class FileHandleManagerImplTest {
 		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
 				externalGoogleCloudStorageLocationSetting);
 		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
-		Blob mockGCBlob = Mockito.mock(Blob.class);
+		Blob mockGCBlob = mock(Blob.class);
 		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
 		when(mockGCBlob.getSize()).thenReturn(fileSize);
 
@@ -1997,6 +2003,74 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void getUploadDestinationLocations_NoProjectSettings() {
+		// Mock dependencies.
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(Optional.empty());
+
+		// Method under test.
+		List<UploadDestinationLocation> locationList = manager.getUploadDestinationLocations(mockUser,
+				PARENT_ENTITY_ID);
+		assertEquals(1, locationList.size());
+		UploadDestinationLocation location = locationList.get(0);
+		assertEquals(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID, location.getStorageLocationId());
+		assertEquals(UploadType.S3, location.getUploadType());
+	}
+
+	@Test
+	public void getUploadDestinationLocations_NullStorageLocations() {
+		// Mock dependencies.
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(null);
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(Optional.of(setting));
+
+		// Method under test.
+		List<UploadDestinationLocation> locationList = manager.getUploadDestinationLocations(mockUser,
+				PARENT_ENTITY_ID);
+		assertEquals(1, locationList.size());
+		UploadDestinationLocation location = locationList.get(0);
+		assertEquals(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID, location.getStorageLocationId());
+		assertEquals(UploadType.S3, location.getUploadType());
+	}
+
+	@Test
+	public void getUploadDestinationLocations_EmptyStorageLocations() {
+		// Mock dependencies.
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(ImmutableList.of());
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(Optional.of(setting));
+
+		// Method under test.
+		List<UploadDestinationLocation> locationList = manager.getUploadDestinationLocations(mockUser,
+				PARENT_ENTITY_ID);
+		assertEquals(1, locationList.size());
+		UploadDestinationLocation location = locationList.get(0);
+		assertEquals(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID, location.getStorageLocationId());
+		assertEquals(UploadType.S3, location.getUploadType());
+	}
+
+	@Test
+	public void getUploadDestinationLocations_NormalCase() {
+		// Mock dependencies.
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(ImmutableList.of(externalS3StorageLocationId));
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(Optional.of(setting));
+
+		UploadDestinationLocation location = new UploadDestinationLocation();
+		when(mockProjectSettingsManager.getUploadDestinationLocations(mockUser,
+				ImmutableList.of(externalS3StorageLocationId))).thenReturn(ImmutableList.of(location));
+
+		// Method under test.
+		List<UploadDestinationLocation> result = manager.getUploadDestinationLocations(mockUser,
+				PARENT_ENTITY_ID);
+		assertEquals(1, result.size());
+		assertSame(location, result.get(0));
+	}
+
+	@Test
 	public void testGetDefaultUploadDestinationWithNullUploadDestinationListSetting(){
 		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
 				manager.getDefaultUploadDestination(mockUser, "syn1"));
@@ -2006,7 +2080,7 @@ public class FileHandleManagerImplTest {
 	public void testGetDefaultUploadDestinationWithNullLocations(){
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
 				ProjectSettingsType.upload, UploadDestinationListSetting.class))
-				.thenReturn(new UploadDestinationListSetting());
+				.thenReturn(Optional.of(new UploadDestinationListSetting()));
 		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
 				manager.getDefaultUploadDestination(mockUser, "syn1"));
 	}
@@ -2014,10 +2088,10 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testGetDefaultUploadDestinationWithEmptyLocations(){
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setLocations(new LinkedList<Long>());
+		setting.setLocations(new LinkedList<>());
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
 				ProjectSettingsType.upload, UploadDestinationListSetting.class))
-				.thenReturn(setting );
+				.thenReturn(Optional.of(setting));
 		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
 				manager.getDefaultUploadDestination(mockUser, "syn1"));
 	}
@@ -2025,12 +2099,30 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testGetDefaultUploadDestinationWithANullLocation(){
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
-		setting.setLocations(Arrays.asList((Long) null));
+		setting.setLocations(Collections.singletonList(null));
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
 				ProjectSettingsType.upload, UploadDestinationListSetting.class))
-				.thenReturn(setting );
+				.thenReturn(Optional.of(setting));
 		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
 				manager.getDefaultUploadDestination(mockUser, "syn1"));
+	}
+
+	@Test
+	public void testGetDefaultUploadDestinationWithANormalLocation(){
+		// Mock dependencies.
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(ImmutableList.of(externalS3StorageLocationId));
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+				ProjectSettingsType.upload, UploadDestinationListSetting.class))
+				.thenReturn(Optional.of(setting));
+
+		// Spy manager.getUploadDestination(). This is tested elsewhere and requires several more mocks.
+		UploadDestination mockUploadDestination = mock(UploadDestination.class);
+		doReturn(mockUploadDestination).when(manager).getUploadDestination(mockUser, PARENT_ENTITY_ID,
+				externalS3StorageLocationId);
+
+		UploadDestination result = manager.getDefaultUploadDestination(mockUser, PARENT_ENTITY_ID);
+		assertSame(mockUploadDestination, result);
 	}
 
 	@Test

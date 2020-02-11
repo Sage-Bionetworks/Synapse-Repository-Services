@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -70,7 +71,7 @@ public class ProjectSettingsImplAutowiredTest {
 	private List<Long> storageLocationsDelete;
 
 	@BeforeEach
-	public void setUp() throws Exception {		
+	public void setUp() throws Exception {
 		NewUser user = new NewUser();
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
@@ -118,7 +119,7 @@ public class ProjectSettingsImplAutowiredTest {
 	}
 
 	@AfterEach
-	public void tearDown() throws Exception {
+	public void tearDown() {
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		entityManager.deleteEntity(adminUserInfo, childChildId);
 		entityManager.deleteEntity(adminUserInfo, childId);
@@ -131,7 +132,7 @@ public class ProjectSettingsImplAutowiredTest {
 	}
 
 	@Test
-	public void testCRUD() throws Exception {
+	public void testCRUD() {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType(ProjectSettingsType.upload);
@@ -154,31 +155,34 @@ public class ProjectSettingsImplAutowiredTest {
 	}
 
 	@Test
-	public void testFind() throws Exception {
+	public void testFind() {
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType(ProjectSettingsType.upload);
 		toCreate.setLocations(Lists.newArrayList(externalLocationSetting.getStorageLocationId()));
 		projectSettingsManager.createProjectSetting(userInfo, toCreate);
 
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId,
+		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
+		assertTrue(setting.isPresent());
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
 
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
+		assertTrue(setting.isPresent());
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
 
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(externalLocationSetting.getStorageLocationId(), setting.getLocations().get(0));
+		assertTrue(setting.isPresent());
+		assertEquals(externalLocationSetting.getStorageLocationId(), setting.get().getLocations().get(0));
 	}
 
 	@Test
-	public void testFindInParents() throws Exception {
-		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
+	public void testFindInParents() {
+		Optional<UploadDestinationListSetting> setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertNull(setting);
+		assertFalse(setting.isPresent());
 
 		UploadDestinationListSetting toCreate = new UploadDestinationListSetting();
 		toCreate.setProjectId(projectId);
@@ -188,7 +192,8 @@ public class ProjectSettingsImplAutowiredTest {
 
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertEquals(1, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(1, setting.get().getLocations().size());
 
 		UploadDestinationListSetting toCreate2 = new UploadDestinationListSetting();
 		toCreate2.setProjectId(childId);
@@ -199,13 +204,16 @@ public class ProjectSettingsImplAutowiredTest {
 
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(2, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(2, setting.get().getLocations().size());
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(2, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(2, setting.get().getLocations().size());
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(1, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(1, setting.get().getLocations().size());
 
 		UploadDestinationListSetting toCreate3 = new UploadDestinationListSetting();
 		toCreate3.setProjectId(childChildId);
@@ -216,13 +224,16 @@ public class ProjectSettingsImplAutowiredTest {
 
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childChildId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(3, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(3, setting.get().getLocations().size());
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, childId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(2, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(2, setting.get().getLocations().size());
 		setting = projectSettingsManager.getProjectSettingForNode(userInfo, projectId, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class);
-		assertEquals(1, setting.getLocations().size());
+		assertTrue(setting.isPresent());
+		assertEquals(1, setting.get().getLocations().size());
 	}
 
 	@Test
@@ -258,45 +269,32 @@ public class ProjectSettingsImplAutowiredTest {
 	}
 
 	@Test
-	public void testExternalObjectStorageSettingInvalidBucket() throws IOException {
+	public void testExternalObjectStorageSettingInvalidBucket() {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket(" ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			//call under test
-			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
-		});
-		
-		assertEquals("Invalid bucket name.", ex.getMessage());
+		//call under test
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting), "Invalid Bucket Name");
 	}
 
 	@Test
-	public void testExternalObjectStorageSettingInvalidBucketWithSlashes() throws IOException {
+	public void testExternalObjectStorageSettingInvalidBucketWithSlashes() {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket(" / / / / / ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			//call under test
-			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
-		});
-		
-		assertEquals("Invalid bucket name.", ex.getMessage());
+		//call under test
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting), "Invalid Bucket Name");
 	}
 
 	@Test
-	public void testExternalObjectStorageSettingInvalidURL() throws IOException {
+	public void testExternalObjectStorageSettingInvalidURL() {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket("someBucket");
 		externalObjectStorageSetting.setEndpointUrl("not a url");
-		
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-			//call under test
-			projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
-		});
-		
-		assertEquals("The External URL is not a valid url: not a url", ex.getMessage());
+		//call under test
+		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting), "The External URL is not a valid url: not a url");
 	}
-
 }

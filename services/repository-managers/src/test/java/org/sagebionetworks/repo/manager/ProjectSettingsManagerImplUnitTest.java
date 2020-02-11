@@ -167,9 +167,10 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
 		// Call under test
-		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+		Optional<UploadDestinationListSetting> actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertSame(uploadDestinationListSetting, actual);
+		assertTrue(actual.isPresent());
+		assertSame(uploadDestinationListSetting, actual.get());
 	}
 
 	@Test
@@ -177,9 +178,9 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(null);
 
 		// Call under test
-		ProjectSetting actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+		Optional<UploadDestinationListSetting> actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		assertNull(actual);
+		assertFalse(actual.isPresent());
 	}
 
 	@Test
@@ -221,7 +222,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		// Spy getProjectSettingForNode(). This is tested somewhere else, and we want to decouple this test from the
 		// getProjectSettingForNode() tests.
-		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		// Method under test.
@@ -265,7 +266,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		UploadDestinationListSetting parentProjectSetting = new UploadDestinationListSetting();
 		parentProjectSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID));
-		doReturn(parentProjectSetting).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.of(parentProjectSetting)).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		S3StorageLocationSetting parentStorageLocationSetting = new S3StorageLocationSetting();
@@ -293,7 +294,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 		UploadDestinationListSetting parentProjectSetting = new UploadDestinationListSetting();
 		parentProjectSetting.setLocations(ImmutableList.of(PARENT_STORAGE_LOCATION_ID));
-		doReturn(parentProjectSetting).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.of(parentProjectSetting)).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		S3StorageLocationSetting parentStorageLocationSetting = new S3StorageLocationSetting();
@@ -317,7 +318,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
-		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		uploadDestinationListSetting.setLocations(ImmutableList.of(STORAGE_LOCATION_ID, PARENT_STORAGE_LOCATION_ID));
@@ -339,7 +340,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
-		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		// Method under test.
@@ -361,7 +362,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		synapseStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
 
-		doReturn(null).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
 				ProjectSettingsType.upload, ProjectSetting.class);
 
 		// Method under test.
@@ -757,15 +758,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	@Test
 	public void testIsStsStorageLocation_NullStorageLocationSetting() {
 		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting((ProjectSetting) null);
-		assertFalse(result);
-	}
-
-	@Test
-	public void testIsStsStorageLocation_StorageLocationSettingWrongClass() {
-		// Method under test.
-		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting(
-				new ExternalGoogleCloudStorageLocationSetting());
+		boolean result = projectSettingsManagerImpl.isStsStorageLocationSetting((StorageLocationSetting) null);
 		assertFalse(result);
 	}
 

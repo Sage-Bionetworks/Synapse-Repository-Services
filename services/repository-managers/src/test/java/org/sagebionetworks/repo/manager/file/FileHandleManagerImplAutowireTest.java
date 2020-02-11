@@ -1,19 +1,16 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,8 +18,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
 import org.apache.commons.fileupload.FileItemStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +27,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
-import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -43,7 +37,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -68,7 +61,6 @@ import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
-import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -90,14 +82,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class FileHandleManagerImplAutowireTest {
-
-	private List<File> filesToDelete;
 	private List<S3FileHandle> toDelete;
 	private List<WikiPageKey> wikisToDelete;
 	private final List<String> entitiesToDelete = Lists.newArrayList();
-
-	@Autowired
-	private AuthenticationManager authManager;
 
 	@Autowired
 	private FileHandleManager fileUploadManager;
@@ -127,13 +114,6 @@ public class FileHandleManagerImplAutowireTest {
 	private UserInfo userInfo2;
 	private UserInfo anonymousUserInfo;
 	private String username;
-	
-	/**
-	 * This is the metadata about the files we uploaded.
-	 */
-	private List<S3FileHandle> expectedMetadata;
-	private String[] fileContents;
-	private List<FileItemStream> fileStreams;
 
 	private String projectId;
 	private String uploadFolder;
@@ -178,13 +158,10 @@ public class FileHandleManagerImplAutowireTest {
 		uploadFolder = entityManager.createEntity(userInfo, child2, null);
 		entitiesToDelete.add(uploadFolder);
 
-		filesToDelete = new ArrayList<>();
 		toDelete = new LinkedList<>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;
-		expectedMetadata = new LinkedList<>();
-		fileStreams = new LinkedList<>();
-		fileContents = new String[numberFiles];
+		String[] fileContents = new String[numberFiles];
 		for(int i=0; i<numberFiles; i++){
 			fileContents[i] = "This is the contents for file: "+i;
 			byte[] fileBytes = fileContents[i].getBytes();
@@ -194,14 +171,12 @@ public class FileHandleManagerImplAutowireTest {
 			when(fis.getContentType()).thenReturn(contentType);
 			when(fis.getName()).thenReturn(fileName);
 			when(fis.openStream()).thenReturn(new StringInputStream(fileContents[i]));
-			fileStreams.add(fis);
 			// Set the expected metadata for this file.
 			S3FileHandle metadata = new S3FileHandle();
 			metadata.setContentType(contentType);
 			metadata.setContentMd5( BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(fileBytes))));
-			metadata.setContentSize(new Long(fileBytes.length));
+			metadata.setContentSize((long) fileBytes.length);
 			metadata.setFileName(fileName);
-			expectedMetadata.add(metadata);
 		}
 	}
 	
@@ -210,10 +185,6 @@ public class FileHandleManagerImplAutowireTest {
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		for(WikiPageKey key: wikisToDelete) {
 			v2WikiManager.deleteWiki(adminUserInfo, key);
-		}
-
-		for (File file : filesToDelete) {
-			file.delete();
 		}
 
 		for (String id : Lists.reverse(entitiesToDelete)) {
@@ -402,144 +373,6 @@ public class FileHandleManagerImplAutowireTest {
 		}
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
-	}
-
-	@Test
-	public void uploadWithSts() throws Exception {
-		// Set up bucket and owner.txt.
-		String externalS3Bucket = StackConfigurationSingleton.singleton().getExternalS3TestBucketName();
-		String externalS3StorageBaseKey = "test-base-" + UUID.randomUUID();
-		s3Client.createBucket(externalS3Bucket);
-
-		ObjectMetadata metadata = new ObjectMetadata();
-		metadata.setContentLength(username.length());
-		s3Client.putObject(externalS3Bucket, externalS3StorageBaseKey + "/owner.txt",
-				new StringInputStream(username), metadata);
-
-		// Create Synapse Storage and External S3 Storage w/ STS.
-		S3StorageLocationSetting synapseStorageLocationSetting = new S3StorageLocationSetting();
-		synapseStorageLocationSetting.setStsEnabled(true);
-		synapseStorageLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo,
-				synapseStorageLocationSetting);
-		long synapseStorageLocationId = synapseStorageLocationSetting.getStorageLocationId();
-		String synapseStorageBaseKey = synapseStorageLocationSetting.getBaseKey();
-		assertNotNull(synapseStorageBaseKey);
-		assertNotEquals(externalS3StorageBaseKey, synapseStorageBaseKey);
-
-		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
-		externalS3StorageLocationSetting.setBucket(externalS3Bucket);
-		externalS3StorageLocationSetting.setBaseKey(externalS3StorageBaseKey);
-		externalS3StorageLocationSetting.setStsEnabled(true);
-		externalS3StorageLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo,
-				externalS3StorageLocationSetting);
-		long externalS3StorageLocationId = externalS3StorageLocationSetting.getStorageLocationId();
-		assertNotEquals(synapseStorageLocationId, externalS3StorageLocationId);
-		assertEquals(externalS3StorageBaseKey, externalS3StorageLocationSetting.getBaseKey());
-
-		// Upload to Synapse Storage.
-		File synapseFile = File.createTempFile("uploadWithSts-Synapse", ".txt");
-		filesToDelete.add(synapseFile);
-		Files.asCharSink(synapseFile, StandardCharsets.UTF_8).write(
-				"Test file in Synapse storage location with STS");
-		LocalFileUploadRequest synapseUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
-				.withFileToUpload(synapseFile).withStorageLocationId(synapseStorageLocationId)
-				.withUserId(userInfo.getId().toString());
-
-		S3FileHandle synapseFileHandle = fileUploadManager.multipartUploadLocalFile(synapseUploadRequest);
-		assertNotNull(synapseFileHandle);
-		assertEquals(synapseStorageLocationId, synapseFileHandle.getStorageLocationId());
-		toDelete.add(synapseFileHandle);
-		assertNotNull(synapseFileHandle.getBucketName());
-		assertTrue(synapseFileHandle.getKey().startsWith(synapseStorageBaseKey));
-
-		// Verify file exists in S3.
-		assertTrue(s3Client.doesObjectExist(synapseFileHandle.getBucketName(), synapseFileHandle.getKey()));
-
-		// Upload to External S3 Storage.
-		File externalS3File = File.createTempFile("uploadWithSts-ExternalS3", ".txt");
-		filesToDelete.add(externalS3File);
-		Files.asCharSink(externalS3File, StandardCharsets.UTF_8).write(
-				"Test file in external S3 storage location with STS");
-		LocalFileUploadRequest externalS3UploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
-				.withFileToUpload(externalS3File).withStorageLocationId(externalS3StorageLocationId)
-				.withUserId(userInfo.getId().toString());
-
-		S3FileHandle externalS3FileHandle = fileUploadManager.multipartUploadLocalFile(externalS3UploadRequest);
-		assertNotNull(externalS3FileHandle);
-		assertEquals(externalS3StorageLocationId, externalS3FileHandle.getStorageLocationId());
-		toDelete.add(externalS3FileHandle);
-		assertEquals(externalS3Bucket, externalS3FileHandle.getBucketName());
-		assertTrue(externalS3FileHandle.getKey().startsWith(externalS3StorageBaseKey));
-
-		// Verify file exists in S3.
-		assertTrue(s3Client.doesObjectExist(externalS3FileHandle.getBucketName(), externalS3FileHandle.getKey()));
-
-		// Attempt to create a new file handle that points at the same file. Even though there's a copy API that does
-		// exactly this, we're specifically testing the more general createExternalS3FileHandle() API.)
-		S3FileHandle externalS3FileHandleCopy = (S3FileHandle) fileUploadManager.getRawFileHandle(userInfo,
-				externalS3FileHandle.getId());
-		externalS3FileHandleCopy = fileUploadManager.createExternalS3FileHandle(userInfo, externalS3FileHandleCopy);
-		assertNotNull(externalS3FileHandleCopy);
-		toDelete.add(externalS3FileHandleCopy);
-		assertNotEquals(externalS3FileHandle.getId(), externalS3FileHandleCopy.getId());
-		assertEquals(externalS3Bucket, externalS3FileHandleCopy.getBucketName());
-		assertEquals(externalS3FileHandle.getKey(), externalS3FileHandleCopy.getKey());
-
-		// Create folders for the project.
-		Folder synapseFolder = new Folder();
-		synapseFolder.setParentId(projectId);
-		String synapseFolderId = entityManager.createEntity(userInfo, synapseFolder, null);
-		entitiesToDelete.add(synapseFolderId);
-
-		Folder externalS3Folder = new Folder();
-		externalS3Folder.setParentId(projectId);
-		String externalS3FolderId = entityManager.createEntity(userInfo, externalS3Folder, null);
-		entitiesToDelete.add(externalS3FolderId);
-
-		// Add storage locations to the folders.
-		UploadDestinationListSetting synapseProjectSetting = new UploadDestinationListSetting();
-		synapseProjectSetting.setProjectId(synapseFolderId);
-		synapseProjectSetting.setSettingsType(ProjectSettingsType.upload);
-		synapseProjectSetting.setLocations(ImmutableList.of(synapseStorageLocationId));
-		projectSettingsManager.createProjectSetting(userInfo, synapseProjectSetting);
-
-		UploadDestinationListSetting externalS3ProjectSetting = new UploadDestinationListSetting();
-		externalS3ProjectSetting.setProjectId(externalS3FolderId);
-		externalS3ProjectSetting.setSettingsType(ProjectSettingsType.upload);
-		externalS3ProjectSetting.setLocations(ImmutableList.of(externalS3StorageLocationId));
-		projectSettingsManager.createProjectSetting(userInfo, externalS3ProjectSetting);
-
-		// Before we can create file entities, we must agree to terms of use.
-		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
-
-		// Create file entities for each file handle.
-		FileEntity synapseFileEntity = new FileEntity();
-		synapseFileEntity.setDataFileHandleId(synapseFileHandle.getId());
-		synapseFileEntity.setParentId(synapseFolderId);
-		String synapseFileEntityId = entityManager.createEntity(userInfo, synapseFileEntity, null);
-		entitiesToDelete.add(synapseFileEntityId);
-
-		FileEntity externalS3FileEntity = new FileEntity();
-		externalS3FileEntity.setDataFileHandleId(externalS3FileHandle.getId());
-		externalS3FileEntity.setParentId(externalS3FolderId);
-		String externalS3FileEntityId = entityManager.createEntity(userInfo, externalS3FileEntity, null);
-		entitiesToDelete.add(externalS3FileEntityId);
-
-		// Create a file handle and file entity in the default storage location (such as project root).
-		File nonStsFile = File.createTempFile("nonStsFile", ".txt");
-		filesToDelete.add(nonStsFile);
-		Files.asCharSink(nonStsFile, StandardCharsets.UTF_8).write("Test file in without STS");
-		LocalFileUploadRequest nonStsUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
-				.withFileToUpload(nonStsFile).withStorageLocationId(null).withUserId(userInfo.getId().toString());
-
-		S3FileHandle nonStsFileHandle = fileUploadManager.multipartUploadLocalFile(nonStsUploadRequest);
-		toDelete.add(nonStsFileHandle);
-
-		FileEntity nonStsFileEntity = new FileEntity();
-		nonStsFileEntity.setDataFileHandleId(nonStsFileHandle.getId());
-		nonStsFileEntity.setParentId(projectId);
-		String nonStsFileEntityId = entityManager.createEntity(userInfo, nonStsFileEntity, null);
-		entitiesToDelete.add(nonStsFileEntityId);
 	}
 
 	@Test
