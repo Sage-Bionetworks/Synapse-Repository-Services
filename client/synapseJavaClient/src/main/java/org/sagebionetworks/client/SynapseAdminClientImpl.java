@@ -385,9 +385,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 	
 	@Override
-	public OAuthClient updateOAuthClientVerifiedStatus(String clientId, boolean status) throws SynapseException {
+	public OAuthClient updateOAuthClientVerifiedStatus(String clientId, String etag, boolean status) throws SynapseException {
 		validateStringAsLong(clientId);
-		String uri = ADMIN + OAUTH_CLIENT + "/" + clientId + VERIFIED + "?status=" + status;
+		String uri = ADMIN + OAUTH_CLIENT + "/" + clientId + VERIFIED + "?status=" + status + "&etag=" + etag;
 		return putJSONEntity(getRepoEndpoint(), uri, null, OAuthClient.class);
 	}
 

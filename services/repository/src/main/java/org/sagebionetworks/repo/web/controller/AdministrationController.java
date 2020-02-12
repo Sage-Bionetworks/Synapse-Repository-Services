@@ -275,6 +275,7 @@ public class AdministrationController {
 	 * 
 	 * @param userId
 	 * @param clientId
+	 * @param etag
 	 * @param status
 	 * @return
 	 * @throws NotFoundException
@@ -284,9 +285,10 @@ public class AdministrationController {
 	@RequestMapping(value = UrlHelpers.ADMIN_OAUTH_CLIENT_VERIFICATION, method = RequestMethod.PUT)
 	public @ResponseBody OAuthClient updateOAuthClientVerifiedStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String clientId,
-			@RequestParam(defaultValue = "true") Boolean status) 
+			@RequestParam(defaultValue = "true") Boolean status,
+			@RequestParam String etag)
 			throws NotFoundException, UnauthorizedException {
-		return serviceProvider.getOpenIDConnectService().updateOpenIDConnectClientVerifiedStatus(userId, clientId, status);
+		return serviceProvider.getOpenIDConnectService().updateOpenIDConnectClientVerifiedStatus(userId, clientId, etag, status);
 	}
 
 	/**
