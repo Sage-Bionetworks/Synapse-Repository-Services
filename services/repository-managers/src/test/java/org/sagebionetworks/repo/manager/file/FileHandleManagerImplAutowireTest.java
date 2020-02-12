@@ -542,6 +542,46 @@ public class FileHandleManagerImplAutowireTest {
 		entitiesToDelete.add(nonStsFileEntityId);
 	}
 
+	// PLFM-6097
+	@Test
+	public void fileHandleNonOwnerCanMoveFileEntity() throws Exception {
+		// Create folders for the project.
+		Folder folderA = new Folder();
+		folderA.setParentId(projectId);
+		String folderAId = entityManager.createEntity(userInfo, folderA, null);
+		entitiesToDelete.add(folderAId);
+
+		Folder folderB = new Folder();
+		folderB.setParentId(projectId);
+		String folderBId = entityManager.createEntity(userInfo, folderB, null);
+		entitiesToDelete.add(folderBId);
+
+		// Create a file handle.
+		File file = File.createTempFile("plfm-6097-test-file", ".txt");
+		filesToDelete.add(file);
+		Files.asCharSink(file, StandardCharsets.UTF_8).write("Test file for PLFM-6097");
+
+		LocalFileUploadRequest fileUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
+				.withFileToUpload(file).withUserId(userInfo.getId().toString());
+		S3FileHandle fileHandle = fileUploadManager.multipartUploadLocalFile(fileUploadRequest);
+		toDelete.add(fileHandle);
+
+		// Before we can create file entities, we must agree to terms of use.
+		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
+
+		// Make a FileEntity out of that FileHandle in Folder A.
+		FileEntity fileEntity = new FileEntity();
+		fileEntity.setDataFileHandleId(fileHandle.getId());
+		fileEntity.setParentId(folderAId);
+		String fileEntityId = entityManager.createEntity(userInfo, fileEntity, null);
+		entitiesToDelete.add(fileEntityId);
+		fileEntity = entityManager.getEntity(userInfo, fileEntityId, FileEntity.class);
+
+		// User2 can move the FileEntity to Folder B.
+		fileEntity.setParentId(folderBId);
+		entityManager.updateEntity(userInfo2, fileEntity, false, null);
+	}
+
 	@Test
 	public void testProxyStorageLocationSettings() throws DatastoreException, NotFoundException, IOException{
 		ProxyStorageLocationSettings proxy = new ProxyStorageLocationSettings();

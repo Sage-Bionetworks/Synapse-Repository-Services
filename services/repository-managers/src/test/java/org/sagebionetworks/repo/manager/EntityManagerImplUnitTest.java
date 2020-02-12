@@ -694,7 +694,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_StsFileInSameStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -714,7 +714,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_StsFileInDifferentStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -736,7 +736,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_StsFileInNonStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -758,7 +758,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_StsFileInParentWithoutProjectSettings() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -780,7 +780,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_StsFileWithNoParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -798,7 +798,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_NonStsFileInStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -820,7 +820,7 @@ public class EntityManagerImplUnitTest {
 	public void validateFileEntityStsRestrictions_NonStsFileInNonStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(mockUser, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(
