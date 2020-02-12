@@ -60,7 +60,14 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 */
 	FileHandle getRawFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException;
-	
+
+	/**
+	 * Gets the raw file handle. Note that this method does not check authorization, and should only be used for
+	 * administrative purposes or validation purposes. The file handle should not be returned to non-administrative
+	 * callers.
+	 */
+	FileHandle getRawFileHandleUnchecked(String handleId);
+
 	/**
 	 * Get the FileHandle ID of a preview associated with a file handle.
 	 * @param handleId

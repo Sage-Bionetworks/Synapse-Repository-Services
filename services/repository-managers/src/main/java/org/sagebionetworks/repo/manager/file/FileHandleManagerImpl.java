@@ -280,16 +280,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public FileHandle getRawFileHandle(UserInfo userInfo, String handleId)
 			throws DatastoreException, NotFoundException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (handleId == null)
-			throw new IllegalArgumentException("FileHandleId cannot be null");
+		ValidateArgument.required(userInfo, "UserInfo");
 		// Get the file handle
-		FileHandle handle = fileHandleDao.get(handleId);
+		FileHandle handle = getRawFileHandleUnchecked(handleId);
 		// Only the user that created this handle is authorized to get it.
 		authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId,handle.getCreatedBy())
 				.checkAuthorizationOrElseThrow();
 		return handle;
+	}
+
+	@Override
+	public FileHandle getRawFileHandleUnchecked(String handleId) {
+		ValidateArgument.required(handleId, "Handle ID");
+		return fileHandleDao.get(handleId);
 	}
 
 	@WriteTransaction
