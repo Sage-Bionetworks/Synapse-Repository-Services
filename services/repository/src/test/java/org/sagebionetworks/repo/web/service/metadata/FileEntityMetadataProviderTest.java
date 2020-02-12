@@ -201,7 +201,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_StsFileInSameStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -222,7 +222,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_StsFileInDifferentStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -245,7 +245,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_StsFileInNonStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -268,7 +268,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_StsFileInParentWithoutProjectSettings() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -288,7 +288,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_NonStsFileInStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(
@@ -311,7 +311,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_FileWithoutStorageLocationInStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(null);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		when(mockProjectSettingsManager.getStorageLocationSetting(null)).thenReturn(null);
 		when(mockProjectSettingsManager.isStsStorageLocationSetting((StorageLocationSetting) null)).thenReturn(false);
@@ -332,7 +332,7 @@ public class FileEntityMetadataProviderTest {
 	public void validateFileEntityStsRestrictions_NonStsFileInNonStsParent() {
 		// Mock dependencies.
 		fileHandle.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		storageLocationSetting.setStorageLocationId(NON_STS_STORAGE_LOCATION_ID);
 		when(mockProjectSettingsManager.getStorageLocationSetting(NON_STS_STORAGE_LOCATION_ID)).thenReturn(

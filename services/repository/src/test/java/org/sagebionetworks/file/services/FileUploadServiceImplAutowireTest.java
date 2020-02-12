@@ -3,6 +3,7 @@ package org.sagebionetworks.file.services;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.junit.jupiter.api.AfterEach;
@@ -14,18 +15,22 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.service.AdministrationService;
 import org.sagebionetworks.repo.web.service.CertifiedUserService;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -37,6 +42,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -82,9 +88,10 @@ public class FileUploadServiceImplAutowireTest {
 	private String projectId;
 	private Long userId;
 	private String username;
+	private Long user2Id;
 
 	@BeforeEach
-	public void beforeEach() {
+	public void beforeEach() throws Exception {
 		// Set up lists of entities to delete.
 		entitiesToDelete = new ArrayList<>();
 		fileHandlesToDelete = new ArrayList<>();
@@ -100,6 +107,14 @@ public class FileUploadServiceImplAutowireTest {
 		userId = Long.valueOf(userEntityId.getId());
 		certifiedUserService.setUserCertificationStatus(adminUserId, userId, true);
 
+		NewIntegrationTestUser user2 = new NewIntegrationTestUser();
+		String user2name = UUID.randomUUID().toString();
+		user2.setEmail(user2name + "@test.com");
+		user2.setUsername(user2name);
+		EntityId user2EntityId = adminService.createOrGetTestUser(adminUserId, user2);
+		user2Id = Long.valueOf(user2EntityId.getId());
+		certifiedUserService.setUserCertificationStatus(adminUserId, user2Id, true);
+
 		// Set up test project.
 		Project project = new Project();
 		String projectName = "project" + new Random().nextInt();
@@ -107,6 +122,19 @@ public class FileUploadServiceImplAutowireTest {
 		project = entityService.createEntity(userId, project, null);
 		entitiesToDelete.add(project);
 		projectId = project.getId();
+
+		// Give ACL to user2.
+		ResourceAccess userAccess = new ResourceAccess();
+		userAccess.setPrincipalId(userId);
+		userAccess.setAccessType(ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS);
+
+		ResourceAccess user2Access = new ResourceAccess();
+		user2Access.setPrincipalId(user2Id);
+		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
+
+		AccessControlList acl = entityService.getEntityACL(projectId, userId);
+		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
+		entityService.updateEntityACL(userId, acl, null);
 	}
 
 	@AfterEach
@@ -263,5 +291,44 @@ public class FileUploadServiceImplAutowireTest {
 		nonStsFileEntity.setParentId(projectId);
 		nonStsFileEntity = entityService.createEntity(userId, nonStsFileEntity, null);
 		entitiesToDelete.add(nonStsFileEntity);
+	}
+
+	// PLFM-6097
+	@Test
+	public void fileHandleNonOwnerCanMoveFileEntity() throws Exception {
+		// Create folders for the project.
+		Folder folderA = new Folder();
+		folderA.setParentId(projectId);
+		folderA = entityService.createEntity(userId, folderA, null);
+		entitiesToDelete.add(folderA);
+
+		Folder folderB = new Folder();
+		folderB.setParentId(projectId);
+		folderB = entityService.createEntity(userId, folderB, null);
+		entitiesToDelete.add(folderB);
+
+		// Create a file handle.
+		File file = File.createTempFile("plfm-6097-test-file", ".txt");
+		filesToDelete.add(file);
+		Files.asCharSink(file, StandardCharsets.UTF_8).write("Test file for PLFM-6097");
+
+		LocalFileUploadRequest fileUploadRequest = new LocalFileUploadRequest().withContentType("text/plain")
+				.withFileToUpload(file).withUserId(userId.toString());
+		S3FileHandle fileHandle = multipartManager.multipartUploadLocalFile(fileUploadRequest);
+		fileHandlesToDelete.add(fileHandle);
+
+		// Before we can create file entities, we must agree to terms of use.
+		authManager.setTermsOfUseAcceptance(userId, true);
+
+		// Make a FileEntity out of that FileHandle in Folder A.
+		FileEntity fileEntity = new FileEntity();
+		fileEntity.setDataFileHandleId(fileHandle.getId());
+		fileEntity.setParentId(folderA.getId());
+		fileEntity = entityService.createEntity(userId, fileEntity, null);
+		entitiesToDelete.add(fileEntity);
+
+		// User2 can move the FileEntity to Folder B.
+		fileEntity.setParentId(folderB.getId());
+		entityService.updateEntity(user2Id, fileEntity, false, null);
 	}
 }

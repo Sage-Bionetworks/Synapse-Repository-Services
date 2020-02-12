@@ -77,7 +77,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	void validateFileEntityStsRestrictions(UserInfo userInfo, FileEntity fileEntity) {
 		// Is the file STS-enabled?
 		// Note that getRawFileHandle throws if the file handle exists, but the storage location ID might be null.
-		FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileEntity.getDataFileHandleId());
+		FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(fileEntity.getDataFileHandleId());
 		Long fileStorageLocationId = fileHandle.getStorageLocationId();
 		StorageLocationSetting fileStorageLocationSetting = projectSettingsManager.getStorageLocationSetting(
 				fileStorageLocationId);
