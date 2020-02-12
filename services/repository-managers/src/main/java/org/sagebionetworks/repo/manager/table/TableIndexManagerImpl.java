@@ -111,7 +111,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 							//once all changes to main table are applied, populate the list-type columns with the changes.
 							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
 								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
-								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds(), false);
 							}
 
 							// set the new max version for the index
@@ -259,6 +259,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			switch (change.getListIndexTableChangeType()){
 				case ADD:
 					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange(), alterTemp);
+					tableIndexDao.populateListColumnIndexTable(tableId, change.getNewColumnChange(), null, alterTemp);
 					break;
 				case REMOVE:
 					if(!alterTemp) {
@@ -354,7 +355,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(schema, "schema");
 		for(ColumnModel column: schema) {
 			if (ColumnTypeListMappings.isList(column.getColumnType())) {
-				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds);
+				tableIndexDao.populateListColumnIndexTable(tableIdAndVersion, column, rowIds, false);
 			}
 		}
 	}

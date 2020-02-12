@@ -37,7 +37,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
@@ -742,6 +744,33 @@ public class SQLUtils {
 			return null;
 		}
 		return builder.toString();
+	}
+
+	public static Optional<String> createChangeValuesToListSql(List<ColumnChangeDetails> changes, IdAndVersion tableId, boolean alterTemp) {
+		String tableName = alterTemp ? getTemporaryTableName(tableId) : getTableNameForId(tableId, TableType.INDEX);
+
+		StringJoiner joiner = new StringJoiner(",", "UPDATE `" + tableName + "` SET " ,"");
+		int joinerInitSize = joiner.length();
+
+		for (ColumnChangeDetails change : changes) {
+			ColumnModel oldColumn = change.getOldColumn();
+			ColumnModel newColumn = change.getNewColumn();
+			if(oldColumn != null && newColumn !=null
+				&& !ColumnTypeListMappings.isList(oldColumn.getColumnType())
+				&& ColumnTypeListMappings.isList(newColumn.getColumnType())
+			){
+				String newColumnName = getColumnNameForId(newColumn.getId());
+				//wrap values in a JSON array using MySQL function
+				joiner.add("`"+newColumnName + "`=" + "JSON_ARRAY(`" + newColumnName + "`)");
+			}
+		}
+
+		//nothing added to joiner
+		if(joinerInitSize == joiner.length()){
+			return Optional.empty();
+		}
+
+		return Optional.of(joiner.toString());
 	}
 
 	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){
@@ -1993,13 +2022,13 @@ public class SQLUtils {
 	 * @param filterRows When true a where clause to filter by ROW_ID will be included.
 	 * @return
 	 */
-	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows){
+	public static String insertIntoListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo, boolean filterRows, boolean alterTemp){ //TODO: test
 		String columnName = getColumnNameForId(columnInfo.getId());
 		String unnestedColumnName = getUnnestedColumnNameForId(columnInfo.getId());
 
 		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
-		String tableName = getTableNameForId(tableIdAndVersion, TableType.INDEX);
+		String columnIndexTableName = alterTemp ? getTemporaryTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId()) : getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
+		String tableName = alterTemp ? getTemporaryTableName(tableIdAndVersion) : getTableNameForId(tableIdAndVersion, TableType.INDEX);
 		MySqlColumnType mySqlColumnType = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).getMySqlType();
 
 		String columnExpandTypeSQl =  mySqlColumnType.name() + (mySqlColumnType.hasSize() && columnInfo.getMaximumSize() != null ? "("  + columnInfo.getMaximumSize() + ")" : "");

@@ -24,12 +24,10 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -291,8 +289,8 @@ public class TableIndexManagerImplTest {
 		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
 	}
 	
 	@Test
@@ -1154,7 +1152,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(mockIndexDao, never()).populateListColumnIndexTable(any(IdAndVersion.class), any(ColumnModel.class),
-				anySet());
+				anySet(), false);
 	}
 	
 	@Test
@@ -1174,9 +1172,9 @@ public class TableIndexManagerImplTest {
 		
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges);
+		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges, false);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
 	
@@ -1200,7 +1198,7 @@ public class TableIndexManagerImplTest {
 		rowsIdsWithChanges = null;
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null, false);
 	}
 	
 	@Test

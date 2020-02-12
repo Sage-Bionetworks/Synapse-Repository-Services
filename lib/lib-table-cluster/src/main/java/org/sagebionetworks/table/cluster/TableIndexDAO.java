@@ -276,8 +276,9 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param listColumn
 	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
+	 * @param alterTemp
 	 */
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp);
 
 	/**
 	 * Delete rows from an a specific list column's index table.

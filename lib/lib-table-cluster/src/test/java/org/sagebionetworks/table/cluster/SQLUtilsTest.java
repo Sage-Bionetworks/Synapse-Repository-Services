@@ -2917,7 +2917,7 @@ public class SQLUtilsTest {
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
 		boolean filterRows = false;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
@@ -2937,7 +2937,7 @@ public class SQLUtilsTest {
 		columnInfo.setId("0");
 		columnInfo.setMaximumSize(42L);
 		boolean filterRows = true;
-		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows);
+		String sql = SQLUtils.insertIntoListColumnIndexTable(tableId, columnInfo, filterRows, false);
 		String expected = "INSERT INTO T999_INDEX_C0_ (ROW_ID_REF_C0_,INDEX_NUM,_C0__UNNEST) " +
 				"SELECT ROW_ID ,  TEMP_JSON_TABLE.ORDINAL - 1 , TEMP_JSON_TABLE.COLUMN_EXPAND" +
 				" FROM T999, JSON_TABLE(" +
