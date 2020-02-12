@@ -600,7 +600,7 @@ public class EntityManagerImpl implements EntityManager {
 	// Package-scoped to facilitate unit tests.
 	void validateFileEntityStsRestrictions(UserInfo userInfo, FileEntity fileEntity) {
 		// Is the file STS-enabled?
-		FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileEntity.getDataFileHandleId());
+		FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(fileEntity.getDataFileHandleId());
 		Long fileStorageLocationId = fileHandle.getStorageLocationId();
 		StorageLocationSetting fileStorageLocationSetting = projectSettingsManager.getStorageLocationSetting(
 				fileStorageLocationId);
