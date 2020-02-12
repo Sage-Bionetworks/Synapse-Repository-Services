@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.FILE_HANDLE_COPY_RECORD_TYPE;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
@@ -352,7 +354,21 @@ public class FileHandleManagerImplTest {
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
 		assertEquals(validResults, handle, "failed to get the handle");
 	}
-	
+
+	@Test
+	public void testGetRawFileHandleUnchecked() {
+		// Mock dependencies.
+		String handleId = "123";
+		when(mockFileHandleDao.get(handleId)).thenReturn(validResults);
+
+		// Method under test.
+		FileHandle handle = manager.getRawFileHandleUnchecked(handleId);
+		assertSame(validResults, handle);
+
+		// This method does not call auth manager.
+		verifyZeroInteractions(mockAuthorizationManager);
+	}
+
 	@Test
 	public void testDeleteNotFound() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
