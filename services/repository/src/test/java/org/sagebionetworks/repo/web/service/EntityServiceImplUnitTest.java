@@ -116,8 +116,9 @@ public class EntityServiceImplUnitTest {
 		project.setId(null);
 
 		// Method under test.
-		assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(userInfo.getId(), project,
-				false, null), "Updated Entity cannot have a null id");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(userInfo.getId(), project,
+				false, null));
+		assertEquals("Updated Entity cannot have a null id", ex.getMessage());
 		verifyZeroInteractions(mockEntityManager);
 	}
 

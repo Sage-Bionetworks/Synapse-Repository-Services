@@ -13,6 +13,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -85,6 +87,8 @@ public class NodeManagerImplUnitTest {
 	private Node mockNode;
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
+	@Mock
+	private TrashManager mockTrashManager;
 	
 	@InjectMocks
 	private NodeManagerImpl nodeManager = null;
@@ -1004,27 +1008,57 @@ public class NodeManagerImplUnitTest {
 	}
 
 	@Test
-	public void testIsEntityEmptyTrue() {
+	public void testIsEntityEmpty_NoChildrenDontCheckTrash() {
 		// Mock dao.
 		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
 
 		// Method under test.
-		boolean result = nodeManager.isEntityEmpty(nodeId);
+		boolean result = nodeManager.isEntityEmpty(nodeId, false);
 		assertTrue(result);
 
 		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		verifyZeroInteractions(mockTrashManager);
 	}
 
 	@Test
-	public void testIsEntityEmptyFalse() {
+	public void testIsEntityEmpty_HasChildren() {
 		// Mock dao.
 		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(true);
 
-		// Method under test.
-		boolean result = nodeManager.isEntityEmpty(nodeId);
+		// Method under test. Trash doesn't matter.
+		boolean result = nodeManager.isEntityEmpty(nodeId, true);
 		assertFalse(result);
 
 		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		verifyZeroInteractions(mockTrashManager);
+	}
+
+	@Test
+	public void testIsEntityEmpty_NoChildrenHasTrash() {
+		// Mock dao.
+		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
+		when(mockTrashManager.doesParentHaveTrashedEntities(nodeId)).thenReturn(true);
+
+		// Method under test.
+		boolean result = nodeManager.isEntityEmpty(nodeId, true);
+		assertFalse(result);
+
+		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		verify(mockTrashManager).doesParentHaveTrashedEntities(nodeId);
+	}
+
+	@Test
+	public void testIsEntityEmpty_NoChildrenNoTrash() {
+		// Mock dao.
+		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
+		when(mockTrashManager.doesParentHaveTrashedEntities(nodeId)).thenReturn(false);
+
+		// Method under test.
+		boolean result = nodeManager.isEntityEmpty(nodeId, true);
+		assertTrue(result);
+
+		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		verify(mockTrashManager).doesParentHaveTrashedEntities(nodeId);
 	}
 
 	@Test

@@ -866,8 +866,9 @@ public class FileHandleManagerImplTest {
 		when(mockS3Client.getObjectMetadata(bucket, key)).thenThrow(new AmazonClientException("Something is wrong"));
 
 		// should fail
-		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
-				externals3FileHandle), "Unable to access the file at bucket: " + bucket + " key: " + key + ".");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
+				externals3FileHandle));
+		assertEquals("Unable to access the file at bucket: " + bucket + " key: " + key + ".", ex.getMessage());
 	}
 
 	@Test
@@ -957,9 +958,10 @@ public class FileHandleManagerImplTest {
 		externals3FileHandle.setKey(mismatchedKey);
 
 		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
-				externals3FileHandle), "The baseKey for ExternalS3StorageLocationSetting.id=" +
-				externalS3StorageLocationId + " does not match the provided key: " + mismatchedKey);
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> manager.createExternalS3FileHandle(mockUser,
+				externals3FileHandle));
+		assertEquals("The baseKey for ExternalS3StorageLocationSetting.id=" + externalS3StorageLocationId +
+						" does not match the provided key: " + mismatchedKey, ex.getMessage());
 		verify(mockFileHandleDao, never()).createFile(any());
 	}
 
@@ -2207,7 +2209,9 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testGetUploadDestination_ProxyStorageNotSupported() {
 		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
-		assertThrows(IllegalArgumentException.class, () -> manager.getUploadDestination(mockUser, PARENT_ENTITY_ID, proxyStorageLocationId),
-				"Cannot handle upload destination location setting of type: org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> manager.getUploadDestination(mockUser,
+				PARENT_ENTITY_ID, proxyStorageLocationId));
+		assertEquals("Cannot handle upload destination location setting of type: org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings",
+				ex.getMessage());
 	}
 }

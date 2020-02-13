@@ -333,7 +333,7 @@ public interface NodeManager {
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request);
 
 	/** True if the entity has no children, false otherwise. */
-	boolean isEntityEmpty(String entityId);
+	boolean isEntityEmpty(String entityId, boolean checkTrash);
 
 	/**
 	 * Retrieve the entityId for a given parentId and entityName

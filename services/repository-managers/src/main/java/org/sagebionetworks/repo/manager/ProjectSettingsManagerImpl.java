@@ -77,6 +77,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
+	public Optional<ProjectSetting> getProjectSettingByEntityUnchecked(String entityId) {
+		// We only support ProjectSettingsType.upload.
+		return projectSettingsDao.get(entityId, ProjectSettingsType.upload);
+	}
+
+	@Override
 	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
 		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
@@ -124,7 +130,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add an StsStorageLocation to a non-empty entity.
-		if (!nodeManager.isEntityEmpty(parentId) && isStsStorageLocationSetting(projectSetting)) {
+		if (!nodeManager.isEntityEmpty(parentId, true) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 		}
 
@@ -142,7 +148,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
-		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId())) {
+		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId(), true)) {
 			if (isStsStorageLocationSetting(projectSetting)) {
 				throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 			}
@@ -167,7 +173,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 
 		// Can't delete an StsStorageLocation on a non-empty entity.
-		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId()) && isStsStorageLocationSetting(projectSetting)) {
+		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId(), true) &&
+				isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 		}
 

@@ -580,8 +580,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
 
 		// Call under test - throws exception.
-		assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser),
-				"Cannot override ACLs in a child of an STS-enabled folder");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser));
+		assertEquals("Cannot override ACLs in a child of an STS-enabled folder", ex.getMessage());
 	}
 
 	@Test

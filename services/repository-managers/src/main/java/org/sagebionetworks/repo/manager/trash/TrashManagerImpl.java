@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -51,10 +52,19 @@ public class TrashManagerImpl implements TrashManager {
 	private AccessControlListDAO aclDAO;
 
 	@Autowired
+	private StsManager stsManager;
+
+	@Autowired
 	private TrashCanDao trashCanDao;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+
+	@Override
+	public boolean doesParentHaveTrashedEntities(String parentId) {
+		ValidateArgument.required(parentId, "Parent ID");
+		return trashCanDao.doesParentHaveTrashedEntities(parentId);
+	}
 
 	@WriteTransaction
 	@Override
@@ -172,6 +182,21 @@ public class TrashManagerImpl implements TrashManager {
 		if(NodeUtils.isRootEntityId(newParentId)){
 			if(!EntityType.project.equals(node.getNodeType())){
 				throw new IllegalArgumentException("Ony projects can be restored to root");
+			}
+		}
+
+		if (!newParentId.equals(trash.getOriginalParentId())) {
+			// Validate the move operation.
+			switch (node.getNodeType()) {
+				case file:
+					stsManager.validateCanAddFile(currentUser, node.getFileHandleId(), newParentId);
+					break;
+				case folder:
+					stsManager.validateCanMoveFolder(currentUser, nodeId, trash.getOriginalParentId(), newParentId);
+					break;
+				default:
+					// no-op
+					break;
 			}
 		}
 

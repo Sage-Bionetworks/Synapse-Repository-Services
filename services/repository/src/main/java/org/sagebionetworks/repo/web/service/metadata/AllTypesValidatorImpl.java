@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -105,11 +105,19 @@ public class AllTypesValidatorImpl implements AllTypesValidator {
 			}
 		}
 
-		// for update check for cycles
-		if (EventType.UPDATE == event.getType() && parentPath != null) {
-			for (EntityHeader eh : parentPath) {
-				if (entity.getId().equals(eh.getId())) {
-					throw new IllegalArgumentException("Invalid hierarchy: an entity cannot be an ancestor of itself");
+		if (EventType.UPDATE == event.getType()) {
+			// If we're updating, the old version of the entity must exist.
+			// Note that entity.getId() is validated by EntityServiceImpl.updateEntity().
+			if (!nodeDAO.doesNodeExist(KeyFactory.stringToKey(entity.getId()))) {
+				throw new NotFoundException("Entity " + entity.getId() + " does not exist");
+			}
+
+			// for update check for cycles
+			if (parentPath != null) {
+				for (EntityHeader eh : parentPath) {
+					if (entity.getId().equals(eh.getId())) {
+						throw new IllegalArgumentException("Invalid hierarchy: an entity cannot be an ancestor of itself");
+					}
 				}
 			}
 		}

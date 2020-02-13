@@ -37,6 +37,9 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 
 	private static final String SELECT_COUNT = "SELECT COUNT(" + COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
 
+	private static final String SELECT_EXISTS_BY_PARENT_ID = "SELECT EXISTS (SELECT 1 FROM " + TABLE_TRASH_CAN  +
+			" WHERE " + COL_TRASH_CAN_PARENT_ID + " = ? LIMIT 1)";
+
 	private static final String SELECT_TRASH_FOR_USER = "SELECT * FROM " + TABLE_TRASH_CAN + " WHERE " + COL_TRASH_CAN_DELETED_BY + " = ?"
 			+ " AND " + COL_TRASH_CAN_PRIORITY_PURGE + " = FALSE ORDER BY " + COL_TRASH_CAN_DELETED_ON + " DESC LIMIT ? OFFSET ?";
 
@@ -108,6 +111,14 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		dbo.setPriorityPurge(priorityPurge);
 
 		this.basicDao.createNew(dbo);
+	}
+
+	@Override
+	public boolean doesParentHaveTrashedEntities(String parentId) {
+		// Query either returns 0 or 1, cannot return null and thus cannot throw Null Pointer Exception.
+		//noinspection ConstantConditions
+		return jdbcTemplate.queryForObject(SELECT_EXISTS_BY_PARENT_ID, Boolean.class,
+				KeyFactory.stringToKey(parentId));
 	}
 
 	@Override
