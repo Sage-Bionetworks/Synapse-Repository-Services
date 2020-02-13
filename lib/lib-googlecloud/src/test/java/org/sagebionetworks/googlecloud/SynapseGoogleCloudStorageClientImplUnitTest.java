@@ -2,7 +2,6 @@ package org.sagebionetworks.googlecloud;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -180,16 +179,6 @@ public class SynapseGoogleCloudStorageClientImplUnitTest {
 
 		verify(mockStorage).list(eq(BUCKET_NAME), any(Storage.BlobListOption.class), any(Storage.BlobListOption.class));
 		assertEquals(expected, actual);
-	}
-
-	@Test
-	public void getObjectContent() {
-		when(mockStorage.get(OBJECT_BLOB_ID)).thenReturn(mockBlob);
-		when(mockBlob.reader(any())).thenReturn(mockReadChannel);
-		// Call under test
-		InputStream content = client.getObjectContent(BUCKET_NAME, OBJECT_KEY);
-
-		assertNotNull(content);
 	}
 
 	/**

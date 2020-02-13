@@ -119,7 +119,7 @@ public class StsManagerImplTest {
 		fileHandle.setId(FILE_HANDLE_ID);
 		fileHandle.setStorageLocationId(null);
 
-		when(mockFileHandleManager.getRawFileHandle(USER_INFO, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 		when(mockProjectSettingsManager.getStorageLocationSetting(null)).thenReturn(null);
 		when(mockProjectSettingsManager.isStsStorageLocationSetting((StorageLocationSetting) null)).thenReturn(false);
 
@@ -139,7 +139,7 @@ public class StsManagerImplTest {
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId(FILE_HANDLE_ID);
 		fileHandle.setStorageLocationId(storageLocationId);
-		when(mockFileHandleManager.getRawFileHandle(USER_INFO, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		when(mockFileHandleManager.getRawFileHandleUnchecked(FILE_HANDLE_ID)).thenReturn(fileHandle);
 
 		// Mock project settings manager.
 		S3StorageLocationSetting fileStorageLocationSetting = new S3StorageLocationSetting();

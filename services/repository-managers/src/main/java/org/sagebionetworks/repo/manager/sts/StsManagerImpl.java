@@ -26,7 +26,7 @@ public class StsManagerImpl implements StsManager {
 	public void validateCanAddFile(UserInfo userInfo, String fileHandleId, String parentId) {
 		// Is the file STS-enabled?
 		// Note that getRawFileHandle throws if the file handle exists, but the storage location ID might be null.
-		FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileHandleId);
+		FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(fileHandleId);
 		Long fileStorageLocationId = fileHandle.getStorageLocationId();
 		StorageLocationSetting fileStorageLocationSetting = projectSettingsManager.getStorageLocationSetting(
 				fileStorageLocationId);

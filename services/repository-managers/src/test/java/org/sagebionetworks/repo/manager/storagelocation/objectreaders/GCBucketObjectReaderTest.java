@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
@@ -67,8 +66,12 @@ public class GCBucketObjectReaderTest {
 	}
 
 	@Test
-	public void testVerifyBucketAccessWithNoAccessException() {
-		StorageException ex = new StorageException(403, "Some exception");
+	public void testVerifyBucketAccessWith403StorageException() {
+		int code = 403;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
+		
 		when(mockGCClient.bucketExists(BUCKET_NAME)).thenThrow(ex);
 
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
@@ -76,7 +79,24 @@ public class GCBucketObjectReaderTest {
 			objectReader.verifyBucketAccess(BUCKET_NAME);
 		});
 
-		assertEquals("Synapse does not have access to the Google Cloud bucket " + BUCKET_NAME, e.getMessage());
+		assertEquals("Synapse does not have the correct access rights for the google cloud bucket " + BUCKET_NAME, e.getMessage());
+	}
+	
+	@Test
+	public void testVerifyBucketAccessWithUnhandledStorageException() {
+		int code = 0;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
+		
+		when(mockGCClient.bucketExists(BUCKET_NAME)).thenThrow(ex);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.verifyBucketAccess(BUCKET_NAME);
+		});
+
+		assertEquals("Synapse could not access the google cloud bucket " + BUCKET_NAME + ": " + message, e.getMessage());
 	}
 
 	@Test
@@ -93,59 +113,109 @@ public class GCBucketObjectReaderTest {
 		verify(mockGCClient).getObject(BUCKET_NAME, OBJECT_KEY);
 		verify(mockBlob).reader();
 	}
-
-	@Test
-	public void testOpenStreamWithNoObject() {
-
-		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(null);
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
-		});
-
-		assertEquals("Did not find Google Cloud object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME, e.getMessage());
-
-		verify(mockGCClient).getObject(BUCKET_NAME, OBJECT_KEY);
-		verifyZeroInteractions(mockBlob);
-	}
-
-	@Test
-	public void testOpenStreamWithStorageException() {
-
-		StorageException ex = new StorageException(403, "Some exception");
-
-		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenThrow(ex);
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-			// Call under test
-			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
-		});
-
-		assertEquals("Could not read object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME, e.getMessage());
-
-		verify(mockGCClient).getObject(BUCKET_NAME, OBJECT_KEY);
-		verifyZeroInteractions(mockBlob);
-	}
 	
 	@Test
-	public void testOpenStreamWithStorageExceptionOnReader() {
-
-		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockBlob);
-
-		StorageException ex = new StorageException(403, "Some exception");
+	public void testOpenStreamWithUnhandledStorageExceptionOnReader() {
+		
+		int code = 0;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
 
 		when(mockBlob.reader()).thenThrow(ex);
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockBlob);
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
 		});
 
-		assertEquals("Could not read object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME, e.getMessage());
+		assertEquals("Could not access object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME + ": " + ex.getMessage(), e.getMessage());
 
 		verify(mockGCClient).getObject(BUCKET_NAME, OBJECT_KEY);
 		verify(mockBlob).reader();
+	}
+	
+	@Test
+	public void testOpenStreamWith403StorageExceptionOnReader() {
+		
+		int code = 403;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
+
+		when(mockBlob.reader()).thenThrow(ex);
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockBlob);
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.openStream(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		assertEquals("Synapse does not have the correct access rights for the google cloud bucket " + BUCKET_NAME, e.getMessage());
+
+		verify(mockGCClient).getObject(BUCKET_NAME, OBJECT_KEY);
+		verify(mockBlob).reader();
+	}
+	
+	@Test
+	public void testGetObjectOrThrow() {
+		
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(mockBlob);
+		
+		// Call under test
+		Blob blob = objectReader.getObjectOrThrow(BUCKET_NAME, OBJECT_KEY);
+		
+		assertEquals(mockBlob, blob);
+	}
+	
+	@Test
+	public void testGetObjectOrThrowWithNullBlob() {
+		
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenReturn(null);
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.getObjectOrThrow(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		assertEquals("Could not find google cloud object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME, e.getMessage());
+	}
+	
+	@Test
+	public void testGetObjectOrThrowWithUnhandledStorageException() {
+		
+		int code = 0;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
+		
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenThrow(ex);
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.getObjectOrThrow(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		assertEquals("Could not access object at key " + OBJECT_KEY + " from bucket " + BUCKET_NAME + ": " + message, e.getMessage());
+	}
+	
+	@Test
+	public void testGetObjectOrThrowWith403StorageException() {
+		
+		int code = 403;
+		String message = "Some message";
+		
+		StorageException ex = new StorageException(code, message);
+		
+		when(mockGCClient.getObject(BUCKET_NAME, OBJECT_KEY)).thenThrow(ex);
+		
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			objectReader.getObjectOrThrow(BUCKET_NAME, OBJECT_KEY);
+		});
+
+		assertEquals("Synapse does not have the correct access rights for the google cloud bucket " + BUCKET_NAME, e.getMessage());
 	}
 
 }

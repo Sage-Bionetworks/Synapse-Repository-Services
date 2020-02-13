@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
-import org.sagebionetworks.repo.model.AsynchJobFailedException;
+import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -79,24 +79,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 
 		UserInfo user = userManager.getUserInfo(userId);
 		AsynchronousJobStatus jobStatus = asynchJobStatusManager.getJobStatus(user, jobId);
-
-		if (jobStatus.getJobState() == AsynchJobState.FAILED) {
-			if (jobStatus.getException() != null) {
-				Throwable exception = null;
-				try {
-					@SuppressWarnings("unchecked")
-					Class<Throwable> exceptionClass = (Class<Throwable>) Class.forName(jobStatus.getException());
-					exception = exceptionClass.getConstructor(String.class).newInstance(jobStatus.getErrorMessage());
-				} catch (Throwable t) {
-					// ignore, just throw async job failed exception on any failure in trying to get a better exception
-					// here
-				}
-				if (exception != null) {
-					throw exception;
-				}
-			}
-			throw new AsynchJobFailedException(jobStatus);
-		}
+		AsynchJobUtils.throwExceptionIfFailed(jobStatus);
 		if (jobStatus.getJobState() == AsynchJobState.PROCESSING) {
 			throw new NotReadyException(jobStatus);
 		}
