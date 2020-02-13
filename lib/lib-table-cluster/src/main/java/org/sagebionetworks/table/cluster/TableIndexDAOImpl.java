@@ -440,11 +440,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// apply the update
 		template.update(sql);
 
-		//handle cases when a non-list type is converted into a list type
-		SQLUtils.createChangeValuesToListSql(changes, tableId, alterTemp).ifPresent((String wrapinListSql) ->
-				template.update(wrapinListSql)
-		);
-
 		return true;
 	}
 
@@ -462,20 +457,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp){//todo: ALTERtEMP
-		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel, alterTemp));
+	public void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel){
+		template.update(SQLUtils.createListColumnIndexTable(tableId, columnModel));
 	}
 
 	@Override
-	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){ //TODO: maybe need altertemp?
+	public void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId){
 		String tableName = SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId.toString());
 		template.update("DROP TABLE IF EXISTS " + tableName);
 	}
 
 
 	@Override
-	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp){//TODO: test
-		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn, alterTemp);
+	public void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn){
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumnId, newColumn);
 		template.update(sql);
 	}
 
@@ -575,7 +570,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	
 
 	@Override
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp){
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds){
 		ValidateArgument.required(tableId, "tableId");
 		ValidateArgument.required(listColumn, "listColumn");
 		//only operate on list column types
@@ -586,7 +581,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("When rowIds is provided (not null) it cannot be empty");
 		}
 		boolean filterRows = rowIds != null;
-		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows, alterTemp);
+		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if(filterRows) {
 			param.addValue(ID_PARAMETER_NAME, rowIds);

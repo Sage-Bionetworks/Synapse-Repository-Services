@@ -289,8 +289,8 @@ public class TableIndexManagerImplTest {
 		Set<Long> expectedRows = Sets.newHashSet(0L,5L);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(0), expectedRows);
 		verify(mockIndexDao).deleteFromListColumnIndexTable(tableId, schema.get(1), expectedRows);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows, false);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(0), expectedRows);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, schema.get(1), expectedRows);
 	}
 	
 	@Test
@@ -1152,7 +1152,7 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
 		verify(mockIndexDao, never()).populateListColumnIndexTable(any(IdAndVersion.class), any(ColumnModel.class),
-				anySet(), false);
+				anySet());
 	}
 	
 	@Test
@@ -1172,9 +1172,9 @@ public class TableIndexManagerImplTest {
 		
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges, false);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges, false);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges, false);
+		verify(mockIndexDao, never()).populateListColumnIndexTable(tableId, notAList, rowsIdsWithChanges);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, rowsIdsWithChanges);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listTwo, rowsIdsWithChanges);
 		verifyNoMoreInteractions(mockIndexDao);
 	}
 	
@@ -1198,7 +1198,7 @@ public class TableIndexManagerImplTest {
 		rowsIdsWithChanges = null;
 		// call under test
 		manager.populateListColumnIndexTables(tableId, schema, rowsIdsWithChanges);
-		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null, false);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, listOne, null);
 	}
 	
 	@Test

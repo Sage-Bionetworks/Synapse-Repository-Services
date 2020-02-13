@@ -202,9 +202,8 @@ public interface TableIndexDAO {
 	 * Creates an index table for the multi-value column described in the columnModel.
 	 * @param tableId
 	 * @param columnModel
-	 * @param alterTemp
 	 */
-	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel, boolean alterTemp);
+	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel);
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and column id
@@ -215,10 +214,10 @@ public interface TableIndexDAO {
 
 	/**
 	 * Drop the multi-value column index table associated with the table id and column id
-	 * @param tableId
 	 * @param columnId
+	 * @param tableId
 	 */
-	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn, boolean alterTemp);
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn);
 
 	/**
 	 * Truncate all of the data in the given table.
@@ -276,9 +275,8 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param listColumn
 	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
-	 * @param alterTemp
 	 */
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds, boolean alterTemp);
+	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 	/**
 	 * Delete rows from an a specific list column's index table.
