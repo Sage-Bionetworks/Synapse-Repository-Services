@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -203,7 +204,7 @@ public class PermissionsManagerUtilsTest {
 			PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		});
 
-		assertEquals("Cannot assign permissions to anonymous users", ex.getMessage());
+		assertEquals("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")", ex.getMessage());
 	}
 
 	@Test

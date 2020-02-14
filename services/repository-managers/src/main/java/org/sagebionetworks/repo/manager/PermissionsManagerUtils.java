@@ -44,7 +44,7 @@ public class PermissionsManagerUtils {
 			}
 			// Does not allow ACL for the anonymous user
 			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-				throw new InvalidModelException("Cannot assign permissions to anonymous users");
+				throw new InvalidModelException("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")");
 			}
 			// Does not allow anything other than READ for the public group
 			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
