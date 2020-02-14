@@ -232,15 +232,20 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	
 	@WriteTransaction
 	@Override
-	public OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, boolean verifiedStatus) {
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, String etag, boolean verifiedStatus) {
 		ValidateArgument.required(userInfo, "User info");
 		ValidateArgument.requiredNotBlank(clientId, "Client ID");
+		ValidateArgument.requiredNotBlank(etag, "The etag");
 		
 		if (!authManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("You must be an administrator or a member of the ACT team to update the verification status of a client");
 		}
 		
 		OAuthClient client = oauthClientDao.selectOAuthClientForUpdate(clientId);
+		
+		if (!client.getEtag().equals(etag)) {
+			throw new ConflictingUpdateException("The client etag does not match, the client information might have been updated.");
+		}
 		
 		if (verifiedStatus != BooleanUtils.isTrue(client.getVerified())) {
 			client.setVerified(verifiedStatus);

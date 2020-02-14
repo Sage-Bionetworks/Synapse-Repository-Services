@@ -260,11 +260,12 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * 
 	 * @param clientId The id of the oauth client
 	 * @param status The verified value to be set 
+	 * @param etag The etag of the client
 	 * @return The updated client
 	 * 
 	 * @throws SynapseException
 	 */
-	OAuthClient updateOAuthClientVerifiedStatus(String clientId, boolean status) throws SynapseException;
+	OAuthClient updateOAuthClientVerifiedStatus(String clientId, String etag, boolean status) throws SynapseException;
 
 	/**
 	 * Removes all user information to comply with data removal requests.

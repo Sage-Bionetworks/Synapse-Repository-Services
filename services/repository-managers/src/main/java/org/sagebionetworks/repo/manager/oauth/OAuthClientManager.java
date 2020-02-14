@@ -52,10 +52,11 @@ public interface OAuthClientManager {
 	 * 
 	 * @param userInfo The user changing the verified status, must be a synapse administrator or ACT member
 	 * @param clientId The id of the client to be updated
+	 * @param etag The etag that is used to verify conflict changes
 	 * @param verifiedStatus The verified status value
 	 * @return
 	 */
-	OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, boolean verifiedStatus);
+	OAuthClient updateOpenIDConnectClientVerifiedStatus(UserInfo userInfo, String clientId, String etag, boolean verifiedStatus);
 	
 	/**
 	 * Delete an Open ID Connect client.
