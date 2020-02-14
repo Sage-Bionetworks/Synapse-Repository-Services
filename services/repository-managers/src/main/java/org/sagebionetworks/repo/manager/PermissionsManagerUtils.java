@@ -5,11 +5,10 @@ import java.util.HashSet;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class PermissionsManagerUtils {
@@ -43,11 +42,18 @@ public class PermissionsManagerUtils {
 					foundCallerInAcl = true;
 				}
 			}
-			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())
-					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
-				throw new InvalidModelException("Public may not have DOWNLOAD access.");
+			// Does not allow ACL for the anonymous user
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				throw new InvalidModelException("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")");
 			}
-			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
+			// Does not allow anything other than READ for the public group
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				long notReadCount = ra.getAccessType().stream().filter( type -> !ACCESS_TYPE.READ.equals(type)).count();
+				if (notReadCount != 0) {
+					throw new InvalidModelException("Only READ permissions can be assigned to the public group");
+				}
+			}
+			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
 					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)
 					&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
 				throw new UserCertificationRequiredException("Only certified users can allow authenticated users to download.");

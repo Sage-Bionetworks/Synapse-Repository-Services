@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,10 +16,12 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
-class PermissionsManagerUtilsTest {
+import com.google.common.collect.ImmutableSet;
+
+public class PermissionsManagerUtilsTest {
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	private UserInfo otherUserInfo;
@@ -181,6 +186,63 @@ class PermissionsManagerUtilsTest {
 		// certify userInfo
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContentWithAnonymousUser() {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		Set<ACCESS_TYPE> ats = ImmutableSet.of(ACCESS_TYPE.READ);
+		userRA.setAccessType(ats);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ImmutableSet.of(userRA));
+
+		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+		});
+
+		assertEquals("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateACLContentWithREADOnPublicGroup() {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		Set<ACCESS_TYPE> ats = ImmutableSet.of(ACCESS_TYPE.READ);
+		userRA.setAccessType(ats);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ImmutableSet.of(userRA));
+		
+		// Call under test
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+
+	}
+	
+	@Test
+	public void testValidateACLContentWithPublicGroupAndDifferentThanREAD() {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		
+		Set<ACCESS_TYPE> ats = Arrays.asList(ACCESS_TYPE.values()).stream().filter( type -> !ACCESS_TYPE.READ.equals(type)).collect(Collectors.toSet());
+		
+		userRA.setAccessType(ats);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ImmutableSet.of(userRA));
+		
+		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
+			// Call under test
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+		});
+		
+		assertEquals("Only READ permissions can be assigned to the public group", ex.getMessage());
+		
 	}
 
 }
