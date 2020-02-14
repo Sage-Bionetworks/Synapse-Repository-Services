@@ -3385,7 +3385,7 @@ public class TableIndexDAOImplTest {
 
 
 	@Test
-	public void testCreateDeleteUpdateMultivalueColumnIndexTable(){
+	public void testCreateUpdateDeleteMultivalueColumnIndexTable(){
 		ColumnModel column = new ColumnModel();
 		column.setColumnType(ColumnType.STRING_LIST);
 		column.setId("1337");

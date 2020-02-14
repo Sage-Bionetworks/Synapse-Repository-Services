@@ -262,18 +262,8 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+
 	/**
-	 * Returns the temporary table name for a multi-value column index. Used to validate schema changes.
-	 * @param idAndVersion
-	 * @param columnId
-	 * @return
-	 */
-	public static String getTemporaryTableNameForMultiValueColumnIndex(IdAndVersion idAndVersion, String columnId) {
-		return TEMP + getTableNameForMultiValueColumnIndex(idAndVersion, columnId);
-	}
-
-
-		/**
 		 * Get the Column name for a given column ID.
 		 *
 		 * @param columnId
