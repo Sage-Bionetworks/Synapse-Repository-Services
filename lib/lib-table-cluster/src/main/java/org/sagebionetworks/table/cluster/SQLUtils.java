@@ -752,9 +752,9 @@ public class SQLUtils {
 				" DROP INDEX " + oldColumnName + "_IDX," +
 
 				//modify the row_id column which references the main table's row_ids
-				" DROP FOREIGN KEY " + oldRowRefName + "_FK" + "," +
+				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
 				" RENAME COLUMN " + getRowIdRefColumnNameForId(oldColumnId.toString()) + " TO " + getRowIdRefColumnNameForId(newColumn.getId()) + "," +
-				" ADD CONSTRAINT "+ newRowRefName + "_FK" +" FOREIGN KEY ("+newRowRefName+") REFERENCES "+parentTableName+"("+ROW_ID+") ON DELETE CASCADE," +
+				" ADD CONSTRAINT "+ newTableName + "_FK" +" FOREIGN KEY ("+newRowRefName+") REFERENCES "+parentTableName+"("+ROW_ID+") ON DELETE CASCADE," +
 
 				" CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
 				" ADD INDEX " + newColumnName + "_IDX ("+newColumnName+" ASC)," +
@@ -1943,7 +1943,7 @@ public class SQLUtils {
 				columnName + " " + columnTypeSql + ", " +
 				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+"), " +
 				"INDEX "+columnName+"_IDX ("+columnName+" ASC), " +
-				"CONSTRAINT " + rowIdRefColumnName + "_FK" + " FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
+				"CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
 				");";
 	}
 
