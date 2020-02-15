@@ -13,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -52,8 +53,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * The Sage business logic for node management.
  *
@@ -80,7 +79,9 @@ public class NodeManagerImpl implements NodeManager {
 	private ActivityManager activityManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	
+	@Autowired
+	private TrashManager trashManager;
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.NodeManager#createNewNode(org.sagebionetworks.repo.model.Node, org.sagebionetworks.repo.model.UserInfo)
@@ -713,8 +714,17 @@ public class NodeManagerImpl implements NodeManager {
 	}
 
 	@Override
-	public boolean isEntityEmpty(String entityId) {
-		return !nodeDao.doesNodeHaveChildren(entityId);
+	public boolean isEntityEmpty(String entityId, boolean checkTrash) {
+		if (nodeDao.doesNodeHaveChildren(entityId)) {
+			// Node has existing children. Don't need to check trash.
+			return false;
+		}
+
+		if (checkTrash) {
+			return !trashManager.doesParentHaveTrashedEntities(entityId);
+		} else {
+			return true;
+		}
 	}
 
 	@Override

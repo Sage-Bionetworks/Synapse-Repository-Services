@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -13,6 +15,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.trash.TrashManagerImpl.MAX_IDS_TO_LOAD;
 
@@ -35,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -58,6 +62,7 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class TrashManagerImplTest {
+	private static final String FILE_HANDLE_ID = "test-file-handle-id";
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
@@ -70,6 +75,9 @@ public class TrashManagerImplTest {
 
 	@Mock
 	private AccessControlListDAO mockAclDAO;
+
+	@Mock
+	private StsManager mockStsManager;
 
 	@Mock
 	private TrashCanDao mockTrashCanDao;
@@ -91,6 +99,7 @@ public class TrashManagerImplTest {
 	private String nodeID;
 	private String nodeName;
 	private String nodeParentID;
+	private String newParentID;
 	private Node testNode;
 	private TrashedEntity nodeTrashedEntity;
 	private String newEtag;
@@ -111,10 +120,12 @@ public class TrashManagerImplTest {
 		nodeID = "syn420";
 		nodeName = "testName.test";
 		nodeParentID = "syn489";
+		newParentID = "syn6789";
 		testNode = new Node();
 		testNode.setId(nodeID);
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
+		testNode.setFileHandleId(FILE_HANDLE_ID);
 		testNode.setNodeType(EntityType.file);
 		nodeTrashedEntity = spy(new TrashedEntity());
 		nodeTrashedEntity.setOriginalParentId(nodeParentID);
@@ -125,6 +136,20 @@ public class TrashManagerImplTest {
 
 		trashList = new ArrayList<TrashedEntity>();
 
+	}
+
+	@Test
+	public void doesParentHaveTrashedEntities_True() {
+		when(mockTrashCanDao.doesParentHaveTrashedEntities(nodeParentID)).thenReturn(true);
+		// Method under test.
+		assertTrue(trashManager.doesParentHaveTrashedEntities(nodeParentID));
+	}
+
+	@Test
+	public void doesParentHaveTrashedEntities_False() {
+		when(mockTrashCanDao.doesParentHaveTrashedEntities(nodeParentID)).thenReturn(false);
+		// Method under test.
+		assertFalse(trashManager.doesParentHaveTrashedEntities(nodeParentID));
 	}
 
 	@Test
@@ -357,6 +382,9 @@ public class TrashManagerImplTest {
 		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(Collections.singletonList(KeyFactory.stringToKey(nodeID)));
 		verify(mockAclDAO, never()).create(any(AccessControlList.class), any(ObjectType.class));
+
+		// We don't call StsManager if the file isn't moved.
+		verifyZeroInteractions(mockStsManager);
 	}
 
 	/**
@@ -379,15 +407,16 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 
 		testNode.setNodeType(EntityType.project);
-		// move the entity to root.
-		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
-		// call under test
-		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		// call under test - move the entity to root.
+		trashManager.restoreFromTrash(userInfo, nodeID, NodeUtils.ROOT_ENTITY_ID);
 
 		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(Collections.singletonList(KeyFactory.stringToKey(nodeID)));
 		// An ACL should be created for the project
 		verify(mockAclDAO).create(any(AccessControlList.class), eq(ObjectType.ENTITY));
+
+		// We don't call StsManager if for entities that are neither files nor projects.
+		verifyZeroInteractions(mockStsManager);
 	}
 
 	/**
@@ -409,13 +438,51 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 
 		testNode.setNodeType(EntityType.folder);
-		// move the entity to root.
-		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+			// call under test - move the entity to root.
+			trashManager.restoreFromTrash(userInfo, nodeID, NodeUtils.ROOT_ENTITY_ID);
 		});
+	}
+
+	@Test
+	public void testRestoreFromTrash_MovedFileValidatesSts() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		// Method under test.
+		trashManager.restoreFromTrash(userInfo, nodeID, newParentID);
+
+		// Just verity StsManager. Other stuff is tested in other tests.
+		verify(mockStsManager).validateCanAddFile(userInfo, FILE_HANDLE_ID, newParentID);
+	}
+
+	@Test
+	public void testRestoreFromTrash_MovedFolderValidatesSts() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		testNode.setNodeType(EntityType.folder);
+
+		// Method under test.
+		trashManager.restoreFromTrash(userInfo, nodeID, newParentID);
+
+		// Just verity StsManager. Other stuff is tested in other tests.
+		verify(mockStsManager).validateCanMoveFolder(userInfo, nodeID, nodeParentID, newParentID);
 	}
 
 	@Test

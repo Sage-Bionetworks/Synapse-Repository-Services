@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -35,7 +36,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class AllTypesValidatorTest {
-	private static final String PARENT_ENTITY_ID = "parent-entity-id";
+	private static final long ENTITY_ID = 123;
+	private static final String ENTITY_ID_STR = KeyFactory.keyToString(ENTITY_ID);
+	private static final long PARENT_ENTITY_ID = 456;
+	private static final String PARENT_ENTITY_ID_STR = KeyFactory.keyToString(PARENT_ENTITY_ID);
 
 	@Mock
 	private NodeDAO mockNodeDAO;
@@ -62,8 +66,8 @@ public class AllTypesValidatorTest {
 		EntityEvent event = new EntityEvent();
 
 		// Call under test
-		assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(entity, event),
-				"Entity is required.");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(entity, event));
+		assertEquals("Entity is required.", ex.getMessage());
 	}
 
 	@Test
@@ -72,8 +76,8 @@ public class AllTypesValidatorTest {
 		EntityEvent event = null;
 
 		// Method under test.
-		assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(entity, event),
-				"Event is required.");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(entity, event));
+		assertEquals("Event is required.", ex.getMessage());
 	}
 
 	@Test
@@ -110,8 +114,8 @@ public class AllTypesValidatorTest {
 		EntityEvent event = new EntityEvent();
 
 		// Method under test - Will throw.
-		assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(project, event),
-				"Name must be " + AllTypesValidatorImpl.MAX_NAME_CHARS + " characters or less");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(project, event));
+		assertEquals("Name must be " + AllTypesValidatorImpl.MAX_NAME_CHARS + " characters or less", ex.getMessage());
 	}
 
 	@Test
@@ -122,8 +126,8 @@ public class AllTypesValidatorTest {
 		EntityEvent event = new EntityEvent();
 
 		// Method under test - Will throw.
-		assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(project, event),
-				"Description must be " + AllTypesValidatorImpl.MAX_NAME_CHARS + " characters or less");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(project, event));
+		assertEquals("Description must be " + AllTypesValidatorImpl.MAX_DESCRIPTION_CHARS + " characters or less", ex.getMessage());
 	}
 
 	@Test
@@ -151,53 +155,54 @@ public class AllTypesValidatorTest {
 		project.setParentId(parentId);
 		project.setId(childId);
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
-		},
-				"Entity type: org.sagebionetworks.repo.model.Project cannot have a parent of type: org.sagebionetworks.repo.model.Project");
+		});
+		assertEquals("Entity type: org.sagebionetworks.repo.model.Project cannot have a parent of type: org.sagebionetworks.repo.model.Project",
+				ex.getMessage());
 	}
 
 	@Test
 	public void cannotAddTableToStsParent() {
 		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID_STR,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class))
 				.thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
 
 		// Set up parent.
 		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ENTITY_ID);
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
 		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = ImmutableList.of(parentHeader);
 
 		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
+		tableEntity.setParentId(PARENT_ENTITY_ID_STR);
 
 		EntityEvent event = new EntityEvent(EventType.CREATE, path, mockUser);
 
 		// Method under test - Throws.
-		assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(tableEntity, event),
-				"Can only create Files and Folders inside STS-enabled folders");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> allTypesValidator.validateEntity(tableEntity, event));
+		assertEquals("Can only create Files and Folders inside STS-enabled folders", ex.getMessage());
 	}
 
 	@Test
 	public void createEntity_CanAddTableToNonStsParent() {
 		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID_STR,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class))
 				.thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
 
 		// Set up parent.
 		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ENTITY_ID);
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
 		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = ImmutableList.of(parentHeader);
 
 		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
+		tableEntity.setParentId(PARENT_ENTITY_ID_STR);
 
 		EntityEvent event = new EntityEvent(EventType.CREATE, path, mockUser);
 
@@ -208,17 +213,17 @@ public class AllTypesValidatorTest {
 	@Test
 	public void createEntity_CanAddTableToParentWithoutProjectSetting() {
 		// Mock dependencies.
-		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID,
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, PARENT_ENTITY_ID_STR,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class)).thenReturn(Optional.empty());
 
 		// Set up parent.
 		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ENTITY_ID);
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
 		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = ImmutableList.of(parentHeader);
 
 		TableEntity tableEntity = new TableEntity();
-		tableEntity.setParentId(PARENT_ENTITY_ID);
+		tableEntity.setParentId(PARENT_ENTITY_ID_STR);
 
 		EntityEvent event = new EntityEvent(EventType.CREATE, path, mockUser);
 
@@ -227,41 +232,80 @@ public class AllTypesValidatorTest {
 	}
 
 	@Test
-	public void testFolderWithSelfParent() {
-		String parentId = "123";
+	public void canUpdate() {
+		// Mock dependencies.
+		when(mockNodeDAO.doesNodeExist(ENTITY_ID)).thenReturn(true);
 
-		when(mockNodeDAO.isNodeRoot(parentId)).thenReturn(false);
+		// Set up parent.
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
+		parentHeader.setType(Project.class.getName());
+		List<EntityHeader> path = ImmutableList.of(parentHeader);
+
+		Folder folder = new Folder();
+		folder.setId(ENTITY_ID_STR);
+		folder.setParentId(PARENT_ENTITY_ID_STR);
+
+		EntityEvent event = new EntityEvent(EventType.UPDATE, path, mockUser);
+
+		// Method under test - Does not throw.
+		allTypesValidator.validateEntity(folder, event);
+	}
+
+	@Test
+	public void update_OldNodeDoesntExist() {
+		// Mock dependencies.
+		when(mockNodeDAO.doesNodeExist(ENTITY_ID)).thenReturn(false);
+
+		// Set up parent.
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
+		parentHeader.setType(Project.class.getName());
+		List<EntityHeader> path = ImmutableList.of(parentHeader);
+
+		Folder folder = new Folder();
+		folder.setId(ENTITY_ID_STR);
+		folder.setParentId(PARENT_ENTITY_ID_STR);
+
+		EntityEvent event = new EntityEvent(EventType.UPDATE, path, mockUser);
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(NotFoundException.class, () -> allTypesValidator.validateEntity(folder, event));
+		assertEquals("Entity " + ENTITY_ID_STR + " does not exist", ex.getMessage());
+	}
+
+	@Test
+	public void testFolderWithSelfParent() {
+		when(mockNodeDAO.isNodeRoot(ENTITY_ID_STR)).thenReturn(false);
+		when(mockNodeDAO.doesNodeExist(ENTITY_ID)).thenReturn(true);
 
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(parentId);
+		parentHeader.setId(ENTITY_ID_STR);
 		parentHeader.setName("name");
 		parentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<>();
 		path.add(parentHeader);
 
 		Folder folder = new Folder();
-		folder.setParentId(parentId);
-		folder.setId(parentId);
+		folder.setParentId(ENTITY_ID_STR);
+		folder.setId(ENTITY_ID_STR);
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.UPDATE, path, null));
-		},
-				"Invalid hierarchy: an entity cannot be an ancestor of itself");
+		});
+		assertEquals("Invalid hierarchy: an entity cannot be an ancestor of itself", ex.getMessage());
 	}
 
 	@Test
 	public void testFolderWithSelfAncestor() {
-		String grandparentId = "123";
-		String parentId = "456";
-
-		when(mockNodeDAO.isNodeRoot(parentId)).thenReturn(false);
-		
+		when(mockNodeDAO.isNodeRoot(PARENT_ENTITY_ID_STR)).thenReturn(false);
+		when(mockNodeDAO.doesNodeExist(ENTITY_ID)).thenReturn(true);
 
 		// This is our grandparent header
 		EntityHeader grandparentHeader = new EntityHeader();
-		grandparentHeader.setId(grandparentId);
+		grandparentHeader.setId(ENTITY_ID_STR);
 		grandparentHeader.setName("gp");
 		grandparentHeader.setType(Folder.class.getName());
 		List<EntityHeader> path = new ArrayList<>();
@@ -269,20 +313,20 @@ public class AllTypesValidatorTest {
 
 		// This is our direct parent header
 		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(parentId);
+		parentHeader.setId(PARENT_ENTITY_ID_STR);
 		parentHeader.setName("p");
 		parentHeader.setType(Folder.class.getName());
 		path.add(parentHeader);
 
 		Folder folder = new Folder();
-		folder.setParentId(parentId);
-		folder.setId(parentId);
+		folder.setParentId(PARENT_ENTITY_ID_STR);
+		folder.setId(ENTITY_ID_STR);
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.UPDATE, path, null));
-		},
-				"Invalid hierarchy: an entity cannot be an ancestor of itself");
+		});
+		assertEquals("Invalid hierarchy: an entity cannot be an ancestor of itself", ex.getMessage());
 	}
 
 	// Test for PLFM-5873
@@ -292,11 +336,11 @@ public class AllTypesValidatorTest {
 		folder.setId("123");
 		folder.setParentId(null);
 
-		assertThrows(IllegalArgumentException.class, () -> {
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, null, null));
-		},
-				"Entity type: org.sagebionetworks.repo.model.Folder cannot have a parent of type: null");
+		});
+		assertEquals("Entity type: org.sagebionetworks.repo.model.Folder cannot have a parent of type: null", ex.getMessage());
 	}
 
 	@Test
@@ -317,11 +361,12 @@ public class AllTypesValidatorTest {
 		folder.setId("123");
 		folder.setParentId(rootId);
 		
-		assertThrows(IllegalArgumentException.class, ()-> {
+		Exception ex = assertThrows(IllegalArgumentException.class, ()-> {
 			// This should not be valid
 			allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, path, null));
-		},
-				"Entity type: org.sagebionetworks.repo.model.Folder cannot have a parent of type: null");
+		});
+		assertEquals("Entity type: org.sagebionetworks.repo.model.Folder cannot have a parent of type: null",
+				ex.getMessage());
 	}
 	
 	@Test

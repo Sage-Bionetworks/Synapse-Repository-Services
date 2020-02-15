@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -162,6 +161,17 @@ public class ProjectSettingsManagerImplUnitTest {
 	}
 
 	@Test
+	public void getProjectSettingByEntityUnchecked() {
+		when(mockProjectSettingDao.get(PROJECT_ID, ProjectSettingsType.upload)).thenReturn(Optional.of(
+				uploadDestinationListSetting));
+
+		// Method under test.
+		Optional<ProjectSetting> result = projectSettingsManagerImpl.getProjectSettingByEntityUnchecked(PROJECT_ID);
+		assertTrue(result.isPresent());
+		assertSame(uploadDestinationListSetting, result.get());
+	}
+
+	@Test
 	public void getProjectSettingForNode() {
 		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
@@ -191,9 +201,10 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(mockSetting);
 
 		// Call under test.
-		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(
-				userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class),
-				"Settings type for 'upload' is not of type UploadDestinationListSetting");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.getProjectSettingForNode(
+				userInfo, NODE_ID, ProjectSettingsType.upload, UploadDestinationListSetting.class));
+		assertEquals("Settings type for 'upload' is not of type org.sagebionetworks.repo.model.project.UploadDestinationListSetting",
+				ex.getMessage());
 	}
 
 	@Test
@@ -213,7 +224,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(true);
 		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
@@ -285,7 +296,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(true);
 		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
@@ -335,7 +346,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -355,7 +366,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 		when(mockProjectSettingDao.create(uploadDestinationListSetting)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
@@ -379,7 +390,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(true);
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -425,7 +436,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.folder);
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -441,7 +452,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -456,7 +467,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -480,7 +491,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		// Mock dependencies.
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -504,7 +515,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(true);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(true);
 
 		// Method under test.
 		projectSettingsManagerImpl.deleteProjectSetting(userInfo, PROJECT_SETTINGS_ID);
@@ -531,7 +542,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(true);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
@@ -548,7 +559,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
 				AuthorizationStatus.authorized());
-		when(mockNodeManager.isEntityEmpty(PROJECT_ID)).thenReturn(false);
+		when(mockNodeManager.isEntityEmpty(PROJECT_ID, true)).thenReturn(false);
 
 		synapseStorageLocationSetting.setStsEnabled(false);
 		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);

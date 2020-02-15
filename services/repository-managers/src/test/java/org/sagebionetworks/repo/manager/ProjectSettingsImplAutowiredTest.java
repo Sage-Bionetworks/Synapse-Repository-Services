@@ -274,8 +274,9 @@ public class ProjectSettingsImplAutowiredTest {
 		externalObjectStorageSetting.setBucket(" ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
 		//call under test
-		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
-				userInfo, externalObjectStorageSetting), "Invalid Bucket Name");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting));
+		assertEquals("Invalid bucket name.", ex.getMessage());
 	}
 
 	@Test
@@ -284,8 +285,9 @@ public class ProjectSettingsImplAutowiredTest {
 		externalObjectStorageSetting.setBucket(" / / / / / ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
 		//call under test
-		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
-				userInfo, externalObjectStorageSetting), "Invalid Bucket Name");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting));
+		assertEquals("Invalid bucket name.", ex.getMessage());
 	}
 
 	@Test
@@ -294,7 +296,8 @@ public class ProjectSettingsImplAutowiredTest {
 		externalObjectStorageSetting.setBucket("someBucket");
 		externalObjectStorageSetting.setEndpointUrl("not a url");
 		//call under test
-		assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
-				userInfo, externalObjectStorageSetting), "The External URL is not a valid url: not a url");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> projectSettingsManager.createStorageLocationSetting(
+				userInfo, externalObjectStorageSetting));
+		assertEquals("The External URL is not a valid url: not a url", ex.getMessage());
 	}
 }

@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,7 +71,31 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		final String parentId = KeyFactory.keyToString(9L);
 		trashCanDao.create(userId, nodeId, nodeName, parentId, false);
 	}
-	
+
+	@Test
+	public void doesParentHaveTrashedEntities() {
+		final String parentId = KeyFactory.keyToString(1L);
+		final String otherParentId = KeyFactory.keyToString(2L);
+		final String node3IdStr = KeyFactory.keyToString(3L);
+		final long node4Id = 4L;
+		final String node4IdStr = KeyFactory.keyToString(node4Id);
+
+		// Initially empty, since we don't have any trash can items.
+		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+
+		// Add an item to the otherParentId. parentId is still empty.
+		trashCanDao.create(userId, node3IdStr, node3IdStr, otherParentId, false);
+		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+
+		// Add an item to parentId. Now it has children.
+		trashCanDao.create(userId, node4IdStr, node4IdStr, parentId, false);
+		assertTrue(trashCanDao.doesParentHaveTrashedEntities(parentId));
+
+		// Delete node 4 from the trash can. parentId is empty again.
+		trashCanDao.delete(ImmutableList.of(node4Id));
+		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+	}
+
 	@Test 
 	public void testGetTrashLeavesNodesWithNoChildrenOlderThanNow(){
 		final int numNodes = 5;
