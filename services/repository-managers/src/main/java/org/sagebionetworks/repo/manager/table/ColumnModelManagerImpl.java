@@ -8,11 +8,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -32,6 +35,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -297,7 +301,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		// validate the schema change
 		List<ColumnModel> allColumns = new LinkedList<>(oldSchema);
 		allColumns.addAll(newSchema);
-		validateSchemaChange(allColumns, changes);
+		EntityType entityType = nodeDao.getNodeTypeById(tableId);
+		validateSchemaChange(allColumns, changes, entityType);
 		return newSchemaIds;
 	}
 	
@@ -315,7 +320,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 * @param allColumns All of the columns including the old and new schemas.
 	 * @param chagnes
 	 */
-	static public void validateSchemaChange(List<ColumnModel> allColumns, List<ColumnChange> changes){
+	static public void validateSchemaChange(List<ColumnModel> allColumns, List<ColumnChange> changes, EntityType entityType){
 		// Map the IDs to columns
 		Map<String, ColumnModel> idToColumnMap = new HashMap<>(allColumns.size());
 		for(ColumnModel cm: allColumns){
@@ -331,7 +336,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			if(change.getOldColumnId() != null){
 				oldColumn = idToColumnMap.get(change.getOldColumnId());
 			}
-			validateColumnChange(oldColumn, newColumn);
+			validateColumnChange(oldColumn, newColumn, entityType);
 		}
 	}
 	
@@ -340,13 +345,22 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 * @param oldColumn
 	 * @param newColumn
 	 */
-	static void validateColumnChange(ColumnModel oldColumn, ColumnModel newColumn){
+	static void validateColumnChange(ColumnModel oldColumn, ColumnModel newColumn, EntityType entityType){
 		if(oldColumn != null && newColumn != null){
 			if(isFileHandleColumn(oldColumn) && !isFileHandleColumn(newColumn)){
 				throw new IllegalArgumentException(String.format(COLUMN_TYPE_ERROR_TEMPLATE, ColumnType.FILEHANDLEID, newColumn.getColumnType()));
 			}
 			if(isFileHandleColumn(newColumn) && !isFileHandleColumn(oldColumn)){
 				throw new IllegalArgumentException(String.format(COLUMN_TYPE_ERROR_TEMPLATE, oldColumn.getColumnType(), ColumnType.FILEHANDLEID));
+			}
+
+			//table can not support changing schema to or from list types
+			if(entityType == EntityType.table){
+				if( (ColumnTypeListMappings.isList(oldColumn.getColumnType()) || ColumnTypeListMappings.isList(newColumn.getColumnType()))
+					&& !oldColumn.getColumnType().equals(newColumn.getColumnType())//keeping the same type for operations such as rename are allowed
+				){
+					throw new IllegalArgumentException("Can not perform schema change on _LIST type columns for Table Entities");
+				}
 			}
 		}
 	}
