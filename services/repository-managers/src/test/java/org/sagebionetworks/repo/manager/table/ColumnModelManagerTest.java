@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -828,7 +829,7 @@ public class ColumnModelManagerTest {
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		// Call under test
 		try {
-			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 			fail("Should have failed");
 		} catch (IllegalArgumentException e) {
 			assertEquals(String.format(
@@ -846,7 +847,7 @@ public class ColumnModelManagerTest {
 		newColumn.setColumnType(ColumnType.FILEHANDLEID);
 		// Call under test
 		try {
-			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 			fail("Should have failed");
 		} catch (IllegalArgumentException e) {
 			assertEquals(String.format(
@@ -862,7 +863,7 @@ public class ColumnModelManagerTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setColumnType(ColumnType.FILEHANDLEID);
 		// Call under test
-		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 	}
 	
 	@Test
@@ -871,7 +872,7 @@ public class ColumnModelManagerTest {
 		oldColumn.setColumnType(ColumnType.FILEHANDLEID);
 		ColumnModel newColumn = null;
 		// Call under test
-		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 	}
 	
 	@Test
@@ -881,9 +882,67 @@ public class ColumnModelManagerTest {
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setColumnType(ColumnType.FILEHANDLEID);
 		// Call under test
-		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
 	}
-	
+
+	@Test
+	public void testValidateColumnChangeListColumnToDifferntListColumn() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING_LIST);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+			// Call under test
+			ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+	}
+	@Test
+	public void testValidateColumnChangeListColumnToNonListColumn() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING_LIST);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+				// Call under test
+				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+	}
+
+	@Test
+	public void testValidateColumnChangeNonListColumnToListColumn() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		String errMessage = assertThrows(IllegalArgumentException.class, () ->
+				// Call under test
+				ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table)
+		).getMessage();
+		assertEquals("Can not perform schema change on _LIST type columns for Table Entities", errMessage);
+	}
+
+	@Test
+	public void testValidateColumnChangeListColumnToSameListColumn() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.STRING_LIST);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.table);
+	}
+
+	@Test
+	public void testValidateColumnChangeNotTable() {
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+		// Call under test
+		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn, EntityType.entityview);
+	}
+
 	//////////////////////////////
 	// validateFacetType() tests
 	//////////////////////////////
