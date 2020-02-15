@@ -367,8 +367,8 @@ public class SparseChangeSetTest {
 		r9.setRowId(9L);
 
 		// method under test
-		List<ListColumnChanges> listColumnChanges = changeSet.groupListColumnChanges();
-		assertEquals(Collections.emptyList(), listColumnChanges);
+		List<ListColumnRowChanges> listColumnRowChanges = changeSet.groupListColumnChanges();
+		assertEquals(Collections.emptyList(), listColumnRowChanges);
 	}
 
 	@Test
@@ -416,12 +416,12 @@ public class SparseChangeSetTest {
 		r9.setRowId(9L);
 
 		// method under test
-		List<ListColumnChanges> listColumnChanges = changeSet.groupListColumnChanges();
-		List<ListColumnChanges> expected = Arrays.asList(
-				new ListColumnChanges(c1, Sets.newHashSet(0L,3L,5L,8L)),
-				new ListColumnChanges(c3, Sets.newHashSet(2L,3L,7L,8L))
+		List<ListColumnRowChanges> listColumnRowChanges = changeSet.groupListColumnChanges();
+		List<ListColumnRowChanges> expected = Arrays.asList(
+				new ListColumnRowChanges(c1, Sets.newHashSet(0L,3L,5L,8L)),
+				new ListColumnRowChanges(c3, Sets.newHashSet(2L,3L,7L,8L))
 		);
-		assertEquals(expected, listColumnChanges);
+		assertEquals(expected, listColumnRowChanges);
 	}
 	
 }

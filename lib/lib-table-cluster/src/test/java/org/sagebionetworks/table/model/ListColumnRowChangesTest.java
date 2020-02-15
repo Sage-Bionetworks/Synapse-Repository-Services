@@ -5,14 +5,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Collections;
 import java.util.Set;
 
-import com.amazonaws.services.dynamodbv2.xspec.L;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
-class ListColumnChangesTest {
+class ListColumnRowChangesTest {
 
 	ColumnModel columnModel;
 	Set<Long> rowIds;
@@ -31,7 +30,7 @@ class ListColumnChangesTest {
 	@Test
 	public void testConsturctor_nullColumnModel(){
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->{
-			new ListColumnChanges(null, rowIds);
+			new ListColumnRowChanges(null, rowIds);
 		}).getMessage();
 
 		assertEquals("columnModel is required.", errMessage);
@@ -41,7 +40,7 @@ class ListColumnChangesTest {
 	public void testConsturctor_ColumnIsNotList(){
 		columnModel.setColumnType(ColumnType.STRING);
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->{
-			new ListColumnChanges(columnModel, rowIds);
+			new ListColumnRowChanges(columnModel, rowIds);
 		}).getMessage();
 
 		assertEquals("columnModel must have a LIST columnType", errMessage);
@@ -50,7 +49,7 @@ class ListColumnChangesTest {
 	@Test
 	public void testConsturctor_nullRowIds(){
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->{
-			new ListColumnChanges(columnModel, null);
+			new ListColumnRowChanges(columnModel, null);
 		}).getMessage();
 
 		assertEquals("rowIds is required and must not be empty.", errMessage);
@@ -59,7 +58,7 @@ class ListColumnChangesTest {
 	@Test
 	public void testConsturctor_emptyRowIds(){
 		String errMessage = assertThrows(IllegalArgumentException.class, () ->{
-			new ListColumnChanges(columnModel, Collections.emptySet());
+			new ListColumnRowChanges(columnModel, Collections.emptySet());
 		}).getMessage();
 
 		assertEquals("rowIds is required and must not be empty.", errMessage);
@@ -68,8 +67,8 @@ class ListColumnChangesTest {
 
 	@Test
 	public void testConsturctor_happy(){
-		ListColumnChanges listColumnChanges = new ListColumnChanges(columnModel, rowIds);
-		assertEquals(columnModel, listColumnChanges.getColumnModel());
-		assertEquals(rowIds, listColumnChanges.getRowIds());
+		ListColumnRowChanges listColumnRowChanges = new ListColumnRowChanges(columnModel, rowIds);
+		assertEquals(columnModel, listColumnRowChanges.getColumnModel());
+		assertEquals(rowIds, listColumnRowChanges.getRowIds());
 	}
 }

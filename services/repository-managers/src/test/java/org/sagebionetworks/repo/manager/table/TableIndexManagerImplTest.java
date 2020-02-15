@@ -23,16 +23,17 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.amazonaws.services.glue.model.Column;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
+import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
@@ -66,6 +68,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -324,6 +327,31 @@ public class TableIndexManagerImplTest {
 		manager.setIndexSchema(tableId, isTableView, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(new LinkedList<>());
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+	}
+
+	@Test
+	public void testSetIndexSchemaWithListColumns(){
+		ColumnModel column = new ColumnModel();
+		column.setId("44");
+		column.setColumnType(ColumnType.STRING_LIST);
+		column.setMaximumSize(50L);
+		schema = Lists.newArrayList(column);
+
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName("_C44_");
+		info.setColumnType(ColumnType.BOOLEAN);
+
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		when(mockIndexDao.alterTableAsNeeded(any(IdAndVersion.class), anyList(), anyBoolean())).thenReturn(true);
+		when(mockIndexDao.getMultivalueColumnIndexTableColumnIds(tableId)).thenReturn(Collections.emptySet());
+		boolean isTableView = false;
+		// call under test
+		manager.setIndexSchema(tableId, isTableView, schema);
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(column.getId()));
+		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
+		verify(mockIndexDao).getMultivalueColumnIndexTableColumnIds(tableId);
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, column);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, column, null);
 	}
 
 	
@@ -798,29 +826,50 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testAppleyChangeToIndexRow() throws NotFoundException, IOException {
+	public void testApplyChangeToIndexRow() throws NotFoundException, IOException {
 		setupExecuteInWriteTransaction();
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		long changeNumber = 444L;
 		TableChangeMetaData mockChange = setupMockRowChange(changeNumber);
 		//call under test
-		manager.appleyChangeToIndex(tableId, mockChange);
+		manager.applyChangeToIndex(tableId, mockChange);
 		// set schema
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId, false);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// apply change
 		verify(mockIndexDao, times(2)).createOrUpdateOrDeleteRows(any(IdAndVersion.class), any(Grouping.class));
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
+
 	}
 	
 	@Test
-	public void testAppleyChangeToIndexRowColumn() throws NotFoundException, IOException {
+	public void testApplyChangeToIndexRowColumn() throws NotFoundException, IOException {
 		long changeNumber = 444L;
 		TableChangeMetaData mockChange = setupMockColumnChange(changeNumber);
 		//call under test
-		manager.appleyChangeToIndex(tableId, mockChange);
+		manager.applyChangeToIndex(tableId, mockChange);
 		// set schema
 		boolean alterTemp = false;
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
+	}
+
+	@Test
+	public void testApplyChangeToIndexRowColumn_ListColumns() throws NotFoundException, IOException {
+		long changeNumber = 444L;
+
+		newColumn.setColumnType(ColumnType.INTEGER_LIST);
+
+		TableChangeMetaData mockChange = setupMockColumnChange(changeNumber);
+		//call under test
+		manager.applyChangeToIndex(tableId, mockChange);
+		// set schema
+		boolean alterTemp = false;
+		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
+
+		verify(mockIndexDao).setMaxCurrentCompleteVersionForTable(tableId, mockChange.getChangeNumber());
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, newColumn);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, newColumn, null);
 	}
 	
 	@Test
@@ -1300,6 +1349,420 @@ public class TableIndexManagerImplTest {
 			manager.updateViewRowsInTransaction(tableId, rowsIdsWithChanges, viewType, scopeIds, schema);
 		});
 	}
+
+	@Test
+	public void testListColumnIndexTableChangesFromExpectedSchema_nullExpectedSchema(){
+		assertThrows(IllegalArgumentException.class, () ->
+			TableIndexManagerImpl.listColumnIndexTableChangesFromExpectedSchema(null, Sets.newHashSet(123L))
+		);
+	}
+
+	@Test
+	public void testListColumnIndexTableChangesFromExpectedSchema_nullExistingIndexListColumns(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("222");
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
+
+		assertThrows(IllegalArgumentException.class, () ->
+				TableIndexManagerImpl.listColumnIndexTableChangesFromExpectedSchema(Arrays.asList(columnModel), null)
+		);
+	}
+
+	@Test
+	public void testListColumnIndexTableChangesFromExpectedSchema_addAndRemove(){
+		ColumnModel nonList1 = new ColumnModel();
+		nonList1.setId("111");
+		nonList1.setColumnType(ColumnType.STRING);
+
+		ColumnModel addListCol = new ColumnModel();
+		addListCol.setId("222");
+		addListCol.setColumnType(ColumnType.INTEGER_LIST);
+
+
+		long removeListColId = 333;
+
+		long unchangedListColId = 444;
+		ColumnModel unchangedListCol = new ColumnModel();
+		unchangedListCol.setId(Long.toString(unchangedListColId));
+		unchangedListCol.setColumnType(ColumnType.STRING_LIST);
+
+
+		List<ColumnModel> schema = Arrays.asList(nonList1, addListCol, unchangedListCol);
+		Set<Long> existingIndexTableColumns = Sets.newHashSet(removeListColId, unchangedListColId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromExpectedSchema(schema, existingIndexTableColumns);
+
+
+		List<ListColumnIndexTableChange> expected = Arrays.asList(
+				ListColumnIndexTableChange.newAddition(addListCol),
+				ListColumnIndexTableChange.newRemoval(removeListColId)
+
+		);
+		assertEquals(expected, result);
+
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_nullChanges(){
+		assertThrows(IllegalArgumentException.class, () ->
+			TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(null, Sets.newHashSet(123L))
+		);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_nulExistingListIndexColumns(){
+		assertThrows(IllegalArgumentException.class, () ->
+				TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(columnChanges, null)
+		);
+	}
+
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_noListColumnChange_NotInExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails noChange = new ColumnChangeDetails(columnModel, columnModel);
+		//does not already exist as an index table
+		Set<Long> existingColumnChangeIds = Collections.emptySet();
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(noChange), existingColumnChangeIds);
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newAddition(columnModel));
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_noListColumnChange_InExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails noChange = new ColumnChangeDetails(columnModel, columnModel);
+
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(Long.parseLong(columnModel.getId()));
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(noChange), existingColumnChangeIds);
+		assertEquals(Collections.emptyList(), result);
+	}
+
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_AddListColumn_NotInExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails addColumn = new ColumnChangeDetails(null, columnModel);
+		//does not already exist as an index table
+		Set<Long> existingColumnChangeIds = Collections.emptySet();
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(addColumn), existingColumnChangeIds);
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newAddition(columnModel));
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_AddListColumn_InExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails addColumn = new ColumnChangeDetails(null, columnModel);
+
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(Long.parseLong(columnModel.getId()));
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(addColumn), existingColumnChangeIds);
+		assertEquals(Collections.emptyList(), result);
+	}
+
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_RemoveListColumn_NotInExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails removeColumn = new ColumnChangeDetails(columnModel, null);
+		//does not already exist as an index table
+		Set<Long> existingColumnChangeIds = Collections.emptySet();
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(removeColumn), existingColumnChangeIds);
+		assertEquals(Collections.emptyList(), result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_RemoveListColumn_InExistingTablesSet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+		//same column model for old and new
+		ColumnChangeDetails removeColumn = new ColumnChangeDetails(columnModel, null);
+		long columnModelId =Long.parseLong(columnModel.getId());
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(columnModelId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(removeColumn), existingColumnChangeIds);
+
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newRemoval(columnModelId));
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_changeListType_oldAndNewColumnInExistingTablesSet(){
+		ColumnModel oldList = new ColumnModel();
+		oldList.setId("9876");
+		oldList.setColumnType(ColumnType.STRING_LIST);
+		oldList.setMaximumSize(46L);
+
+		ColumnModel newList = new ColumnModel();
+		newList.setId("1234");
+		newList.setColumnType(ColumnType.STRING_LIST);
+		newList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldList.getId());
+		long newListId = Long.parseLong(newList.getId());
+
+		//same column model for old and new
+		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
+		//does not already exist as an index table
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId,newListId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(listChange), existingColumnChangeIds);
+
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newRemoval(oldListId));
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_changeListType_oldColumnInExistingTablesSet(){
+		ColumnModel oldList = new ColumnModel();
+		oldList.setId("9876");
+		oldList.setColumnType(ColumnType.STRING_LIST);
+		oldList.setMaximumSize(46L);
+
+		ColumnModel newList = new ColumnModel();
+		newList.setId("1234");
+		newList.setColumnType(ColumnType.STRING_LIST);
+		newList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldList.getId());
+		long newListId = Long.parseLong(newList.getId());
+
+
+		//same column model for old and new
+		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
+
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(listChange), existingColumnChangeIds);
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newUpdate(oldListId, newList));
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_changeListType_newColumnInExistingTablesSet(){
+		ColumnModel oldList = new ColumnModel();
+		oldList.setId("9876");
+		oldList.setColumnType(ColumnType.STRING_LIST);
+		oldList.setMaximumSize(46L);
+
+		ColumnModel newList = new ColumnModel();
+		newList.setId("1234");
+		newList.setColumnType(ColumnType.STRING_LIST);
+		newList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldList.getId());
+		long newListId = Long.parseLong(newList.getId());
+
+		//same column model for old and new
+		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
+		//does not already exist as an index table
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(newListId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(listChange), existingColumnChangeIds);
+		assertEquals(Collections.emptyList(), result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_changeListType_noColumnInExistingTablesSet(){
+		ColumnModel oldList = new ColumnModel();
+		oldList.setId("9876");
+		oldList.setColumnType(ColumnType.STRING_LIST);
+		oldList.setMaximumSize(46L);
+
+		ColumnModel newList = new ColumnModel();
+		newList.setId("1234");
+		newList.setColumnType(ColumnType.STRING_LIST);
+		newList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldList.getId());
+		long newListId = Long.parseLong(newList.getId());
+
+		//same column model for old and new
+		ColumnChangeDetails listChange = new ColumnChangeDetails(oldList, newList);
+
+		Set<Long> existingColumnChangeIds = Collections.emptySet();
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(Arrays.asList(listChange), existingColumnChangeIds);
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newAddition(newList));
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_NonListChanges(){
+		ColumnModel oldNonList = new ColumnModel();
+		oldNonList.setId("9876");
+		oldNonList.setColumnType(ColumnType.INTEGER);
+		oldNonList.setMaximumSize(46L);
+
+		ColumnModel newNonList = new ColumnModel();
+		newNonList.setId("1234");
+		newNonList.setColumnType(ColumnType.STRING);
+		newNonList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldNonList.getId());
+		long newListId = Long.parseLong(newNonList.getId());
+
+		//same column model for old and new
+		List<ColumnChangeDetails> nonListChanges = Arrays.asList(
+				new ColumnChangeDetails(oldNonList, newNonList),
+				new ColumnChangeDetails(oldNonList, null),
+				new ColumnChangeDetails(null, newNonList)
+		);
+
+		Set<Long> existingColumnChangeIds = Collections.emptySet();
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(nonListChanges, existingColumnChangeIds);
+
+		assertEquals(Collections.emptyList(), result);
+	}
+
+
+	@Test
+	public void listColumnIndexTableChangesFromChangeDetails_multipleChanges(){
+		ColumnModel oldList = new ColumnModel();
+		oldList.setId("9876");
+		oldList.setColumnType(ColumnType.STRING_LIST);
+		oldList.setMaximumSize(46L);
+
+		ColumnModel newList = new ColumnModel();
+		newList.setId("1234");
+		newList.setColumnType(ColumnType.STRING_LIST);
+		newList.setMaximumSize(46L);
+
+		long oldListId = Long.parseLong(oldList.getId());
+		long newListId = Long.parseLong(newList.getId());
+
+
+		//same column model for old and new
+		List<ColumnChangeDetails> listChanges = Arrays.asList(
+				new ColumnChangeDetails(oldList, null),
+				new ColumnChangeDetails(null, newList)
+		);
+
+		Set<Long> existingColumnChangeIds = Sets.newHashSet(oldListId);
+
+		//method under test
+		List<ListColumnIndexTableChange> result = TableIndexManagerImpl.listColumnIndexTableChangesFromChangeDetails(listChanges, existingColumnChangeIds);
+		List<ListColumnIndexTableChange> expected = Arrays.asList(ListColumnIndexTableChange.newRemoval(oldListId),
+				ListColumnIndexTableChange.newAddition(newList));
+
+		assertEquals(expected, result);
+	}
+
+
+	@Test
+	public void applyListColumnIndexTableChanges_add(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+		ListColumnIndexTableChange addChange = ListColumnIndexTableChange.newAddition(columnModel);
+
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange));
+
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null);
+	}
+
+
+	@Test
+	public void applyListColumnIndexTableChanges_remove(){
+		long columnIdToRemove = 1234L;
+		ListColumnIndexTableChange removeChange = ListColumnIndexTableChange.newRemoval(columnIdToRemove);
+
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(removeChange));
+
+		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove);
+	}
+
+
+	@Test
+	public void applyListColumnIndexTableChanges_update(){
+		long oldColumnId = 1234L;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+
+		ListColumnIndexTableChange addChange = ListColumnIndexTableChange.newUpdate(oldColumnId, columnModel);
+
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Collections.singletonList(addChange));
+
+		verify(mockIndexDao).updateMultivalueColumnIndexTable(tableId, oldColumnId, columnModel);
+	}
+
+	@Test
+	public void applyListColumnIndexTableChanges_multipleChanges(){
+
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setId("9876");
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(46L);
+
+
+		ListColumnIndexTableChange addChange = ListColumnIndexTableChange.newAddition(columnModel);
+
+		long columnIdToRemove = 456L;
+		ListColumnIndexTableChange removeChange = ListColumnIndexTableChange.newRemoval(columnIdToRemove);
+
+		//method under test
+		manager.applyListColumnIndexTableChanges(tableId, Arrays.asList(addChange, removeChange));
+		verify(mockIndexDao).createMultivalueColumnIndexTable(tableId, columnModel);
+		verify(mockIndexDao).populateListColumnIndexTable(tableId, columnModel, null);
+		verify(mockIndexDao).deleteMultivalueColumnIndexTable(tableId, columnIdToRemove);
+	}
+
 	
 	@SuppressWarnings("unchecked")
 	public void setupExecuteInWriteTransaction() {

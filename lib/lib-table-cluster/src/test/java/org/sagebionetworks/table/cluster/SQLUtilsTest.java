@@ -875,6 +875,29 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testCreateAlterListColumnIndexTable(){
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("42");
+		newColumn.setName("testerino");
+		newColumn.setColumnType(ColumnType.STRING_LIST);
+		newColumn.setMaximumSize(58L);
+
+		Long oldColumn = 21L;
+
+
+		String sql = SQLUtils.createAlterListColumnIndexTable(tableId, oldColumn, newColumn);
+		String expected = "ALTER TABLE T999_INDEX_C21_" +
+				" DROP INDEX _C21__UNNEST_IDX," +
+				" DROP FOREIGN KEY T999_INDEX_C21__FK," +
+				" RENAME COLUMN ROW_ID_REF_C21_ TO ROW_ID_REF_C42_," +
+				" ADD CONSTRAINT T999_INDEX_C42__FK FOREIGN KEY (ROW_ID_REF_C42_) REFERENCES T999(ROW_ID) ON DELETE CASCADE," +
+				" CHANGE COLUMN _C21__UNNEST _C42__UNNEST VARCHAR(58) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
+				" ADD INDEX _C42__UNNEST_IDX (_C42__UNNEST ASC)," +
+				" RENAME T999_INDEX_C42_";
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testCreateAlterTableSqlMultipleTempTrue(){
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
@@ -1036,141 +1059,6 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne), tableId, alterTemp);
 		assertEquals("ALTER TABLE T10227900 ADD COLUMN _C123_ VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'STRING'", results);
-	}
-
-
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition_nonList(){
-		ColumnModel oldColumn = null;
-		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
-	}
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_ColumnAddition(){
-		ColumnModel oldColumn = null;
-		ColumnModel newColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		List<String> expected = Collections.singletonList(
-				"CREATE TABLE IF NOT EXISTS T999_INDEX_C123_ (" +
-					"ROW_ID_REF_C123_ BIGINT NOT NULL," +
-					" INDEX_NUM BIGINT NOT NULL," +
-					" _C123__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING'," +
-					" PRIMARY KEY (ROW_ID_REF_C123_, INDEX_NUM)," +
-					"INDEX _C123__UNNEST_IDX (_C123__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C123_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);");
-		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
-
-	}
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_NoColumnChange(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn = oldColumn;
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-
-		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
-
-	}
-
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_DeleteNonListColumnType(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.INTEGER);
-		ColumnModel newColumn = null;
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId).isEmpty());
-	}
-
-	@Test
-	public void testlistColumnIndexTableCreateOrDropStatements_DeleteListColumnType(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn = null;
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
-		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
-	}
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithNonListColumnType(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING);
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		List<String> expected = Collections.singletonList("DROP TABLE IF EXISTS T999_INDEX_C123_;");
-		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
-	}
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_ReplaceWithListColumnType(){
-		ColumnModel oldColumn = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
-
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
-
-		List<String> expected = Arrays.asList(
-				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID_REF_C456_ BIGINT NOT NULL, " +
-						"INDEX_NUM BIGINT NOT NULL, " +
-						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
-						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
-				"DROP TABLE IF EXISTS T999_INDEX_C123_;");
-		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.singletonList(change), tableId));
-	}
-
-
-	@Test
-	public void testCreateListColumnDropIndexTableSql_MultipleChanges(){
-		ColumnModel oldColumn1 = TableModelTestUtils.createColumn(123L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn1 = TableModelTestUtils.createColumn(456L, "test", ColumnType.STRING_LIST);
-
-		ColumnChangeDetails replaceChange = new ColumnChangeDetails(oldColumn1, newColumn1);
-
-		ColumnModel oldColumn2 = TableModelTestUtils.createColumn(789L, "test", ColumnType.STRING);
-		ColumnModel newColumn2 = TableModelTestUtils.createColumn(101112L, "test", ColumnType.STRING_LIST);
-
-		ColumnChangeDetails addChange = new ColumnChangeDetails(oldColumn2, newColumn2);
-
-		ColumnModel oldColumn3 = TableModelTestUtils.createColumn(161718L, "test", ColumnType.STRING_LIST);
-		ColumnModel newColumn3 = null;
-
-		ColumnChangeDetails deleteChange = new ColumnChangeDetails(oldColumn3, newColumn3);
-
-
-		List<String> expected = Arrays.asList(
-				"CREATE TABLE IF NOT EXISTS T999_INDEX_C456_ (" +
-						"ROW_ID_REF_C456_ BIGINT NOT NULL, " +
-						"INDEX_NUM BIGINT NOT NULL, " +
-						"_C456__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID_REF_C456_, INDEX_NUM)," +
-						"INDEX _C456__UNNEST_IDX (_C456__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C456_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
-				"DROP TABLE IF EXISTS T999_INDEX_C123_;",
-				"CREATE TABLE IF NOT EXISTS T999_INDEX_C101112_ (" +
-						"ROW_ID_REF_C101112_ BIGINT NOT NULL, " +
-						"INDEX_NUM BIGINT NOT NULL, " +
-						"_C101112__UNNEST VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
-						"PRIMARY KEY (ROW_ID_REF_C101112_, INDEX_NUM)," +
-						"INDEX _C101112__UNNEST_IDX (_C101112__UNNEST ASC) ,FOREIGN KEY (ROW_ID_REF_C101112_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);",
-				"DROP TABLE IF EXISTS T999_INDEX_C161718_;");
-		assertEquals(expected, SQLUtils.listColumnIndexTableCreateOrDropStatements(Arrays.asList(replaceChange,addChange,deleteChange), tableId));
-	}
-
-	@Test
-	public void testListColumnIndexTableCreateOrDropStatements_empty(){
-		assertTrue(SQLUtils.listColumnIndexTableCreateOrDropStatements(Collections.emptyList(), tableId).isEmpty());
 	}
 
 	@Test
@@ -1649,6 +1537,29 @@ public class SQLUtilsTest {
 
 		List<ColumnModel> expected = Lists.newArrayList(cm);
 		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullTableId(){
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(null, "_T123_123__INDEX_C555_");
+		});
+	}
+	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName_nullIndexTableName(){
+		IdAndVersion tableId = IdAndVersion.parse("syn123");
+		assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, null);
+		});
+
+	}
+
+	@Test
+	public void testGetColumnIdFromMultivalueColumnIndexTableName(){
+		IdAndVersion tableId = IdAndVersion.parse("syn123.456");
+		String indexTableName = "T123_456_INDEX_C555_";
+
+		assertEquals(555, SQLUtils.getColumnIdFromMultivalueColumnIndexTableName(tableId, indexTableName));
 	}
 
 	@Test
@@ -2776,6 +2687,42 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testCreateListColumnIndexTable__nullTableId(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setId("0");
+		columnModel.setMaximumSize(42L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			SQLUtils.createListColumnIndexTable(null, columnModel);
+		}).getMessage();
+		assertEquals("tableIdAndVersion is required.", errorMessage);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable__nullColumnModel(){
+		ColumnModel nullColumnModel = null;
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
+			SQLUtils.createListColumnIndexTable(tableId, nullColumnModel);
+		}).getMessage();
+		assertEquals("columnModel is required.", errorMessage);
+	}
+
+	@Test
+	public void testCreateListColumnIndexTable__columnModelNotListType(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setId("0");
+		columnModel.setMaximumSize(42L);
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () ->{
+			SQLUtils.createListColumnIndexTable(tableId, columnModel);
+		}).getMessage();
+
+		assertEquals("columnModel's type must be a LIST type", errorMessage);
+	}
+
+	@Test
 	public void testCreateListColumnIndexTable(){
 		ColumnModel columnInfo = new ColumnModel();
 		columnInfo.setColumnType(ColumnType.STRING_LIST);
@@ -2787,8 +2734,8 @@ public class SQLUtilsTest {
 				"INDEX_NUM BIGINT NOT NULL, " +
 				"_C0__UNNEST VARCHAR(42) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'STRING', " +
 				"PRIMARY KEY (ROW_ID_REF_C0_, INDEX_NUM)," +
-				"INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC) " +
-				",FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);";
+				" INDEX _C0__UNNEST_IDX (_C0__UNNEST ASC)," +
+				" CONSTRAINT T999_INDEX_C0__FK FOREIGN KEY (ROW_ID_REF_C0_) REFERENCES T999(ROW_ID) ON DELETE CASCADE);";
 		assertEquals(expected, sql);
 	}
 

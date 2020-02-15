@@ -262,12 +262,13 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+
 	/**
-	 * Get the Column name for a given column ID.
-	 * 
-	 * @param columnId
-	 * @return
-	 */
+		 * Get the Column name for a given column ID.
+		 *
+		 * @param columnId
+		 * @return
+		 */
 	public static String getColumnNameForId(String columnId) {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
@@ -733,33 +734,35 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
-	public static List<String> listColumnIndexTableCreateOrDropStatements(List<ColumnChangeDetails> changes, IdAndVersion tableId){
-		List<String> statements = new ArrayList<>();
+	public static String createAlterListColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn){
+		String tableName = getTableNameForMultiValueColumnIndex(tableId, oldColumnId.toString());
+		String oldColumnName = getUnnestedColumnNameForId(oldColumnId.toString());
 
-		for(ColumnChangeDetails changeDetails : changes){
-			ColumnModel oldColumn = changeDetails.getOldColumn();
-			ColumnModel newColumn = changeDetails.getNewColumn();
+		String newColumnName = getUnnestedColumnNameForId(newColumn.getId());
+		String newColumnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(newColumn.getColumnType()))
+				.toSql(newColumn.getMaximumSize(), null, false);
 
-			//column being added/replacing other column
-			if(newColumn != null && !newColumn.equals(oldColumn)
-					&& ColumnTypeListMappings.isList(newColumn.getColumnType())
-			){
-				statements.add(SQLUtils.createListColumnIndexTable(tableId, newColumn));
-			}
+		String newTableName = getTableNameForMultiValueColumnIndex(tableId, newColumn.getId());
 
-			//column being deleted/replaced
-			if(oldColumn != null && !oldColumn.equals(newColumn)
-					&& ColumnTypeListMappings.isList(oldColumn.getColumnType())
-			){
-				statements.add("DROP TABLE IF EXISTS " + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, oldColumn.getId()) + ";");
-			}
-		}
+		String oldRowRefName = getRowIdRefColumnNameForId(oldColumnId.toString());
+		String newRowRefName = getRowIdRefColumnNameForId(newColumn.getId());
+		String parentTableName = getTableNameForId(tableId, TableType.INDEX);
 
-		return statements;
+		return  "ALTER TABLE " + tableName +
+				" DROP INDEX " + oldColumnName + "_IDX," +
+
+				//modify the row_id column which references the main table's row_ids
+				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
+				" RENAME COLUMN " + getRowIdRefColumnNameForId(oldColumnId.toString()) + " TO " + getRowIdRefColumnNameForId(newColumn.getId()) + "," +
+				" ADD CONSTRAINT "+ newTableName + "_FK" +" FOREIGN KEY ("+newRowRefName+") REFERENCES "+parentTableName+"("+ROW_ID+") ON DELETE CASCADE," +
+
+				" CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
+				" ADD INDEX " + newColumnName + "_IDX ("+newColumnName+" ASC)," +
+
+				" RENAME " + newTableName;
 	}
 
-
-		/**
+	/**
 		 * Alter a single column for a given column change.
 		 * @param builder
 		 * @param change
@@ -1210,6 +1213,12 @@ public class SQLUtils {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Unexpected columnName: "+columnName);
 		}
+	}
+
+	static long getColumnIdFromMultivalueColumnIndexTableName(IdAndVersion tableId, String indexTableName){
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.requiredNotEmpty(indexTableName, "columnName");
+		return getColumnId(indexTableName.substring(getTableNamePrefixForMultiValueColumns(tableId).length()));
 	}
 
 	/**
@@ -1918,19 +1927,23 @@ public class SQLUtils {
 	}
 
 
-	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnInfo){
+	static String createListColumnIndexTable(IdAndVersion tableIdAndVersion, ColumnModel columnModel){
+		ValidateArgument.required(tableIdAndVersion, "tableIdAndVersion");
+		ValidateArgument.required(columnModel, "columnModel");
+		ValidateArgument.requirement(ColumnTypeListMappings.isList(columnModel.getColumnType()), "columnModel's type must be a LIST type");
+
 		String parentTable = getTableNameForId(tableIdAndVersion, TableType.INDEX);
-		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnInfo.getId());
-		String columnName = getUnnestedColumnNameForId(columnInfo.getId());
-		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnInfo.getId());
-		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnInfo.getColumnType())).toSql(columnInfo.getMaximumSize(), null, false);
+		String columnIndexTableName = getTableNameForMultiValueColumnIndex(tableIdAndVersion, columnModel.getId());
+		String columnName = getUnnestedColumnNameForId(columnModel.getId());
+		String rowIdRefColumnName = getRowIdRefColumnNameForId(columnModel.getId());
+		String columnTypeSql = ColumnTypeInfo.getInfoForType(ColumnTypeListMappings.nonListType(columnModel.getColumnType())).toSql(columnModel.getMaximumSize(), null, false);
 		return "CREATE TABLE IF NOT EXISTS " + columnIndexTableName + " (" +
 				rowIdRefColumnName+" BIGINT NOT NULL, " +
 				INDEX_NUM + " BIGINT NOT NULL, " + //index of value in its list
 				columnName + " " + columnTypeSql + ", " +
-				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+")," +
-				"INDEX "+columnName+"_IDX ("+columnName+" ASC) " +
-				",FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
+				"PRIMARY KEY ("+rowIdRefColumnName+", "+INDEX_NUM+"), " +
+				"INDEX "+columnName+"_IDX ("+columnName+" ASC), " +
+				"CONSTRAINT " + columnIndexTableName + "_FK" + " FOREIGN KEY ("+rowIdRefColumnName+") REFERENCES "+parentTable+"("+ROW_ID+") ON DELETE CASCADE"+
 				");";
 	}
 

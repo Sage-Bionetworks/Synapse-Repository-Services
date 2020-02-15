@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.model;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -252,7 +251,7 @@ public class SparseChangeSet implements TableChange {
 		return grouping;
 	}
 
-	public List<ListColumnChanges> groupListColumnChanges() {
+	public List<ListColumnRowChanges> groupListColumnChanges() {
 		Map<String, Set<Long>> groupMap = new HashMap<>();
 
 		// We only care about list columns in the schema
@@ -280,7 +279,7 @@ public class SparseChangeSet implements TableChange {
 		// build result list based on map
 		return groupMap.entrySet().stream()
 				.map((Map.Entry<String, Set<Long>> entry) ->
-						new ListColumnChanges(getColumnModel(entry.getKey()), entry.getValue())
+						new ListColumnRowChanges(getColumnModel(entry.getKey()), entry.getValue())
 				)
 				.collect(Collectors.toList());
 	}

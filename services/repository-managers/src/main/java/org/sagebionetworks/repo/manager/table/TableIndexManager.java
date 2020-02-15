@@ -51,12 +51,6 @@ public interface TableIndexManager {
 	 * @return
 	 */
 	public long getCurrentVersionOfIndex(IdAndVersion tableId);
-	
-	/**
-	 * The MD5 Hex string of the current schema.
-	 * @return
-	 */
-	public String getCurrentSchemaMD5Hex(IdAndVersion tableId);
 
 	/**
 	 * Has the change set represented by the given version number already been
@@ -112,12 +106,6 @@ public interface TableIndexManager {
 	 */
 	public void deleteTableIndex(IdAndVersion tableId);
 
-	/**
-	 * Set current version of the index.
-	 * @param viewCRC
-	 */
-	public void setIndexVersion(IdAndVersion tableId, Long viewCRC);
-	
 	/**
 	 * Set the current version of the index and the schema MD5, both of which are used
 	 * to determine if the index is up-to-date.

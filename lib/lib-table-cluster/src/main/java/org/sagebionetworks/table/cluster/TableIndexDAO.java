@@ -192,6 +192,34 @@ public interface TableIndexDAO {
 	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
 	/**
+	 * Get list of Column ids for existing index tables a multi-value column in the provided tableId
+	 * @param tableId
+	 * @return
+	 */
+	Set<Long> getMultivalueColumnIndexTableColumnIds(IdAndVersion tableId);
+
+	/**
+	 * Creates an index table for the multi-value column described in the columnModel.
+	 * @param tableId
+	 * @param columnModel
+	 */
+	void createMultivalueColumnIndexTable(IdAndVersion tableId, ColumnModel columnModel);
+
+	/**
+	 * Drop the multi-value column index table associated with the table id and column id
+	 * @param tableId
+	 * @param columnId
+	 */
+	void deleteMultivalueColumnIndexTable(IdAndVersion tableId, Long columnId);
+
+	/**
+	 * Drop the multi-value column index table associated with the table id and column id
+	 * @param columnId
+	 * @param tableId
+	 */
+	void updateMultivalueColumnIndexTable(IdAndVersion tableId, Long oldColumnId, ColumnModel newColumn);
+
+	/**
 	 * Truncate all of the data in the given table.
 	 * 
 	 * @param tableId

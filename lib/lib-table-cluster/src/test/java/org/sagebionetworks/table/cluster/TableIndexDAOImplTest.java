@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,7 +115,15 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
-		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+		boolean altered = tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+
+		for(ColumnModel columnModel : newSchema){
+			if(ColumnTypeListMappings.isList(columnModel.getColumnType())){
+				tableIndexDAO.createMultivalueColumnIndexTable(tableId, columnModel);
+			}
+		}
+
+		return altered;
 	}
 
 	/**
@@ -926,40 +933,6 @@ public class TableIndexDAOImplTest {
 		change = new ColumnChangeDetails(oldColumn, newColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
-	}
-
-	@Test
-	public void testAlterTableAsNeeded_ListColumnIndexTables(){
-		// This will be an add, so the old is null.
-		ColumnModel column = new ColumnModel();
-		column.setColumnType(ColumnType.STRING_LIST);
-		String columnId = "1337";
-		column.setId(columnId);
-		column.setMaximumSize(50L);
-		column.setName("StringList");
-		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
-		boolean alterTemp = false;
-
-		//add column
-		ColumnChangeDetails addColumnChange = new ColumnChangeDetails(null, column);
-		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(addColumnChange), alterTemp);
-		assertTrue(wasAltered);
-
-
-		//check index table was created
-		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class));
-
-		//delete column
-		ColumnChangeDetails deleteColumnChange = new ColumnChangeDetails(column, null);
-		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(deleteColumnChange), alterTemp);
-		assertTrue(wasAltered);
-
-
-		//check index table was deleted
-		assertThrows(EmptyResultDataAccessException.class, () -> {
-			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, columnId) + "'", String.class);
-		});
 	}
 
 	@Test
@@ -3364,5 +3337,92 @@ public class TableIndexDAOImplTest {
 		assertEquals("1", results.getRows().get(0).getValues().get(0));
 		//mysql adds spaces between the commas on returned results
 		assertEquals("[1, 2, 3]", results.getRows().get(0).getValues().get(1));
+	}
+
+
+	@Test
+	public void testGetMultivalueColumnIndexTableColumnIds(){
+		ColumnModel strListColumn = new ColumnModel();
+		strListColumn.setId("12");
+		strListColumn.setName("foo");
+		strListColumn.setMaximumSize(14L);
+		strListColumn.setColumnType(ColumnType.STRING_LIST);
+
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("14");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel intListColumn = new ColumnModel();
+		intListColumn.setId("16");
+		intListColumn.setName("intList");
+		intListColumn.setColumnType(ColumnType.INTEGER_LIST);
+		intListColumn.setDefaultValue("[1,2,3]");
+
+		List<ColumnModel> schema = Arrays.asList(strListColumn, intColumn, intListColumn);
+		createOrUpdateTable(schema, tableId, isView);
+
+		//method under test
+		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertEquals(Sets.newHashSet(12L,16L), columnIds);
+	}
+
+	@Test
+	public void testGetMultivalueColumnIndexTableColumnIds__emptyList(){
+		ColumnModel intColumn = new ColumnModel();
+		intColumn.setId("14");
+		intColumn.setName("foo");
+		intColumn.setColumnType(ColumnType.INTEGER);
+
+		List<ColumnModel> schema = Arrays.asList(intColumn);
+		createOrUpdateTable(schema, tableId, isView);
+
+		//method under test
+		Set<Long> columnIds = tableIndexDAO.getMultivalueColumnIndexTableColumnIds(tableId);
+		assertEquals(Collections.emptySet(), columnIds);
+	}
+
+
+
+	@Test
+	public void testCreateUpdateDeleteMultivalueColumnIndexTable(){
+		ColumnModel column = new ColumnModel();
+		column.setColumnType(ColumnType.STRING_LIST);
+		column.setId("1337");
+		column.setMaximumSize(50L);
+		column.setName("StringList");
+		// Create the table
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
+		boolean alterTemp = false;
+		//add column
+		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column);
+
+
+		//check index table was created
+		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class));
+
+		//update column
+		ColumnModel updated = new ColumnModel();
+		updated.setColumnType(ColumnType.STRING_LIST);
+		updated.setId("44444");
+		updated.setMaximumSize(79L);
+		updated.setName("newStringList");
+		tableIndexDAO.updateMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()), updated);
+
+		//check original no longer exists
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
+		});
+		//check updated column's index table exists
+		assertNotNull(tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, updated.getId()) + "'", String.class));
+
+
+		//delete column
+		tableIndexDAO.deleteMultivalueColumnIndexTable(tableId, Long.parseLong(column.getId()));
+
+		//check index table was deleted
+		assertThrows(EmptyResultDataAccessException.class, () -> {
+			tableIndexDAO.getConnection().queryForObject("show tables like '" + SQLUtils.getTableNameForMultiValueColumnIndex(tableId, column.getId()) + "'", String.class);
+		});
 	}
 }
