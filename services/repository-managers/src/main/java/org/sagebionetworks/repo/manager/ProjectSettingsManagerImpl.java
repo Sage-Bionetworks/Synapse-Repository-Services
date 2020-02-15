@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -50,7 +51,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
-	
+
+	@Autowired
+	private TrashManager trashManager;
+
 	private List<StorageLocationProcessor<? extends StorageLocationSetting>> storageLocationProcessors;
 	
 	@Autowired
@@ -74,12 +78,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			throw new UnauthorizedException("The current user does not have READ access on the project " + projectId + ".");
 		}
 		return projectSettingsDao.get(projectId, type);
-	}
-
-	@Override
-	public Optional<ProjectSetting> getProjectSettingByEntityUnchecked(String entityId) {
-		// We only support ProjectSettingsType.upload.
-		return projectSettingsDao.get(entityId, ProjectSettingsType.upload);
 	}
 
 	@Override
@@ -130,7 +128,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add an StsStorageLocation to a non-empty entity.
-		if (!nodeManager.isEntityEmpty(parentId, true) && isStsStorageLocationSetting(projectSetting)) {
+		if (!isEntityEmptyWithTrash(parentId) && isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 		}
 
@@ -148,7 +146,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
-		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId(), true)) {
+		if (!isEntityEmptyWithTrash(projectSetting.getProjectId())) {
 			if (isStsStorageLocationSetting(projectSetting)) {
 				throw new IllegalArgumentException("Can't enable STS in a non-empty folder");
 			}
@@ -173,12 +171,17 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 
 		// Can't delete an StsStorageLocation on a non-empty entity.
-		if (!nodeManager.isEntityEmpty(projectSetting.getProjectId(), true) &&
+		if (!isEntityEmptyWithTrash(projectSetting.getProjectId()) &&
 				isStsStorageLocationSetting(projectSetting)) {
 			throw new IllegalArgumentException("Can't disable STS in a non-empty folder");
 		}
 
 		projectSettingsDao.delete(id);
+	}
+
+	// Helper method to check that the given entity has no children (either in the node hierarchy or in the trash can).
+	boolean isEntityEmptyWithTrash(String entityId) {
+		return !nodeManager.doesNodeHaveChildren(entityId) && !trashManager.doesEntityHaveTrashedChildren(entityId);
 	}
 
 	@Override

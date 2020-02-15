@@ -114,11 +114,11 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 
 	@Override
-	public boolean doesParentHaveTrashedEntities(String parentId) {
+	public boolean doesEntityHaveTrashedChildren(String entityId) {
 		// Query either returns 0 or 1, cannot return null and thus cannot throw Null Pointer Exception.
 		//noinspection ConstantConditions
 		return jdbcTemplate.queryForObject(SELECT_EXISTS_BY_PARENT_ID, Boolean.class,
-				KeyFactory.stringToKey(parentId));
+				KeyFactory.stringToKey(entityId));
 	}
 
 	@Override
