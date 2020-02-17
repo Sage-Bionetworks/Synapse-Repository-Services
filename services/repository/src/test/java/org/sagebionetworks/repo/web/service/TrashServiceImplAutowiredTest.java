@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -172,8 +173,9 @@ public class TrashServiceImplAutowiredTest {
 		long storageLocationId = createStsStorageLocation();
 		applyStorageLocationToFolder(folderA, storageLocationId);
 
-		// Create folder B, which doesn't have a storage location.
+		// Create folder B, with the same STS storage location.
 		Folder folderB = createFolder(projectId);
+		applyStorageLocationToFolder(folderB, storageLocationId);
 
 		// Upload file to folder A.
 		FileEntity fileEntity = uploadFile(folderA.getId(), storageLocationId);
@@ -188,19 +190,15 @@ public class TrashServiceImplAutowiredTest {
 		FileEntity restored = entityService.getEntity(userId, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 
-		// Trash the file entity again and attempt to restore to folder B, which fails.
+		// Trash the file entity again and attempt to restore to folder B. This fails, because you cannot restore a
+		// file to an STS-enabled folder, unless it was the original parent.
 		trashService.moveToTrash(userId, fileEntityId, false);
 		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, fileEntityId,
 				folderB.getId()));
 
-		// Apply a different STS storage location to folder B. Still cannot restore the file entity to folder B.
-		long differentStorageLocationId = createStsStorageLocation();
-		applyStorageLocationToFolder(folderB, differentStorageLocationId);
-		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, fileEntityId,
-				folderB.getId()));
-
-		// Apply the original STS storage location to folder B. Now we can restore the file entity.
-		applyStorageLocationToFolder(folderB, storageLocationId);
+		// Delete the storage location from folder B. Now restoring to it works because we don't have the restriction
+		// on non-STS-enabled folders.
+		deleteStorageLocationFromFolder(folderB);
 		trashService.restoreFromTrash(userId, fileEntityId, folderB.getId());
 		restored = entityService.getEntity(userId, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
@@ -213,8 +211,9 @@ public class TrashServiceImplAutowiredTest {
 		long storageLocationId = createStsStorageLocation();
 		applyStorageLocationToFolder(folderA, storageLocationId);
 
-		// Create folder B, which doesn't have a storage location.
+		// Create folder B, with the same STS storage location.
 		Folder folderB = createFolder(projectId);
+		applyStorageLocationToFolder(folderB, storageLocationId);
 
 		// Create a subfolder in folder A.
 		Folder subfolder = createFolder(folderA.getId());
@@ -229,19 +228,15 @@ public class TrashServiceImplAutowiredTest {
 		Folder restored = entityService.getEntity(userId, subfolderId, Folder.class);
 		assertNotNull(restored);
 
-		// Trash the subfolder again and attempt to restore to folder B, which fails.
+		// Trash the subfolder again and attempt to restore to folder B. This fails, because you cannot restore a
+		// file to an STS-enabled folder, unless it was the original parent.
 		trashService.moveToTrash(userId, subfolderId, false);
 		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, subfolderId,
 				folderB.getId()));
 
-		// Apply a different STS storage location to folder B. Still cannot restore the subfolder to folder B.
-		long differentStorageLocationId = createStsStorageLocation();
-		applyStorageLocationToFolder(folderB, differentStorageLocationId);
-		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, subfolderId,
-				folderB.getId()));
-
-		// Apply the original STS storage location to folder B. Now we can restore the subfolder.
-		applyStorageLocationToFolder(folderB, storageLocationId);
+		// Delete the storage location from folder B. Now restoring to it works because we don't have the restriction
+		// on non-STS-enabled folders.
+		deleteStorageLocationFromFolder(folderB);
 		trashService.restoreFromTrash(userId, subfolderId, folderB.getId());
 		restored = entityService.getEntity(userId, subfolderId, Folder.class);
 		assertNotNull(restored);
@@ -264,18 +259,17 @@ public class TrashServiceImplAutowiredTest {
 	}
 
 	private void applyStorageLocationToFolder(Folder folder, long storageLocationId) {
-		UploadDestinationListSetting projectSetting = (UploadDestinationListSetting) projectSettingsService
-				.getProjectSettingByProjectAndType(userId, folder.getId(), ProjectSettingsType.upload);
-		if (projectSetting != null) {
-			projectSetting.setLocations(ImmutableList.of(storageLocationId));
-			projectSettingsService.updateProjectSetting(userId, projectSetting);
-		} else {
-			projectSetting = new UploadDestinationListSetting();
-			projectSetting.setLocations(ImmutableList.of(storageLocationId));
-			projectSetting.setProjectId(folder.getId());
-			projectSetting.setSettingsType(ProjectSettingsType.upload);
-			projectSettingsService.createProjectSetting(userId, projectSetting);
-		}
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setLocations(ImmutableList.of(storageLocationId));
+		projectSetting.setProjectId(folder.getId());
+		projectSetting.setSettingsType(ProjectSettingsType.upload);
+		projectSettingsService.createProjectSetting(userId, projectSetting);
+	}
+
+	private void deleteStorageLocationFromFolder(Folder folder) {
+		ProjectSetting projectSetting = projectSettingsService.getProjectSettingByProjectAndType(userId,
+				folder.getId(), ProjectSettingsType.upload);
+		projectSettingsService.deleteProjectSetting(userId, projectSetting.getId());
 	}
 
 	private FileEntity uploadFile(String parentId, Long storageLocationId) throws Exception {

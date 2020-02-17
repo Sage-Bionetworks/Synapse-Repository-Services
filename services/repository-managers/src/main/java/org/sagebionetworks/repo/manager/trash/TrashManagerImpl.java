@@ -4,10 +4,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.sts.StsManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -25,6 +26,8 @@ import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,7 +55,7 @@ public class TrashManagerImpl implements TrashManager {
 	private AccessControlListDAO aclDAO;
 
 	@Autowired
-	private StsManager stsManager;
+	private ProjectSettingsManager projectSettingsManager;
 
 	@Autowired
 	private TrashCanDao trashCanDao;
@@ -61,9 +64,9 @@ public class TrashManagerImpl implements TrashManager {
 	private TransactionalMessenger transactionalMessenger;
 
 	@Override
-	public boolean doesParentHaveTrashedEntities(String parentId) {
+	public boolean doesEntityHaveTrashedChildren(String parentId) {
 		ValidateArgument.required(parentId, "Parent ID");
-		return trashCanDao.doesParentHaveTrashedEntities(parentId);
+		return trashCanDao.doesEntityHaveTrashedChildren(parentId);
 	}
 
 	@WriteTransaction
@@ -186,17 +189,17 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		if (!newParentId.equals(trash.getOriginalParentId())) {
-			// Validate the move operation.
-			switch (node.getNodeType()) {
-				case file:
-					stsManager.validateCanAddFile(currentUser, node.getFileHandleId(), newParentId);
-					break;
-				case folder:
-					stsManager.validateCanMoveFolder(currentUser, nodeId, trash.getOriginalParentId(), newParentId);
-					break;
-				default:
-					// no-op
-					break;
+			if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.folder) {
+				// For files and folders restored to a different folder, this is not allowed if the new parent is an
+				// STS folder. This is to ensure that our STS folders don't end up in a bad state. (Note that restoring
+				// to the same original folder is always allowed.)
+				Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
+						currentUser, newParentId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+				if (projectSetting.isPresent() && projectSettingsManager.isStsStorageLocationSetting(
+						projectSetting.get())) {
+					throw new IllegalArgumentException("Entities can be restored to STS-enabled folders only if " +
+							"that were its original parent");
+				}
 			}
 		}
 

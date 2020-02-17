@@ -73,7 +73,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void doesParentHaveTrashedEntities() {
+	public void doesEntityHaveTrashedChildren() {
 		final String parentId = KeyFactory.keyToString(1L);
 		final String otherParentId = KeyFactory.keyToString(2L);
 		final String node3IdStr = KeyFactory.keyToString(3L);
@@ -81,19 +81,19 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		final String node4IdStr = KeyFactory.keyToString(node4Id);
 
 		// Initially empty, since we don't have any trash can items.
-		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+		assertFalse(trashCanDao.doesEntityHaveTrashedChildren(parentId));
 
 		// Add an item to the otherParentId. parentId is still empty.
 		trashCanDao.create(userId, node3IdStr, node3IdStr, otherParentId, false);
-		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+		assertFalse(trashCanDao.doesEntityHaveTrashedChildren(parentId));
 
 		// Add an item to parentId. Now it has children.
 		trashCanDao.create(userId, node4IdStr, node4IdStr, parentId, false);
-		assertTrue(trashCanDao.doesParentHaveTrashedEntities(parentId));
+		assertTrue(trashCanDao.doesEntityHaveTrashedChildren(parentId));
 
 		// Delete node 4 from the trash can. parentId is empty again.
 		trashCanDao.delete(ImmutableList.of(node4Id));
-		assertFalse(trashCanDao.doesParentHaveTrashedEntities(parentId));
+		assertFalse(trashCanDao.doesEntityHaveTrashedChildren(parentId));
 	}
 
 	@Test 
