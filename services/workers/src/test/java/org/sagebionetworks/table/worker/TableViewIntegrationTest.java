@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -1478,6 +1479,30 @@ public class TableViewIntegrationTest {
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
+	}
+	
+	/**
+	 * Test for PLFM-5651 and the addition of both file size and file MD5s in views.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testFileSizeAndMD5() throws Exception {
+		createFileView();
+		String fileZero = fileIds.get(0);
+		waitForEntityReplication(fileViewId, fileZero);
+		String sql = "select " + EntityField.dataFileMD5Hex + "," + EntityField.dataFileSizeBytes + " from "
+				+ fileViewId + " where " + EntityField.id + " = '" + fileZero+"'";
+		int rowCount = 1;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows = extractRows(results);
+		assertNotNull(rows);
+		assertEquals(1, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(2, row.getValues().size());
+		assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
+		assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
 	}
 	
 	/**
