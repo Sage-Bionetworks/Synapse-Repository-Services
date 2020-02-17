@@ -1295,6 +1295,7 @@ public class TableIndexDAOImplTest {
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
+		project.setFileMD5(null);
 		tableIndexDAO.addEntityData(Lists.newArrayList(project));
 		
 		// lookup each

@@ -721,7 +721,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(dto.getFileMD5() != null) {
 					ps.setString(parameterIndex++, dto.getFileMD5());
 				}else {
-					ps.setNull(parameterIndex++, java.sql.Types.CHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 			}
 
