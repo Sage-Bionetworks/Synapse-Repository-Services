@@ -36,7 +36,7 @@ public enum EntityField {
 	modifiedBy			(ENTITY_REPLICATION_COL_MODIFIED_BY,	ColumnType.USERID,			null,	FacetType.enumeration),
 	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null,	null),
 	dataFileSizeBytes	(ENTITY_REPLICATION_COL_FILE_SIZE_BYTES,ColumnType.INTEGER,			null,	null),
-	dataFileMD5Hex		(ENTITY_REPLICATION_COL_FILE_MD5,		ColumnType.STRING,			null,	null);
+	dataFileMD5Hex		(ENTITY_REPLICATION_COL_FILE_MD5,		ColumnType.STRING,			100L,	null);
 	
 	String databaseColumnName;
 	ColumnType colunmType;

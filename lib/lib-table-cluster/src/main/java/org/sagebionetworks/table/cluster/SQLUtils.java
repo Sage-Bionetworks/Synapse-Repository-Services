@@ -1423,6 +1423,7 @@ public class SQLUtils {
 					.append(" IN (:").append(ID_PARAMETER_NAME).append(")");
 		}
 		builder.append(" GROUP BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
+		builder.append(" ORDER BY ").append(ENTITY_REPLICATION_ALIAS).append(".").append(ENTITY_REPLICATION_COL_ID);
 		return headers;
 	}
 	
