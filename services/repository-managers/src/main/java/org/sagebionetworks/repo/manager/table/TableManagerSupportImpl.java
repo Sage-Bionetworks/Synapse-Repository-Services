@@ -71,7 +71,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			EntityField.projectId,
 			EntityField.modifiedOn,
 			EntityField.modifiedBy,
-			EntityField.dataFileHandleId
+			EntityField.dataFileHandleId,
+			EntityField.dataFileSizeBytes,
+			EntityField.dataFileMD5Hex
 			);
 	
 	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(

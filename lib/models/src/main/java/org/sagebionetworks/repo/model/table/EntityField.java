@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
@@ -34,7 +34,9 @@ public enum EntityField {
 	projectId			(ENTITY_REPLICATION_COL_PROJECT_ID, 	ColumnType.ENTITYID,		null,	FacetType.enumeration),
 	modifiedOn			(ENTITY_REPLICATION_COL_MODIFIED_ON,	ColumnType.DATE,			null,	FacetType.range),
 	modifiedBy			(ENTITY_REPLICATION_COL_MODIFIED_BY,	ColumnType.USERID,			null,	FacetType.enumeration),
-	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null,	null);
+	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null,	null),
+	dataFileSizeBytes	(ENTITY_REPLICATION_COL_FILE_SIZE_BYTES,ColumnType.INTEGER,			null,	null),
+	dataFileMD5Hex		(ENTITY_REPLICATION_COL_FILE_MD5,		ColumnType.STRING,			null,	null);
 	
 	String databaseColumnName;
 	ColumnType colunmType;

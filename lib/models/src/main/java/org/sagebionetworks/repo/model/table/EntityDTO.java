@@ -26,6 +26,7 @@ public class EntityDTO implements Comparable<EntityDTO> {
 	Long fileHandleId;
 	Long fileSizeBytes;
 	Boolean isInSynapseStorage;
+	String fileMD5;
 	List<AnnotationDTO> annotations;
 	
 	public Long getId() {
@@ -126,6 +127,13 @@ public class EntityDTO implements Comparable<EntityDTO> {
 		this.isInSynapseStorage = isInSynapseStorage;
 	}
 
+	public String getFileMD5() {
+		return fileMD5;
+	}
+	public void setFileMD5(String fileMD5) {
+		this.fileMD5 = fileMD5;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -137,9 +145,10 @@ public class EntityDTO implements Comparable<EntityDTO> {
 		result = prime * result + ((currentVersion == null) ? 0 : currentVersion.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
+		result = prime * result + ((fileMD5 == null) ? 0 : fileMD5.hashCode());
 		result = prime * result + ((fileSizeBytes == null) ? 0 : fileSizeBytes.hashCode());
-		result = prime * result + ((isInSynapseStorage == null) ? 0 : isInSynapseStorage.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((isInSynapseStorage == null) ? 0 : isInSynapseStorage.hashCode());
 		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -192,20 +201,25 @@ public class EntityDTO implements Comparable<EntityDTO> {
 				return false;
 		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
+		if (fileMD5 == null) {
+			if (other.fileMD5 != null)
+				return false;
+		} else if (!fileMD5.equals(other.fileMD5))
+			return false;
 		if (fileSizeBytes == null) {
 			if (other.fileSizeBytes != null)
 				return false;
 		} else if (!fileSizeBytes.equals(other.fileSizeBytes))
 			return false;
-		if (isInSynapseStorage == null) {
-			if (other.isInSynapseStorage != null)
-				return false;
-		} else if (!isInSynapseStorage.equals(other.isInSynapseStorage))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (isInSynapseStorage == null) {
+			if (other.isInSynapseStorage != null)
+				return false;
+		} else if (!isInSynapseStorage.equals(other.isInSynapseStorage))
 			return false;
 		if (modifiedBy == null) {
 			if (other.modifiedBy != null)
@@ -242,8 +256,10 @@ public class EntityDTO implements Comparable<EntityDTO> {
 				+ ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name + ", type=" + type + ", parentId="
 				+ parentId + ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", modifiedBy="
 				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", fileSizeBytes="
-				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", annotations=" + annotations + "]";
+				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5=" + fileMD5
+				+ ", annotations=" + annotations + "]";
 	}
+	
 	@Override
 	public int compareTo(EntityDTO o) {
 		// sort on Id.
