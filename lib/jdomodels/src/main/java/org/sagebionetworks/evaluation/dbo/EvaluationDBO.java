@@ -97,7 +97,13 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 					eval.setQuota(blob.getBytes(1, (int) blob.length()));
 				}
 				eval.setStartTimestamp(rs.getLong(COL_EVALUATION_START_TIMESTAMP));
+				if (rs.wasNull()) {
+					eval.setStartTimestamp(null);
+				}
 				eval.setEndTimestamp(rs.getLong(COL_EVALUATION_END_TIMESTAMP));
+				if (rs.wasNull()) {
+					eval.setEndTimestamp(null);
+				}
 				return eval;
 			}
 
