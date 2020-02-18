@@ -1295,6 +1295,7 @@ public class TableIndexDAOImplTest {
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
+		project.setFileMD5(null);
 		tableIndexDAO.addEntityData(Lists.newArrayList(project));
 		
 		// lookup each
@@ -2483,6 +2484,7 @@ public class TableIndexDAOImplTest {
 		if(EntityType.file.equals(type)){
 			entityDto.setFileHandleId(888L);
 			entityDto.setFileSizeBytes(999L);
+			entityDto.setFileMD5(Long.toHexString(id*1000));
 		}
 		List<AnnotationDTO> annos = new LinkedList<AnnotationDTO>();
 		for(int i=0; i<annotationCount; i++){

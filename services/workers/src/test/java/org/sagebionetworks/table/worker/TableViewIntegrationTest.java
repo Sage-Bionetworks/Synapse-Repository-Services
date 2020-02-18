@@ -1,7 +1,13 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -10,7 +16,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +42,6 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -60,7 +64,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -80,7 +83,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -100,7 +102,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1478,6 +1479,30 @@ public class TableViewIntegrationTest {
 		//check Annotations on entities are updated
 		assertEquals(Arrays.asList("newVal1", "newVal2"), entityManager.getAnnotations(adminUserInfo, firstChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
 		assertEquals(Arrays.asList("newVal4", "newVal5", "newVal6"), entityManager.getAnnotations(adminUserInfo, secondChangeId).getAnnotations().get(stringListColumn.getName()).getValue());
+	}
+	
+	/**
+	 * Test for PLFM-5651 and the addition of both file size and file MD5s in views.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testFileSizeAndMD5() throws Exception {
+		createFileView();
+		String fileZero = fileIds.get(0);
+		waitForEntityReplication(fileViewId, fileZero);
+		String sql = "select " + EntityField.dataFileMD5Hex + "," + EntityField.dataFileSizeBytes + " from "
+				+ fileViewId + " where " + EntityField.id + " = '" + fileZero+"'";
+		int rowCount = 1;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows = extractRows(results);
+		assertNotNull(rows);
+		assertEquals(1, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(2, row.getValues().size());
+		assertEquals(sharedHandle.getContentMd5(), row.getValues().get(0));
+		assertEquals(sharedHandle.getContentSize().toString(), row.getValues().get(1));
 	}
 	
 	/**
