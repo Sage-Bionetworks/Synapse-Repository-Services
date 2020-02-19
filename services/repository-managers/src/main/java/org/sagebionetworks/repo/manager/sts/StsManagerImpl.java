@@ -1,26 +1,159 @@
 package org.sagebionetworks.repo.manager.sts;
 
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
+import com.google.common.collect.ImmutableMap;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.MultipartUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 @Component
 public class StsManagerImpl implements StsManager {
+	static final int DURATION_SECONDS = 12 * 60 * 60; // 12 hours
+
+	// The Synapse ACCESS_TYPE for the given STS Permission. Used to determine if a user has the proper ACLs.
+	private static final Map<StsPermission, ACCESS_TYPE> PERMISSION_TO_ACCESS_TYPE =
+			ImmutableMap.<StsPermission, ACCESS_TYPE>builder()
+					.put(StsPermission.read_only, ACCESS_TYPE.DOWNLOAD)
+					.put(StsPermission.read_write, ACCESS_TYPE.UPLOAD)
+					.build();
+
+	// The AWS IAM policy string for the actions the user is allowed to do.
+	private static final Map<StsPermission, String> PERMISSION_TO_POLICY_ACTIONS =
+			ImmutableMap.<StsPermission, String>builder()
+					.put(StsPermission.read_only, "\"s3:Get*\",\"s3:List*\"")
+					.put(StsPermission.read_write, "\"s3:*\"")
+					.build();
+
+	private static final String SESSION_POLICY_TEMPLATE = "{\n" +
+			"	\"Version\": \"2012-10-17\",\n" +
+			"	\"Statement\": [\n" +
+			"		{\n" +
+			"			\"Sid\": \"ListParentBuckets\",\n" +
+			"			\"Action\": [\"s3:ListBucket*\"],\n" +
+			"			\"Effect\": \"Allow\",\n" +
+			"			\"Resource\": [\"arn:aws:s3:::$bucket\"],\n" +
+			"			\"Condition\":{\"StringEquals\":{\"s3:prefix\":[\"$folder\"]}}\n" +
+			"		},\n" +
+			"		{\n" +
+			"			\"Sid\": \"ListBucketAccess\",\n" +
+			"			\"Action\": [\"s3:ListBucket*\"],\n" +
+			"			\"Effect\": \"Allow\",\n" +
+			"			\"Resource\": [\"arn:aws:s3:::$bucket\"],\n" +
+			"			\"Condition\":{\"StringLike\":{\"s3:prefix\":[\"$folderWithTrailingSlash*\"]}}\n" +
+			"		},\n" +
+			"		{\n" +
+			"			\"Sid\": \"FolderAccess\",\n" +
+			"			\"Effect\": \"Allow\",\n" +
+			"			\"Action\": [\n" +
+			"				$actions\n" +
+			"			],\n" +
+			"			\"Resource\": [\n" +
+			"				\"arn:aws:s3:::$bucketWithFolder\",\n" +
+			"				\"arn:aws:s3:::$bucketWithFolder/*\"\n" +
+			"			]\n" +
+			"		}\n" +
+			"	]\n" +
+			"}";
+
+	@Autowired
+	private AuthorizationManager authManager;
+
 	@Autowired
 	private FileHandleManager fileHandleManager;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private AWSSecurityTokenService stsClient;
+
+	@Override
+	public StsCredentials getTemporaryCredentials(UserInfo userInfo, String entityId, StsPermission permission) {
+		// Validate args.
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(permission, "permission");
+
+		// Entity must have an STS-enabled storage location.
+		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
+				userInfo, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		if (!projectSetting.isPresent()) {
+			throw new IllegalArgumentException("Entity must have a project setting");
+		}
+		if (!projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
+			throw new IllegalArgumentException("Entity must have an STS-enabled storage location");
+		}
+		// Shortcut: STS-enabled project settings can only have 1 storage location.
+		long storageLocationId = projectSetting.get().getLocations().get(0);
+		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
+				.getStorageLocationSetting(storageLocationId);
+
+		// Check auth.
+		ACCESS_TYPE accessType = PERMISSION_TO_ACCESS_TYPE.get(permission);
+		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, accessType).checkAuthorizationOrElseThrow();
+
+		String bucket = MultipartUtils.getBucket(storageLocationSetting);
+
+		// Optional base key. Convert null to blank so we can do string substitution correctly.
+		String baseKey = storageLocationSetting.getBaseKey();
+		String bucketWithFolder;
+		String folderWithTrailingSlash;
+		if (baseKey == null) {
+			baseKey = "";
+			bucketWithFolder = bucket;
+			folderWithTrailingSlash = "";
+		} else {
+			bucketWithFolder = bucket + "/" + baseKey;
+			folderWithTrailingSlash = baseKey + "/";
+		}
+
+		// Call STS.
+		String actions = PERMISSION_TO_POLICY_ACTIONS.get(permission);
+		String policy = SESSION_POLICY_TEMPLATE.replace("$bucketWithFolder", bucketWithFolder)
+				.replace("$folderWithTrailingSlash", folderWithTrailingSlash)
+				.replace("$bucket", bucket)
+				.replace("$folder", baseKey)
+				.replace("$actions", actions);
+		GetFederationTokenRequest request = new GetFederationTokenRequest();
+		request.setDurationSeconds(DURATION_SECONDS);
+		request.setPolicy(policy);
+
+		// Name is required, but it has a max length of 32 characters. Keep it short but descriptive.
+		request.setName("sts-" + userInfo.getId() + "-" + entityId);
+
+		GetFederationTokenResult result = stsClient.getFederationToken(request);
+
+		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
+		Credentials awsCredentials = result.getCredentials();
+		StsCredentials stsCredentials = new StsCredentials();
+		stsCredentials.setAccessKeyId(awsCredentials.getAccessKeyId());
+		stsCredentials.setSecretAccessKey(awsCredentials.getSecretAccessKey());
+		stsCredentials.setSessionToken(awsCredentials.getSessionToken());
+		stsCredentials.setExpiration(awsCredentials.getExpiration());
+		return stsCredentials;
+	}
 
 	@Override
 	public void validateCanAddFile(UserInfo userInfo, String fileHandleId, String parentId) {

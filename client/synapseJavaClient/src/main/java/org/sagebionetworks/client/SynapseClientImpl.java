@@ -238,6 +238,8 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
@@ -1017,6 +1019,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return putJSONEntity(getRepoEndpoint(), NOTIFICATION_SETTINGS, token, ResponseMessage.class);
 	}
 
+	@Override
+	public StsCredentials getTemporaryCredentialsForEntity(String entityId, StsPermission permission)
+			throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(permission, "permission");
+
+		String uri = ENTITY_URI_PATH + "/" + entityId + "/sts?permission=" + permission.name();
+		return getJSONEntity(getRepoEndpoint(), uri, StsCredentials.class);
+	}
 
 	@Override
 	public UserProfile getUserProfile(String ownerId) throws SynapseException {

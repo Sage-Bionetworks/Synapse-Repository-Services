@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -24,10 +25,13 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
@@ -36,6 +40,7 @@ import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityServiceImplUnitTest {
+	private static final String ENTITY_ID = "syn123";
 
 	@InjectMocks
 	EntityServiceImpl entityService;
@@ -43,6 +48,8 @@ public class EntityServiceImplUnitTest {
 	EntityManager mockEntityManager;
 	@Mock
 	HttpServletRequest mockRequest;
+	@Mock
+	StsManager mockStsManager;
 	@Mock
 	UserManager mockUserManager;
 	@Mock
@@ -166,4 +173,19 @@ public class EntityServiceImplUnitTest {
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
 	}
 
+	@Test
+	public void getTemporaryCredentialsForEntity() {
+		// Mock dependencies.
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+
+		StsCredentials managerResult = new StsCredentials();
+		when(mockStsManager.getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only)).thenReturn(
+				managerResult);
+
+		// Method under test.
+		StsCredentials serviceResult = entityService.getTemporaryCredentialsForEntity(PRINCIPAL_ID, ENTITY_ID,
+				StsPermission.read_only);
+		assertSame(managerResult, serviceResult);
+		verify(mockStsManager).getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only);
+	}
 }

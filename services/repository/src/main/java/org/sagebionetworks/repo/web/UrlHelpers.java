@@ -119,6 +119,9 @@ public class UrlHelpers {
 	 */
 	public static final String S3TOKEN = "/s3Token";
 
+	/** URL suffix for STS (Security Token Service). */
+	public static final String STS = "/sts";
+
 	/**
 	 * Used to get the path of a entity.
 	 */
@@ -216,6 +219,7 @@ public class UrlHelpers {
 	public static final String ENTITY_BUNDLE_V2_CREATE = ENTITY+BUNDLE_V2+CREATE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
+	public static final String ENTITY_ID_STS = ENTITY_ID + STS;
 
 	public static final String FILE= "/file";
 	public static final String FILE_PREVIEW = "/filepreview";
