@@ -346,8 +346,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ ", N." + COL_NODE_TYPE + ", N." + COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
 			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_USER_ANNOS_JSON
-			+ ", F." + COL_FILES_CONTENT_SIZE +
-			", F." + COL_FILES_BUCKET_NAME
+			+ ", F." + COL_FILES_CONTENT_SIZE 
+			+", F." + COL_FILES_BUCKET_NAME
+			+", F." + COL_FILES_CONTENT_MD5
 			+ " FROM " + JOIN_NODE_REVISION_FILES+" WHERE N."
 			+ COL_NODE_ID + " IN(:" + NODE_IDS_LIST_PARAM_NAME + ") ORDER BY N."+COL_NODE_ID+" ASC";
 	
@@ -1745,6 +1746,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if (rs.wasNull()) {
 					dto.setIsInSynapseStorage(null);
 				}
+				dto.setFileMD5(rs.getString(COL_FILES_CONTENT_MD5));
 				String userAnnoJson = rs.getString(COL_REVISION_USER_ANNOS_JSON);
 				if(userAnnoJson != null){
 					try {

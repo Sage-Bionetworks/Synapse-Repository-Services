@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.table;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;

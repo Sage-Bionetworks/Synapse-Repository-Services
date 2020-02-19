@@ -13,7 +13,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
-import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -79,8 +78,6 @@ public class NodeManagerImpl implements NodeManager {
 	private ActivityManager activityManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	@Autowired
-	private TrashManager trashManager;
 
 	/*
 	 * (non-Javadoc)
@@ -711,20 +708,6 @@ public class NodeManagerImpl implements NodeManager {
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.getChildernStats(request);
-	}
-
-	@Override
-	public boolean isEntityEmpty(String entityId, boolean checkTrash) {
-		if (nodeDao.doesNodeHaveChildren(entityId)) {
-			// Node has existing children. Don't need to check trash.
-			return false;
-		}
-
-		if (checkTrash) {
-			return !trashManager.doesParentHaveTrashedEntities(entityId);
-		} else {
-			return true;
-		}
 	}
 
 	@Override

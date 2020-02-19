@@ -284,16 +284,16 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanAddFile_StsFileInSameStsParent() {
-		setupFile(true);
-		setupFolderWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupFile(/*isSts*/ true);
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanAddFile(USER_INFO, FILE_HANDLE_ID, PARENT_ENTITY_ID);
 	}
 
 	@Test
 	public void validateCanAddFile_StsFileInDifferentStsParent() {
-		setupFile(true);
-		setupFolderWithProjectSetting(true, DIFFERENT_STS_STORAGE_LOCATION_ID);
+		setupFile(/*isSts*/ true);
+		setupFolderWithProjectSetting(/*isSts*/ true, DIFFERENT_STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanAddFile(USER_INFO,
 				FILE_HANDLE_ID, PARENT_ENTITY_ID));
@@ -303,8 +303,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanAddFile_StsFileInNonStsParent() {
-		setupFile(true);
-		setupFolderWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupFile(/*isSts*/ true);
+		setupFolderWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanAddFile(USER_INFO,
 				FILE_HANDLE_ID, PARENT_ENTITY_ID));
@@ -314,7 +314,7 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanAddFile_StsFileInParentWithoutProjectSettings() {
-		setupFile(true);
+		setupFile(/*isSts*/ true);
 		setupFolderWithoutProjectSetting();
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanAddFile(USER_INFO,
@@ -325,8 +325,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanAddFile_NonStsFileInStsParent() {
-		setupFile(false);
-		setupFolderWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupFile(/*isSts*/ false);
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanAddFile(USER_INFO,
 				FILE_HANDLE_ID, PARENT_ENTITY_ID));
@@ -336,15 +336,15 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanAddFile_NonStsFileInNonStsParent() {
-		setupFile(false);
-		setupFolderWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupFile(/*isSts*/ false);
+		setupFolderWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanAddFile(USER_INFO, FILE_HANDLE_ID, PARENT_ENTITY_ID);
 	}
 
 	@Test
 	public void validateCanAddFile_NonStsFileInParentWithoutProjectSettings() {
-		setupFile(false);
+		setupFile(/*isSts*/ false);
 		setupFolderWithoutProjectSetting();
 		// Method under test - Does not throw.
 		stsManager.validateCanAddFile(USER_INFO, FILE_HANDLE_ID, PARENT_ENTITY_ID);
@@ -362,7 +362,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(null)).thenReturn(null);
 		when(mockProjectSettingsManager.isStsStorageLocationSetting((StorageLocationSetting) null)).thenReturn(false);
 
-		setupFolderWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanAddFile(USER_INFO,
@@ -404,12 +404,13 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_NotMoved() {
+		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, OLD_PARENT_ID);
 	}
 
 	@Test
 	public void validateCanMoveFolder_moveRootStsFolderToParentWithoutProjectSettings() {
-		setupOldFolderWithProjectSetting(true, true);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ true);
 		setupNewParentWithoutProjectSetting();
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
@@ -417,16 +418,16 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveRootStsFolderToNonStsParent() {
-		setupOldFolderWithProjectSetting(true, true);
-		setupNewParentWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
 	}
 
 	@Test
 	public void validateCanMoveFolder_moveRootStsFolderToDifferentStsParent() {
-		setupOldFolderWithProjectSetting(true, true);
-		setupNewParentWithProjectSetting(true, DIFFERENT_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ true, DIFFERENT_STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -435,8 +436,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveRootStsFolderToSameStsParent() {
-		setupOldFolderWithProjectSetting(true, true);
-		setupNewParentWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -445,7 +446,7 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveRootNonStsFolderToParentWithoutProjectSettings() {
-		setupOldFolderWithProjectSetting(true, false);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ false);
 		setupNewParentWithoutProjectSetting();
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
@@ -453,16 +454,16 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveRootNonStsFolderToNonStsParent() {
-		setupOldFolderWithProjectSetting(true, false);
-		setupNewParentWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ false);
+		setupNewParentWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
 	}
 
 	@Test
 	public void validateCanMoveFolder_moveRootNonStsFolderToStsParent() {
-		setupOldFolderWithProjectSetting(true, false);
-		setupNewParentWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ true, /*isSts*/ false);
+		setupNewParentWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -471,7 +472,7 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootStsFolderToParentWithoutProjectSettings() {
-		setupOldFolderWithProjectSetting(false, true);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ true);
 		setupNewParentWithoutProjectSetting();
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
@@ -482,8 +483,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootStsFolderToNonStsParent() {
-		setupOldFolderWithProjectSetting(false, true);
-		setupNewParentWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -493,8 +494,8 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootStsFolderToDifferentStsParent() {
-		setupOldFolderWithProjectSetting(false, true);
-		setupNewParentWithProjectSetting(true, DIFFERENT_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ true, DIFFERENT_STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -504,15 +505,15 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootStsFolderToSameStsParent() {
-		setupOldFolderWithProjectSetting(false, true);
-		setupNewParentWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ true);
+		setupNewParentWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
 	}
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootNonStsFolderToParentWithoutProjectSettings() {
-		setupOldFolderWithProjectSetting(false, false);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ false);
 		setupNewParentWithoutProjectSetting();
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
@@ -520,16 +521,16 @@ public class StsManagerImplTest {
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootNonStsFolderToNonStsParent() {
-		setupOldFolderWithProjectSetting(false, false);
-		setupNewParentWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ false);
+		setupNewParentWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
 	}
 
 	@Test
 	public void validateCanMoveFolder_moveNonRootNonStsFolderToStsParent() {
-		setupOldFolderWithProjectSetting(false, false);
-		setupNewParentWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupOldFolderWithProjectSetting(/*isRoot*/ false, /*isSts*/ false);
+		setupNewParentWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -547,7 +548,7 @@ public class StsManagerImplTest {
 	@Test
 	public void validateCanMoveFolder_moveFolderWithoutProjectSettingsToNonStsParent() {
 		setupOldFolderWithoutProjectSetting();
-		setupNewParentWithProjectSetting(false, NON_STS_STORAGE_LOCATION_ID);
+		setupNewParentWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
 		// Method under test - Does not throw.
 		stsManager.validateCanMoveFolder(USER_INFO, FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID);
 	}
@@ -555,7 +556,7 @@ public class StsManagerImplTest {
 	@Test
 	public void validateCanMoveFolder_moveFolderWithoutProjectSettingsToStsParent() {
 		setupOldFolderWithoutProjectSetting();
-		setupNewParentWithProjectSetting(true, STS_STORAGE_LOCATION_ID);
+		setupNewParentWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
 		// Method under test - Throws.
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.validateCanMoveFolder(USER_INFO,
 				FOLDER_ID, OLD_PARENT_ID, NEW_PARENT_ID));
@@ -564,7 +565,8 @@ public class StsManagerImplTest {
 
 	private void setupOldFolderWithoutProjectSetting() {
 		// No project setting on neither the folder nor the old parent.
-		when(mockProjectSettingsManager.getProjectSettingByEntityUnchecked(FOLDER_ID)).thenReturn(Optional.empty());
+		when(mockProjectSettingsManager.getProjectSettingByProjectAndType(USER_INFO, FOLDER_ID,
+				ProjectSettingsType.upload)).thenReturn(Optional.empty());
 		when(mockProjectSettingsManager.getProjectSettingForNode(USER_INFO, OLD_PARENT_ID, ProjectSettingsType.upload,
 				UploadDestinationListSetting.class)).thenReturn(Optional.empty());
 	}
@@ -580,11 +582,11 @@ public class StsManagerImplTest {
 		oldProjectSetting.setProjectId(settingProjectId);
 		oldProjectSetting.setLocations(ImmutableList.of(oldStorageLocationId));
 		if (isRoot) {
-			when(mockProjectSettingsManager.getProjectSettingByEntityUnchecked(FOLDER_ID)).thenReturn(
-					Optional.of(oldProjectSetting));
+			when(mockProjectSettingsManager.getProjectSettingByProjectAndType(USER_INFO, FOLDER_ID,
+					ProjectSettingsType.upload)).thenReturn(Optional.of(oldProjectSetting));
 		} else {
-			when(mockProjectSettingsManager.getProjectSettingByEntityUnchecked(FOLDER_ID)).thenReturn(
-					Optional.empty());
+			when(mockProjectSettingsManager.getProjectSettingByProjectAndType(USER_INFO, FOLDER_ID,
+					ProjectSettingsType.upload)).thenReturn(Optional.empty());
 			when(mockProjectSettingsManager.getProjectSettingForNode(USER_INFO, OLD_PARENT_ID, ProjectSettingsType.upload,
 					UploadDestinationListSetting.class)).thenReturn(Optional.of(oldProjectSetting));
 		}

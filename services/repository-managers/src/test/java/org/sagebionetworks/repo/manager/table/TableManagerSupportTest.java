@@ -793,7 +793,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetDefaultTableViewColumnsFileAntTableView(){
+	public void testGetDefaultTableViewColumnsFileAndTableView(){
 		setupCreateColumn();
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
 		for(EntityField field: EntityField.values()){

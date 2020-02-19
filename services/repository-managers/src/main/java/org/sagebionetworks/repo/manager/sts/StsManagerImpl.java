@@ -196,14 +196,14 @@ public class StsManagerImpl implements StsManager {
 	}
 
 	@Override
-	public void validateCanMoveFolder(UserInfo userInfo, String folderId, String oldParentId, String newParentId) {
+	public void validateCanMoveFolder(UserInfo userInfo, String moveCandidateId, String oldParentId, String newParentId) {
 		if (oldParentId.equals(newParentId)) {
 			// Folder is not being moved. Trivial.
 			return;
 		}
 
 		// Folder is being moved. STS restrictions may apply.
-		boolean isRootFolder = false;
+		boolean isCandidateStsRoot = false;
 		boolean oldStsEnabled = false;
 		Long oldStorageLocationId = null;
 		boolean newStsEnabled = false;
@@ -211,10 +211,10 @@ public class StsManagerImpl implements StsManager {
 
 		// If the project setting is defined on the folder directly (ie the folder is a "root folder"), special logic
 		// applies.
-		Optional<ProjectSetting> folderProjectSetting = projectSettingsManager.getProjectSettingByEntityUnchecked(
-				folderId);
+		Optional<ProjectSetting> folderProjectSetting = projectSettingsManager.getProjectSettingByProjectAndType(
+				userInfo, moveCandidateId, ProjectSettingsType.upload);
 		if (folderProjectSetting.isPresent()) {
-			isRootFolder = true;
+			isCandidateStsRoot = true;
 
 			// Short-cut: Just grab the first storage location ID. We only compare storage location IDs if STS is
 			// enabled, and folders with STS enabled can't have multiple storage locations.
@@ -245,7 +245,7 @@ public class StsManagerImpl implements StsManager {
 			newStorageLocationId = newProjectSetting.get().getLocations().get(0);
 		}
 
-		if (isRootFolder && oldStsEnabled) {
+		if (isCandidateStsRoot && oldStsEnabled) {
 			// The folder that we are moving is itself an STS-enabled folder. This is fine, as long as we
 			// aren't moving it into another STS-enabled folder. Note that even if the other STS-enabled folder
 			// is the same storage location, this is still a problem because it violates the "can't override
