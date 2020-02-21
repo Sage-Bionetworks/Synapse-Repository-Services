@@ -9,7 +9,10 @@ import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
  * @author Marco
  */
 public interface BucketOwnerVerifier {
+	// Maximum number of lines we read from the owner.txt
+	public static final int OWNER_TXT_MAX_LINES = 100;
 	
+	// The file name that contains the bucket owner information to verify
 	public static final String OWNER_MARKER = "owner.txt";
 
 	/**

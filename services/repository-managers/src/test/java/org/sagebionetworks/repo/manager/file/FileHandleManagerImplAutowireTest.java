@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -75,6 +74,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -114,6 +114,7 @@ public class FileHandleManagerImplAutowireTest {
 	private UserInfo userInfo2;
 	private UserInfo anonymousUserInfo;
 	private String username;
+	private String username2;
 
 	private String projectId;
 	private String uploadFolder;
@@ -131,7 +132,7 @@ public class FileHandleManagerImplAutowireTest {
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		user = new NewUser();
-		String username2 = UUID.randomUUID().toString();
+		username2 = UUID.randomUUID().toString();
 		user.setEmail(username2 + "@test.com");
 		user.setUserName(username2);
 		userInfo2 = userManager.getUserInfo(userManager.createUser(user));
@@ -335,42 +336,50 @@ public class FileHandleManagerImplAutowireTest {
 		fauxHandle.setBucketName(externalS3LocationSetting.getBucket());
 		fauxHandle.setKey(testBase + "/owner.txt");
 		toDelete.add(fauxHandle);
-
-		try {
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().indexOf("No username found") != -1);
-		}
+		});
+		
+		assertTrue(ex.getMessage().contains("No user identifier"));
 
 		String wrongName = "not me";
 		metadata.setContentLength(wrongName.length());
 		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(wrongName), metadata);
 
-		try {
+		ex = assertThrows(IllegalArgumentException.class, () -> {
 			projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
-			fail();
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().indexOf("is not what was expected") != -1);
-		}
+		});
+		
+		assertTrue(ex.getMessage().contains("Could not find a valid user"));
+		
+		// Adds both users as owners
+		List<String> ownersList = ImmutableList.of(username, username2);
+		
+		String ownerContent = String.join("\n", ownersList);
 
-		metadata.setContentLength(username.length());
-		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(username), metadata);
+		metadata.setContentLength(ownerContent.length());
+		
+		s3Client.putObject(externalS3LocationSetting.getBucket(), testBase + "/owner.txt", new StringInputStream(ownerContent), metadata);
 
-		externalS3LocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting);
+		Long storageLocationId = projectSettingsManager.createStorageLocationSetting(userInfo, externalS3LocationSetting).getStorageLocationId();
 
+		// The second user should be able to create a storage location as well
+		
+		projectSettingsManager.createStorageLocationSetting(userInfo2, externalS3LocationSetting);
+		
 		// make sure only owner can use this s3 setting
 		UploadDestinationListSetting uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(projectId);
 		uploadDestinationListSetting.setSettingsType(ProjectSettingsType.upload);
-		uploadDestinationListSetting.setLocations(Lists.newArrayList(externalS3LocationSetting.getStorageLocationId()));
+		uploadDestinationListSetting.setLocations(Lists.newArrayList(storageLocationId));
 
-		try {
+		UnauthorizedException uex = assertThrows(UnauthorizedException.class, () -> {
 			projectSettingsManager.createProjectSetting(userInfo2, uploadDestinationListSetting);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(e.getMessage().indexOf("Only the owner") != -1);
-		}
+		});
+	
+		assertTrue(uex.getMessage().contains("Only the owner"));
+		
 
 		projectSettingsManager.createProjectSetting(userInfo, uploadDestinationListSetting);
 	}
