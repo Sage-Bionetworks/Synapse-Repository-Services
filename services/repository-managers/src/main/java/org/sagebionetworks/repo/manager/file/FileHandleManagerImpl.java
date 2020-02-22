@@ -1167,9 +1167,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
 		}
-		if (fileHandle.getContentSize() == null) {
+
+		// In PLFM-6092 we found that BlobInfo.getSize() may return null.
+		if (fileHandle.getContentSize() == null && summary.getSize() != null) {
 			fileHandle.setContentSize(summary.getSize());
 		}
+
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());

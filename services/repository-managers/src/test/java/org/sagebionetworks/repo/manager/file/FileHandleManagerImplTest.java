@@ -1046,6 +1046,57 @@ public class FileHandleManagerImplTest {
 	}
 
 	@Test
+	public void testCreateExternalGoogleCloudFileHandleSpecifiedSize(){
+		externalGoogleCloudFileHandle.setContentSize(999999L);
+
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
+		Blob mockGCBlob = mock(Blob.class);
+		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
+
+		// call under test
+		GoogleCloudFileHandle result = manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle);
+		assertNotNull(result);
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(md5, result.getContentMd5());
+		assertEquals(fileSize, result.getContentSize());
+		assertNotNull(result.getEtag());
+		assertEquals(bucket, result.getBucketName());
+		assertEquals(key, result.getKey());
+		assertEquals(externalGoogleCloudStorageLocationId, result.getStorageLocationId());
+
+	}
+
+	@Test
+	public void testCreateExternalGoogleCloudFileHandleNoSizeAndGCPSizeIsNull(){
+		externalGoogleCloudFileHandle.setContentSize(null);
+
+		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
+				externalGoogleCloudStorageLocationSetting);
+		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
+		Blob mockGCBlob = mock(Blob.class);
+		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
+		when(mockGCBlob.getSize()).thenReturn(null);
+
+		// call under test
+		GoogleCloudFileHandle result = manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle);
+		assertNotNull(result);
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertEquals(md5, result.getContentMd5());
+		assertEquals(fileSize, result.getContentSize());
+		assertNotNull(result.getEtag());
+		assertEquals(bucket, result.getBucketName());
+		assertEquals(key, result.getKey());
+		assertEquals(externalGoogleCloudStorageLocationId, result.getStorageLocationId());
+
+		verify(mockGCBlob, never()).getSize();
+	}
+
+
+	@Test
 	public void testCreateExternalGoogleCloudFileHandleNullMD5(){
 		externalGoogleCloudFileHandle.setContentMd5(null);
 		// call under test
