@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.file.download;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.DownloadList;
@@ -35,7 +36,7 @@ public interface BulkDownloadManager {
 	 * @throws DatastoreException
 	 * @throws RecoverableMessageException
 	 */
-	public DownloadList addFilesFromQuery(UserInfo user, Query query)
+	public DownloadList addFilesFromQuery(ProgressCallback progressCallback, UserInfo user, Query query)
 			throws DatastoreException, NotFoundException, TableFailedException, RecoverableMessageException;
 
 	/**

@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -33,6 +37,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,6 +47,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.EmailQuarantineReason;
@@ -87,6 +93,8 @@ public class PrincipalManagerImplUnitTest {
 	private NewUser user;
 	private Date now;
 
+	private UserInfo adminUserInfo;
+
 	private static final Long USER_ID = 111L;
 	private static final String EMAIL = "foo@bar.com";
 	private static final String FIRST_NAME = "foo";
@@ -108,6 +116,8 @@ public class PrincipalManagerImplUnitTest {
 		// create some data
 		user = createNewUser();
 		now = new Date();
+
+		adminUserInfo = new UserInfo(true);
 	}
 	
 	@Test
@@ -635,5 +645,74 @@ public class PrincipalManagerImplUnitTest {
 		verify(mockQuarantinedEmail).getReasonDetails();
 		verify(mockQuarantinedEmail).getExpiresOn();
 		verifyNoMoreInteractions(mockEmailQuarantineDao);
+	}
+
+	@Test
+	public void clearUserInformationSuccess() {
+		String expectedEmail = "gdpr-synapse+" + USER_ID + "@sagebase.org";
+
+		PrincipalAlias expectedEmailAlias = new PrincipalAlias();
+		expectedEmailAlias.setPrincipalId(USER_ID);
+		expectedEmailAlias.setAlias(expectedEmail);
+		expectedEmailAlias.setType(AliasType.USER_EMAIL);
+
+		UserProfile expectedProfile = new UserProfile();
+		expectedProfile.setEmail(expectedEmail);
+		expectedProfile.setEmails(Collections.singletonList(expectedEmail));
+		expectedProfile.setFirstName("");
+		expectedProfile.setLastName("");
+		expectedProfile.setOpenIds(Collections.emptyList());
+		expectedProfile.setUserName(USER_ID.toString());
+		expectedProfile.setOwnerId(USER_ID.toString());
+		Settings notificationSettings = new Settings();
+		notificationSettings.setSendEmailNotifications(false);
+		expectedProfile.setNotificationSettings(notificationSettings);
+		expectedProfile.setDisplayName(null);
+		expectedProfile.setIndustry(null);
+		expectedProfile.setProfilePicureFileHandleId(null);
+		expectedProfile.setLocation(null);
+		expectedProfile.setCompany(null);
+		expectedProfile.setPosition(null);
+
+
+		when(mockPrincipalAliasDAO.removeAllAliasFromPrincipal(USER_ID)).thenReturn(true);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(expectedEmailAlias)).thenReturn(expectedEmailAlias);
+		doNothing().when(mockNotificationEmailDao).update(expectedEmailAlias);
+		when(mockUserProfileDAO.get(USER_ID.toString())).thenReturn(new UserProfile());
+		when(mockUserProfileDAO.update(expectedProfile)).thenReturn(expectedProfile);
+		doNothing().when(mockAuthManager).setPassword(eq(USER_ID), anyString());
+
+		// Method under test
+		manager.clearPrincipalInformation(adminUserInfo, USER_ID);
+
+
+		verify(mockPrincipalAliasDAO).removeAllAliasFromPrincipal(USER_ID);
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedEmailAlias);
+		verify(mockNotificationEmailDao).update(expectedEmailAlias);
+		verify(mockUserProfileDAO).update(any(UserProfile.class));
+		verify(mockAuthManager).setPassword(eq(USER_ID), anyString());
+	}
+
+	@Test
+	public void clearUserInformationNonAdmin() {
+		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false), USER_ID));
+	}
+
+
+	@Test
+	public void clearUserInformationNullUserId() {
+		// Method under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.clearPrincipalInformation(adminUserInfo,null));
+
+	}
+
+	@Test
+	public void clearUserInformationNoAliasesRemoved() {
+		when(mockPrincipalAliasDAO.removeAllAliasFromPrincipal(USER_ID)).thenReturn(false);
+		// Method under test
+		assertThrows(DatastoreException.class,
+				() -> manager.clearPrincipalInformation(adminUserInfo, USER_ID),
+				"Removed zero aliases from principal: " + USER_ID + ". A principal record should have at least one alias.");
 	}
 }

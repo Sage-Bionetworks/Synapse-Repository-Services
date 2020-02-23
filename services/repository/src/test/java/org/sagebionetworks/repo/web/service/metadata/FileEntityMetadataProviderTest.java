@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -19,28 +21,36 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 
 @ExtendWith(MockitoExtension.class)
 public class FileEntityMetadataProviderTest {
+	private static final String FILE_HANDLE_ID = "file-handle-id";
+	private static final String PARENT_ENTITY_ID = "parent-entity-id";
 
 	@Mock
-	EventsCollector mockStatisticsCollector;
+	private EventsCollector mockStatisticsCollector;
+
+	@Mock
+	private StsManager mockStsManager;
 
 	@InjectMocks
-	FileEntityMetadataProvider provider;
+	private FileEntityMetadataProvider provider;
 
-	FileEntity fileEntity;
-	UserInfo userInfo;
-	List<EntityHeader> path;
+	private FileEntity fileEntity;
+	private UserInfo userInfo;
+	private List<EntityHeader> path;
 
 	@BeforeEach
 	public void before() {
 
 		fileEntity = new FileEntity();
 		fileEntity.setId("syn789");
+		fileEntity.setDataFileHandleId(FILE_HANDLE_ID);
+		fileEntity.setParentId(PARENT_ENTITY_ID);
 
 		userInfo = new UserInfo(false, 55L);
 
@@ -49,7 +59,7 @@ public class FileEntityMetadataProviderTest {
 		grandparentHeader.setId("123");
 		grandparentHeader.setName("gp");
 		grandparentHeader.setType(Folder.class.getName());
-		path = new ArrayList<EntityHeader>();
+		path = new ArrayList<>();
 		path.add(grandparentHeader);
 
 		// This is our direct parent header
@@ -62,9 +72,10 @@ public class FileEntityMetadataProviderTest {
 
 	@Test
 	public void testValidateCreateWithoutDataFileHandleId() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
-		});
+		fileEntity.setDataFileHandleId(null);
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> provider.validateEntity(fileEntity,
+				new EntityEvent(EventType.CREATE, path, userInfo)));
+		assertEquals("FileEntity.dataFileHandleId cannot be null", ex.getMessage());
 	}
 
 	@Test
@@ -78,15 +89,19 @@ public class FileEntityMetadataProviderTest {
 
 	@Test
 	public void testValidateCreate() {
-		fileEntity.setDataFileHandleId("1");
+		// Method under test - Does not throw.
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
+
+		// Validate that we call the STS validator.
+		verify(mockStsManager).validateCanAddFile(userInfo, FILE_HANDLE_ID, PARENT_ENTITY_ID);
 	}
 
 	@Test
 	public void testValidateUpdateWithoutDataFileHandleId() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
-		});
+		fileEntity.setDataFileHandleId(null);
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> provider.validateEntity(fileEntity,
+				new EntityEvent(EventType.UPDATE, path, userInfo)));
+		assertEquals("FileEntity.dataFileHandleId cannot be null", ex.getMessage());
 	}
 
 	@Test
@@ -109,8 +124,11 @@ public class FileEntityMetadataProviderTest {
 
 	@Test
 	public void testValidateUpdateWithoutFileNameOverride() {
-		fileEntity.setDataFileHandleId("1");
+		// Method under test - Does not throw.
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+
+		// Validate that we call the STS validator.
+		verify(mockStsManager).validateCanAddFile(userInfo, FILE_HANDLE_ID, PARENT_ENTITY_ID);
 	}
 
 	@Test
@@ -123,15 +141,13 @@ public class FileEntityMetadataProviderTest {
 	@Test
 	public void testEntityUpdatedWithNewVersion() {
 		fileEntity.setDataFileHandleId("1");
-		boolean wasNewVersionCreated = true;
-		provider.entityUpdated(userInfo, fileEntity, wasNewVersionCreated);
+		provider.entityUpdated(userInfo, fileEntity, true);
 		verify(mockStatisticsCollector, times(1)).collectEvent(any(StatisticsFileEvent.class));
 	}
 
 	@Test
 	public void testEntityUpdatedWithoutNewVersion() {
-		boolean wasNewVersionCreated = false;
-		provider.entityUpdated(userInfo, fileEntity, wasNewVersionCreated);
+		provider.entityUpdated(userInfo, fileEntity, false);
 		verify(mockStatisticsCollector, never()).collectEvent(any());
 	}
 }

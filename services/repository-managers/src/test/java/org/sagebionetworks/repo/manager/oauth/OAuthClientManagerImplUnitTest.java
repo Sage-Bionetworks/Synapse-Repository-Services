@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -14,28 +14,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -55,7 +54,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 import com.google.common.collect.ImmutableList;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class OAuthClientManagerImplUnitTest {
 	private static final String USER_ID = "101";
 	private static final Long USER_ID_LONG = Long.parseLong(USER_ID);
@@ -67,6 +66,7 @@ public class OAuthClientManagerImplUnitTest {
 	private static final String SECTOR_IDENTIFIER_URI_STRING = "https://client.uri.com/path/to/json/file";
 	private static final List<String> REDIR_URI_LIST = ImmutableList.of("https://host1.com/redir1", "https://host2.com/redir2");
 	private static final String OAUTH_CLIENT_ID = "123";
+	private static final String OAUTH_CLIENT_ETAG = UUID.randomUUID().toString();
 
 	@Mock
 	private OAuthClientDao mockOauthClientDao;
@@ -96,7 +96,7 @@ public class OAuthClientManagerImplUnitTest {
 	private UserInfo anonymousUserInfo;
 	private  URI sector_identifier_uri;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
@@ -104,44 +104,23 @@ public class OAuthClientManagerImplUnitTest {
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_STRING);
-
-		when(mockHttpResponse.getStatusCode()).thenReturn(200);
-		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
-
-		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
-
-		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
-		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
-		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
-		
-	}
-	
-	private static OAuthClient createOAuthClient(String userId) {
-		OAuthClient result = new OAuthClient();
-		result.setClient_name(CLIENT_NAME);
-		result.setClient_uri(CLIENT_URI);
-		result.setCreatedOn(new Date(System.currentTimeMillis()));
-		result.setModifiedOn(new Date(System.currentTimeMillis()));
-		result.setPolicy_uri(POLICY_URI);
-		result.setRedirect_uris(REDIRCT_URIS);
-		result.setTos_uri(TOS_URI);
-		result.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
-		return result;
+		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_STRING);		
 	}
 	
 	@Test
-	public void testGetURI() throws Exception {
+	public void testGetURIInvalid() throws Exception {
 		// method under test
 		OAuthClientManagerImpl.getUri(SECTOR_IDENTIFIER_URI_STRING);
 		
-		try {
+		String uri = "not #$%^ valid";
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
-			OAuthClientManagerImpl.getUri("not #$%^ valid");
-			fail("IllegalArgumentException expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+			OAuthClientManagerImpl.getUri(uri);
+		});
+		
+		assertEquals(uri + " is not a valid URI.", ex.getMessage());
+		
 	}
 
 
@@ -161,61 +140,58 @@ public class OAuthClientManagerImplUnitTest {
 		{
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setClient_name(null);
-			try {
+			
+			assertThrows(IllegalArgumentException.class, () -> {
 				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
-				fail("exception expected");
-			} catch (IllegalArgumentException e) {
-				// as expected
-			}
+			});
 		}
 
 		// missing redirect URIs
 		{
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setRedirect_uris(null);
-			try {
+			
+			assertThrows(IllegalArgumentException.class, () -> {
 				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
-				fail("exception expected");
-			} catch (IllegalArgumentException e) {
-				// as expected
-			}
-			oauthClient.setRedirect_uris(Collections.EMPTY_LIST);
-			try {
+			});
+			
+			oauthClient.setRedirect_uris(Collections.emptyList());
+			
+			assertThrows(IllegalArgumentException.class, () -> {
 				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
-				fail("exception expected");
-			} catch (IllegalArgumentException e) {
-				// as expected
-			}
+			});
+				
 		}
 		
 		// invalid redir URI
 		{
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setRedirect_uris(ImmutableList.of("https://client.com/redir", "not-a-valid-uri"));
-			try {
+			
+			assertThrows(IllegalArgumentException.class, () -> {
 				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
-				fail("exception expected");
-			} catch (IllegalArgumentException e) {
-				// as expected
-			}
+			});
 		}
 
 		// invalid sector identifier uri
 		{
 			OAuthClient oauthClient = createOAuthClient(USER_ID);
 			oauthClient.setSector_identifier_uri("not-a-valid-uri");
-			try {
+			
+			assertThrows(IllegalArgumentException.class, () -> {
 				OAuthClientManagerImpl.validateOAuthClientForCreateOrUpdate(oauthClient);
-				fail("exception expected");
-			} catch (IllegalArgumentException e) {
-				// as expected
-			}
+			});
 		}
 
 	}
 	
 	@Test
 	public void testReadSectorIdentifierFileHappyCase() throws Exception {
+
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+
 		// method under test
 		List<String> result = oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
 		
@@ -228,14 +204,12 @@ public class OAuthClientManagerImplUnitTest {
 	@Test
 	public void testReadSectorIdentifierFileHttpRequestFails() throws Exception {
 		when(mockHttpResponse.getStatusCode()).thenReturn(400);
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
 
-		try {
+		assertThrows(ServiceUnavailableException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
-			fail("Exception expected");
-		} catch (ServiceUnavailableException e) {
-			// as expected
-		}
+		});
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
 		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
@@ -243,13 +217,10 @@ public class OAuthClientManagerImplUnitTest {
 		// try throwing IOException
 		when(mockHttpClient.get((SimpleHttpRequest)any())).thenThrow(new IOException());
 		
-		try {
+		assertThrows(ServiceUnavailableException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
-			fail("Exception expected");
-		} catch (ServiceUnavailableException e) {
-			// as expected
-		}
+		});
 		
 		verify(mockHttpClient, times(2)).get(simpleHttpRequestCaptor.capture());
 		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
@@ -258,15 +229,15 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testReadSectorIdentifierBadFileContent() throws Exception {
-		when(mockHttpResponse.getContent()).thenReturn("{\"foo\":\"bar\"}");
 		
-		try {
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("{\"foo\":\"bar\"}");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+				
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.readSectorIdentifierFile(sector_identifier_uri);
-			fail("Exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 		
 		verify(mockHttpClient).get(simpleHttpRequestCaptor.capture());
 		assertEquals(SECTOR_IDENTIFIER_URI_STRING, simpleHttpRequestCaptor.getValue().getUri());
@@ -283,62 +254,53 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testResolveSectorIdentifier_NoSIURI_InvalidURI() throws Exception {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(null, 
 					ImmutableList.of("https://host/redir1", "https://host/%$#@*"));
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
-	public void testResolveSectorIdentifier_NoSIURI_NULL_URI() throws Exception {
-		try {
-			List<String> uris = new ArrayList<String>();
-			uris.add("https://host/redir1");
-			uris.add(null);
+	public void testResolveSectorIdentifier_NoSIURI_NULL_URI() throws Exception {	
+		List<String> uris = Arrays.asList("https://host/redir1", null);
+	
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(null, uris);
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		
+		});
 	}
 
 	@Test
 	public void testResolveSectorIdentifier_NoSIURI_DifferentHosts() throws Exception {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(null, 
 					ImmutableList.of("https://host/redir1", "https://host2/redir1"));
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
 	public void testResolveSectorIdentifier_NoSIURI_NoRedirURIs() throws Exception {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(null, null);
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
-		try {
+		});
+		
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
-			oauthClientManagerImpl.resolveSectorIdentifier(null, Collections.EMPTY_LIST);
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+			oauthClientManagerImpl.resolveSectorIdentifier(null, Collections.emptyList());
+		});
 	}
 	
 	@Test
 	public void testResolveSectorIdentifier_WithSIURI_HappyCase() throws Exception {
+		
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+		
 		// method under test
 		String sectorIdentifier = oauthClientManagerImpl.resolveSectorIdentifier(
 				SECTOR_IDENTIFIER_URI_STRING, REDIR_URI_LIST);
@@ -356,35 +318,31 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testResolveSectorIdentifier_WithSIURI_InvalidFileURI() throws Exception {
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier("*&#%#$$@", REDIR_URI_LIST);
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 
 		// scheme must be https not http
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier("http://insecure.com/file", REDIR_URI_LIST);
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
 	public void testResolveSectorIdentifier_WithSIURI_RedirMismatch() throws Exception {
+
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+
 		// trying to use a redirect uri that's not in the file
-		try {
+		assertThrows(IllegalArgumentException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.resolveSectorIdentifier(SECTOR_IDENTIFIER_URI_STRING, 
 					Collections.singletonList("https://SomeOtherHost/redir1"));
-			fail("exception expected");
-		} catch (IllegalArgumentException e) {
-			// as expected
-		}
+		});
 	}
 
 	@Test
@@ -415,6 +373,10 @@ public class OAuthClientManagerImplUnitTest {
 	
 	@Test
 	public void testCreateOpenIDConnectClient() throws Exception {
+
+		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
+		
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		
 		// later we test these fields are filled in.  So let's ensure they are not pre-filled.
@@ -448,6 +410,14 @@ public class OAuthClientManagerImplUnitTest {
 		oauthClient.setRedirect_uris(Collections.singletonList("https://host1.com/redir1"));
 		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
 		
+
+		when(mockHttpResponse.getStatusCode()).thenReturn(200);
+		when(mockHttpResponse.getContent()).thenReturn("[\"https://host1.com/redir1\",\"https://host2.com/redir2\"]");
+		when(mockHttpClient.get((SimpleHttpRequest)any())).thenReturn(mockHttpResponse);
+
+		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
+		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
+		
 		// method under test
 		OAuthClient result = oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
@@ -477,13 +447,10 @@ public class OAuthClientManagerImplUnitTest {
 	public void testCreateOpenIDConnectClient_Unauthorized() throws Exception {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 
-		try {
+		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
-			fail("Exception expected.");
-		} catch (UnauthorizedException e) {
-			//as expected
-		}
+		});
 	}
 	
 	@Test
@@ -544,19 +511,6 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockOauthClientDao).listOAuthClients(nextPageToken, USER_ID_LONG);
 	}
 	
-	// create a fully populated object, to be updated
-	private static OAuthClient newCreatedOAuthClient() {
-		OAuthClient oauthClient = createOAuthClient(USER_ID);
-		oauthClient.setClient_id(OAUTH_CLIENT_ID);
-		oauthClient.setCreatedBy(USER_ID);
-		String etag = "some etag";
-		oauthClient.setEtag(etag);
-		String sector_identifier = "hostname.com";
-		oauthClient.setSector_identifier(sector_identifier);
-		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
-		oauthClient.setVerified(true);
-		return oauthClient;
-	}
 	
 	@Test
 	public void testUpdateOpenIDConnectClient_HappyCase() throws Exception {
@@ -618,13 +572,10 @@ public class OAuthClientManagerImplUnitTest {
 		// 'toUpdate' is the object as retrieved and modified by the client
 		OAuthClient toUpdate = newCreatedOAuthClient();
 
-		try {
+		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.updateOpenIDConnectClient(anonymousUserInfo, toUpdate);
-			fail("UnauthorizedException expected");
-		} catch (UnauthorizedException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
@@ -638,17 +589,16 @@ public class OAuthClientManagerImplUnitTest {
 		OAuthClient toUpdate = newCreatedOAuthClient();
 		toUpdate.setEtag("mismatched etag");
 
-		try {
+		assertThrows(ConflictingUpdateException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
-			fail("ConflictingUpdateException expected");
-		} catch (ConflictingUpdateException e) {
-			// as expected
-		}
+		});
 	}
 	
 	@Test
 	public void testDeleteOpenIDConnectClient() {
+		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		
 		// method under test
 		oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
 		verify(mockOauthClientDao).deleteOAuthClient(OAUTH_CLIENT_ID);
@@ -658,18 +608,18 @@ public class OAuthClientManagerImplUnitTest {
 	public void testDeleteOpenIDConnectClient_Unauthorized() {
 		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn("202");
 
-		try {
+		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.deleteOpenIDConnectClient(userInfo, OAUTH_CLIENT_ID);
-			fail("UnauthorizesException expected");
-		} catch (UnauthorizedException e) {
-			// as expected
-		}
+		});
+		
 		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
 	}
 	
 	@Test
 	public void testCreateClientSecret() {
+		
+		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
 		
 		// method under test
 		OAuthClientIdAndSecret idAndSecret = oauthClientManagerImpl.createClientSecret(userInfo, OAUTH_CLIENT_ID);
@@ -681,13 +631,13 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testCreateClientSecret_unauthorized() {
-		try {
+
+		when(mockOauthClientDao.getOAuthClientCreator(OAUTH_CLIENT_ID)).thenReturn(USER_ID);
+		
+		assertThrows(UnauthorizedException.class, () -> {
 			// method under test
 			oauthClientManagerImpl.createClientSecret(anonymousUserInfo, OAUTH_CLIENT_ID);
-			fail("UnauthorizedException expected");
-		} catch (UnauthorizedException e) {
-			// as expected
-		}
+		});
 
 		verify(mockOauthClientDao, never()).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
 	}
@@ -713,12 +663,7 @@ public class OAuthClientManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidateClientCredentials_missingCredentials() {
-		String secretHash = PBKDF2Utils.hashPassword(CLIENT_SECRET, null);
-		byte[] clientSalt = PBKDF2Utils.extractSalt(secretHash);
-		when(mockOauthClientDao.getSecretSalt(OAUTH_CLIENT_ID)).thenReturn(clientSalt);
-		when(mockOauthClientDao.checkOAuthClientSecretHash(OAUTH_CLIENT_ID, secretHash)).thenReturn(true);
-		
+	public void testValidateClientCredentials_missingCredentials() {		
 		OAuthClientIdAndSecret clientIdAndSecret = new OAuthClientIdAndSecret();
 		clientIdAndSecret.setClient_id(null);
 		clientIdAndSecret.setClient_secret(null);
@@ -772,10 +717,11 @@ public class OAuthClientManagerImplUnitTest {
 		UserInfo userInfo = null;
 		boolean verifiedStatus = true;
 		String clientId = OAUTH_CLIENT_ID;
+		String etag = OAUTH_CLIENT_ETAG;
 		
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Method under test
-			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 		});
 		
 		assertEquals("User info is required.", ex.getMessage());
@@ -784,17 +730,18 @@ public class OAuthClientManagerImplUnitTest {
 	@Test
 	public void testUpdateOpenIDConnectClientVerifiedStatusWithWrongClientId() {
 		boolean verifiedStatus = true;
+		String etag = OAUTH_CLIENT_ETAG;
 		
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Method under test
-			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "", verifiedStatus);
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "", etag, verifiedStatus);
 		});
 		
 		assertEquals("Client ID is required and must not be the empty string.", ex.getMessage());
 		
 		ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Method under test
-			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "    ", verifiedStatus);
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, "    ", etag, verifiedStatus);
 		});
 		
 		assertEquals("Client ID is required and must not be a blank string.", ex.getMessage());
@@ -804,16 +751,55 @@ public class OAuthClientManagerImplUnitTest {
 	public void testUpdateOpenIDConnectClientVerifiedStatusWithWrongCredentials() {
 		boolean verifiedStatus = true;
 		String clientId = OAUTH_CLIENT_ID;
+		String etag = OAUTH_CLIENT_ETAG;
 		
 		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
 		
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			// Method under test
-			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 		});
 		
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verifyZeroInteractions(mockOauthClientDao);
+		
+	}
+	
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusWithEmptyEtag() {
+		boolean verifiedStatus = true;
+		String clientId = OAUTH_CLIENT_ID;
+		String etag = "  ";
+		
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
+		});
+		
+		verifyZeroInteractions(mockOauthClientDao);
+		
+	}
+	
+
+	@Test
+	public void testUpdateOpenIDConnectClientVerifiedStatusWithConflictingEtag() {
+		OAuthClient mockClient = newCreatedOAuthClient();
+		
+		boolean verifiedStatus = true;
+		String clientId = mockClient.getClient_id();
+		String etag = UUID.randomUUID().toString();
+		
+		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(mockClient);
+		
+		Assertions.assertThrows(ConflictingUpdateException.class, () -> {
+			// Method under test
+			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
+		});
+		
+		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
+		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
 		
 	}
 	
@@ -825,13 +811,13 @@ public class OAuthClientManagerImplUnitTest {
 		boolean verifiedStatus = true;
 		
 		mockClient.setVerified(verifiedStatus);
+		String etag = mockClient.getEtag();
 		
 		when(mockAuthManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockOauthClientDao.selectOAuthClientForUpdate(clientId)).thenReturn(mockClient);
-		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		
 		// Method under test
-		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 		
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
@@ -846,7 +832,7 @@ public class OAuthClientManagerImplUnitTest {
 		String clientId = OAUTH_CLIENT_ID;
 		
 		Date originalModifiedOn = Date.from(Instant.now().minusSeconds(60));
-		String originalEtag = "Some Etag";
+		String originalEtag = originalClient.getEtag();
 		boolean originalVerifiedStatus = false;
 		
 		originalClient.setModifiedOn(originalModifiedOn);
@@ -858,7 +844,7 @@ public class OAuthClientManagerImplUnitTest {
 		when(mockOauthClientDao.updateOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		
 		// Method under test
-		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, !originalVerifiedStatus);
+		oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, originalEtag, !originalVerifiedStatus);
 		
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
@@ -870,5 +856,32 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotEquals(originalEtag, updated.getEtag());
 		assertNotEquals(originalVerifiedStatus, updated.getVerified());
 		
+	}
+	
+	private static OAuthClient createOAuthClient(String userId) {
+		OAuthClient result = new OAuthClient();
+		result.setClient_name(CLIENT_NAME);
+		result.setClient_uri(CLIENT_URI);
+		result.setCreatedOn(new Date(System.currentTimeMillis()));
+		result.setModifiedOn(new Date(System.currentTimeMillis()));
+		result.setPolicy_uri(POLICY_URI);
+		result.setRedirect_uris(REDIRCT_URIS);
+		result.setTos_uri(TOS_URI);
+		result.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
+		return result;
+	}
+	
+
+	// create a fully populated object, to be updated
+	private static OAuthClient newCreatedOAuthClient() {
+		OAuthClient oauthClient = createOAuthClient(USER_ID);
+		oauthClient.setClient_id(OAUTH_CLIENT_ID);
+		oauthClient.setCreatedBy(USER_ID);
+		oauthClient.setEtag(OAUTH_CLIENT_ETAG);
+		String sector_identifier = "hostname.com";
+		oauthClient.setSector_identifier(sector_identifier);
+		oauthClient.setSector_identifier_uri(SECTOR_IDENTIFIER_URI_STRING);
+		oauthClient.setVerified(true);
+		return oauthClient;
 	}
 }

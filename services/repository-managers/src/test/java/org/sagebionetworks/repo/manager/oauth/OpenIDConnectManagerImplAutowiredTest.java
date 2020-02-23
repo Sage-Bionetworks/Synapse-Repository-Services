@@ -110,7 +110,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	public void testAuthorizationRoundTrip() throws Exception {		
 
 		// Verify the client
-		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), true);
+		oauthClient = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, oauthClient.getClient_id(), oauthClient.getEtag(), true);
 		
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(oauthClient.getClient_id());

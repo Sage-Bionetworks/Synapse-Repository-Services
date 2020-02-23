@@ -1,0 +1,13 @@
+{
+	"description": "A storage location that defines an external bucket that needs to be verified for ownership. For this type of storage location, upon creation there is a process of verification that will check that a owner.txt file is uploaded to the bucket (and if present within the baseKey folder) that contains the username of requesting user.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.BucketStorageLocationSetting"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting"
+		}
+	],
+	"properties": { }
+}

@@ -2,13 +2,8 @@
 	"description": "The external upload destination setting contains information to generate an external Google Cloud Storage upload destination connected with Synapse.  For details on how to create a custom Google Cloud storage location in the web client, see <a href=\"https://docs.synapse.org/articles/custom_storage_location.html\">Custom Storage Locations</a>",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.project.BaseKeyStorageLocationSetting"
+			"$ref": "org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting"
 		}
 	],
-	"properties": {
-		"bucket": {
-			"type": "string",
-			"description": "the bucket to use"
-		}
-	}
+	"properties": {	}
 }

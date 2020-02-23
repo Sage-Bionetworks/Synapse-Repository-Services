@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.HttpMethod;
@@ -99,11 +98,4 @@ public interface SynapseGoogleCloudStorageClient {
 	 */
 	Boolean bucketExists(String bucket);
 
-	/**
-	 * Get an InputStream that contains the data of the object
-	 * @param bucket the bucket containing the object
-	 * @param key the name of the object
-	 * @return
-	 */
-	InputStream getObjectContent(String bucket, String key);
 }

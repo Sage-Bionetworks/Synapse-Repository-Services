@@ -71,7 +71,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			EntityField.projectId,
 			EntityField.modifiedOn,
 			EntityField.modifiedBy,
-			EntityField.dataFileHandleId
+			EntityField.dataFileHandleId,
+			EntityField.dataFileSizeBytes,
+			EntityField.dataFileMD5Hex
 			);
 	
 	private static final List<EntityField> BASIC_ENTITY_DEAFULT_COLUMNS = Lists.newArrayList(
@@ -419,28 +421,28 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	@Override
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
-			IdAndVersion tableId, int timeoutSec, ProgressingCallable<R> callable)
+			IdAndVersion tableId, ProgressingCallable<R> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSec, callable);
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, callable);
 	}
 	
 	@Override
 	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
-			int timeoutSeconds, ProgressingCallable<R> runner) throws Exception {
+			ProgressingCallable<R> runner) throws Exception {
 		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, timeoutSeconds, runner);
+		return writeReadSemaphoreRunner.tryRunWithWriteLock(callback, key, runner);
 	}
 
 	@Override
 	public <R> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback callback, IdAndVersion tableId, int lockTimeoutSec,
+			ProgressCallback callback, IdAndVersion tableId,
 			ProgressingCallable<R> callable) throws Exception
 			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
-		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, lockTimeoutSec, callable);
+		return writeReadSemaphoreRunner.tryRunWithReadLock(callback, key, callable);
 	}
 	
 	@Override

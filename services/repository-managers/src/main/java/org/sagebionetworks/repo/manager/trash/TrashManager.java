@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * Manages entities in the trash can.
  */
 public interface TrashManager {
+	/** Returns true if the trash can has entities that were deleted from the specified entity. */
+	boolean doesEntityHaveTrashedChildren(String entityId);
 
 	/**
 	 * Moves an entity and its descendants to the trash can, if the priorityPurge flag is true will delete the node as soon as possible.

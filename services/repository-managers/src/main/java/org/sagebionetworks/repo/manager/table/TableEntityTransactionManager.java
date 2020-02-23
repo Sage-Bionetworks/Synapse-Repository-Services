@@ -23,11 +23,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 public class TableEntityTransactionManager implements TableTransactionManager {
 	
-	/**
-	 * See: PLFM-5456
-	 */
-	private static final int EXCLUSIVE_LOCK_TIMEOUT_SECONDS = 5*60;
-	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
 	@Autowired
@@ -53,7 +48,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		// Validate the user has permission to edit the table before locking.
 		tableManagerSupport.validateTableWriteAccess(userInfo, idAndVersion);
 		try {
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, EXCLUSIVE_LOCK_TIMEOUT_SECONDS, new ProgressingCallable<TableUpdateTransactionResponse>() {
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, new ProgressingCallable<TableUpdateTransactionResponse>() {
 
 				@Override
 				public TableUpdateTransactionResponse call(ProgressCallback callback) throws Exception {

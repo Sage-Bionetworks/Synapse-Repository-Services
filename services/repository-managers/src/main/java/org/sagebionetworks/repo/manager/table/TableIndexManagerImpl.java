@@ -1,18 +1,25 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.table.change.ListColumnIndexTableChange;
 import org.sagebionetworks.repo.manager.table.change.TableChangeMetaData;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -28,6 +35,7 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
+import org.sagebionetworks.table.model.ListColumnRowChanges;
 import org.sagebionetworks.table.model.SchemaChange;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -36,21 +44,17 @@ import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
-	
-	public static final int TIMEOUT_SECONDS = 1200;
-
 	static private Logger log = LogManager.getLogger(TableIndexManagerImpl.class);
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
-	
+
 	public static final long MAX_BYTES_PER_BATCH = 1024*1024*5;// 5MB
-	
+
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;
-	
+
 	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport){
 		if(dao == null){
 			throw new IllegalArgumentException("TableIndexDAO cannot be null");
@@ -63,7 +67,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * getCurrentVersionOfIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -76,7 +80,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#
 	 * applyChangeSetToIndex
 	 * (org.sagebionetworks.repo.manager.table.TableIndexManager
@@ -93,9 +97,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		if (changeSetVersionNumber > currentVersion) {
 			// apply all changes in a transaction
 			tableIndexDao
-					.executeInWriteTransaction(new TransactionCallback<Void>() {
-						@Override
-						public Void doInTransaction(TransactionStatus status) {
+					.executeInWriteTransaction((TransactionStatus status) -> {
 							// apply all groups to the table
 							for(Grouping grouping: rowset.groupByValidValues()){
 								tableIndexDao.createOrUpdateOrDeleteRows(tableId, grouping);
@@ -106,12 +108,19 @@ public class TableIndexManagerImpl implements TableIndexManager {
 								tableIndexDao.applyFileHandleIdsToTable(
 										tableId, fileHandleIds);
 							}
+
+							//once all changes to main table are applied, populate the list-type columns with the changes.
+							for(ListColumnRowChanges listColumnChange : rowset.groupListColumnChanges()){
+								tableIndexDao.deleteFromListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+								tableIndexDao.populateListColumnIndexTable(tableId, listColumnChange.getColumnModel(), listColumnChange.getRowIds());
+							}
+
 							// set the new max version for the index
 							tableIndexDao.setMaxCurrentCompleteVersionForTable(
 									tableId, changeSetVersionNumber);
 							return null;
 						}
-					});
+					);
 		}
 	}
 
@@ -143,6 +152,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		updateTableSchema(tableId, isTableView, changes);
+
+		//apply changes to multi-value column indexes
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(tableId);
+		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromExpectedSchema(newSchema, existingListColumnIndexTableNames);
+		applyListColumnIndexTableChanges(tableId, listColumnIndexTableChanges);
 		return changes;
 	}
 
@@ -151,24 +165,116 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
 	}
-	
-	@Override
-	public String getCurrentSchemaMD5Hex(final IdAndVersion tableId) {
-		return tableIndexDao.getCurrentSchemaMD5Hex(tableId);
-	}
-	
-	@Override
-	public void setIndexVersion(final IdAndVersion tableId, Long versionNumber) {
-		tableIndexDao.setMaxCurrentCompleteVersionForTable(
-				tableId, versionNumber);
-	}
-	
+
 	@Override
 	public void setIndexVersionAndSchemaMD5Hex(final IdAndVersion tableId, Long viewCRC, String schemaMD5Hex) {
 		tableIndexDao.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 	}
-	
-	
+
+	/**
+	 * Given the expected schema, figure out changes that need to be applied to list column index tables.
+	 * NOTE: !!!!!!!This should ONLY BE USED for reconciling schema before RowSet changes!!!!!!!!
+	 *       ONLY additions and deletions will be. RENAMES and TYPE CHANGES can NOT BE HANDLED by this.
+	 *       USE {@link #listColumnIndexTableChangesFromChangeDetails(List, Set)}
+	 *       for SCHEMA-ONLY changes
+	 * @param expectedSchema
+	 * @return
+	 */
+	static List<ListColumnIndexTableChange> listColumnIndexTableChangesFromExpectedSchema(List<ColumnModel> expectedSchema, Set<Long> existingListIndexColumns){
+		ValidateArgument.required(expectedSchema, "expectedSchema");
+		ValidateArgument.required(existingListIndexColumns, "existingMultiValueIndexColumns");
+
+		Map<Long,ColumnModel> listsColumnsOnly = expectedSchema.stream()
+				.filter((columnModel) ->ColumnTypeListMappings.isList(columnModel.getColumnType()))
+				.collect(Collectors.toMap((ColumnModel cm) -> Long.parseLong(cm.getId()), Function.identity()));
+
+		List<ListColumnIndexTableChange> result = new ArrayList<>();
+
+		for(ColumnModel columnModel : listsColumnsOnly.values()){
+			long columnModelId = Long.parseLong(columnModel.getId());
+			if(existingListIndexColumns.contains(columnModelId)){
+				//index table already exists so skip
+				continue;
+			}
+
+			//otherwise, we need to create a new column index for this
+			result.add(ListColumnIndexTableChange.newAddition(columnModel));
+		}
+
+		for(Long existingIndexTableColumnId : existingListIndexColumns){
+			if(listsColumnsOnly.containsKey(existingIndexTableColumnId)){
+				//no deletion necessary for existing table
+				continue;
+			}
+			result.add(ListColumnIndexTableChange.newRemoval(existingIndexTableColumnId));
+		}
+
+		return result;
+	}
+
+	/**
+	 * Determine changes that need to be made to a column given the column change set and the existing set of tables for a table's list columns
+	 * @param changes
+	 * @param existingListIndexColumns
+	 * @return
+	 */
+	static List<ListColumnIndexTableChange> listColumnIndexTableChangesFromChangeDetails(List<ColumnChangeDetails> changes, Set<Long> existingListIndexColumns){
+		ValidateArgument.required(changes, "changes");
+		ValidateArgument.required(existingListIndexColumns, "existingListIndexColumns");
+
+		List<ListColumnIndexTableChange> result = new ArrayList<>();
+
+		for(ColumnChangeDetails changeDetails : changes){
+			ColumnModel oldColumn = changeDetails.getOldColumn();
+			ColumnModel newColumn = changeDetails.getNewColumn();
+
+			boolean oldColumnIsListType = oldColumn != null && ColumnTypeListMappings.isList(oldColumn.getColumnType());
+			boolean newColumnIsListType = newColumn != null && ColumnTypeListMappings.isList(newColumn.getColumnType());
+
+			Long oldColumnId = oldColumnIsListType ? Long.parseLong(oldColumn.getId()) : null;
+			Long newColumnId = newColumnIsListType ? Long.parseLong(newColumn.getId()) : null;
+
+			//either no change, rename, or type change
+			if( oldColumnIsListType && existingListIndexColumns.contains(oldColumnId)
+				&& newColumnIsListType && !existingListIndexColumns.contains(newColumnId)
+			){
+				//update
+				result.add(ListColumnIndexTableChange.newUpdate(oldColumnId, newColumn));
+			}else if (oldColumnIsListType && existingListIndexColumns.contains(oldColumnId) ){
+				//no change necessary
+				if(oldColumnId.equals(newColumnId)){
+					continue;
+				}
+				//delete old column
+				result.add(ListColumnIndexTableChange.newRemoval(oldColumnId) );
+			} else if (newColumnIsListType && !existingListIndexColumns.contains(newColumnId) ){
+				//add new column
+				result.add(ListColumnIndexTableChange.newAddition(newColumn));
+			}
+		}
+
+		return result;
+	}
+
+	void applyListColumnIndexTableChanges(IdAndVersion tableId, List<ListColumnIndexTableChange> changes){
+		for(ListColumnIndexTableChange change : changes){
+			switch (change.getListIndexTableChangeType()){
+				case ADD:
+					tableIndexDao.createMultivalueColumnIndexTable(tableId, change.getNewColumnChange());
+					tableIndexDao.populateListColumnIndexTable(tableId, change.getNewColumnChange(), null);
+					break;
+				case REMOVE:
+					tableIndexDao.deleteMultivalueColumnIndexTable(tableId, change.getOldColumnId());
+					break;
+				case UPDATE:
+					tableIndexDao.updateMultivalueColumnIndexTable(tableId, change.getOldColumnId(), change.getNewColumnChange());
+					break;
+			}
+		}
+	}
+
+
+
 	@Override
 	public boolean updateTableSchema(final IdAndVersion tableId, boolean isTableView, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
@@ -177,7 +283,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		tableIndexDao.createSecondaryTables(tableId);
 		boolean alterTemp = false;
 		// Alter the table
-		boolean wasSchemaChanged = alterTableAsNeededWithProgress(tableId, changes, alterTemp);
+		boolean wasSchemaChanged = alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		if(wasSchemaChanged){
 			// Get the current schema.
 			List<DatabaseColumnInfo> tableInfo = tableIndexDao.getDatabaseInfo(tableId);
@@ -198,25 +304,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public boolean alterTempTableSchmea(final IdAndVersion tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
-		return alterTableAsNeededWithProgress(tableId, changes, alterTemp);
+		return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 	}
-	
-	/**
-	 * Alter the table schema using an auto-progressing callback.
-	 * @param progressCallback
-	 * @param tableId
-	 * @param changes
-	 * @return
-	 * @throws Exception
-	 */
-	boolean alterTableAsNeededWithProgress(final IdAndVersion tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
-		try {
-			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
+
 	/**
 	 * Alter a table as needed within the auto-progress using the provided changes.
 	 * Note: If a column update is requested but the column does not actual exist in the index
@@ -377,7 +467,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			final Iterator<TableChangeMetaData> iterator) throws RecoverableMessageException {
 		try {
 			// Run with the exclusive lock on the table if we can get it.
-			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion, TIMEOUT_SECONDS,
+			tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, idAndVersion,
 					(ProgressCallback callback) -> {
 						buildTableIndexWithLock(callback, idAndVersion, iterator);
 						return null;
@@ -424,7 +514,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 					tableResetToken);
 			log.info("Completed index update for: " + idAndVersion);
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
-		}catch (Exception e) {
+		} catch (InvalidStatusTokenException e) {
+			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but
+			// instead should be retried later.
+			log.warn("InvalidStatusTokenException occured for "+idAndVersion+", message will be returend to the queue");
+			throw new RecoverableMessageException(e);
+		} catch (Exception e) {
 			// Any other error is a table failure.
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 			// This is not an error we can recover from.
@@ -457,7 +552,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 				tableManagerSupport.attemptToUpdateTableProgress(idAndVersion,
 						tableResetToken, "Applying change: " + changeMetadata.getChangeNumber(), changeMetadata.getChangeNumber(),
 						targetChangeNumber);
-				appleyChangeToIndex(idAndVersion, changeMetadata);
+				applyChangeToIndex(idAndVersion, changeMetadata);
 				lastEtag = changeMetadata.getETag();
 			}
 		}
@@ -487,7 +582,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	void appleyChangeToIndex(IdAndVersion idAndVersion, TableChangeMetaData changeMetadata) throws NotFoundException, IOException {
+	void applyChangeToIndex(IdAndVersion idAndVersion, TableChangeMetaData changeMetadata) throws NotFoundException, IOException {
 		// Load the change based on the type and added the change to the index.
 		switch(changeMetadata.getChangeType()) {
 		case ROW:
@@ -510,7 +605,15 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	void applySchemaChangeToIndex(IdAndVersion idAndVersion, ChangeData<SchemaChange> schemaChangeData) {
 		boolean isTableView = false;
 		updateTableSchema(idAndVersion, isTableView, schemaChangeData.getChange().getDetails());
-		setIndexVersion(idAndVersion, schemaChangeData.getChangeNumber());
+
+		//apply changes to multi-value column indexes
+		Set<Long> existingListColumnIndexTableNames = tableIndexDao.getMultivalueColumnIndexTableColumnIds(idAndVersion);
+		List<ListColumnIndexTableChange> listColumnIndexTableChanges = listColumnIndexTableChangesFromChangeDetails(schemaChangeData.getChange().getDetails(), existingListColumnIndexTableNames);
+
+		applyListColumnIndexTableChanges(idAndVersion, listColumnIndexTableChanges);
+
+		// set the new max version for the index
+		tableIndexDao.setMaxCurrentCompleteVersionForTable(idAndVersion, schemaChangeData.getChangeNumber());
 	}
 	
 	/**

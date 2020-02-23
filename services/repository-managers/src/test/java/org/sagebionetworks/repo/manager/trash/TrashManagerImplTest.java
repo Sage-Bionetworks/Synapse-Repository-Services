@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyListOf;
@@ -22,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
@@ -35,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -52,12 +57,15 @@ import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
 public class TrashManagerImplTest {
+	private static final String FILE_HANDLE_ID = "test-file-handle-id";
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
@@ -70,6 +78,9 @@ public class TrashManagerImplTest {
 
 	@Mock
 	private AccessControlListDAO mockAclDAO;
+
+	@Mock
+	private ProjectSettingsManager mockProjectSettingsManager;
 
 	@Mock
 	private TrashCanDao mockTrashCanDao;
@@ -91,6 +102,7 @@ public class TrashManagerImplTest {
 	private String nodeID;
 	private String nodeName;
 	private String nodeParentID;
+	private String newParentID;
 	private Node testNode;
 	private TrashedEntity nodeTrashedEntity;
 	private String newEtag;
@@ -111,10 +123,12 @@ public class TrashManagerImplTest {
 		nodeID = "syn420";
 		nodeName = "testName.test";
 		nodeParentID = "syn489";
+		newParentID = "syn6789";
 		testNode = new Node();
 		testNode.setId(nodeID);
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
+		testNode.setFileHandleId(FILE_HANDLE_ID);
 		testNode.setNodeType(EntityType.file);
 		nodeTrashedEntity = spy(new TrashedEntity());
 		nodeTrashedEntity.setOriginalParentId(nodeParentID);
@@ -125,6 +139,20 @@ public class TrashManagerImplTest {
 
 		trashList = new ArrayList<TrashedEntity>();
 
+	}
+
+	@Test
+	public void doesEntityHaveTrashedChildren_True() {
+		when(mockTrashCanDao.doesEntityHaveTrashedChildren(nodeParentID)).thenReturn(true);
+		// Method under test.
+		assertTrue(trashManager.doesEntityHaveTrashedChildren(nodeParentID));
+	}
+
+	@Test
+	public void doesEntityHaveTrashedChildren_False() {
+		when(mockTrashCanDao.doesEntityHaveTrashedChildren(nodeParentID)).thenReturn(false);
+		// Method under test.
+		assertFalse(trashManager.doesEntityHaveTrashedChildren(nodeParentID));
 	}
 
 	@Test
@@ -379,10 +407,8 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 
 		testNode.setNodeType(EntityType.project);
-		// move the entity to root.
-		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
-		// call under test
-		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		// call under test - move the entity to root.
+		trashManager.restoreFromTrash(userInfo, nodeID, NodeUtils.ROOT_ENTITY_ID);
 
 		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(Collections.singletonList(KeyFactory.stringToKey(nodeID)));
@@ -409,13 +435,107 @@ public class TrashManagerImplTest {
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 
 		testNode.setNodeType(EntityType.folder);
-		// move the entity to root.
-		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+			// call under test - move the entity to root.
+			trashManager.restoreFromTrash(userInfo, nodeID, NodeUtils.ROOT_ENTITY_ID);
 		});
+	}
+
+	@Test
+	public void testRestoreFromTrash_movedFileToParentWithNoProjectSettings() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+
+		testNode.setNodeType(EntityType.file);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, newParentID, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(Optional.empty());
+
+		// Method under test - Doesn't throw.
+		trashManager.restoreFromTrash(userInfo, nodeID, newParentID);
+	}
+
+	@Test
+	public void testRestoreFromTrash_movedFileToParentWithStsFalse() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+
+		testNode.setNodeType(EntityType.file);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, newParentID, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
+
+		// Method under test - Doesn't throw.
+		trashManager.restoreFromTrash(userInfo, nodeID, newParentID);
+	}
+
+	@Test
+	public void testRestoreFromTrash_movedFileToParentWithStsTrue() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+
+		testNode.setNodeType(EntityType.file);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, newParentID, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> trashManager.restoreFromTrash(userInfo,
+				nodeID, newParentID));
+		assertEquals("Entities can be restored to STS-enabled folders only if that were its original parent",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testRestoreFromTrash_movedFolderToParentWithStsTrue() {
+		// Mock dependencies.
+		when(mockAuthorizationManager.canAccess(userInfo, newParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeParentID, newParentID))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+		when(mockNodeDAO.isNodeAvailable(newParentID)).thenReturn(true);
+
+		testNode.setNodeType(EntityType.folder);
+		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
+
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, newParentID, ProjectSettingsType.upload,
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> trashManager.restoreFromTrash(userInfo,
+				nodeID, newParentID));
+		assertEquals("Entities can be restored to STS-enabled folders only if that were its original parent",
+				ex.getMessage());
 	}
 
 	@Test

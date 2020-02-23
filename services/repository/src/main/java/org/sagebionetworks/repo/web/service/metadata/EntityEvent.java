@@ -16,7 +16,11 @@ public class EntityEvent {
 	private EventType type;
 	private List<EntityHeader> newParentPath;
 	private UserInfo userInfo;
-	
+
+	public EntityEvent() {
+		this(null, null,null);
+	}
+
 	public EntityEvent(EventType type, List<EntityHeader> newParentPath, UserInfo info) {
 		super();
 		this.type = type;

@@ -77,9 +77,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 	
 	@Override
-	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, boolean verifiedStatus) {
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, String etag, boolean verifiedStatus) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oauthClientManager.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, verifiedStatus);
+		return oauthClientManager.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 	}
 
 	@Override

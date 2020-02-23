@@ -52,8 +52,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * The Sage business logic for node management.
  *
@@ -80,7 +78,7 @@ public class NodeManagerImpl implements NodeManager {
 	private ActivityManager activityManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.NodeManager#createNewNode(org.sagebionetworks.repo.model.Node, org.sagebionetworks.repo.model.UserInfo)
@@ -710,11 +708,6 @@ public class NodeManagerImpl implements NodeManager {
 	public ChildStatsResponse getChildrenStats(ChildStatsRequest request) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.getChildernStats(request);
-	}
-
-	@Override
-	public boolean isEntityEmpty(String entityId) {
-		return !nodeDao.doesNodeHaveChildren(entityId);
 	}
 
 	@Override

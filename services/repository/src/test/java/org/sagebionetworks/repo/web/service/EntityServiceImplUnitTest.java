@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -13,29 +14,27 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.service.EntityServiceImpl;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.EntityProvider;
 import org.sagebionetworks.repo.web.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.web.service.metadata.TypeSpecificUpdateProvider;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EntityServiceImplUnitTest {
 
 	@InjectMocks
@@ -64,33 +63,25 @@ public class EntityServiceImplUnitTest {
 
 	Project project;
 
-	@Before
+	@BeforeEach
 	public void before() {
 
-		projectProviders = new ArrayList<EntityProvider<?>>();
+		projectProviders = new ArrayList<>();
 		projectProviders.add(mockProjectUpdateProvider);
 		projectProviders.add(mockProjectCreateProvider);
 
 		userInfo = new UserInfo(false);
 		userInfo.setId(PRINCIPAL_ID);
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-
-		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 
 		project = new Project();
 		project.setId("syn123");
-		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), any(Class.class))).thenReturn(project);
-		when(mockEntityManager.createEntity(any(UserInfo.class), any(Entity.class), any(String.class)))
-				.thenReturn(project.getId());
-
-		when(mockRequest.getServletPath()).thenReturn("path");
-
 	}
 
 	@Test
-	public void testGetFileRedirectURLForCurrentVersion() throws Exception {
+	public void testGetFileRedirectURLForCurrentVersion() {
 		String entityId = "999";
 		String fileHandleId = "111";
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null))
 				.thenReturn(fileHandleId);
 		String url = "http://foo.bar";
@@ -99,10 +90,11 @@ public class EntityServiceImplUnitTest {
 	}
 
 	@Test
-	public void testGetFileRedirectURLForVersion() throws Exception {
+	public void testGetFileRedirectURLForVersion() {
 		String entityId = "999";
 		String fileHandleId = "111";
 		Long version = 1L;
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version)).thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
@@ -111,6 +103,8 @@ public class EntityServiceImplUnitTest {
 
 	@Test
 	public void testFireCreate() {
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		// Call under test.
 		entityService.createEntity(userInfo.getId(), project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
@@ -118,8 +112,21 @@ public class EntityServiceImplUnitTest {
 	}
 
 	@Test
+	public void testUpdateEntity_NullId() {
+		project.setId(null);
+
+		// Method under test.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(userInfo.getId(), project,
+				false, null));
+		assertEquals("Updated Entity cannot have a null id", ex.getMessage());
+		verifyZeroInteractions(mockEntityManager);
+	}
+
+	@Test
 	public void testFireUpdate() {
 		boolean newVersion = true;
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -130,6 +137,8 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireUpdateNoNewVersion() {
 		boolean newVersion = false;
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
@@ -147,6 +156,8 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdateTriggersNewVersion() {
 		boolean newVersionParameter = false;
 		final boolean wasNewVersionCreated = true;
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
 				.thenReturn(wasNewVersionCreated);
 		// Call under test.

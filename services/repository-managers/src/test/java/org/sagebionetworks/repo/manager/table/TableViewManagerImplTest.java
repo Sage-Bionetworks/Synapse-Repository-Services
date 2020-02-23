@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -59,6 +58,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshotDao;
@@ -85,6 +86,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import com.amazonaws.AmazonServiceException;
@@ -429,14 +431,7 @@ public class TableViewManagerImplTest {
 		// expected
 		assertTrue(message.contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
 	}
-	
-	@Test
-	public void testGetTableSchema(){
-		when(mockColumnModelManager.getColumnIdsForTable(idAndVersion)).thenReturn(schema);
-		List<String> retrievedSchema = manager.getTableSchema(viewId);
-		assertEquals(schema, retrievedSchema);
-	}
-	
+
 	@Test
 	public void testUpdateAnnotationsFromValues(){
 		Annotations annos = AnnotationsV2TestUtils.newEmptyAnnotationsV2();
@@ -812,7 +807,7 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() {
+	public void testCreateOrRebuildViewHoldingLockNoWorkRequired() throws RecoverableMessageException {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(false);
 		// call under test
 		manager.createOrRebuildViewHoldingLock(idAndVersion);
@@ -823,9 +818,10 @@ public class TableViewManagerImplTest {
 	
 	/**
 	 * Populate a view from entity replication.
+	 * @throws RecoverableMessageException 
 	 */
 	@Test
-	public void testCreateOrRebuildViewHoldingLockWorkeRequired() {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequired() throws RecoverableMessageException {
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
 		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
@@ -872,9 +868,10 @@ public class TableViewManagerImplTest {
 	/**
 	 * Populate a view from a snapshot.
 	 * @throws IOException
+	 * @throws RecoverableMessageException 
 	 */
 	@Test
-	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException {
+	public void testCreateOrRebuildViewHoldingLockWorkeRequiredWithVersion() throws IOException, RecoverableMessageException {
 		idAndVersion = IdAndVersion.parse("syn123.45");
 		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
 		String token = "the token";
@@ -950,6 +947,46 @@ public class TableViewManagerImplTest {
 		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class),
 				anyString(), anyString());
 		verify(mockTableManagerSupport).attemptToSetTableStatusToFailed(idAndVersion, exception);
+	}
+	
+	/**
+	 * A InvalidStatusTokenException thrown while attempting to set the view to available should not
+	 * result in setting the view's state to failed.  Instead, the message should returned to the queue
+	 * for a retry at a later time.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testCreateOrRebuildViewHoldingLockInvalidStatusTokenException() throws IOException {
+		when(mockTableManagerSupport.isIndexWorkRequired(idAndVersion)).thenReturn(true);
+		String token = "the token";
+		when(mockTableManagerSupport.startTableProcessing(idAndVersion)).thenReturn(token);
+		Long viewTypeMask = 1L;
+		when(mockTableManagerSupport.getViewTypeMask(idAndVersion)).thenReturn(viewTypeMask);
+		when(mockConnectionFactory.connectToTableIndex(idAndVersion)).thenReturn(mockIndexManager);
+		String originalSchemaMD5Hex = "startMD5";
+		when(mockTableManagerSupport.getSchemaMD5Hex(idAndVersion)).thenReturn(originalSchemaMD5Hex);
+		when(mockColumnModelManager.getColumnModelsForObject(idAndVersion)).thenReturn(viewSchema);
+		Set<Long> scope = Sets.newHashSet(124L, 455L);
+		when(mockTableManagerSupport.getAllContainerIdsForViewScope(idAndVersion, viewTypeMask)).thenReturn(scope);
+		viewCRC = 987L;
+		when(mockIndexManager.populateViewFromEntityReplication(idAndVersion.getId(), viewTypeMask, scope, viewSchema))
+				.thenReturn(viewCRC);
+		
+		// conflict is thrown if the state has changed since the process was started.
+		InvalidStatusTokenException conflictException = new InvalidStatusTokenException();
+		doThrow(conflictException).when(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		
+		RecoverableMessageException result = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			manager.createOrRebuildViewHoldingLock(idAndVersion);
+		});
+		assertEquals(conflictException, result.getCause());
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(idAndVersion, token,
+				TableViewManagerImpl.DEFAULT_ETAG);
+		// conflict should not set the view to failed.
+		verify(mockTableManagerSupport, never()).attemptToSetTableStatusToFailed(any(), any());
 	}
 	
 	/**
@@ -1106,10 +1143,10 @@ public class TableViewManagerImplTest {
 		// call under test
 		managerSpy.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verify(managerSpy).applyChangesToAvailableViewHoldingLock(idAndVersion);
 	}
 	
@@ -1126,7 +1163,7 @@ public class TableViewManagerImplTest {
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any(ProgressingCallable.class));
 	}
 	
 	/**
@@ -1142,32 +1179,32 @@ public class TableViewManagerImplTest {
 			callable.call(mockProgressCallback);
 			return null;
 		}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), anyInt(), any(ProgressingCallable.class));
+				anyString(), any(ProgressingCallable.class));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_ExcluisveLockUnavailable() throws Exception {
 		setupNonexclusiveLockToForwardToCallack();
 		LockUnavilableException exception = new LockUnavilableException("not now");
-		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(Integer.class), any(ProgressingCallable.class));
+		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), any(String.class), any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX+idAndVersion.toString();
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(eq(mockProgressCallback), eq(expectedKey),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 	}
 	
 	@Test
 	public void testApplyChangesToAvailableView_NonExcluisveLockUnavailable() throws Exception {
 		LockUnavilableException exception = new LockUnavilableException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), any(Integer.class), any(ProgressingCallable.class));
+				any(IdAndVersion.class), any(ProgressingCallable.class));
 		// call under test
 		manager.applyChangesToAvailableView(idAndVersion, mockProgressCallback);
 		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(eq(mockProgressCallback), eq(idAndVersion),
-				eq(TableViewManagerImpl.TIMEOUT_SECONDS), any(ProgressingCallable.class));
+				any(ProgressingCallable.class));
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
@@ -1176,7 +1213,7 @@ public class TableViewManagerImplTest {
 		setupNonexclusiveLockToForwardToCallack();
 		IllegalArgumentException exception = new IllegalArgumentException("not now");
 		doThrow(exception).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class),
-				anyString(), anyInt(), any(ProgressingCallable.class));
+				anyString(), any(ProgressingCallable.class));
 		String expectedKey = TableViewManagerImpl.VIEW_DELTA_KEY_PREFIX + idAndVersion.toString();
 		IllegalArgumentException result =assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -575,12 +576,12 @@ public class EntityPermissionsManagerImplUnitTest {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(true);
 
 		// Call under test - throws exception.
-		assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser),
-				"Cannot override ACLs in a child of an STS-enabled folder");
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityPermissionsManager.overrideInheritance(acl, mockUser));
+		assertEquals("Cannot override ACLs in a child of an STS-enabled folder", ex.getMessage());
 	}
 
 	@Test
@@ -602,7 +603,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, folderId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		// It doesn't actually matter whether the folder is STS or not, because the permissions we're overriding are
 		// on the same folder as the folder with the project settings.
 
@@ -631,7 +632,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setProjectId(folderId);
 		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, fileId, ProjectSettingsType.upload,
-				UploadDestinationListSetting.class)).thenReturn(projectSetting);
+				UploadDestinationListSetting.class)).thenReturn(Optional.of(projectSetting));
 		when(mockProjectSettingsManager.isStsStorageLocationSetting(projectSetting)).thenReturn(false);
 
 		// Call under test.

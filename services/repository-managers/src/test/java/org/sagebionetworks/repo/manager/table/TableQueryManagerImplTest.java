@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyMapOf;
 import static org.mockito.ArgumentMatchers.anySetOf;
@@ -36,16 +36,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
@@ -97,7 +97,7 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
 	
 	@Mock
@@ -140,7 +140,10 @@ public class TableQueryManagerImplTest {
 	
 	private Long sumFilesizes;
 	
-	@Before
+	HashSet<Long> benfactors;
+	HashSet<Long> subSet;
+	
+	@BeforeEach
 	public void before() throws Exception {
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);
@@ -152,46 +155,11 @@ public class TableQueryManagerImplTest {
 		status.setChangedOn(new Date(123));
 		status.setLastTableChangeEtag("etag");
 		
-		models = TableModelTestUtils.createOneOfEachType(true);
-		
-		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
-		
-		// Just call the caller.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
-				any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
-			@Override
-			public Object answer(InvocationOnMock invocation) throws Throwable {
-				if(invocation == null) return null;
-				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[3];
-						if (callable != null) {
-							return callable.call(mockProgressCallback2);
-						} else {
-							return null;
-						}
-			}
-		});
-		
+		models = TableModelTestUtils.createOneOfEachType(true);		
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		
 		rows = TableModelTestUtils.createRows(models, 10);
-		
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
-		
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
-			@Override
-			public Boolean answer(InvocationOnMock invocation) throws Throwable {
-				capturedQuery = (SqlQuery) invocation.getArguments()[1];
-				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
-				// Pass all rows to the handler
-				for (Row row : rows) {
-					handler.nextRow(row);
-				}
-				return true;
-			}
-		});
 		
 		// Writer that captures lines
 		writtenLines = new LinkedList<String[]>();
@@ -208,14 +176,10 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		sortList = Lists.newArrayList(sort);
 		
-		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
-		
 		ColumnModel benefactorColumn = EntityField.benefactorId.getColumnModel();
 		benefactorColumn.setId("999");
-		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
-		HashSet<Long> subSet = Sets.newHashSet(444L);
-		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		benfactors = Sets.newHashSet(333L,444L);
+		subSet = Sets.newHashSet(444L);
 		
 		facetColumnName = "i2";
 		facetMax = "45";
@@ -236,11 +200,39 @@ public class TableQueryManagerImplTest {
 		expectedRangeResult.setColumnMax(expectedColMax);
 		
 		queryOptions = new QueryOptions().withRunQuery(true);
-		
-		// setup the count returned from query
-		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
 		sumFilesizes = 9876L;
-		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
+	}
+
+	void setupQueryCallback() {
+		when(mockTableIndexDAO.queryAsStream(any(ProgressCallback.class),any(SqlQuery.class), any(RowHandler.class))).thenAnswer(new Answer<Boolean>() {
+			@Override
+			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				capturedQuery = (SqlQuery) invocation.getArguments()[1];
+				RowHandler handler =  (RowHandler) invocation.getArguments()[2];
+				// Pass all rows to the handler
+				for (Row row : rows) {
+					handler.nextRow(row);
+				}
+				return true;
+			}
+		});
+	}
+
+	void setupNonExclusiveLock() throws Exception {
+		// Just call the caller.
+		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),
+				any(IdAndVersion.class), any(ProgressingCallable.class))).thenAnswer(new Answer<Object>() {
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				if(invocation == null) return null;
+				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[2];
+						if (callable != null) {
+							return callable.call(mockProgressCallback2);
+						} else {
+							return null;
+						}
+			}
+		});
 	}
 	
 	/**
@@ -273,16 +265,21 @@ public class TableQueryManagerImplTest {
 		this.rows = newRows;
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testQueryPreflightUnauthroized() throws Exception {
 		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(user, idAndVersion);
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		manager.queryPreflight(user, query, null);
+		assertThrows(UnauthorizedException.class, ()->{
+			manager.queryPreflight(user, query, null);
+		});
 	}
 	
 	@Test
 	public void testQueryPreflightAuthorized() throws Exception {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null);
@@ -291,6 +288,11 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamIsConsistentTrue() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		setupQueryCallback();
+		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
@@ -300,86 +302,99 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
-		assertEquals("Consistent query must return the etag of the current status",
-				status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
+		assertEquals(status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), any(IdAndVersion.class), any(ProgressingCallable.class));
 		// The table status should be checked only for a consistent query.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testQueryAsStreamIsConsistentTrueNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
-		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		assertThrows(NotFoundException.class, ()->{
+			// call under test.
+			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		});
 	}
 	
-	@Test (expected=TableUnavailableException.class)
+	@Test
 	public void testQueryAsStreamIsConsistentTrueTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
-		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		assertThrows(TableUnavailableException.class, ()->{
+			// call under test.
+			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		});
 	}
 	
-	@Test (expected=TableFailedException.class)
+	@Test
 	public void testQueryAsStreamIsConsistentTrueTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class), any(IdAndVersion.class), anyInt(),
+						any(ProgressCallback.class), any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
-		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		assertThrows(TableFailedException.class, ()->{
+			// call under test.
+			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		});
 	}
 	
-	@Test (expected=LockUnavilableException.class)
+	@Test
 	public void testQueryAsStreamIsConsistentTrueLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class),any(IdAndVersion.class), anyInt(),
+						any(ProgressCallback.class),any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
-		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		assertThrows(LockUnavilableException.class, ()->{
+			// call under test.
+			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		});
+
 	}
 	
-	@Test (expected=EmptyResultException.class)
+	@Test
 	public void testQueryAsStreamEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
-						any(ProgressCallback.class),any(IdAndVersion.class), anyInt(),
+						any(ProgressCallback.class),any(IdAndVersion.class),
 						any(ProgressingCallable.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(true)
 		.build();
-		// call under test.
-		manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		assertThrows(EmptyResultException.class, ()->{
+			// call under test.
+			manager.queryAsStream(mockProgressCallbackVoid, user, query, rowHandler, queryOptions);
+		});
 	}
 	
 	@Test
 	public void testQueryAsStreamIsConsistentFalse() throws Exception{
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		setupQueryCallback();
+		
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models)
 		.isConsistent(false)
@@ -389,15 +404,18 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getQueryResults());
-		assertNull("Non-Consistent query result must not contain an etag.", result.getQueryResult().getQueryResults().getEtag());
+		assertNull(result.getQueryResult().getQueryResults().getEtag(), "Non-Consistent query result must not contain an etag.");
 		// an exclusive lock must not be held for a non-consistent query.
-		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),any(IdAndVersion.class), any(ProgressingCallable.class));
 		// The table status should not be checked only for a non-consistent query.
 		verify(mockTableManagerSupport, never()).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
 	@Test
 	public void testQueryPreflightWithAuthorizationTableEntity() throws Exception{
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		// Setup a table entity.
 		EntityType type = EntityType.table;
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(type);
@@ -414,6 +432,12 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightWithAuthorizationFileView() throws Exception{
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		
 		// Setup a fileView
 		EntityType type = EntityType.entityview;
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(type);
@@ -434,6 +458,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationCountOnly() throws Exception {
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -480,6 +507,9 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testQueryAsStreamAfterAuthorizationWithLimit() throws Exception {
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -495,6 +525,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNoCount() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		setupQueryCallback();
+		
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
@@ -510,6 +543,10 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationQueryAndCount() throws Exception {
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		setupQueryCallback();
+		
 		Long count = 201L;
 		// setup count results
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
@@ -530,11 +567,12 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorization_LastUpdatedOn() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		setupQueryCallback();
+		
 		Date lastUpdatedOn = new Date(567L);
 		when(mockTableManagerSupport.getLastChangedOn(idAndVersion)).thenReturn(lastUpdatedOn);
-		Long count = 201L;
-		// setup count results
-		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(count);
+
 		// non-null handler indicates the query should be run.
 		RowHandler rowHandler = new SinglePageRowHandler();
 		queryOptions = new QueryOptions().withReturnLastUpdatedOn(true);
@@ -548,7 +586,9 @@ public class TableQueryManagerImplTest {
 	
 
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
+	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws Exception{
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		
 		Long count = 201L;
 		// setup count results
 		ArgumentCaptor<String> queryStringCaptor = ArgumentCaptor.forClass(String.class);
@@ -582,7 +622,9 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
+	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		
 		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
@@ -615,6 +657,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunQueryAsStream() throws ParseException{
+		setupQueryCallback();
+		
 		SinglePageRowHandler rowHandler = new SinglePageRowHandler();
 		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, models).build();
 		// call under test
@@ -725,19 +769,21 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		status.setState(TableState.PROCESSING);
-		try{
-			Query query = new Query();
-			query.setSql("select * from " + tableId + " limit 1");
-			query.setIsConsistent(true);
-			queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
-			
-			QueryResultBundle results = manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
-			fail("should have failed");
-		}catch(TableUnavailableException e){
-			// expected
-			assertEquals(status, e.getStatus());
-		}
+		Query query = new Query();
+		query.setSql("select * from " + tableId + " limit 1");
+		query.setIsConsistent(true);
+		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
+		TableUnavailableException result = assertThrows(TableUnavailableException.class, ()-> {
+			// call under test
+			manager.querySinglePage(mockProgressCallbackVoid, user, query, queryOptions);
+		});
+		assertEquals(status, result.getStatus());
 		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(idAndVersion);
 	}
 	
@@ -745,6 +791,14 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void runQueryBundleTest()
 			throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(models);
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
 		maxBytesPerRequest = maxRowSizeBytes*10;
@@ -813,7 +867,13 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
+	public void testQueryBundleFacets() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		when(mockTableIndexDAO.query(isNull(), any(SqlQuery.class))).thenReturn(enumerationFacetResults, rangeFacetResults, enumerationFacetResults);
 		
 		Query query = new Query();
@@ -877,24 +937,31 @@ public class TableQueryManagerImplTest {
 		assertEquals(status, resultsStatus);
 	}
 	
-	@Test (expected=TableUnavailableException.class)
+	@Test
 	public void testValidateTableIsAvailableWithStateProcessing() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
-		// call under test
-		manager.validateTableIsAvailable(tableId);
+		assertThrows(TableUnavailableException.class, ()->{
+			// call under test
+			manager.validateTableIsAvailable(tableId);
+		});
 	}
 	
-	@Test (expected=TableFailedException.class)
+	@Test
 	public void testValidateTableIsAvailableWithStateFailed() throws NotFoundException, TableUnavailableException, TableFailedException{
 		status.setState(TableState.PROCESSING_FAILED);
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
-		// call under test
-		manager.validateTableIsAvailable(tableId);
+		assertThrows(TableFailedException.class, ()->{
+			// call under test
+			manager.validateTableIsAvailable(tableId);
+		});
 	}
 	
 	@Test
 	public void testQueryPreflightSelectStar() throws Exception {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+	
 		List<SortItem> sortList= null;
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -908,6 +975,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryPreflightOverrideSort() throws Exception {
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		SortItem sort = new SortItem();
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
@@ -941,7 +1011,14 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownload() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
@@ -958,7 +1035,14 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownloadDefaultValues() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownloadDefaultValues() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -982,7 +1066,16 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownloadViewIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownloadViewIncludeEtag() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		setupQueryCallback();
+		
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.entityview);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
@@ -1008,7 +1101,14 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownloadTableIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownloadTableIncludeEtag() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
@@ -1034,7 +1134,14 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownloadIncludeEtagWithoutRowId() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownloadIncludeEtagWithoutRowId() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -1084,7 +1191,7 @@ public class TableQueryManagerImplTest {
 		assertFalse(request.getIncludeEntityEtag());
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(new LinkedList<ColumnModel>());
@@ -1094,9 +1201,12 @@ public class TableQueryManagerImplTest {
 		request.setIncludeRowIdAndRowVersion(false);
 		request.setWriteHeader(true);
 		
-		// call under test
-		manager.runQueryDownloadAsStream(
-				mockProgressCallbackVoid, user, request, writer);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.runQueryDownloadAsStream(
+					mockProgressCallbackVoid, user, request, writer);
+		});
+		
 	}
 	
 	
@@ -1231,6 +1341,14 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageWithNextPage() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
+		
 		// setup the results to return one row.
 		Row row = rows.get(0);
 		rows.clear();
@@ -1307,6 +1425,12 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageWithEtag() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		setupQueryCallback();
 		
 		addRowIdAndVersionToRows();
 		convertRowsToEntityRows();
@@ -1372,6 +1496,13 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testQuerySinglePageOverrideLimit() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
@@ -1397,6 +1528,13 @@ public class TableQueryManagerImplTest {
 	 */
 	@Test
 	public void testQuerySinglePageWithLimit() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(10L);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableManagerSupport.validateTableReadAccess(user, idAndVersion)).thenReturn(EntityType.table);
+		
 		Long totalCount = 101L;
 		when(mockTableIndexDAO.countQuery(anyString(), anyMapOf(String.class, Object.class))).thenReturn(totalCount);
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
@@ -1503,6 +1641,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testAddRowLevelFilterEmpty() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
@@ -1513,7 +1654,10 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
-	public void getAddRowLevelFilterTableDoesNotExist() throws TableFailedException, TableUnavailableException, ParseException {
+	public void getAddRowLevelFilterTableDoesNotExist() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
@@ -1528,6 +1672,10 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testAddRowLevelFilter() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
+		
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
 		QuerySpecification result = manager.addRowLevelFilter(user, query);
@@ -1540,14 +1688,20 @@ public class TableQueryManagerImplTest {
 	////////////////////////////
 	// runFacetQueries() Tests
 	////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRunFacetQueriesNullFacetModel(){
-		manager.runFacetQueries(null, mockTableIndexDAO);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.runFacetQueries(null, mockTableIndexDAO);
+		});
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testRunFacetQueriesFacetColumns(){
-		manager.runFacetQueries(Mockito.mock(FacetModel.class), null);
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.runFacetQueries(Mockito.mock(FacetModel.class), null);
+		});
 	}	
 	
 	@Test
@@ -1596,6 +1750,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSize() throws Exception {
+		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
+		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
+		
 		// query against an entity view.
 		SqlQuery query = new SqlQueryBuilder("select i0 from " + tableId + " limit 1000", models)
 				.tableType(EntityType.entityview).build();
@@ -1613,6 +1770,9 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testRunSumFileSizeOverLimit() throws Exception {
+		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(Lists.newArrayList(1L,2L));
+		when(mockTableIndexDAO.getSumOfFileSizes(anyListOf(Long.class))).thenReturn(sumFilesizes);
+
 		// setup a result with more than the max rows
 		List<Long> rowIds = createListOfSize(TableQueryManagerImpl.MAX_ROWS_PER_CALL + 1L);
 		when(mockTableIndexDAO.getRowIds(any(), anyMapOf(String.class, Object.class))).thenReturn(rowIds);

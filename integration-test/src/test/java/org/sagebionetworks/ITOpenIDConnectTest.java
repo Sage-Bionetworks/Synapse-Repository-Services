@@ -122,8 +122,10 @@ public class ITOpenIDConnectTest {
 		
 		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 		
+		// Re-read the client to fetch the latest etag (changed above when the secret was generated)
+		client = synapseOne.getOAuthClient(client.getClient_id());
 		// Verify the client
-		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 		
 		// This goes through
 		synapseAnonymous.getAuthenticationRequestDescription(authorizationRequest);
@@ -131,7 +133,7 @@ public class ITOpenIDConnectTest {
 		// ---- Authorization Code Test ----
 		
 		// Remove the client verification
-		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), false);
 		
 		// The client is not verified, we cannot authorize the request
 		ex = assertThrows(SynapseForbiddenException.class, () -> {
@@ -141,13 +143,13 @@ public class ITOpenIDConnectTest {
 		assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 
 		// Verify the client
-		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 		
 		// We should now be able to authorize the request
 		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
 		
 		// Un-verify the client
-		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), false);
 		
 		String accessCode = oauthAuthorizationResponse.getAccess_code();
 		String redirectUri = client.getRedirect_uris().get(0);
@@ -168,7 +170,7 @@ public class ITOpenIDConnectTest {
 			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 			
 			// Verify the client once again
-			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+			client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 			
 			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code, 
 					accessCode, redirectUri, null, null, null);
@@ -180,7 +182,7 @@ public class ITOpenIDConnectTest {
 		// ---- User Info TEST ----
 		
 		// Un-verify the client
-		adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), false);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), false);
 		
 		// Note, we use a bearer token to authorize the client 
 		try {
@@ -193,7 +195,7 @@ public class ITOpenIDConnectTest {
 			assertEquals("The OAuth client (" + client.getClient_id() + ") is not verified.", ex.getMessage());
 			
 			// Verify the client once again
-			adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+			client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 			
 			// Now we should be able to get the user info
 			synapseAnonymous.getUserInfoAsJSON();
@@ -221,7 +223,7 @@ public class ITOpenIDConnectTest {
 		assertFalse(client.getVerified());
 		
 		// Sets the verified status of the client (only admins and ACT can do this)
-		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), true);
+		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
 		assertTrue(client.getVerified());
 		
 		// Re-read the client as the user

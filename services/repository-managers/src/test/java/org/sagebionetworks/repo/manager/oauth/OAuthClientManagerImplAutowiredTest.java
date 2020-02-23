@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.Date;
@@ -11,10 +12,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -29,9 +30,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class OAuthClientManagerImplAutowiredTest {
 	private static final String CLIENT_NAME = "some client";
@@ -44,13 +45,13 @@ public class OAuthClientManagerImplAutowiredTest {
 	private UserManager userManager;
 
 	@Autowired
-	OAuthClientManager oauthClientManager;
+	private OAuthClientManager oauthClientManager;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	private List<String> oauthClientsToDelete;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		oauthClientsToDelete = new LinkedList<String>();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -65,7 +66,7 @@ public class OAuthClientManagerImplAutowiredTest {
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
 	}
 	
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		for(String id: oauthClientsToDelete) {
 			try {
@@ -96,11 +97,12 @@ public class OAuthClientManagerImplAutowiredTest {
 		// method under test
 		OAuthClient created = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		String id = created.getClient_id();
+		String etag = created.getEtag();
 		assertNotNull(id);
 		oauthClientsToDelete.add(id);
 		
 		// method under test
-		created = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, id, true);
+		created = oauthClientManager.updateOpenIDConnectClientVerifiedStatus(adminUserInfo, id, etag, true);
 		
 		assertTrue(created.getVerified());
 		
@@ -134,12 +136,9 @@ public class OAuthClientManagerImplAutowiredTest {
 		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);
 		oauthClientsToDelete.remove(id);
 		
-		try {
+		assertThrows(NotFoundException.class, () -> {
 			oauthClientManager.getOpenIDConnectClient(userInfo, id);
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		});
 		
 	}
 

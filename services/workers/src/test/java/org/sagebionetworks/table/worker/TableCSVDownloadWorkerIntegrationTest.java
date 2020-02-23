@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -119,6 +120,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	public void before() throws NotFoundException{
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		when(mockProgressCallback.getLockTimeoutSeconds()).thenReturn(2L);
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user

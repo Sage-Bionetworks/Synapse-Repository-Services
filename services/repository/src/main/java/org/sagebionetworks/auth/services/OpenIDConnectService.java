@@ -64,7 +64,7 @@ public interface OpenIDConnectService {
 	 * @param verifiedStatus
 	 * @return
 	 */
-	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, boolean verifiedStatus);
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, String eTag, boolean verifiedStatus);
 	
 	/**
 	 * 

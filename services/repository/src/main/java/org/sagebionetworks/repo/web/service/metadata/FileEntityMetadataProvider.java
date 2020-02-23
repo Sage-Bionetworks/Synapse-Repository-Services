@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service.metadata;
 import org.sagebionetworks.repo.manager.events.EventsCollector;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEvent;
 import org.sagebionetworks.repo.manager.statistics.StatisticsFileEventUtils;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -20,6 +21,9 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	@Autowired
 	private EventsCollector statisticsCollector;
 
+	@Autowired
+	private StsManager stsManager;
+
 	@Override
 	public void validateEntity(FileEntity entity, EntityEvent event)
 			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
@@ -33,6 +37,9 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 			if (entity.getFileNameOverride() != null) {
 				throw new IllegalArgumentException(FILE_NAME_OVERRIDE_DEPRECATED_REASON);
 			}
+
+			// Note: Parent ID is validated as non-null by AllTypesValidatorImpl.
+			stsManager.validateCanAddFile(event.getUserInfo(), entity.getDataFileHandleId(), entity.getParentId());
 		}
 	}
 

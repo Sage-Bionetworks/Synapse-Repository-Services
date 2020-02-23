@@ -7,9 +7,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
@@ -315,6 +318,110 @@ public class SparseChangeSetTest {
 		SparseChangeSet copy = new SparseChangeSet(dto, schema);
 		// the should be the same.
 		assertEquals(changeSet, copy);
+	}
+
+
+
+	@Test
+	public void testGroupListColumnChanges_noListColumns(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING);
+		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
+		changeSet = new SparseChangeSet("syn123",schema);
+		// add combinations of rows
+		SparseRow r0 = changeSet.addEmptyRow();
+		r0.setRowId(0L);
+		r0.setCellValue(c1.getId(), "0,0");
+		SparseRow r1 = changeSet.addEmptyRow();
+		r1.setRowId(1L);
+		r1.setCellValue(c2.getId(), "1,1");
+		SparseRow r2 = changeSet.addEmptyRow();
+		r2.setRowId(2L);
+		r2.setCellValue(c3.getId(), "2,2");
+		SparseRow r3 = changeSet.addEmptyRow();
+		r3.setRowId(3L);
+		r3.setCellValue(c1.getId(), "3,1");
+		r3.setCellValue(c2.getId(), "3,2");
+		r3.setCellValue(c3.getId(), "3,3");
+		// add an empty row
+		SparseRow r4 = changeSet.addEmptyRow();
+		r4.setRowId(4L);
+		// add more rows with the same
+		SparseRow r5 = changeSet.addEmptyRow();
+		r5.setRowId(5L);
+		r5.setCellValue(c1.getId(), "5,0");
+		SparseRow r6 = changeSet.addEmptyRow();
+		r6.setRowId(6L);
+		r6.setCellValue(c2.getId(), "6,1");
+		SparseRow r7 = changeSet.addEmptyRow();
+		r7.setRowId(7L);
+		r7.setCellValue(c3.getId(), "7,2");
+		SparseRow r8 = changeSet.addEmptyRow();
+		r8.setRowId(8L);
+		r8.setCellValue(c1.getId(), "8,1");
+		r8.setCellValue(c2.getId(), "8,2");
+		r8.setCellValue(c3.getId(), "8,3");
+		// add another empty row.
+		SparseRow r9 = changeSet.addEmptyRow();
+		r9.setRowId(9L);
+
+		// method under test
+		List<ListColumnRowChanges> listColumnRowChanges = changeSet.groupListColumnChanges();
+		assertEquals(Collections.emptyList(), listColumnRowChanges);
+	}
+
+	@Test
+	public void testGroupListColumnChanges_withListColumns(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING_LIST);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER_LIST);
+		List<ColumnModel> schema = Lists.newArrayList(c1, c2, c3);
+		changeSet = new SparseChangeSet("syn123",schema);
+		// add combinations of rows
+		SparseRow r0 = changeSet.addEmptyRow();
+		r0.setRowId(0L);
+		r0.setCellValue(c1.getId(), "[\"0\",\"0\"]");
+		SparseRow r1 = changeSet.addEmptyRow();
+		r1.setRowId(1L);
+		r1.setCellValue(c2.getId(), "1,1");
+		SparseRow r2 = changeSet.addEmptyRow();
+		r2.setRowId(2L);
+		r2.setCellValue(c3.getId(), "[2,2]");
+		SparseRow r3 = changeSet.addEmptyRow();
+		r3.setRowId(3L);
+		r3.setCellValue(c1.getId(), "[\"3\",\"1\"]");
+		r3.setCellValue(c2.getId(), "3,2");
+		r3.setCellValue(c3.getId(), "[3,3]");
+		// add an empty row
+		SparseRow r4 = changeSet.addEmptyRow();
+		r4.setRowId(4L);
+		// add more rows with the same
+		SparseRow r5 = changeSet.addEmptyRow();
+		r5.setRowId(5L);
+		r5.setCellValue(c1.getId(), "[\"5\",\"0\"]");
+		SparseRow r6 = changeSet.addEmptyRow();
+		r6.setRowId(6L);
+		r6.setCellValue(c2.getId(), "6,1");
+		SparseRow r7 = changeSet.addEmptyRow();
+		r7.setRowId(7L);
+		r7.setCellValue(c3.getId(), "[7,2]");
+		SparseRow r8 = changeSet.addEmptyRow();
+		r8.setRowId(8L);
+		r8.setCellValue(c1.getId(), "[\"8\",\"1\"]");
+		r8.setCellValue(c2.getId(), "8,2");
+		r8.setCellValue(c3.getId(), "[8,3]");
+		// add another empty row.
+		SparseRow r9 = changeSet.addEmptyRow();
+		r9.setRowId(9L);
+
+		// method under test
+		List<ListColumnRowChanges> listColumnRowChanges = changeSet.groupListColumnChanges();
+		List<ListColumnRowChanges> expected = Arrays.asList(
+				new ListColumnRowChanges(c1, Sets.newHashSet(0L,3L,5L,8L)),
+				new ListColumnRowChanges(c3, Sets.newHashSet(2L,3L,7L,8L))
+		);
+		assertEquals(expected, listColumnRowChanges);
 	}
 	
 }

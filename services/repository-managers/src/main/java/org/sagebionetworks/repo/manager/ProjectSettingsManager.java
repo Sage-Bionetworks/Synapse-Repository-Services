@@ -16,8 +16,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ProjectSettingsManager {
 
-	public static final String OWNER_MARKER = "owner.txt";
-
 	ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
 	Optional<ProjectSetting> getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, ProjectSettingsType type)
@@ -29,7 +27,7 @@ public interface ProjectSettingsManager {
 
 	void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
-	<T extends ProjectSetting> T getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
+	<T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String parentId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**

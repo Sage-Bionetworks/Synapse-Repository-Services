@@ -79,6 +79,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String VERIFIED = "/verified";
 	private static final String MESSAGE = "/message";
 
+	private static final String REDACT_USER = "/redact/user";
+
 	public SynapseAdminClientImpl() {
 		super();
 	}
@@ -383,9 +385,16 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 	
 	@Override
-	public OAuthClient updateOAuthClientVerifiedStatus(String clientId, boolean status) throws SynapseException {
+	public OAuthClient updateOAuthClientVerifiedStatus(String clientId, String etag, boolean status) throws SynapseException {
 		validateStringAsLong(clientId);
-		String uri = ADMIN + OAUTH_CLIENT + "/" + clientId + VERIFIED + "?status=" + status;
+		String uri = ADMIN + OAUTH_CLIENT + "/" + clientId + VERIFIED + "?status=" + status + "&etag=" + etag;
 		return putJSONEntity(getRepoEndpoint(), uri, null, OAuthClient.class);
+	}
+
+	@Override
+	public void redactUserInformation(String principalId) throws SynapseException {
+		validateStringAsLong(principalId);
+		String uri = ADMIN + REDACT_USER + "/" + principalId;
+		voidPost(getRepoEndpoint(), uri, null, null);
 	}
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -7,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -14,6 +16,7 @@ import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -246,6 +249,39 @@ public class SparseChangeSet implements TableChange {
 			grouping.add(group);
 		}
 		return grouping;
+	}
+
+	public List<ListColumnRowChanges> groupListColumnChanges() {
+		Map<String, Set<Long>> groupMap = new HashMap<>();
+
+		// We only care about list columns in the schema
+		List<String> listColumnsIdsOnly = schema.stream()
+				.filter((ColumnModel cm) -> ColumnTypeListMappings.isList(cm.getColumnType()))
+				.map(ColumnModel::getId)
+				.collect(Collectors.toList());
+
+		// No list columns in schema so no work to be done
+		if(listColumnsIdsOnly.isEmpty()){
+			return Collections.emptyList();
+		}
+
+		// check if each row has changed values for any of the list columns
+		// and if so, add the rowId to set of changed rows for that column
+		for (SparseRow row : this.rowIterator()) {
+			for(String listColumnModelId: listColumnsIdsOnly){
+				if(row.hasCellValue(listColumnModelId)){
+					groupMap.computeIfAbsent(listColumnModelId, (String cmId) -> new HashSet<>())
+					.add(row.getRowId());
+				}
+			}
+		}
+
+		// build result list based on map
+		return groupMap.entrySet().stream()
+				.map((Map.Entry<String, Set<Long>> entry) ->
+						new ListColumnRowChanges(getColumnModel(entry.getKey()), entry.getValue())
+				)
+				.collect(Collectors.toList());
 	}
 
 	/**

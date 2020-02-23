@@ -85,7 +85,7 @@ public class NodeManagerImplUnitTest {
 	private Node mockNode;
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
-	
+
 	@InjectMocks
 	private NodeManagerImpl nodeManager = null;
 		
@@ -1004,27 +1004,23 @@ public class NodeManagerImplUnitTest {
 	}
 
 	@Test
-	public void testIsEntityEmptyTrue() {
+	public void doesNodeHaveChildren_False() {
 		// Mock dao.
 		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(false);
 
 		// Method under test.
-		boolean result = nodeManager.isEntityEmpty(nodeId);
-		assertTrue(result);
-
-		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		boolean result = nodeManager.doesNodeHaveChildren(nodeId);
+		assertFalse(result);
 	}
 
 	@Test
-	public void testIsEntityEmptyFalse() {
+	public void doesNodeHaveChildren_True() {
 		// Mock dao.
 		when(mockNodeDao.doesNodeHaveChildren(nodeId)).thenReturn(true);
 
 		// Method under test.
-		boolean result = nodeManager.isEntityEmpty(nodeId);
-		assertFalse(result);
-
-		verify(mockNodeDao).doesNodeHaveChildren(nodeId);
+		boolean result = nodeManager.doesNodeHaveChildren(nodeId);
+		assertTrue(result);
 	}
 
 	@Test
