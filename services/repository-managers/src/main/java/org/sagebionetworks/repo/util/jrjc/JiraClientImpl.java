@@ -36,8 +36,8 @@ public class JiraClientImpl implements JiraClient {
 	private String APIKEY;
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
 	private static final String JIRA_API_PROJECT_URL = "/rest/api/3/project/";
-	private static final String JIRA_API_FIELDS_URL = "/rest/api/3/field";
-	private static final String JIRA_API_ISSUE_URL = "/rest/api/3/issue";
+	private static final String JIRA_API_FIELDS_URL = "/rest/api/3/field/";
+	private static final String JIRA_API_ISSUE_URL = "/rest/api/3/issue/";
 	private static final String USER_AGENT = "Synapse";
 	private static JSONParser parser;
 	private static final String JIRA_PROJECT_ISSUE_TYPES_KEY = "issueTypes";
@@ -62,7 +62,7 @@ public class JiraClientImpl implements JiraClient {
 		} catch (IOException e) {
 			throw new RuntimeException();
 		}
-		handleResponseStatus(resp);
+		handleResponseStatus(resp.getStatusCode());
 		String json = null;
 		json = resp.getContent();
 
@@ -103,7 +103,7 @@ public class JiraClientImpl implements JiraClient {
 		} catch (IOException e) {
 			throw new RuntimeException();
 		}
-		handleResponseStatus(resp);
+		handleResponseStatus(resp.getStatusCode());
 		String json = null;
 		json = resp.getContent();
 
@@ -134,7 +134,7 @@ public class JiraClientImpl implements JiraClient {
 		} catch (IOException e) {
 			throw new RuntimeException();
 		}
-		handleResponseStatus(resp);
+		handleResponseStatus(resp.getStatusCode());
 
 		String json = null;
 		json = resp.getContent();
@@ -150,6 +150,10 @@ public class JiraClientImpl implements JiraClient {
 	}
 
 	SimpleHttpRequest createRequest(String path, String resource, String contentType) {
+		if (! (path.startsWith("/") && path.endsWith("/"))) {
+			throw new IllegalArgumentException("Path needs to begin and end with '/'");
+		}
+
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		if (resource == null) {
 			request.setUri(JIRA_URL + path);
@@ -171,8 +175,7 @@ public class JiraClientImpl implements JiraClient {
 		return request;
 	}
 
-	static void handleResponseStatus(SimpleHttpResponse resp) {
-		int status = resp.getStatusCode();
+	static void handleResponseStatus(int status) {
 		switch (status) {
 			case HttpStatus.SC_BAD_REQUEST:
 				throw new RuntimeException("JIRA: invalid request");
@@ -182,6 +185,9 @@ public class JiraClientImpl implements JiraClient {
 				throw new RuntimeException("JIRA: credentials wrong or missing");
 			case HttpStatus.SC_FORBIDDEN:
 				throw new RuntimeException("JIRA: insufficient permission");
+			case HttpStatus.SC_OK:
+			case HttpStatus.SC_CREATED:
+				return;
 			default:
 				throw new RuntimeException("JIRA: unexpected status received - " + status);
 		}
