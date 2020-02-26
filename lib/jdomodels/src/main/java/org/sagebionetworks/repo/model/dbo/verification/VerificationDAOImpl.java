@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -33,13 +32,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -163,6 +160,25 @@ public class VerificationDAOImpl implements VerificationDAO {
 		appendVerificationSubmissionState(dbo.getId(), initialState);
 		storeFileHandleIds(dbo.getId(), dto.getAttachments());
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
+	}
+	
+	@WriteTransaction
+	@Override
+	public void fillInMissingNotificationEmail(long userId, String notificationEmail) throws DatastoreException {
+		DBOVerificationSubmission dbo = null;
+		try {
+			dbo = jdbcTemplate.queryForObject(LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new DatastoreException("No verification submission found for user "+userId);
+		}
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
+		if (StringUtils.isNotEmpty(dto.getNotificationEmail())) {
+			throw new IllegalArgumentException("The verification record for "+userId+" already has a notification email.");
+		}
+		dto.setNotificationEmail(notificationEmail);
+		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
+		dbo.setEtag(UUID.randomUUID().toString());
+		if (!basicDao.update(dbo)) throw new DatastoreException("Failed to update verification record for "+userId);
 	}
 	
 	private static DBOVerificationSubmission copyVerificationDTOtoDBO(VerificationSubmission dto) {

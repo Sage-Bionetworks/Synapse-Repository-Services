@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.verification;
 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -25,6 +29,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -41,11 +47,16 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
+import org.sagebionetworks.repo.model.dbo.verification.VerificationSubmissionHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -54,6 +65,8 @@ import org.sagebionetworks.repo.model.verification.VerificationPagedResults;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
+
+import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
 public class VerificationManagerImplTest {
@@ -70,7 +83,7 @@ public class VerificationManagerImplTest {
 	private static final String FILE_HANDLE_ID = "101";
 	private static final String FILE_NAME = "filename.txt";
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-
+	private static final String EMAIL = "me@company.com";
 	private static final Long VERIFICATION_ID = 222L;
 
 	@Mock
@@ -100,6 +113,8 @@ public class VerificationManagerImplTest {
 	private FileHandle fileHandle;
 
 	private UserInfo userInfo;
+
+	private VerificationSubmission dto;
 
 	private static UserProfile createUserProfile() {
 		UserProfile userProfile = new UserProfile();
@@ -131,6 +146,10 @@ public class VerificationManagerImplTest {
 	List<PrincipalAlias> actPaList;
 
 	@BeforeEach
+	public void before() {
+	}
+	
+	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID);
@@ -148,6 +167,9 @@ public class VerificationManagerImplTest {
 		PrincipalAlias actAlias = new PrincipalAlias();
 		actAlias.setAlias("Synapse Access and Compliance Team");
 		actPaList = Collections.singletonList(actAlias);
+		
+		dto = new VerificationSubmission();
+		dto.setNotificationEmail(null);
 	}
 	
 	@Test
@@ -683,6 +705,66 @@ public class VerificationManagerImplTest {
 		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
 		assertEquals(USER_ID.toString(), userId);
 	}
+
+	@Test
+	public void testBackfillNotificationEmailJustOneEmail() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
+		
+		dto.setEmails(Collections.singletonList(EMAIL)); // we captured just one email, so this is the notification email
+		
+		// method under test
+		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
+		
+		// no ambiguity, so never needed to check the current notification email address
+		verify(mockNotificationEmailDao, never()).getNotificationEmailForPrincipal(eq(USER_ID));
+		
+		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testMultipleEmailsFoundNotification() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
+		
+		dto.setEmails(ImmutableList.of("some@other.com", EMAIL));
+		
+		// method under test
+		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
+		
+		// check the current notification email address
+		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(eq(USER_ID));
+		
+		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+	}
+
+	@Test
+	public void testMultipleEmailsNoNotification() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn("yet@another.com");
+		
+		dto.setEmails(ImmutableList.of(EMAIL, "some@other.com"));
+		
+		// method under test
+		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		
+		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
+		
+		// check the current notification email address
+		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(eq(USER_ID));
+		
+		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+	}
+
 
 
 }

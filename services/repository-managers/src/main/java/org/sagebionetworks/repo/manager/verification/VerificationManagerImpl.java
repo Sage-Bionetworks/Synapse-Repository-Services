@@ -217,6 +217,47 @@ public class VerificationManagerImpl implements VerificationManager {
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 	
+	@WriteTransaction
+	@Override
+	public void backfillNotificationEmail(UserInfo userInfo, Long verifiedUserId) {
+		// check that user is in ACT (or an admin)
+		if(!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("You are not a member of the Synapse Access and Compliance Team.");
+		}
+		
+		VerificationSubmission verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(verifiedUserId);
+		
+		if (verificationSubmission==null) {
+			throw new IllegalArgumentException(verifiedUserId.toString()+" has no verification record.");			
+		}
+		
+		if (StringUtils.isNotEmpty(verificationSubmission.getNotificationEmail())) {
+			throw new IllegalArgumentException("The verification record for "+verifiedUserId+" already has a notification email.");			
+		}
+		
+		// determine notification email
+		String notificationEmail = null;
+		
+		// if there is just one captured email then it must have been the notification email
+		if(verificationSubmission.getEmails().size()==1) {
+			notificationEmail = verificationSubmission.getEmails().get(0);
+		} else {
+			// most of the remaining can be disambiguated by the current notification email:
+			String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(verifiedUserId);
+			if (verificationSubmission.getEmails().contains(currentNotificationEmail)) {
+				notificationEmail = currentNotificationEmail;
+			} else {
+				// For a tiny number we'll just use the first of the list
+				notificationEmail = verificationSubmission.getEmails().get(0);
+			}
+		}
+
+		verificationDao.fillInMissingNotificationEmail(verifiedUserId, notificationEmail);
+		
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+	}
+
+	
 	@Override
 	public List<MessageToUserAndBody> createSubmissionNotification(
 			VerificationSubmission verificationSubmission,

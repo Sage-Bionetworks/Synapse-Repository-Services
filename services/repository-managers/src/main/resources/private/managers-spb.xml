@@ -314,7 +314,6 @@
 			ref="stackConfiguration.migrationBackupBatchMax" />
 		<property name="migrationListeners" >
 			<list>
-            <bean class="org.sagebionetworks.repo.manager.verification.VerificationMigrationTypeListener"/>
 			</list>
 		</property>
 	</bean>
