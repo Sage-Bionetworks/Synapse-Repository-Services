@@ -36,7 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -111,7 +115,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -133,11 +137,13 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
-		assertTrue(policy.contains("\"s3:Get*\",\"s3:List*\""));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
 
 		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
@@ -152,7 +158,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD))
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -174,12 +180,16 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
-		assertTrue(policy.contains("\"s3:*\""));
+		assertTrue(policy.contains("\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListBucket\"," +
+				"\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:ListBucketMultipartUploads\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
 
 		// Verify auth.
-		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus, times(2)).checkAuthorizationOrElseThrow();
 	}
 
 	@Test
@@ -194,7 +204,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -216,11 +226,13 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
-		assertTrue(policy.contains("\"s3:Get*\",\"s3:List*\""));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + EXPECTED_BUCKET_WITH_BASE_KEY + "\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + EXPECTED_BUCKET_WITH_BASE_KEY + "/*\""));
 
 		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 
@@ -235,7 +247,7 @@ public class StsManagerImplTest {
 		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
 				storageLocationSetting);
 
-		when(mockAuthManager.canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
 				.thenReturn(mockAuthStatus);
 
 		mockSts();
@@ -260,11 +272,13 @@ public class StsManagerImplTest {
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucket + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
-		assertTrue(policy.contains("\"s3:Get*\",\"s3:List*\""));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucketWithBaseKey + "\""));
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucketWithBaseKey + "/*\""));
 
 		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
 	}
 

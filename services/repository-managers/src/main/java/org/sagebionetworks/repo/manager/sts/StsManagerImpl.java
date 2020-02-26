@@ -5,6 +5,11 @@ import com.amazonaws.services.securitytoken.model.Credentials;
 import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
 import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
 import com.google.common.collect.ImmutableMap;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.runtime.RuntimeConstants;
+import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -24,6 +29,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,51 +37,15 @@ import java.util.Optional;
 @Component
 public class StsManagerImpl implements StsManager {
 	static final int DURATION_SECONDS = 12 * 60 * 60; // 12 hours
-
-	// The Synapse ACCESS_TYPE for the given STS Permission. Used to determine if a user has the proper ACLs.
-	private static final Map<StsPermission, ACCESS_TYPE> PERMISSION_TO_ACCESS_TYPE =
-			ImmutableMap.<StsPermission, ACCESS_TYPE>builder()
-					.put(StsPermission.read_only, ACCESS_TYPE.DOWNLOAD)
-					.put(StsPermission.read_write, ACCESS_TYPE.UPLOAD)
-					.build();
+	private static final String POLICY_TEMPLATE_FILENAME = "sts-policy-template.json";
 
 	// The AWS IAM policy string for the actions the user is allowed to do.
 	private static final Map<StsPermission, String> PERMISSION_TO_POLICY_ACTIONS =
 			ImmutableMap.<StsPermission, String>builder()
-					.put(StsPermission.read_only, "\"s3:Get*\",\"s3:List*\"")
-					.put(StsPermission.read_write, "\"s3:*\"")
+					.put(StsPermission.read_only, "\"s3:GetObject\",\"s3:ListBucket\"")
+					.put(StsPermission.read_write, "\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListBucket\"," +
+							"\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:ListBucketMultipartUploads\"")
 					.build();
-
-	private static final String SESSION_POLICY_TEMPLATE = "{\n" +
-			"	\"Version\": \"2012-10-17\",\n" +
-			"	\"Statement\": [\n" +
-			"		{\n" +
-			"			\"Sid\": \"ListParentBuckets\",\n" +
-			"			\"Action\": [\"s3:ListBucket*\"],\n" +
-			"			\"Effect\": \"Allow\",\n" +
-			"			\"Resource\": [\"arn:aws:s3:::$bucket\"],\n" +
-			"			\"Condition\":{\"StringEquals\":{\"s3:prefix\":[\"$folder\"]}}\n" +
-			"		},\n" +
-			"		{\n" +
-			"			\"Sid\": \"ListBucketAccess\",\n" +
-			"			\"Action\": [\"s3:ListBucket*\"],\n" +
-			"			\"Effect\": \"Allow\",\n" +
-			"			\"Resource\": [\"arn:aws:s3:::$bucket\"],\n" +
-			"			\"Condition\":{\"StringLike\":{\"s3:prefix\":[\"$folderWithTrailingSlash*\"]}}\n" +
-			"		},\n" +
-			"		{\n" +
-			"			\"Sid\": \"FolderAccess\",\n" +
-			"			\"Effect\": \"Allow\",\n" +
-			"			\"Action\": [\n" +
-			"				$actions\n" +
-			"			],\n" +
-			"			\"Resource\": [\n" +
-			"				\"arn:aws:s3:::$bucketWithFolder\",\n" +
-			"				\"arn:aws:s3:::$bucketWithFolder/*\"\n" +
-			"			]\n" +
-			"		}\n" +
-			"	]\n" +
-			"}";
 
 	@Autowired
 	private AuthorizationManager authManager;
@@ -88,6 +58,16 @@ public class StsManagerImpl implements StsManager {
 
 	@Autowired
 	private AWSSecurityTokenService stsClient;
+
+	private final VelocityEngine velocityEngine;
+
+	/** Initializes the STS Manager. */
+	public StsManagerImpl() {
+		velocityEngine = new VelocityEngine();
+		velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
+		velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		velocityEngine.setProperty("runtime.references.strict", true);
+	}
 
 	@Override
 	public StsCredentials getTemporaryCredentials(UserInfo userInfo, String entityId, StsPermission permission) {
@@ -110,9 +90,14 @@ public class StsManagerImpl implements StsManager {
 		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
 				.getStorageLocationSetting(storageLocationId);
 
-		// Check auth.
-		ACCESS_TYPE accessType = PERMISSION_TO_ACCESS_TYPE.get(permission);
-		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, accessType).checkAuthorizationOrElseThrow();
+		// Check auth. We always need at least download access.
+		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
+				.checkAuthorizationOrElseThrow();
+		if (permission == StsPermission.read_write) {
+			// For write permissions, we also need upload access.
+			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
+					.checkAuthorizationOrElseThrow();
+		}
 
 		String bucket = MultipartUtils.getBucket(storageLocationSetting);
 
@@ -129,13 +114,21 @@ public class StsManagerImpl implements StsManager {
 			folderWithTrailingSlash = baseKey + "/";
 		}
 
-		// Call STS.
+		// Generate policy doc.
 		String actions = PERMISSION_TO_POLICY_ACTIONS.get(permission);
-		String policy = SESSION_POLICY_TEMPLATE.replace("$bucketWithFolder", bucketWithFolder)
-				.replace("$folderWithTrailingSlash", folderWithTrailingSlash)
-				.replace("$bucket", bucket)
-				.replace("$folder", baseKey)
-				.replace("$actions", actions);
+		VelocityContext context = new VelocityContext();
+		context.put("actions", actions);
+		context.put("bucket", bucket);
+		context.put("bucketWithFolder", bucketWithFolder);
+		context.put("folder", baseKey);
+		context.put("folderWithTrailingSlash", folderWithTrailingSlash);
+
+		Template template = velocityEngine.getTemplate(POLICY_TEMPLATE_FILENAME);
+		StringWriter writer = new StringWriter();
+		template.merge(context, writer);
+		String policy = writer.toString();
+
+		// Call STS.
 		GetFederationTokenRequest request = new GetFederationTokenRequest();
 		request.setDurationSeconds(DURATION_SECONDS);
 		request.setPolicy(policy);
