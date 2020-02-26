@@ -726,7 +726,7 @@ public class VerificationManagerImplTest {
 	}
 
 	@Test
-	public void testMultipleEmailsFoundNotification() {
+	public void testBackfillNotificationEmailMultipleEmailsFoundNotification() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
@@ -746,7 +746,7 @@ public class VerificationManagerImplTest {
 	}
 
 	@Test
-	public void testMultipleEmailsNoNotification() {
+	public void testBackfillNotificationEmailMultipleEmailsNoNotification() {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn("yet@another.com");
@@ -765,6 +765,37 @@ public class VerificationManagerImplTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
 
+	@Test
+	public void testBackfillNotificationEmailNotAnAdminOrInACT() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			// method under test
+			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		});
+	}
+	
+	@Test
+	public void testBackfillNotificationEmailNoVerificationSubmission()  {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(null);
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		});
+	}
 
+	@Test
+	public void testBackfillNotificationEmailAlreadyHasNotificationEmail() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
+		dto.setNotificationEmail("somee@email.com");
+		
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
+		});
+	}
 
 }
