@@ -275,41 +275,6 @@ public class StsManagerImplAutowiredTest {
 		readWriteTempClient.putObject(SYNAPSE_BUCKET, baseKey + "/" + filenameToWrite, "lorem ipsum");
 	}
 
-	//todo delete this
-	@Test
-	public void withoutBaseKey() throws Exception {
-		final String bucket = "djengtest";
-
-		// Upload owner.txt to root.
-		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);
-
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("text/plain");
-		om.setContentEncoding("UTF-8");
-		om.setContentLength(bytes.length);
-		s3Client.putObject(bucket, "owner.txt", new ByteArrayInputStream(bytes), om);
-
-		// Create StsStorageLocation.
-		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
-		storageLocationSetting.setBucket(bucket);
-		storageLocationSetting.setStsEnabled(true);
-		storageLocationSetting.setUploadType(UploadType.S3);
-		storageLocationSetting = projectSettingsManager.createStorageLocationSetting(userInfo, storageLocationSetting);
-
-		applyStorageLocationToFolder(storageLocationSetting.getStorageLocationId());
-
-		// Get read-only credentials.
-		AmazonS3 readWriteTempClient = createS3ClientFromTempStsCredentials(StsPermission.read_write);
-
-		// Can list and read.
-		readWriteTempClient.listObjects(bucket);
-		readWriteTempClient.getObjectMetadata(bucket, "owner.txt");
-
-		// Validate that we can write to S3. This call will not throw.
-		String filenameToWrite = RandomStringUtils.randomAlphabetic(4) + ".txt";
-		readWriteTempClient.putObject(bucket, filenameToWrite, "lorem ipsum");
-	}
-
 	private void applyStorageLocationToFolder(long storageLocationId) {
 		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
 		projectSetting.setLocations(ImmutableList.of(storageLocationId));
