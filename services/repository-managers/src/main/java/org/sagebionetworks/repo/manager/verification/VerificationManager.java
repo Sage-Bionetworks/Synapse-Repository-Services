@@ -51,6 +51,14 @@ public interface VerificationManager {
 	void changeSubmissionState(UserInfo userInfo, long verificationSubmissionId, VerificationState newState);
 	
 	/**
+	 * Fill in the notification email of an existing verification submission.
+	 * 
+	 * @param userInfo
+	 * @param verifiedUserId
+	 */
+	void backfillNotificationEmail(UserInfo userInfo, Long verifiedUserId);
+	
+	/**
 	 * Create a message to the ACT members telling them there is a new VerificationSubmission
 	 * waiting for review.
 	 * 

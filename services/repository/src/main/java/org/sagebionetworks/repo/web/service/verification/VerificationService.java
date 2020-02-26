@@ -18,4 +18,5 @@ public interface VerificationService {
 	
 	void changeSubmissionState(Long userId, long verificationSubmissionId, VerificationState newState, String notificationUnsubscribeEndpoint);
 	
+	void backfillNotificationEmail(Long userId, Long verifiedUserId);
 }
