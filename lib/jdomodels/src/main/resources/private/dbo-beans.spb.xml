@@ -240,6 +240,7 @@
 			
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSectorIdentifier"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent" />
 				
 				<!-- SES Notifications -->
 				<bean class="org.sagebionetworks.repo.model.dbo.ses.DBOSESNotification" />
