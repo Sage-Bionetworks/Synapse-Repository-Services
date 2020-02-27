@@ -123,6 +123,13 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
+	public boolean hasUserGrantedConsent(Long userId, OIDCAuthorizationRequest authorizationRequest) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oidcManager.hasUserGrantedConsent(userInfo, authorizationRequest);
+		
+	}
+	
+	@Override
 	public OAuthAuthorizationResponse authorizeClient(Long userId, OIDCAuthorizationRequest authorizationRequest) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return oidcManager.authorizeClient(userInfo, authorizationRequest);

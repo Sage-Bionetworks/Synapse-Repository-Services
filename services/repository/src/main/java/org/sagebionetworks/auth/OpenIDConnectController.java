@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
@@ -209,6 +210,25 @@ public class OpenIDConnectController {
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) {
 		return serviceProvider.getOpenIDConnectService().getAuthenticationRequestDescription(authorizationRequest);
+	}
+	
+	/**
+	 * Check whether user has already granted consent for the given OAuth client, scope, and claims.
+	 * 
+	 * @param userId
+	 * @param authorizationRequest The client, scope and claims for which the user may grant consent
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT_CHECK, method = RequestMethod.POST)
+	public @ResponseBody
+	OAuthConsentGrantedResponse checkUserAuthorization(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody OIDCAuthorizationRequest authorizationRequest 
+			) {
+		OAuthConsentGrantedResponse result = new OAuthConsentGrantedResponse();
+		result.setGranted(serviceProvider.getOpenIDConnectService().hasUserGrantedConsent(userId, authorizationRequest));
+		return result;
 	}
 	
 	/**

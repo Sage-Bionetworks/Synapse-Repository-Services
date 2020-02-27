@@ -44,6 +44,14 @@ public interface OpenIDConnectManager {
 	String getUserId(String accessToken);
 	
 	/**
+	 * Return true iff the specified user has already granted consent for the given client, socpe and claims
+	 * @param userInfo
+	 * @param authorizationRequest
+	 * @return
+	 */
+	boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
+	
+	/**
 	 * Parse the given JWT token and return the user identity, groups,
 	 * and scopes/claims authorized by the token.
 	 * 

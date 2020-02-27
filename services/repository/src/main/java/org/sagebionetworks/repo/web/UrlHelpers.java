@@ -1088,6 +1088,7 @@ public class UrlHelpers {
 	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
 	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;
 	public static final String OAUTH_2_CONSENT = AUTH_OAUTH_2+"/consent";
+	public static final String OAUTH_2_CONSENT_CHECK = AUTH_OAUTH_2+"/consentcheck";
 	public static final String OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	public static final String OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";

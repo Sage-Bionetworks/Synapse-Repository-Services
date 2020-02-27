@@ -24,7 +24,8 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -62,6 +64,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private AuthenticationDAO authDao;
+	
+	@Autowired
+	private OAuthDao oauthDao;
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
@@ -179,8 +184,15 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return scopeDescriptions;
 	}
+	
+	@Override
+	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
+		return oauthDao.lookupAuthorizationConsent(userInfo.getId(), authorizationRequest.getClientId(), 
+				authorizationRequest.getScope(), authorizationRequest.getClaims());
+	}
 
 	@Override
+	@WriteTransaction
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -213,6 +225,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
+		oauthDao.saveAuthorizationConsent(userInfo.getId(), client.getClient_id(), authorizationRequest.getScope(), authorizationRequest.getClaims());
 		return result;
 	}
 
