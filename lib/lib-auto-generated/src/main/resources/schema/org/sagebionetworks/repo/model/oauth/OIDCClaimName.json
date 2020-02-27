@@ -59,6 +59,10 @@
       "description": "The immutable principal ID referencing the Synapse user"
     },
     {
+      "name": "user_name",
+      "description": "The Synapse user name"
+    },
+    {
       "name": "orcid",
       "description": "The ORCID linked to the user account"
     },

@@ -52,6 +52,7 @@
 	<bean id="orcidClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.OrcidClaimProvider"/>
 	<bean id="teamClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.TeamClaimProvider"/>
 	<bean id="userIdClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.UserIdClaimProvider"/>
+	<bean id="userNameClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.UserNameClaimProvider"/>
 	<bean id="validatedAtClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedAtClaimProvider"/>
 	<bean id="validatedCompanyClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedCompanyClaimProvider"/>
 	<bean id="validatedEmailClaimProvider" class="org.sagebionetworks.repo.manager.oauth.claimprovider.ValidatedEmailClaimProvider"/>
@@ -73,6 +74,7 @@
 				<entry key="orcid" value-ref="orcidClaimProvider" />
 				<entry key="team" value-ref="teamClaimProvider" />
 				<entry key="userid" value-ref="userIdClaimProvider" />
+				<entry key="user_name" value-ref="userNameClaimProvider" />
 				<entry key="validated_at" value-ref="validatedAtClaimProvider" />
 				<entry key="validated_company" value-ref="validatedCompanyClaimProvider" />
 				<entry key="validated_email" value-ref="validatedEmailClaimProvider" />

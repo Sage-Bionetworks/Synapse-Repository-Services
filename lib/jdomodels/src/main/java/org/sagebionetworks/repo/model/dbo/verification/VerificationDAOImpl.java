@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFI
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.APPROVED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.REJECTED;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -33,13 +32,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmission;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOVerificationSubmissionFile;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -149,8 +146,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 	private static TableMapping<DBOVerificationState> DBO_VERIFICATION_STATE_MAPPING =
 			new DBOVerificationState().getTableMapping();
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
-
 	@WriteTransaction
 	@Override
 	public VerificationSubmission createVerificationSubmission(
@@ -167,18 +162,37 @@ public class VerificationDAOImpl implements VerificationDAO {
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
+	@WriteTransaction
+	@Override
+	public void fillInMissingNotificationEmail(long userId, String notificationEmail) throws DatastoreException {
+		DBOVerificationSubmission dbo = null;
+		try {
+			dbo = jdbcTemplate.queryForObject(LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new DatastoreException("No verification submission found for user "+userId);
+		}
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
+		if (StringUtils.isNotEmpty(dto.getNotificationEmail())) {
+			throw new IllegalArgumentException("The verification record for "+userId+" already has a notification email.");
+		}
+		dto.setNotificationEmail(notificationEmail);
+		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
+		dbo.setEtag(UUID.randomUUID().toString());
+		if (!basicDao.update(dbo)) throw new DatastoreException("Failed to update verification record for "+userId);
+	}
+	
 	private static DBOVerificationSubmission copyVerificationDTOtoDBO(VerificationSubmission dto) {
 		DBOVerificationSubmission dbo = new DBOVerificationSubmission();
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setId(Long.parseLong(dto.getId()));
-		dbo.setSerialized(serializeDTO(dto));
+		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
 		dbo.setEtag(UUID.randomUUID().toString());
 		return dbo;
 	}
 	
 	private static VerificationSubmission copyVerificationDBOtoDTO(DBOVerificationSubmission dbo, List<VerificationState> stateHistory) {
-		VerificationSubmission dto = deserializeDTO(dbo);
+		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
 		
 		VerificationStateEnum currentState = stateHistory.get(stateHistory.size() - 1).getState();
 		
@@ -191,22 +205,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 		dto.setStateHistory(stateHistory);
 		
 		return dto;
-	}
-	
-	private static byte[] serializeDTO(VerificationSubmission dto) {
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	private static VerificationSubmission deserializeDTO(DBOVerificationSubmission dbo) {
-		try {
-			return (VerificationSubmission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 	
 	private void storeFileHandleIds(Long verificationSubmissionId, List<AttachmentMetadata> attachments) {
