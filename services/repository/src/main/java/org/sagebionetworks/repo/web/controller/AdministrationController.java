@@ -274,9 +274,9 @@ public class AdministrationController {
 	 * Changes the verified status of the OAuth client with the provided id. Only an administrator or a member of the ACT team can perform this operation.
 	 * 
 	 * @param userId
-	 * @param clientId
-	 * @param etag
-	 * @param status
+	 * @param clientId The id of the client to verify
+	 * @param etag The etag of the client, this must match the current etag of the client
+	 * @param status The verified status to change to, default true
 	 * @return
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
@@ -286,7 +286,7 @@ public class AdministrationController {
 	public @ResponseBody OAuthClient updateOAuthClientVerifiedStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String clientId,
 			@RequestParam(defaultValue = "true") Boolean status,
-			@RequestParam String etag)
+			@RequestParam(required = true) String etag)
 			throws NotFoundException, UnauthorizedException {
 		return serviceProvider.getOpenIDConnectService().updateOpenIDConnectClientVerifiedStatus(userId, clientId, etag, status);
 	}
