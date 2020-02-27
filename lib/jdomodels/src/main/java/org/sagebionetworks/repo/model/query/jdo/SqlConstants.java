@@ -974,6 +974,15 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_SECTOR_IDENTIFIER_URI = 				"OAUTH_SECTOR_IDENTIFIER_URI";
 	public static final String COL_OAUTH_CLIENT_IS_VERIFIED = 							"IS_VERIFIED";
 
+	public static final String DDL_AUTHORIZATION_CONSENT = 								"schema/AuthorizationConsent-ddl.sql";
+	public static final String TABLE_AUTHORIZATION_CONSENT = 							"AUTHORIZATION_CONSENT";
+	public static final String COL_AUTHORIZATION_CONSENT_ID = 							"ID";
+	public static final String COL_AUTHORIZATION_CONSENT_ETAG = 						"ETAG";
+	public static final String COL_AUTHORIZATION_CONSENT_USER_ID = 						"USER_ID";
+	public static final String COL_AUTHORIZATION_CONSENT_CLIENT_ID = 					"CLIENT_ID";
+	public static final String COL_AUTHORIZATION_CONSENT_SCOPE_HASH = 					"SCOPE_HASH";
+	public static final String COL_AUTHORIZATION_CONSENT_GRANTED_ON = 					"GRANTED_ON";
+
 	// Status table for monthly statistics
 	public static final String TABLE_STATISTICS_MONTHLY_STATUS =						"STATISTICS_MONTHLY_STATUS";
 	public static final String DDL_STATISTICS_MONTHLY_STATUS =							"schema/statistics/StatisticsMonthlyStatus-ddl.sql";
