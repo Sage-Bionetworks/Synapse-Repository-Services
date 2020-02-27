@@ -59,6 +59,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
 	
+	// user authorization times out after one year
+	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
+	
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
@@ -205,7 +208,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		Date grantedOn = oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
 				Long.valueOf(authorizationRequest.getClientId()), 
 				getScopeHash(authorizationRequest));
-		return grantedOn!=null;
+		return grantedOn!=null && grantedOn.getTime()>System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS;
 	}
 
 	@Override

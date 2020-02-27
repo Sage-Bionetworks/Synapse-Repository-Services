@@ -434,6 +434,11 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals("The OAuth client (" + OAUTH_CLIENT_ID + ") is not verified.", ex.getMessage());
 
 	}
+	
+	@Test
+	public void testCheckClientAuthorization() throws Exception {
+		assertTrue(false); //TODO
+	}
 
 	@Test
 	public void testAuthorizeClient() throws Exception {
