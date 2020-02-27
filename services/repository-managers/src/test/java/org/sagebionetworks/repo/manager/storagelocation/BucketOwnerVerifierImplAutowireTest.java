@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.storagelocation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,6 +96,26 @@ public class BucketOwnerVerifierImplAutowireTest {
 		
 		bucketOwnerVerifier.verifyBucketOwnership(user1, storageLocation);
 		bucketOwnerVerifier.verifyBucketOwnership(user2, storageLocation);
+	}
+	
+	@Test
+	public void testVerificationWithDifferentOwner() throws Exception {
+		UserInfo user1 = createUser();
+		UserInfo user2 = createUser();
+		
+		// Only user1 is in the owner list
+		List<String> ownerList = ImmutableList.of(user1.getId().toString());
+		
+		BucketOwnerStorageLocationSetting storageLocation = linkBucket(ownerList);
+		
+		bucketOwnerVerifier.verifyBucketOwnership(user1, storageLocation);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			bucketOwnerVerifier.verifyBucketOwnership(user2, storageLocation);
+		});
+		
+		assertTrue(ex.getMessage().startsWith("Could not find a valid user identifier"));
 	}
 	
 	@Test

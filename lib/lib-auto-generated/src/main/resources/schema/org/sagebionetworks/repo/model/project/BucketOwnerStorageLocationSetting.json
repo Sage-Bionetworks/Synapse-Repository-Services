@@ -1,5 +1,5 @@
 {
-	"description": "A storage location that defines an external bucket that needs to be verified for ownership. For this type of storage location, upon creation there is a process of verification that will check that a owner.txt file is uploaded to the bucket (and if present within the baseKey folder) and that contains a line separated list of user identifiers. Valid user identifiers for verifications are: user id, user name, user email address or id of a team the user is part of.",
+	"description": "A storage location that defines an external bucket that needs to be verified for ownership. For this type of storage location, upon creation there is a process of verification that will check that a owner.txt file is uploaded to the bucket (and if present within the baseKey folder) and that contains a line separated list of user identifiers. Valid user identifiers for verifications are: user id or id of a team the user is part of.",
 	"type": "interface",
 	"implements": [
 		{
