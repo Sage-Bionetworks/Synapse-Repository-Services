@@ -230,6 +230,12 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-ext-jdk15on</artifactId>
 		</dependency>
+
+		<!-- Velocity - Used to templatize IAM policy documents -->
+		<dependency>
+			<groupId>org.apache.velocity</groupId>
+			<artifactId>velocity</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

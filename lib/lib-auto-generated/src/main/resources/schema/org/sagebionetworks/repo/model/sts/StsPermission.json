@@ -1,0 +1,14 @@
+{
+    "type": "string",
+    "description": "Determines whether to get read-only STS credentials or read-write STS credentials.",
+    "enum": [
+        {
+            "name": "read_only",
+            "description": "Get read-only STS credentials."
+        },
+        {
+            "name": "read_write",
+            "description": "Get read-write STS credentials."
+        }
+    ]
+}

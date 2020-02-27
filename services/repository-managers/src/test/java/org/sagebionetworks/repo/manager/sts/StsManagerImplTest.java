@@ -1,38 +1,76 @@
 package org.sagebionetworks.repo.manager.sts;
 
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
 import com.google.common.collect.ImmutableList;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 
+import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StsManagerImplTest {
+	private static final String AWS_ACCESS_KEY = "dummy-access-key";
+	private static final String AWS_SECRET_KEY = "dummy-secret-key";
+	private static final String AWS_SESSION_TOKEN = "dummy-session-token";
+	private static final Date AWS_EXPIRATION_DATE = DateTime.parse("2020-02-17T17:26:17.379-0800").toDate();
+	private static final String BASE_KEY = "my-base-key";
+	private static final String BUCKET = "my-bucket";
+	private static final String EXPECTED_BUCKET_WITH_BASE_KEY = "my-bucket/my-base-key";
 	private static final String FILE_HANDLE_ID = "file-handle-id";
 	private static final String FOLDER_ID = "syn1111";
 	private static final String PARENT_ENTITY_ID = "syn2222";
 	private static final String NEW_PARENT_ID = "syn3333";
 	private static final String OLD_PARENT_ID = "syn4444";
-	private static final UserInfo USER_INFO = new UserInfo(false);
+	private static final long USER_ID = 1234;
+
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	private static final String EXPECTED_STS_SESSION_NAME = "sts-" + USER_ID + "-" + PARENT_ENTITY_ID;
 
 	private static final long STS_STORAGE_LOCATION_ID = 123;
 	private static final long NON_STS_STORAGE_LOCATION_ID = 456;
 	private static final long DIFFERENT_STS_STORAGE_LOCATION_ID = 789;
+
+	@Mock
+	private AuthorizationManager mockAuthManager;
+
+	@Mock
+	private AuthorizationStatus mockAuthStatus;
 
 	@Mock
 	private FileHandleManager mockFileHandleManager;
@@ -40,8 +78,223 @@ public class StsManagerImplTest {
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
 
+	@Mock
+	private AWSSecurityTokenService mockStsClient;
+
 	@InjectMocks
 	private StsManagerImpl stsManager;
+
+	@Test
+	public void getTemporaryCredentials_noProjectSetting() {
+		setupFolderWithoutProjectSetting();
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.getTemporaryCredentials(USER_INFO,
+				PARENT_ENTITY_ID, StsPermission.read_only));
+		assertEquals("Entity must have a project setting", ex.getMessage());
+	}
+
+	@Test
+	public void getTemporaryCredentials_notSts() {
+		setupFolderWithProjectSetting(/*isSts*/ false, NON_STS_STORAGE_LOCATION_ID);
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> stsManager.getTemporaryCredentials(USER_INFO,
+				PARENT_ENTITY_ID, StsPermission.read_only));
+		assertEquals("Entity must have an STS-enabled storage location", ex.getMessage());
+	}
+
+	@Test
+	public void getTemporaryCredentials_readOnly() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(BUCKET);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+				.thenReturn(mockAuthStatus);
+
+		mockSts();
+
+		// Method under test - Does not throw.
+		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
+				StsPermission.read_only);
+		assertStsCredentials(result);
+
+		// Verify policy document.
+		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
+				GetFederationTokenRequest.class);
+		verify(mockStsClient).getFederationToken(requestCaptor.capture());
+		GetFederationTokenRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+
+		String policy = request.getPolicy();
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
+
+		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+	}
+
+	@Test
+	public void getTemporaryCredentials_readWrite() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(BUCKET);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+				.thenReturn(mockAuthStatus);
+
+		mockSts();
+
+		// Method under test - Does not throw.
+		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
+				StsPermission.read_write);
+		assertStsCredentials(result);
+
+		// Verify policy document.
+		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
+				GetFederationTokenRequest.class);
+		verify(mockStsClient).getFederationToken(requestCaptor.capture());
+		GetFederationTokenRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+
+		String policy = request.getPolicy();
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
+		assertTrue(policy.contains("\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListBucket\"," +
+				"\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:ListBucketMultipartUploads\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "/*\""));
+
+		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus, times(2)).checkAuthorizationOrElseThrow();
+	}
+
+	@Test
+	public void getTemporaryCredentials_withBaseKey() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(BUCKET);
+		storageLocationSetting.setBaseKey(BASE_KEY);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+				.thenReturn(mockAuthStatus);
+
+		mockSts();
+
+		// Method under test - Does not throw.
+		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
+				StsPermission.read_only);
+		assertStsCredentials(result);
+
+		// Verify policy document.
+		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
+				GetFederationTokenRequest.class);
+		verify(mockStsClient).getFederationToken(requestCaptor.capture());
+		GetFederationTokenRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+
+		String policy = request.getPolicy();
+		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + EXPECTED_BUCKET_WITH_BASE_KEY + "\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + EXPECTED_BUCKET_WITH_BASE_KEY + "/*\""));
+
+		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+	}
+
+	@Test
+	public void getTemporaryCredentials_synapseStorage() {
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		S3StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
+		storageLocationSetting.setBaseKey(BASE_KEY);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		when(mockAuthManager.canAccess(same(USER_INFO), eq(PARENT_ENTITY_ID), eq(ObjectType.ENTITY), any()))
+				.thenReturn(mockAuthStatus);
+
+		mockSts();
+
+		// Method under test - Does not throw.
+		StsCredentials result = stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID,
+				StsPermission.read_only);
+		assertStsCredentials(result);
+
+		// Verify policy document.
+		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
+				GetFederationTokenRequest.class);
+		verify(mockStsClient).getFederationToken(requestCaptor.capture());
+		GetFederationTokenRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+
+		String expectedBucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		String expectedBucketWithBaseKey = expectedBucket + "/" + BASE_KEY;
+
+		String policy = request.getPolicy();
+		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucket + "\""));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
+		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
+		assertTrue(policy.contains("\"s3:GetObject\",\"s3:ListBucket\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucketWithBaseKey + "\""));
+		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucketWithBaseKey + "/*\""));
+
+		// Verify auth.
+		verify(mockAuthManager).canAccess(USER_INFO, PARENT_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		verifyNoMoreInteractions(mockAuthManager);
+		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+	}
+
+	private void mockSts() {
+		Credentials credentials = new Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_SESSION_TOKEN,
+				AWS_EXPIRATION_DATE);
+		GetFederationTokenResult result = new GetFederationTokenResult().withCredentials(credentials);
+		when(mockStsClient.getFederationToken(any())).thenReturn(result);
+	}
+
+	private void assertStsCredentials(StsCredentials credentials) {
+		assertEquals(AWS_ACCESS_KEY, credentials.getAccessKeyId());
+		assertEquals(AWS_SECRET_KEY, credentials.getSecretAccessKey());
+		assertEquals(AWS_SESSION_TOKEN, credentials.getSessionToken());
+		assertEquals(AWS_EXPIRATION_DATE, credentials.getExpiration());
+	}
 
 	@Test
 	public void validateCanAddFile_StsFileInSameStsParent() {

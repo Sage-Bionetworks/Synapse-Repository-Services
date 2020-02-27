@@ -1,26 +1,152 @@
 package org.sagebionetworks.repo.manager.sts;
 
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
+import com.google.common.collect.ImmutableMap;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.runtime.RuntimeConstants;
+import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.file.MultipartUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.StringWriter;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 @Component
 public class StsManagerImpl implements StsManager {
+	static final int DURATION_SECONDS = 12 * 60 * 60; // 12 hours
+	private static final String POLICY_TEMPLATE_FILENAME = "sts-policy-template.json";
+
+	// The AWS IAM policy string for the actions the user is allowed to do.
+	private static final Map<StsPermission, String> PERMISSION_TO_POLICY_ACTIONS =
+			ImmutableMap.<StsPermission, String>builder()
+					.put(StsPermission.read_only, "\"s3:GetObject\",\"s3:ListBucket\"")
+					.put(StsPermission.read_write, "\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListBucket\"," +
+							"\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:ListBucketMultipartUploads\"")
+					.build();
+
+	@Autowired
+	private AuthorizationManager authManager;
+
 	@Autowired
 	private FileHandleManager fileHandleManager;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private AWSSecurityTokenService stsClient;
+
+	private final VelocityEngine velocityEngine;
+
+	/** Initializes the STS Manager. */
+	public StsManagerImpl() {
+		velocityEngine = new VelocityEngine();
+		velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
+		velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		velocityEngine.setProperty("runtime.references.strict", true);
+	}
+
+	@Override
+	public StsCredentials getTemporaryCredentials(UserInfo userInfo, String entityId, StsPermission permission) {
+		// Validate args.
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(permission, "permission");
+
+		// Entity must have an STS-enabled storage location.
+		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
+				userInfo, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
+		if (!projectSetting.isPresent()) {
+			throw new IllegalArgumentException("Entity must have a project setting");
+		}
+		if (!projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
+			throw new IllegalArgumentException("Entity must have an STS-enabled storage location");
+		}
+		// Shortcut: STS-enabled project settings can only have 1 storage location.
+		long storageLocationId = projectSetting.get().getLocations().get(0);
+		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
+				.getStorageLocationSetting(storageLocationId);
+
+		// Check auth. We always need at least download access.
+		authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)
+				.checkAuthorizationOrElseThrow();
+		if (permission == StsPermission.read_write) {
+			// For write permissions, we also need upload access.
+			authManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)
+					.checkAuthorizationOrElseThrow();
+		}
+
+		String bucket = MultipartUtils.getBucket(storageLocationSetting);
+
+		// Optional base key. Convert null to blank so we can do string substitution correctly.
+		String baseKey = storageLocationSetting.getBaseKey();
+		String bucketWithFolder;
+		String folderWithTrailingSlash;
+		if (baseKey == null) {
+			baseKey = "";
+			bucketWithFolder = bucket;
+			folderWithTrailingSlash = "";
+		} else {
+			bucketWithFolder = bucket + "/" + baseKey;
+			folderWithTrailingSlash = baseKey + "/";
+		}
+
+		// Generate policy doc.
+		String actions = PERMISSION_TO_POLICY_ACTIONS.get(permission);
+		VelocityContext context = new VelocityContext();
+		context.put("actions", actions);
+		context.put("bucket", bucket);
+		context.put("bucketWithFolder", bucketWithFolder);
+		context.put("folder", baseKey);
+		context.put("folderWithTrailingSlash", folderWithTrailingSlash);
+
+		Template template = velocityEngine.getTemplate(POLICY_TEMPLATE_FILENAME);
+		StringWriter writer = new StringWriter();
+		template.merge(context, writer);
+		String policy = writer.toString();
+
+		// Call STS.
+		GetFederationTokenRequest request = new GetFederationTokenRequest();
+		request.setDurationSeconds(DURATION_SECONDS);
+		request.setPolicy(policy);
+
+		// Name is required, but it has a max length of 32 characters. Keep it short but descriptive.
+		request.setName("sts-" + userInfo.getId() + "-" + entityId);
+
+		GetFederationTokenResult result = stsClient.getFederationToken(request);
+
+		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
+		Credentials awsCredentials = result.getCredentials();
+		StsCredentials stsCredentials = new StsCredentials();
+		stsCredentials.setAccessKeyId(awsCredentials.getAccessKeyId());
+		stsCredentials.setSecretAccessKey(awsCredentials.getSecretAccessKey());
+		stsCredentials.setSessionToken(awsCredentials.getSessionToken());
+		stsCredentials.setExpiration(awsCredentials.getExpiration());
+		return stsCredentials;
+	}
 
 	@Override
 	public void validateCanAddFile(UserInfo userInfo, String fileHandleId, String parentId) {

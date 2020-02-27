@@ -37,6 +37,8 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -1481,5 +1483,15 @@ public class EntityController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestParam(value = "type") DataType dataType) {
 		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
+	}
+
+	/** Gets the temporary S3 credentials from STS for the given entity. */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_STS }, method = RequestMethod.GET)
+	public @ResponseBody StsCredentials getTemporaryCredentialsForEntity(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestParam(value="permission") StsPermission permission) {
+		return serviceProvider.getEntityService().getTemporaryCredentialsForEntity(userId, id, permission);
 	}
 }

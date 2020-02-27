@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -35,6 +36,8 @@ import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -74,6 +77,8 @@ public class EntityServiceImpl implements EntityService {
 	private EntityManager entityManager;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	@Autowired
+	private StsManager stsManager;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -682,5 +687,12 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
+	}
+
+	@Override
+	public StsCredentials getTemporaryCredentialsForEntity(Long userId, String entityId, StsPermission permission) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return stsManager.getTemporaryCredentials(userInfo, entityId, permission);
 	}
 }
