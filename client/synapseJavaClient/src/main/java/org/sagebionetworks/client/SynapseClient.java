@@ -1977,6 +1977,15 @@ public interface SynapseClient extends BaseClient {
 			OIDCAuthorizationRequest authorizationRequest) throws SynapseException;
 	
 	/**
+	 * Checks whether user has already authorized the OAuth client for the given scope/claims.
+	 * 
+	 * @param authorizationRequest
+	 * @return true iff the user has already given their authorization
+	 * @throws SynapseException
+	 */
+	boolean hasUserAuthorizedClient(OIDCAuthorizationRequest authorizationRequest) throws SynapseException;
+	
+	/**
 	 * get access code for a given client, scopes, response type(s), and extra claim(s).
 	 * This request does not need to be authenticated.
 	 * 

@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -185,10 +188,24 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return scopeDescriptions;
 	}
 	
+	static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		String text = authorizationRequest.getScope()+authorizationRequest.getClaims();
+		MessageDigest digest;
+		try {
+			digest = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+		return new String(hash, StandardCharsets.UTF_8);
+	}
+	
 	@Override
 	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
-		return oauthDao.lookupAuthorizationConsent(userInfo.getId(), authorizationRequest.getClientId(), 
-				authorizationRequest.getScope(), authorizationRequest.getClaims());
+		Date grantedOn = oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(authorizationRequest.getClientId()), 
+				getScopeHash(authorizationRequest));
+		return grantedOn!=null;
 	}
 
 	@Override
@@ -225,7 +242,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
-		oauthDao.saveAuthorizationConsent(userInfo.getId(), client.getClient_id(), authorizationRequest.getScope(), authorizationRequest.getClaims());
+		oauthDao.saveAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(authorizationRequest.getClientId()), 
+				getScopeHash(authorizationRequest), new Date());
 		return result;
 	}
 

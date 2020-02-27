@@ -253,7 +253,13 @@ public class ITOpenIDConnectTest {
 		// make sure we got something back
 		assertFalse(description.getScope().isEmpty());
 		
+		// We have not yet authorized the client
+		assertFalse(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		
 		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		
+		// Now we HAVE authorized the client
+		assertTrue(synapseOne.hasUserAuthorizedClient(authorizationRequest));
 		
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;

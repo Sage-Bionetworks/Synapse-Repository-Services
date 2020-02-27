@@ -26,7 +26,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
@@ -201,6 +200,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
+import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
@@ -491,6 +491,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_CLIENT_SECRET = AUTH_OAUTH_2_CLIENT+"/secret/";
 	public static final String AUTH_OAUTH_2_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	public static final String AUTH_OAUTH_2_REQUEST_CONSENT = AUTH_OAUTH_2+"/consent";
+	private static final String AUTH_OAUTH_2_CONSENT_CHECK = AUTH_OAUTH_2+"/consentcheck";
 	public static final String AUTH_OAUTH_2_TOKEN = AUTH_OAUTH_2+"/token";
 	public static final String AUTH_OAUTH_2_USER_INFO = AUTH_OAUTH_2+"/userinfo";
 	
@@ -4388,6 +4389,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(
 			OIDCAuthorizationRequest authorizationRequest) throws SynapseException {
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_REQUEST_DESCRIPTION, authorizationRequest, OIDCAuthorizationRequestDescription.class);
+	}
+	
+	@Override
+	public boolean hasUserAuthorizedClient(OIDCAuthorizationRequest authorizationRequest) throws SynapseException {
+		OAuthConsentGrantedResponse response =  postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CONSENT_CHECK, 
+				authorizationRequest, OAuthConsentGrantedResponse.class);
+		return response.getGranted();
 	}
 
 	@Override
