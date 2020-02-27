@@ -56,7 +56,7 @@ public class OAuthDaoImpl implements OAuthDao {
 	public void saveAuthorizationConsent(Long userId, Long clientId, String scopeHash, Date date) {
 		Long id = idGenerator.generateNewId(IdType.OAUTH_AUTHORIZATION_CONSENT);
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(INSERT_OR_UPDATE_SQL, id, etag, userId, clientId, scopeHash, date, etag, date);
+		jdbcTemplate.update(INSERT_OR_UPDATE_SQL, id, etag, userId, clientId, scopeHash, date.getTime(), etag, date.getTime());
 	}
 
 	@Override

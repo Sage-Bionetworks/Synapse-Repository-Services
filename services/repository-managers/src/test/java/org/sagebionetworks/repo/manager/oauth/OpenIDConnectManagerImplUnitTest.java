@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -98,6 +99,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private OAuthClientDao mockOauthClientDao;
+
+	@Mock
+	private OAuthDao mockOauthDao;
 
 	@Mock
 	private AuthenticationDAO mockAuthDao;
@@ -436,8 +440,68 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCheckClientAuthorization() throws Exception {
-		assertTrue(false); //TODO
+	public void tesHasUserGrantedConsent_NoConsent() throws Exception {
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		
+		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		assertNotNull(scopeHash);
+		
+		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash)).thenReturn(null);
+
+		// method under test
+		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
+		
+		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash);
+		
+		assertFalse(result);
+	}
+
+	@Test
+	public void tesHasUserGrantedConsent_Granted() throws Exception {
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		
+		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		assertNotNull(scopeHash);
+		
+		Date grantedOn = new Date();
+		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash)).thenReturn(grantedOn);
+
+		// method under test
+		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
+		
+		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash);
+		
+		assertTrue(result);
+	}
+
+	@Test
+	public void tesHasUserGrantedConsent_GrantExpired() throws Exception {
+		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
+		
+		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		assertNotNull(scopeHash);
+		
+		Date grantedOn = new Date(System.currentTimeMillis()-1000L*3600L*24*365*10); // granted 10 years ago
+		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash)).thenReturn(grantedOn);
+
+		// method under test
+		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
+		
+		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(OAUTH_CLIENT_ID), 
+				scopeHash);
+		
+		assertFalse(result);
 	}
 
 	@Test
