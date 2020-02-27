@@ -15,6 +15,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class OAuthDaoImpl implements OAuthDao {
@@ -61,8 +62,12 @@ public class OAuthDaoImpl implements OAuthDao {
 
 	@Override
 	public Date lookupAuthorizationConsent(Long userId, Long clientId, String scopeHash) {
-		Long result = jdbcTemplate.queryForObject(LOOKUP_SQL, Long.class, userId, clientId, scopeHash);
-		return result==null ? null : new Date(result);
+		try {
+			Long result = jdbcTemplate.queryForObject(LOOKUP_SQL, Long.class, userId, clientId, scopeHash);
+			return new Date(result);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	@Override
