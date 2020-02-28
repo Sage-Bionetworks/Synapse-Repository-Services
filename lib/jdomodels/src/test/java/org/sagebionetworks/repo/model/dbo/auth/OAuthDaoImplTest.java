@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_GRANTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_SCOPE_HASH;
@@ -13,13 +12,26 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
+import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
+import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthorizationConsent;
+import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -29,6 +41,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 class OAuthDaoImplTest {
+	private static final String SECTOR_IDENTIFIER_ENCRYPTION_SECRET ="sector identifier secret";
+	private static final String CLIENT_NAME = "Third paty app";
+	private static final String SECTOR_IDENTIFIER = "https://foo.bar";
 	
 	@Autowired
 	private OAuthDao oauthDao;
@@ -36,8 +51,14 @@ class OAuthDaoImplTest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
-	private static final long USER_ID = 101L;
-	private static final long CLIENT_ID = 999L;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private OAuthClientDao oauthClientDao;
+
+	private Long userId;
+	private Long clientId;
 	private static final String SCOPE_HASH;
 	private static final Date GRANTED_ON = new Date();
 	
@@ -53,9 +74,47 @@ class OAuthDaoImplTest {
 		SCOPE_HASH = new String(hash, StandardCharsets.UTF_8);
 	}
 
+	@Before
+	public void setUp() throws Exception {
+		
+		// Initialize a UserGroup
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(true);
+		userId = userGroupDAO.create(ug);
+		
+		// create an OAuthClient to grant consent to
+		SectorIdentifier sectorIdentifier = new SectorIdentifier();
+		sectorIdentifier.setCreatedBy(userId);
+		sectorIdentifier.setCreatedOn(System.currentTimeMillis());
+		sectorIdentifier.setSecret(SECTOR_IDENTIFIER_ENCRYPTION_SECRET);
+		sectorIdentifier.setSectorIdentifierUri(SECTOR_IDENTIFIER);
+		oauthClientDao.createSectorIdentifier(sectorIdentifier);
+		OAuthClient oauthClient = new OAuthClient();
+		oauthClient.setClient_name(CLIENT_NAME);
+		oauthClient.setEtag(UUID.randomUUID().toString());
+		oauthClient.setCreatedBy(userId.toString());
+		oauthClient.setSector_identifier(SECTOR_IDENTIFIER);
+		oauthClient.setVerified(false);
+		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
+		assertNotNull(oauthClient.getClient_id());
+	}
+		
 	@AfterEach
 	public void tearDown() throws Exception {
-		oauthDao.deleteAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH);
+		oauthDao.deleteAuthorizationConsent(userId, clientId, SCOPE_HASH);
+		
+		try {
+			oauthClientDao.deleteOAuthClient(clientId.toString());
+			oauthClientDao.deleteSectorIdentifer(SECTOR_IDENTIFIER);
+		} catch (NotFoundException e) {
+			// let pass
+		}
+		
+		try {
+			userGroupDAO.delete(userId.toString());
+		} catch (NotFoundException e) {
+			// let pass
+		}
 	}
 	
 	private static final RowMapper<DBOAuthorizationConsent> ROW_MAPPER = (new DBOAuthorizationConsent()).getTableMapping();
@@ -70,32 +129,32 @@ class OAuthDaoImplTest {
 	@Test
 	void testRoundtrip() {
 		// method under test
-		assertNull(oauthDao.lookupAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH));
+		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
 		// method under test
-		oauthDao.saveAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH, GRANTED_ON);
+		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON);
 		
-		DBOAuthorizationConsent origDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {USER_ID, CLIENT_ID, SCOPE_HASH}, ROW_MAPPER);
+		DBOAuthorizationConsent origDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {userId, clientId, SCOPE_HASH}, ROW_MAPPER);
 		
 		// method under test
-		assertEquals(GRANTED_ON, oauthDao.lookupAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH));
+		assertEquals(GRANTED_ON, oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
 		// method under test
-		assertNull(oauthDao.lookupAuthorizationConsent(USER_ID, CLIENT_ID, "some other hash"));
+		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, "some other hash"));
 		
 		Date differentTime = new Date(GRANTED_ON.getTime()+1000L);
-		oauthDao.saveAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH, differentTime);
+		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime);
 		
 		// method under test
-		assertEquals(differentTime, oauthDao.lookupAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH));
+		assertEquals(differentTime, oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
 		
 		// check that etag has changed, ID has not
-		DBOAuthorizationConsent updatedDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {USER_ID, CLIENT_ID, SCOPE_HASH}, ROW_MAPPER);
+		DBOAuthorizationConsent updatedDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {userId, clientId, SCOPE_HASH}, ROW_MAPPER);
 		assertNotEquals(origDbo.geteTag(), updatedDbo.geteTag());
 		assertEquals(origDbo.getId(), updatedDbo.getId());
 		
 		// method under test
-		oauthDao.deleteAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH);
+		oauthDao.deleteAuthorizationConsent(userId, clientId, SCOPE_HASH);
 		
-		assertNull(oauthDao.lookupAuthorizationConsent(USER_ID, CLIENT_ID, SCOPE_HASH));
+		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
 	}
 
 }
