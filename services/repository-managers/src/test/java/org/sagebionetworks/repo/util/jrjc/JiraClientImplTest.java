@@ -97,7 +97,7 @@ public class JiraClientImplTest {
         assertTrue(3L==issueTypeId);
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test(expected=JiraClientException.class)
     public void getProjectInfoIssueTypeNotFound() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
@@ -140,7 +140,7 @@ public class JiraClientImplTest {
 
     }
 
-    @Test(expected=RuntimeException.class)
+    @Test(expected=JiraClientException.class)
     public void getProjectInfoInvalidJson() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
@@ -232,7 +232,7 @@ public class JiraClientImplTest {
         assertEquals("summary", m.get("Summary"));
     }
 
-    @Test(expected=RuntimeException.class)
+    @Test(expected=JiraClientException.class)
     public void getFieldsInvalidJson() throws Exception {
         String expectedJson =
                 "[" +
@@ -309,9 +309,9 @@ public class JiraClientImplTest {
     public void createRequest() throws Exception {
 
         SimpleHttpRequest req;
-        req = jiraClient.createRequest("/aPath/", "aResource", "application/json");
+        req = jiraClient.createRequest("/aPath/", "aResource");
         assertEquals("https://sagebionetworks.jira.com/aPath/aResource", req.getUri());
-        req = jiraClient.createRequest("/aPath/", null, "application/json");
+        req = jiraClient.createRequest("/aPath/", null);
         assertEquals("https://sagebionetworks.jira.com/aPath/", req.getUri());
 
         Map<String, String> headers = req.getHeaders();
@@ -321,9 +321,9 @@ public class JiraClientImplTest {
 
     }
 
-    @Test(expected=IllegalArgumentException.class)
-    public void createRequestBadPath() {
-        jiraClient.createRequest("/aPath", "aResource", "application/json");
+    @Test(expected=JiraClientException.class)
+    public void createRequestBadPath() throws JiraClientException {
+        jiraClient.createRequest("/aPath", "aResource");
     }
 
     @Test

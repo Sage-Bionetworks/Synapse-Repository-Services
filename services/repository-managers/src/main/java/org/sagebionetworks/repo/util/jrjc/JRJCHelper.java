@@ -1,15 +1,8 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-
 import java.util.HashMap;
 import java.util.Map;
 
-import com.atlassian.jira.rest.client.api.domain.BasicIssue;
-import com.atlassian.jira.rest.client.api.domain.Field;
-import com.atlassian.jira.rest.client.api.domain.IssueType;
-import com.atlassian.jira.rest.client.api.domain.Project;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import org.json.simple.JSONObject;
 
 public class JRJCHelper {
