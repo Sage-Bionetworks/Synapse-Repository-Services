@@ -214,6 +214,7 @@ public class OpenIDConnectController {
 	
 	/**
 	 * Check whether user has already granted consent for the given OAuth client, scope, and claims.
+	 * Consent persists for one year.
 	 * 
 	 * @param userId
 	 * @param authorizationRequest The client, scope and claims for which the user may grant consent

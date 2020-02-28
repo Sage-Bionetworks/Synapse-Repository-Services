@@ -91,7 +91,7 @@ class OAuthDaoImplTest {
 		oauthClient.setSector_identifier(SECTOR_IDENTIFIER);
 		oauthClient.setVerified(false);
 		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
-		assertNotNull(oauthClient.getClient_id());
+		clientId = Long.valueOf(oauthClient.getClient_id());
 	}
 		
 	@AfterEach
