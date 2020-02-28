@@ -17,15 +17,9 @@ import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFA
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,13 +61,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.atlassian.jira.rest.client.api.OptionalIterable;
-import com.atlassian.jira.rest.client.api.domain.BasicIssue;
-import com.atlassian.jira.rest.client.api.domain.Field;
-import com.atlassian.jira.rest.client.api.domain.IssueType;
-import com.atlassian.jira.rest.client.api.domain.Project;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
-
 @RunWith(MockitoJUnitRunner.class)
 public class AccessRequirementManagerImplUnitTest {
 
@@ -97,29 +84,34 @@ public class AccessRequirementManagerImplUnitTest {
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
 	@Mock
-	Project mockProject;
+    JSONObject mockProject;
+	@Mock
+    JSONObject mockProjectInfo;
 
-	
+	private Map<String, String> fields;
+
+
 	@Before
 	public void setUp() throws Exception {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.com");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
-		Iterable<IssueType> issueTypes = Arrays.asList(new IssueType[]{
-				new IssueType(null, 1L, "Flag", false, null, null),
-				new IssueType(null, 2L, "Access Restriction", false, null, null) 
-		});
-		when(mockProject.getIssueTypes()).thenReturn(new OptionalIterable<IssueType>(issueTypes));
-		Iterable<Field> fields = Arrays.asList(new Field[]{
-				new Field("101", "Synapse Principal ID", null, false, false, false, null),
-				new Field("102", "Synapse User Display Name", null, false, false, false, null),
-				new Field("103", "Synapse Data Object", null, false, false, false, null)
-		});
-		when(jiraClient.getFields()).thenReturn(fields);
-		when(jiraClient.getProject(anyString())).thenReturn(mockProject);
-		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
-		
+
+        when(mockProjectInfo.get("id")).thenReturn("projectId");
+        when(mockProjectInfo.get("issueTypeId")).thenReturn(10000L);
+
+        fields = new HashMap<String, String>();
+        fields.put("Synapse Principal ID", "id1");
+        fields.put("Synapse User Display Name", "id2");
+        fields.put("Synapse Data Object", "id3");
+        when(jiraClient.getFields()).thenReturn(fields);
+
+        when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
+
+		when(mockProject.get("key")).thenReturn("SG-101");
+        when(jiraClient.createIssue(anyObject())).thenReturn(mockProject);
+
 		// by default the user is authorized to create, edit.  individual tests may override these settings
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
@@ -144,7 +136,7 @@ public class AccessRequirementManagerImplUnitTest {
 		toCreate.setSubjectIds(null);
 		arm.createAccessRequirement(userInfo, toCreate);
 	}
-	
+
 	private AccessRequirement createExpectedAR() {
 		ManagedACTAccessRequirement expectedAR = new ManagedACTAccessRequirement();
 		expectedAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
@@ -172,9 +164,9 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(ars);
 		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
-		
+
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
-		
+
 		// test that the right AR was created
 		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
 		verify(accessRequirementDAO).create(argument.capture());
@@ -193,16 +185,16 @@ public class AccessRequirementManagerImplUnitTest {
 
 		// test that jira client was called to create issue
 		// we don't test the *content* of the issue because that's tested in JRJCHelperTest
-		verify(jiraClient).createIssue((IssueInput)anyObject());
+		verify(jiraClient).createIssue(anyObject());
 	}
-	
+
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementWithoutREADPermission() throws Exception {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.accessDenied(""));
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
-	
+
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementWithoutUPDATEPermission() throws Exception {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationStatus.authorized());
@@ -210,7 +202,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
-	
+
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateLockAccessRequirementAlreadyExists() throws Exception {
 		Set<String> ars = new HashSet<String>();
@@ -222,14 +214,14 @@ public class AccessRequirementManagerImplUnitTest {
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
-	
+
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
 		arm.createAccessRequirement(userInfo, ar);
 	}
-	
+
 	@Test
 	public void testUnmetForEntity() throws Exception {
 		Long mockDownloadARId = 1L;
@@ -244,9 +236,9 @@ public class AccessRequirementManagerImplUnitTest {
 		mockNode.setNodeType(EntityType.file);
 		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
 		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)), 
-				RestrictableObjectType.ENTITY, 
-				Collections.singleton(userInfo.getId()), 
+				Collections.singletonList(KeyFactory.stringToKey(TEST_ENTITY_ID)),
+				RestrictableObjectType.ENTITY,
+				Collections.singleton(userInfo.getId()),
 				Collections.singletonList(DOWNLOAD))).
 				thenReturn(Collections.singletonList(mockDownloadARId));
 		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
@@ -956,7 +948,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 	}
 
-	@Test 
+	@Test
 	public void testValidateAccessRequirement() {
 		AccessRequirement ar = createExpectedAR();
 		AccessRequirementManagerImpl.validateAccessRequirement(ar);

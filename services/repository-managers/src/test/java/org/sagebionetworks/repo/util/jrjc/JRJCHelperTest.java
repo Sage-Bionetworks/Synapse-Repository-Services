@@ -1,28 +1,21 @@
 package org.sagebionetworks.repo.util.jrjc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import com.atlassian.jira.rest.client.api.OptionalIterable;
-import com.atlassian.jira.rest.client.api.domain.BasicIssue;
-import com.atlassian.jira.rest.client.api.domain.Field;
-import com.atlassian.jira.rest.client.api.domain.IssueType;
-import com.atlassian.jira.rest.client.api.domain.Project;
-import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
-import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
-import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 
 public class JRJCHelperTest {
 	
@@ -30,63 +23,76 @@ public class JRJCHelperTest {
 	private static final String TEST_DISPLAY_NAME = "Foo Bar";
 	private static final String TEST_DATA_OBJECT_ID = "syn98786543";
 	
-	private Project sgProject;
-	private Iterable<Field> fields;
+	private JSONObject mockProject;
+	private JSONObject mockProjectInfo;
+	private Map<String,String> fields;
 	JiraClient jiraClient;
 	
 	@Before
 	public void setUp() throws Exception {
-		sgProject = Mockito.mock(Project.class);
-		Iterable<IssueType> issueTypes = Arrays.asList(new IssueType[]{
-				new IssueType(null, 1L, "Flag", false, null, null),
-				new IssueType(null, 2L, "Access Restriction", false, null, null) 
-		});
-		when(sgProject.getIssueTypes()).thenReturn(new OptionalIterable<IssueType>(issueTypes));
-		fields = Arrays.asList(new Field[]{
-				new Field("101", "Synapse Principal ID", null, false, false, false, null),
-				new Field("102", "Synapse User Display Name", null, false, false, false, null),
-				new Field("103", "Synapse Data Object", null, false, false, false, null)
-		});
+		mockProject = Mockito.mock(JSONObject.class);
+		when(mockProject.get("key")).thenReturn("SG-101");
+
+		mockProjectInfo = Mockito.mock(JSONObject.class);
+		when(mockProjectInfo.get("id")).thenReturn("projectId");
+		when(mockProjectInfo.get("issueTypeId")).thenReturn(10000L);
+
+		fields = new HashMap<String, String>();
+		fields.put("Synapse Principal ID", "id1");
+		fields.put("Synapse User Display Name", "id2");
+		fields.put("Synapse Data Object", "id3");
+
 		jiraClient = Mockito.mock(JiraClient.class);
 		when(jiraClient.getFields()).thenReturn(fields);
-		when(jiraClient.getProject(anyString())).thenReturn(sgProject);
-		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
+		when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
+		when(jiraClient.createIssue(anyObject())).thenReturn(mockProject);
+
 	}
 
 	@Test
-	public void testCreateRestrictIssue() throws Exception {		
-		ArgumentCaptor<IssueInput> issueInputCaptor = ArgumentCaptor.forClass(IssueInput.class);
+	public void testCreateRestrictIssue() throws Exception {
+		ArgumentCaptor<JSONObject> issueCaptor = ArgumentCaptor.forClass(JSONObject.class);
+
+		// Call under test
 		JRJCHelper.createRestrictIssue(jiraClient, TEST_PRINCIPAL_ID, TEST_DISPLAY_NAME, TEST_DATA_OBJECT_ID);
-		verify(jiraClient).createIssue(issueInputCaptor.capture());
-		IssueInput issueInput = issueInputCaptor.getValue();
-		Map<String,Object> projectValuesMap = new HashMap<String,Object>();
-		projectValuesMap.put("key", "SG");
-		Map<String,Object> issueTypeValuesMap = new HashMap<String,Object>();
-		issueTypeValuesMap.put("id", "2");
-		assertEquals(new FieldInput("summary", "Request for ACT to add data restriction"), issueInput.getField("summary"));
-		assertEquals(new FieldInput("project", new ComplexIssueInputFieldValue(projectValuesMap)), issueInput.getField("project"));
-		assertEquals(new FieldInput("issuetype", new ComplexIssueInputFieldValue(issueTypeValuesMap)), issueInput.getField("issuetype"));
-		assertEquals(new FieldInput("101", TEST_PRINCIPAL_ID), issueInput.getField("101"));
-		assertEquals(new FieldInput("102", TEST_DISPLAY_NAME), issueInput.getField("102"));
-		assertEquals(new FieldInput("103", TEST_DATA_OBJECT_ID), issueInput.getField("103"));
+
+		verify(jiraClient).createIssue(issueCaptor.capture());
+		JSONObject issueInput = issueCaptor.getValue();
+
+		assertTrue(issueInput.containsKey("fields"));
+		JSONObject fields = (JSONObject) issueInput.get("fields");
+		assertEquals("Request for ACT to add data restriction", fields.get("summary"));
+		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
+		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
+		assertEquals(TEST_DATA_OBJECT_ID, fields.get("id3"));
+		JSONObject o = (JSONObject) fields.get("project");
+		assertEquals("projectId", o.get("id"));
+		o = (JSONObject) fields.get("issuetype");
+		assertEquals(10000L, o.get("id"));
+
 	}
-	
+
 	@Test
-	public void testCreateFlagIssue() throws Exception {		
-		ArgumentCaptor<IssueInput> issueInputCaptor = ArgumentCaptor.forClass(IssueInput.class);
+	public void testCreateFlagIssue() throws Exception {
+		ArgumentCaptor<JSONObject> issueCaptor = ArgumentCaptor.forClass(JSONObject.class);
+
+		// Call under test
 		JRJCHelper.createFlagIssue(jiraClient, TEST_PRINCIPAL_ID, TEST_DISPLAY_NAME, TEST_DATA_OBJECT_ID);
-		verify(jiraClient).createIssue(issueInputCaptor.capture());
-		IssueInput issueInput = issueInputCaptor.getValue();
-		Map<String,Object> projectValuesMap = new HashMap<String,Object>();
-		projectValuesMap.put("key", "SG");
-		Map<String,Object> issueTypeValuesMap = new HashMap<String,Object>();
-		issueTypeValuesMap.put("id", "1");
-		assertEquals(new FieldInput("summary", "Request for ACT to review data"), issueInput.getField("summary"));
-		assertEquals(new FieldInput("project", new ComplexIssueInputFieldValue(projectValuesMap)), issueInput.getField("project"));
-		assertEquals(new FieldInput("issuetype", new ComplexIssueInputFieldValue(issueTypeValuesMap)), issueInput.getField("issuetype"));
-		assertEquals(new FieldInput("101", TEST_PRINCIPAL_ID), issueInput.getField("101"));
-		assertEquals(new FieldInput("102", TEST_DISPLAY_NAME), issueInput.getField("102"));
-		assertEquals(new FieldInput("103", TEST_DATA_OBJECT_ID), issueInput.getField("103"));
+
+		verify(jiraClient).createIssue(issueCaptor.capture());
+		JSONObject issueInput = issueCaptor.getValue();
+
+		assertTrue(issueInput.containsKey("fields"));
+		JSONObject fields = (JSONObject) issueInput.get("fields");
+		assertEquals("Request for ACT to review data", fields.get("summary"));
+		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
+		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
+		assertEquals(TEST_DATA_OBJECT_ID, fields.get("id3"));
+		JSONObject o = (JSONObject) fields.get("project");
+		assertEquals("projectId", o.get("id"));
+		o = (JSONObject) fields.get("issuetype");
+		assertEquals(10000L, o.get("id"));
+
 	}
 
 }
