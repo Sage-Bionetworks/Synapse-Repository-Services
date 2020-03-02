@@ -48,7 +48,7 @@ public class JiraClientImpl implements JiraClient {
 	}
 
 	@Override
-	public JSONObject getProjectInfo(String projectKey, String issueTypeName) {
+	public ProjectInfo getProjectInfo(String projectKey, String issueTypeName) {
 		SimpleHttpRequest req = createRequest(JIRA_API_PROJECT_URL, "SG");
 
 		String json = execRequest(HttpMethod.GET, req, null);
@@ -78,10 +78,8 @@ public class JiraClientImpl implements JiraClient {
 		catch (ParseException e) {
 			throw new JiraClientException("JIRA client: error processing JSON", e);
 		}
-		JSONObject projInfo = new JSONObject();
-		projInfo.put("issueTypeId", issueTypeId);
-		projInfo.put("id", projectId);
-		return projInfo;
+		ProjectInfo projectInfo = new ProjectInfo(projectId, issueTypeId);
+		return projectInfo;
 	}
 
 	@Override
@@ -110,15 +108,18 @@ public class JiraClientImpl implements JiraClient {
 	}
 
 	@Override
-	public JSONObject createIssue(JSONObject issue) {
+	public CreatedIssue createIssue(BasicIssue issue) {
 		SimpleHttpRequest req = createRequest(JIRA_API_ISSUE_URL, null);
 
-		String json = execRequest(HttpMethod.POST, req, issue);
+		String json = execRequest(HttpMethod.POST, req, issue.toJONObject().toJSONString());
 
-		JSONObject createdIssue = null;
+		CreatedIssue createdIssue = new CreatedIssue();
 		try {
 			JSONParser parser = new JSONParser();
-			createdIssue = (JSONObject) parser.parse(json);
+			JSONObject cIssue = (JSONObject) parser.parse(json);
+			createdIssue.setId((String) cIssue.get("id"));
+			createdIssue.setKey((String) cIssue.get("key"));
+			createdIssue.setUrl((String) cIssue.get("url"));
 		}
 		catch (ParseException e) {
 			throw new JiraClientException("JIRA client: error processing JSON", e);
@@ -142,7 +143,7 @@ public class JiraClientImpl implements JiraClient {
 		return request;
 	}
 
-	String execRequest(HttpMethod method, SimpleHttpRequest req, JSONObject body) {
+	String execRequest(HttpMethod method, SimpleHttpRequest req, String body) {
 		SimpleHttpResponse resp = null;
 		try {
 			switch (method) {
@@ -153,7 +154,7 @@ public class JiraClientImpl implements JiraClient {
 					if (body == null) {
 						throw new JiraClientException(new IllegalArgumentException("Body cannot be null"));
 					}
-					resp = httpClient.post(req, body.toJSONString());
+					resp = httpClient.post(req, body);
 					break;
 				default:
 					throw new JiraClientException(new IllegalArgumentException("Method can only be 'GET' or 'POST'"));

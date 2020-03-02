@@ -58,7 +58,9 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.util.jrjc.CreatedIssue;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
+import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -84,9 +86,9 @@ public class AccessRequirementManagerImplUnitTest {
 	@Mock
 	private NotificationEmailDAO notificationEmailDao;
 	@Mock
-    JSONObject mockProject;
+	CreatedIssue mockProject;
 	@Mock
-    JSONObject mockProjectInfo;
+	ProjectInfo mockProjectInfo;
 
 	private Map<String, String> fields;
 
@@ -98,8 +100,8 @@ public class AccessRequirementManagerImplUnitTest {
 		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 
-        when(mockProjectInfo.get("id")).thenReturn("projectId");
-        when(mockProjectInfo.get("issueTypeId")).thenReturn(10000L);
+        when(mockProjectInfo.getProjectId()).thenReturn("projectId");
+        when(mockProjectInfo.getIssueTypeId()).thenReturn(10000L);
 
         fields = new HashMap<String, String>();
         fields.put("Synapse Principal ID", "id1");
@@ -109,7 +111,7 @@ public class AccessRequirementManagerImplUnitTest {
 
         when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
 
-		when(mockProject.get("key")).thenReturn("SG-101");
+		when(mockProject.getKey()).thenReturn("SG-101");
         when(jiraClient.createIssue(anyObject())).thenReturn(mockProject);
 
 		// by default the user is authorized to create, edit.  individual tests may override these settings

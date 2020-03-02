@@ -21,8 +21,8 @@ public class JRJCHelper {
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
-        JSONObject createdIssue = createIssue(jiraClient, JIRA_FLAG_ISSUE_TYPE_NAME, FLAG_SUMMARY, params);
-		return (String) createdIssue.get("key");
+        CreatedIssue createdIssue = createIssue(jiraClient, JIRA_FLAG_ISSUE_TYPE_NAME, FLAG_SUMMARY, params);
+		return (String) createdIssue.getKey();
 	}
 	
 	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
@@ -30,8 +30,8 @@ public class JRJCHelper {
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
-        JSONObject createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
-        return (String) createdIssue.get("key");
+        CreatedIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
+        return (String) createdIssue.getKey();
 	} 
 	
 	/**
@@ -41,28 +41,44 @@ public class JRJCHelper {
 	 * @param params a map from field names to field values
 	 * @return
 	 */
-	public static JSONObject createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,String> params) {
-		JSONObject projectInfo = jiraClient.getProjectInfo(JIRA_PROJECT_KEY, issueTypeName);
-		String projectId = (String) projectInfo.get("id");
-		Long issueTypeId = (Long) projectInfo.get("issueTypeId");
-
+	public static CreatedIssue createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,String> params) {
+		ProjectInfo projectInfo = jiraClient.getProjectInfo(JIRA_PROJECT_KEY, issueTypeName);
+		String projectId = projectInfo.getProjectId();
+		Long issueTypeId = projectInfo.getIssueTypeId();
 		Map<String, String> fieldsMap = jiraClient.getFields();
-		JSONObject issue = new JSONObject();
-		JSONObject issueFields = new JSONObject();
-		JSONObject o = new JSONObject();
-		issueFields.put("summary", summary);
-		o = new JSONObject();
-		o.put("id", projectId);
-		issueFields.put("project", o);
-		o = new JSONObject();
-		o.put("id", issueTypeId);
-		issueFields.put("issuetype", o);
+
+//		JSONObject issue = new JSONObject();
+//		JSONObject issueFields = new JSONObject();
+//		JSONObject o = new JSONObject();
+//		issueFields.put("summary", summary);
+//		o = new JSONObject();
+//		o.put("id", projectId);
+//		issueFields.put("project", o);
+//		o = new JSONObject();
+//		o.put("id", issueTypeId);
+//		issueFields.put("issuetype", o);
+//		for (String k: params.keySet()) {
+//			String fk = fieldsMap.get(k);
+//			issueFields.put(fk, params.get(k));
+//		}
+//		issue.put("fields", issueFields);
+//
+		BasicIssue basicIssue = new BasicIssue();
+		basicIssue.setProjectId(projectId);
+		basicIssue.setIssueTypeId(issueTypeId);
+		basicIssue.setSummary(summary);
+		basicIssue.setCustomFields(mapParams(fieldsMap, params));
+
+		CreatedIssue createdIssue = jiraClient.createIssue(basicIssue);
+		return createdIssue;
+	}
+
+	private static Map<String, String> mapParams(Map<String, String>fieldsMap, Map<String, String> params) {
+		Map<String, String> mapped = new HashMap<>();
 		for (String k: params.keySet()) {
 			String fk = fieldsMap.get(k);
-			issueFields.put(fk, params.get(k));
+			mapped.put(fk, params.get(k));
 		}
-		issue.put("fields", issueFields);
-		JSONObject createdIssue = jiraClient.createIssue(issue);
-		return createdIssue;
+		return mapped;
 	}
 }

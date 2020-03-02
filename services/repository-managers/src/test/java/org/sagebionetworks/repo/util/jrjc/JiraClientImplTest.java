@@ -88,12 +88,12 @@ public class JiraClientImplTest {
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
+        ProjectInfo pInfo = jiraClient.getProjectInfo("SG", "Task");
 
         assertNotNull(pInfo);
-        String projId = (String) pInfo.get("id");
+        String projId = (String) pInfo.getProjectId();
         assertEquals("10000", projId);
-        Long issueTypeId = (Long) pInfo.get("issueTypeId");
+        Long issueTypeId = (Long) pInfo.getIssueTypeId();
         assertTrue(3L==issueTypeId);
     }
 
@@ -136,8 +136,7 @@ public class JiraClientImplTest {
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
-
+        jiraClient.getProjectInfo("SG", "Task");
     }
 
     @Test(expected=JiraClientException.class)
@@ -179,7 +178,7 @@ public class JiraClientImplTest {
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
+        jiraClient.getProjectInfo("SG", "Task");
     }
 
     @Test
@@ -296,13 +295,13 @@ public class JiraClientImplTest {
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 
-        JSONObject issue = new JSONObject();
-        
-        // Call under test
-        JSONObject o = jiraClient.createIssue(issue);
+        BasicIssue issue = new BasicIssue();
 
-        assertNotNull(o);
-        assertEquals("SG-24", o.get("key"));
+        // Call under test
+        CreatedIssue i = jiraClient.createIssue(issue);
+
+        assertNotNull(i);
+        assertEquals("SG-24", i.getKey());
     }
 
     @Test
