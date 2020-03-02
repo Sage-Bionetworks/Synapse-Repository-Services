@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.util.jrjc;
 
 import org.json.simple.JSONObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -11,14 +9,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BasicIssueTest {
-
-    @BeforeEach
-    void setUp() {
-    }
-
-    @AfterEach
-    void tearDown() {
-    }
 
     @Test
     void testToJSONObject() {

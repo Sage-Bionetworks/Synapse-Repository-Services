@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -9,41 +10,45 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.json.simple.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class JRJCHelperTest {
 	
 	private static final String TEST_PRINCIPAL_ID = "1010101";
 	private static final String TEST_DISPLAY_NAME = "Foo Bar";
 	private static final String TEST_DATA_OBJECT_ID = "syn98786543";
 	
-	private CreatedIssue mockProject;
+	@Mock
+	private CreatedIssue mockCreatedIssue;
+	@Mock
 	private ProjectInfo mockProjectInfo;
-	private Map<String,String> fields;
-	JiraClient jiraClient;
-	
-	@Before
-	public void setUp() throws Exception {
-		mockProject = Mockito.mock(CreatedIssue.class);
-		when(mockProject.getKey()).thenReturn("SG-101");
+	@Mock
+	private JiraClient jiraClient;
 
-		mockProjectInfo = Mockito.mock(ProjectInfo.class);
+	private Map<String,String> fields;
+
+	@BeforeEach
+	public void setUp() throws Exception {
+
+		when(mockCreatedIssue.getKey()).thenReturn("SG-101");
+
 		when(mockProjectInfo.getProjectId()).thenReturn("projectId");
 		when(mockProjectInfo.getIssueTypeId()).thenReturn(10000L);
+
+		when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
+		when(jiraClient.createIssue(anyObject())).thenReturn(mockCreatedIssue);
 
 		fields = new HashMap<String, String>();
 		fields.put("Synapse Principal ID", "id1");
 		fields.put("Synapse User Display Name", "id2");
 		fields.put("Synapse Data Object", "id3");
-
-		jiraClient = Mockito.mock(JiraClient.class);
 		when(jiraClient.getFields()).thenReturn(fields);
-		when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
-		when(jiraClient.createIssue(anyObject())).thenReturn(mockProject);
 
 	}
 

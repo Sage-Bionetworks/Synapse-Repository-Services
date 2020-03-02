@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 
 import org.apache.http.HttpHeaders;
@@ -11,6 +12,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.sagebionetworks.simpleHttpClient.*;
 import org.sagebionetworks.url.HttpMethod;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -117,9 +119,7 @@ public class JiraClientImpl implements JiraClient {
 		try {
 			JSONParser parser = new JSONParser();
 			JSONObject cIssue = (JSONObject) parser.parse(json);
-			createdIssue.setId((String) cIssue.get("id"));
-			createdIssue.setKey((String) cIssue.get("key"));
-			createdIssue.setUrl((String) cIssue.get("url"));
+			createdIssue.initFromJSONObject(cIssue);
 		}
 		catch (ParseException e) {
 			throw new JiraClientException("JIRA client: error processing JSON", e);

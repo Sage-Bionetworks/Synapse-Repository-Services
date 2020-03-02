@@ -2,30 +2,29 @@ package org.sagebionetworks.repo.util.jrjc;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.apache.http.ParseException;
-import org.json.simple.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.StackConfigurationSingleton;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.ReflectionUtils;
 
 import java.util.Base64;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class JiraClientImplTest {
 
     @Mock
@@ -37,16 +36,12 @@ public class JiraClientImplTest {
     private static final String USERNAME = "userName";
     private static final String USERAPIKEY = "userApiKey";
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         jiraClient = new JiraClientImpl();
         ReflectionTestUtils.setField(jiraClient, "httpClient", mockHttpClient);
         ReflectionTestUtils.setField(jiraClient, "USERNAME", USERNAME);
         ReflectionTestUtils.setField(jiraClient, "APIKEY", USERAPIKEY);
-    }
-
-    @After
-    public void tearDown() throws Exception {
     }
 
     @Test
@@ -97,7 +92,7 @@ public class JiraClientImplTest {
         assertTrue(3L==issueTypeId);
     }
 
-    @Test(expected=JiraClientException.class)
+    @Test
     public void getProjectInfoIssueTypeNotFound() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
@@ -136,10 +131,13 @@ public class JiraClientImplTest {
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        jiraClient.getProjectInfo("SG", "Task");
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getProjectInfo("SG", "Task");
+                }
+        );
     }
 
-    @Test(expected=JiraClientException.class)
+    @Test
     public void getProjectInfoInvalidJson() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
@@ -177,8 +175,10 @@ public class JiraClientImplTest {
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
-        // Call under test
-        jiraClient.getProjectInfo("SG", "Task");
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getProjectInfo("SG", "Task");
+                }
+        );
     }
 
     @Test
@@ -231,7 +231,7 @@ public class JiraClientImplTest {
         assertEquals("summary", m.get("Summary"));
     }
 
-    @Test(expected=JiraClientException.class)
+    @Test
     public void getFieldsInvalidJson() throws Exception {
         String expectedJson =
                 "[" +
@@ -273,7 +273,10 @@ public class JiraClientImplTest {
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        Map<String, String> m = jiraClient.getFields();
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getFields();
+                }
+        );
     }
 
     @Test
@@ -320,9 +323,12 @@ public class JiraClientImplTest {
 
     }
 
-    @Test(expected=JiraClientException.class)
+    @Test
     public void createRequestBadPath() throws JiraClientException {
-        jiraClient.createRequest("/aPath", "aResource");
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.createRequest("/aPath", "aResource");
+                }
+        );
     }
 
     @Test
@@ -331,9 +337,12 @@ public class JiraClientImplTest {
         JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode()); // Should not fail
     }
 
-    @Test(expected=RuntimeException.class)
+    @Test
     public void handleResponseStatusError() {
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_BAD_REQUEST);
-        JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode());
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode());
+                }
+        );
     }
 }

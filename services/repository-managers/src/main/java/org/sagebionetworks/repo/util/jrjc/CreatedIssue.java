@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.util.Objects;
 
 public class CreatedIssue {
@@ -73,6 +76,15 @@ public class CreatedIssue {
     @Override
     public String toString() {
         return "CreatedIssue [id=" + id + ", key=" + key + ", url=" + url + "]";
+    }
+
+    public void initFromJSONObject(JSONObject jsonObject) {
+        if (!(jsonObject.containsKey("id") && jsonObject.containsKey("key") && jsonObject.containsKey("self"))) {
+            throw new JiraClientException("Error creating CreatedIssue from JSON");
+        }
+        this.setId((String) jsonObject.get("id"));
+        this.setKey((String) jsonObject.get("key"));
+        this.setUrl((String) jsonObject.get("self"));
     }
 
 }

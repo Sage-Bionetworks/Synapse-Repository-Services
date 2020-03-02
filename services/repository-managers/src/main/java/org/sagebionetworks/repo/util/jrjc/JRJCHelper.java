@@ -47,22 +47,6 @@ public class JRJCHelper {
 		Long issueTypeId = projectInfo.getIssueTypeId();
 		Map<String, String> fieldsMap = jiraClient.getFields();
 
-//		JSONObject issue = new JSONObject();
-//		JSONObject issueFields = new JSONObject();
-//		JSONObject o = new JSONObject();
-//		issueFields.put("summary", summary);
-//		o = new JSONObject();
-//		o.put("id", projectId);
-//		issueFields.put("project", o);
-//		o = new JSONObject();
-//		o.put("id", issueTypeId);
-//		issueFields.put("issuetype", o);
-//		for (String k: params.keySet()) {
-//			String fk = fieldsMap.get(k);
-//			issueFields.put(fk, params.get(k));
-//		}
-//		issue.put("fields", issueFields);
-//
 		BasicIssue basicIssue = new BasicIssue();
 		basicIssue.setProjectId(projectId);
 		basicIssue.setIssueTypeId(issueTypeId);
