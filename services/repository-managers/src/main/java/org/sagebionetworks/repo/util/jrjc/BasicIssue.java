@@ -9,7 +9,6 @@ public class BasicIssue {
     private String projectId;
     private Long issueTypeId;
     private Map<String, String> customFields;
-    private String key;
 
     public String getSummary() {
         return summary;
@@ -43,10 +42,6 @@ public class BasicIssue {
         this.customFields = customFields;
     }
 
-    public void setKey(String key) {this.key = key; }
-
-    public String getKey() {return this.key; }
-
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -55,7 +50,6 @@ public class BasicIssue {
         result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
         result = prime * result + ((issueTypeId == null) ? 0 : issueTypeId.hashCode());
         result = prime * result + ((customFields == null) ? 0 : customFields.hashCode());
-        result = prime * result + ((key == null) ? 0 : key.hashCode());
         return result;
     }
 
@@ -88,18 +82,13 @@ public class BasicIssue {
                 return false;
         } else if (!customFields.equals(other.customFields))
             return false;
-        if (key == null) {
-            if (other.key != null)
-                return false;
-        } else if (!key.equals(other.key))
-            return false;
         return true;
     }
 
     @Override
     public String toString() {
         return "BasicIssue [summary=" + summary + ", issueTypeId=" + issueTypeId
-            + ", projectId=" + projectId + ", key=" + key + ", fields=" + customFields + "]";
+            + ", projectId=" + projectId + ", fields=" + customFields + "]";
     }
 
     public JSONObject toJONObject() {
@@ -117,7 +106,6 @@ public class BasicIssue {
                 issueFields.put(k, this.customFields.get(k));
             }
         }
-        issueFields.put("key", this.key);
         issue.put("fields", issueFields);
         return issue;
     }
