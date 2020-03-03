@@ -1,7 +1,15 @@
 package org.sagebionetworks;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.google.common.collect.ImmutableList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,14 +38,8 @@ import org.sagebionetworks.repo.model.project.StsStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.util.ContentDispositionUtils;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.google.common.collect.ImmutableList;
 
 public class ITStorageLocation {
 	private static Long userToDelete;
@@ -194,6 +196,21 @@ public class ITStorageLocation {
 
 		testStsStorageLocation(synapseS3StorageLocationSetting);
 	}
+	
+	@Test
+	public void testBucketOwnerWithMultipleUsers() throws SynapseException {
+		
+		List<String> ownerIdentifiers = ImmutableList.of(
+				"someotherusername",
+				userToDelete.toString(),
+				"1234"
+		);
+		
+		// Create and verify storage location.
+		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = createExternalS3StorageLocation(ownerIdentifiers);
+		
+		synapse.createStorageLocationSetting(externalS3StorageLocationSetting);
+	}
 
 	private void testStsStorageLocation(StsStorageLocationSetting stsStorageLocationSetting) throws SynapseException {
 		String baseKey = stsStorageLocationSetting.getBaseKey();
@@ -232,9 +249,17 @@ public class ITStorageLocation {
 	}
 
 	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation() throws SynapseException {
-		// Ensure owner.txt is in our S3 bucket.
 		String username = synapse.getUserProfile(userToDelete.toString()).getUserName();
-		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);
+		
+		return createExternalS3StorageLocation(ImmutableList.of(username));
+	}
+	
+	private static ExternalS3StorageLocationSetting createExternalS3StorageLocation(List<String> ownerIdentifiers) throws SynapseException {
+		// Ensure owner.txt is in our S3 bucket.
+		
+		String ownerContent = String.join("\n", ownerIdentifiers);
+		
+		byte[] bytes = ownerContent.getBytes(StandardCharsets.UTF_8);
 
 		String baseKey = "integration-test/ITStorageLocation-" + UUID.randomUUID().toString();
 		ObjectMetadata om = new ObjectMetadata();

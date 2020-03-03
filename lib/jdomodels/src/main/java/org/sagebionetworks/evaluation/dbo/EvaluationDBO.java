@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * The database object for a Synapse Evaluation
@@ -361,7 +360,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
 
 			@Override
-			@TemporaryCode(author = "marco.marasca@sagebase.org")
 			public EvaluationDBO createDatabaseObjectFromBackup(
 					EvaluationBackup backup) {
 				EvaluationDBO dbo =   EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
@@ -370,21 +368,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				EvaluationDBOUtil.copyDboToDto(dbo, dto);
 				EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
 				
-				// PLFM-6112: Double check to avoid patching prod, the data in prod comes in from a backup XML 
-				// where the start and end timestamps were set to 0 instead of null when reading from the database 
-				// (See #mapRow in the table mapping above). This only happened for evaluation without a quota set
-				// so we can simply do a dirty check here on the "special" value of 0L. For evaluations with a quota
-				// the start and end timestamps are "computed" and saved correctly.
-				if (dbo.getQuota() == null) {
-					if (dbo.getStartTimestamp() == 0L) {
-						dbo.setStartTimestamp(null);
-					}
-					if (dbo.getEndTimestamp() == 0L) {
-						dbo.setEndTimestamp(null);
-					}
-				}
-				
-				return dbo;				
+				return dbo;
 			}
 
 			@Override

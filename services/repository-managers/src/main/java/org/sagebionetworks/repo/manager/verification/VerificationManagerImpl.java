@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -56,6 +57,7 @@ public class VerificationManagerImpl implements VerificationManager {
 	private PrincipalAliasDAO principalAliasDAO;
 	private AuthorizationManager authorizationManager;
 	private TransactionalMessenger transactionalMessenger;
+	private NotificationEmailDAO notificationEmailDao;
 	
 	public static final String VERIFICATION_APPROVED_TEMPLATE = "message/verificationApprovedTemplate.html";
 	public static final String VERIFICATION_SUBMISSION_TEMPLATE = "message/verificationSubmissionTemplate.html";
@@ -70,6 +72,7 @@ public class VerificationManagerImpl implements VerificationManager {
 	public VerificationManagerImpl(
 			VerificationDAO verificationDao,
 			UserProfileManager userProfileManager,
+			NotificationEmailDAO notificationEmailDao,
 			FileHandleManager fileHandleManager,
 			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
@@ -77,6 +80,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			UserManager userManager) {
 		this.verificationDao = verificationDao;
 		this.userProfileManager = userProfileManager;
+		this.notificationEmailDao=notificationEmailDao;
 		this.fileHandleManager = fileHandleManager;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
@@ -99,6 +103,10 @@ public class VerificationManagerImpl implements VerificationManager {
 			}
 		}
 		populateCreateFields(verificationSubmission, userInfo, new Date());
+		// fill in notification email
+		verificationSubmission.setNotificationEmail(
+				notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())
+				);
 		validateVerificationSubmission(verificationSubmission, userProfileManager.getUserProfile(userInfo.getId().toString()),
 				getOrcid(userInfo.getId()));
 		// User must be owner of file handle Ids
@@ -208,6 +216,47 @@ public class VerificationManagerImpl implements VerificationManager {
 		verificationDao.appendVerificationSubmissionState(verificationSubmissionId, newState);
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
 	}
+	
+	@WriteTransaction
+	@Override
+	public void backfillNotificationEmail(UserInfo userInfo, Long verifiedUserId) {
+		// check that user is in ACT (or an admin)
+		if(!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("You are not a member of the Synapse Access and Compliance Team.");
+		}
+		
+		VerificationSubmission verificationSubmission = verificationDao.getCurrentVerificationSubmissionForUser(verifiedUserId);
+		
+		if (verificationSubmission==null) {
+			throw new IllegalArgumentException(verifiedUserId.toString()+" has no verification record.");			
+		}
+		
+		if (StringUtils.isNotEmpty(verificationSubmission.getNotificationEmail())) {
+			throw new IllegalArgumentException("The verification record for "+verifiedUserId+" already has a notification email.");			
+		}
+		
+		// determine notification email
+		String notificationEmail = null;
+		
+		// if there is just one captured email then it must have been the notification email
+		if(verificationSubmission.getEmails().size()==1) {
+			notificationEmail = verificationSubmission.getEmails().get(0);
+		} else {
+			// most of the remaining can be disambiguated by the current notification email:
+			String currentNotificationEmail = notificationEmailDao.getNotificationEmailForPrincipal(verifiedUserId);
+			if (verificationSubmission.getEmails().contains(currentNotificationEmail)) {
+				notificationEmail = currentNotificationEmail;
+			} else {
+				// For a tiny number we'll just use the first of the list
+				notificationEmail = verificationSubmission.getEmails().get(0);
+			}
+		}
+
+		verificationDao.fillInMissingNotificationEmail(verifiedUserId, notificationEmail);
+		
+		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
+	}
+
 	
 	@Override
 	public List<MessageToUserAndBody> createSubmissionNotification(

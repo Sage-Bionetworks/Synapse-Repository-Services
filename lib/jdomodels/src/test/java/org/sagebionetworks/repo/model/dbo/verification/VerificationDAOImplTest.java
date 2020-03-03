@@ -14,11 +14,13 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -587,5 +589,40 @@ public class VerificationDAOImplTest {
 			assertEquals(expected, submission.getAttachments().isEmpty());
 		}
 	}
+	
+	private static final String NOTIFICATION_EMAIL = "notification@email.com";
+	
+	@Test
+	public void testFillInMissingNotificationEmail() {
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		assertNotNull(created.getId());
+		vsToDelete.add(created.getId());
+		assertNull(created.getNotificationEmail());
+		
+		// Call under test
+		verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
+		
+		VerificationSubmission updated = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
+		
+		assertEquals(NOTIFICATION_EMAIL, updated.getNotificationEmail());
+		
+		// if you try to fill in when it's already filled in you will get an error
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			// method under test
+			verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
+		});		
+	}
+	
+	@Test
+	public void testFillInMissingNotificationEmailNoVerificationSubmission() {
+		// if there is no submission you will get an error
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			// Call under test
+			verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
+		});		
+	}
+	
+	
 	
 }

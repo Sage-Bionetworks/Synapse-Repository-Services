@@ -231,5 +231,11 @@ public class AuthorizationConstants {
 
 	
 	public static final String PROJECT_FILTER_PARAM = "filter";
+	
+	/*
+	 * The ID of the verified user
+	 */
+	public static final String VERIFIED_USER_ID_PARAM = "verifiedUserId";
+
 
 }

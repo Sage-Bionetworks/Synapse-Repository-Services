@@ -13,7 +13,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1746,7 +1745,9 @@ public class SQLUtilsTest {
 				+ " MAX(R.PROJECT_ID) AS PROJECT_ID,"
 				+ " MAX(R.MODIFIED_ON) AS MODIFIED_ON,"
 				+ " MAX(R.MODIFIED_BY) AS MODIFIED_BY,"
-				+ " MAX(R.FILE_ID) AS FILE_ID"
+				+ " MAX(R.FILE_ID) AS FILE_ID,"
+				+ " MAX(R.FILE_SIZE_BYTES) AS FILE_SIZE_BYTES,"
+				+ " MAX(R.FILE_MD5) AS FILE_MD5"
 				, builder.toString());
 	}
 
@@ -1936,7 +1937,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
 	
@@ -1967,7 +1968,7 @@ public class SQLUtilsTest {
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
 				+ " AND R.ID IN (:ids)"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 		assertEquals(Lists.newArrayList("ROW_ID", "ROW_VERSION","ROW_ETAG","ROW_BENEFACTOR","_C1_","_C2_"), headers);
 	}
 
@@ -1996,7 +1997,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 	}
 	
 	@Test
@@ -2024,7 +2025,7 @@ public class SQLUtilsTest {
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
 				+ " AND R.ID IN (:ids)"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 	}
 
 	@Test
@@ -2050,7 +2051,7 @@ public class SQLUtilsTest {
 				+ " ON(R.ID = A.ENTITY_ID)"
 				+ " WHERE R.ID IN (:parentIds)"
 				+ " AND TYPE IN ('project')"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 	}
 
 	@Test
@@ -2076,7 +2077,7 @@ public class SQLUtilsTest {
 				+ " WHERE"
 				+ " R.PARENT_ID IN (:parentIds)"
 				+ " AND TYPE IN ('file')"
-				+ " GROUP BY R.ID", sql);
+				+ " GROUP BY R.ID ORDER BY R.ID", sql);
 	}
 
 	@Test

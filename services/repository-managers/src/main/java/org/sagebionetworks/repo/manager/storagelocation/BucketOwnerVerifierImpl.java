@@ -1,15 +1,18 @@
 package org.sagebionetworks.repo.manager.storagelocation;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -19,14 +22,24 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.ImmutableSet;
+
 @Service
 public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
-
+	
 	public static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
 
-	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that %s has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains the text '%s'. Also see "
+	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that the user has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains a "
+			+ "line separated list of identifiers for the user. Valid identifiers are the id of the user or id of a team the user is part of. Also see "
 			+ EXTERNAL_STORAGE_HELP;
-
+	
+	// Set of teams that are not allowed to be used as identifiers in the owner.txt
+	private static final Set<Long> EXCLUDED_TEAMS = ImmutableSet.of(
+		BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
+		BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()
+	);
+	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 
@@ -51,23 +64,9 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 		String bucketName = storageLocation.getBucket();
 		String baseKey = storageLocation.getBaseKey();
 		String ownerKey = baseKey == null ? OWNER_MARKER : baseKey + "/" + OWNER_MARKER;
-
-		List<PrincipalAlias> ownerAliases = getBucketOwnerAliases(userInfo.getId());
-
-		String ownerContent;
-
-		try (InputStream stream = reader.openStream(bucketName, ownerKey)) {
-
-			BufferedReader content = newStreamReader(stream);
-
-			ownerContent = content.readLine();
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not read username from key " + ownerKey + " from bucket " + bucketName + ". "
-					+ getExplanation(ownerAliases, bucketName, ownerKey));
-		} catch (Exception e) {
-			throw new IllegalArgumentException(e.getMessage() + ". " + getExplanation(ownerAliases, bucketName, ownerKey), e);
-		}
-
+		
+		Set<String> ownerAliases = getBucketOwnerAliases(userInfo);
+		List<String> ownerContent = readOwnerContent(reader, bucketName, ownerKey);
 		validateOwnerContent(ownerContent, ownerAliases, bucketName, ownerKey);
 
 	}
@@ -79,55 +78,82 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 		}
 		return reader;
 	}
+	
+	List<String> readOwnerContent(BucketObjectReader reader, String bucketName, String ownerKey) {
+		try (InputStream stream = reader.openStream(bucketName, ownerKey)) {
 
+			BufferedReader content = newStreamReader(stream);
+			
+			return content.lines().limit(OWNER_TXT_MAX_LINES)
+					.map(this::normalizeAlias)
+					.filter( line -> !line.isEmpty())
+					.collect(Collectors.toList());
+			
+		} catch (UncheckedIOException e) {
+			throw new IllegalArgumentException("Could not read key " + ownerKey + " from bucket " + bucketName + ". "
+					+ getExplanation(bucketName, ownerKey), e);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(e.getMessage() + ". " + getExplanation(bucketName, ownerKey), e);
+		}
+	}
+	
 	BufferedReader newStreamReader(InputStream stream) {
 		return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
 	}
 
-	void validateOwnerContent(String ownerContent, List<PrincipalAlias> expectedAliases, String bucket, String key) {
-
-		if (StringUtils.isBlank(ownerContent)) {
-			throw new IllegalArgumentException(
-					"No username found under key " + key + " from bucket " + bucket + ". " + getExplanation(expectedAliases, bucket, key));
+	void validateOwnerContent(List<String> ownerContent, Set<String> validAliases, String bucket, String key) {
+		if (ownerContent.isEmpty()) {
+			throw new IllegalArgumentException("No user identifier found under key " + key + " from bucket " + bucket + ". " + getExplanation(bucket, key));
 		}
 
-		if (!checkForCorrectName(expectedAliases, ownerContent)) {
-			throw new IllegalArgumentException("The username " + ownerContent + " found under key " + key + " from bucket " + bucket
-					+ " is not what was expected. " + getExplanation(expectedAliases, bucket, key));
+		for (String line : ownerContent) {
+			if (validAliases.contains(line)) {
+				return;
+			}
 		}
+		
+		throw new IllegalArgumentException("Could not find a valid user identifier under key " + key + " from bucket " + bucket
+				+ ". " + getExplanation(bucket, key));
+		
 	}
 	
 	/**
-	 * Collects the possible aliases that can be used to verify ownership of an S3 bucket. Currently, this is a user's
-	 * username and their email addresses.
+	 * Collects the possible aliases that can be used to verify ownership of an S3 bucket.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @return
 	 */
-	private List<PrincipalAlias> getBucketOwnerAliases(Long userId) {
-		return principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_NAME, AliasType.USER_EMAIL);
+	Set<String> getBucketOwnerAliases(UserInfo userInfo) {
+		Set<String> ownerAliases = new HashSet<>();
+		
+		// The user id is a valid alias
+		ownerAliases.add(userInfo.getId().toString());
+		
+		List<PrincipalAlias> principalAliases = principalAliasDAO.listPrincipalAliases(userInfo.getId(), AliasType.USER_NAME, AliasType.USER_EMAIL);
+		
+		// Adds the username and user emails as valid aliases
+		ownerAliases.addAll(principalAliases.stream()
+				.map(PrincipalAlias::getAlias)
+				.map(this::normalizeAlias)
+				.collect(Collectors.toList())
+		);
+		
+		// Adds the id of the teams of the user, excluding the certain boostrapped teams (e.g. public group, certified users etc)
+		ownerAliases.addAll(userInfo.getGroups().stream()
+				.filter( teamId -> !EXCLUDED_TEAMS.contains(teamId))
+				.map(Object::toString)
+				.collect(Collectors.toList())
+		);
+		
+		return ownerAliases;
+	}
+	
+	private String normalizeAlias(String inputAlias) {
+		return inputAlias.trim().toLowerCase();
 	}
 
-	private static String getExplanation(List<PrincipalAlias> aliases, String bucket, String key) {
-		String username = aliases.get(0).getAlias();
-		for (PrincipalAlias pa : aliases) {
-			if (pa.getType().equals(AliasType.USER_NAME)) {
-				username = pa.getAlias();
-				break;
-			}
-		}
-		return String.format(SECURITY_EXPLANATION, username, bucket, key, username);
-	}
-
-	private static boolean checkForCorrectName(List<PrincipalAlias> allowedNames, String actualUsername) {
-		if (allowedNames != null) {
-			for (PrincipalAlias name : allowedNames) {
-				if (name.getAlias().equalsIgnoreCase(actualUsername)) {
-					return true;
-				}
-			}
-		}
-		return false;
+	private static String getExplanation(String bucket, String key) {
+		return String.format(SECURITY_EXPLANATION, bucket, key);
 	}
 
 }

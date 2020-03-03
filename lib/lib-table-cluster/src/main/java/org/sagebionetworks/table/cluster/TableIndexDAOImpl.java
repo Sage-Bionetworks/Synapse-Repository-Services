@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE;
@@ -717,6 +718,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BOOLEAN);
 				}
+				if(dto.getFileMD5() != null) {
+					ps.setString(parameterIndex++, dto.getFileMD5());
+				}else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
 			}
 
 			@Override
@@ -793,6 +799,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					if(rs.wasNull()) {
 						dto.setIsInSynapseStorage(null);
 					}
+					dto.setFileMD5(rs.getString(ENTITY_REPLICATION_COL_FILE_MD5));
 
 					return dto;
 				}}, entityId);

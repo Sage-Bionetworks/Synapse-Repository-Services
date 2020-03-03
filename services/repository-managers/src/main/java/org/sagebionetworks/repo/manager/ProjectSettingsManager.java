@@ -21,13 +21,6 @@ public interface ProjectSettingsManager {
 	Optional<ProjectSetting> getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, ProjectSettingsType type)
 			throws DatastoreException, NotFoundException;
 
-	/**
-	 * This gets the project setting (storage location setting) for the given entity without checking authorization.
-	 * This method is mainly called by validation logic which may try to get project settings for entities inside the
-	 * trash can. This should only be used by methods which have already checked authorization.
-	 */
-	Optional<ProjectSetting> getProjectSettingByEntityUnchecked(String entityId);
-
 	ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException;
 
 	void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException;

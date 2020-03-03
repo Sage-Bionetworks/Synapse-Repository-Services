@@ -20,8 +20,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-import com.google.common.collect.ImmutableList;
-
 @RunWith(MockitoJUnitRunner.class)
 public class ValidatedEmailClaimProviderTest {
 	
@@ -57,7 +55,7 @@ public class ValidatedEmailClaimProviderTest {
 		Date now = new Date();
 		verificationState.setCreatedOn(now);
 		verificationSubmission.setStateHistory(Collections.singletonList(verificationState));
-		verificationSubmission.setEmails(ImmutableList.of(EMAIL, "other"));
+		verificationSubmission.setNotificationEmail(EMAIL);
 		
 		// method under test
 		assertEquals(EMAIL, claimProvider.getClaim(USER_ID, null));

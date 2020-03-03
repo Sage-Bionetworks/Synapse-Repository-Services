@@ -1,0 +1,30 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "ListParentBuckets",
+			"Action": ["s3:ListBucket"],
+			"Effect": "Allow",
+			"Resource": ["arn:aws:s3:::${bucket}"],
+			"Condition":{"StringEquals":{"s3:prefix":["${folder}"]}}
+		},
+		{
+			"Sid": "ListBucketAccess",
+			"Action": ["s3:ListBucket"],
+			"Effect": "Allow",
+			"Resource": ["arn:aws:s3:::${bucket}"],
+			"Condition":{"StringLike":{"s3:prefix":["${folderWithTrailingSlash}*"]}}
+		},
+		{
+			"Sid": "FolderAccess",
+			"Effect": "Allow",
+			"Action": [
+				${actions}
+			],
+			"Resource": [
+				"arn:aws:s3:::${bucketWithFolder}",
+				"arn:aws:s3:::${bucketWithFolder}/*"
+			]
+		}
+	]
+}

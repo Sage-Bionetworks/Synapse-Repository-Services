@@ -22,8 +22,8 @@ public interface TrashCanDao {
 	 */
 	void create(String userGroupId, String nodeId, String nodeName, String parentId, boolean priorityPurge) throws DatastoreException;
 
-	/** Returns true if the trash can has entities that were deleted from the specified parent. */
-	boolean doesParentHaveTrashedEntities(String parentId);
+	/** Returns true if the trash can has entities that were deleted from the specified entity. */
+	boolean doesEntityHaveTrashedChildren(String entityId);
 
 	/**
 	 * Gets the trashed entity by entity ID. Returns null is the trashed entity does not exist.

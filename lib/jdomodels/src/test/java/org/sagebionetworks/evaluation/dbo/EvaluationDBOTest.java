@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.util.TemporaryCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -115,36 +114,6 @@ public class EvaluationDBOTest {
         assertThrows(IllegalArgumentException.class, () -> {
         	dboBasicDao.createNew(clone);
         });
-    }
-    
-    @Test
-    @TemporaryCode(author = "marco.marasca@sagebase.org", comment = "Test for avoiding patching prod for PLFM-6112. Can be removed after 298 is out")
-    public void testEvalutationStartAndEndMigration() {
-    	EvaluationDBO evaluation = new EvaluationDBO();
-    	
-    	MigratableTableTranslation<EvaluationDBO, EvaluationBackup> transalator = evaluation.getTranslator();
-    	
-    	EvaluationBackup evaluationBackup = new EvaluationBackup();
-    	
-    	evaluationBackup.setId(123L);
-    	evaluationBackup.seteTag(eTag);
-    	evaluationBackup.setName(name);
-    	evaluationBackup.setContentSource(contentSource.toString());
-    	evaluationBackup.setStatus(EvaluationStatus.OPEN.ordinal());
-    	evaluationBackup.setCreatedOn(System.currentTimeMillis());
-    	evaluationBackup.setOwnerId(ownerId);
-    	evaluationBackup.setDescription("my description".getBytes());
-    	evaluationBackup.setSubmissionInstructions("foo".getBytes());
-    	evaluationBackup.setSubmissionReceiptMessage("bar".getBytes());
-    	
-    	evaluationBackup.setQuota(null);
-    	evaluationBackup.setStartTimestamp(0L);
-    	evaluationBackup.setEndTimestamp(0L);
-    	
-    	EvaluationDBO dbo = transalator.createDatabaseObjectFromBackup(evaluationBackup);
-    	
-    	assertNull(dbo.getStartTimestamp());
-    	assertNull(dbo.getEndTimestamp());
     }
     
     @Test

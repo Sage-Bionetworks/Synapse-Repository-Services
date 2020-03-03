@@ -3017,6 +3017,7 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(Long.parseLong(file.getFileHandleId())), fileDto.getFileHandleId());
 		assertEquals(fileHandle.getContentSize(), fileDto.getFileSizeBytes());
 		assertEquals(NodeUtils.isBucketSynapseStorage(fileHandle.getBucketName()), fileDto.getIsInSynapseStorage());
+		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
 
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(3, fileDto.getAnnotations().size());

@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.sts.StsCredentials;
+import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
@@ -657,4 +659,7 @@ public interface EntityService {
 	 * @return
 	 */
 	public DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
+
+	/** Gets the temporary S3 credentials from STS for the given entity. */
+	StsCredentials getTemporaryCredentialsForEntity(Long userId, String entityId, StsPermission permission);
 }

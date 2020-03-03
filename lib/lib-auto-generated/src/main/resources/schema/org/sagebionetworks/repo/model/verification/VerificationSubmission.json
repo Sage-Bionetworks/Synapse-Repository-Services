@@ -38,6 +38,11 @@
 				"type": "string"
 			}
 		},
+		"notificationEmail": {
+			"type": "string",
+			"title": "Notification Email Address",
+			"description": "The primary (notification) email address registered to this user."
+		},
 		"location": {
 			"type": "string",
 			"title": "Location",
