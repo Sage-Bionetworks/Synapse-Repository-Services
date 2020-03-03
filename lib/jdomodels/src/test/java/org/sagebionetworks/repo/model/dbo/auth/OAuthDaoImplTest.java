@@ -113,25 +113,27 @@ class OAuthDaoImplTest {
 	
 	@Test
 	void testRoundtrip() {
-		// method under test
-		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
-		// method under test
+		// method under test (no consent recorded)
+		Date notBefore = GRANTED_ON;
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
+		
+		// method under test (save consent)
 		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON);
 		
 		DBOAuthorizationConsent origDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {userId, clientId, SCOPE_HASH}, ROW_MAPPER);
 		
-		// method under test
-		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
+		// method under test (consent was recorded)
+		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
 		
+		// method under test (do not return true for some other hash)
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, "some other hash", notBefore));
 		
-		// method under test
-		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, new Date(GRANTED_ON.getTime()+1000L)));
-		
-		
-		// method under test
-		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, "some other hash", GRANTED_ON));
-		
+		notBefore = new Date(GRANTED_ON.getTime()+1000L);
+		// method under test (test threshold)
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
+				
 		Date differentTime = new Date(GRANTED_ON.getTime()+1000L);
+		// method under test (test updating an existing record)
 		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime);
 		
 		// check that etag has changed, ID has not
@@ -139,10 +141,14 @@ class OAuthDaoImplTest {
 		assertNotEquals(origDbo.geteTag(), updatedDbo.geteTag());
 		assertEquals(origDbo.getId(), updatedDbo.getId());
 		
+		// the record is there...
+		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
+		
 		// method under test
 		oauthDao.deleteAuthorizationConsent(userId, clientId, SCOPE_HASH);
 		
-		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime));
+		// ... now it's gone
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, notBefore));
 	}
 
 }
