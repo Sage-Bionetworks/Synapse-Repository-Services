@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -16,7 +14,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -190,10 +187,6 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			}
 		}
 		return scopeDescriptions;
-	}
-	
-	private static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
-		return DigestUtils.sha256Hex(authorizationRequest.getScope()+authorizationRequest.getClaims());
 	}
 	
 	@Override

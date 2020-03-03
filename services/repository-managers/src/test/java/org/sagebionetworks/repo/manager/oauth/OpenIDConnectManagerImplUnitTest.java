@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -439,23 +439,27 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	}
 	
+	private static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		return DigestUtils.sha256Hex(authorizationRequest.getScope()+authorizationRequest.getClaims());
+	}
+	
 	@Test
 	public void tesHasUserGrantedConsent_NoConsent() throws Exception {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		
-		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		String scopeHash = getScopeHash(authorizationRequest);
 		assertNotNull(scopeHash);
 		
-		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash)).thenReturn(null);
+		when(mockOauthDao.lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any())).thenReturn(false);
 
 		// method under test
 		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
 		
-		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash);
+		verify(mockOauthDao).lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any());
 		
 		assertFalse(result);
 	}
@@ -464,20 +468,19 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void tesHasUserGrantedConsent_Granted() throws Exception {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		
-		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		String scopeHash = getScopeHash(authorizationRequest);
 		assertNotNull(scopeHash);
 		
-		Date grantedOn = new Date();
-		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash)).thenReturn(grantedOn);
+		when(mockOauthDao.lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any())).thenReturn(true);
 
 		// method under test
 		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
 		
-		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash);
+		verify(mockOauthDao).lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any());
 		
 		assertTrue(result);
 	}
@@ -486,20 +489,19 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void tesHasUserGrantedConsent_GrantExpired() throws Exception {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		
-		String scopeHash = OpenIDConnectManagerImpl.getScopeHash(authorizationRequest);
+		String scopeHash = getScopeHash(authorizationRequest);
 		assertNotNull(scopeHash);
 		
-		Date grantedOn = new Date(System.currentTimeMillis()-1000L*3600L*24*365*10); // granted 10 years ago
-		when(mockOauthDao.lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash)).thenReturn(grantedOn);
+		when(mockOauthDao.lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any())).thenReturn(true);
 
 		// method under test
 		boolean result = openIDConnectManagerImpl.hasUserGrantedConsent(userInfo, authorizationRequest);
 		
-		verify(mockOauthDao).lookupAuthorizationConsent(userInfo.getId(), 
-				Long.valueOf(OAUTH_CLIENT_ID), 
-				scopeHash);
+		verify(mockOauthDao).lookupAuthorizationConsent(eq(userInfo.getId()), 
+				eq(Long.valueOf(OAUTH_CLIENT_ID)), 
+				eq(scopeHash), any());
 		
 		assertFalse(result);
 	}
@@ -618,7 +620,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfo_internal() {
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
-		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.singletonList("101"));
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), any())).thenReturn(Collections.singletonList("101"));
 		
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.email, null);
@@ -644,7 +646,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void testGetUserInfo_internal_missing_info() {
 		VerificationSubmission verificationSubmission = new VerificationSubmission();
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
-		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), (List<String>)any())).thenReturn(Collections.EMPTY_LIST);
+		when(mockGroupMembersDAO.filterUserGroups(eq(USER_ID), any())).thenReturn(Collections.EMPTY_LIST);
 
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.validated_at, null);
@@ -812,13 +814,13 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenHelper.createOIDCaccessToken(eq(OAUTH_ENDPOINT), anyString(), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(now), anyString(), (List<OAuthScope>)any(), (Map<OIDCClaimName, OIDCClaimsRequestDetails>)any())).thenReturn(expectedAccessToken);
+				eq(now), anyString(), any(), any())).thenReturn(expectedAccessToken);
 		
 		// method under test
 		OIDCTokenResponse tokenResponse = openIDConnectManagerImpl.getAccessToken(code, OAUTH_CLIENT_ID, REDIRCT_URIS.get(0), OAUTH_ENDPOINT);
 		
 		verify(oidcTokenHelper, never()).
-			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), (Map)any());
+			createOIDCIdToken(anyString(), anyString(), anyString(), anyLong(), anyString(), (Date)any(), anyString(), any());
 		
 		assertNull(tokenResponse.getId_token());
 
