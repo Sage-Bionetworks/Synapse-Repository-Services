@@ -96,10 +96,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias("foo@bar.com");
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
-
 	}
 
 	@Test
