@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -71,5 +72,16 @@ public interface OpenIDConnectManager {
 	 * userinfo_signed_response_alg
 	 */
 	Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint);
+	
+	/**
+	 * 
+	 * @param authorizationRequest
+	 * @return a hash of the critical fields
+	 */
+	public static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		return DigestUtils.sha256Hex(authorizationRequest.getScope()+authorizationRequest.getClaims());
+	}
+	
+
 
 }

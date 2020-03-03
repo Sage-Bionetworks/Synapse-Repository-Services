@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -191,24 +189,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return scopeDescriptions;
 	}
 	
-	static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
-		String text = authorizationRequest.getScope()+authorizationRequest.getClaims();
-		MessageDigest digest;
-		try {
-			digest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
-		return new String(hash, StandardCharsets.UTF_8);
-	}
-	
 	@Override
 	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
-		Date grantedOn = oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+		Date notBefore = new Date(clock.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS);
+		return oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
 				Long.valueOf(authorizationRequest.getClientId()), 
-				getScopeHash(authorizationRequest));
-		return grantedOn!=null && grantedOn.getTime()>System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS;
+				getScopeHash(authorizationRequest),
+				notBefore);
 	}
 
 	@Override
