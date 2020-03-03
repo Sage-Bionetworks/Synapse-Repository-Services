@@ -142,7 +142,7 @@ class OAuthDaoImplTest {
 		// method under test
 		oauthDao.deleteAuthorizationConsent(userId, clientId, SCOPE_HASH);
 		
-		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime));
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime));
 	}
 
 }
