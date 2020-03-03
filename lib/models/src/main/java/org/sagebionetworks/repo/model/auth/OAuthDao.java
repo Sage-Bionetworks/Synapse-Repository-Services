@@ -20,10 +20,11 @@ public interface OAuthDao {
 	 * @param userId the ID of the user who gave their consent
 	 * @param clientId the ID of the OAuth 2.0 client which was authorized
 	 * @param scopeHash the hash of the scope to which the user consented
+	 * @param notBefore the earliest time stamo for which the consent is valid
 	 * 
-	 * @return the Date of consent of null if no consent was given
+	 * @return true iff consent was given on or later than the given date
 	 */
-	public Date lookupAuthorizationConsent(Long userId, Long clientId, String scopeHash);
+	public boolean lookupAuthorizationConsent(Long userId, Long clientId, String scopeHash, Date notBefore);
 	
 	/**
 	 * Delete the record of user consent.

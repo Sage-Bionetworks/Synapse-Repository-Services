@@ -36,43 +36,45 @@ public class DBOAuthorizationConsent implements MigratableDatabaseObject<DBOAuth
 		new FieldColumn("scopeHash", COL_AUTHORIZATION_CONSENT_SCOPE_HASH),
 		new FieldColumn("grantedOn", COL_AUTHORIZATION_CONSENT_GRANTED_ON)
 		};
+	
+	public static final TableMapping<DBOAuthorizationConsent> TABLE_MAPPING = new TableMapping<DBOAuthorizationConsent>() {
+		// Map a result set to this object
+		@Override
+		public DBOAuthorizationConsent mapRow(ResultSet rs, int rowNum)	throws SQLException {
+			DBOAuthorizationConsent consent = new DBOAuthorizationConsent();
+			consent.setId(rs.getLong(COL_AUTHORIZATION_CONSENT_ID));
+			consent.seteTag(rs.getString(COL_AUTHORIZATION_CONSENT_ETAG));
+			consent.setUserId(rs.getLong(COL_AUTHORIZATION_CONSENT_USER_ID));
+			consent.setClientId(rs.getLong(COL_AUTHORIZATION_CONSENT_CLIENT_ID));
+			consent.setScopeHash(rs.getString(COL_AUTHORIZATION_CONSENT_SCOPE_HASH));
+			consent.setGrantedOn(rs.getLong(COL_AUTHORIZATION_CONSENT_GRANTED_ON));
+			return consent;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_AUTHORIZATION_CONSENT;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_AUTHORIZATION_CONSENT;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOAuthorizationConsent> getDBOClass() {
+			return DBOAuthorizationConsent.class;
+		}
+	};
 
 	@Override
 	public TableMapping<DBOAuthorizationConsent> getTableMapping() {
-		return new TableMapping<DBOAuthorizationConsent>() {
-			// Map a result set to this object
-			@Override
-			public DBOAuthorizationConsent mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				DBOAuthorizationConsent consent = new DBOAuthorizationConsent();
-				consent.setId(rs.getLong(COL_AUTHORIZATION_CONSENT_ID));
-				consent.seteTag(rs.getString(COL_AUTHORIZATION_CONSENT_ETAG));
-				consent.setUserId(rs.getLong(COL_AUTHORIZATION_CONSENT_USER_ID));
-				consent.setClientId(rs.getLong(COL_AUTHORIZATION_CONSENT_CLIENT_ID));
-				consent.setScopeHash(rs.getString(COL_AUTHORIZATION_CONSENT_SCOPE_HASH));
-				consent.setGrantedOn(rs.getLong(COL_AUTHORIZATION_CONSENT_GRANTED_ON));
-				return consent;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_AUTHORIZATION_CONSENT;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_AUTHORIZATION_CONSENT;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOAuthorizationConsent> getDBOClass() {
-				return DBOAuthorizationConsent.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 	
 	@Override
@@ -80,9 +82,12 @@ public class DBOAuthorizationConsent implements MigratableDatabaseObject<DBOAuth
 		return MigrationType.AUTHORIZATION_GRANT;
 	}
 	
+	private static final  MigratableTableTranslation<DBOAuthorizationConsent, DBOAuthorizationConsent> TRANSLATOR = 
+			new BasicMigratableTableTranslation<DBOAuthorizationConsent>();
+			
 	@Override
 	public MigratableTableTranslation<DBOAuthorizationConsent, DBOAuthorizationConsent> getTranslator() {
-			return new BasicMigratableTableTranslation<DBOAuthorizationConsent>();
+			return TRANSLATOR;
 	}
 
 

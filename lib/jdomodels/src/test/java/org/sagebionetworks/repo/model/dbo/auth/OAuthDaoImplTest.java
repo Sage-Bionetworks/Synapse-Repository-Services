@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_SCOPE_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AUTHORIZATION_CONSENT_USER_ID;
@@ -15,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.UUID;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,20 +56,8 @@ class OAuthDaoImplTest {
 
 	private Long userId;
 	private Long clientId;
-	private static final String SCOPE_HASH;
+	private static final String SCOPE_HASH = DigestUtils.sha256Hex("some dummy text");
 	private static final Date GRANTED_ON = new Date();
-	
-	static {
-		String text = "some dummy text";
-		MessageDigest digest;
-		try {
-			digest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
-		SCOPE_HASH = new String(hash, StandardCharsets.UTF_8);
-	}
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -112,7 +102,7 @@ class OAuthDaoImplTest {
 		}
 	}
 	
-	private static final RowMapper<DBOAuthorizationConsent> ROW_MAPPER = (new DBOAuthorizationConsent()).getTableMapping();
+	private static final RowMapper<DBOAuthorizationConsent> ROW_MAPPER = DBOAuthorizationConsent.TABLE_MAPPING;
 	
 	private static final String LOOKUP_SQL = "SELECT * FROM "+TABLE_AUTHORIZATION_CONSENT+
 			" WHERE "+
@@ -124,22 +114,25 @@ class OAuthDaoImplTest {
 	@Test
 	void testRoundtrip() {
 		// method under test
-		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
 		// method under test
 		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON);
 		
 		DBOAuthorizationConsent origDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {userId, clientId, SCOPE_HASH}, ROW_MAPPER);
 		
 		// method under test
-		assertEquals(GRANTED_ON, oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
+		assertTrue(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
+		
+		
 		// method under test
-		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, "some other hash"));
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, new Date(GRANTED_ON.getTime()+1000L)));
+		
+		
+		// method under test
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, "some other hash", GRANTED_ON));
 		
 		Date differentTime = new Date(GRANTED_ON.getTime()+1000L);
 		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime);
-		
-		// method under test
-		assertEquals(differentTime, oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
 		
 		// check that etag has changed, ID has not
 		DBOAuthorizationConsent updatedDbo = jdbcTemplate.queryForObject(LOOKUP_SQL, new Object[] {userId, clientId, SCOPE_HASH}, ROW_MAPPER);
@@ -149,7 +142,7 @@ class OAuthDaoImplTest {
 		// method under test
 		oauthDao.deleteAuthorizationConsent(userId, clientId, SCOPE_HASH);
 		
-		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH));
+		assertNull(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, differentTime));
 	}
 
 }

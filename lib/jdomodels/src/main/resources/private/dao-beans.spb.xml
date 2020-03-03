@@ -47,11 +47,6 @@
 		class="org.sagebionetworks.repo.model.dbo.auth.OAuthClientDaoImpl" 
 		depends-on="idGenerator" />
 
-	<!--  DAO for managing OAuth tokens -->
-	<bean id="oauthDao"
-		class="org.sagebionetworks.repo.model.dbo.auth.OAuthDaoImpl" 
-		depends-on="idGenerator" />
-
 	<bean id="fileHandleDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl" />
 		

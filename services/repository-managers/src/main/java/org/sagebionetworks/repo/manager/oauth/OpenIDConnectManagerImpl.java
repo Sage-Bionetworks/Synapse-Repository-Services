@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.repo.manager.UserAuthorization;
@@ -191,24 +192,17 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		return scopeDescriptions;
 	}
 	
-	static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
-		String text = authorizationRequest.getScope()+authorizationRequest.getClaims();
-		MessageDigest digest;
-		try {
-			digest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
-		return new String(hash, StandardCharsets.UTF_8);
+	private static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		return DigestUtils.sha256Hex(authorizationRequest.getScope()+authorizationRequest.getClaims());
 	}
 	
 	@Override
 	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
-		Date grantedOn = oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+		Date notBefore = new Date(System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS);
+		return oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
 				Long.valueOf(authorizationRequest.getClientId()), 
-				getScopeHash(authorizationRequest));
-		return grantedOn!=null && grantedOn.getTime()>System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS;
+				getScopeHash(authorizationRequest),
+				notBefore);
 	}
 
 	@Override
