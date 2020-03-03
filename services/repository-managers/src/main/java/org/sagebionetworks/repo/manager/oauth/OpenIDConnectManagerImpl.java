@@ -191,7 +191,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 	@Override
 	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
-		Date notBefore = new Date(System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS);
+		Date notBefore = new Date(clock.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS);
 		return oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
 				Long.valueOf(authorizationRequest.getClientId()), 
 				getScopeHash(authorizationRequest),
