@@ -1,6 +1,5 @@
-package org.sagebionetworks.repo.model.dbo.auth;
+package org.sagebionetworks.repo.model.auth;
 
-import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
 import org.sagebionetworks.repo.web.NotFoundException;

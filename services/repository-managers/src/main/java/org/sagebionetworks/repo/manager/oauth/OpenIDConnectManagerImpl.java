@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.manager.oauth;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -24,7 +27,8 @@ import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
-import org.sagebionetworks.repo.model.dbo.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthClientDao;
+import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -34,6 +38,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -54,6 +59,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private static final String ID_TOKEN_CLAIMS_KEY = "id_token";
 	private static final String USER_INFO_CLAIMS_KEY = "userinfo";
 	
+	// user authorization times out after one year
+	private static final long AUTHORIZATION_TIME_OUT_MILLIS = 1000L*3600L*24L*365L;
+	
 	@Autowired
 	private StackEncrypter stackEncrypter;
 
@@ -62,6 +70,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 	@Autowired
 	private AuthenticationDAO authDao;
+	
+	@Autowired
+	private OAuthDao oauthDao;
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
@@ -179,8 +190,29 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		}
 		return scopeDescriptions;
 	}
+	
+	static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		String text = authorizationRequest.getScope()+authorizationRequest.getClaims();
+		MessageDigest digest;
+		try {
+			digest = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+		byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+		return new String(hash, StandardCharsets.UTF_8);
+	}
+	
+	@Override
+	public boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest) {
+		Date grantedOn = oauthDao.lookupAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(authorizationRequest.getClientId()), 
+				getScopeHash(authorizationRequest));
+		return grantedOn!=null && grantedOn.getTime()>System.currentTimeMillis()-AUTHORIZATION_TIME_OUT_MILLIS;
+	}
 
 	@Override
+	@WriteTransaction
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -213,6 +245,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		OAuthAuthorizationResponse result = new OAuthAuthorizationResponse();
 		result.setAccess_code(encryptedAuthorizationRequest);
+		oauthDao.saveAuthorizationConsent(userInfo.getId(), 
+				Long.valueOf(authorizationRequest.getClientId()), 
+				getScopeHash(authorizationRequest), new Date());
 		return result;
 	}
 
