@@ -32,14 +32,17 @@ public class DBOFormData implements MigratableDatabaseObject<DBOFormData, DBOFor
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_FORM_DATA_ID, true).withIsBackupId(true),
-			new FieldColumn("etag", COL_FORM_DATA_ETAG), new FieldColumn("name", COL_FORM_DATA_NAME),
+			new FieldColumn("etag", COL_FORM_DATA_ETAG).withIsEtag(true),
+			new FieldColumn("name", COL_FORM_DATA_NAME),
 			new FieldColumn("createdOn", COL_FORM_DATA_CREATED_ON),
 			new FieldColumn("createdBy", COL_FORM_DATA_CREATED_BY),
 			new FieldColumn("modifiedOn", COL_FORM_DATA_MODIFIED_ON),
-			new FieldColumn("groupId", COL_FORM_DATA_GROUP_ID), new FieldColumn("fileHandleId", COL_FORM_DATA_FILE_ID),
+			new FieldColumn("groupId", COL_FORM_DATA_GROUP_ID),
+			new FieldColumn("fileHandleId", COL_FORM_DATA_FILE_ID),
 			new FieldColumn("submittedOn", COL_FORM_DATA_SUBMITTED_ON),
 			new FieldColumn("reviewedOn", COL_FORM_DATA_REVIEWED_ON),
-			new FieldColumn("reviewedBy", COL_FORM_DATA_REVIEWED_BY), new FieldColumn("state", COL_FORM_DATA_STATE),
+			new FieldColumn("reviewedBy", COL_FORM_DATA_REVIEWED_BY),
+			new FieldColumn("state", COL_FORM_DATA_STATE),
 			new FieldColumn("rejectionMessage", COL_FORM_DATA_REJECTION_MESSAGE), };
 
 	private Long id;
