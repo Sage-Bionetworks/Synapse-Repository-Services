@@ -80,6 +80,10 @@
 		"responseStatus": {
 			"type": "integer",
 			"description": "The resulting HTTP response code."
+		},	
+		"oauthClientId": {
+			"type": "string",
+			"description": "The ID of the OAuth Client making the request"
 		}
 	}
 }

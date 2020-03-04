@@ -11,7 +11,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
@@ -44,6 +46,15 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 	
 	@Autowired
 	StackConfiguration stackConfiguration;
+	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	String getOAuthClientId(HttpServletRequest request) {
+		String accessToken = HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(request);
+		if (accessToken==null) return null;
+		return oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
+	}
 
 	/**
 	 * This is called before a controller runs.
@@ -76,6 +87,7 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setInstance(KeyGeneratorUtil.getInstancePrefix(stackConfiguration.getStackInstanceNumber()));
 		data.setVmId(VirtualMachineIdProvider.getVMID());
 		data.setQueryString(request.getQueryString());
+		data.setOauthClientId(getOAuthClientId(request));
 		// push the session id to the logging thread context
 		ThreadContext.put(SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.
