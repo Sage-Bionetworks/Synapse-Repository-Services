@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -702,6 +703,24 @@ public class MigratableTableDAOImplAutowireTest {
 			} catch (Exception e) {
 				e.printStackTrace();
 				fail("Failed to translate: "+type+" message: "+e.getMessage());
+			}
+		}
+	}
+	
+	/**
+	 * Test added for PLFM-6131.  In that case, updated data was not migrating because the etag
+	 * column was not marked as "etag".  Therefore, the migration system did not detect the changes
+	 * so they were not migrated.
+	 */
+	@Test
+	public void testEtagColumn() {
+		for(MigrationType type: MigrationType.values()) {
+			MigratableDatabaseObject migratableObject = migratableTableDAO.getObjectForType(type);
+			TableMapping tableMapping = migratableObject.getTableMapping();
+			for(FieldColumn field: tableMapping.getFieldColumns()) {
+				if(field.getFieldName().toLowerCase().contains("etag")) {
+					assertTrue(field.isEtag(), "MigrationType: "+type+" has a field containing 'etag' but isEtag() is false");
+				}
 			}
 		}
 	}
