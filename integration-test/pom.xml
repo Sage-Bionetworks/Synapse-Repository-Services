@@ -271,6 +271,12 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>sample-code</artifactId>
+			<version>develop-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
 		</dependency>
 
