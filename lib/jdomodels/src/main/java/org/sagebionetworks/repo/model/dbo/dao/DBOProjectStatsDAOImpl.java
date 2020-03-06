@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.BatchOfIds;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ProjectStat;
@@ -68,15 +67,12 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			ValidateArgument.required(stat.getUserId(), "stat.userId");
 			ValidateArgument.required(stat.getLastAccessed(), "stat.lastAccessed");
 		}
-		// Reserve the IDs
-		final BatchOfIds ids = idGenerator.generateBatchNewIds(IdType.PROJECT_STATS_ID, projectStats.length);
-		
 		jdbcTemplate.batchUpdate(SQL_INSERT_BATCH, new BatchPreparedStatementSetter() {
 			
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
 				ProjectStat stat = projectStats[i];
-				long statId = ids.getFirstId()+(i-1);
+				long statId = idGenerator.generateNewId(IdType.PROJECT_STATS_ID);
 				String etag = UUID.randomUUID().toString();
 				long lastAccessed = stat.getLastAccessed().getTime();
 				int parameterIndex = 1;
