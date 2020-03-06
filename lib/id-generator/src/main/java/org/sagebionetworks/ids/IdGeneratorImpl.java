@@ -6,7 +6,6 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,14 +28,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 			+ "TYPE_LOCK VARCHAR(100) NOT NULL,"
 			+ " PRIMARY KEY (TYPE_LOCK)"
 			+ ")";
-
-	private static final String INSERT_TYPE_SEMAPHORE = 
-			"INSERT IGNORE ID_GENERATOR_SEMAPHORE (TYPE_LOCK) VALUES(?)";
-
-	private static final String SELECT_TYPE_FOR_UPDATE = 
-			"SELECT TYPE_LOCK"
-			+ " FROM ID_GENERATOR_SEMAPHORE"
-			+ " WHERE TYPE_LOCK = ? FOR UPDATE";
 
 	// Create table template
 	private static final String CREATE_TABLE_TEMPLATE =
@@ -63,13 +54,15 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	JdbcTemplate idGeneratorJdbcTemplate;
 
 	/**
-	 * This call occurs in its own transaction.
+	 * <p>
+	 * This is a call to a separate database so it does not participate in the
+	 * caller's transaction. Do not add transaction annotations to any method in
+	 * this class. This class does not use a transaction manager and each call will
+	 * auto-commit.
+	 * </p>
 	 */
-	@NewWriteTransaction
 	@Override
 	public Long generateNewId(IdType type) {
-		// Acquire the semaphore lock for this type for concurrency.
-		lockOnType(type);
 		// Create a new time
 		final long now = System.currentTimeMillis();
 		idGeneratorJdbcTemplate.update(String.format(INSERT_SQL, type.name()), new PreparedStatementSetter(){
@@ -82,11 +75,19 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		return idGeneratorJdbcTemplate.queryForObject(String.format(GET_ID_SQL, type.name()), Long.class);
 	}
 	
-	@NewWriteTransaction
+	/**
+	 * <p>
+	 * This is a call to a separate database so it does not participate in the
+	 * caller's transaction. Do not add transaction annotations to any method in
+	 * this class. This class does not use a transaction manager and each call will
+	 * auto-commit.
+	 * </p>
+	 */
 	@Override
 	public void reserveId(final Long idToLock, IdType type) {
-		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
-		lockOnType(type);
+		if(idToLock == null) {
+			throw new IllegalArgumentException("ID to reserve cannot be null");
+		}
 		// First check if this value is greater than the last value
 		long max = getMaxValueForType(type);
 		if(idToLock > max){
@@ -131,46 +132,11 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		for(IdType type: IdType.values()){
 			// Create the ID table for this type.
 			idGeneratorJdbcTemplate.execute(String.format(CREATE_TABLE_TEMPLATE, type.name()));
-			// add this type to the semaphore
-			idGeneratorJdbcTemplate.update(INSERT_TYPE_SEMAPHORE, type.name());
 			// If the type has a start id, then reserver it
 			if(type.startingId != null){
 				reserveId(type.startingId, type);
 			}
 		}
-	}
-
-	@NewWriteTransaction
-	@Override
-	public BatchOfIds generateBatchNewIds(IdType type, int count) {
-		if(type == null){
-			throw new IllegalArgumentException("Type cannot be null");
-		}
-		if(count < 1){
-			throw new IllegalArgumentException("Count must be greater than or equal to 1.");
-		}
-		// Get the first ID and acquire the lock on this type.
-		Long firstId = generateNewId(type);
-		Long lastId = firstId+(count-1);
-		if(count > 1){
-			long now = System.currentTimeMillis();
-			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL_INCREMENT, type.name()), lastId, now);
-		}
-		return new BatchOfIds(firstId, lastId);
-	}
-	
-	/**
-	 * Grab the semaphore lock for this type.
-	 * This call uses a 'select for update' on type semaphore table. 
-	 * @param type
-	 * @return
-	 */
-	private String lockOnType(IdType type){
-		if(type == null){
-			throw new IllegalArgumentException("Type cannot be null");
-		}
-		// select for update
-		return idGeneratorJdbcTemplate.queryForObject(SELECT_TYPE_FOR_UPDATE, String.class, type.name());
 	}
 
 	@Override
@@ -196,7 +162,14 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		builder.append(String.format(INSERT_SQL_INCREMENT_EXPORT, type.name(), maxValue)).append(";\n");
 	}
 
-	@NewWriteTransaction
+	/**
+	 * <p>
+	 * This is a call to a separate database so it does not participate in the
+	 * caller's transaction. Do not add transaction annotations to any method in
+	 * this class. This class does not use a transaction manager and each call will
+	 * auto-commit.
+	 * </p>
+	 */
 	@Override
 	public void cleanupType(IdType type, long rowLimit) {
 		// Determine the max value
