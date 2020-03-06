@@ -1,18 +1,20 @@
 package org.sagebionetworks.ids;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * This test will ensure that multiple threads can create IDs concurrently without
@@ -20,7 +22,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:id-generator.spb.xml" })
 public class IdGeneratorConcurrencyTest {
 	
@@ -50,7 +52,7 @@ public class IdGeneratorConcurrencyTest {
 							if(j % 25 == 0){
 								System.out.println("Thread.id="+Thread.currentThread().getId()+" generated id: "+id);							
 							}
-							assertTrue("Duplicate ID found!", sharedIdSet.add(id));
+							assertTrue(sharedIdSet.add(id),"Duplicate ID found!");
 							count.incrementAndGet();
 							// Make sure other threads can go
 							Thread.yield();
@@ -73,7 +75,7 @@ public class IdGeneratorConcurrencyTest {
 		System.out.println("Expected: "+numberOfThreads*numberIds);
 		System.out.println("Count: "+count.get());
 		// Make sure we have the expected number of IDs
-		assertEquals("Did not get the expceted count of insertions", numberOfThreads*numberIds, count.get());
-		assertEquals("Did not get the expceted count of unique IDs", numberOfThreads*numberIds, sharedIdSet.size());
+		assertEquals(numberOfThreads*numberIds, count.get(), "Did not get the expceted count of insertions");
+		assertEquals(numberOfThreads*numberIds, sharedIdSet.size(), "Did not get the expceted count of unique IDs");
 	}
 }

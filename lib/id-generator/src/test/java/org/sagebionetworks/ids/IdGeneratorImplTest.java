@@ -1,19 +1,19 @@
 package org.sagebionetworks.ids;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:id-generator.spb.xml" })
 public class IdGeneratorImplTest {
 	
@@ -31,7 +31,7 @@ public class IdGeneratorImplTest {
 			Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 			long end = System.currentTimeMillis();
 			assertTrue(unique.add(id));
-			assertTrue("All IDs must be larger than the starting ID.",id > IdType.ENTITY_ID.getStartingId());
+			assertTrue(id > IdType.ENTITY_ID.getStartingId(), "All IDs must be larger than the starting ID.");
 			System.out.println("ID: "+id+" in "+(end-start)+" ms");
 		}
 	}
@@ -103,7 +103,7 @@ public class IdGeneratorImplTest {
 		String export = idGenerator.createRestoreScript();
 		assertNotNull(export);
 		String[] split = export.split("\n");
-		assertEquals("Should be three rows for each type.",IdType.values().length*3, split.length);
+		assertEquals(IdType.values().length*3, split.length,"Should be three rows for each type.");
 	}
 	
 	@Test
