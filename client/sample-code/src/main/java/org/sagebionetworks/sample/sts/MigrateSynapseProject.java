@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -15,12 +14,8 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 public class MigrateSynapseProject {
-	private static final List<EntityType> CHILD_ENTITY_TYPE_LIST = ImmutableList.of(EntityType.file,
-			EntityType.folder);
-
 	private final String destinationFolderId;
 	private final long destinationStorageLocationId;
 	private final String sourceEntityId;
@@ -67,7 +62,7 @@ public class MigrateSynapseProject {
 			SynapseException {
 		EntityChildrenRequest entityChildrenRequest = new EntityChildrenRequest();
 		entityChildrenRequest.setParentId(sourceSubFolderId);
-		entityChildrenRequest.setIncludeTypes(CHILD_ENTITY_TYPE_LIST);
+		entityChildrenRequest.setIncludeTypes(ImmutableList.of(EntityType.file, EntityType.folder));
 		EntityChildrenResponse entityChildrenResponse =  synapseClient.getEntityChildren(entityChildrenRequest);
 
 		boolean hasNext;

@@ -17,8 +17,6 @@ import java.io.IOException;
 import java.util.List;
 
 public class MigrateS3Bucket {
-	private static final String DELIMITER = "/";
-
 	private final DigestUtils md5DigestUtils;
 	private final AmazonS3 s3Client;
 	private final String s3Bucket;
@@ -45,7 +43,8 @@ public class MigrateS3Bucket {
 		// https://docs.synapse.org/articles/sts_storage_locations.html
 		this.synapseFolderId = synapseFolderId;
 
-		// This is the storage location ID that is set on the Synapse folder.
+		// This is the storage location ID that is set on the Synapse folder. Note that you must be the owner of the
+		// storage location in order to import existing S3 files into Synapse this way.
 		this.storageLocationId = storageLocationId;
 	}
 
@@ -67,7 +66,7 @@ public class MigrateS3Bucket {
 	private void executeForSubfolder(String s3SubFolder, String synapseSubFolderId) throws IOException,
 			SynapseException {
 		ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(s3Bucket)
-				.withPrefix(s3SubFolder).withDelimiter(DELIMITER);
+				.withPrefix(s3SubFolder).withDelimiter("/");
 		ObjectListing objectListing = s3Client.listObjects(listObjectsRequest);
 		boolean hasNext;
 		do {
@@ -75,14 +74,6 @@ public class MigrateS3Bucket {
 			List<S3ObjectSummary> objectSummaryList = objectListing.getObjectSummaries();
 			if (objectSummaryList != null) {
 				for (S3ObjectSummary objectSummary : objectSummaryList) {
-					String s3Key = objectSummary.getKey();
-					if (s3Key.equals(s3SubFolder)) {
-						// S3 does this weird thing where if you list objects inside of a folder, one of the results
-						// is the folder itself. Creating folders is handled in a different loop (common prefixes,
-						// below), so just skip this one.
-						continue;
-					}
-
 					migrateOneFile(objectSummary.getBucketName(), objectSummary.getKey(), synapseSubFolderId);
 				}
 			}
@@ -96,7 +87,7 @@ public class MigrateS3Bucket {
 						// Subfolder is an absolute path from the root of the S3 bucket. Extract relative subfolder.
 						relativeChildFolder = childFolder.substring(s3SubFolder.length());
 					}
-					String[] relativeChildFolderTokens = relativeChildFolder.split(DELIMITER);
+					String[] relativeChildFolderTokens = relativeChildFolder.split("/");
 
 					// Make Synapse folders.
 					String previousParentId = synapseSubFolderId;
@@ -142,9 +133,15 @@ public class MigrateS3Bucket {
 		// If you don't specify a file name, Synapse might generate a rather user-unfriendly one for you. We should
 		// extract the filename from the S3 key.
 		String filename = s3Key;
-		if (s3Key.contains(DELIMITER)) {
+		if (s3Key.contains("/")) {
 			// Key is a path. Just get the leaf.
-			filename = s3Key.substring(s3Key.lastIndexOf(DELIMITER) + 1);
+			filename = s3Key.substring(s3Key.lastIndexOf("/") + 1);
+		}
+
+		if (filename.equals("owner.txt")) {
+			// owner.txt is the file you used to set up your external S3 storage location. You probably don't want to
+			// migrate that file to Synapse.
+			return;
 		}
 
 		// Synapse requires external file handles to provide the MD5 hash, for file validation. In this sample code, we

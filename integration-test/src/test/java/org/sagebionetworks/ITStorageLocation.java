@@ -251,12 +251,11 @@ public class ITStorageLocation {
 		migration.execute();
 
 		// Verify results.
-		// Get files in baseKey (f1, f2, and owner.txt).
+		// Get files in baseKey (f1 and f2).
 		Map<String, EntityHeader> childrenByName = getChildren(folder.getId(), EntityType.file);
-		assertEquals(3, childrenByName.size());
+		assertEquals(2, childrenByName.size());
 		assertTrue(childrenByName.containsKey("f1"));
 		assertTrue(childrenByName.containsKey("f2"));
-		assertTrue(childrenByName.containsKey("owner.txt"));
 
 		// Get folders in baseKey (a).
 		childrenByName = getChildren(folder.getId(), EntityType.folder);
