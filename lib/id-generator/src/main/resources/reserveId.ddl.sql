@@ -5,16 +5,12 @@ BEGIN
     DECLARE typeLock VARCHAR(256);
 	
 	SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
-  
-	START TRANSACTION;
-	/* Lock on the type to ensure consistency.*/
-	SELECT TYPE_LOCK INTO typeLock FROM ID_GENERATOR_SEMAPHORE WHERE TYPE_LOCK = typeName FOR UPDATE;
 
+	/* This call may not need to be in stored procedure. */
 	SET @sql_text:=CONCAT('INSERT IGNORE INTO ',typeName,' (ID, CREATED_ON) VALUES (', idToReserve, ',NOW())');
 	PREPARE stmt from @sql_text;
 	EXECUTE stmt; 
     DEALLOCATE PREPARE stmt;
-	
-	COMMIT;
+    
 	SELECT idToReserve AS NEW_ID;
 END

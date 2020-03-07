@@ -24,16 +24,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 
 	private static final String DELETE_LESS_THAN_MAX = "DELETE FROM %1$S WHERE ID < %2$d LIMIT %3$d";
 
-	private static final String CREATE_ID_GENERATOR_SEMAPHORE = 
-			"CREATE TABLE IF NOT EXISTS ID_GENERATOR_SEMAPHORE ("
-			+ "TYPE_LOCK VARCHAR(100) NOT NULL,"
-			+ " PRIMARY KEY (TYPE_LOCK)"
-			+ ")";
-
-	private static final String INSERT_TYPE_SEMAPHORE = 
-			"INSERT IGNORE ID_GENERATOR_SEMAPHORE (TYPE_LOCK) VALUES(?)";
-
-
 	// Create table template
 	private static final String CREATE_TABLE_TEMPLATE =
 			"CREATE TABLE IF NOT EXISTS %1$S ("
@@ -102,8 +92,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		if(con == null) throw new RuntimeException("Failed get a connection from the datasource");
 		if(!con.getAutoCommit()) throw new RuntimeException("The connections from this datasources should be set to auto-commit");
 		
-		// Create the table for semaphore locks
-		idGeneratorJdbcTemplate.execute(CREATE_ID_GENERATOR_SEMAPHORE);
 		createStoredProcedure("generateNewId.ddl.sql");
 		createStoredProcedure("reserveId.ddl.sql");
 		
@@ -111,8 +99,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		for(IdType type: IdType.values()){
 			// Create the ID table for this type.
 			idGeneratorJdbcTemplate.execute(String.format(CREATE_TABLE_TEMPLATE, type.name()));
-			// add this type to the semaphore
-			idGeneratorJdbcTemplate.update(INSERT_TYPE_SEMAPHORE, type.name());
 			// If the type has a start id, then reserver it
 			if(type.startingId != null){
 				reserveId(type.startingId, type);
