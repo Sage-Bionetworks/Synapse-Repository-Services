@@ -24,7 +24,7 @@ public class DBOViewType implements MigratableDatabaseObject<DBOViewType, DBOVie
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("viewId", COL_VIEW_TYPE_VIEW_ID, true).withIsBackupId(true),
 		new FieldColumn("viewTypeMask", COL_VIEW_TYPE_VIEW_TYPE_MASK),
-			new FieldColumn("etag", COL_VIEW_TYPE_ETAG).withIsEtag(true),
+		new FieldColumn("etag", COL_VIEW_TYPE_ETAG).withIsEtag(true),
 	};
 	
 	Long viewId;
