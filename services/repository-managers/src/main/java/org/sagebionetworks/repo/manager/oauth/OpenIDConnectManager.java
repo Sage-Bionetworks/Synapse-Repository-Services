@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -44,6 +45,14 @@ public interface OpenIDConnectManager {
 	String getUserId(String accessToken);
 	
 	/**
+	 * Return true iff the specified user has already granted consent for the given client, socpe and claims
+	 * @param userInfo
+	 * @param authorizationRequest
+	 * @return
+	 */
+	boolean hasUserGrantedConsent(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
+	
+	/**
 	 * Parse the given JWT token and return the user identity, groups,
 	 * and scopes/claims authorized by the token.
 	 * 
@@ -63,5 +72,16 @@ public interface OpenIDConnectManager {
 	 * userinfo_signed_response_alg
 	 */
 	Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint);
+	
+	/**
+	 * 
+	 * @param authorizationRequest
+	 * @return a hash of the critical fields
+	 */
+	public static String getScopeHash(OIDCAuthorizationRequest authorizationRequest) {
+		return DigestUtils.sha256Hex(authorizationRequest.getScope()+authorizationRequest.getClaims());
+	}
+	
+
 
 }

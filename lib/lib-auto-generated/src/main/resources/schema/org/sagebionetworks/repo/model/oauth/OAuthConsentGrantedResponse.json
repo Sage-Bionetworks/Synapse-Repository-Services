@@ -1,0 +1,9 @@
+{
+	"description": "Response to the check of whether consent was already granted.",
+	"properties": {
+		"granted": {
+			"type": "boolean",
+			"description": "True if consent for the given authorization request was already given."
+		}
+	}
+}

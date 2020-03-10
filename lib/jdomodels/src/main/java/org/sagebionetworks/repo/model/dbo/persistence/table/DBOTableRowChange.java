@@ -34,7 +34,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("tableId", COL_TABLE_ROW_TABLE_ID, true).withIsBackupId(true),
 			new FieldColumn("rowVersion", COL_TABLE_ROW_VERSION, true),
-			new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG),
+			new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
 			new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
 			new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),

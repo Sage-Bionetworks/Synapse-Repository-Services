@@ -347,6 +347,10 @@
 			"description": "Metadata for an Oauth client"
 		},
 		{
+			"name": "AUTHORIZATION_GRANT",
+			"description": "Record of user grant of OAuth authorization"
+		},
+		{
 			"name": "SES_NOTIFICATIONS",
 			"description": "Bounce and Complaint notifications received from SES"
 		},

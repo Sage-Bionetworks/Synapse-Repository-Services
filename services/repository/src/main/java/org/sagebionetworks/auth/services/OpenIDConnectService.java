@@ -92,6 +92,13 @@ public interface OpenIDConnectService {
 	public OIDCAuthorizationRequestDescription getAuthenticationRequestDescription(OIDCAuthorizationRequest authorizationRequest);
 	
 	/**
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public boolean hasUserGrantedConsent(Long userId, OIDCAuthorizationRequest authorizationRequest);
+	
+	/**
 	 * Authorize OAuth client for the requested scope and return an authorization code
 	 * @param userId
 	 * @param authorizationRequest

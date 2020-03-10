@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -246,6 +247,8 @@ public class ITOpenIDConnectTest {
 				"{\"id_token\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}},"+
 				 "\"userinfo\":{\"userid\":\"null\",\"email\":null,\"is_certified\":null,\"team\":{\"values\":[\"2\"]}}}"
 		);
+		String nonce = UUID.randomUUID().toString();
+		authorizationRequest.setNonce(nonce);
 		
 		// Note, we get the authorization description anonymously
 		OIDCAuthorizationRequestDescription description = 
@@ -253,7 +256,13 @@ public class ITOpenIDConnectTest {
 		// make sure we got something back
 		assertFalse(description.getScope().isEmpty());
 		
+		// We have not yet authorized the client
+		assertFalse(synapseOne.hasUserAuthorizedClient(authorizationRequest));
+		
 		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		
+		// Now we HAVE authorized the client
+		assertTrue(synapseOne.hasUserAuthorizedClient(authorizationRequest));
 		
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
@@ -274,6 +283,7 @@ public class ITOpenIDConnectTest {
 		String email = myProfile.getEmails().get(0);
 		assertEquals(email, idClaims.get("email", String.class));
 		assertEquals(Collections.EMPTY_LIST, idClaims.get("team", List.class));
+		assertEquals(nonce, idClaims.get("nonce"));
 		
 		// the access token encodes claims we can refresh
 		Jwt<JwsHeader, Claims> parsedAccessToken = JSONWebTokenHelper.parseJWT(tokenResponse.getAccess_token(), jsonWebKeySet);
