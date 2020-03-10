@@ -91,22 +91,6 @@ public class BasicIssue {
             + ", projectId=" + projectId + ", fields=" + customFields + "]";
     }
 
-    public JSONObject toJONObject() {
-        JSONObject issue = new JSONObject();
-        JSONObject issueFields = new JSONObject();
-        issueFields.put("summary", this.summary);
-        JSONObject o = new JSONObject();
-        o.put("id", this.projectId);
-        issueFields.put("project", o);
-        o = new JSONObject();
-        o.put("id", this.issueTypeId);
-        issueFields.put("issuetype", o);
-        if (customFields != null && !customFields.keySet().isEmpty()) {
-            for (String k: customFields.keySet()) {
-                issueFields.put(k, this.customFields.get(k));
-            }
-        }
-        issue.put("fields", issueFields);
-        return issue;
-    }
 }
+
+

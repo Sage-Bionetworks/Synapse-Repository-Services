@@ -22,7 +22,7 @@ public class JRJCHelper {
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
         CreatedIssue createdIssue = createIssue(jiraClient, JIRA_FLAG_ISSUE_TYPE_NAME, FLAG_SUMMARY, params);
-		return (String) createdIssue.getKey();
+		return createdIssue.getKey();
 	}
 	
 	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
@@ -31,7 +31,7 @@ public class JRJCHelper {
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
         CreatedIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
-        return (String) createdIssue.getKey();
+        return createdIssue.getKey();
 	} 
 	
 	/**

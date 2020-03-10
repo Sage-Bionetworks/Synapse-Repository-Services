@@ -30,7 +30,7 @@ public class JiraClientImpl implements JiraClient {
 	public static final String NAME_KEY = "name";
 	public static final String ID_KEY = "id";
 
-	private final SimpleHttpClient httpClient;
+	private SimpleHttpClient httpClient;
 	private String USERNAME;
 	private String APIKEY;
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
@@ -41,12 +41,13 @@ public class JiraClientImpl implements JiraClient {
 	private static final String JIRA_PROJECT_ISSUE_TYPES_KEY = "issueTypes";
 	private static final String JIRA_PROJECT_ID_KEY = "id";
 
+	@Autowired
+	private StackConfiguration config;
+
 	public JiraClientImpl() {
 		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
 		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
 		httpClient = new SimpleHttpClientImpl(httpClientConfig);
-		USERNAME = StackConfigurationSingleton.singleton().getJiraUserEmail();
-		APIKEY = StackConfigurationSingleton.singleton().getJiraUserApikey();
 	}
 
 	@Override
@@ -113,13 +114,13 @@ public class JiraClientImpl implements JiraClient {
 	public CreatedIssue createIssue(BasicIssue issue) {
 		SimpleHttpRequest req = createRequest(JIRA_API_ISSUE_URL, null);
 
-		String json = execRequest(HttpMethod.POST, req, issue.toJONObject().toJSONString());
+		String json = execRequest(HttpMethod.POST, req, toJSONObject(issue).toJSONString());
 
-		CreatedIssue createdIssue = new CreatedIssue();
+		CreatedIssue createdIssue;
 		try {
 			JSONParser parser = new JSONParser();
 			JSONObject cIssue = (JSONObject) parser.parse(json);
-			createdIssue.initFromJSONObject(cIssue);
+			createdIssue = fromJSONObject(cIssue);
 		}
 		catch (ParseException e) {
 			throw new JiraClientException("JIRA client: error processing JSON", e);
@@ -138,7 +139,7 @@ public class JiraClientImpl implements JiraClient {
 		} else {
 			request.setUri(JIRA_URL + path + resource);
 		}
-		request.setHeaders(getHeaders(USERNAME, APIKEY));
+		request.setHeaders(getHeaders(config.getJiraUserEmail(), config.getJiraUserApikey()));
 
 		return request;
 	}
@@ -186,7 +187,7 @@ public class JiraClientImpl implements JiraClient {
 		}
 	}
 
-	static Map<String, String> getHeaders(String userName, String apiKey) {
+	private static Map<String, String> getHeaders(String userName, String apiKey) {
 		Map<String, String> headers = new HashMap<>();
 		try {
 			headers.put(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder().encodeToString((userName + ":" + apiKey).getBytes("utf-8")));
@@ -197,4 +198,36 @@ public class JiraClientImpl implements JiraClient {
 		headers.put(HttpHeaders.USER_AGENT, USER_AGENT);
 		return headers;
 	}
+
+	private static JSONObject toJSONObject(BasicIssue basicIssue) {
+		JSONObject issue = new JSONObject();
+		JSONObject issueFields = new JSONObject();
+		issueFields.put("summary", basicIssue.getSummary());
+		JSONObject o = new JSONObject();
+		o.put("id", basicIssue.getProjectId());
+		issueFields.put("project", o);
+		o = new JSONObject();
+		o.put("id", basicIssue.getIssueTypeId());
+		issueFields.put("issuetype", o);
+		if (basicIssue.getCustomFields() != null) {
+			for (String k: basicIssue.getCustomFields().keySet()) {
+				issueFields.put(k, basicIssue.getCustomFields().get(k));
+			}
+		}
+		issue.put("fields", issueFields);
+		return issue;
+	}
+
+	private static CreatedIssue fromJSONObject(JSONObject jsonObject) {
+		if (!(jsonObject.containsKey("id") && jsonObject.containsKey("key") && jsonObject.containsKey("self"))) {
+			throw new JiraClientException("Error creating CreatedIssue from JSON");
+		}
+		CreatedIssue createdIssue = new CreatedIssue();
+		createdIssue.setId((String) jsonObject.get("id"));
+		createdIssue.setKey((String) jsonObject.get("key"));
+		createdIssue.setUrl((String) jsonObject.get("self"));
+		return createdIssue;
+	}
+
+
 }
