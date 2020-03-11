@@ -175,7 +175,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode() {
-		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(uploadDestinationListSetting);
 
 		// Call under test
@@ -187,7 +187,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Test
 	public void getProjectSettingForNode_Null() {
-		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(null);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(null);
 
 		// Call under test
 		Optional<UploadDestinationListSetting> actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
@@ -199,7 +199,7 @@ public class ProjectSettingsManagerImplUnitTest {
 	public void getProjectSettingForNode_WrongType() {
 		// Use Mockito to create an instance of ProjectSetting that's not an UploadDestinationListSetting.
 		ProjectSetting mockSetting = mock(ProjectSetting.class);
-		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID)).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.getInheritedProjectSetting(NODE_ID, ProjectSettingsType.upload)).thenReturn(PROJECT_SETTINGS_ID);
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(mockSetting);
 
 		// Call under test.
@@ -442,6 +442,37 @@ public class ProjectSettingsManagerImplUnitTest {
 		
 		assertEquals("The certification setting can be applied only to projects", ex.getMessage());
 		verify(mockNodeManager).getNodeType(userInfo, PROJECT_ID);
+	}
+	
+	@Test
+	public void testCreateProjectSettingAutofillType() {
+		
+		boolean isACTMemeber = true;
+		
+		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.project);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(isACTMemeber);
+		
+		// STS stuff
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
+		doReturn(Optional.empty()).when(projectSettingsManagerImpl).getProjectSettingForNode(userInfo, PROJECT_ID,
+				ProjectSettingsType.upload, ProjectSetting.class);
+		
+		when(mockProjectSettingDao.create(any())).thenReturn(PROJECT_SETTINGS_ID);
+		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(projectCertificationSetting);
+
+		// Nullify the type
+		projectCertificationSetting.setSettingsType(null);
+		
+		// Call under test
+		ProjectSetting result = projectSettingsManagerImpl.createProjectSetting(userInfo, projectCertificationSetting);
+		
+		assertSame(projectCertificationSetting, result);
+		assertEquals(ProjectSettingsType.certification, result.getSettingsType());
+		verify(mockNodeManager).getNodeType(userInfo, PROJECT_ID);
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verify(mockProjectSettingDao).create(projectCertificationSetting);		
+				
 	}
 
 	@Test

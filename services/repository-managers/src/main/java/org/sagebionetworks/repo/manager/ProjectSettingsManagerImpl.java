@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
@@ -33,6 +34,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.ImmutableMap;
+
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	private static final String EXTERNAL_STORAGE_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external upload destination.";
@@ -56,6 +59,11 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private TrashManager trashManager;
+	
+	private static final Map<Class<? extends ProjectSetting>, ProjectSettingsType> TYPE_MAP = ImmutableMap.of(
+		UploadDestinationListSetting.class, ProjectSettingsType.upload,
+		ProjectCertificationSetting.class, ProjectSettingsType.certification
+	);
 
 	private List<StorageLocationProcessor<? extends StorageLocationSetting>> storageLocationProcessors;
 	
@@ -85,7 +93,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
+		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
 		if (projectSettingId == null) {
 			// Not having a setting is normal.
 			return Optional.empty();
@@ -136,6 +144,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (parentSetting.isPresent() && isStsStorageLocationSetting(parentSetting.get())) {
 			throw new IllegalArgumentException("Can't override project settings in an STS-enabled folder path");
 		}
+		
+		// Auto-fill the setting type to avoid inconsistencies in the database
+		projectSetting.setSettingsType(TYPE_MAP.get(projectSetting.getClass()));
 
 		validateProjectSetting(projectSetting, userInfo);
 

@@ -9,22 +9,22 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ProjectSettingsDAO {
 
-	public String create(ProjectSetting settings) throws DatastoreException, InvalidModelException;
+	String create(ProjectSetting settings) throws DatastoreException, InvalidModelException;
 
-	public ProjectSetting get(String id) throws DatastoreException, NotFoundException;
+	ProjectSetting get(String id) throws DatastoreException, NotFoundException;
 
-	public Optional<ProjectSetting> get(String projectId, ProjectSettingsType projectSettingsType) throws DatastoreException;
+	Optional<ProjectSetting> get(String projectId, ProjectSettingsType projectSettingsType) throws DatastoreException;
 
-	public List<ProjectSetting> getAllForProject(String projectId) throws DatastoreException, NotFoundException;
+	List<ProjectSetting> getAllForProject(String projectId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Walks up the entity hierarchy and returns the ID of the first ProjectSetting, or null if no ProjectSettings are
-	 * defined in the entity hierarchy.
+	 * Walks up the entity hierarchy and returns the ID of the first ProjectSetting of the given type, or null if no ProjectSettings are
+	 * defined in the entity hierarchy for the given type.
 	 */
-	String getInheritedProjectSetting(String entityId);
+	String getInheritedProjectSetting(String entityId, ProjectSettingsType settingType);
 
-	public ProjectSetting update(ProjectSetting settings) throws DatastoreException, InvalidModelException, NotFoundException,
+	ProjectSetting update(ProjectSetting settings) throws DatastoreException, InvalidModelException, NotFoundException,
 			ConflictingUpdateException;
 
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	void delete(String id) throws DatastoreException, NotFoundException;
 }
