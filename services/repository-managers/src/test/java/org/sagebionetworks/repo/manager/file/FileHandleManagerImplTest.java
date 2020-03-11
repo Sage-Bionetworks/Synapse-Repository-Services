@@ -579,6 +579,8 @@ public class FileHandleManagerImplTest {
 		ExternalFileHandle result = manager.createExternalFileHandle(mockUser, efh);
 		assertNotNull(result);
 		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+
+		verifyZeroInteractions(mockProjectSettingsManager, mockStorageLocationDao);
 	}
 	
 	@Test
@@ -621,7 +623,43 @@ public class FileHandleManagerImplTest {
 		efh.setExternalURL("local");
 		assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser, efh));
 	}
-	
+
+	@Test
+	public void testCreateExternalFileHandle_IsStsStorageLocationTrue(){
+		// Mock dependencies.
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+		externalS3StorageLocationSetting.setStsEnabled(true);
+
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(externalS3StorageLocationSetting))
+				.thenReturn(true);
+
+		// Set up file handle.
+		ExternalFileHandle efh = createFileHandle();
+		efh.setStorageLocationId(externalS3StorageLocationId);
+
+		// Method under test - Throws.
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> manager.createExternalFileHandle(mockUser,
+				efh));
+		assertEquals("Cannot create ExternalFileHandle in an STS-enabled storage location", ex.getMessage());
+	}
+
+	@Test
+	public void testCreateExternalFileHandle_IsStsStorageLocationFalse(){
+		// Mock dependencies.
+		when(mockStorageLocationDao.get(externalS3StorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+		externalS3StorageLocationSetting.setStsEnabled(false);
+
+		when(mockProjectSettingsManager.isStsStorageLocationSetting(externalS3StorageLocationSetting))
+				.thenReturn(false);
+
+		// Set up file handle.
+		ExternalFileHandle efh = createFileHandle();
+		efh.setStorageLocationId(externalS3StorageLocationId);
+
+		// Method under test - Does not throw.
+		manager.createExternalFileHandle(mockUser, efh);
+	}
+
 	@Test
 	public void testGetURLRequestWithOwnerAuthCheck() throws Exception {
 		S3FileHandle s3FileHandle = new S3FileHandle();
@@ -1121,7 +1159,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(pfh.getCreatedOn());
 		assertNotNull(pfh.getEtag());
 	}
-	
+
 	@Test
 	public void testCreateExternalProxyFileHandleNotCreatorBenefactorNull() {
 		when(mockStorageLocationDao.get(proxyStorageLocationId)).thenReturn(proxyStorageLocationSettings);
