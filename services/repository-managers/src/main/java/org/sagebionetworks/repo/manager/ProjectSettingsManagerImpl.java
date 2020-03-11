@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -111,13 +113,23 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, parentId);
-		if (EntityTypeUtils.getClassForType(nodeType) != Project.class && EntityTypeUtils.getClassForType(nodeType) != Folder.class) {
-			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
+		Class<? extends Entity> nodeClass = EntityTypeUtils.getClassForType(nodeType);
+		
+		// A project certification setting can only be applied to a project and by an ACT member
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			if (nodeClass != Project.class) {
+				throw new IllegalArgumentException("The certification setting can be applied only to projects");
+			}
+			validateACTAccessForCertificationSetting(userInfo);
+		} else {
+			if (nodeClass != Project.class && nodeClass != Folder.class) {
+				throw new IllegalArgumentException("The id is not the id of a project or folder entity");
+			}
+			if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
+				throw new UnauthorizedException("Cannot create settings for this project");
+			}
 		}
-		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
-			throw new UnauthorizedException("Cannot create settings for this project");
-		}
-
+		
 		// Can't create project settings if a parent has an StsStorageLocation.
 		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
 				ProjectSetting.class);
@@ -139,10 +151,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
-				.isAuthorized()) {
-			throw new UnauthorizedException("Cannot update settings on this project");
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			validateACTAccessForCertificationSetting(userInfo);
+		} else {
+			if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
+				throw new UnauthorizedException("Cannot update settings on this project");
+			}
 		}
+		
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
@@ -165,11 +181,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
-				.isAuthorized()) {
-			throw new UnauthorizedException("Cannot delete settings from this project");
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			validateACTAccessForCertificationSetting(userInfo);
+		} else {
+			if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
+					.isAuthorized()) {
+				throw new UnauthorizedException("Cannot delete settings from this project");
+			}
 		}
-
+		
 		// Can't delete an StsStorageLocation on a non-empty entity.
 		if (!isEntityEmptyWithTrash(projectSetting.getProjectId()) &&
 				isStsStorageLocationSetting(projectSetting)) {
@@ -177,6 +197,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 
 		projectSettingsDao.delete(id);
+	}
+	
+	private void validateACTAccessForCertificationSetting(UserInfo userInfo) {	
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("The user must be an ACT member in order to customize the certification requirement");
+		}
 	}
 
 	// Helper method to check that the given entity has no children (either in the node hierarchy or in the trash can).
@@ -235,6 +261,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
+		} else if (setting instanceof ProjectCertificationSetting) {
+			ValidateArgument.required(((ProjectCertificationSetting) setting).getCertificationRequired(), "certificationRequired");
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}
