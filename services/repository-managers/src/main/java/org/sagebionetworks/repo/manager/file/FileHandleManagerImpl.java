@@ -539,6 +539,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		// The URL must be a URL
 		ValidateArgument.validExternalUrl(fileHandle.getExternalURL());
+
+		// Can't upload external (non-S3) file handles to STS storage locations.
+		if (fileHandle.getStorageLocationId() != null) {
+			StorageLocationSetting storageLocationSetting = storageLocationDAO.get(fileHandle.getStorageLocationId());
+			if (projectSettingsManager.isStsStorageLocationSetting(storageLocationSetting)) {
+				throw new IllegalArgumentException("Cannot create ExternalFileHandle in an STS-enabled storage location");
+			}
+		}
+
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
