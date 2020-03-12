@@ -233,16 +233,21 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return true;
 		}
 		
+		return !isCertificationRequired(userInfo, entityId);
+	}
+	
+	boolean isCertificationRequired(UserInfo userInfo, String entityId) {
 		// by default the certification is required, checks if the project is configured to disable the certification requirement
-		boolean certificationRequired = true;
 		
 		Optional<ProjectCertificationSetting> certificationSetting = projectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class);
 		
-		if (certificationSetting.isPresent()) {
-			certificationRequired = certificationSetting.get().getCertificationRequired();
-		}
+		// By default the certification is required on any project
+		boolean isCertificationRequired = true;
 		
-		return !certificationRequired;
+		return certificationSetting
+				.map(ProjectCertificationSetting::getCertificationRequired)
+				.orElse(isCertificationRequired);
+		
 	}
 	
 	@Override
@@ -383,6 +388,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor, node.getNodeType()).isAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).isAuthorized());
+		permissions.setIsCertificationRequired(isCertificationRequired(userInfo, entityId));
 
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		

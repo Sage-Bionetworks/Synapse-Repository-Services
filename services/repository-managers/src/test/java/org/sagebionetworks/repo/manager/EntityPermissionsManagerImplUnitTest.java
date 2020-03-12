@@ -98,6 +98,8 @@ public class EntityPermissionsManagerImplUnitTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private ObjectTypeManager mockObjectTypeManager;
+	@Mock
+	private ProjectCertificationSetting mockProjectCertificationSetting;
 	
 	private UserInfo anonymousUser;
 	
@@ -197,6 +199,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).isAuthorized());
 		
@@ -240,6 +243,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 		
@@ -279,6 +283,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
@@ -327,6 +332,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).isAuthorized());
 		
@@ -365,6 +371,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).isAuthorized());
 
@@ -417,6 +424,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
+		assertFalse(uep.getIsCertificationRequired());
 	}
 	
 	@Test
@@ -460,6 +468,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanCertifiedUserEdit());
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
+		assertTrue(uep.getIsCertificationRequired());
 		
 	}
 
@@ -875,6 +884,57 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
 		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-	}	
+	}
+	
+	@Test
+	public void testIsCertificationRequiredWithNoProjectCertificationSetting() {
+		
+		UserInfo userInfo = certifiedUserInfo;
+		
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.empty());
+		
+		// Call under test
+		boolean result = entityPermissionsManager.isCertificationRequired(userInfo, entityId);
+		
+		assertTrue(result);
+		
+	}
+	
+	@Test
+	public void testIsCertificationRequiredWithProjectCertificationSettingEnabled() {
+		
+		UserInfo userInfo = certifiedUserInfo;
+		boolean isCertificationRequired = true;
+		
+		when(mockProjectCertificationSetting.getCertificationRequired()).thenReturn(isCertificationRequired);
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.of(mockProjectCertificationSetting));
+		
+		// Call under test
+		boolean result = entityPermissionsManager.isCertificationRequired(userInfo, entityId);
+		
+		assertTrue(result);
+		verify(mockProjectCertificationSetting).getCertificationRequired();
+		
+	}
+
+	@Test
+	public void testIsCertificationRequiredWithProjectCertificationSettingDisabled() {
+		
+		UserInfo userInfo = certifiedUserInfo;
+		boolean isCertificationRequired = false;
+		
+		when(mockProjectCertificationSetting.getCertificationRequired()).thenReturn(isCertificationRequired);
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.of(mockProjectCertificationSetting));
+		
+		// Call under test
+		boolean result = entityPermissionsManager.isCertificationRequired(userInfo, entityId);
+		
+		assertFalse(result);
+		verify(mockProjectCertificationSetting).getCertificationRequired();
+		
+	}
 	
 }
