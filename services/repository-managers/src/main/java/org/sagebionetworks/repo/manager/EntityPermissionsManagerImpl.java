@@ -58,8 +58,8 @@ import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
-	private static final Long TRASH_FOLDER_ID = Long.parseLong(
-			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
+	private static final String ERR_MESSAGE_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -261,7 +261,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 
 		if (!EntityType.project.equals(nodeType) && !isCertifiedUserOrFeatureDisabled(userInfo, parentId)) {
-			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException("Only certified users may create content in Synapse."));
+			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MESSAGE_CERTIFIED_USER_CONTENT));
 		}
 		
 		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
@@ -301,7 +301,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!userInfo.isAdmin() && 
 			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
 			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
-			return AuthorizationStatus.accessDenied("Only certified users may create or update content in Synapse.");
+			return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
 		}
 		
 		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
