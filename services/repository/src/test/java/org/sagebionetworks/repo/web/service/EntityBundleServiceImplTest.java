@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -178,7 +177,7 @@ public class EntityBundleServiceImplTest {
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
 		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(AnnotationsV2TestUtils.newEmptyAnnotationsV2(STUDY_ID));
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
@@ -206,7 +205,7 @@ public class EntityBundleServiceImplTest {
 	
 		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId));
 		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
 	}
 	
 	@Test
@@ -218,7 +217,7 @@ public class EntityBundleServiceImplTest {
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(studyWithId);
 		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1))).thenReturn(acl);
-		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull())).thenReturn(acl);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID))).thenReturn(annosWithId);
 		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2))).thenReturn(annotationsV2);
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
@@ -249,7 +248,7 @@ public class EntityBundleServiceImplTest {
 	
 		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId));
 		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annotationsV2));
-		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), isNull());
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl));
 	}
 	
 	@Test

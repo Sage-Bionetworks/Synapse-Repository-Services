@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -322,97 +321,6 @@ public class EntityPermissionsManagerImplTest {
 		assertThrows(UnauthorizedException.class, () -> {
 			entityPermissionsManager.restoreInheritance(childNode.getId(), userInfo);
 		});
-		
-	}
-
-	@Test
-	public void testApplyInheritanceToChildren() throws Exception {
-		// retrieve parent acl
-		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
-
-		// retrieve child acl - should get parent's
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		
-		// assign new ACL to child
-		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
-		String eTagBefore = childNode.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(childAcl, adminUserInfo);
-		
-		// assign new ACL to grandchild0
-		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
-		eTagBefore = grandchildNode0.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
-		
-		// retrieve child acl - should get child's
-		AccessControlList returnedAcl = entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
-		assertEquals(childAcl, returnedAcl, "Child ACL not set properly");
-		assertFalse(parentAcl.equals(returnedAcl), "Child ACL should not match parent ACL");
-		
-		// retrieve grandchild0 acl - should get grandchild0's
-		returnedAcl = entityPermissionsManager.getACL(grandchildNode0.getId(), adminUserInfo);
-		assertEquals(grandchild0Acl, returnedAcl, "Grandchild ACL not set properly");
-		assertFalse(childAcl.equals(returnedAcl), "Grandchild ACL should not match child ACL");
-		assertFalse(parentAcl.equals(returnedAcl), "Grandchild ACL should not match parent ACL");
-		
-		// retrieve grandchild1 acl - should get child's
-		verifyInheritedAcl(grandchildNode1, childNode.getId(), adminUserInfo);
-		
-		// apply inheritance to children
-		entityPermissionsManager.applyInheritanceToChildren(project.getId(), adminUserInfo);
-		
-		// retrieve all descendant acls - should get parent's
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode0, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode1, project.getId(), adminUserInfo);
-	}
-	
-	@Test
-	public void testApplyInheritanceToChildrenNotAuthorized() throws Exception {
-		// retrieve parent acl
-		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
-		
-		// assign new ACL to child
-		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
-		String eTagBefore = childNode.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(childAcl, adminUserInfo);
-		
-		// assign new ACL to grandchild0
-		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
-		eTagBefore = grandchildNode0.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
-		
-		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
-		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
-		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
-		
-		// apply inheritance to children as test user
-		entityPermissionsManager.applyInheritanceToChildren(project.getId(), userInfo);
-		
-		// retrieve child and grandchild1 acls - should get parent's (authorized to change permissions)
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode1, project.getId(), adminUserInfo);
-		
-		// retrieve grandchild0 acl - should get grandchild0's (not authorized to change permissions)
-		try {
-			AccessControlList returnedAcl = entityPermissionsManager.getACL(grandchildNode0.getId(), adminUserInfo);
-			assertEquals(grandchild0Acl, returnedAcl, "Grandchild ACL not set properly");
-		} catch (ACLInheritanceException e) {
-			fail("Grandchild ACL was overwritten without authorization");
-		}
 		
 	}
 	

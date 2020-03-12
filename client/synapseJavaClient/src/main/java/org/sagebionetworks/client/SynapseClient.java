@@ -520,9 +520,6 @@ public interface SynapseClient extends BaseClient {
 
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
 
-	public AccessControlList updateACL(AccessControlList acl, boolean recursive)
-			throws SynapseException;
-
 	public void deleteACL(String entityId) throws SynapseException;
 
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException;

@@ -1121,25 +1121,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Update an ACL. Default to non-recursive application.
+	 * Update an ACL.
 	 */
 	@Override
 	public AccessControlList updateACL(AccessControlList acl)
 			throws SynapseException {
-		return updateACL(acl, false);
-	}
-
-	/**
-	 * Update an entity's ACL. If 'recursive' is set to true, then any child
-	 * ACLs will be deleted, such that all child entities inherit this ACL.
-	 */
-	@Override
-	public AccessControlList updateACL(AccessControlList acl, boolean recursive)
-			throws SynapseException {
 		String uri = ENTITY_URI_PATH + "/" + acl.getId() + ENTITY_ACL_PATH_SUFFIX;
-		if (recursive) {
-			uri += ENTITY_ACL_RECURSIVE_SUFFIX;
-		}
 		return putJSONEntity(getRepoEndpoint(), uri, acl, AccessControlList.class);
 	}
 

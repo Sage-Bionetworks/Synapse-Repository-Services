@@ -442,24 +442,19 @@ public class EntityServiceImpl implements EntityService {
 
 	@WriteTransaction
 	@Override
-	public AccessControlList updateEntityACL(Long userId,
-											 AccessControlList updated, String recursive) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+	public AccessControlList updateEntityACL(Long userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessControlList acl = entityPermissionsManager.updateACL(updated, userInfo);
-		if (recursive != null && recursive.equalsIgnoreCase("true"))
-			entityPermissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
-		return acl;
+		return entityPermissionsManager.updateACL(updated, userInfo);
 	}
 
 	@WriteTransaction
 	@Override
-	public AccessControlList createOrUpdateEntityACL(Long userId,
-													 AccessControlList acl, String recursive) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+	public AccessControlList createOrUpdateEntityACL(Long userId, AccessControlList acl) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
 		if (entityPermissionsManager.hasLocalACL(entityId)) {
 			// Local ACL exists; update it
-			return updateEntityACL(userId, acl, recursive);
+			return updateEntityACL(userId, acl);
 		} else {
 			// Local ACL does not exist; create it
 			return createEntityACL(userId, acl);
