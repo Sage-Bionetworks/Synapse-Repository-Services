@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -373,6 +374,49 @@ public class EntityPermissionsManagerImplUnitTest {
 
 
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).isAuthorized());
+	}
+	
+	@Test
+	public void testGetUserPermissionsForNonCertifiedUserWithRequireCertificationDisabled() {
+		
+		// Mock dependencies.
+		when(mockNodeDao.getNode(folderId)).thenReturn(folder);
+		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+
+		// Simulate full access
+		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
+				any(ACCESS_TYPE.class))).thenReturn(true);
+		
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
+		
+		ProjectCertificationSetting projectSetting = new ProjectCertificationSetting();
+		projectSetting.setCertificationRequired(false);
+		
+		when(mockProjectSettingsManager.getProjectSettingForNode(nonCertifiedUserInfo, folderId, ProjectSettingsType.certification,
+				ProjectCertificationSetting.class)).thenReturn(Optional.of(projectSetting));
+
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
+				.thenReturn(anonymousUser);
+
+		// Method under test.
+		UserEntityPermissions uep = entityPermissionsManager.
+				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
+		
+		assertTrue(uep.getCanAddChild()); // not certified but the project does not require it!
+		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
+		assertTrue(uep.getCanDelete());
+		assertTrue(uep.getCanEdit()); // not certified and not a project but the project does not require it!
+		assertTrue(uep.getCanEnableInheritance());
+		assertFalse(uep.getCanPublicRead());
+		assertTrue(uep.getCanView());
+		assertTrue(uep.getCanDownload());
+		assertTrue(uep.getCanUpload());
+		assertTrue(uep.getCanCertifiedUserAddChild());
+		assertTrue(uep.getCanCertifiedUserEdit());
+		assertFalse(uep.getIsCertifiedUser()); // not certified!
+		assertTrue(uep.getCanModerate());
 	}
 	
 	@Test

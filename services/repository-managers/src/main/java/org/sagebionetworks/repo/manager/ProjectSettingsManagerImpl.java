@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -56,6 +57,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
+	
+	@Autowired
+	private NodeDAO nodeDao;
 
 	@Autowired
 	private TrashManager trashManager;
@@ -93,17 +97,31 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
-		if (projectSettingId == null) {
+		
+		ProjectSetting projectSetting = null;
+		
+		// The certification setting can be applied only at the project level, no need to walk up the hierarchy of settings
+		if (ProjectSettingsType.certification == type) {
+			String projectId = nodeDao.getProjectId(nodeId);
+			projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.certification).orElse(null);
+		} else {
+			String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
+			
+			if (projectSettingId != null) {
+				// Note that get throws NotFoundException if the project setting somehow doesn't exist.
+				projectSetting = projectSettingsDao.get(projectSettingId);
+			}	
+		}
+		
+		if (projectSetting == null) {
 			// Not having a setting is normal.
 			return Optional.empty();
 		}
-
-		// Note that get throws NotFoundException if the project setting somehow doesn't exist.
-		ProjectSetting projectSetting = projectSettingsDao.get(projectSettingId);
+		
 		if (!expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
+		
 		return Optional.of(expectedType.cast(projectSetting));
 	}
 

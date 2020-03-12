@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -259,9 +260,27 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 	
-	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
+	boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo, String entityId) {
 		Boolean featureIsDisabled = configuration.getDisableCertifiedUser();
-		return featureIsDisabled == null || featureIsDisabled || AuthorizationUtils.isCertifiedUser(userInfo);
+		
+		if (featureIsDisabled == null || featureIsDisabled) {
+			return true;
+		}
+		
+		if (AuthorizationUtils.isCertifiedUser(userInfo)) {
+			return true;
+		}
+		
+		// by default the certification is required, checks if the project is configured to disable the certification requirement
+		boolean certificationRequired = true;
+		
+		Optional<ProjectCertificationSetting> certificationSetting = projectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class);
+		
+		if (certificationSetting.isPresent()) {
+			certificationRequired = certificationSetting.get().getCertificationRequired();
+		}
+		
+		return !certificationRequired;
 	}
 	
 	@Override
@@ -274,8 +293,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(nodeType)) 
+		if (!EntityType.project.equals(nodeType) && !isCertifiedUserOrFeatureDisabled(userInfo, parentId)) {
 			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException("Only certified users may create content in Synapse."));
+		}
 		
 		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
 	}
@@ -286,7 +306,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo)) {
+		if (!isCertifiedUserOrFeatureDisabled(userInfo, node.getId())) {
 			return AuthorizationStatus.accessDenied("Only certified users may change node settings.");
 		}
 
@@ -312,10 +332,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		
 		if (!userInfo.isAdmin() && 
-			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				(accessType==CREATE ||
-				(accessType==UPDATE && entityType!=EntityType.project)))
+			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
+			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
 			return AuthorizationStatus.accessDenied("Only certified users may create or update content in Synapse.");
+		}
 		
 		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
 	}
@@ -499,9 +519,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		if (!userInfo.isAdmin() && 
-			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				entityType!=EntityType.project)
+			EntityType.project != entityType &&
+			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
 			return AuthorizationStatus.accessDenied("Only certified users may create non-project wikis in Synapse.");
+		}
 		
 		return certifiedUserHasAccess(entityId, entityType, ACCESS_TYPE.CREATE, userInfo);
 	}

@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
@@ -70,6 +71,9 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@Mock
 	private NodeManager mockNodeManager;
+	
+	@Mock
+	private NodeDAO mockNodeDao;
 
 	@Mock
 	private AuthorizationManager authorizationManager;
@@ -209,6 +213,19 @@ public class ProjectSettingsManagerImplUnitTest {
 				ex.getMessage());
 	}
 
+	@Test
+	public void testGetProjectSettingForNodeWithCertificationType() {
+		when(mockNodeDao.getProjectId(any())).thenReturn(PROJECT_ID);
+		when(mockProjectSettingDao.get(PROJECT_ID, ProjectSettingsType.certification)).thenReturn(Optional.of(projectCertificationSetting));
+
+		// Call under test
+		Optional<ProjectCertificationSetting> actual = projectSettingsManagerImpl.getProjectSettingForNode(userInfo, NODE_ID,
+				ProjectSettingsType.certification, ProjectCertificationSetting.class);
+		
+		assertTrue(actual.isPresent());
+		assertEquals(projectCertificationSetting, actual.get());
+	}
+	
 	@Test
 	public void getUploadDestinationLocations() {
 		List<Long> ids = Collections.singletonList(123L);
