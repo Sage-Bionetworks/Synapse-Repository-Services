@@ -937,4 +937,59 @@ public class EntityPermissionsManagerImplUnitTest {
 		
 	}
 	
+	@Test
+	public void testHasCreateAccessWithNonCertifiedUserAndProjectCertificationSettingDisabled() {
+		UserInfo userInfo = nonCertifiedUserInfo;
+		boolean isCertificationRequired = false;
+		boolean hasCreateAccess = true;
+		
+		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+		when(mockProjectCertificationSetting.getCertificationRequired()).thenReturn(isCertificationRequired);
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, folderId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.of(mockProjectCertificationSetting));		
+		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockAclDAO.canAccess(nonCertifiedUserInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+			.thenReturn(hasCreateAccess);
+		
+		// Method under test
+		boolean result = entityPermissionsManager.hasAccess(folderId, ACCESS_TYPE.CREATE, userInfo).isAuthorized();
+	
+		assertTrue(result);
+	}
+	
+	@Test
+	public void testHasCreateAccessWithNonCertifiedUserAndProjectCertificationSettingEnabled() {
+		UserInfo userInfo = nonCertifiedUserInfo;
+		boolean isCertificationRequired = true;
+		
+		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+		when(mockProjectCertificationSetting.getCertificationRequired()).thenReturn(isCertificationRequired);
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, folderId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.of(mockProjectCertificationSetting));		
+		
+		// Method under test
+		boolean result = entityPermissionsManager.hasAccess(folderId, ACCESS_TYPE.CREATE, userInfo).isAuthorized();
+	
+		assertFalse(result);
+	}
+	
+	@Test
+	public void testHasCreateAccessWithNonCertifiedUserAndProjectCertificationSettingDisabledAndNoAccess() {
+		UserInfo userInfo = nonCertifiedUserInfo;
+		boolean isCertificationRequired = false;
+		boolean hasCreateAccess = false;
+		
+		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+		when(mockProjectCertificationSetting.getCertificationRequired()).thenReturn(isCertificationRequired);
+		when(mockProjectSettingsManager.getProjectSettingForNode(userInfo, folderId, ProjectSettingsType.certification, ProjectCertificationSetting.class))
+			.thenReturn(Optional.of(mockProjectCertificationSetting));		
+		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockAclDAO.canAccess(nonCertifiedUserInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(hasCreateAccess);
+		
+		// Method under test
+		boolean result = entityPermissionsManager.hasAccess(folderId, ACCESS_TYPE.CREATE, userInfo).isAuthorized();
+	
+		assertFalse(result);
+	}
+	
 }
