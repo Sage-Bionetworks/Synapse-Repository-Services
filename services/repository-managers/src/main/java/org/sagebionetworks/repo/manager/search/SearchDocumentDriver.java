@@ -62,7 +62,7 @@ public interface SearchDocumentDriver {
 	 * @param nodeIds
 	 * @return
 	 */
-	public List<IdAndAlias> getAliases(Set<String> nodeIds);
+	public List<IdAndAlias> getAliases(List<String> nodeIds);
 	
 	
 	public String getAllWikiPageText(String nodeId) throws DatastoreException;

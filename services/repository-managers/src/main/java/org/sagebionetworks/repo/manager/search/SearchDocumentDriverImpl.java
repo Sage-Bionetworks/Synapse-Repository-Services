@@ -120,6 +120,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@Override
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException {
 		List<EntityHeader> pathHeaders = NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 		EntityPath entityPath = new EntityPath();
@@ -127,6 +128,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return entityPath;
 	}
 	
+	@Override
 	public List<IdAndAlias> getAliases(List<String> nodeIds) {
 		return nodeDao.getAliasByNodeId(nodeIds);
 	}

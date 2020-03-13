@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -100,7 +99,7 @@ public class SearchManagerImpl implements SearchManager{
 			hits.removeAll(toRemove);
 			
 			// now add aliases
-			Set<String> ids = new HashSet<String>();
+			List<String> ids = new ArrayList<String>();
 			for (Hit hit : hits) {
 				ids.add(hit.getId());
 			}
