@@ -2,15 +2,18 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.storagelocation.StorageLocationProcessor;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
@@ -21,6 +24,7 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -30,6 +34,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.ImmutableMap;
 
 public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
@@ -51,9 +57,17 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private NodeManager nodeManager;
+	
+	@Autowired
+	private NodeDAO nodeDao;
 
 	@Autowired
 	private TrashManager trashManager;
+	
+	private static final Map<Class<? extends ProjectSetting>, ProjectSettingsType> TYPE_MAP = ImmutableMap.of(
+		UploadDestinationListSetting.class, ProjectSettingsType.upload,
+		ProjectCertificationSetting.class, ProjectSettingsType.certification
+	);
 
 	private List<StorageLocationProcessor<? extends StorageLocationSetting>> storageLocationProcessors;
 	
@@ -83,17 +97,31 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	public <T extends ProjectSetting> Optional<T> getProjectSettingForNode(UserInfo userInfo, String nodeId, ProjectSettingsType type,
 			Class<T> expectedType) throws DatastoreException, UnauthorizedException, NotFoundException {
-		String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId);
-		if (projectSettingId == null) {
+		
+		ProjectSetting projectSetting = null;
+		
+		// The certification setting can be applied only at the project level, no need to walk up the hierarchy of settings
+		if (ProjectSettingsType.certification == type) {
+			String projectId = nodeDao.getProjectId(nodeId);
+			projectSetting = projectSettingsDao.get(projectId, ProjectSettingsType.certification).orElse(null);
+		} else {
+			String projectSettingId = projectSettingsDao.getInheritedProjectSetting(nodeId, type);
+			
+			if (projectSettingId != null) {
+				// Note that get throws NotFoundException if the project setting somehow doesn't exist.
+				projectSetting = projectSettingsDao.get(projectSettingId);
+			}	
+		}
+		
+		if (projectSetting == null) {
 			// Not having a setting is normal.
 			return Optional.empty();
 		}
-
-		// Note that get throws NotFoundException if the project setting somehow doesn't exist.
-		ProjectSetting projectSetting = projectSettingsDao.get(projectSettingId);
+		
 		if (!expectedType.isInstance(projectSetting)) {
 			throw new IllegalArgumentException("Settings type for '" + type + "' is not of type " + expectedType.getName());
 		}
+		
 		return Optional.of(expectedType.cast(projectSetting));
 	}
 
@@ -111,19 +139,34 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 		// make sure the project id is a project
 		EntityType nodeType = nodeManager.getNodeType(userInfo, parentId);
-		if (EntityTypeUtils.getClassForType(nodeType) != Project.class && EntityTypeUtils.getClassForType(nodeType) != Folder.class) {
+		Class<? extends Entity> nodeClass = EntityTypeUtils.getClassForType(nodeType);
+		
+		// A project certification setting can only be applied to a project and by an ACT member
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			if (nodeClass != Project.class) {
+				throw new IllegalArgumentException("The certification setting can be applied only to projects");
+			}
+			validateACTAccessForCertificationSetting(userInfo);
+		}
+		
+		if (nodeClass != Project.class && nodeClass != Folder.class) {
 			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
 		}
+		
 		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
-
+	
+		
 		// Can't create project settings if a parent has an StsStorageLocation.
 		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
 				ProjectSetting.class);
 		if (parentSetting.isPresent() && isStsStorageLocationSetting(parentSetting.get())) {
 			throw new IllegalArgumentException("Can't override project settings in an STS-enabled folder path");
 		}
+		
+		// Auto-fill the setting type to avoid inconsistencies in the database
+		projectSetting.setSettingsType(TYPE_MAP.get(projectSetting.getClass()));
 
 		validateProjectSetting(projectSetting, userInfo);
 
@@ -139,10 +182,16 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
-				.isAuthorized()) {
+		
+		// A project certification setting can only be applied to by an ACT member
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			validateACTAccessForCertificationSetting(userInfo);
+		}
+	
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
+		
 		validateProjectSetting(projectSetting, userInfo);
 
 		// Can't add or modify an StsStorageLocation on a non-empty entity.
@@ -165,11 +214,17 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
+		
+		// A project certification setting can only be applied to by an ACT member
+		if (projectSetting instanceof ProjectCertificationSetting) {
+			validateACTAccessForCertificationSetting(userInfo);
+		}
+	
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
 				.isAuthorized()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
-
+		
 		// Can't delete an StsStorageLocation on a non-empty entity.
 		if (!isEntityEmptyWithTrash(projectSetting.getProjectId()) &&
 				isStsStorageLocationSetting(projectSetting)) {
@@ -177,6 +232,12 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}
 
 		projectSettingsDao.delete(id);
+	}
+	
+	private void validateACTAccessForCertificationSetting(UserInfo userInfo) {
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("The user must be an ACT member in order to customize the certification requirement");
+		}
 	}
 
 	// Helper method to check that the given entity has no children (either in the node hierarchy or in the trash can).
@@ -235,6 +296,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		ValidateArgument.required(setting.getSettingsType(), "settingsType");
 		if (setting instanceof UploadDestinationListSetting) {
 			validateUploadDestinationListSetting((UploadDestinationListSetting) setting, currentUser);
+		} else if (setting instanceof ProjectCertificationSetting) {
+			ValidateArgument.required(((ProjectCertificationSetting) setting).getCertificationRequired(), "certificationRequired");
 		} else {
 			ValidateArgument.failRequirement("Cannot handle project setting of type " + setting.getClass().getName());
 		}

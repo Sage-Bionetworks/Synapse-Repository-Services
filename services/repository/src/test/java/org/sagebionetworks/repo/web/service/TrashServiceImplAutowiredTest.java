@@ -151,7 +151,7 @@ public class TrashServiceImplAutowiredTest {
 
 		AccessControlList acl = entityService.getEntityACL(projectId, userId);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
-		entityService.updateEntityACL(userId, acl, null);
+		entityService.updateEntityACL(userId, acl);
 
 		// Upload a file to the project (with user 1).
 		FileEntity fileEntity = uploadFile(projectId, null);

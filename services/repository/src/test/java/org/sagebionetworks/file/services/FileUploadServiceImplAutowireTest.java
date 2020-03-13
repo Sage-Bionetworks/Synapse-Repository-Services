@@ -134,7 +134,7 @@ public class FileUploadServiceImplAutowireTest {
 
 		AccessControlList acl = entityService.getEntityACL(projectId, userId);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
-		entityService.updateEntityACL(userId, acl, null);
+		entityService.updateEntityACL(userId, acl);
 	}
 
 	@AfterEach

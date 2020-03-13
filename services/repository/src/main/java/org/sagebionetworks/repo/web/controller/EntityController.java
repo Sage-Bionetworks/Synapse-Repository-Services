@@ -948,7 +948,7 @@ public class EntityController {
 					"The path ID: " + id + " does not match the ACL's ID: " + updatedACL.getId());
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
-		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null);
+		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL);
 	}
 
 	/**

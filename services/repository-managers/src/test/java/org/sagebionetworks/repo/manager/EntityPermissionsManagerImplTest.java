@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -41,6 +40,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -63,13 +63,14 @@ public class EntityPermissionsManagerImplTest {
 	private AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
+	private ProjectSettingsManager projectSettingManager;
+	
+	@Autowired
 	private DBOBasicDao basicDao;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
 	private Node childNode = null;
-	private Node grandchildNode0 = null;
-	private Node grandchildNode1 = null;
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	private UserInfo otherUserInfo;
@@ -89,10 +90,7 @@ public class EntityPermissionsManagerImplTest {
 	
 	private Node createNode(String name, Long createdBy, Long modifiedBy, String parentId) throws Exception {
 		Node node = createDTO(name, createdBy, modifiedBy, parentId);
-		String nodeId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(nodeId);
-		node.setId(nodeId);
-		return nodeManager.get(adminUserInfo, nodeId);
+		return nodeManager.createNode(node, adminUserInfo);
 	}
 
 	@BeforeEach
@@ -120,11 +118,10 @@ public class EntityPermissionsManagerImplTest {
 		
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
+		
 		nodeList.add(project);
 				
 		childNode = createNode("foo2", 3L, 4L, project.getId());
-		grandchildNode0 = createNode("foo3", 5L, 6L, childNode.getId());
-		grandchildNode1 = createNode("foo4", 7L, 8L, childNode.getId());
 	}
 
 	@AfterEach
@@ -324,97 +321,6 @@ public class EntityPermissionsManagerImplTest {
 		});
 		
 	}
-
-	@Test
-	public void testApplyInheritanceToChildren() throws Exception {
-		// retrieve parent acl
-		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
-
-		// retrieve child acl - should get parent's
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		
-		// assign new ACL to child
-		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
-		String eTagBefore = childNode.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(childAcl, adminUserInfo);
-		
-		// assign new ACL to grandchild0
-		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
-		eTagBefore = grandchildNode0.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
-		
-		// retrieve child acl - should get child's
-		AccessControlList returnedAcl = entityPermissionsManager.getACL(childNode.getId(), adminUserInfo);
-		assertEquals(childAcl, returnedAcl, "Child ACL not set properly");
-		assertFalse(parentAcl.equals(returnedAcl), "Child ACL should not match parent ACL");
-		
-		// retrieve grandchild0 acl - should get grandchild0's
-		returnedAcl = entityPermissionsManager.getACL(grandchildNode0.getId(), adminUserInfo);
-		assertEquals(grandchild0Acl, returnedAcl, "Grandchild ACL not set properly");
-		assertFalse(childAcl.equals(returnedAcl), "Grandchild ACL should not match child ACL");
-		assertFalse(parentAcl.equals(returnedAcl), "Grandchild ACL should not match parent ACL");
-		
-		// retrieve grandchild1 acl - should get child's
-		verifyInheritedAcl(grandchildNode1, childNode.getId(), adminUserInfo);
-		
-		// apply inheritance to children
-		entityPermissionsManager.applyInheritanceToChildren(project.getId(), adminUserInfo);
-		
-		// retrieve all descendant acls - should get parent's
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode0, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode1, project.getId(), adminUserInfo);
-	}
-	
-	@Test
-	public void testApplyInheritanceToChildrenNotAuthorized() throws Exception {
-		// retrieve parent acl
-		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
-		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
-		
-		// assign new ACL to child
-		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
-		String eTagBefore = childNode.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(childAcl, adminUserInfo);
-		
-		// assign new ACL to grandchild0
-		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
-		eTagBefore = grandchildNode0.getETag();
-		assertNotNull(eTagBefore);
-		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
-		
-		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
-		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
-		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
-		
-		// apply inheritance to children as test user
-		entityPermissionsManager.applyInheritanceToChildren(project.getId(), userInfo);
-		
-		// retrieve child and grandchild1 acls - should get parent's (authorized to change permissions)
-		verifyInheritedAcl(childNode, project.getId(), adminUserInfo);
-		verifyInheritedAcl(grandchildNode1, project.getId(), adminUserInfo);
-		
-		// retrieve grandchild0 acl - should get grandchild0's (not authorized to change permissions)
-		try {
-			AccessControlList returnedAcl = entityPermissionsManager.getACL(grandchildNode0.getId(), adminUserInfo);
-			assertEquals(grandchild0Acl, returnedAcl, "Grandchild ACL not set properly");
-		} catch (ACLInheritanceException e) {
-			fail("Grandchild ACL was overwritten without authorization");
-		}
-		
-	}
 	
 	/**
 	 * Regression test for PLFM-1865
@@ -437,10 +343,7 @@ public class EntityPermissionsManagerImplTest {
 		
 		// create folder in project as collaborator
 		Node folder = createDTO("collaborators folder", userInfo.getId(), userInfo.getId(), project.getId());
-		String nodeId = nodeManager.createNewNode(folder, userInfo);
-		assertNotNull(nodeId);
-		folder.setId(nodeId);
-		folder = nodeManager.get(userInfo, nodeId);
+		folder = nodeManager.createNode(folder, userInfo);
 		nodeList.add(folder);
 		
 		// create local ACL for folder
@@ -459,15 +362,6 @@ public class EntityPermissionsManagerImplTest {
 				}
 			}
 		}
-	}
-	
-	private void verifyInheritedAcl(Node node, String expectedBenefactorId,  UserInfo userInfo) 
-			throws NotFoundException, DatastoreException {
-		ACLInheritanceException e = assertThrows(ACLInheritanceException.class, () -> {
-			entityPermissionsManager.getACL(node.getId(), userInfo);
-		});
-		// The exception should tell us the benefactor
-		assertEquals(expectedBenefactorId, e.getBenefactorId());
 	}
 	
 	@Test
@@ -508,4 +402,99 @@ public class EntityPermissionsManagerImplTest {
 		// again, we can't download
 		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo).isAuthorized());
 	}
+	
+	@Test
+	public void testCreateNodeWithNonCertifiedUser() throws Exception {
+		// Add permissions to create in the project for the (uncertified) user
+		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// Tries to create a folder
+		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());
+		folder.setNodeType(EntityType.folder);
+		
+		UserCertificationRequiredException ex = assertThrows(UserCertificationRequiredException.class, () -> {
+			// Method under test
+			nodeManager.createNode(folder, userInfo);
+		});
+		
+		assertEquals("Only certified users may create or update content in Synapse.", ex.getMessage());
+		
+		// Disable certification for the project
+		ProjectCertificationSetting projectSetting = new ProjectCertificationSetting();
+		projectSetting.setProjectId(project.getId());
+		projectSetting.setCertificationRequired(false);
+		
+		projectSettingManager.createProjectSetting(adminUserInfo, projectSetting);
+		
+		// Method under test, the user can now create the folder without certification
+		Node newFolder = nodeManager.createNode(folder, userInfo);
+		
+		nodeList.add(newFolder);
+		
+		acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		
+		// Removes access to the user
+		Set<ResourceAccess> ra = acl.getResourceAccess().stream().filter( a -> 
+			!a.getPrincipalId().equals(userInfo.getId())
+		).collect(Collectors.toSet());
+
+		acl.setResourceAccess(ra);
+		
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		Node anotherFolder = createDTO("Another Test folder", userInfo.getId(), userInfo.getId(), project.getId());
+		anotherFolder.setNodeType(EntityType.folder);
+		
+		// Even though certification is not required, the user does not have access
+		assertThrows(UnauthorizedException.class, () -> {
+			nodeManager.createNode(anotherFolder, userInfo);
+		});
+		
+	}
+	
+	@Test
+	public void testMoveNodeWithNonCertifiedUser() throws Exception {
+		// Add permissions to create in the project for the (uncertified) user
+		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.UPDATE);
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// Disable certification for the project
+		ProjectCertificationSetting projectSetting = new ProjectCertificationSetting();
+		projectSetting.setProjectId(project.getId());
+		projectSetting.setCertificationRequired(false);
+		
+		projectSettingManager.createProjectSetting(adminUserInfo, projectSetting);
+		
+		// Creates a folder in the project
+		Node folder = createDTO("Test Folder ", userInfo.getId(), userInfo.getId(), project.getId());
+		folder.setNodeType(EntityType.folder);
+		
+		Node newFolder = nodeManager.createNode(folder, userInfo);
+		nodeList.add(newFolder);
+		
+		// Creates another project
+		Node newProject = createNode("Another Project", adminUserInfo.getId(), adminUserInfo.getId(), null);
+		nodeList.add(newProject);
+		
+		// Add permissions to create in the new project for any user
+		acl = entityPermissionsManager.getACL(newProject.getId(), adminUserInfo);
+		acl = AuthorizationTestHelper.addToACL(acl, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), ACCESS_TYPE.CREATE);
+		acl = AuthorizationTestHelper.addToACL(acl, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), ACCESS_TYPE.UPDATE);
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// Updates the parent of the folder to the new project
+		newFolder.setParentId(newProject.getId());
+		
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
+			// Method under test
+			nodeManager.update(userInfo, newFolder, null, false);
+		});
+		
+		assertEquals("Only certified users may create or update content in Synapse.", ex.getMessage());
+	}
+	
 }

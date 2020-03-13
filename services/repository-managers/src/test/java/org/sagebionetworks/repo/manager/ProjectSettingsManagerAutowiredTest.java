@@ -43,7 +43,7 @@ import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class ProjectSettingsImplAutowiredTest {
+public class ProjectSettingsManagerAutowiredTest {
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;

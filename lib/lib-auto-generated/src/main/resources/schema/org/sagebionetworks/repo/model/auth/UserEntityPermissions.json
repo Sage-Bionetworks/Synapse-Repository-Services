@@ -60,6 +60,10 @@
 		"canModerate": {
 			"type": "boolean",
 			"description": "Can the user moderate the forum associated with this entity? Note that only project entity has forum."
+		},
+		"isCertificationRequired": {
+			"type": "boolean",
+			"description": "Is the certification requirement enabled for the project of the entity?"
 		}
 	}
 }

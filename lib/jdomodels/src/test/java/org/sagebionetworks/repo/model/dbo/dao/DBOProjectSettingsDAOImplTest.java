@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -33,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @ExtendWith(SpringExtension.class)
@@ -73,6 +75,11 @@ public class DBOProjectSettingsDAOImplTest {
 		setting.setId(null);
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);
+		
+		ProjectCertificationSetting setting2 = new ProjectCertificationSetting();
+		setting2.setEtag("etag");
+		setting2.setProjectId(projectId);
+		setting2.setSettingsType(ProjectSettingsType.certification);
 
 		// there should not be a settings to begin with
 		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
@@ -82,20 +89,30 @@ public class DBOProjectSettingsDAOImplTest {
 		String id = projectSettingsDao.create(setting);
 		setting.setId(id);
 		assertNotNull(id);
+		
+		String id2 = projectSettingsDao.create(setting2);
+		setting2.setId(id2);
 
 		// Fetch it
 		ProjectSetting clone = projectSettingsDao.get(projectId, ProjectSettingsType.upload).get();
 		assertNotNull(clone);
 		assertEquals(setting, clone);
+		
+		ProjectSetting clone2 = projectSettingsDao.get(projectId, ProjectSettingsType.certification).get();
+		assertNotNull(clone2);
+		assertEquals(setting2, clone2);
 
 		// Fetch it by id
-		ProjectSetting clone2 = projectSettingsDao.get(id);
-		assertEquals(setting, clone2);
+		clone = projectSettingsDao.get(id);
+		assertEquals(setting, clone);
+		
+		clone2 = projectSettingsDao.get(id2);
+		assertEquals(setting2, clone2);
 
 		// Fetch all by project
 		List<ProjectSetting> all = projectSettingsDao.getAllForProject(projectId);
-		assertEquals(1, all.size());
-		assertEquals(setting, all.get(0));
+		assertEquals(2, all.size());
+		assertEquals(ImmutableList.of(setting, setting2), all);
 
 		// Update it
 		ProjectSetting updatedClone = projectSettingsDao.update(clone);
@@ -112,7 +129,7 @@ public class DBOProjectSettingsDAOImplTest {
 		projectSettingsDao.delete(id);
 
 		assertFalse(projectSettingsDao.get(projectId, ProjectSettingsType.upload).isPresent());
-		assertEquals(0, projectSettingsDao.getAllForProject(projectId).size());
+		assertEquals(1, projectSettingsDao.getAllForProject(projectId).size());
 	}
 
 	@Test
@@ -213,6 +230,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 	@Test
 	public void testGetInheritedForEntity() {
+		
 		// Set up test by creating a linear folder hierarchy of 4 folders.
 		Node folderA = createNodeInstance(EntityType.folder, projectId);
 		folderA = nodeDao.createNewNode(folderA);
@@ -225,6 +243,13 @@ public class DBOProjectSettingsDAOImplTest {
 
 		Node folderD = createNodeInstance(EntityType.folder, folderC.getId());
 		folderD = nodeDao.createNewNode(folderD);
+		
+		// Create a root setting of a different type
+		ProjectCertificationSetting certificationSetting = new ProjectCertificationSetting();
+		certificationSetting.setProjectId(projectId);
+		certificationSetting.setSettingsType(ProjectSettingsType.certification);
+		String projectSettingId = projectSettingsDao.create(certificationSetting);
+		ProjectCertificationSetting projectSetting = (ProjectCertificationSetting) projectSettingsDao.get(projectSettingId);
 
 		// Create Project Settings on A and C.
 		UploadDestinationListSetting settingA = new UploadDestinationListSetting();
@@ -240,19 +265,25 @@ public class DBOProjectSettingsDAOImplTest {
 		settingC = (UploadDestinationListSetting) projectSettingsDao.get(settingCId);
 
 		// Methods under test.
-		String result = projectSettingsDao.getInheritedProjectSetting(folderD.getId());
+		String result = projectSettingsDao.getInheritedProjectSetting(projectId, ProjectSettingsType.certification);
+		assertEquals(projectSetting.getId(), result);
+		
+		result = projectSettingsDao.getInheritedProjectSetting(folderD.getId(), ProjectSettingsType.certification);
+		assertEquals(projectSetting.getId(), result);
+				
+		result = projectSettingsDao.getInheritedProjectSetting(folderD.getId(), ProjectSettingsType.upload);
 		assertEquals(settingC.getId(), result);
 
-		result = projectSettingsDao.getInheritedProjectSetting(folderC.getId());
+		result = projectSettingsDao.getInheritedProjectSetting(folderC.getId(), ProjectSettingsType.upload);
 		assertEquals(settingC.getId(), result);
 
-		result = projectSettingsDao.getInheritedProjectSetting(folderB.getId());
+		result = projectSettingsDao.getInheritedProjectSetting(folderB.getId(), ProjectSettingsType.upload);
 		assertEquals(settingA.getId(), result);
 
-		result = projectSettingsDao.getInheritedProjectSetting(folderA.getId());
+		result = projectSettingsDao.getInheritedProjectSetting(folderA.getId(), ProjectSettingsType.upload);
 		assertEquals(settingA.getId(), result);
 
-		result = projectSettingsDao.getInheritedProjectSetting(projectId);
+		result = projectSettingsDao.getInheritedProjectSetting(projectId, ProjectSettingsType.upload);
 		assertNull(result);
 	}
 

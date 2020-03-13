@@ -347,32 +347,25 @@ public interface EntityService {
 			UnauthorizedException, ACLInheritanceException;
 
 	/**
-	 * Update an entity ACL. If the String 'recursive' is "true", then the ACL
-	 * will be applied to all child entities via inheritance.
+	 * Update an entity ACL.
 	 * 
 	 * @param userId
 	 * @param updated
-	 * @param recursive
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public AccessControlList updateEntityACL(Long userId,
-											 AccessControlList updated, String recursive) throws DatastoreException,
+	public AccessControlList updateEntityACL(Long userId, AccessControlList updated) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;
 
 	/**
 	 * Update an entity ACL. If no such ACL exists, then create it.
 	 * 
-	 * If the String 'recursive' is "true", then the ACL will be applied to all
-	 * child entities via inheritance.
-	 * 
 	 * @param userId
 	 * @param acl
-	 * @param recursive
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -380,8 +373,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessControlList createOrUpdateEntityACL(Long userId,
-													 AccessControlList acl, String recursive)
+	public AccessControlList createOrUpdateEntityACL(Long userId, AccessControlList acl)
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -57,8 +58,8 @@ import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
-	private static final Long TRASH_FOLDER_ID = Long.parseLong(
-			StackConfigurationSingleton.singleton().getTrashFolderEntityId());
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfigurationSingleton.singleton().getTrashFolderEntityId());
+	private static final String ERR_MESSAGE_CERTIFIED_USER_CONTENT = "Only certified users may create or update content in Synapse.";
 
 	@Autowired
 	private NodeDAO nodeDao;
@@ -219,49 +220,34 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
-	}	
-	
-	@WriteTransaction
-	@Override
-	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
-		// check permissions of user to change permissions for the resource
-		hasAccess(parentId,CHANGE_PERMISSIONS, userInfo).checkAuthorizationOrElseThrow();
-		
-		// Before we can update the ACL we must grab the lock on the node.
-		nodeDao.touch(userInfo.getId(), parentId);
-
-		String benefactorId = nodeDao.getBenefactor(parentId);
-		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
-
-		// return governing parent ACL
-		return aclDAO.get(nodeDao.getBenefactor(parentId), ObjectType.ENTITY);
 	}
 	
-	private void applyInheritanceToChildrenHelper(final String parentId, final String benefactorId, UserInfo userInfo)
-			throws NotFoundException, DatastoreException, ConflictingUpdateException {
-		// Get all of the child nodes, sorted by id (to prevent deadlock)
-		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
-		// Update each node
-		for(String idToChange: children) {
-			// recursively apply to children
-			applyInheritanceToChildrenHelper(idToChange, benefactorId, userInfo);
-			// must be authorized to modify permissions
-			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).isAuthorized()) {
-				// delete child ACL, if present
-				if (hasLocalACL(idToChange)) {
-					// Touch and lock the owner node before updating the ACL.
-					nodeDao.touch(userInfo.getId(), idToChange);
-					
-					// delete ACL
-					aclDAO.delete(idToChange, ObjectType.ENTITY);
-				}								
-			}
-		}
-	}
-	
-	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
+	boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo, String entityId) {
 		Boolean featureIsDisabled = configuration.getDisableCertifiedUser();
-		return featureIsDisabled == null || featureIsDisabled || AuthorizationUtils.isCertifiedUser(userInfo);
+		
+		if (featureIsDisabled == null || featureIsDisabled) {
+			return true;
+		}
+		
+		if (AuthorizationUtils.isCertifiedUser(userInfo)) {
+			return true;
+		}
+		
+		return !isCertificationRequired(userInfo, entityId);
+	}
+	
+	boolean isCertificationRequired(UserInfo userInfo, String entityId) {
+		// by default the certification is required, checks if the project is configured to disable the certification requirement
+		
+		Optional<ProjectCertificationSetting> certificationSetting = projectSettingsManager.getProjectSettingForNode(userInfo, entityId, ProjectSettingsType.certification, ProjectCertificationSetting.class);
+		
+		// By default the certification is required on any project
+		boolean isCertificationRequired = true;
+		
+		return certificationSetting
+				.map(ProjectCertificationSetting::getCertificationRequired)
+				.orElse(isCertificationRequired);
+		
 	}
 	
 	@Override
@@ -274,8 +260,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(nodeType)) 
-			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException("Only certified users may create content in Synapse."));
+		if (!EntityType.project.equals(nodeType) && !isCertifiedUserOrFeatureDisabled(userInfo, parentId)) {
+			return AuthorizationStatus.accessDenied(new UserCertificationRequiredException(ERR_MESSAGE_CERTIFIED_USER_CONTENT));
+		}
 		
 		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);
 	}
@@ -286,7 +273,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationStatus.authorized();
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo)) {
+		if (!isCertifiedUserOrFeatureDisabled(userInfo, node.getId())) {
 			return AuthorizationStatus.accessDenied("Only certified users may change node settings.");
 		}
 
@@ -312,10 +299,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		
 		if (!userInfo.isAdmin() && 
-			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				(accessType==CREATE ||
-				(accessType==UPDATE && entityType!=EntityType.project)))
-			return AuthorizationStatus.accessDenied("Only certified users may create or update content in Synapse.");
+			(accessType==CREATE || (accessType==UPDATE && entityType!=EntityType.project)) &&
+			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
+			return AuthorizationStatus.accessDenied(ERR_MESSAGE_CERTIFIED_USER_CONTENT);
+		}
 		
 		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
 	}
@@ -401,6 +388,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanDownload(canDownload(userInfo, entityId, benefactor, node.getNodeType()).isAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).isAuthorized());
 		permissions.setCanModerate(hasAccess(entityId, MODERATE, userInfo).isAuthorized());
+		permissions.setIsCertificationRequired(isCertificationRequired(userInfo, entityId));
 
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		
@@ -499,9 +487,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
 		EntityType entityType = nodeDao.getNodeTypeById(entityId);
 		if (!userInfo.isAdmin() && 
-			!isCertifiedUserOrFeatureDisabled(userInfo) && 
-				entityType!=EntityType.project)
+			EntityType.project != entityType &&
+			!isCertifiedUserOrFeatureDisabled(userInfo, entityId)) {
 			return AuthorizationStatus.accessDenied("Only certified users may create non-project wikis in Synapse.");
+		}
 		
 		return certifiedUserHasAccess(entityId, entityType, ACCESS_TYPE.CREATE, userInfo);
 	}

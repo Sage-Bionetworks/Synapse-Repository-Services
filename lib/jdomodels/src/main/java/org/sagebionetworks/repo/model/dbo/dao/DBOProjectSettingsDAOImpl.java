@@ -51,19 +51,21 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private TransactionalMessenger transactionalMessenger;
 
 	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
-			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? and " + COL_PROJECT_SETTING_TYPE + " = ?";
+			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? AND " + COL_PROJECT_SETTING_TYPE + " = ?";
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
 
 	private static final String SELECT_INHERITED_SETTING = "WITH RECURSIVE PATH (" + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", PROJECT_SETTING_ID, DISTANCE) AS" +
 			"(" +
 			"  SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", PS." + COL_PROJECT_SETTING_ID + ", 1 FROM " + TABLE_NODE + " AS N" +
-			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + ")" +
+			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
+			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
 			"    WHERE N." + COL_NODE_ID + " = ?" +
 			"  UNION ALL" +
 			"  SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", PS." + COL_PROJECT_SETTING_ID + ", PATH.DISTANCE+1 FROM " + TABLE_NODE + " AS N" +
 			"    JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" +
-			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + ")" +
+			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
+			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
 			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < 100" +
 			")" +
 			"SELECT PROJECT_SETTING_ID FROM PATH" +
@@ -71,7 +73,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			"  LIMIT 1;";
 
 	private static final RowMapper<DBOProjectSetting> ROW_MAPPER = new DBOProjectSetting().getTableMapping();
-
+	
 	public DBOProjectSettingsDAOImpl() {
 	}
 
@@ -141,10 +143,10 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	}
 
 	@Override
-	public String getInheritedProjectSetting(String entityId) {
+	public String getInheritedProjectSetting(String entityId, ProjectSettingsType settingType) {
 		try {
-			return jdbcTemplate.queryForObject(SELECT_INHERITED_SETTING, String.class,
-					KeyFactory.stringToKey(entityId));
+			return jdbcTemplate.queryForObject(SELECT_INHERITED_SETTING, String.class, settingType.name(),
+					KeyFactory.stringToKey(entityId), settingType.name());
 		} catch (EmptyResultDataAccessException e) {
 			// not having a setting is normal
 			return null;
@@ -198,7 +200,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private static void copyDtoToDbo(ProjectSetting dto, DBOProjectSetting dbo) {
 		if (dto.getProjectId() == null) {
 			throw new InvalidModelException("projectId must be specified");
-		}
+		}		
 		if (dto.getSettingsType() == null) {
 			throw new InvalidModelException("settingsType must be specified");
 		}

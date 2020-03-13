@@ -78,20 +78,6 @@ public interface EntityPermissionsManager {
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
-	 * Apply the ACL of the specified resourceId to all of its child resources.
-	 * Any child-defined ACLs will be deleted.
-	 * 
-	 * @param rId
-	 * @param userInfo
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws ConflictingUpdateException
-	 */
-	public AccessControlList applyInheritanceToChildren(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
-
-	/**
 	 * Use case:  Need to find out if a user can access a resource.
 	 * 
 	 * @param resourceId the ID of the resource of interest
