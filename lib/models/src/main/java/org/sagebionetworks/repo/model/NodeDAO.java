@@ -489,6 +489,14 @@ public interface NodeDAO {
 	 * @return
 	 */
 	String getNodeIdByAlias(String alias);
+	
+	/**
+	 * Get the aliases for nodeIds.  If a nodeId is missing from the results then it has no alias
+	 * 
+	 * @param nodeIds
+	 * @return
+	 */
+	List<IdAndAlias> getAliasByNodeId(List<String> nodeIds);
 
 	/**
 	 * Get the project for the given Entity.

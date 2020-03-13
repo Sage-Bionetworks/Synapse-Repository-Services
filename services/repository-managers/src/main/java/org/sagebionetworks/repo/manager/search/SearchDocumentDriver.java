@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.search.Document;
@@ -53,6 +56,13 @@ public interface SearchDocumentDriver {
 	 * @throws NotFoundException
 	 */
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
+	
+	/**
+	 * 
+	 * @param nodeIds
+	 * @return
+	 */
+	public List<IdAndAlias> getAliases(Set<String> nodeIds);
 	
 	
 	public String getAllWikiPageText(String nodeId) throws DatastoreException;

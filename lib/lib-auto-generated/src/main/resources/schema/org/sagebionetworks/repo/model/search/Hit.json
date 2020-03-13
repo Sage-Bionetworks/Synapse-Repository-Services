@@ -13,6 +13,10 @@
 			"type": "string",
 			"description": "The name of this entity"
 		},
+		"alias": {
+			"type": "string",
+			"description": "The alias of this entity"
+		},
 		"path": {
 			"type": "object",
 			"$ref": "org.sagebionetworks.repo.model.EntityPath",

@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -307,6 +308,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
+	
+	private static final String SQL_SELECT_ALIAS_BY_NODE_ID = "SELECT "+COL_NODE_ID+", "+COL_NODE_ALIAS+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (?)";
 	
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
 			ENTITY_HEADER_SELECT +
@@ -1463,6 +1466,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
+	@Override
 	public List<FileHandleAssociation> getFileHandleAssociationsForCurrentVersion(List<String> entityIds){
 		if(entityIds.isEmpty()) {
 			return new LinkedList<>();
@@ -1648,6 +1652,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Did not find a match for alias: "+alias);
 		}
+	}
+
+	@Override
+	public List<IdAndAlias> getAliasByNodeId(List<String> nodeIds)	{
+		ValidateArgument.required(nodeIds, "nodeIds");
+		Set<Long> nodeIdLong = new HashSet<Long>();
+		for (String nodeId : nodeIds) {
+			nodeIdLong.add(KeyFactory.stringToKey(nodeId));
+		}
+		return jdbcTemplate.query(SQL_SELECT_ALIAS_BY_NODE_ID , new Object[] {nodeIdLong}, new RowMapper<IdAndAlias>() {
+			@Override
+			public IdAndAlias mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Long idLong = rs.getLong(COL_NODE_ID);
+				String alias = rs.getString(COL_NODE_ALIAS);
+				String id = KeyFactory.keyToString(idLong);
+				return new IdAndAlias(id, alias);
+			}
+		});
 	}
 
 	@Override

@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -123,6 +125,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(pathHeaders);
 		return entityPath;
+	}
+	
+	public List<IdAndAlias> getAliases(List<String> nodeIds) {
+		return nodeDao.getAliasByNodeId(nodeIds);
 	}
 
 
