@@ -61,6 +61,10 @@ public class JRJCHelper {
 		Map<String, String> mapped = new HashMap<>();
 		for (String k: params.keySet()) {
 			String fk = fieldsMap.get(k);
+			// check that we could map field name to field id
+			if (fk == null) {
+				throw new JiraClientException(String.format("Could not map field name '%s'", k));
+			}
 			mapped.put(fk, params.get(k));
 		}
 		return mapped;
