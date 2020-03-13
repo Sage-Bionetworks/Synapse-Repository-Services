@@ -26,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-
 import com.sun.jersey.core.util.Base64;
 
 @ExtendWith(MockitoExtension.class)

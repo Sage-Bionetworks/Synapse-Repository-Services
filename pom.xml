@@ -712,30 +712,20 @@
 				<version>3.0</version>
 			</dependency>
 
-			<dependency>
-				<groupId>com.atlassian.jira</groupId>
-				<artifactId>jira-rest-java-client-api</artifactId>
-				<version>${jira.client.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.atlassian.jira</groupId>
-				<artifactId>jira-rest-java-client-core</artifactId>
-				<version>${jira.client.version}</version>
-			</dependency>
-
-			<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
-			<dependency>
-				<groupId>io.atlassian.fugue</groupId>
-				<artifactId>fugue</artifactId>
-				<version>4.7.2</version>
-			</dependency>
 			<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-dbcp2</artifactId>
 				<version>2.6.0</version>
 			</dependency>
+
+			<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-core -->
+			<dependency>
+				<groupId>com.sun.jersey</groupId>
+				<artifactId>jersey-core</artifactId>
+				<version>1.19.4</version>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -1016,7 +1006,6 @@
 		<log4j.version>2.6.1</log4j.version>
 		<commonslogging.version>1.2</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
-		<jira.client.version>5.1.0-476bd700</jira.client.version>
 		<junit.jupiter.version>5.4.1</junit.jupiter.version>
 		<junit.vintage.version>5.4.1</junit.vintage.version>
 		<junit.platform.version>1.4.1</junit.platform.version>

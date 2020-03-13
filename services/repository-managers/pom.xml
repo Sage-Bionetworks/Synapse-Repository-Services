@@ -183,22 +183,6 @@
 			<artifactId>commons-fileupload</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>com.atlassian.jira</groupId>
-			<artifactId>jira-rest-java-client-api</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.atlassian.jira</groupId>
-			<artifactId>jira-rest-java-client-core</artifactId>
-		</dependency>
-
-		<!-- Dependency needed by jira-rest-java-client-core but it's not automatically included for some reason? -->
-		<dependency>
-			<groupId>io.atlassian.fugue</groupId>
-			<artifactId>fugue</artifactId>
-		</dependency>
-
 		<!-- JSON -->
         <dependency>
             <groupId>org.sagebionetworks</groupId>
@@ -236,6 +220,12 @@
 			<groupId>org.apache.velocity</groupId>
 			<artifactId>velocity</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-core</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
