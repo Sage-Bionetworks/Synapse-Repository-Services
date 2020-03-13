@@ -147,14 +147,16 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				throw new IllegalArgumentException("The certification setting can be applied only to projects");
 			}
 			validateACTAccessForCertificationSetting(userInfo);
-		} else {
-			if (nodeClass != Project.class && nodeClass != Folder.class) {
-				throw new IllegalArgumentException("The id is not the id of a project or folder entity");
-			}
-			if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
-				throw new UnauthorizedException("Cannot create settings for this project");
-			}
 		}
+		
+		if (nodeClass != Project.class && nodeClass != Folder.class) {
+			throw new IllegalArgumentException("The id is not the id of a project or folder entity");
+		}
+		
+		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE).isAuthorized()) {
+			throw new UnauthorizedException("Cannot create settings for this project");
+		}
+	
 		
 		// Can't create project settings if a parent has an StsStorageLocation.
 		Optional<ProjectSetting> parentSetting = getProjectSettingForNode(userInfo, parentId, ProjectSettingsType.upload,
@@ -180,12 +182,14 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
+		
+		// A project certification setting can only be applied to by an ACT member
 		if (projectSetting instanceof ProjectCertificationSetting) {
 			validateACTAccessForCertificationSetting(userInfo);
-		} else {
-			if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
-				throw new UnauthorizedException("Cannot update settings on this project");
-			}
+		}
+	
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
+			throw new UnauthorizedException("Cannot update settings on this project");
 		}
 		
 		validateProjectSetting(projectSetting, userInfo);
@@ -210,13 +214,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		// Note: projectSettingsDao.get() ensures that projectSetting is not null, or throws a NotFoundException.
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
+		
+		// A project certification setting can only be applied to by an ACT member
 		if (projectSetting instanceof ProjectCertificationSetting) {
 			validateACTAccessForCertificationSetting(userInfo);
-		} else {
-			if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
-					.isAuthorized()) {
-				throw new UnauthorizedException("Cannot delete settings from this project");
-			}
+		}
+	
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)
+				.isAuthorized()) {
+			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		
 		// Can't delete an StsStorageLocation on a non-empty entity.
@@ -228,7 +234,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		projectSettingsDao.delete(id);
 	}
 	
-	private void validateACTAccessForCertificationSetting(UserInfo userInfo) {	
+	private void validateACTAccessForCertificationSetting(UserInfo userInfo) {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("The user must be an ACT member in order to customize the certification requirement");
 		}

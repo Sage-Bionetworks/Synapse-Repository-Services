@@ -411,6 +411,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.project);
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(isACTMemeber);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		
 		// STS stuff
 		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
@@ -468,6 +470,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		
 		when(mockNodeManager.getNodeType(userInfo, PROJECT_ID)).thenReturn(EntityType.project);
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(isACTMemeber);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		
 		// STS stuff
 		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
@@ -623,6 +627,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		boolean isACTMemeber = true;
 		
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(isACTMemeber);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
 		
 		// STS stuff
 		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
@@ -720,6 +726,8 @@ public class ProjectSettingsManagerImplUnitTest {
 		
 		when(mockProjectSettingDao.get(PROJECT_SETTINGS_ID)).thenReturn(projectCertificationSetting);
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(isACTMemeber);
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(
+				AuthorizationStatus.authorized());
 		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
 		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
 
