@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.StackConfiguration;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -11,6 +11,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.sagebionetworks.simpleHttpClient.*;
 import org.sagebionetworks.url.HttpMethod;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -28,9 +29,7 @@ public class JiraClientImpl implements JiraClient {
 	public static final String NAME_KEY = "name";
 	public static final String ID_KEY = "id";
 
-	private final SimpleHttpClient httpClient;
-	private String USERNAME;
-	private String APIKEY;
+	private SimpleHttpClient httpClient;
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
 	private static final String JIRA_API_PROJECT_URL = "/rest/api/3/project/";
 	private static final String JIRA_API_FIELDS_URL = "/rest/api/3/field/";
@@ -39,49 +38,22 @@ public class JiraClientImpl implements JiraClient {
 	private static final String JIRA_PROJECT_ISSUE_TYPES_KEY = "issueTypes";
 	private static final String JIRA_PROJECT_ID_KEY = "id";
 
+	@Autowired
+	private StackConfiguration config;
+
 	public JiraClientImpl() {
 		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
 		httpClientConfig.setSocketTimeoutMs(TIME_OUT);
 		httpClient = new SimpleHttpClientImpl(httpClientConfig);
-		USERNAME = StackConfigurationSingleton.singleton().getJiraUserEmail();
-		APIKEY = StackConfigurationSingleton.singleton().getJiraUserApikey();
 	}
 
 	@Override
-	public JSONObject getProjectInfo(String projectKey, String issueTypeName) {
-		SimpleHttpRequest req = createRequest(JIRA_API_PROJECT_URL, "SG");
+	public ProjectInfo getProjectInfo(String projectKey, String issueTypeName) {
+		SimpleHttpRequest req = createRequest(JIRA_API_PROJECT_URL, projectKey);
 
 		String json = execRequest(HttpMethod.GET, req, null);
 
-		Long issueTypeId = null;
-		String projectId = null;
-		try {
-			JSONParser parser = new JSONParser();
-			JSONObject pInfo = (JSONObject) parser.parse(json);
-			JSONArray issueTypeNames = (JSONArray)pInfo.get(JIRA_PROJECT_ISSUE_TYPES_KEY);
-			Iterator<JSONObject> it = issueTypeNames.iterator();
-			while (it.hasNext()) {
-				JSONObject issueType = it.next();
-				String name = (String) issueType.get(NAME_KEY);
-				if (issueTypeName.equalsIgnoreCase(name)) {
-					if (issueType.get(ID_KEY) != null) {
-						issueTypeId = Long.valueOf((String) issueType.get(ID_KEY));
-					}
-					break;
-				}
-			}
-			if (issueTypeId == null) {
-				throw new JiraClientException(String.format("Could not find the issue typeId for issue type {}", issueTypeName));
-			}
-			projectId = (String) pInfo.get(JIRA_PROJECT_ID_KEY);
-		}
-		catch (ParseException e) {
-			throw new JiraClientException("JIRA client: error processing JSON", e);
-		}
-		JSONObject projInfo = new JSONObject();
-		projInfo.put("issueTypeId", issueTypeId);
-		projInfo.put("id", projectId);
-		return projInfo;
+		return parseProjectInfo(json, issueTypeName);
 	}
 
 	@Override
@@ -90,40 +62,16 @@ public class JiraClientImpl implements JiraClient {
 
 		String json = execRequest(HttpMethod.GET, req, null);
 
-		JSONArray fields = null;
-		Map<String, String> fieldsMap = new HashMap<>();
-		try {
-			JSONParser parser = new JSONParser();
-			fields = (JSONArray) parser.parse(json);
-			Iterator<JSONObject> it = fields.iterator();
-			while (it.hasNext()) {
-				JSONObject fieldDetail = it.next();
-				String fieldName = (String) fieldDetail.get(NAME_KEY);
-				String fieldId = (String) fieldDetail.get(ID_KEY);
-				fieldsMap.put(fieldName, fieldId);
-			}
-		}
-		catch (ParseException e) {
-			throw new JiraClientException("JIRA client: error processing JSON", e);
-		}
-		return fieldsMap;
+		return parseFields(json);
 	}
 
 	@Override
-	public JSONObject createIssue(JSONObject issue) {
+	public CreatedIssue createIssue(BasicIssue issue) {
 		SimpleHttpRequest req = createRequest(JIRA_API_ISSUE_URL, null);
 
-		String json = execRequest(HttpMethod.POST, req, issue);
+		String json = execRequest(HttpMethod.POST, req, searializeBasicIssue(issue));
 
-		JSONObject createdIssue = null;
-		try {
-			JSONParser parser = new JSONParser();
-			createdIssue = (JSONObject) parser.parse(json);
-		}
-		catch (ParseException e) {
-			throw new JiraClientException("JIRA client: error processing JSON", e);
-		}
-		return createdIssue;
+		return parseCreatedIssue(json);
 	}
 
 	SimpleHttpRequest createRequest(String path, String resource) {
@@ -137,12 +85,12 @@ public class JiraClientImpl implements JiraClient {
 		} else {
 			request.setUri(JIRA_URL + path + resource);
 		}
-		request.setHeaders(getHeaders(USERNAME, APIKEY));
+		request.setHeaders(getHeaders(config.getJiraUserEmail(), config.getJiraUserApikey()));
 
 		return request;
 	}
 
-	String execRequest(HttpMethod method, SimpleHttpRequest req, JSONObject body) {
+	String execRequest(HttpMethod method, SimpleHttpRequest req, String body) {
 		SimpleHttpResponse resp = null;
 		try {
 			switch (method) {
@@ -153,7 +101,7 @@ public class JiraClientImpl implements JiraClient {
 					if (body == null) {
 						throw new JiraClientException(new IllegalArgumentException("Body cannot be null"));
 					}
-					resp = httpClient.post(req, body.toJSONString());
+					resp = httpClient.post(req, body);
 					break;
 				default:
 					throw new JiraClientException(new IllegalArgumentException("Method can only be 'GET' or 'POST'"));
@@ -185,7 +133,7 @@ public class JiraClientImpl implements JiraClient {
 		}
 	}
 
-	static Map<String, String> getHeaders(String userName, String apiKey) {
+	private static Map<String, String> getHeaders(String userName, String apiKey) {
 		Map<String, String> headers = new HashMap<>();
 		try {
 			headers.put(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder().encodeToString((userName + ":" + apiKey).getBytes("utf-8")));
@@ -196,4 +144,93 @@ public class JiraClientImpl implements JiraClient {
 		headers.put(HttpHeaders.USER_AGENT, USER_AGENT);
 		return headers;
 	}
+
+	private static String searializeBasicIssue(BasicIssue basicIssue) {
+		JSONObject issue = new JSONObject();
+		JSONObject issueFields = new JSONObject();
+		issueFields.put("summary", basicIssue.getSummary());
+		JSONObject o = new JSONObject();
+		o.put("id", basicIssue.getProjectId());
+		issueFields.put("project", o);
+		o = new JSONObject();
+		o.put("id", basicIssue.getIssueTypeId());
+		issueFields.put("issuetype", o);
+		if (basicIssue.getCustomFields() != null) {
+			for (String k: basicIssue.getCustomFields().keySet()) {
+				issueFields.put(k, basicIssue.getCustomFields().get(k));
+			}
+		}
+		issue.put("fields", issueFields);
+		return issue.toJSONString();
+	}
+
+	private static CreatedIssue parseCreatedIssue(String json) {
+		CreatedIssue createdIssue;
+		try {
+			JSONParser parser = new JSONParser();
+			JSONObject cIssue = (JSONObject) parser.parse(json);
+			if (!(cIssue.containsKey("id") && cIssue.containsKey("key") && cIssue.containsKey("self"))) {
+				throw new JiraClientException("Error creating CreatedIssue from JSON");
+			}
+			createdIssue = new CreatedIssue();
+			createdIssue.setId((String) cIssue.get("id"));
+			createdIssue.setKey((String) cIssue.get("key"));
+			createdIssue.setUrl((String) cIssue.get("self"));
+		}
+		catch (ParseException e) {
+			throw new JiraClientException("JIRA client: error processing JSON", e);
+		}
+		return createdIssue;
+	}
+
+	private static ProjectInfo parseProjectInfo(String json, String issueTypeName) {
+		Long issueTypeId = null;
+		String projectId = null;
+		try {
+			JSONParser parser = new JSONParser();
+			JSONObject pInfo = (JSONObject) parser.parse(json);
+			JSONArray issueTypeNames = (JSONArray)pInfo.get(JIRA_PROJECT_ISSUE_TYPES_KEY);
+			Iterator<JSONObject> it = issueTypeNames.iterator();
+			while (it.hasNext()) {
+				JSONObject issueType = it.next();
+				String name = (String) issueType.get(NAME_KEY);
+				if (issueTypeName.equalsIgnoreCase(name)) {
+					if (issueType.get(ID_KEY) != null) {
+						issueTypeId = Long.valueOf((String) issueType.get(ID_KEY));
+					}
+					break;
+				}
+			}
+			if (issueTypeId == null) {
+				throw new JiraClientException(String.format("Could not find the issue typeId for issue type {}", issueTypeName));
+			}
+			projectId = (String) pInfo.get(JIRA_PROJECT_ID_KEY);
+		}
+		catch (ParseException e) {
+			throw new JiraClientException("JIRA client: error processing JSON", e);
+		}
+		ProjectInfo projectInfo = new ProjectInfo(projectId, issueTypeId);
+		return projectInfo;
+	}
+
+	private static Map<String, String> parseFields(String json) {
+		JSONArray fields = null;
+		Map<String, String> fieldsMap = new HashMap<>();
+		try {
+			JSONParser parser = new JSONParser();
+			fields = (JSONArray) parser.parse(json);
+			Iterator<JSONObject> it = fields.iterator();
+			while (it.hasNext()) {
+				JSONObject fieldDetail = it.next();
+				String fieldName = (String) fieldDetail.get(NAME_KEY);
+				String fieldId = (String) fieldDetail.get(ID_KEY);
+				fieldsMap.put(fieldName, fieldId);
+			}
+		}
+		catch (ParseException e) {
+			throw new JiraClientException("JIRA client: error processing JSON", e);
+		}
+		return fieldsMap;
+	}
+
 }

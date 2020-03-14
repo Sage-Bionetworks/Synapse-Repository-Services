@@ -2,55 +2,51 @@ package org.sagebionetworks.repo.util.jrjc;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.apache.http.ParseException;
-import org.json.simple.JSONObject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.StackConfigurationSingleton;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.ReflectionUtils;
 
 import java.util.Base64;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class JiraClientImplTest {
 
     @Mock
+    private StackConfiguration mockConfig;
+    @Mock
     private SimpleHttpClient mockHttpClient;
+
     @Mock
     private SimpleHttpResponse mockResponse;
 
-    private JiraClientImpl jiraClient;
     private static final String USERNAME = "userName";
     private static final String USERAPIKEY = "userApiKey";
 
-    @Before
-    public void setUp() throws Exception {
-        jiraClient = new JiraClientImpl();
-        ReflectionTestUtils.setField(jiraClient, "httpClient", mockHttpClient);
-        ReflectionTestUtils.setField(jiraClient, "USERNAME", USERNAME);
-        ReflectionTestUtils.setField(jiraClient, "APIKEY", USERAPIKEY);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
+    @InjectMocks
+    private JiraClientImpl jiraClient;
 
     @Test
-    public void getProjectInfo() throws Exception {
+    public void testGetProjectInfo() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
                 "  \"issueTypes\": [" +
@@ -83,22 +79,24 @@ public class JiraClientImplTest {
                 "    }" +
                 "  ]}";
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
+        ProjectInfo pInfo = jiraClient.getProjectInfo("SG", "Task");
 
         assertNotNull(pInfo);
-        String projId = (String) pInfo.get("id");
+        String projId = (String) pInfo.getProjectId();
         assertEquals("10000", projId);
-        Long issueTypeId = (Long) pInfo.get("issueTypeId");
+        Long issueTypeId = (Long) pInfo.getIssueTypeId();
         assertTrue(3L==issueTypeId);
     }
 
-    @Test(expected=JiraClientException.class)
-    public void getProjectInfoIssueTypeNotFound() throws Exception {
+    @Test
+    public void testGetProjectInfoIssueTypeNotFound() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
                         "  \"issueTypes\": [" +
@@ -131,17 +129,21 @@ public class JiraClientImplTest {
                         "    }" +
                         "  ]}";
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
-
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getProjectInfo("SG", "Task");
+                }
+        );
     }
 
-    @Test(expected=JiraClientException.class)
-    public void getProjectInfoInvalidJson() throws Exception {
+    @Test
+    public void testGetProjectInfoInvalidJson() throws Exception {
         String expectedJson =
                 "{  \"id\": \"10000\"," +
                         "  \"issueTypes\": [" +
@@ -174,16 +176,20 @@ public class JiraClientImplTest {
                         "    }" +
                         "  ]}";
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
-        // Call under test
-        JSONObject pInfo = jiraClient.getProjectInfo("SG", "Task");
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getProjectInfo("SG", "Task");
+                }
+        );
     }
 
     @Test
-    public void getFields() throws Exception {
+    public void testGetFields() throws Exception {
         String expectedJson =
                 "[" +
                 "  {" +
@@ -219,6 +225,8 @@ public class JiraClientImplTest {
                 "  }" +
                 "]";
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
@@ -232,8 +240,8 @@ public class JiraClientImplTest {
         assertEquals("summary", m.get("Summary"));
     }
 
-    @Test(expected=JiraClientException.class)
-    public void getFieldsInvalidJson() throws Exception {
+    @Test
+    public void testGetFieldsInvalidJson() throws Exception {
         String expectedJson =
                 "[" +
                         "  {" +
@@ -269,16 +277,21 @@ public class JiraClientImplTest {
                         "  }" +
                         "]";
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
         // Call under test
-        Map<String, String> m = jiraClient.getFields();
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.getFields();
+                }
+        );
     }
 
     @Test
-    public void createIssue() throws Exception {
+    public void testCreateIssue() throws Exception {
         String expectedJson =
             "{" +
             "  \"id\": \"10000\"," +
@@ -292,22 +305,26 @@ public class JiraClientImplTest {
             "    }" +
             "  }" +
             "}";
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
         when(mockResponse.getContent()).thenReturn(expectedJson);
         when(mockHttpClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 
-        JSONObject issue = new JSONObject();
-        
-        // Call under test
-        JSONObject o = jiraClient.createIssue(issue);
+        BasicIssue issue = new BasicIssue();
 
-        assertNotNull(o);
-        assertEquals("SG-24", o.get("key"));
+        // Call under test
+        CreatedIssue i = jiraClient.createIssue(issue);
+
+        assertNotNull(i);
+        assertEquals("SG-24", i.getKey());
     }
 
     @Test
-    public void createRequest() throws Exception {
+    public void testCreateRequest() throws Exception {
 
+        when(mockConfig.getJiraUserEmail()).thenReturn(USERNAME);
+        when(mockConfig.getJiraUserApikey()).thenReturn(USERAPIKEY);
         SimpleHttpRequest req;
         req = jiraClient.createRequest("/aPath/", "aResource");
         assertEquals("https://sagebionetworks.jira.com/aPath/aResource", req.getUri());
@@ -321,20 +338,26 @@ public class JiraClientImplTest {
 
     }
 
-    @Test(expected=JiraClientException.class)
-    public void createRequestBadPath() throws JiraClientException {
-        jiraClient.createRequest("/aPath", "aResource");
+    @Test
+    public void testCreateRequestBadPath() throws JiraClientException {
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    jiraClient.createRequest("/aPath", "aResource");
+                }
+        );
     }
 
     @Test
-    public void handleResponseStatusOK() {
+    public void testHandleResponseStatusOK() {
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
         JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode()); // Should not fail
     }
 
-    @Test(expected=RuntimeException.class)
-    public void handleResponseStatusError() {
+    @Test
+    public void testHandleResponseStatusError() {
         when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_BAD_REQUEST);
-        JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode());
+        Assertions.assertThrows(JiraClientException.class, () -> {
+                    JiraClientImpl.handleResponseStatus(mockResponse.getStatusCode());
+                }
+        );
     }
 }

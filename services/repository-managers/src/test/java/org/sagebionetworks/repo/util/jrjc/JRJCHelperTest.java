@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.util.jrjc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -10,89 +10,109 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.simple.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class JRJCHelperTest {
 	
 	private static final String TEST_PRINCIPAL_ID = "1010101";
 	private static final String TEST_DISPLAY_NAME = "Foo Bar";
 	private static final String TEST_DATA_OBJECT_ID = "syn98786543";
 	
-	private JSONObject mockProject;
-	private JSONObject mockProjectInfo;
-	private Map<String,String> fields;
-	JiraClient jiraClient;
-	
-	@Before
+	@Mock
+	private CreatedIssue mockCreatedIssue;
+	@Mock
+	private ProjectInfo mockProjectInfo;
+	@Mock
+	private JiraClient jiraClient;
+
+	private Map<String, String> fields;
+
+	@BeforeEach
 	public void setUp() throws Exception {
-		mockProject = Mockito.mock(JSONObject.class);
-		when(mockProject.get("key")).thenReturn("SG-101");
+		when(mockProjectInfo.getProjectId()).thenReturn("projectId");
+		when(mockProjectInfo.getIssueTypeId()).thenReturn(10000L);
 
-		mockProjectInfo = Mockito.mock(JSONObject.class);
-		when(mockProjectInfo.get("id")).thenReturn("projectId");
-		when(mockProjectInfo.get("issueTypeId")).thenReturn(10000L);
-
-		fields = new HashMap<String, String>();
-		fields.put("Synapse Principal ID", "id1");
-		fields.put("Synapse User Display Name", "id2");
-		fields.put("Synapse Data Object", "id3");
-
-		jiraClient = Mockito.mock(JiraClient.class);
-		when(jiraClient.getFields()).thenReturn(fields);
 		when(jiraClient.getProjectInfo(anyString(), anyString())).thenReturn(mockProjectInfo);
-		when(jiraClient.createIssue(anyObject())).thenReturn(mockProject);
-
 	}
 
 	@Test
 	public void testCreateRestrictIssue() throws Exception {
-		ArgumentCaptor<JSONObject> issueCaptor = ArgumentCaptor.forClass(JSONObject.class);
+		initFields();
+		ArgumentCaptor<BasicIssue> issueCaptor = ArgumentCaptor.forClass(BasicIssue.class);
 
 		// Call under test
 		JRJCHelper.createRestrictIssue(jiraClient, TEST_PRINCIPAL_ID, TEST_DISPLAY_NAME, TEST_DATA_OBJECT_ID);
 
 		verify(jiraClient).createIssue(issueCaptor.capture());
-		JSONObject issueInput = issueCaptor.getValue();
+		BasicIssue issueInput = issueCaptor.getValue();
 
-		assertTrue(issueInput.containsKey("fields"));
-		JSONObject fields = (JSONObject) issueInput.get("fields");
-		assertEquals("Request for ACT to add data restriction", fields.get("summary"));
-		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
-		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
-		assertEquals(TEST_DATA_OBJECT_ID, fields.get("id3"));
-		JSONObject o = (JSONObject) fields.get("project");
-		assertEquals("projectId", o.get("id"));
-		o = (JSONObject) fields.get("issuetype");
-		assertEquals(10000L, o.get("id"));
+		assertNotNull(issueInput.getCustomFields());
+		Map<String,String> customFields = issueInput.getCustomFields();
+		assertEquals("Request for ACT to add data restriction", issueInput.getSummary());
+		assertEquals(TEST_PRINCIPAL_ID, customFields.get("id1"));
+		assertEquals(TEST_DISPLAY_NAME, customFields.get("id2"));
+		assertEquals(TEST_DATA_OBJECT_ID, customFields.get("id3"));
+		assertEquals("projectId", issueInput.getProjectId());
+		assertEquals(Long.valueOf((10000L)), issueInput.getIssueTypeId());
 
 	}
 
 	@Test
 	public void testCreateFlagIssue() throws Exception {
-		ArgumentCaptor<JSONObject> issueCaptor = ArgumentCaptor.forClass(JSONObject.class);
+		initFields();
+		ArgumentCaptor<BasicIssue> issueCaptor = ArgumentCaptor.forClass(BasicIssue.class);
 
 		// Call under test
 		JRJCHelper.createFlagIssue(jiraClient, TEST_PRINCIPAL_ID, TEST_DISPLAY_NAME, TEST_DATA_OBJECT_ID);
 
 		verify(jiraClient).createIssue(issueCaptor.capture());
-		JSONObject issueInput = issueCaptor.getValue();
+		BasicIssue issueInput = issueCaptor.getValue();
 
-		assertTrue(issueInput.containsKey("fields"));
-		JSONObject fields = (JSONObject) issueInput.get("fields");
-		assertEquals("Request for ACT to review data", fields.get("summary"));
+		assertNotNull(issueInput.getCustomFields());
+		Map<String,String> fields = issueInput.getCustomFields();
+		assertEquals("Request for ACT to review data", issueInput.getSummary());
 		assertEquals(TEST_PRINCIPAL_ID, fields.get("id1"));
 		assertEquals(TEST_DISPLAY_NAME, fields.get("id2"));
 		assertEquals(TEST_DATA_OBJECT_ID, fields.get("id3"));
-		JSONObject o = (JSONObject) fields.get("project");
-		assertEquals("projectId", o.get("id"));
-		o = (JSONObject) fields.get("issuetype");
-		assertEquals(10000L, o.get("id"));
+		assertEquals("projectId", issueInput.getProjectId());
+		assertEquals(Long.valueOf(10000L), issueInput.getIssueTypeId());
 
+	}
+
+	@Test
+	public void testCreateIssueBadMapping() throws Exception {
+		Map<String,String> badFields = new HashMap<String, String>();
+		badFields.put("Synapse Principal ID", "id1");
+		badFields.put("Synapse User Name", "id2"); // This one does not map
+		badFields.put("Synapse Data Object", "id3");
+		when(jiraClient.getFields()).thenReturn(badFields);
+
+		// Call under test
+		Assertions.assertThrows(JiraClientException.class, () -> {
+				JRJCHelper.createFlagIssue(jiraClient, TEST_PRINCIPAL_ID, TEST_DISPLAY_NAME, TEST_DATA_OBJECT_ID);
+			}
+		);
+
+	}
+
+	private void initFields() {
+		when(mockCreatedIssue.getKey()).thenReturn("SG-101");
+
+		when(jiraClient.createIssue(anyObject())).thenReturn(mockCreatedIssue);
+
+		fields = new HashMap<String, String>();
+		fields = new HashMap<String, String>();
+		fields.put("Synapse Principal ID", "id1");
+		fields.put("Synapse User Display Name", "id2");
+		fields.put("Synapse Data Object", "id3");
+		when(jiraClient.getFields()).thenReturn(fields);
 	}
 
 }
