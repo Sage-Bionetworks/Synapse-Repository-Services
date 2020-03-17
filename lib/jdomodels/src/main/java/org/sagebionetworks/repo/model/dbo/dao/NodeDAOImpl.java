@@ -309,7 +309,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
 	
-	private static final String SQL_SELECT_ALIAS_BY_NODE_ID = "SELECT "+COL_NODE_ID+", "+COL_NODE_ALIAS+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (?)";
+	private static final String SQL_SELECT_ALIAS_BY_NODE_ID = "SELECT "+COL_NODE_ID+", "+COL_NODE_ALIAS+
+			" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:"+BIND_NODE_IDS+")";
 	
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
 			ENTITY_HEADER_SELECT +
@@ -1662,7 +1663,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		for (String nodeId : nodeIds) {
 			nodeIdLong.add(KeyFactory.stringToKey(nodeId));
 		}
-		return jdbcTemplate.query(SQL_SELECT_ALIAS_BY_NODE_ID , new Object[] {nodeIdLong}, new RowMapper<IdAndAlias>() {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(BIND_NODE_IDS, nodeIdLong);
+		return namedParameterJdbcTemplate.query(SQL_SELECT_ALIAS_BY_NODE_ID, params, new RowMapper<IdAndAlias>() {
 			@Override
 			public IdAndAlias mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
