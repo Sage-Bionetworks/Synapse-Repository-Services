@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -58,8 +56,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-import com.google.common.collect.ImmutableList;
-
 @ExtendWith(MockitoExtension.class)
 public class VerificationManagerImplTest {
 	
@@ -75,7 +71,6 @@ public class VerificationManagerImplTest {
 	private static final String FILE_HANDLE_ID = "101";
 	private static final String FILE_NAME = "filename.txt";
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-	private static final String EMAIL = "me@company.com";
 	private static final Long VERIFICATION_ID = 222L;
 
 	@Mock
@@ -697,97 +692,4 @@ public class VerificationManagerImplTest {
 		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
 		assertEquals(USER_ID.toString(), userId);
 	}
-
-	@Test
-	public void testBackfillNotificationEmailJustOneEmail() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
-		
-		dto.setEmails(Collections.singletonList(EMAIL)); // we captured just one email, so this is the notification email
-		
-		// method under test
-		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		
-		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
-		
-		// no ambiguity, so never needed to check the current notification email address
-		verify(mockNotificationEmailDao, never()).getNotificationEmailForPrincipal(eq(USER_ID));
-		
-		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
-	}
-
-	@Test
-	public void testBackfillNotificationEmailMultipleEmailsFoundNotification() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
-		
-		dto.setEmails(ImmutableList.of("some@other.com", EMAIL));
-		
-		// method under test
-		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		
-		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
-		
-		// check the current notification email address
-		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(eq(USER_ID));
-		
-		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
-	}
-
-	@Test
-	public void testBackfillNotificationEmailMultipleEmailsNoNotification() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn("yet@another.com");
-		
-		dto.setEmails(ImmutableList.of(EMAIL, "some@other.com"));
-		
-		// method under test
-		verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		
-		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(USER_ID);
-		
-		// check the current notification email address
-		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(eq(USER_ID));
-		
-		verify(mockVerificationDao).fillInMissingNotificationEmail(USER_ID, EMAIL);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.UPDATE);
-	}
-
-	@Test
-	public void testBackfillNotificationEmailNotAnAdminOrInACT() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {
-			// method under test
-			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		});
-	}
-	
-	@Test
-	public void testBackfillNotificationEmailNoVerificationSubmission()  {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(null);
-		
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// method under test
-			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		});
-	}
-
-	@Test
-	public void testBackfillNotificationEmailAlreadyHasNotificationEmail() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockVerificationDao.getCurrentVerificationSubmissionForUser(USER_ID)).thenReturn(dto);
-		dto.setNotificationEmail("somee@email.com");
-		
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// method under test
-			verificationManager.backfillNotificationEmail(userInfo, USER_ID);
-		});
-	}
-
 }
