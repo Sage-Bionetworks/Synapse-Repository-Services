@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.Document;
@@ -93,6 +97,20 @@ public class SearchManagerImpl implements SearchManager{
 				}
 			}
 			hits.removeAll(toRemove);
+			
+			// now add aliases
+			List<String> ids = new ArrayList<String>();
+			for (Hit hit : hits) {
+				ids.add(hit.getId());
+			}
+			List<IdAndAlias> aliases = searchDocumentDriver.getAliases(ids);
+			Map<String,String> idToAliasMap = new HashMap<String,String>();
+			for (IdAndAlias ia : aliases) {
+				idToAliasMap.put(ia.getId(), ia.getAlias());
+			}
+			for (Hit hit : hits) {
+				hit.setAlias(idToAliasMap.get(hit.getId()));
+			}
 		}
 	}
 

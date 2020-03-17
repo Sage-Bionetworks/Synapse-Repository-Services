@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -118,11 +119,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @return
 	 * @throws NotFoundException
 	 */
+	@Override
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException {
 		List<EntityHeader> pathHeaders = NameIdType.toEntityHeader(nodeDao.getEntityPath(nodeId));
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(pathHeaders);
 		return entityPath;
+	}
+	
+	@Override
+	public List<IdAndAlias> getAliases(List<String> nodeIds) {
+		return nodeDao.getAliasByNodeId(nodeIds);
 	}
 
 

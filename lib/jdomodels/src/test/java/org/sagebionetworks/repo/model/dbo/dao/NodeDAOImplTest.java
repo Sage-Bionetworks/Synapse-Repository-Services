@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -2699,6 +2700,31 @@ public class NodeDAOImplTest {
 			// call under test
 			nodeDao.getNodeIdByAlias(alias);
 		});
+	}
+	
+	@Test
+	public void testGetAliasByNodeId() {
+		Node node = privateCreateNew("testGetAliasByNodeId");
+		String alias = UUID.randomUUID().toString();
+		node.setAlias(alias);
+		node.setVersionComment("v1");
+		node.setVersionLabel("1");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		// call under test
+		List<IdAndAlias> actual = nodeDao.getAliasByNodeId(Collections.singletonList(id));
+		
+		List<IdAndAlias> expected = Collections.singletonList(new IdAndAlias(id, alias));
+		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testGetAliasByNodeIdEmptyList() {
+		// call under test
+		List<IdAndAlias> actual = nodeDao.getAliasByNodeId(Collections.EMPTY_LIST);
+		
+		assertTrue(actual.isEmpty());
 	}
 	
 	@Test
