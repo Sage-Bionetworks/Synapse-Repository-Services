@@ -1657,6 +1657,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<IdAndAlias> getAliasByNodeId(List<String> nodeIds)	{
 		ValidateArgument.required(nodeIds, "nodeIds");
+		if (nodeIds.isEmpty()) return Collections.EMPTY_LIST;
 		Set<Long> nodeIdLong = new HashSet<Long>();
 		for (String nodeId : nodeIds) {
 			nodeIdLong.add(KeyFactory.stringToKey(nodeId));

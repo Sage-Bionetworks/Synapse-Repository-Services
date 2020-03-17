@@ -6,13 +6,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,12 +31,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.CloudSearchLogger;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchUtil;
@@ -44,6 +48,7 @@ import com.amazonaws.services.cloudsearchdomain.model.Hit;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -196,5 +201,36 @@ public class SearchManagerImplTest {
 		// clear the records even on failure.
 		verify(mockRecordLogger).pushAllRecordsAndReset();
 
+	}
+	
+	@Test
+	public void testAddReturnDataToHits() {
+		String id1 = "syn123";
+		String id2 = "syn456";
+		String id3 = "syn789";
+		List<org.sagebionetworks.repo.model.search.Hit> hits = new ArrayList<org.sagebionetworks.repo.model.search.Hit>();
+		org.sagebionetworks.repo.model.search.Hit hit1 = new org.sagebionetworks.repo.model.search.Hit(); hit1.setId(id1); hits.add(hit1);
+		org.sagebionetworks.repo.model.search.Hit hit2 = new org.sagebionetworks.repo.model.search.Hit(); hit2.setId(id2); hits.add(hit2);
+		org.sagebionetworks.repo.model.search.Hit hit3 = new org.sagebionetworks.repo.model.search.Hit(); hit3.setId(id3); hits.add(hit3);
+
+		when(mockSearchDocumentDriver.getEntityPath(id1)).thenReturn(new EntityPath());
+		when(mockSearchDocumentDriver.getEntityPath(id2)).thenThrow(new NotFoundException());
+		when(mockSearchDocumentDriver.getEntityPath(id3)).thenReturn(new EntityPath());
+		
+		List<String> ids = ImmutableList.of(id1, id3);
+		List<IdAndAlias> aliases = new ArrayList<IdAndAlias>();
+		String alias1 = "alias1";
+		aliases.add(new IdAndAlias(id1, alias1)); // no alias for id3
+		when(mockSearchDocumentDriver.getAliases(ids)).thenReturn(aliases);
+
+
+		// method under test
+		searchManager.addReturnDataToHits(hits);
+		
+		assertEquals(2, hits.size());
+		assertEquals(id1, hits.get(0).getId());
+		assertEquals(alias1, hits.get(0).getAlias());
+		assertEquals(id3, hits.get(1).getId());
+		assertNull(hits.get(1).getAlias());
 	}
 }
