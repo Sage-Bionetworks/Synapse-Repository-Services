@@ -17,13 +17,6 @@ public interface VerificationDAO {
 	public VerificationSubmission createVerificationSubmission(VerificationSubmission dto);
 	
 	/**
-	 * update existing object (this is only used to backfill notification email addresses
-	 * @param dto
-	 * @return
-	 */
-	public void fillInMissingNotificationEmail(long userId, String notificationEmail);
-	
-	/**
 	 * Get the latest verification submission
 	 * @param userId
 	 * @return

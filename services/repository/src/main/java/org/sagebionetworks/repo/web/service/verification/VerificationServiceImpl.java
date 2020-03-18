@@ -48,12 +48,6 @@ public class VerificationServiceImpl implements VerificationService {
 	}
 	
 	@Override
-	public void backfillNotificationEmail(Long userId, Long verifiedUserId) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		verificationManager.backfillNotificationEmail(userInfo, verifiedUserId);
-	}
-	
-	@Override
 	public void deleteVerificationSubmission(Long userId, Long verificationId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		verificationManager.deleteVerificationSubmission(userInfo, verificationId);

@@ -588,41 +588,5 @@ public class VerificationDAOImplTest {
 			
 			assertEquals(expected, submission.getAttachments().isEmpty());
 		}
-	}
-	
-	private static final String NOTIFICATION_EMAIL = "notification@email.com";
-	
-	@Test
-	public void testFillInMissingNotificationEmail() {
-		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
-		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
-		assertNotNull(created.getId());
-		vsToDelete.add(created.getId());
-		assertNull(created.getNotificationEmail());
-		
-		// Call under test
-		verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
-		
-		VerificationSubmission updated = verificationDao.getCurrentVerificationSubmissionForUser(Long.valueOf(USER_1_ID));
-		
-		assertEquals(NOTIFICATION_EMAIL, updated.getNotificationEmail());
-		
-		// if you try to fill in when it's already filled in you will get an error
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// method under test
-			verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
-		});		
-	}
-	
-	@Test
-	public void testFillInMissingNotificationEmailNoVerificationSubmission() {
-		// if there is no submission you will get an error
-		Assertions.assertThrows(DatastoreException.class, ()-> {
-			// Call under test
-			verificationDao.fillInMissingNotificationEmail(Long.valueOf(USER_1_ID), NOTIFICATION_EMAIL);
-		});		
-	}
-	
-	
-	
+	}	
 }

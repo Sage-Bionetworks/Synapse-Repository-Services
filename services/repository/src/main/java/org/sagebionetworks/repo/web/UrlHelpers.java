@@ -961,7 +961,6 @@ public class UrlHelpers {
 	public static final String VERIFICATION_SUBMISSION = "/verificationSubmission";
 	public static final String VERIFICATION_SUBMISSION_ID = VERIFICATION_SUBMISSION+ID;
 	public static final String VERIFICATION_SUBMISSION_ID_STATE = VERIFICATION_SUBMISSION_ID+"/state";
-	public static final String VERIFICATION_SUBMISSION_NOTIFICATION_EMAIL = VERIFICATION_SUBMISSION+"/notificationEmail";
 
 	// Discussion Services
 	public static final String FORUM = "/forum";

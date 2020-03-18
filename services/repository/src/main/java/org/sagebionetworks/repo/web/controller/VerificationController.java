@@ -95,15 +95,6 @@ public class VerificationController {
 		serviceProvider.getVerificationService().changeSubmissionState(userId, id, newState, notificationUnsubscribeEndpoint);
 	}
 	
-	@Deprecated
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_NOTIFICATION_EMAIL, method = RequestMethod.PUT)
-	public void backfillNotificationEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.VERIFIED_USER_ID_PARAM) Long verifiedUserId) {
-		serviceProvider.getVerificationService().backfillNotificationEmail(userId, verifiedUserId);
-	}
-	
 	/**
 	 * Delete a verification submission by its ID.
 	 * Note:  This service may be called only by the original verification requestor.

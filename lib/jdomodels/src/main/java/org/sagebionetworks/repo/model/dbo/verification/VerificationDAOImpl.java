@@ -162,25 +162,6 @@ public class VerificationDAOImpl implements VerificationDAO {
 		return copyVerificationDBOtoDTO(created, Collections.singletonList(initialState));
 	}
 	
-	@WriteTransaction
-	@Override
-	public void fillInMissingNotificationEmail(long userId, String notificationEmail) throws DatastoreException {
-		DBOVerificationSubmission dbo = null;
-		try {
-			dbo = jdbcTemplate.queryForObject(LATEST_VERIFICATION_SUBMISSION_SQL, DBO_VERIFICATION_SUB_MAPPING, userId);
-		} catch (EmptyResultDataAccessException e) {
-			throw new DatastoreException("No verification submission found for user "+userId);
-		}
-		VerificationSubmission dto = VerificationSubmissionHelper.deserializeDTO(dbo.getSerialized());
-		if (StringUtils.isNotEmpty(dto.getNotificationEmail())) {
-			throw new IllegalArgumentException("The verification record for "+userId+" already has a notification email.");
-		}
-		dto.setNotificationEmail(notificationEmail);
-		dbo.setSerialized(VerificationSubmissionHelper.serializeDTO(dto));
-		dbo.setEtag(UUID.randomUUID().toString());
-		if (!basicDao.update(dbo)) throw new DatastoreException("Failed to update verification record for "+userId);
-	}
-	
 	private static DBOVerificationSubmission copyVerificationDTOtoDBO(VerificationSubmission dto) {
 		DBOVerificationSubmission dbo = new DBOVerificationSubmission();
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
