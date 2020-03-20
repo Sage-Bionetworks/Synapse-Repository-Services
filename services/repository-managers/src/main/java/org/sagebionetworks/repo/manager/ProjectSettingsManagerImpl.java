@@ -182,6 +182,8 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@WriteTransaction
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
+		ValidateArgument.required(projectSetting.getId(), "The id");
+		ValidateArgument.required(projectSetting.getProjectId(), "The project id");
 		
 		// A project certification setting can only be applied to by an ACT member
 		if (projectSetting instanceof ProjectCertificationSetting) {
@@ -191,6 +193,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).isAuthorized()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
+		
+		// Auto-fill the setting type to avoid inconsistencies in the database
+		projectSetting.setSettingsType(TYPE_MAP.get(projectSetting.getClass()));
 		
 		validateProjectSetting(projectSetting, userInfo);
 
