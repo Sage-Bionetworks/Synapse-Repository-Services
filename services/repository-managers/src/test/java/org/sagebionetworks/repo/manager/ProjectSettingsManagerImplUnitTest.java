@@ -657,6 +657,52 @@ public class ProjectSettingsManagerImplUnitTest {
 		assertEquals("The user must be an ACT member in order to customize the certification requirement", ex.getMessage());
 		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
 	}
+	
+	@Test
+	public void testUpdateProjectSettingWithNoId() {
+
+		uploadDestinationListSetting.setId(null);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
+		});
+		
+		assertEquals("The id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateProjectSettingWithNoProjectId() {
+
+		uploadDestinationListSetting.setProjectId(null);
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// Method under test.
+			projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
+		});
+		
+		assertEquals("The project id is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testUpdateProjectSettingAutofillType() {
+		
+		uploadDestinationListSetting.setSettingsType(null);
+		
+		// Mock dependencies.
+		when(authorizationManager.canAccess(userInfo, PROJECT_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(
+				AuthorizationStatus.authorized());
+		
+		when(mockNodeManager.doesNodeHaveChildren(PROJECT_ID)).thenReturn(false);
+		when(mockTrashManager.doesEntityHaveTrashedChildren(PROJECT_ID)).thenReturn(false);
+
+		when(mockStorageLocationDAO.get(STORAGE_LOCATION_ID)).thenReturn(synapseStorageLocationSetting);
+
+		// Method under test.
+		projectSettingsManagerImpl.updateProjectSetting(userInfo, uploadDestinationListSetting);
+		
+		assertEquals(ProjectSettingsType.upload, uploadDestinationListSetting.getSettingsType());
+	}
 
 	@Test
 	public void deleteProjectSetting_HappyCase() {
