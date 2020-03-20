@@ -1024,7 +1024,7 @@ public class FileHandleManagerImplTest {
 
 
 	@Test
-	public void testCreateExternalGoogleCloudFileHandleHappy(){
+	public void testCreateExternalGoogleCloudFileHandleGetSizeFromGC(){
 		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
 				externalGoogleCloudStorageLocationSetting);
 		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
@@ -1079,25 +1079,12 @@ public class FileHandleManagerImplTest {
 
 		when(mockStorageLocationDao.get(externalGoogleCloudStorageLocationId)).thenReturn(
 				externalGoogleCloudStorageLocationSetting);
-		when(mockFileHandleDao.createFile(externalGoogleCloudFileHandle)).thenReturn(externalGoogleCloudFileHandle);
 		Blob mockGCBlob = mock(Blob.class);
 		when(mockGoogleCloudStorageClient.getObject(bucket, key)).thenReturn(mockGCBlob);
 		when(mockGCBlob.getSize()).thenReturn(null);
 
 		// call under test
-		GoogleCloudFileHandle result = manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle);
-		assertNotNull(result);
-		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
-		assertNotNull(result.getCreatedOn());
-		assertEquals(md5, result.getContentMd5());
-
-		// Content size will end up being null
-		assertNull(result.getContentSize());
-
-		assertNotNull(result.getEtag());
-		assertEquals(bucket, result.getBucketName());
-		assertEquals(key, result.getKey());
-		assertEquals(externalGoogleCloudStorageLocationId, result.getStorageLocationId());
+		assertThrows(IllegalArgumentException.class, () -> manager.createExternalGoogleCloudFileHandle(mockUser, externalGoogleCloudFileHandle));
 
 		verify(mockGCBlob, times(1)).getSize();
 	}

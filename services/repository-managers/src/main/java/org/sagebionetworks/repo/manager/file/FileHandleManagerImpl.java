@@ -1168,9 +1168,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new IllegalArgumentException("Unable to access the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+".", e);
 		}
 
-		// In PLFM-6092 we found that BlobInfo.getSize() may return null.
-		if (fileHandle.getContentSize() == null && summary.getSize() != null) {
-			fileHandle.setContentSize(summary.getSize());
+		/*
+		 * In PLFM-6092 we found that BlobInfo.getSize() may return null (unclear if it's a Google Cloud bug
+		 *  or edge case e.g. folders have no size). In these cases, require the user to supply a content size.
+		 */
+		if (fileHandle.getContentSize() == null) {
+			if (summary.getSize() != null) {
+				fileHandle.setContentSize(summary.getSize());
+			} else {
+				throw new IllegalArgumentException("Unable to get the size of the file at bucket: "+fileHandle.getBucketName()+" key: "+fileHandle.getKey()+". Please specify a content size.");
+			}
 		}
 
 		// set this user as the creator of the file
