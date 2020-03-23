@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,11 +19,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.aws.utils.s3.KeyGeneratorUtil;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.impl.DefaultClaims;
+import io.jsonwebtoken.impl.DefaultJwt;
 
 /**
  * Unit test for AccessInterceptor.
@@ -43,10 +51,14 @@ public class AccessInterceptorTest {
 	UserInfo mockUserInfo;
 	StubAccessRecorder stubRecorder;
 	AccessInterceptor interceptor;
+	OIDCTokenHelper oidcTokenHelper;
 	Long userId;
 	TestClock testClock = new TestClock();
 	int instanceNumber;
 	String stack;
+	
+	private static final String BEARER_TOKEN_HEADER = "Bearer some-token";
+	private static final String OAUTH_CLIENT_ID = "9999";
 
 	@Before
 	public void before() throws Exception {
@@ -55,9 +67,11 @@ public class AccessInterceptorTest {
 		mockUserInfo = new UserInfo(false, 123L);
 		stubRecorder = new StubAccessRecorder();
 		interceptor = new AccessInterceptor();
+		oidcTokenHelper = Mockito.mock(OIDCTokenHelper.class);
 		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);
 		ReflectionTestUtils.setField(interceptor, "clock", testClock);
 		ReflectionTestUtils.setField(interceptor, "stackConfiguration", mockConfiguration);
+		ReflectionTestUtils.setField(interceptor, "oidcTokenHelper", oidcTokenHelper);
 
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());
@@ -69,6 +83,11 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
+		when(mockRequest.getHeader("Authorization")).thenReturn(BEARER_TOKEN_HEADER);
+		Claims claims = new DefaultClaims();
+		claims.setAudience(OAUTH_CLIENT_ID);
+		Jwt<JwsHeader,Claims> jwt = new DefaultJwt(null, claims);
+		when(oidcTokenHelper.parseJWT(any())).thenReturn(jwt);
 		// setup response
 		when(mockResponse.getStatus()).thenReturn(200);
 		instanceNumber = 101;
@@ -113,6 +132,7 @@ public class AccessInterceptorTest {
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 		assertEquals("?param1=foo", result.getQueryString());
 		assertEquals("returnId", result.getReturnObjectId());
+		assertEquals(OAUTH_CLIENT_ID, result.getOauthClientId());
 	}
 	
 	@Test
