@@ -619,9 +619,9 @@ public class DBOAccessControlListDAOImplTest {
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
-		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne.getId(), new Date());
+		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
 		createAcl(acl1, ObjectType.ENTITY);
-		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo.getId(), new Date());
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
 		createAcl(acl2, ObjectType.ENTITY);
 		
 		String parentId = node.getId();
@@ -660,9 +660,9 @@ public class DBOAccessControlListDAOImplTest {
 		UserInfo userOne = new UserInfo(false, group.getId());
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
-		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne.getId(), new Date());
+		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
 		createAcl(acl1, ObjectType.ENTITY);
-		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo.getId(), new Date());
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
 		createAcl(acl2, ObjectType.ENTITY);
 		
 		String parentId = node.getId();

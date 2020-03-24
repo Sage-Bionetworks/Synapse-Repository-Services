@@ -18,8 +18,9 @@ public class AccessControlListUtil {
 	 * @param now The date to set on the DTO
 	 * @return a corresponding AccessControlList DTO
 	 */
-	public static AccessControlList createACL(String objectId, long userId, Set<ACCESS_TYPE> permissions, Date now) {
+	public static AccessControlList createACL(String objectId, UserInfo info, Set<ACCESS_TYPE> permissions, Date now) {
 		if(objectId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		UserInfo.validateUserInfo(info);
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(now);
 		acl.setId(objectId);
@@ -27,17 +28,17 @@ public class AccessControlListUtil {
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
 		access.setAccessType(new HashSet<>(permissions));
-		access.setPrincipalId(userId);
+		access.setPrincipalId(info.getId());
 		set.add(access);
 		return acl;
 	}
 
-	public static AccessControlList createACLToGrantEntityAdminAccess(String nodeId, long userId, Date now) {
-		return createACL(nodeId, userId, ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS, now);
+	public static AccessControlList createACLToGrantEntityAdminAccess(String nodeId, UserInfo info, Date now) {
+		return createACL(nodeId, info, ModelConstants.ENTITY_ADMIN_ACCESS_PERMISSIONS, now);
 	}
 
-	public static AccessControlList createACLToGrantEvaluationAdminAccess(String evaluationId, long userId, Date now) {
-		return createACL(evaluationId, userId, ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, now);
+	public static AccessControlList createACLToGrantEvaluationAdminAccess(String evaluationId, UserInfo info, Date now) {
+		return createACL(evaluationId, info, ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, now);
 	}
 
 }

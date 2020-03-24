@@ -1,12 +1,9 @@
 package org.sagebionetworks.auth;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -27,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -86,10 +82,6 @@ public class AuthenticationController {
 	@Autowired
 	private AuthenticationService authenticationService;
 
-
-	@Autowired
-	private OIDCTokenHelper oidcTokenHelper;
-	
 	/**
 	 * This method only exists for backwards compatibility.
 	 * Use {@link #login(LoginRequest)}.
@@ -165,30 +157,14 @@ public class AuthenticationController {
 	}
 
 	/**
-	 * Sign the user's terms of use
+	 * Identifies a user by a session token and signs that user's terms of use
 	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.PUT)
-	public void signTermsOfUseV2(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
-			throws NotFoundException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		authenticationService.signTermsOfUse(accessToken);
-	}
-
-	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
 	public void signTermsOfUse(
 			@RequestBody Session session)
 			throws NotFoundException {
-		/*
-		 * Not sure why we pass the session token in the request body rather than in the
-		 * header as elsewhere, but anyway we have to exchange it for an access token
-		 */
-		Long userId = authenticationService.revalidate(session.getSessionToken(), false);
-		String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
-		authenticationService.signTermsOfUse(accessToken);
+		authenticationService.signTermsOfUse(session);
 	}
 
 	/**
@@ -198,11 +174,10 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	SecretKey newSecretKey(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
 		SecretKey secret = new SecretKey();
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		secret.setSecretKey(authenticationService.getSecretKey(accessToken));
+		secret.setSecretKey(authenticationService.getSecretKey(userId));
 		return secret;
 	}
 
@@ -214,10 +189,9 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		authenticationService.deleteSecretKey(accessToken);
+		authenticationService.deleteSecretKey(userId);
 	}
 
 	/**
@@ -290,10 +264,9 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.POST)
 	public @ResponseBody
 	PrincipalAlias bindExternalIdToAccount(@RequestBody OAuthValidationRequest request,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws Exception {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return authenticationService.bindExternalID(accessToken, request);
+		return authenticationService.bindExternalID(userId, request);
 	}
 	
 	/**
@@ -334,13 +307,12 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void unbindExternalAliasFromAccount(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required=true) String provider,
 			@RequestParam(required=true) String alias
 			) throws Exception {
 		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		authenticationService.unbindExternalID(accessToken, providerEnum, alias);
+		authenticationService.unbindExternalID(userId, providerEnum, alias);
 	}
 
 }

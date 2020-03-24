@@ -20,7 +20,6 @@ import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
-import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -48,9 +47,6 @@ public class AuthenticationFilter implements Filter {
 
 	@Autowired
 	private AuthenticationService authenticationService;
-
-	@Autowired
-	private AuthenticationManager authManager;
 
 	@Autowired
 	private UserManager userManager;
@@ -93,7 +89,7 @@ public class AuthenticationFilter implements Filter {
 			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
 				userId = userManager.lookupUserByUsernameOrEmail(username).getPrincipalId();
-				String secretKey = authManager.getSecretKey(userId);
+				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthenticatedException | NotFoundException e) {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
@@ -142,7 +138,9 @@ public class AuthenticationFilter implements Filter {
 		try {
 			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-			modParams.remove(AuthorizationConstants.USER_ID_PARAM);
+			if (userId!=null) {
+				modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);

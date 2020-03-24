@@ -46,19 +46,19 @@ public interface AuthenticationService {
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	
 	/**
-	 * Signs the user's terms of use
+	 * Identifies a user via session token and signs that user's terms of use
 	 */
-	public void signTermsOfUse(String accessToken) throws NotFoundException;
+	public void signTermsOfUse(Session session) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
 	 */
-	public String getSecretKey(String accessToken) throws NotFoundException;
+	public String getSecretKey(Long principalId) throws NotFoundException;
 	
 	/** 
 	 * Invalidates the user's secret key
 	 */
-	public void deleteSecretKey(String accessToken) throws NotFoundException;
+	public void deleteSecretKey(Long principalId) throws NotFoundException;
 
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
@@ -90,9 +90,9 @@ public interface AuthenticationService {
 	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
 
 
-	public PrincipalAlias bindExternalID(String accessToken, OAuthValidationRequest validationRequest);
+	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 
-	void unbindExternalID(String accessToken, OAuthProvider provider, String aliasName);
+	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
 
 	/**
 	 * Authenticates username and password combination

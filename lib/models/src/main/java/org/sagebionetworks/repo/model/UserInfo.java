@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +9,6 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
-import org.sagebionetworks.util.ValidateArgument;
 
 /**
  *  Contains both a user and the groups to which she belongs.
@@ -21,9 +21,9 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
-
-	private List<OAuthScope> scopes;
 	
+	private List<OAuthScope> scopes;
+
 	private Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims;
 
 	public UserInfo(boolean isAdmin) {
@@ -34,7 +34,7 @@ public class UserInfo {
 	public UserInfo(boolean isAdmin, String id){
 		this(isAdmin, Long.parseLong(id));
 	}
-
+	
 	/**
 	 * Helper to create a UserInfo
 	 * @param isAdmin
@@ -52,6 +52,7 @@ public class UserInfo {
 	}
 	
 	private Long id;
+	private Date creationDate;
 
 	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
@@ -61,7 +62,8 @@ public class UserInfo {
 	 * Is the passed userInfo object valid?
 	 */
 	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
-		ValidateArgument.required(info, "userInfo");
+
+		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
 	}
 
 	public Long getId() {
@@ -72,10 +74,19 @@ public class UserInfo {
 		this.id = id;
 	}
 
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
+
 	public boolean isAdmin() {
 		return isAdmin;
 	}
 
+	
 	public List<OAuthScope> getScopes() {
 		return scopes;
 	}
@@ -96,6 +107,7 @@ public class UserInfo {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + (isAdmin ? 1231 : 1237);
@@ -113,6 +125,11 @@ public class UserInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UserInfo other = (UserInfo) obj;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
 		if (groups == null) {
 			if (other.groups != null)
 				return false;
@@ -137,8 +154,6 @@ public class UserInfo {
 			return false;
 		return true;
 	}
-
-
 	
 	
 }

@@ -19,10 +19,9 @@ public class AccessControlListTest {
 
 	@Test
 	public void testGrantEntityAdminACL(){
-		long nodeIdLong = 123L;
-		String nodeId = ""+nodeIdLong;
-		UserInfo info = new UserInfo(false, nodeIdLong);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, nodeIdLong, new Date());
+		String nodeId = "123";
+		UserInfo info = new UserInfo(false, 123L);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());
@@ -42,10 +41,9 @@ public class AccessControlListTest {
 	
 	@Test
 	public void testGrantEvaluationAdminACL(){
-		long nodeIdLong = 123L;
-		String nodeId = ""+nodeIdLong;
-		UserInfo info = new UserInfo(false, nodeIdLong);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, nodeIdLong, new Date());
+		String nodeId = "123";
+		UserInfo info = new UserInfo(false, 123L);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());

@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -27,8 +26,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.mchange.v1.lang.BooleanUtils;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 
@@ -81,31 +78,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(String accessToken) throws NotFoundException {
+	public void signTermsOfUse(Session session) throws NotFoundException {
+		if (session.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		if (session.getAcceptsTermsOfUse() == null) {
+			throw new IllegalArgumentException("Terms of use acceptance may not be null");
+		}
 		
-		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken); 
-		if (!userInfo.getScopes().contains(OAuthScope.modify)) throw new UnauthorizedException();
+		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
+		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
 		// Save the state of acceptance
-		Boolean alreadyAcceptedTOU = authManager.hasUserAcceptedTermsOfUse(userInfo.getId());
-		if (alreadyAcceptedTOU==null || !alreadyAcceptedTOU) {
-			authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
+		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
+			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
 		}
 	}
 	
 	@Override
-	public String getSecretKey(String accessToken) throws NotFoundException {
-		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
-		// TODO authorization check
-		return authManager.getSecretKey(userAuthorization.getId());
+	public String getSecretKey(Long principalId) throws NotFoundException {
+		return authManager.getSecretKey(principalId);
 	}
 	
 	@Override
 	@WriteTransaction
-	public void deleteSecretKey(String accessToken) throws NotFoundException {
-		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
-		// TODO authorization check
-		authManager.changeSecretKey(userAuthorization.getId());
+	public void deleteSecretKey(Long principalId) throws NotFoundException {
+		authManager.changeSecretKey(principalId);
 	}
 	
 	@Override
@@ -169,25 +167,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public PrincipalAlias bindExternalID(String accessToken, OAuthValidationRequest validationRequest) {
-		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
-		if (AuthorizationUtils.isUserAnonymous(userAuthorization.getId())) throw new UnauthorizedException("User ID is required.");
-		// TODO authorization check
+	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
+		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(),
 				validationRequest.getRedirectUrl());
 		// now bind the ID to the user account
-		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userAuthorization.getId());
+		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}
 	
 	@Override
-	public void unbindExternalID(String accessToken, OAuthProvider provider, String aliasName) {
-		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
-		if (AuthorizationUtils.isUserAnonymous(userAuthorization.getId())) throw new UnauthorizedException("User ID is required.");
-		// TODO authorization check
+	public void unbindExternalID(Long userId, OAuthProvider provider, String aliasName) {
+		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
 		AliasType aliasType = oauthManager.getAliasTypeForProvider(provider);
-		userManager.unbindAlias(aliasName, aliasType, userAuthorization.getId());
+		userManager.unbindAlias(aliasName, aliasType, userId);
 	}
 
 	@Override

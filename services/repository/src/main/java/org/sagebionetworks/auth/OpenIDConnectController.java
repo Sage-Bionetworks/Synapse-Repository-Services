@@ -87,12 +87,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthClient createOAuthClient(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OAuthClient oauthClient
 			) throws NotFoundException, ServiceUnavailableException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().
-				createOpenIDConnectClient(accessToken, oauthClient);
+				createOpenIDConnectClient(userId, oauthClient);
 	}
 	
 	/**
@@ -111,11 +110,10 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
 	public @ResponseBody 
 	OAuthClientIdAndSecret createOAuthClientSecret(
-		@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+		@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 		@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String clientId) {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().
-				createOAuthClientSecret(accessToken, clientId);
+				createOAuthClientSecret(userId, clientId);
 	}
 	
 	/**
@@ -132,12 +130,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	OAuthClient getOAuthClient(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id
 			) throws NotFoundException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().
-				getOpenIDConnectClient(accessToken, id);
+				getOpenIDConnectClient(userId, id);
 	}
 	
 	/**
@@ -154,12 +151,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.GET)
 	public @ResponseBody
 	OAuthClientList listOAuthClients(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
 			) throws NotFoundException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().
-				listOpenIDConnectClients(accessToken, nextPageToken);
+				listOpenIDConnectClients(userId, nextPageToken);
 	}
 	
 	/**
@@ -176,12 +172,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	OAuthClient updateOAuthClient(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OAuthClient oauthClient
 			) throws NotFoundException, ServiceUnavailableException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getOpenIDConnectService().
-				updateOpenIDConnectClient(accessToken, oauthClient);
+				updateOpenIDConnectClient(userId, oauthClient);
 	}
 	
 	/**
@@ -193,12 +188,11 @@ public class OpenIDConnectController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.DELETE)
 	public void deletedOpenIDClient(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id
 			) throws NotFoundException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		serviceProvider.getOpenIDConnectService().
-				deleteOpenIDConnectClient(accessToken, id);
+				deleteOpenIDConnectClient(userId, id);
 	}
 	
 	/**
@@ -230,12 +224,11 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT_CHECK, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthConsentGrantedResponse checkUserAuthorization(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) {
 		OAuthConsentGrantedResponse result = new OAuthConsentGrantedResponse();
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		result.setGranted(serviceProvider.getOpenIDConnectService().hasUserGrantedConsent(accessToken, authorizationRequest));
+		result.setGranted(serviceProvider.getOpenIDConnectService().hasUserGrantedConsent(userId, authorizationRequest));
 		return result;
 	}
 	
@@ -258,11 +251,10 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthAuthorizationResponse authorizeClient(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) throws NotFoundException, OAuthClientNotVerifiedException {
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return serviceProvider.getOpenIDConnectService().authorizeClient(accessToken, authorizationRequest);
+		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
 	}
 	
 	/**

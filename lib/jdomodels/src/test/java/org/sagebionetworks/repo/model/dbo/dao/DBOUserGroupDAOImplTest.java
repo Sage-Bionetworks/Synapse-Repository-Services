@@ -142,7 +142,7 @@ public class DBOUserGroupDAOImplTest {
 		projectToDelete = projectId;
 
 		// Add an ACL at the project
-		AccessControlList acl = AccessControlListUtil.createACL(projectId, groupId,
+		AccessControlList acl = AccessControlListUtil.createACL(projectId, new UserInfo(false, groupId),
 				Collections.singleton(ACCESS_TYPE.DOWNLOAD), new Date());
 		aclToDelete = aclDAO.create(acl, ObjectType.ENTITY);
 
@@ -170,7 +170,7 @@ public class DBOUserGroupDAOImplTest {
 		projectToDelete = projectId;
 
 		// Add an ACL at the project
-		AccessControlList acl = AccessControlListUtil.createACL(projectId, groupId,
+		AccessControlList acl = AccessControlListUtil.createACL(projectId, new UserInfo(false, groupId),
 				Collections.singleton(ACCESS_TYPE.DOWNLOAD), new Date());
 		String aclToDelete = aclDAO.create(acl, ObjectType.ENTITY);
 
