@@ -123,7 +123,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public List<Evaluation> getAvailableInRange(UserInfo userInfo, boolean activeOnly, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
 		Long now = activeOnly ? System.currentTimeMillis() : null;
-		evaluationPermissionsManager.canReadEvaluations(userInfo);
 		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, now,
 				limit, offset, evaluationIds);
 	}
