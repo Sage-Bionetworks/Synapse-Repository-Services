@@ -210,7 +210,7 @@ public class TrashManagerImpl implements TrashManager {
 		// If the new parent is root then add an ACL.
 		if(NodeUtils.isRootEntityId(newParentId)){
 			// Create an ACL for this entity.
-			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, currentUser.getId(), new Date());
+			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, currentUser, new Date());
 			aclDAO.create(acl, ObjectType.ENTITY);
 		}
 
