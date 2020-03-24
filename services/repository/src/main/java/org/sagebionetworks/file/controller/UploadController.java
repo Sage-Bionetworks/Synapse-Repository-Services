@@ -192,7 +192,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_BATCH, method = RequestMethod.POST)
 	public @ResponseBody BatchFileResult getFileHandleAndUrlBatch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody BatchFileRequest request)
 			throws IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
@@ -217,7 +217,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_COPY, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle copyS3FileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String handleIdToCopyFrom,
 			@RequestBody S3FileHandle fileHandleWithNameAndContentType)
 			throws IOException, DatastoreException, NotFoundException,
@@ -249,7 +249,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.GET)
 	public @ResponseBody FileHandle getFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
@@ -278,7 +278,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_HANDLE_ID, method = RequestMethod.DELETE)
 	public @ResponseBody void deleteFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
@@ -303,7 +303,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.FILE_HANDLE_PREVIEW, method = RequestMethod.DELETE)
 	public @ResponseBody void clearPreview(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws FileUploadException,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// clear the preview
@@ -327,7 +327,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE, method = RequestMethod.POST)
 	public @ResponseBody ExternalFileHandleInterface createExternalFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody ExternalFileHandleInterface fileHandle)
 			throws DatastoreException, NotFoundException {
 		// Pass it along
@@ -355,7 +355,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_S3, method = RequestMethod.POST)
 	public @ResponseBody S3FileHandle createExternalFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody S3FileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
@@ -384,7 +384,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_GOOGLE_CLOUD, method = RequestMethod.POST)
 	public @ResponseBody
 	GoogleCloudFileHandle createExternalFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody GoogleCloudFileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
@@ -412,7 +412,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.EXTERNAL_FILE_HANDLE_PROXY, method = RequestMethod.POST)
 	@Deprecated
 	public @ResponseBody ProxyFileHandle createExternalFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody ProxyFileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
@@ -440,7 +440,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/createChunkedFileUploadToken", method = RequestMethod.POST)
 	public @ResponseBody ChunkedFileToken createChunkedFileUploadToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody CreateChunkedFileTokenRequest ccftr)
 			throws DatastoreException, NotFoundException {
 		return fileService.createChunkedFileUploadToken(userId, ccftr);
@@ -468,7 +468,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/createChunkedFileUploadChunkURL", method = RequestMethod.POST)
 	public void createChunkedPresignedUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody ChunkRequest cpr, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
 		URL url = fileService.createChunkedFileUploadPartURL(userId, cpr);
@@ -496,7 +496,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/startCompleteUploadDaemon", method = RequestMethod.POST)
 	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody CompleteAllChunksRequest cacf)
 			throws DatastoreException, NotFoundException {
 		return fileService.startUploadDeamon(userId, cacf);
@@ -519,7 +519,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/completeUploadDaemonStatus/{daemonId}", method = RequestMethod.GET)
 	public @ResponseBody UploadDaemonStatus completeUploadDaemonStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String daemonId) throws DatastoreException,
 			NotFoundException {
 		return fileService.getUploadDaemonStatus(userId, daemonId);
@@ -540,7 +540,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinations", method = RequestMethod.GET)
 	public @ResponseBody ListWrapper<UploadDestination> getUploadDestinations(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "id") String parentId)
 			throws DatastoreException, NotFoundException {
 		List<UploadDestination> uploadDestinations = fileService
@@ -563,7 +563,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID
 			+ "/uploadDestinationLocations", method = RequestMethod.GET)
 	public @ResponseBody ListWrapper<UploadDestinationLocation> getUploadDestinationLocations(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "id") String parentId)
 			throws DatastoreException, NotFoundException {
 		List<UploadDestinationLocation> uploadDestinationLocations = fileService
@@ -586,7 +586,7 @@ public class UploadController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID
 			+ "/uploadDestination/{storageLocationId}", method = RequestMethod.GET)
 	public @ResponseBody UploadDestination getUploadDestination(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "id") String parentId,
 			@PathVariable Long storageLocationId) throws DatastoreException,
 			NotFoundException {
@@ -611,7 +611,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestination", method = RequestMethod.GET)
 	public @ResponseBody UploadDestination getDefaultUploadDestination(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "id") String id) throws DatastoreException,
 			NotFoundException {
 		UploadDestination uploadDestination = fileService
@@ -644,7 +644,7 @@ public class UploadController {
 	 */
 	@RequestMapping(value = "/fileHandle/{handleId}/url", method = RequestMethod.GET)
 	public @ResponseBody void getFileHandleURL(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String handleId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -689,7 +689,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startBulkFileDownloadJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody BulkFileDownloadRequest request)
 			throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider
@@ -720,7 +720,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.BULK_FILE_DOWNLOAD_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody BulkFileDownloadResponse getBulkFileDownloadResults(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
@@ -755,7 +755,7 @@ public class UploadController {
 	 */
 	@RequestMapping(value = UrlHelpers.FILE_DOWNLOAD, method = RequestMethod.GET)
 	public void fileRedirectURLForAffiliate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String id,
 			@RequestParam(required = false) Boolean redirect,
 			@RequestParam(required = true) FileHandleAssociateType fileAssociateType,
@@ -918,7 +918,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_START_ASYNCH, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId startAddFileToDownloadList(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody AddFileToDownloadListRequest request)
 			throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
@@ -945,7 +945,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_GET_ASYNCH, method = RequestMethod.GET)
 	public @ResponseBody AddFileToDownloadListResponse getAddFileToDownloadListResults(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
@@ -968,7 +968,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD, method = RequestMethod.POST)
 	public @ResponseBody DownloadList addFilesToDownloadList(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody FileHandleAssociationList request) throws Throwable {
 		return this.fileService.addFilesToDownloadList(userId, request);
 	}
@@ -984,7 +984,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_REMOVE, method = RequestMethod.POST)
 	public @ResponseBody DownloadList removeFilesFromDownloadList(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody FileHandleAssociationList request) throws Throwable {
 		return this.fileService.removeFilesFromDownloadList(userId, request);
 	}
@@ -999,7 +999,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.DELETE)
 	public @ResponseBody void clearUsersDownloadList(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws Throwable {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws Throwable {
 		this.fileService.clearDownloadList(userId);
 	}
 	
@@ -1012,7 +1012,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST, method = RequestMethod.GET)
 	public @ResponseBody DownloadList getDownloadList(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws Throwable {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws Throwable {
 		return this.fileService.getDownloadList(userId);
 	}
 	
@@ -1041,7 +1041,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER, method = RequestMethod.POST)
 	public @ResponseBody DownloadOrder createDownloadOrder(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = "zipFileName") String zipFileName) throws Throwable {
 		return this.fileService.createDownloadOrder(userId, zipFileName);
 	}
@@ -1058,7 +1058,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_ID, method = RequestMethod.GET)
 	public @ResponseBody DownloadOrder getDownloadOrder(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "orderId") String orderId) throws Throwable {
 		return this.fileService.getDownloadOrder(userId, orderId);
 	}
@@ -1074,7 +1074,7 @@ public class UploadController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DOWNLOAD_ORDER_HISTORY, method = RequestMethod.POST)
 	public @ResponseBody DownloadOrderSummaryResponse getDownloadOrderHistory(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody DownloadOrderSummaryRequest request) throws Throwable {
 		return this.fileService.getDownloadOrderHistory(userId, request);
 	}

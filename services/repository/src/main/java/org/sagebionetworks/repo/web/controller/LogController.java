@@ -42,7 +42,7 @@ public class LogController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.LOG, method = RequestMethod.POST)
 	public @ResponseBody
-	void log(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody LogEntry logEntry,
+	void log(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @RequestBody LogEntry logEntry,
 			HttpServletRequest request, @RequestHeader("User-Agent") String userAgent) {
 		serviceProvider.getLogService().log(logEntry, userAgent);
 	}

@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -174,10 +175,11 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException {
 		SecretKey secret = new SecretKey();
-		secret.setSecretKey(authenticationService.getSecretKey(userId));
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		secret.setSecretKey(authenticationService.getSecretKey(accessToken));
 		return secret;
 	}
 
@@ -189,9 +191,10 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException {
-		authenticationService.deleteSecretKey(userId);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		authenticationService.deleteSecretKey(accessToken);
 	}
 
 	/**
@@ -264,9 +267,10 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.POST)
 	public @ResponseBody
 	PrincipalAlias bindExternalIdToAccount(@RequestBody OAuthValidationRequest request,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws Exception {
-		return authenticationService.bindExternalID(userId, request);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return authenticationService.bindExternalID(accessToken, request);
 	}
 	
 	/**
@@ -307,12 +311,13 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_ALIAS, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void unbindExternalAliasFromAccount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required=true) String provider,
 			@RequestParam(required=true) String alias
 			) throws Exception {
 		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
-		authenticationService.unbindExternalID(userId, providerEnum, alias);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		authenticationService.unbindExternalID(accessToken, providerEnum, alias);
 	}
 
 }

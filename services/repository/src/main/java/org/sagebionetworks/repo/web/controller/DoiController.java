@@ -105,7 +105,7 @@ public class DoiController {
 	@RequestMapping(value = {UrlHelpers.DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
-	getDoiV2(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	getDoiV2(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			 @RequestParam(value = "id") String objectId,
 			 @RequestParam(value = "type") ObjectType objectType,
 			 @RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
@@ -128,7 +128,7 @@ public class DoiController {
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody
 	DoiAssociation
-	getDoiAssociation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	getDoiAssociation(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 					  @RequestParam(value = "id") String objectId,
 					  @RequestParam(value = "type") ObjectType objectType,
 					  @RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException {
@@ -149,7 +149,7 @@ public class DoiController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public @ResponseBody
 	AsyncJobId
-	startCreateOrUpdateDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	startCreateOrUpdateDoi(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 					  @RequestBody DoiRequest request) throws NotFoundException, UnauthorizedException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
@@ -169,7 +169,7 @@ public class DoiController {
 	@RequestMapping(value = UrlHelpers.DOI_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	DoiResponse getCreateOrUpdateDoiResults(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
@@ -191,7 +191,7 @@ public class DoiController {
 	 */
 	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
 	public @ResponseBody
-	void locate(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	void locate(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) ObjectType objectType,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,

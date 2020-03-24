@@ -51,7 +51,7 @@ public class MigrationController {
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNTS, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeCounts getTypeCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeCounts(userId);
 	}
@@ -68,7 +68,7 @@ public class MigrationController {
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeCount getTypeCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required=true) String type)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeCount(userId, MigrationType.valueOf(type));
@@ -90,7 +90,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeList getPrimaryTypes(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
 
@@ -105,7 +105,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY_NAMES }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeNames getPrimaryTypeNames(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getPrimaryTypeNames(userId);
 	}
 
@@ -118,7 +118,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPES }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeList getMigrationTypes(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getMigrationTypes(userId);
 	}
 
@@ -133,7 +133,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_NAMES }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeNames getMigrationTypeNames(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getMigrationTypeNames(userId);
 	}
 
@@ -145,7 +145,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_RANGE_CHECKSUM }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationRangeChecksum getChecksumForIdRange(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required = true) String migrationType,
 			@RequestParam(required = true) String salt,
 			@RequestParam(required = true) Long minId,
@@ -161,7 +161,7 @@ public class MigrationController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_CHECKSUM }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeChecksum getChecksumForType(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required = true) String migrationType) throws NotFoundException {
 		return serviceProvider.getMigrationService().getChecksumForType(userId, MigrationType.valueOf(migrationType));
 	}

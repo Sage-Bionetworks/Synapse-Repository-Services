@@ -17,30 +17,30 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalService {
 
-	public AccessApproval createAccessApproval(Long userId,
+	public AccessApproval createAccessApproval(String accessToken,
 			AccessApproval accessApproval) throws DatastoreException,
 			UnauthorizedException, NotFoundException, InvalidModelException,
 			IOException;
 
 	public AccessApproval getAccessApproval(
-			Long userId, String approvalId)
+			String accessToken, String approvalId)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 
-	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
+	public PaginatedResults<AccessApproval> getAccessApprovals(String accessToken,
 			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void deleteAccessApproval(Long userId, String approvalId)
+	public void deleteAccessApproval(String accessToken, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
+	public void revokeAccessApprovals(String accessToken, String accessRequirementId, String accessorId);
 
-	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
+	public AccessorGroupResponse listAccessorGroup(String accessToken, AccessorGroupRequest request);
 
-	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
+	public void revokeGroup(String accessToken, AccessorGroupRevokeRequest request);
 
-	public BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId,
+	public BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(String accessToken,
 			BatchAccessApprovalInfoRequest request);
 
 }

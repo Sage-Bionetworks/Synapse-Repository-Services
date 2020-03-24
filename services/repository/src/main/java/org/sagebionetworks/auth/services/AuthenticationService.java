@@ -53,12 +53,12 @@ public interface AuthenticationService {
 	/**
 	 * Gets the current secret key of the user
 	 */
-	public String getSecretKey(Long principalId) throws NotFoundException;
+	public String getSecretKey(String accessToken) throws NotFoundException;
 	
 	/** 
 	 * Invalidates the user's secret key
 	 */
-	public void deleteSecretKey(Long principalId) throws NotFoundException;
+	public void deleteSecretKey(String accessToken) throws NotFoundException;
 
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
@@ -90,9 +90,9 @@ public interface AuthenticationService {
 	public Session createAccountViaOauth(OAuthAccountCreationRequest request) throws NotFoundException;
 
 
-	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
+	public PrincipalAlias bindExternalID(String accessToken, OAuthValidationRequest validationRequest);
 
-	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
+	void unbindExternalID(String accessToken, OAuthProvider provider, String aliasName);
 
 	/**
 	 * Authenticates username and password combination

@@ -45,7 +45,7 @@ public class CertifiedUserController {
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST, method = RequestMethod.GET)
 	public @ResponseBody
 	Quiz getCertificationQuiz(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) {
 		return serviceProvider.getCertifiedUserService().getCertificationQuiz(userId);
 	}
 
@@ -61,7 +61,7 @@ public class CertifiedUserController {
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.POST)
 	public @ResponseBody
 	PassingRecord submitCertificationQuizResponse(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody QuizResponse response
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().
@@ -89,7 +89,7 @@ public class CertifiedUserController {
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
 	public @ResponseBody 
 	PaginatedResults<QuizResponse> getQuizResponses(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.PRINCIPAL_ID, required = false) Long principalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
@@ -113,7 +113,7 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
 	public void deleteQuizResponse(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = ID_PATH_VARIABLE) Long responseId
 			) throws NotFoundException {
 		serviceProvider.getCertifiedUserService().deleteQuizResponse(userId, responseId);	
@@ -129,7 +129,7 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORD_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PassingRecord getPassingRecord(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = ID_PATH_VARIABLE) Long id
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, id);
@@ -149,7 +149,7 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = ID_PATH_VARIABLE) Long id,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
@@ -166,7 +166,7 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ADMIN + UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
 	public void setUserCertificationStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
 			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
 	) throws NotFoundException {

@@ -87,7 +87,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthClient createOAuthClient(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody OAuthClient oauthClient
 			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
@@ -110,7 +110,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_SECRET, method = RequestMethod.POST)
 	public @ResponseBody 
 	OAuthClientIdAndSecret createOAuthClientSecret(
-		@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+		@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 		@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String clientId) {
 		return serviceProvider.getOpenIDConnectService().
 				createOAuthClientSecret(userId, clientId);
@@ -130,7 +130,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	OAuthClient getOAuthClient(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id
 			) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
@@ -151,7 +151,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT, method = RequestMethod.GET)
 	public @ResponseBody
 	OAuthClientList listOAuthClients(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required=false) String nextPageToken
 			) throws NotFoundException {
 		return serviceProvider.getOpenIDConnectService().
@@ -172,7 +172,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	OAuthClient updateOAuthClient(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody OAuthClient oauthClient
 			) throws NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getOpenIDConnectService().
@@ -188,7 +188,7 @@ public class OpenIDConnectController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID, method = RequestMethod.DELETE)
 	public void deletedOpenIDClient(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id
 			) throws NotFoundException {
 		serviceProvider.getOpenIDConnectService().
@@ -224,7 +224,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT_CHECK, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthConsentGrantedResponse checkUserAuthorization(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) {
 		OAuthConsentGrantedResponse result = new OAuthConsentGrantedResponse();
@@ -251,7 +251,7 @@ public class OpenIDConnectController {
 	@RequestMapping(value = UrlHelpers.OAUTH_2_CONSENT, method = RequestMethod.POST)
 	public @ResponseBody
 	OAuthAuthorizationResponse authorizeClient(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) throws NotFoundException, OAuthClientNotVerifiedException {
 		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);

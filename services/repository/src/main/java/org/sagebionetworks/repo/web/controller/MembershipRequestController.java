@@ -58,7 +58,7 @@ public class MembershipRequestController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_REQUEST, method = RequestMethod.POST)
 	public @ResponseBody
 	MembershipRequest createRequest(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.ACCEPT_REQUEST_ENDPOINT_PARAM, defaultValue = ServiceConstants.ACCEPT_REQUEST_ENDPOINT) String acceptRequestEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipRequest request
@@ -95,7 +95,7 @@ public class MembershipRequestController {
 	public @ResponseBody
 	PaginatedResults<MembershipRequest> getOpenRequestsByTeam(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = UrlHelpers.REQUESTOR_ID_REQUEST_PARAMETER, required = false) String requestorId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
@@ -122,7 +122,7 @@ public class MembershipRequestController {
 	public @ResponseBody
 	PaginatedResults<MembershipRequest> getOpenRequestsByUser(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) String teamId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
@@ -143,7 +143,7 @@ public class MembershipRequestController {
 	public @ResponseBody
 	MembershipRequest getRequest(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
 			) throws NotFoundException {
 		return serviceProvider.getMembershipRequestService().get(userId, id);
 	}
@@ -160,7 +160,7 @@ public class MembershipRequestController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_REQUEST_ID, method = RequestMethod.DELETE)
 	public void deleteRequest(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
 			) throws NotFoundException {
 		serviceProvider.getMembershipRequestService().delete(userId, id);
 	}
@@ -174,7 +174,7 @@ public class MembershipRequestController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_REQUEST_COUNT, method = RequestMethod.GET)
 	public @ResponseBody Count getOpenMembershipRequestCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
 			) {
 		return serviceProvider.getMembershipRequestService().getOpenMembershipRequestCount(userId);
 	}

@@ -49,7 +49,7 @@ public class DockerCommitController {
 	@RequestMapping(value = UrlHelpers.ENITY_ID_DOCKER_COMMIT, method = RequestMethod.POST)
 	public @ResponseBody
 	void addDockerCommit(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestBody DockerCommit dockerCommit) {
 		serviceProvider.getDockerService().addDockerCommit(userId, entityId, dockerCommit);
@@ -72,7 +72,7 @@ public class DockerCommitController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_DOCKER_TAG, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<DockerCommit> listDockerTags(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) String sortByParam,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = "false") Boolean ascending,

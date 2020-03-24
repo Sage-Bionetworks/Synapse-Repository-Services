@@ -132,7 +132,7 @@ public class PrincipalController {
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_ID_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void additionalEmailValidation(
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody Username email,
 			@RequestParam(value = AuthorizationConstants.PORTAL_ENDPOINT_PARAM, required = true) String portalEndpoint
 			) throws NotFoundException {
@@ -157,7 +157,7 @@ public class PrincipalController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.POST)
 	public void addEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.SET_AS_NOTIFICATION_EMAIL_PARM) Boolean setAsNotificationEmail,
 			@RequestBody EmailValidationSignedToken emailValidationSignedToken
 
@@ -177,7 +177,7 @@ public class PrincipalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.DELETE)
 	public void removeEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.EMAIL_PARAM) String email
 			) throws NotFoundException {
 		serviceProvider.getPrincipalService().removeEmail(userId, email);
@@ -196,7 +196,7 @@ public class PrincipalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.PUT)
 	public void setNotificationEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody Username email
 		) throws NotFoundException {
 		serviceProvider.getPrincipalService().setNotificationEmail(userId, email.getEmail());
@@ -215,7 +215,7 @@ public class PrincipalController {
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
 	public @ResponseBody
 	NotificationEmail getNotificationEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws NotFoundException {
 		return serviceProvider.getPrincipalService().getNotificationEmail(userId);
 	}
 

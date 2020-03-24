@@ -87,7 +87,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
-		UserInfo userInfo = userManager.getUserInfo(principalId);
+		UserInfo userInfo = userManager.getUserInfo(session);
 		
 		// Save the state of acceptance
 		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
@@ -96,14 +96,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public String getSecretKey(Long principalId) throws NotFoundException {
-		return authManager.getSecretKey(principalId);
+	public String getSecretKey(String accessToken) throws NotFoundException {
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
+		// TODO authorization check
+		return authManager.getSecretKey(userAuthorization.getId());
 	}
 	
 	@Override
 	@WriteTransaction
-	public void deleteSecretKey(Long principalId) throws NotFoundException {
-		authManager.changeSecretKey(principalId);
+	public void deleteSecretKey(String accessToken) throws NotFoundException {
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
+		// TODO authorization check
+		authManager.changeSecretKey(userAuthorization.getId());
 	}
 	
 	@Override
@@ -167,21 +171,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
-		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
+	public PrincipalAlias bindExternalID(String accessToken, OAuthValidationRequest validationRequest) {
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
+		if (AuthorizationUtils.isUserAnonymous(userAuthorization.getId())) throw new UnauthorizedException("User ID is required.");
+		// TODO authorization check
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(),
 				validationRequest.getRedirectUrl());
 		// now bind the ID to the user account
-		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
+		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userAuthorization.getId());
 	}
 	
 	@Override
-	public void unbindExternalID(Long userId, OAuthProvider provider, String aliasName) {
-		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
+	public void unbindExternalID(String accessToken, OAuthProvider provider, String aliasName) {
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
+		if (AuthorizationUtils.isUserAnonymous(userAuthorization.getId())) throw new UnauthorizedException("User ID is required.");
+		// TODO authorization check
 		AliasType aliasType = oauthManager.getAliasTypeForProvider(provider);
-		userManager.unbindAlias(aliasName, aliasType, userId);
+		userManager.unbindAlias(aliasName, aliasType, userAuthorization.getId());
 	}
 
 	@Override

@@ -386,10 +386,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
 		// If the user belongs to the admin group they are an admin
 		Set<Long> groups = userManager.getUserGroups(Long.parseLong(userId));
+		
 		// Check to see if the user is an Admin
 		boolean isAdmin = groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID);
+		// we don't let clients besides Synapse itself have admin access
+		boolean adminAccessAllowed = oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 
-		UserInfo result = new UserInfo(isAdmin);
+		UserInfo result = new UserInfo(isAdmin && adminAccessAllowed);
 		result.setId(Long.parseLong(userId));
 		result.setGroups(groups);
 		result.setOidcClaims(oidcClaims);

@@ -82,7 +82,7 @@ public class AdministrationController {
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	StackStatus updateStatusStackStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
 
@@ -93,7 +93,7 @@ public class AdministrationController {
 	@RequestMapping(value = { UrlHelpers.CHANGE_MESSAGES }, method = RequestMethod.GET)
 	public @ResponseBody
 	ChangeMessages listChangeMessages(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam Long startChangeNumber, @RequestParam String type,
 			@RequestParam Long limit) throws DatastoreException,
 			NotFoundException {
@@ -110,7 +110,7 @@ public class AdministrationController {
 	@RequestMapping(value = { UrlHelpers.REBROADCAST_MESSAGES }, method = RequestMethod.POST)
 	public @ResponseBody
 	PublishResults rebroadcastChangeMessagesToQueue(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam String queueName,
 			@RequestParam Long startChangeNumber, @RequestParam String type,
 			@RequestParam Long limit) throws DatastoreException,
@@ -131,7 +131,7 @@ public class AdministrationController {
 	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.GET)
 	public @ResponseBody
 	FireMessagesResult refireChangeMessagesToQueue(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam Long startChangeNumber,
 			@RequestParam Long limit) throws DatastoreException,
 			NotFoundException {
@@ -146,7 +146,7 @@ public class AdministrationController {
 	@RequestMapping(value = { UrlHelpers.CURRENT_NUMBER }, method = RequestMethod.GET)
 	public @ResponseBody
 	FireMessagesResult getCurrentChangeNumber(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
 			) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
@@ -162,7 +162,7 @@ public class AdministrationController {
 	@RequestMapping(value = { UrlHelpers.CREATE_OR_UPDATE }, method = RequestMethod.POST)
 	public @ResponseBody
 	ChangeMessages createOrUpdateChangeMessages(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody ChangeMessages batch) throws UnauthorizedException, NotFoundException {
 				return serviceProvider.getAdministrationService().createOrUpdateChangeMessages(userId, batch);
 	}
@@ -173,7 +173,7 @@ public class AdministrationController {
 	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void
-	clearDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+	clearDoi(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		serviceProvider.getAdministrationService().clearDoi(userId);
 	}
@@ -186,7 +186,7 @@ public class AdministrationController {
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody EntityId createOrGetIntegrationTestUser(
 			@RequestBody NewIntegrationTestUser userSpecs,
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
+	        @RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) 
 	        		throws NotFoundException {
 		return serviceProvider.getAdministrationService().createOrGetTestUser(userId, userSpecs);
 	}
@@ -198,14 +198,14 @@ public class AdministrationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteUser(
 			@PathVariable String id, 
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
+	        @RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) 
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 	
 	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REBUILD }, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void rebuildTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public void rebuildTable(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
 		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
 	}
@@ -213,7 +213,7 @@ public class AdministrationController {
 	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void clearLocks(
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
+	        @RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) 
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().clearAllLocks(userId);
 	}
@@ -230,7 +230,7 @@ public class AdministrationController {
 	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, method = RequestMethod.POST)
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody AsyncMigrationRequest body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
@@ -247,7 +247,7 @@ public class AdministrationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	AsynchronousJobStatus getJobStatus(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String jobId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
@@ -265,7 +265,7 @@ public class AdministrationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_ID_GEN_EXPORT, method = RequestMethod.GET)
 	public @ResponseBody
-	IdGeneratorExport createIdGeneratorExport(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+	IdGeneratorExport createIdGeneratorExport(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAdministrationService().createIdGeneratorExport(userId);
 	}
@@ -283,7 +283,7 @@ public class AdministrationController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_OAUTH_CLIENT_VERIFICATION, method = RequestMethod.PUT)
-	public @ResponseBody OAuthClient updateOAuthClientVerifiedStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody OAuthClient updateOAuthClientVerifiedStatus(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String clientId,
 			@RequestParam(defaultValue = "true") Boolean status,
 			@RequestParam(required = true) String etag)
@@ -298,7 +298,7 @@ public class AdministrationController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_REDACT_USER, method = RequestMethod.POST)
-	public @ResponseBody void clearUserProfile(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody void clearUserProfile(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 																	 @PathVariable Long principalId)
 			throws NotFoundException, UnauthorizedException {
 		serviceProvider.getPrincipalService().redactPrincipalInformation(userId, principalId);

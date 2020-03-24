@@ -73,7 +73,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PROJECT_PROJECT_ID_FORUM, method = RequestMethod.GET)
 	public @ResponseBody Forum getForumByProjectId(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String projectId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getDiscussionService().getForumByProjectId(userId, projectId);
 	}
@@ -92,7 +92,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID, method = RequestMethod.GET)
 	public @ResponseBody Forum getForumByProject(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String forumId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getDiscussionService().getForum(userId, forumId);
 	}
@@ -114,7 +114,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREADS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForForum(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
@@ -137,7 +137,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.THREAD, method = RequestMethod.POST)
 	public @ResponseBody DiscussionThreadBundle createThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody CreateDiscussionThread toCreate) throws IOException {
 		return serviceProvider.getDiscussionService().createThread(userId, toCreate);
 	}
@@ -154,7 +154,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.GET)
 	public @ResponseBody DiscussionThreadBundle getThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getThread(userId, threadId);
 	}
@@ -172,7 +172,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_TITLE, method = RequestMethod.PUT)
 	public @ResponseBody DiscussionThreadBundle updateThreadTitle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId,
 			@RequestBody UpdateThreadTitle title) {
 		return serviceProvider.getDiscussionService().updateThreadTitle(userId, threadId, title);
@@ -192,7 +192,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_MESSAGE, method = RequestMethod.PUT)
 	public @ResponseBody DiscussionThreadBundle updateThreadMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId,
 			@RequestBody UpdateThreadMessage message) throws IOException {
 		return serviceProvider.getDiscussionService().updateThreadMessage(userId, threadId, message);
@@ -209,7 +209,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID, method = RequestMethod.DELETE)
 	public void markThreadAsDeleted(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().markThreadAsDeleted(userId, threadId);
 	}
@@ -225,7 +225,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_RESTORE, method = RequestMethod.PUT)
 	public void restoreDeletedThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().markThreadAsNotDeleted(userId, threadId);
 	}
@@ -241,7 +241,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_PIN, method = RequestMethod.PUT)
 	public void pinThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().pinThread(userId, threadId);
 	}
@@ -257,7 +257,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_UNPIN, method = RequestMethod.PUT)
 	public void unpinThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String threadId) {
 		serviceProvider.getDiscussionService().unpinThread(userId, threadId);
 	}
@@ -278,7 +278,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getThreadUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required = true) String messageKey) {
 		return serviceProvider.getDiscussionService().getThreadUrl(userId, messageKey);
 	}
@@ -296,7 +296,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.REPLY, method = RequestMethod.POST)
 	public @ResponseBody DiscussionReplyBundle createReply(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody CreateDiscussionReply toCreate) throws IOException {
 		return serviceProvider.getDiscussionService().createReply(userId, toCreate);
 	}
@@ -313,7 +313,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID, method = RequestMethod.GET)
 	public @ResponseBody DiscussionReplyBundle getReply(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String replyId) {
 		return serviceProvider.getDiscussionService().getReply(userId, replyId);
 	}
@@ -332,7 +332,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID_MESSAGE, method = RequestMethod.PUT)
 	public @ResponseBody DiscussionReplyBundle updateReplyMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String replyId,
 			@RequestBody UpdateReplyMessage message) throws IOException {
 		return serviceProvider.getDiscussionService().updateReplyMessage(userId, replyId, message);
@@ -349,7 +349,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.REPLY_REPLY_ID, method = RequestMethod.DELETE)
 	public void markReplyAsDeleted(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String replyId) {
 		serviceProvider.getDiscussionService().markReplyAsDeleted(userId, replyId);
 	}
@@ -371,7 +371,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_REPLIES, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder sort,
@@ -397,7 +397,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.REPLY_URL, method = RequestMethod.GET)
 	public @ResponseBody MessageURL getReplyUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(required = true) String messageKey) {
 		return serviceProvider.getDiscussionService().getReplyUrl(userId, messageKey);
 	}
@@ -415,7 +415,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREAD_COUNT, method = RequestMethod.GET)
 	public @ResponseBody ThreadCount getThreadCountForForum(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getThreadCount(userId, forumId, filter);
@@ -434,7 +434,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_REPLY_COUNT, method = RequestMethod.GET)
 	public @ResponseBody ReplyCount getReplyCountForThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplyCount(userId, threadId, filter);
@@ -457,7 +457,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_THREADS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = true) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = true) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
@@ -480,7 +480,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_THREAD_COUNTS, method = RequestMethod.POST)
 	public @ResponseBody EntityThreadCounts getThreadCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody EntityIdList entityIds) {
 		return serviceProvider.getDiscussionService().getThreadCounts(userId, entityIds);
 	}
@@ -499,7 +499,7 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_MODERATORS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedIds getForumModerators(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@PathVariable String forumId) {

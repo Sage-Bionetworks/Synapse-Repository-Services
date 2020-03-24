@@ -73,5 +73,7 @@ public interface EvaluationPermissionsManager {
 	 * in which the given user (represented by a list of principalIds) has the given access type.
 	 */
 	boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
+	
+	public AuthorizationStatus canReadEvaluations(UserInfo userInfo);
 
 }

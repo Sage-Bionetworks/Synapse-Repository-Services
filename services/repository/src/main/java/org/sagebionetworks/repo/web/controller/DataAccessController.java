@@ -56,7 +56,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESEARCH_PROJECT, method = RequestMethod.POST)
 	public @ResponseBody ResearchProject createOrUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody ResearchProject toCreateOrUpdate) throws NotFoundException {
 		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreateOrUpdate);
 	}
@@ -74,7 +74,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT, method = RequestMethod.GET)
 	public @ResponseBody ResearchProject getUserOwnResearchProjectForUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getUserOwnResearchProjectForUpdate(userId, requirementId);
 	}
@@ -90,7 +90,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST, method = RequestMethod.POST)
 	public @ResponseBody RequestInterface createOrUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody RequestInterface toCreate) throws NotFoundException {
 		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreate);
 	}
@@ -110,7 +110,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE, method = RequestMethod.GET)
 	public @ResponseBody RequestInterface getRequestForUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRequestForUpdate(userId, requirementId);
 	}
@@ -126,7 +126,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionStatus submit(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody CreateSubmissionRequest request)
 					throws NotFoundException {
 		return serviceProvider.getDataAccessService().submit(userId, request);
@@ -144,7 +144,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
 	public @ResponseBody SubmissionStatus cancel(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().cancel(userId, submissionId);
 	}
@@ -161,7 +161,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
 	public @ResponseBody Submission updateState(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().updateState(userId, request);
 	}
@@ -178,7 +178,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody SubmissionPageRequest SubmissionPageRequest) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, SubmissionPageRequest);
 	}
@@ -194,7 +194,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_STATUS, method = RequestMethod.GET)
 	public @ResponseBody AccessRequirementStatus getAccessRequirementStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getAccessRequirementStatus(userId, requirementId);
 	}
@@ -210,7 +210,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION, method = RequestMethod.POST)
 	public @ResponseBody RestrictionInformationResponse getRestrictionInformation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody RestrictionInformationRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, request);
 	}
@@ -226,7 +226,7 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody OpenSubmissionPage getOpenSubmissions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
 	}
