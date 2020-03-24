@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Folder;
@@ -33,10 +34,14 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	
 	@Autowired
 	private StackStatusDao stackStatusDao;
+	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 		
 	private Project sampleProject = null;
 
 	private Long adminUserId;
+	private String accessToken;
 	
 	@Before
 	public void before() throws Exception {
@@ -45,7 +50,8 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertNotNull(stackStatusDao);
 		sampleProject = new Project();
 		// Create a sample project
-		sampleProject = servletTestHelper.createEntity(dispatchServlet, sampleProject, adminUserId);
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		sampleProject = servletTestHelper.createEntity(dispatchServlet, sampleProject, accessToken);
 	}
 	
 	@After
@@ -61,7 +67,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		}
 		// Delete the sample project
 		if(sampleProject != null && sampleProject.getId() != null){
-			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		}
 	}
 	

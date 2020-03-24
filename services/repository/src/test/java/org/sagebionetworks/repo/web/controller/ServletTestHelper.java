@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -144,11 +145,15 @@ public class ServletTestHelper {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 
 	private HttpServlet dispatchServlet = null;
 	private UserInfo testUser = null;
 	private List<String> toDelete = null;
 	private Long userId = null;
+	private String accessToken = null;
 
 	/**
 	 * Setup the servlet, default test user, and entity list for test cleanup.
@@ -164,6 +169,7 @@ public class ServletTestHelper {
 		toDelete = new ArrayList<String>();
 
 		this.setTestUser(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		this.accessToken=oidcTokenHelper.createTotalAccessToken(this.userId);
 	}
 
 	/**
@@ -202,7 +208,7 @@ public class ServletTestHelper {
 	public <T extends Entity> T createEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
 		T returnedEntity = createEntity(dispatchServlet,
-				entity, userId, extraParams);
+				entity, accessToken, extraParams);
 		toDelete.add(returnedEntity.getId());
 		return returnedEntity;
 	}
@@ -289,6 +295,16 @@ public class ServletTestHelper {
 	/**
 	 * Create the passed entity by making a request to the passed servlet
 	 */
+	public <T extends Entity> T createEntity(
+			HttpServlet dispatchServlet, T entity, String accessToken)
+			throws Exception {
+		return createEntity(dispatchServlet, entity, accessToken,
+				null);
+	}
+
+	/**
+	 * Create the passed entity by making a request to the passed servlet
+	 */
 	@SuppressWarnings("unchecked")
 	public <T extends Entity> T createEntity(
 			HttpServlet dispatchServlet, T entity, Long userId,
@@ -296,6 +312,22 @@ public class ServletTestHelper {
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				entity.getClass());
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends Entity> T createEntity(
+			HttpServlet dispatchServlet, T entity, String accessToken,
+			Map<String, String> extraParams) throws Exception {
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.ENTITY, accessToken, entity);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -501,9 +533,29 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
+			String accessToken) throws Exception {
+		deleteEntity(dispatchServlet, clazz, id, accessToken, null);
+	}
+
+	/**
+	 * Delete an entity
+	 */
+	public <T extends Entity> void deleteEntity(
+			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			Long userId, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public <T extends Entity> void deleteEntity(
+			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
+			String accessToken, Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, accessToken, null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,

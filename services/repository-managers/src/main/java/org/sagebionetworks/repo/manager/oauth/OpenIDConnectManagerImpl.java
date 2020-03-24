@@ -374,7 +374,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
 
-		validateClientVerificationStatus(oauthClientId);
+		if (!oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
+			validateClientVerificationStatus(oauthClientId);
+		}
 		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);

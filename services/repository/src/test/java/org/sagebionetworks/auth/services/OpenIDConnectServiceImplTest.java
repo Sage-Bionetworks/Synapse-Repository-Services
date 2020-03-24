@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ public class OpenIDConnectServiceImplTest {
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/client", config.getRegistration_endpoint());
 		assertEquals(Collections.singletonList(OAuthResponseType.code), config.getResponse_types_supported());
 		assertNull(config.getRevocation_endpoint());
-		assertEquals(Collections.singletonList(OAuthScope.openid), config.getScopes_supported());
+		assertEquals(Arrays.asList(OAuthScope.values()), config.getScopes_supported());
 		assertEquals("https://docs.synapse.org", config.getService_documentation());
 		assertEquals(Collections.singletonList(OIDCSubjectIdentifierType.pairwise), config.getSubject_types_supported());
 		assertEquals(OAUTH_ENDPOINT+"/oauth2/token", config.getToken_endpoint());

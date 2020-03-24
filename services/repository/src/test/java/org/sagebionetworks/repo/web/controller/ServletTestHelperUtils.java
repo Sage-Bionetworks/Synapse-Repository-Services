@@ -65,15 +65,32 @@ public class ServletTestHelperUtils {
 	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
 			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
+		MockHttpServletRequest request = initRequestUnauthenticated(mode, path, requestURI, entity);
+		if (userId != null) {
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
+		}
+		return request;
+	}
+		
+	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
+			String requestURI, String accessToken, JSONEntity entity)
+			throws Exception {
+		MockHttpServletRequest request = initRequestUnauthenticated(mode, path, requestURI, entity);
+		if (accessToken != null) {
+			request.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, accessToken);
+		}
+		return request;
+	}
+		
+	private static MockHttpServletRequest initRequestUnauthenticated(HTTPMODE mode, String path,
+				String requestURI, JSONEntity entity)
+				throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
 		request.addHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
 		request.addHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
 		request.addHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
 		request.setRequestURI(path+requestURI);
-		if (userId != null) {
-			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
-		}
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);
 			request.setContent(body.getBytes(REQUEST_ENCODING_CHARSET));
@@ -86,6 +103,12 @@ public class ServletTestHelperUtils {
 			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
 		return initRequest(mode, "/repo/v1", requestURI, userId, entity);
+	}
+
+	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
+			String requestURI, String accessToken, JSONEntity entity)
+			throws Exception {
+		return initRequest(mode, "/repo/v1", requestURI, accessToken, entity);
 	}
 
 	/**
