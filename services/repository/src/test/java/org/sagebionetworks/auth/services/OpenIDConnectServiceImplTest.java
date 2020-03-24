@@ -18,10 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
@@ -102,7 +102,7 @@ public class OpenIDConnectServiceImplTest {
 		Jwt<JwsHeader, Claims> parsedToken = new DefaultJws<Claims>(new DefaultJwsHeader(), claims, "signature");
 		when(oidcTokenHelper.parseJWT(accessToken)).thenReturn(parsedToken);
 		
-		UserAuthorization userAuthorization = new UserAuthorization();
+		UserInfo userAuthorization = new UserInfo(false);
 		when(oidcManager.getUserAuthorization(accessToken)).thenReturn(userAuthorization);
 
 		// method under test
@@ -122,7 +122,7 @@ public class OpenIDConnectServiceImplTest {
 		String accessToken = Jwts.builder().setClaims(claims).
 				setHeaderParam(Header.TYPE, Header.JWT_TYPE).compact();
 
-		UserAuthorization userAuthorization = new UserAuthorization();
+		UserInfo userAuthorization = new UserInfo(false);
 		when(oidcManager.getUserAuthorization(accessToken)).thenThrow(new UnauthenticatedException("bad token"));
 
 		assertThrows(UnauthenticatedException.class, ()->oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT));
