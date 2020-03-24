@@ -719,14 +719,8 @@
 				<version>2.6.0</version>
 			</dependency>
 
-			<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-core -->
-			<dependency>
-				<groupId>com.sun.jersey</groupId>
-				<artifactId>jersey-core</artifactId>
-				<version>1.19.4</version>
-			</dependency>
-
 		</dependencies>
+
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
 	<build>
