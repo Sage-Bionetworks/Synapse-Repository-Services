@@ -47,85 +47,85 @@ public interface FileUploadService {
 	/**
 	 * Get a file handle by ID.
 	 * @param handleId
-	 * @param accessToken
+	 * @param userId
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandle getFileHandle(String handleId, String accessToken) throws DatastoreException, NotFoundException;
+	FileHandle getFileHandle(String handleId, Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete a file handle.
 	 * @param handleId
-	 * @param accessToken
+	 * @param userId
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	void deleteFileHandle(String handleId, String accessToken) throws DatastoreException, NotFoundException;
+	void deleteFileHandle(String handleId, Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the preview associated with the given file handle (causes the preview generator worker to recreate).
 	 * @param handleId
-	 * @param accessToken
+	 * @param userId
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void clearPreview(String handleId, String accessToken) throws DatastoreException, NotFoundException;
+	void clearPreview(String handleId, Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Create an implementation of ExternalFileHandleInterFace.
-	 * @param accessToken
+	 * @param userId
 	 * @param fileHandle
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ExternalFileHandleInterface createExternalFileHandle(String accessToken, ExternalFileHandleInterface fileHandle) throws DatastoreException, NotFoundException;
+	ExternalFileHandleInterface createExternalFileHandle(Long userId, ExternalFileHandleInterface fileHandle) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create a chunked file upload token that can be used to upload large files to S3.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param ccftr
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	ChunkedFileToken createChunkedFileUploadToken(String accessToken, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
+	ChunkedFileToken createChunkedFileUploadToken(Long userId, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Creates a pre-signed URL that can be used PUT file data to S3.
-	 * @param accessToken
+	 * @param userId
 	 * @param cpr
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	URL createChunkedFileUploadPartURL(String accessToken, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+	URL createChunkedFileUploadPartURL(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
 	 * After upload a file chunk to a pre-signed URL, the part must be added to the final file.
-	 * @param accessToken
+	 * @param userId
 	 * @param cpr
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	ChunkResult addChunkToFile(String accessToken, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+	ChunkResult addChunkToFile(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param ccfr
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	S3FileHandle completeChunkFileUpload(String accessToken, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
+	S3FileHandle completeChunkFileUpload(Long userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Start an asynchronous daemon that will add all chunks to the file upload and complete the file upload
@@ -137,7 +137,7 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	public UploadDaemonStatus startUploadDeamon(String accessToken, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
+	public UploadDaemonStatus startUploadDeamon(Long userId, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the status of an asynchronous daemon stated with {@link #startUploadDeamon(UserInfo, CompleteAllChunksRequest)}
@@ -148,22 +148,22 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	@Deprecated // replaced with multi-part upload V2
-	public UploadDaemonStatus getUploadDaemonStatus(String accessToken, String daemonId) throws DatastoreException, NotFoundException;
+	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a pre-signed URL for a FileHandle.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param fileHandleId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	String getPresignedUrlForFileHandle(String accessToken, String fileHandleId) throws NotFoundException;
+	String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
 
 	/**
 	 * Get a list of upload destinations for uploading a file with this entity as a parent
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param parentId
 	 * @return the list of possible upload destinations. The first one in the list is the default.
 	 * @throws NotFoundException
@@ -171,195 +171,195 @@ public interface FileUploadService {
 	 * @throws DatastoreException
 	 */
 	@Deprecated
-	List<UploadDestination> getUploadDestinations(String accessToken, String parentId) throws DatastoreException, UnauthorizedException,
+	List<UploadDestination> getUploadDestinations(Long userId, String parentId) throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 
 	/**
 	 * Get the list of upload locations for a parent
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param parentId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	List<UploadDestinationLocation> getUploadDestinationLocations(String accessToken, String parentId) throws DatastoreException, NotFoundException;
+	List<UploadDestinationLocation> getUploadDestinationLocations(Long userId, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the upload location for an upload id
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param parentId
 	 * @param uploadId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	UploadDestination getUploadDestination(String accessToken, String parentId, Long storageLocationId) throws DatastoreException, NotFoundException;
+	UploadDestination getUploadDestination(Long userId, String parentId, Long storageLocationId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the default upload location for a parent
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param parentId
 	 * @param uploadId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	UploadDestination getDefaultUploadDestination(String accessToken, String parentId) throws DatastoreException, NotFoundException;
+	UploadDestination getDefaultUploadDestination(Long userId, String parentId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create an external S3 file handle.
-	 * @param accessToken
+	 * @param userId
 	 * @param fileHandle
 	 * @return
 	 */
-	S3FileHandle createExternalS3FileHandle(String accessToken, S3FileHandle fileHandle);
+	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
 
 	/**
 	 * Create an external Google Cloud file handle.
-	 * @param accessToken
+	 * @param userId
 	 * @param fileHandle
 	 * @return
 	 */
-	GoogleCloudFileHandle createExternalGoogleCloudFileHandle(String accessToken, GoogleCloudFileHandle fileHandle);
+	GoogleCloudFileHandle createExternalGoogleCloudFileHandle(Long userId, GoogleCloudFileHandle fileHandle);
 
 	/**
 	 * Create a new file handle pointing to an existing s3 file
 	 *
-	 * @param accessToken
+	 * @param userId
 	 *
 	 * @param handleIdToCopyFrom
 	 * @param fileName
 	 * @param contentType
 	 * @return
 	 */
-	S3FileHandle createS3FileHandleCopy(String accessToken, String handleIdToCopyFrom, String fileName, String contentType);
+	S3FileHandle createS3FileHandleCopy(Long userId, String handleIdToCopyFrom, String fileName, String contentType);
 
 	/**
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param fileHandleId
 	 * @param fileAssociateType
 	 * @param fileAssociateId
 	 * @return
 	 * @throws NotFoundException
 	 */
-	String getPresignedUrlForFileHandle(String accessToken, String fileHandleId,
+	String getPresignedUrlForFileHandle(Long userId, String fileHandleId,
 			FileHandleAssociateType fileAssociateType, String fileAssociateId)
 			throws NotFoundException;
 
 	/**
 	 * Start or resume a multi-part upload.
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @param forceRestart
 	 * @return
 	 */
-	MultipartUploadStatus startMultipartUpload(String accessToken,
+	MultipartUploadStatus startMultipartUpload(Long userId,
 			MultipartUploadRequest request, boolean forceRestart);
 
 	/**
 	 * Get a batch of pre-signed urls.
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(String accessToken,
+	BatchPresignedUploadUrlResponse getMultipartPresignedUrlBatch(Long userId,
 			BatchPresignedUploadUrlRequest request);
 
 	/**
 	 * Add a part to a multi-part upload.
-	 * @param accessToken
+	 * @param userId
 	 * @param uploadId
 	 * @param partNumber
 	 * @param partMD5Hex
 	 * @return
 	 */
-	AddPartResponse addPart(String accessToken, String uploadId, Integer partNumber,
+	AddPartResponse addPart(Long userId, String uploadId, Integer partNumber,
 			String partMD5Hex);
 
 	/**
 	 * Complete a multi-part upload.
-	 * @param accessToken
+	 * @param userId
 	 * @param uploadId
 	 * @return
 	 */
-	MultipartUploadStatus completeMultipartUpload(String accessToken, String uploadId);
+	MultipartUploadStatus completeMultipartUpload(Long userId, String uploadId);
 
 	/**
 	 * Get a batch of FileHandles for the given batch of requests.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	BatchFileResult getFileHandleAndUrlBatch(String accessToken, BatchFileRequest request);
+	BatchFileResult getFileHandleAndUrlBatch(Long userId, BatchFileRequest request);
 
 	/**
 	 * Copy a batch of FileHandles.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	BatchFileHandleCopyResult copyFileHandles(String accessToken, BatchFileHandleCopyRequest request);
+	BatchFileHandleCopyResult copyFileHandles(Long userId, BatchFileHandleCopyRequest request);
 
 	/**
 	 * Add the given files to the user's download list.
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	DownloadList addFilesToDownloadList(String accessToken, FileHandleAssociationList request);
+	DownloadList addFilesToDownloadList(Long userId, FileHandleAssociationList request);
 
 	/**
 	 * Remove the given list of files from the user's download list.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	DownloadList removeFilesFromDownloadList(String accessToken, FileHandleAssociationList request);
+	DownloadList removeFilesFromDownloadList(Long userId, FileHandleAssociationList request);
 
 	/**
 	 * Clear the user's download list.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @return
 	 */
-	DownloadList clearDownloadList(String accessToken);
+	DownloadList clearDownloadList(Long userId);
 
 	/**
 	 * Create a DownloadOrder from the user's current download list.
-	 * @param accessToken
+	 * @param userId
 	 * @param zipFileName 
 	 * @return
 	 */
-	DownloadOrder createDownloadOrder(String accessToken, String zipFileName);
+	DownloadOrder createDownloadOrder(Long userId, String zipFileName);
 
 	/**
 	 * Get a download order given its ID.
-	 * @param accessToken
+	 * @param userId
 	 * @param orderId
 	 * @return
 	 */
-	DownloadOrder getDownloadOrder(String accessToken, String orderId);
+	DownloadOrder getDownloadOrder(Long userId, String orderId);
 
 	/**
 	 * Get a user's download history in reverse chronological order.
-	 * @param accessToken
+	 * @param userId
 	 * @param request
 	 * @return
 	 */
-	DownloadOrderSummaryResponse getDownloadOrderHistory(String accessToken, DownloadOrderSummaryRequest request);
+	DownloadOrderSummaryResponse getDownloadOrderHistory(Long userId, DownloadOrderSummaryRequest request);
 
 	/**
 	 * Get the user's current download list.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @return
 	 */
-	DownloadList getDownloadList(String accessToken);
+	DownloadList getDownloadList(Long userId);
 }
