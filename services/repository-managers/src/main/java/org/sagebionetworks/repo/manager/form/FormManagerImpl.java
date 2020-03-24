@@ -92,7 +92,7 @@ public class FormManagerImpl implements FormManager {
 		// create the group.
 		FormGroup group = formDao.createFormGroup(user.getId(), name);
 		// Create an ACL for the
-		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS,
+		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user.getId(), FORM_GROUP_ADMIN_PERMISSIONS,
 				new Date());
 		aclDao.create(acl, ObjectType.FORM_GROUP);
 		return group;

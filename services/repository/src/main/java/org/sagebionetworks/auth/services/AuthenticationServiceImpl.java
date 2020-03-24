@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
@@ -26,6 +27,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.mchange.v1.lang.BooleanUtils;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 
@@ -78,20 +81,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(Session session) throws NotFoundException {
-		if (session.getSessionToken() == null) {
-			throw new IllegalArgumentException("Session token may not be null");
-		}
-		if (session.getAcceptsTermsOfUse() == null) {
-			throw new IllegalArgumentException("Terms of use acceptance may not be null");
-		}
+	public void signTermsOfUse(String accessToken) throws NotFoundException {
 		
-		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
-		UserInfo userInfo = userManager.getUserInfo(session);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken); 
+		if (!userInfo.getScopes().contains(OAuthScope.modify)) throw new UnauthorizedException();
 		
 		// Save the state of acceptance
-		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId))) {
-			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
+		Boolean alreadyAcceptedTOU = authManager.hasUserAcceptedTermsOfUse(userInfo.getId());
+		if (alreadyAcceptedTOU==null || !alreadyAcceptedTOU) {
+			authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
 		}
 	}
 	

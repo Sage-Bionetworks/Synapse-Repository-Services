@@ -46,9 +46,9 @@ public interface AuthenticationService {
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	
 	/**
-	 * Identifies a user via session token and signs that user's terms of use
+	 * Signs the user's terms of use
 	 */
-	public void signTermsOfUse(Session session) throws NotFoundException;
+	public void signTermsOfUse(String accessToken) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user

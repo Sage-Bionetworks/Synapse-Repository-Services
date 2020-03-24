@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -47,44 +46,44 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	private OIDCTokenHelper oidcTokenHelper;
 
 	@Override
-	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClient createOpenIDConnectClient(String accessToken, OAuthClient oauthClient) throws ServiceUnavailableException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.createOpenIDConnectClient(userInfo, oauthClient);
 	}
 
 	@Override
-	public OAuthClientIdAndSecret createOAuthClientSecret(Long userId, String clientId) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClientIdAndSecret createOAuthClientSecret(String accessToken, String clientId) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.createClientSecret(userInfo, clientId);
 	}
 	
 	@Override
-	public OAuthClient getOpenIDConnectClient(Long userId, String id) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClient getOpenIDConnectClient(String accessToken, String id) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.getOpenIDConnectClient(userInfo, id);
 	}
 
 	@Override
-	public OAuthClientList listOpenIDConnectClients(Long userId, String nextPageToken) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClientList listOpenIDConnectClients(String accessToken, String nextPageToken) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.listOpenIDConnectClients(userInfo, nextPageToken);
 	}
 
 	@Override
-	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClient updateOpenIDConnectClient(String accessToken, OAuthClient oauthClient) throws ServiceUnavailableException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.updateOpenIDConnectClient(userInfo, oauthClient);
 	}
 	
 	@Override
-	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, String etag, boolean verifiedStatus) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(String accessToken, String clientId, String etag, boolean verifiedStatus) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oauthClientManager.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 	}
 
 	@Override
-	public void deleteOpenIDConnectClient(Long userId, String id) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public void deleteOpenIDConnectClient(String accessToken, String id) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);
 	}
 
@@ -123,15 +122,15 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public boolean hasUserGrantedConsent(Long userId, OIDCAuthorizationRequest authorizationRequest) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public boolean hasUserGrantedConsent(String accessToken, OIDCAuthorizationRequest authorizationRequest) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oidcManager.hasUserGrantedConsent(userInfo, authorizationRequest);
 		
 	}
 	
 	@Override
-	public OAuthAuthorizationResponse authorizeClient(Long userId, OIDCAuthorizationRequest authorizationRequest) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public OAuthAuthorizationResponse authorizeClient(String accessToken, OIDCAuthorizationRequest authorizationRequest) {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return oidcManager.authorizeClient(userInfo, authorizationRequest);
 	}
 
@@ -147,7 +146,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 
 	@Override
 	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
-		UserAuthorization userAuthorization = oidcManager.getUserAuthorization(accessTokenParam);
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessTokenParam);
 		String oauthClientId = oidcTokenHelper.parseJWT(accessTokenParam).getBody().getAudience();
 		return oidcManager.getUserInfo(userAuthorization, oauthClientId, oauthEndpoint);
 	}

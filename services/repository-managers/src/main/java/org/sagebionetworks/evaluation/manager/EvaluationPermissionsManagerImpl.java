@@ -14,6 +14,7 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.manager.util.UserInfoUtils;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -181,7 +182,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setOwnerPrincipalId(KeyFactory.stringToKey(eval.getOwnerId()));
 
 		// Public read
-		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUser = UserInfoUtils.createAnonymousUserInfo();
 		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).isAuthorized());
 
 		// Other permissions

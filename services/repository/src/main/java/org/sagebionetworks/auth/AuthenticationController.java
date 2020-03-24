@@ -1,9 +1,12 @@
 package org.sagebionetworks.auth;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.auth.services.AuthenticationService;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -83,6 +86,10 @@ public class AuthenticationController {
 	@Autowired
 	private AuthenticationService authenticationService;
 
+
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
 	/**
 	 * This method only exists for backwards compatibility.
 	 * Use {@link #login(LoginRequest)}.
@@ -158,14 +165,30 @@ public class AuthenticationController {
 	}
 
 	/**
-	 * Identifies a user by a session token and signs that user's terms of use
+	 * Sign the user's terms of use
 	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.PUT)
+	public void signTermsOfUseV2(
+			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
+			throws NotFoundException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		authenticationService.signTermsOfUse(accessToken);
+	}
+
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
 	public void signTermsOfUse(
 			@RequestBody Session session)
 			throws NotFoundException {
-		authenticationService.signTermsOfUse(session);
+		/*
+		 * Not sure why we pass the session token in the request body rather than in the
+		 * header as elsewhere, but anyway we have to exchange it for an access token
+		 */
+		Long userId = authenticationService.revalidate(session.getSessionToken(), false);
+		String accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+		authenticationService.signTermsOfUse(accessToken);
 	}
 
 	/**

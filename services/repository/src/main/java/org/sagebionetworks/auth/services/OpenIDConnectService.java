@@ -21,7 +21,7 @@ public interface OpenIDConnectService {
 	 * @return
 	 * @throws ServiceUnavailableException 
 	 */
-	public OAuthClient createOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException;
+	public OAuthClient createOpenIDConnectClient(String accessToken, OAuthClient oauthClient) throws ServiceUnavailableException;
 	
 	/**
 	 * 
@@ -29,7 +29,7 @@ public interface OpenIDConnectService {
 	 * @param clientId
 	 * @return
 	 */
-	public OAuthClientIdAndSecret createOAuthClientSecret(Long userId, String clientId);
+	public OAuthClientIdAndSecret createOAuthClientSecret(String accessToken, String clientId);
 	
 	/**
 	 * 
@@ -37,7 +37,7 @@ public interface OpenIDConnectService {
 	 * @param id
 	 * @return
 	 */
-	public OAuthClient getOpenIDConnectClient(Long userId, String id);
+	public OAuthClient getOpenIDConnectClient(String accessToken, String id);
 	
 
 	/**
@@ -46,7 +46,7 @@ public interface OpenIDConnectService {
 	 * @param nextPageToken
 	 * @return
 	 */
-	public OAuthClientList listOpenIDConnectClients(Long userId, String nextPageToken);
+	public OAuthClientList listOpenIDConnectClients(String accessToken, String nextPageToken);
 	
 	/**
 	 * 
@@ -55,7 +55,7 @@ public interface OpenIDConnectService {
 	 * @return
 	 * @throws ServiceUnavailableException 
 	 */
-	public OAuthClient updateOpenIDConnectClient(Long userId, OAuthClient oauthClient) throws ServiceUnavailableException;
+	public OAuthClient updateOpenIDConnectClient(String accessToken, OAuthClient oauthClient) throws ServiceUnavailableException;
 	
 	/**
 	 * 
@@ -64,14 +64,14 @@ public interface OpenIDConnectService {
 	 * @param verifiedStatus
 	 * @return
 	 */
-	public OAuthClient updateOpenIDConnectClientVerifiedStatus(Long userId, String clientId, String eTag, boolean verifiedStatus);
+	public OAuthClient updateOpenIDConnectClientVerifiedStatus(String accessToken, String clientId, String eTag, boolean verifiedStatus);
 	
 	/**
 	 * 
 	 * @param userId
 	 * @param id
 	 */
-	public void deleteOpenIDConnectClient(Long userId, String id);
+	public void deleteOpenIDConnectClient(String accessToken, String id);
 	
 	/**
 	 * 
@@ -96,7 +96,7 @@ public interface OpenIDConnectService {
 	 * @param userId
 	 * @return
 	 */
-	public boolean hasUserGrantedConsent(Long userId, OIDCAuthorizationRequest authorizationRequest);
+	public boolean hasUserGrantedConsent(String accessToken, OIDCAuthorizationRequest authorizationRequest);
 	
 	/**
 	 * Authorize OAuth client for the requested scope and return an authorization code
@@ -104,7 +104,7 @@ public interface OpenIDConnectService {
 	 * @param authorizationRequest
 	 * @return authorization code
 	 */
-	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest);
+	public OAuthAuthorizationResponse authorizeClient(String accessToken,  OIDCAuthorizationRequest authorizationRequest);
 	
 	/**
 	 * 

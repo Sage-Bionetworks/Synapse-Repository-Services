@@ -30,6 +30,11 @@ public class UserInfo {
 		this.isAdmin = isAdmin;
 	}
 	
+	@Deprecated
+	public UserInfo(boolean isAdmin, String id){
+		this(isAdmin, Long.parseLong(id));
+	}
+
 	/**
 	 * Helper to create a UserInfo
 	 * @param isAdmin

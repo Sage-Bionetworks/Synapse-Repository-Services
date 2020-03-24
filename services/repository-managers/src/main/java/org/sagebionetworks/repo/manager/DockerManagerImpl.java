@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -152,7 +155,7 @@ public class DockerManagerImpl implements DockerManager {
 					entity.setRepositoryName(repositoryName);
 					entity.setParentId(parentId);
 					// Get the user
-					UserInfo userInfo = userManager.getUserInfo(userId);
+					UserInfo userInfo = createUserInfoWithWritePermission(userId);
 					entityId = entityManager.createEntity(userInfo, entity, null);
 					dockerNodeDao.createRepositoryName(entityId, repositoryName);
 				}
@@ -169,6 +172,17 @@ public class DockerManagerImpl implements DockerManager {
 				throw new IllegalArgumentException("Unexpected action "+action);
 			}
 		}
+	}
+	
+	UserInfo createUserInfoWithWritePermission(Long userId) {
+		Set<Long> groups = userManager.getUserGroups(userId);
+		boolean isAdmin = groups.contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
+		UserInfo result = new UserInfo(isAdmin);
+		result.setId(userId);
+		result.setGroups(groups);
+		result.setScopes(Collections.singletonList(OAuthScope.modify));
+		result.setOidcClaims(Collections.EMPTY_MAP);
+		return result;
 	}
 
 	@Override

@@ -19,6 +19,7 @@ import java.util.Set;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.manager.util.UserInfoUtils;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -394,7 +395,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 
-		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUser = UserInfoUtils.createAnonymousUserInfo();
 		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).isAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);

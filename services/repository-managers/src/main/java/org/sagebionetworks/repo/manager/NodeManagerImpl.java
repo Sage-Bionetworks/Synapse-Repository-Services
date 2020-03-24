@@ -156,7 +156,7 @@ public class NodeManagerImpl implements NodeManager {
 		
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
-			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
+			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo.getId(), new Date());
 			aclDAO.create(rootAcl, ObjectType.ENTITY);
 		}
 		
