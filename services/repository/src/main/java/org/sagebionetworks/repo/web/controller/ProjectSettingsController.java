@@ -73,7 +73,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	ProjectSetting getProjectSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id)
+	ProjectSetting getProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getProjectSettingsService().getProjectSetting(userId, id);
 	}
@@ -101,7 +101,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE, method = RequestMethod.GET)
 	public @ResponseBody
-	ProjectSetting getProjectSettingByProjectAndType(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	ProjectSetting getProjectSettingByProjectAndType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String projectId, @PathVariable ProjectSettingsType type) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		return serviceProvider.getProjectSettingsService().getProjectSettingByProjectAndType(userId, projectId, type);
@@ -144,7 +144,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS }, method = RequestMethod.POST)
 	public @ResponseBody
-	ProjectSetting createProjectSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	ProjectSetting createProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 										@RequestBody ProjectSetting projectSetting) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 		return serviceProvider.getProjectSettingsService().createProjectSetting(userId, projectSetting);
@@ -191,7 +191,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS }, method = RequestMethod.PUT)
 	public @ResponseBody
-	void updateProjectSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	void updateProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 							  @RequestBody ProjectSetting projectSetting) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		serviceProvider.getProjectSettingsService().updateProjectSetting(userId, projectSetting);
@@ -213,7 +213,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS_BY_ID }, method = RequestMethod.DELETE)
 	public @ResponseBody
-	void deleteProjectSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	void deleteProjectSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		serviceProvider.getProjectSettingsService().deleteProjectSetting(userId, id);
 	}
 
@@ -241,7 +241,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.POST)
 	public @ResponseBody
-	StorageLocationSetting createStorageLocationSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	StorageLocationSetting createStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 														@RequestBody StorageLocationSetting storageLocationSetting) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException, IOException {
 		return serviceProvider.getProjectSettingsService().createStorageLocationSetting(userId, storageLocationSetting);
@@ -263,7 +263,7 @@ public class ProjectSettingsController {
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION }, method = RequestMethod.GET)
 	@Deprecated
 	public @ResponseBody
-	ListWrapper<StorageLocationSetting> getStorageLocationSettings(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	ListWrapper<StorageLocationSetting> getStorageLocationSettings(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		return ListWrapper.wrap(serviceProvider.getProjectSettingsService().getMyStorageLocations(userId), StorageLocationSetting.class);
 	}
 
@@ -282,7 +282,7 @@ public class ProjectSettingsController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.STORAGE_LOCATION_BY_ID }, method = RequestMethod.GET)
 	public @ResponseBody
-	StorageLocationSetting getStorageLocationSetting(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	StorageLocationSetting getStorageLocationSetting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 													 @PathVariable Long id) throws NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
 		return serviceProvider.getProjectSettingsService().getMyStorageLocation(userId, id);

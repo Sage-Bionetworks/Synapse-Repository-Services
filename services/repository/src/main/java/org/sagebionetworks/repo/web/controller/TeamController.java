@@ -94,7 +94,7 @@ public class TeamController {
 	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.POST)
 	public @ResponseBody
 	Team createTeam(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Team team) throws NotFoundException {
 		return serviceProvider.getTeamService().create(userId, team);
 	}
@@ -255,7 +255,7 @@ public class TeamController {
 	public
 	void fileRedirectURLForTeamIcon(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
@@ -275,7 +275,7 @@ public class TeamController {
 	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.PUT)
 	public @ResponseBody
 	Team updateTeam(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Team team
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().update(userId, team);
@@ -292,7 +292,7 @@ public class TeamController {
 	@RequestMapping(value = UrlHelpers.TEAM_ID, method = RequestMethod.DELETE)
 	public void deleteTeam(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().delete(userId, id);
 	}
@@ -318,7 +318,7 @@ public class TeamController {
 	public void addTeamMember(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ENDPOINT_PARAM, required = false) String teamEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws NotFoundException {
@@ -366,7 +366,7 @@ public class TeamController {
 			@PathVariable String id,
 			@PathVariable String principalId,
 			@RequestParam(value = UrlHelpers.TEAM_PERMISSION_REQUEST_PARAMETER, required = true) Boolean isAdmin,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().setPermissions(userId, id, principalId, isAdmin);
 	}
@@ -387,7 +387,7 @@ public class TeamController {
 	TeamMembershipStatus getTeamMembershipStatus(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getTeamMembershipStatus(userId, id, principalId);
 	}
@@ -496,7 +496,7 @@ public class TeamController {
 	public void removeTeamMember(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
@@ -514,7 +514,7 @@ public class TeamController {
 	public @ResponseBody
 	AccessControlList getTeamACL(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getAccessControlList(userId, id);
 	}
@@ -530,7 +530,7 @@ public class TeamController {
 	@RequestMapping(value = UrlHelpers.TEAM_ACL, method = RequestMethod.PUT)
 	public @ResponseBody
 	AccessControlList updateTeamACL(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList acl
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().updateAccessControlList(userId, acl);

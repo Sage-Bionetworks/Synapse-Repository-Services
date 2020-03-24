@@ -73,7 +73,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getMyOwnUserProfile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
 	}
@@ -101,7 +101,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserBundle getMyOwnUserBundle(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam int mask
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserBundle(userId, mask);
@@ -117,7 +117,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
 	}
@@ -146,7 +146,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_BUNDLE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	UserBundle getUserBundleByOwnerId(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam int mask,
 			@PathVariable String id
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -169,7 +169,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
@@ -190,7 +190,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.PUT)
 	public @ResponseBody
 	UserProfile updateUserProfile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody UserProfile userProfile)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
@@ -229,7 +229,7 @@ public class UserProfileController {
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		String[] idsArray = ids.split(",");
@@ -252,7 +252,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.POST)
 	public @ResponseBody
 	ListWrapper<UserProfile> listUserProfiles(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody IdList ids) throws DatastoreException, NotFoundException {
 		return serviceProvider.getUserProfileService().listUserProfiles(userId, ids);
 	}
@@ -329,7 +329,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE, method = RequestMethod.GET)
 	public @ResponseBody
 	void imageRedirectURLForUser(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -360,7 +360,7 @@ public class UserProfileController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_IMAGE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void imagePreviewRedirectURLForUser(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -382,7 +382,7 @@ public class UserProfileController {
 	public @ResponseBody
 	EntityHeader addFavorite(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -401,7 +401,7 @@ public class UserProfileController {
 	public @ResponseBody
 	void removeFavorite(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -422,7 +422,7 @@ public class UserProfileController {
 	}, method = RequestMethod.GET) 
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getFavorites(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -458,7 +458,7 @@ public class UserProfileController {
 	public @ResponseBody
 	PaginatedResults<ProjectHeader> getOwnProjectsDeprecated(
 			@PathVariable ProjectListTypeDeprecated deprecatedType,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
@@ -480,7 +480,7 @@ public class UserProfileController {
 	public @ResponseBody
 	PaginatedResults<ProjectHeader> getProjectsTeamDeprecated(
 			@PathVariable Long teamId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
@@ -502,7 +502,7 @@ public class UserProfileController {
 	PaginatedResults<ProjectHeader> getProjectsUserDeprecated(
 			@PathVariable ProjectListTypeDeprecated deprecatedType,
 			@PathVariable Long principalId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
@@ -556,7 +556,7 @@ public class UserProfileController {
 	@RequestMapping(value = { UrlHelpers.PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
 	ProjectHeaderList getProjects(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
 			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
@@ -604,7 +604,7 @@ public class UserProfileController {
 	@RequestMapping(value = { UrlHelpers.PROJECTS_USER }, method = RequestMethod.GET)
 	public @ResponseBody
 	ProjectHeaderList getOtherUsersProjects(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long principalId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) Long teamId,
 			@RequestParam(value = AuthorizationConstants.PROJECT_FILTER_PARAM, required = false) ProjectListType filter,

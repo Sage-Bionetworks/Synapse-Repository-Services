@@ -81,7 +81,7 @@ public class AccessRequirementController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessRequirement createAccessRequirement(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessRequirement accessRequirement) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}	
@@ -117,7 +117,7 @@ public class AccessRequirementController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	AccessRequirement updateAccessRequirement(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId,
 			@RequestBody AccessRequirement accessRequirement
 			) throws Exception {
@@ -137,7 +137,7 @@ public class AccessRequirementController {
 	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessRequirement createLockAccessRequirement(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id
 			) throws Exception {
 		return serviceProvider.getAccessRequirementService().createLockAccessRequirement(userId, id);
@@ -159,7 +159,7 @@ public class AccessRequirementController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
@@ -187,7 +187,7 @@ public class AccessRequirementController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getTeamAccessRequirements(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable String id,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
@@ -210,7 +210,7 @@ public class AccessRequirementController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {	
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
@@ -230,7 +230,7 @@ public class AccessRequirementController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_CONVERSION, method = RequestMethod.PUT)
 	public @ResponseBody AccessRequirement convertAccessRequirement(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessRequirementConversionRequest request
 			) throws ConflictingUpdateException, UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessRequirementService().convertAccessRequirements(userId, request);

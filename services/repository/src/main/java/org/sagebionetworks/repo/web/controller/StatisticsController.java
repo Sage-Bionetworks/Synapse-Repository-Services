@@ -58,7 +58,7 @@ public class StatisticsController {
 	@RequestMapping(value = UrlHelpers.STATISTICS, method = RequestMethod.POST)
 	public @ResponseBody ObjectStatisticsResponse getObjectStatistics(
 			// Injected
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, 
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, 
 			@RequestBody ObjectStatisticsRequest request) {
 		return service.getStatistics(userId, request);
 	}

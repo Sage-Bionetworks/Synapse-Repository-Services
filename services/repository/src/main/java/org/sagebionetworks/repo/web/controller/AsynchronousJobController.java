@@ -59,7 +59,7 @@ public class AsynchronousJobController {
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB, method = RequestMethod.POST)
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AsynchronousRequestBody body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
@@ -78,7 +78,7 @@ public class AsynchronousJobController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AsynchronousJobStatus getJobStatus(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String jobId)
+	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
@@ -95,7 +95,7 @@ public class AsynchronousJobController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_CANCEL, method = RequestMethod.GET)
-	public void stopJob(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String jobId)
+	public void stopJob(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		serviceProvider.getAsynchronousJobServices().cancelJob(userId, jobId);
 	}

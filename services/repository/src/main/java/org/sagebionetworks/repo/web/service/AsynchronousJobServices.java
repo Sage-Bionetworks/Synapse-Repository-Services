@@ -18,44 +18,44 @@ public interface AsynchronousJobServices {
 	/**
 	 * Launch a new job.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param body
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	AsynchronousJobStatus startJob(String accessToken, AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException;
+	AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Get the status for an existing job.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param jobId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
 	 */
-	AsynchronousJobStatus getJobStatus(String accessToken, String jobId) throws NotFoundException;
+	AsynchronousJobStatus getJobStatus(Long userId, String jobId) throws NotFoundException;
 
 	/**
 	 * Stop an existing job.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param jobId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws NotReadyException
 	 * @throws AsynchJobFailedException
 	 */
-	void cancelJob(String accessToken, String jobId) throws NotFoundException;
+	void cancelJob(Long userId, String jobId) throws NotFoundException;
 
 	/**
 	 * Get the status for an existing job and throw exceptions on error and not done.
 	 * 
-	 * @param accessToken
+	 * @param userId
 	 * @param jobId
 	 * @return
 	 * @throws Throwable 
 	 */
-	AsynchronousJobStatus getJobStatusAndThrow(String accessToken, String jobId) throws Throwable;
+	AsynchronousJobStatus getJobStatusAndThrow(Long userId, String jobId) throws Throwable;
 }

@@ -59,7 +59,7 @@ public class VerificationController {
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
 	VerificationSubmission createVerificationSubmission(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody VerificationSubmission verificationSubmission,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
 			) throws DatastoreException, NotFoundException {
@@ -87,7 +87,7 @@ public class VerificationController {
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID_STATE, method = RequestMethod.POST)
 	public
 	void changeVerificationSubmissionState(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long id,
 			@RequestBody VerificationState newState,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint
@@ -104,7 +104,7 @@ public class VerificationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION_ID, method=RequestMethod.DELETE)
 	public void deleteVerificationSubmission(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long id
 	) {
 		serviceProvider.getVerificationService().deleteVerificationSubmission(userId, id);
@@ -127,7 +127,7 @@ public class VerificationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.VERIFICATION_SUBMISSION, method = RequestMethod.GET)
 	public @ResponseBody VerificationPagedResults listVerificationSubmissions(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) Long verifiedUserId,
 			@RequestParam(required = false) VerificationStateEnum currentVerificationState,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,

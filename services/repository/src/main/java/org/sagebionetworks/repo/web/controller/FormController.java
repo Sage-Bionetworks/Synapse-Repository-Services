@@ -66,7 +66,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP }, method = RequestMethod.POST)
-	public @ResponseBody FormGroup createGroup(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	public @ResponseBody FormGroup createGroup(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = "name", required = true) String name) {
 		return serviceProvider.getFormService().createGroup(userId, name);
 	}
@@ -86,7 +86,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getGroupAcl(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().getGroupAcl(userId, id);
 	}
@@ -129,7 +129,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_GROUP_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateGroupAcl(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestBody AccessControlList acl) {
 		return serviceProvider.getFormService().updateGroupAcl(userId, id, acl);
 	}
@@ -150,7 +150,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA }, method = RequestMethod.POST)
 	public @ResponseBody FormData createFormData(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String groupId, @RequestBody FormChangeRequest request) {
 		return serviceProvider.getFormService().createFormData(userId, groupId, request);
 	}
@@ -173,7 +173,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.PUT)
 	public @ResponseBody FormData updateFormData(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestBody FormChangeRequest request) {
 		return serviceProvider.getFormService().updateFormData(userId, id, request);
 	}
@@ -193,7 +193,7 @@ public class FormController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ID }, method = RequestMethod.DELETE)
-	public void deleteFormData(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	public void deleteFormData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		serviceProvider.getFormService().deleteFormData(userId, id);
 	}
@@ -212,7 +212,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_SUBMIT }, method = RequestMethod.POST)
 	public @ResponseBody FormData submitFormData(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().submitFormData(userId, id);
 	}
@@ -229,7 +229,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST }, method = RequestMethod.POST)
 	public @ResponseBody ListResponse listFormStatus(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @RequestBody ListRequest request) {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
 		return serviceProvider.getFormService().listFormStatus(userId, request);
 	}
 
@@ -250,7 +250,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_LIST_REVIEWER }, method = RequestMethod.POST)
 	public @ResponseBody ListResponse listFormStatusReviewer(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @RequestBody ListRequest request) {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ListRequest request) {
 		return serviceProvider.getFormService().listFormStatusReviewer(userId, request);
 	}
 
@@ -268,7 +268,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_ACCEPT }, method = RequestMethod.PUT)
 	public @ResponseBody FormData reviewerAcceptForm(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id) {
 		return serviceProvider.getFormService().reviewerAcceptForm(userId, id);
 	}
@@ -287,7 +287,7 @@ public class FormController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.FORM_DATA_REJECT }, method = RequestMethod.PUT)
 	public @ResponseBody FormData reviewerRejectForm(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = "id", required = true) String id, @RequestBody FormRejection rejection) {
 		return serviceProvider.getFormService().reviewerRejectForm(userId, id, rejection);
 	}

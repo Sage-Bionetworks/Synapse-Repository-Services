@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -70,7 +69,7 @@ public class AccessApprovalController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessApproval createAccessApproval(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
 		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, accessApproval);
 	}
@@ -90,7 +89,7 @@ public class AccessApprovalController {
 	public @ResponseBody
 	AccessApproval 
 	getAccessApproval(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessApprovalService().getAccessApproval(userId, approvalId);
@@ -111,7 +110,7 @@ public class AccessApprovalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP, method = RequestMethod.POST)
 	public @ResponseBody AccessorGroupResponse listAccessorGroup(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessorGroupRequest request
 			) throws UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessApprovalService().listAccessorGroup(userId, request);
@@ -129,7 +128,7 @@ public class AccessApprovalController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP_REVOKE, method = RequestMethod.PUT)
 	public void revokeGroup(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessorGroupRevokeRequest request
 			) throws UnauthorizedException, NotFoundException {	
 		serviceProvider.getAccessApprovalService().revokeGroup(userId, request);
@@ -147,7 +146,7 @@ public class AccessApprovalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_INFO, method = RequestMethod.POST)
 	public @ResponseBody BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody BatchAccessApprovalInfoRequest request
 			) throws UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessApprovalService().getBatchAccessApprovalInfo(userId, request);
@@ -170,7 +169,7 @@ public class AccessApprovalController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEntityAccessApprovals(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
@@ -198,7 +197,7 @@ public class AccessApprovalController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getTeamAccessApprovals(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable String id,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
@@ -226,7 +225,7 @@ public class AccessApprovalController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
@@ -249,7 +248,7 @@ public class AccessApprovalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
 	public void deleteAccessApproval(
-				@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessApprovalService().deleteAccessApproval(userId, approvalId);
 	}
@@ -267,7 +266,7 @@ public class AccessApprovalController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.DELETE)
 	public void revokeAccessApprovals(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.ACCESS_REQUIREMENT_ID_PARAM, required = true) String requirementId,
 			@RequestParam(value = ServiceConstants.ACCESSOR_ID_PARAM, required = true) String accessorId)
 					throws UnauthorizedException, NotFoundException {

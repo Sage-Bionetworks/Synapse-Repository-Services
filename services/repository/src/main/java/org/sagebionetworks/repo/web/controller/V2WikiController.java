@@ -117,7 +117,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	V2WikiPage createEntityWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @RequestBody V2WikiPage toCreate)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().createWikiPage(userId, ownerId,
@@ -149,7 +149,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	V2WikiPage createAccessRequirementWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @RequestBody V2WikiPage toCreate)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().createWikiPage(userId, ownerId,
@@ -181,7 +181,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	V2WikiPage createCompetitionWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @RequestBody V2WikiPage toCreate)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().createWikiPage(userId, ownerId,
@@ -207,7 +207,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getEntityRootWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getRootWikiPage(userId,
@@ -228,7 +228,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getAccessRequirementRootWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getRootWikiPage(userId,
@@ -254,7 +254,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getCompetitionRootWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getRootWikiPage(userId,
@@ -283,7 +283,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getEntityWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -307,7 +307,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getAccessRequirementWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -336,7 +336,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiPage getCompetitionWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -379,7 +379,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage updateEntityWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
 			NotFoundException {
@@ -420,7 +420,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiOrderHint updateEntityWikiOrderHint(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @RequestBody V2WikiOrderHint toUpdate)
 			throws DatastoreException, NotFoundException {
 		if (toUpdate == null) throw new IllegalArgumentException("OrderHint cannot be null.");
@@ -461,7 +461,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage updateAcessRequirementWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
 			NotFoundException {
@@ -504,7 +504,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage updateCompetitionWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
 			NotFoundException {
@@ -562,7 +562,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage restoreEntityWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long wikiVersion,
 			@PathVariable String ownerId, @PathVariable String wikiId) 
 			throws DatastoreException, NotFoundException {
@@ -600,7 +600,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage restoreAccessRequirementWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long wikiVersion,
 			@PathVariable String ownerId, @PathVariable String wikiId) 
 			throws DatastoreException, NotFoundException {
@@ -640,7 +640,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_AND_VERSION_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage restoreCompetitionWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long wikiVersion,
 			@PathVariable String ownerId, @PathVariable String wikiId) 
 			throws DatastoreException, NotFoundException {
@@ -672,7 +672,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_V2, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteEntityWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
@@ -701,7 +701,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_V2, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteAccessRequirementWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
@@ -732,7 +732,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_V2, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteCompetitionWikiPage(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
@@ -770,7 +770,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHeader> getEntityWikiHeaderTree(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 			@PathVariable String ownerId) throws DatastoreException,
@@ -802,7 +802,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_V2_ORDER_HINT, method = RequestMethod.GET)
 	public @ResponseBody
 	V2WikiOrderHint getEntityWikiOrderHint(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiOrderHint(userId, ownerId, ObjectType.ENTITY);
@@ -833,7 +833,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHeader> getAccessRequirementWikiHeaderTree(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 			@PathVariable String ownerId) throws DatastoreException,
@@ -872,7 +872,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_TREE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHeader> getCompetitionWikiHeaderTree(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 			@PathVariable String ownerId) throws DatastoreException,
@@ -915,7 +915,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHistorySnapshot> getEntityWikiHistory(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@PathVariable String wikiId,
@@ -954,7 +954,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHistorySnapshot> getAccessRequirementWikiHistory(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@PathVariable String wikiId,
@@ -998,7 +998,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_HISTORY_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<V2WikiHistorySnapshot> getCompetitionWikiHistory(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@PathVariable String wikiId,
@@ -1034,7 +1034,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityWikiAttachmenthHandles(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -1062,7 +1062,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getAccessRequirementWikiAttachmenthHandles(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -1095,7 +1095,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_HANDLE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getCompetitionWikiAttachmenthHandles(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
@@ -1141,7 +1141,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmentFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true)  String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1185,7 +1185,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getAccessRequirementWikiAttachmentFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true)  String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1235,7 +1235,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmentFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1286,7 +1286,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmenPreviewFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1330,7 +1330,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getAccessRequirementWikiAttachmenPreviewFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1380,7 +1380,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmenthPreviewFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
@@ -1423,7 +1423,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiMarkdownFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,
 			@RequestParam(required = false) Long wikiVersion,
@@ -1457,7 +1457,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getAccessRequirementWikiMarkdownFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,
 			@RequestParam(required = false) Long wikiVersion,
@@ -1496,7 +1496,7 @@ public class V2WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEvaluationWikiMarkdownFile(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = false) Boolean redirect,
 			@RequestParam(required = false) Long wikiVersion,

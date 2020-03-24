@@ -68,7 +68,7 @@ public class MembershipInvitationController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION, method = RequestMethod.POST)
 	public @ResponseBody
 	MembershipInvitation createInvitation(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, required = false) String acceptInvitationEndpoint,
 			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipInvitation invitation
@@ -121,7 +121,7 @@ public class MembershipInvitationController {
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_BY_TEAM, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<MembershipInvitation> getOpenInvitationsByTeam(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.INVITEE_ID_REQUEST_PARAMETER, required = false) String inviteeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
@@ -143,7 +143,7 @@ public class MembershipInvitationController {
 	public @ResponseBody
 	MembershipInvitation getInvitation(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().get(userId, id);
 	}
@@ -176,7 +176,7 @@ public class MembershipInvitationController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.DELETE)
 	public void deleteInvitation(
 			@PathVariable String id,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getMembershipInvitationService().delete(userId, id);
 	}
@@ -189,7 +189,7 @@ public class MembershipInvitationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody Count getOpenInvitationCount(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) {
 		return serviceProvider.getMembershipInvitationService().getOpenInvitationCount(userId);
 	}
@@ -209,7 +209,7 @@ public class MembershipInvitationController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_VERIFY_INVITEE, method = RequestMethod.GET)
 	public @ResponseBody InviteeVerificationSignedToken getInviteeVerificationSignedToken(
 			@PathVariable("id") String membershipInvitationId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().getInviteeVerificationSignedToken(userId, membershipInvitationId);
 	}
@@ -229,7 +229,7 @@ public class MembershipInvitationController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_UPDATE_INVITEE_ID, method = RequestMethod.PUT)
 	public void updateInviteeId(
 			@PathVariable("id") String membershipInvitationId,
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody InviteeVerificationSignedToken token) {
 		serviceProvider.getMembershipInvitationService().updateInviteeId(userId, membershipInvitationId, token);
 	}

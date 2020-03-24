@@ -46,7 +46,7 @@ public class StorageReportController {
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody
 	AsyncJobId
-	generateStorageReportCsv(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	generateStorageReportCsv(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 					  @RequestBody DownloadStorageReportRequest request) throws NotFoundException, UnauthorizedException {
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
@@ -66,7 +66,7 @@ public class StorageReportController {
 	@RequestMapping(value = UrlHelpers.STORAGE_REPORT_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	DownloadStorageReportResponse getStorageReportResults(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,

@@ -228,7 +228,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.POST)
 	public @ResponseBody
 	ColumnModel createColumnModel(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ColumnModel toCreate) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices().createColumnModel(userId,
@@ -262,7 +262,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_BATCH, method = RequestMethod.POST)
 	public @ResponseBody
 	ListWrapper<ColumnModel> createColumnModels(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ListWrapper<ColumnModel> toCreate)
 			throws DatastoreException, NotFoundException {
 		List<ColumnModel> results = serviceProvider.getTableServices()
@@ -286,7 +286,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ColumnModel getColumnModel(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String columnId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices().getColumnModel(userId,
@@ -323,7 +323,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_COLUMNS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedColumnModels getColumnForTable(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices()
@@ -359,7 +359,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedColumnModels listColumnModels(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) String prefix,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset)
@@ -461,7 +461,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId startTableTransactionJob(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody TableUpdateTransactionRequest request)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(id, "{id}");
@@ -497,7 +497,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_TRANSACTION_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	TableUpdateTransactionResponse getTableTransactionResult(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	TableUpdateTransactionResponse getTableTransactionResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -601,7 +601,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId startAppendRowsJob(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody AppendableRowSetRequest request)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(id, "{id}");
@@ -638,7 +638,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	RowReferenceSetResults getAppendRowsResult(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	RowReferenceSetResults getAppendRowsResult(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -653,7 +653,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
 	RowReferenceSet deleteRows(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody RowSelection rowsToDelete)
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
@@ -705,7 +705,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
 	public @ResponseBody
 	TableFileHandleResults getFileHandles(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestBody RowReferenceSet fileHandlesToFind)
 			throws DatastoreException, NotFoundException, IOException {
@@ -741,7 +741,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectURLForRow(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String columnId,
 			@PathVariable Long rowId, @PathVariable Long versionNumber,
 			@RequestParam(required = false) Boolean redirect,
@@ -781,7 +781,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void filePreviewRedirectURLForRow(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String columnId,
 			@PathVariable Long rowId, @PathVariable Long versionNumber,
 			@RequestParam(required = false) Boolean redirect,
@@ -894,7 +894,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody QueryBundleRequest query)
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
@@ -931,7 +931,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResultBundle queryAsyncGet(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id,
+	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -963,7 +963,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryNextPageAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody QueryNextPageToken nextPageToken)
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
@@ -1002,7 +1002,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	QueryResult queryNextPageAsyncGet(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id,
+	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -1017,7 +1017,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvDownloadAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody DownloadFromTableRequest downloadRequest)
 			throws DeprecatedServiceException {
 		throw new DeprecatedServiceException("Please update your client to use the new API.");
@@ -1028,7 +1028,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	DownloadFromTableResult csvDownloadAsyncGet(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken)
 			throws DeprecatedServiceException {
 		throw new DeprecatedServiceException("Please update your client to use the new API.");
@@ -1052,7 +1052,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvDownloadAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody DownloadFromTableRequest downloadRequest)
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
@@ -1090,7 +1090,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	DownloadFromTableResult csvDownloadAsyncGet(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+	DownloadFromTableResult csvDownloadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -1121,7 +1121,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvUploadPreviewAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody UploadToTablePreviewRequest uploadRequest)
 			throws DatastoreException, NotFoundException, IOException {
 		AsynchronousJobStatus job = serviceProvider
@@ -1156,7 +1156,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTablePreviewResult csvUploadPreviewAsyncGet(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken) throws Throwable {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
@@ -1169,7 +1169,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvUploadAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody UploadToTableRequest uploadRequest)
 			throws DeprecatedServiceException {
 		throw new DeprecatedServiceException("Please update your client to use the new API.");
@@ -1180,7 +1180,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
 	UploadToTableResult csvUploadAsyncGet(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String asyncToken)
 			throws DeprecatedServiceException {
 		throw new DeprecatedServiceException("Please update your client to use the new API.");
@@ -1218,7 +1218,7 @@ public class TableController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId csvUploadAsyncStart(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody UploadToTableRequest uploadRequest)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(id, "{id}");
@@ -1259,7 +1259,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
-	UploadToTableResult csvUploadAsyncGet(@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id,
+	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@PathVariable String asyncToken) throws Throwable {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
@@ -1336,7 +1336,7 @@ public class TableController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_SNAPSHOT, method = RequestMethod.POST)
 	public @ResponseBody SnapshotResponse createSnapshot(
-			@RequestHeader(value = AuthorizationConstants.AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestBody SnapshotRequest request) {
 		return serviceProvider.getTableServices().createTableSnapshot(userId, id, request);
 	}
