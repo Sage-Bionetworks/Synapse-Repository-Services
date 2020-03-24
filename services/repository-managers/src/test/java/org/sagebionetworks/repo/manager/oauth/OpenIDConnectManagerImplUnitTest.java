@@ -171,7 +171,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		userInfo.setId(USER_ID_LONG);
-		userInfo.setGroups(new HashSet<Long>());
+		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
 
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -824,8 +824,8 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	private UserInfo createUserAuthorization() {
 		UserInfo userAuthorization = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
-		userInfo.setGroups(new HashSet<Long>());
+		userAuthorization.setId(USER_ID_LONG);
+		userAuthorization.setGroups(new HashSet<Long>());
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.userid, null);
 		oidcClaims.put(OIDCClaimName.email, null);
@@ -911,17 +911,18 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 		
 		UserInfo userInfo = new UserInfo(false, USER_ID_LONG);
-		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(userInfo.getGroups());
 		
 		// method under test
 		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
 		
 		verify(mockJWT).getBody();
-		verify(mockUserManager).getUserInfo(USER_ID_LONG);
+		verify(mockUserManager).getUserGroups(USER_ID_LONG);
 		
+		assertEquals(USER_ID_LONG, actual.getId());
 		assertEquals(oidcClaims, actual.getOidcClaims());
 		assertEquals(scopes, actual.getScopes());
-		assertEquals(userInfo, actual);
+		assertEquals(userInfo.getGroups(), actual.getGroups());
 	}
 
 	@Test

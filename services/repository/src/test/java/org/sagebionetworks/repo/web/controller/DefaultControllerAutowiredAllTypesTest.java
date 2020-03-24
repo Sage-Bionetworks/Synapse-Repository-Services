@@ -25,6 +25,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -97,6 +98,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	@Autowired
 	private IdGenerator idGenerator;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
 	private Long userId;
 	private UserInfo testUser;
 	private Team testTeam;
@@ -105,6 +109,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	S3FileHandle handleOne;
 	ColumnModel columnModelOne;
 
+	private String accessToken;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
@@ -113,6 +118,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
+		accessToken = oidcTokenHelper.createTotalAccessToken(userId);
+
 		// Map test objects to their urls
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userId);
@@ -211,7 +218,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertNotNull(project);
 		toDelete.add(project.getId());
 		// Now get the path of the layer
-		List<EntityHeader> path = entityController.getEntityPath(userId, project.getId());
+		List<EntityHeader> path = entityController.getEntityPath(accessToken, project.getId());
 		
 		// This is the list of entities that will be created.
 		List<Entity> newChildren = new ArrayList<Entity>();

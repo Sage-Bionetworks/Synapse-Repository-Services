@@ -122,7 +122,7 @@ public interface EvaluationService {
 	/**
 	 * Create a Submission.
 	 * 
-	 * @param userId
+	 * @param accessToken
 	 * @param submission
 	 * @param entityEtag
 	 * @param submissionEligibilityHash
@@ -136,7 +136,7 @@ public interface EvaluationService {
 	 * @throws ParseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(Long userId, Submission submission, String entityEtag, 
+	public Submission createSubmission(String accessToken, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 

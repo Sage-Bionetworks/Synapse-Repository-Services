@@ -12,6 +12,7 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.file.MultipartManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -73,6 +74,11 @@ public class TrashServiceImplAutowiredTest {
 	@Autowired
 	private TrashService trashService;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String accessToken;
+
 	private List<Entity> entitiesToDelete;
 	private List<S3FileHandle> fileHandlesToDelete;
 	private List<File> filesToDelete;
@@ -91,12 +97,13 @@ public class TrashServiceImplAutowiredTest {
 		// Set up test user.
 		adminUserId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		userId = createUser();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 
 		// Set up test project.
 		Project project = new Project();
 		String projectName = "project" + new Random().nextInt();
 		project.setName(projectName);
-		project = entityService.createEntity(userId, project, null);
+		project = entityService.createEntity(accessToken, project, null);
 		entitiesToDelete.add(project);
 		projectId = project.getId();
 	}
@@ -149,9 +156,9 @@ public class TrashServiceImplAutowiredTest {
 		user2Access.setAccessType(EnumSet.of(ACCESS_TYPE.CREATE, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE,
 				ACCESS_TYPE.DELETE));
 
-		AccessControlList acl = entityService.getEntityACL(projectId, userId);
+		AccessControlList acl = entityService.getEntityACL(projectId, accessToken);
 		acl.setResourceAccess(ImmutableSet.of(userAccess, user2Access));
-		entityService.updateEntityACL(userId, acl);
+		entityService.updateEntityACL(accessToken, acl);
 
 		// Upload a file to the project (with user 1).
 		FileEntity fileEntity = uploadFile(projectId, null);
@@ -159,7 +166,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// User 2 can delete and restore the file.
 		trashService.moveToTrash(user2Id, fileEntityId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(user2Id, fileEntityId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(accessToken, fileEntityId));
 
 		trashService.restoreFromTrash(user2Id, fileEntityId, null);
 		FileEntity restored = entityService.getEntity(user2Id, fileEntityId, FileEntity.class);
@@ -183,7 +190,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// Trash the file entity. Getting the file entity will now throw an EntityInTrashCanException.
 		trashService.moveToTrash(userId, fileEntityId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userId, fileEntityId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(accessToken, fileEntityId));
 
 		// Restore the file entity. It is gettable now.
 		trashService.restoreFromTrash(userId, fileEntityId, null);
@@ -221,7 +228,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// Trash the subfolder. Getting the subfolder will now throw an EntityInTrashCanException.
 		trashService.moveToTrash(userId, subfolderId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userId, subfolderId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(accessToken, subfolderId));
 
 		// Restore the subfolder. It is gettable now.
 		trashService.restoreFromTrash(userId, subfolderId, null);
@@ -245,7 +252,7 @@ public class TrashServiceImplAutowiredTest {
 	private Folder createFolder(String parentId) {
 		Folder folder = new Folder();
 		folder.setParentId(parentId);
-		folder = entityService.createEntity(userId, folder, null);
+		folder = entityService.createEntity(accessToken, folder, null);
 		entitiesToDelete.add(folder);
 		return folder;
 	}
@@ -288,7 +295,7 @@ public class TrashServiceImplAutowiredTest {
 		FileEntity fileEntity = new FileEntity();
 		fileEntity.setDataFileHandleId(fileHandle.getId());
 		fileEntity.setParentId(parentId);
-		fileEntity = entityService.createEntity(userId, fileEntity, null);
+		fileEntity = entityService.createEntity(accessToken, fileEntity, null);
 		entitiesToDelete.add(fileEntity);
 		return fileEntity;
 	}

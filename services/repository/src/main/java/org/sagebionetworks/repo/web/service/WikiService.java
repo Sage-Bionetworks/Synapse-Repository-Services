@@ -125,12 +125,12 @@ public interface WikiService {
 
 	/**
 	 * Get the root wiki page key
-	 * @param userId
+	 * @param accessToken
 	 * @param ownerId
 	 * @param type
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	WikiPageKey getRootWikiKey(Long userId, String ownerId, ObjectType type) throws NotFoundException;
+	WikiPageKey getRootWikiKey(String accessToken, String ownerId, ObjectType type) throws NotFoundException;
 
 }

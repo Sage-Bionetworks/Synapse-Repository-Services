@@ -28,6 +28,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
@@ -51,6 +52,8 @@ public class EvaluationServiceTest {
 	private QueryDAO mockQueryDAO;
 	@Mock
 	private NotificationManager mockNotificationManager;
+	@Mock
+	OpenIDConnectManager mockOidcManager;
 	@InjectMocks
 	private EvaluationServiceImpl evaluationService;
 
@@ -59,6 +62,8 @@ public class EvaluationServiceTest {
 	private String evalId;
 	private long limit;
 	private long offset;
+
+	private static final String ACCESS_TOKEN = "access-token";
 
 	@Test
 	public void testCreateSubmission() throws Exception {
@@ -83,9 +88,10 @@ public class EvaluationServiceTest {
 				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint))).thenReturn(result);
 
 		when(mockServiceProvider.getEntityBundleService()).thenReturn(mockEntityBundleService);
-		evaluationService.createSubmission(userId, submission, "123", "987", challengeEndpoint,
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
+		evaluationService.createSubmission(ACCESS_TOKEN, submission, "123", "987", challengeEndpoint,
 				notificationUnsubscribeEndpoint);
-		verify(mockUserManager).getUserInfo(userId);
+		verify(mockOidcManager).getUserAuthorization(ACCESS_TOKEN);
 		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), 
 				isNull());
 		verify(mockSubmissionManager).createSubmissionNotifications(

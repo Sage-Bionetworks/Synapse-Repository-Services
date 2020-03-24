@@ -13,6 +13,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -56,11 +57,16 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 
 	private Project project;
 
-
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String accessToken;
+	
 	
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(cloudSearchClientProvider.isSearchEnabled());
@@ -83,7 +89,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest" + UUID.randomUUID());
-		project = entityService.createEntity(adminUserId, project, null);
+		project = entityService.createEntity(accessToken, project, null);
 		// Push this to the search index
 		ChangeMessage changeMessage = new ChangeMessage();
 		changeMessage.setChangeNumber(1L);

@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,6 +25,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 	@Autowired
 	private ResearchProjectManager researchProjectManager;
 	@Autowired
@@ -88,8 +91,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request) {
-		UserInfo user = userManager.getUserInfo(userId);
+	public RestrictionInformationResponse getRestrictionInformation(String accessToken, RestrictionInformationRequest request) {
+		UserInfo user = oidcManager.getUserAuthorization(accessToken);
 		return accessRequirementManager.getRestrictionInformation(user, request);
 	}
 

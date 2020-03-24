@@ -22,7 +22,7 @@ public interface EntityBundleService {
 	/**
 	 * Get an entity and related data with a single GET.
 	 *
-	 * @param userId -The user that is doing the get.
+	 * @param accessToken 
 	 * @param entityId - The ID of the entity to fetch.
 	 * @param request
 	 * @return The requested Entity if it exists.
@@ -32,7 +32,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle getEntityBundle(Long userId, String entityId, EntityBundleRequest request) throws NotFoundException,
+	public EntityBundle getEntityBundle(String accessToken, String entityId, EntityBundleRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 	/**
@@ -49,13 +49,13 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, EntityBundleRequest request) throws NotFoundException,
+	public EntityBundle getEntityBundle(String accessToken, String entityId, Long versionNumber, EntityBundleRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 	/**
 	 * Get an entity and related data with a single GET.
 	 * 
-	 * @param userId -The user that is doing the get.
+	 * @param accessToken
 	 * @param entityId - The ID of the entity to fetch.
 	 * @param request
 	 * @return The requested Entity if it exists.
@@ -66,7 +66,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, int mask) throws NotFoundException,
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String accessToken, String entityId, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 
@@ -85,7 +85,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, int mask) throws NotFoundException,
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String accessToken, String entityId, Long versionNumber, int mask) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 	
 	/**
@@ -96,7 +96,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * created components, as defined by the partsMask.
 	 * 
-	 * @param userId
+	 * @param accessToken
 	 * @param eb
 	 * @param partsMask
 	 * @param request
@@ -110,7 +110,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(Long userId, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
+	public org.sagebionetworks.repo.model.EntityBundle createEntityBundle(String accessToken, org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
@@ -122,7 +122,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * updated components.
 	 * 
-	 * @param userId
+	 * @param accessToken
 	 * @param entityId
 	 * @param ebc
 	 * @param request
@@ -136,7 +136,7 @@ public interface EntityBundleService {
 	 * @throws ParseException
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(Long userId, String entityId,
+	public org.sagebionetworks.repo.model.EntityBundle updateEntityBundle(String accessToken, String entityId,
 																		  org.sagebionetworks.repo.model.EntityBundleCreate ebc, String activityId) throws
 			ConflictingUpdateException,	DatastoreException, 
 			InvalidModelException, UnauthorizedException, NotFoundException, 
@@ -151,7 +151,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * created components, as defined by the partsMask.
 	 *
-	 * @param userId
+	 * @param accessToken
 	 * @param eb
 	 * @param partsMask
 	 * @param request
@@ -164,7 +164,7 @@ public interface EntityBundleService {
 	 * @throws ParseException
 	 * @throws ACLInheritanceException
 	 */
-	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId)
+	public EntityBundle createEntityBundle(String accessToken, EntityBundleCreate ebc, String activityId)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
@@ -176,7 +176,7 @@ public interface EntityBundleService {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * updated components.
 	 *
-	 * @param userId
+	 * @param accessToken
 	 * @param entityId
 	 * @param ebc
 	 * @param request
@@ -189,7 +189,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle updateEntityBundle(Long userId, String entityId,
+	public EntityBundle updateEntityBundle(String accessToken, String entityId,
 										   EntityBundleCreate ebc, String activityId) throws
 			ConflictingUpdateException,	DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,

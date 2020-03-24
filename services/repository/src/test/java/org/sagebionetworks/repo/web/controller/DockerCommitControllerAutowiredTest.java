@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
@@ -33,17 +34,23 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 	@Autowired
 	private EntityService entityService;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String accessToken;
+	
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		project = new Project();
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		when(request.getServletPath()).thenReturn("/repo/v1/dockerTag");
-		project = entityService.createEntity(adminUserId, project, null);
+		project = entityService.createEntity(accessToken, project, null);
 		unmanagedRepository = new DockerRepository();
 		unmanagedRepository.setParentId(project.getId());
 		unmanagedRepository.setRepositoryName("uname/reponame");
-		unmanagedRepository = entityService.createEntity(adminUserId, unmanagedRepository, null);
+		unmanagedRepository = entityService.createEntity(accessToken, unmanagedRepository, null);
 		assertFalse(unmanagedRepository.getIsManaged());
 	}
 	

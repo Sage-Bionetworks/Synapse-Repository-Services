@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -55,9 +56,15 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 
 	HttpServletRequest mockRequest;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String accessToken;
+	
 	@Before
 	public void before() throws Exception{
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		assertNotNull(userProfileService);
 		favoritesToDelete = new ArrayList<String>();
@@ -162,7 +169,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	public void testFavoriteCRUD() throws Exception {
 		// create an entity
 		Project proj = new Project();
-		proj = entityService.createEntity(adminUserId, proj, null);
+		proj = entityService.createEntity(accessToken, proj, null);
 		entityIdsToDelete.add(proj.getId());
 		
 		// add favorite
