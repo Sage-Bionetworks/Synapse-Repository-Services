@@ -182,7 +182,7 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
+	public Set<Long> getUserGroups(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
 		if(!principal.getIsIndividual()) throw new IllegalArgumentException("Principal: "+principalId+" is not a User");
 		// Lookup the user's name
@@ -205,18 +205,7 @@ public class UserManagerImpl implements UserManager {
 			groups.add(Long.parseLong(ug.getId()));
 		}
 
-		// Check to see if the user is an Admin
-		boolean isAdmin = false;
-		// If the user belongs to the admin group they are an admin
-		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
-			isAdmin = true;
-		}
-		UserInfo ui = new UserInfo(isAdmin);
-		ui.setId(principalId);
-		ui.setCreationDate(principal.getCreationDate());
-		// Put all the pieces together
-		ui.setGroups(groups);
-		return ui;
+		return groups;
 	}
 
 	@WriteTransaction

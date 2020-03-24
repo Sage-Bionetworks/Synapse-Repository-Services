@@ -16,9 +16,9 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -361,7 +361,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	@Override
-	public UserAuthorization getUserAuthorization(String oauthToken) {
+	public UserInfo getUserAuthorization(String oauthToken) {
 		Jwt<JwsHeader,Claims> accessToken = null;
 		try {
 			accessToken = oidcTokenHelper.parseJWT(oauthToken);
@@ -384,18 +384,22 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
+		// If the user belongs to the admin group they are an admin
+		Set<Long> groups = userManager.getUserGroups(Long.parseLong(userId));
+		// Check to see if the user is an Admin
+		boolean isAdmin = groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID);
 
-		UserAuthorization result = new UserAuthorization();
-		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
+		UserInfo result = new UserInfo(isAdmin);
+		result.setId(Long.parseLong(userId));
+		result.setGroups(groups);
 		result.setOidcClaims(oidcClaims);
 		result.setScopes(scopes);
-		result.setUserInfo(userInfo);
 		return result;
 	}	
 	
 	@Override
-	public Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint) {
-		Long userId = userAuthorization.getUserInfo().getId();
+	public Object getUserInfo(UserInfo userAuthorization, String oauthClientId, String oauthEndpoint) {
+		Long userId = userAuthorization.getId();
 		Date authTime = authDao.getSessionValidatedOn(userId);
 
 		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());

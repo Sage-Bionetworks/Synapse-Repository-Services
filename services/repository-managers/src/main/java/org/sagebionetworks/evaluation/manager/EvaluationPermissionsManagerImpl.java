@@ -263,5 +263,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	public boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType) {
 		return submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(dockerRepoName, principalIds, accessType);
 	}
+	
+	@Override
+	public AuthorizationStatus canReadEvaluations(UserInfo userInfo) {
+		return AuthorizationStatus.accessDenied("TODO");
+	}
 
 }

@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  *  Contains both a user and the groups to which she belongs.
@@ -16,13 +22,12 @@ public class UserInfo {
 	
 	private final boolean isAdmin;
 
+	private List<OAuthScope> scopes;
+	
+	private Map<OIDCClaimName, OIDCClaimsRequestDetails>  oidcClaims;
+
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
-	}
-	
-	@Deprecated
-	public UserInfo(boolean isAdmin, String id){
-		this(isAdmin, Long.parseLong(id));
 	}
 	
 	/**
@@ -42,7 +47,6 @@ public class UserInfo {
 	}
 	
 	private Long id;
-	private Date creationDate;
 
 	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
@@ -52,8 +56,7 @@ public class UserInfo {
 	 * Is the passed userInfo object valid?
 	 */
 	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
-
-		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		ValidateArgument.required(info, "userInfo");
 	}
 
 	public Long getId() {
@@ -64,23 +67,35 @@ public class UserInfo {
 		this.id = id;
 	}
 
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
-	}
-
 	public boolean isAdmin() {
 		return isAdmin;
+	}
+
+	public List<OAuthScope> getScopes() {
+		return scopes;
+	}
+
+	public void setScopes(List<OAuthScope> scopes) {
+		this.scopes = scopes;
+	}
+
+	public Map<OIDCClaimName, OIDCClaimsRequestDetails> getOidcClaims() {
+		return oidcClaims;
+	}
+
+	public void setOidcClaims(Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
+		this.oidcClaims = oidcClaims;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (isAdmin ? 1231 : 1237);
+		result = prime * result + ((oidcClaims == null) ? 0 : oidcClaims.hashCode());
+		result = prime * result + ((scopes == null) ? 0 : scopes.hashCode());
 		return result;
 	}
 
@@ -93,13 +108,32 @@ public class UserInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UserInfo other = (UserInfo) obj;
+		if (groups == null) {
+			if (other.groups != null)
+				return false;
+		} else if (!groups.equals(other.groups))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (isAdmin != other.isAdmin)
+			return false;
+		if (oidcClaims == null) {
+			if (other.oidcClaims != null)
+				return false;
+		} else if (!oidcClaims.equals(other.oidcClaims))
+			return false;
+		if (scopes == null) {
+			if (other.scopes != null)
+				return false;
+		} else if (!scopes.equals(other.scopes))
+			return false;
 		return true;
 	}
+
+
 	
 	
 }

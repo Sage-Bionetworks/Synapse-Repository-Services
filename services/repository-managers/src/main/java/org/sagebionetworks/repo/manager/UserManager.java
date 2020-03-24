@@ -23,7 +23,7 @@ public interface UserManager {
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
-	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
+	public Set<Long> getUserGroups(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Creates a new user

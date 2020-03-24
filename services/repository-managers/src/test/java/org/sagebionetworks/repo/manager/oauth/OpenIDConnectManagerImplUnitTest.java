@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,6 +15,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +38,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.EmailClaimProvider;
@@ -823,15 +822,16 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 	}
 	
-	private UserAuthorization createUserAuthorization() {
-		UserAuthorization userAuthorization = new UserAuthorization();
+	private UserInfo createUserAuthorization() {
+		UserInfo userAuthorization = new UserInfo(false);
+		userInfo.setId(USER_ID_LONG);
+		userInfo.setGroups(new HashSet<Long>());
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = new HashMap<OIDCClaimName, OIDCClaimsRequestDetails>();
 		oidcClaims.put(OIDCClaimName.userid, null);
 		oidcClaims.put(OIDCClaimName.email, null);
 		oidcClaims.put(OIDCClaimName.email_verified, null);
 		userAuthorization.setOidcClaims(oidcClaims);
 		userAuthorization.setScopes(Arrays.asList(OAuthScope.values()));
-		userAuthorization.setUserInfo(userInfo);
 		return userAuthorization;
 	}
 	
@@ -914,14 +914,14 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
 		
 		// method under test
-		UserAuthorization actual = openIDConnectManagerImpl.getUserAuthorization(token);
+		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
 		
 		verify(mockJWT).getBody();
 		verify(mockUserManager).getUserInfo(USER_ID_LONG);
 		
 		assertEquals(oidcClaims, actual.getOidcClaims());
 		assertEquals(scopes, actual.getScopes());
-		assertEquals(userInfo, actual.getUserInfo());
+		assertEquals(userInfo, actual);
 	}
 
 	@Test
