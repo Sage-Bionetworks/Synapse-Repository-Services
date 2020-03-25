@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,7 +22,7 @@ public class HttpAuthUtil {
 		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) return null;
 
 		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length()).trim();
-		String basicCredentials = new String(Base64.getDecoder().decode(base64EncodedCredentials));
+		String basicCredentials = new String(Base64.getDecoder().decode(base64EncodedCredentials), Charset.forName("UTF-8"));
 		int colon = basicCredentials.indexOf(":");
 		if (colon>0 && colon<basicCredentials.length()-1) {
 			String name = basicCredentials.substring(0, colon);
