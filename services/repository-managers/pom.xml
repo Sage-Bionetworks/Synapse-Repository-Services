@@ -221,11 +221,6 @@
 			<artifactId>velocity</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-core</artifactId>
-		</dependency>
-
 	</dependencies>
 
 	<build>
