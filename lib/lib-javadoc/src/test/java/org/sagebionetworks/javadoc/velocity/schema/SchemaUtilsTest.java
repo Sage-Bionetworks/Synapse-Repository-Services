@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
@@ -114,7 +115,7 @@ public class SchemaUtilsTest {
 	public void testTranslateToSchemaFieldString(){
 		String name = "someString";
 		String description = "I am a tea pot!";
-		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.STRING);
 		schema.setDescription(description);
 		SchemaFields field = SchemaUtils.translateToSchemaField(name, schema);
 		assertNotNull(field);
@@ -125,7 +126,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringString(){
-		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.STRING);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
@@ -135,7 +136,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringBoolean(){
-		ObjectSchema schema = new ObjectSchema(TYPE.BOOLEAN);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.BOOLEAN);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.BOOLEAN.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
@@ -145,7 +146,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringNumber(){
-		ObjectSchema schema = new ObjectSchema(TYPE.NUMBER);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.NUMBER);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.NUMBER.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
@@ -155,7 +156,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringInteger(){
-		ObjectSchema schema = new ObjectSchema(TYPE.INTEGER);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.INTEGER);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.INTEGER.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
@@ -165,7 +166,7 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringObject(){
-		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
 		String name = "Example";
 		String id = "org.sagebionetworks.test."+name;
 		schema.setId(id);
@@ -179,22 +180,22 @@ public class SchemaUtilsTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTypeToLinkStringObjectNullId(){
-		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
 		schema.setId(null);
 		SchemaUtils.typeToLinkString(schema);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTypeToLinkStringArrayNullItems(){
-		ObjectSchema schema = new ObjectSchema(TYPE.ARRAY);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
 		schema.setItems(null);
 		SchemaUtils.typeToLinkString(schema);
 	}
 	
 	@Test
 	public void testTypeToLinkStringArrayPrimitive(){
-		ObjectSchema schema = new ObjectSchema(TYPE.ARRAY);
-		schema.setItems(new ObjectSchema(TYPE.STRING));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
+		schema.setItems(new ObjectSchemaImpl(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null }, result.getHref());
@@ -204,8 +205,8 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkStringArrayObjects(){
-		ObjectSchema schema = new ObjectSchema(TYPE.ARRAY);
-		schema.setItems(new ObjectSchema(TYPE.OBJECT));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.ARRAY);
+		schema.setItems(new ObjectSchemaImpl(TYPE.OBJECT));
 		String name = "Example";
 		String id = "org.sagebionetworks.test."+name;
 		schema.getItems().setId(id);
@@ -219,9 +220,9 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testTypeToLinkString_TupleArrayMapPrimitives() {
-		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
-		schema.setKey(new ObjectSchema(TYPE.STRING));
-		schema.setValue(new ObjectSchema(TYPE.STRING));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.TUPLE_ARRAY_MAP);
+		schema.setKey(new ObjectSchemaImpl(TYPE.STRING));
+		schema.setValue(new ObjectSchemaImpl(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.STRING.name(), TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null, null }, result.getHref());
@@ -232,9 +233,9 @@ public class SchemaUtilsTest {
 
 	@Test
 	public void testTypeToLinkString_TupleArrayMapObjects() {
-		ObjectSchema schema = new ObjectSchema(TYPE.TUPLE_ARRAY_MAP);
-		schema.setKey(new ObjectSchema(TYPE.OBJECT));
-		schema.setValue(new ObjectSchema(TYPE.OBJECT));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.TUPLE_ARRAY_MAP);
+		schema.setKey(new ObjectSchemaImpl(TYPE.OBJECT));
+		schema.setValue(new ObjectSchemaImpl(TYPE.OBJECT));
 		String name1 = "Example1";
 		String name2 = "Example2";
 		String id1 = "org.sagebionetworks.test." + name1;
@@ -253,8 +254,8 @@ public class SchemaUtilsTest {
 
 	@Test
 	public void testTypeToLinkString_MapPrimitives() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
-		schema.setValue(new ObjectSchema(TYPE.STRING));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.MAP);
+		schema.setValue(new ObjectSchemaImpl(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
 		assertArrayEquals(new String[] { TYPE.STRING.name(), TYPE.STRING.name() }, result.getDisplay());
 		assertArrayEquals(new String[] { null, null }, result.getHref());
@@ -265,8 +266,8 @@ public class SchemaUtilsTest {
 
 	@Test
 	public void testTypeToLinkString_MapObjects() {
-		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
-		schema.setValue(new ObjectSchema(TYPE.OBJECT));
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.MAP);
+		schema.setValue(new ObjectSchemaImpl(TYPE.OBJECT));
 		String name2 = "Example2";
 		String id2 = "org.sagebionetworks.test." + name2;
 		schema.getValue().setId(id2);
@@ -285,7 +286,7 @@ public class SchemaUtilsTest {
 		String name = "Example";
 		String id = "org.sagebionetworks.test."+name;
 		String effective ="{\"id\":\""+id+"\"}";
-		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
 		schema.setId(id);
 		schema.setDescription(description);
 		schema.setSchema(effective);
@@ -305,7 +306,7 @@ public class SchemaUtilsTest {
 		String name = "Example";
 		String id = "org.sagebionetworks.test."+name;
 		String effective ="{}";
-		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
 		schema.setId(id);
 		schema.setDescription(description);
 		schema.setSchema(effective);
@@ -328,15 +329,15 @@ public class SchemaUtilsTest {
 		String name = "Example";
 		String id = "org.sagebionetworks.test."+name;
 		String effective ="{\"id\":\""+id+"\"}";
-		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.OBJECT);
 		schema.setId(id);
 		schema.setDescription(description);
 		schema.setSchema(effective);
 		schema.setName(name);
 		// Add some properties
 		schema.setProperties(new LinkedHashMap<String, ObjectSchema>());
-		schema.getProperties().put("someString", new ObjectSchema(TYPE.STRING));
-		schema.getProperties().put("someBoolean", new ObjectSchema(TYPE.BOOLEAN));
+		schema.getProperties().put("someString", new ObjectSchemaImpl(TYPE.STRING));
+		schema.getProperties().put("someBoolean", new ObjectSchemaImpl(TYPE.BOOLEAN));
 		
 		ObjectSchemaModel model = SchemaUtils.translateToModel(schema, null);
 		assertNotNull(model);
@@ -358,17 +359,17 @@ public class SchemaUtilsTest {
 		//PLFM-5723
 		//create enum object
 		String enumId = "org.sagebionetworks.test.TestEnum";
-		ObjectSchema enumSchema = new ObjectSchema(TYPE.STRING);
+		ObjectSchema enumSchema = new ObjectSchemaImpl(TYPE.STRING);
 		enumSchema.setId(enumId);
 		enumSchema.setEnum(new EnumValue[]{ new EnumValue("ENUM_VAL1"), new EnumValue("ENUM_VAL2")});
 
 		//create array of enums
-		ObjectSchema arrayOfEnum = new ObjectSchema(TYPE.ARRAY);
+		ObjectSchema arrayOfEnum = new ObjectSchemaImpl(TYPE.ARRAY);
 		arrayOfEnum.setItems(enumSchema);
 
 		//create object schema with a list containing enums
 		String schemaToTestId = "org.sagebionetworks.test.TestEnumList";
-		ObjectSchema schemaToTest = new ObjectSchema(TYPE.OBJECT);
+		ObjectSchema schemaToTest = new ObjectSchemaImpl(TYPE.OBJECT);
 		schemaToTest.setProperties(new LinkedHashMap<>(Collections.singletonMap("myEnumList", arrayOfEnum)));
 
 		Map<String, ObjectSchema> resultMap = new HashMap<>();

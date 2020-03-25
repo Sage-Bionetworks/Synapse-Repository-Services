@@ -10,6 +10,7 @@ import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.HasEffectiveSchema;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -228,7 +229,7 @@ public class SchemaUtils {
 			json = getEffectiveSchema(name);
 			if(json == null) return null;
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(json);
-			ObjectSchema schema = new ObjectSchema(adpater);
+			ObjectSchema schema = new ObjectSchemaImpl(adpater);
 			return schema;
 		} catch (Exception e) {
 			System.out.println(json);

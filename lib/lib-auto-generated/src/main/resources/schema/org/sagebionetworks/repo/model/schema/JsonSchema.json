@@ -1,0 +1,21 @@
+{
+	"$recursiveAnchor": true,
+	"description": "...",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "..."
+		},
+		"$id": {
+			"type": "string",
+			"description": "..."
+		},
+		"$ref": {
+			"type": "string",
+			"description": "..."
+		},
+		"items": {
+			"$recursiveRef": "#"
+		}
+	}
+}
