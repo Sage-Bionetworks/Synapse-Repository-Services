@@ -602,9 +602,8 @@ public class EntityController {
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
 			ConflictingUpdateException, JSONObjectAdapterException {
 
-		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(accessToken, header, true, generatedBy, request);
+		return (Versionable) updateEntityImpl(authorizationHeader, header, true, generatedBy, request);
 	}
 
 	/**

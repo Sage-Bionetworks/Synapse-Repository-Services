@@ -22,6 +22,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -53,6 +54,11 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
+	private String accessToken;
+	
 	private Long adminUserId;
 	private String adminUserIdString;
 	
@@ -75,6 +81,8 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
+
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 
 		toDelete = new LinkedList<WikiPageKey>();
 		
@@ -138,7 +146,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityWikiCRUD() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
 	}
@@ -146,7 +154,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 
 		// create an entity
 		evaluation = new Evaluation();
@@ -364,7 +372,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 		
 		String ownerId = entity.getId();
 		ObjectType ownerType = ObjectType.ENTITY;

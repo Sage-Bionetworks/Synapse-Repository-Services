@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,12 +34,18 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 	@Autowired
 	NodeManager nodeManager;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
+	private String accessToken;
+	
 	List<String> cleanupIdList;
 	
 
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		service = "docker.synapse.org";
 		cleanupIdList = new ArrayList<String>();
 	}
@@ -63,7 +70,7 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 		//Setup: create a project
 		Project p = new Project();
 		p.setName("Create without entity type");
-		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, accessToken, null);
 		String id = clone.getId();
 		cleanupIdList.add(id);
 		

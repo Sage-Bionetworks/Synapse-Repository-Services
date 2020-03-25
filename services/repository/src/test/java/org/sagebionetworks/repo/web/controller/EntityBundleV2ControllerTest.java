@@ -17,6 +17,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
@@ -55,6 +56,11 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 	@Autowired
 	private IdGenerator idGenerator;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
+	private String accessToken;
+	
 	private List<String> filesToDelete;
 	private List<String> toDelete;
 
@@ -74,6 +80,8 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
 		adminUserInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 	}
 
 	@AfterEach
@@ -95,27 +103,27 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setParentId(id);
-		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, accessToken, null);
 		toDelete.add(s1.getId());
 
 		Folder s2 = new Folder();
 		s2.setName(DUMMY_STUDY_2);
 		s2.setParentId(id);
-		s2 = (Folder) entityServletHelper.createEntity(s2, adminUserId, null);
+		s2 = (Folder) entityServletHelper.createEntity(s2, accessToken, null);
 		toDelete.add(s2.getId());
 
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, accessToken);
 		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
-		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, adminUserId);
+		Annotations a2 = entityServletHelper.updateAnnotationsV2(a, accessToken);
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
@@ -127,7 +135,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		request.setIncludeAccessControlList(true);
 
 
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, accessToken);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -159,21 +167,21 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		Folder s1 = new Folder();
 		s1.setName(DUMMY_STUDY_1);
 		s1.setParentId(id);
-		s1 = (Folder) entityServletHelper.createEntity(s1, adminUserId, null);
+		s1 = (Folder) entityServletHelper.createEntity(s1, accessToken, null);
 		toDelete.add(s1.getId());
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
 		request.setIncludeAccessControlList(true);
-		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), request, accessToken);
 		Folder s2 = (Folder) eb.getEntity();
 		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
@@ -187,20 +195,20 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, adminUserId);
+		Annotations a = entityServletHelper.getEntityAnnotationsV2(id, accessToken);
 		AnnotationsV2TestUtils.putAnnotations(a,"doubleAnno", "45.0001", AnnotationsValueType.DOUBLE);
 		AnnotationsV2TestUtils.putAnnotations(a, "string", "A string", AnnotationsValueType.STRING);
-		entityServletHelper.updateAnnotationsV2(a, adminUserId);
+		entityServletHelper.updateAnnotationsV2(a, accessToken);
 
 		// Get the bundle, verify contents
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeEntity(true);
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, request, accessToken);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -245,20 +253,20 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
-		Project p2 = (Project) entityServletHelper.createEntity(p, adminUserId, null);
+		Project p2 = (Project) entityServletHelper.createEntity(p, accessToken, null);
 		String id = p2.getId();
 		toDelete.add(id);
 
 		FileEntity file = new FileEntity();
 		file.setParentId(p2.getId());
 		file.setDataFileHandleId(handleOne.getId());
-		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, accessToken, null);
 		toDelete.add(file.getId());
 
 		// Get the file handle in the bundle
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeFileHandles(true);
-		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, adminUserId);
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), request, accessToken);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);
@@ -267,7 +275,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerJun
 		// Same test with a verion number
 		// Update the file
 		file.setDataFileHandleId(handleTwo.getId());
-		file = (FileEntity) entityServletHelper.updateEntity(file, adminUserId);
+		file = (FileEntity) entityServletHelper.updateEntity(file, accessToken);
 		assertEquals("Changing the fileHandle should have created a new version", new Long(2), file.getVersionNumber());
 		// Get version one.
 		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(1), request, adminUserId);

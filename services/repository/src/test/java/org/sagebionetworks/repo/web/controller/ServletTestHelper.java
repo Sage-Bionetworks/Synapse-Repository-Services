@@ -169,7 +169,7 @@ public class ServletTestHelper {
 		toDelete = new ArrayList<String>();
 
 		this.setTestUser(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		this.accessToken=oidcTokenHelper.createTotalAccessToken(this.userId);
+		this.accessToken=oidcTokenHelper.createAnonymousAccessToken();
 	}
 
 	/**
