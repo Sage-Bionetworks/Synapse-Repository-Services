@@ -40,7 +40,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 *             if the table does not exist
 	 */
-	public TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
+	TableStatus getTableStatusOrCreateIfNotExists(IdAndVersion tableId)
 			throws NotFoundException;
 	
 	/**
@@ -50,7 +50,7 @@ public interface TableManagerSupport {
 	 * @return Optional.empty() is returned if there is no state information for the
 	 *         table/view.
 	 */
-	public Optional<TableState> getTableStatusState(IdAndVersion idAndVersion);
+	Optional<TableState> getTableStatusState(IdAndVersion idAndVersion);
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -67,7 +67,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
+	void attemptToSetTableStatusToAvailable(IdAndVersion tableId,
 			String resetToken, String tableChangeEtag)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -85,7 +85,7 @@ public interface TableManagerSupport {
 	 *             available until the new changes are accounted for.
 	 * @throws NotFoundException
 	 */
-	public void attemptToSetTableStatusToFailed(IdAndVersion tableId, Exception exception)
+	void attemptToSetTableStatusToFailed(IdAndVersion tableId, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
@@ -104,7 +104,7 @@ public interface TableManagerSupport {
 	 *             processing finished.
 	 * @throws NotFoundException
 	 */
-	public void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
+	void attemptToUpdateTableProgress(IdAndVersion tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
@@ -115,7 +115,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public String startTableProcessing(IdAndVersion tableId);
+	String startTableProcessing(IdAndVersion tableId);
 
 	/**
 	 * Is the table's index synchronized with the truth data?
@@ -123,7 +123,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
+	boolean isIndexSynchronizedWithTruth(IdAndVersion tableId);
 
 	/**
 	 * Index work is required if the index is out-of-synch with the truth or the
@@ -132,21 +132,21 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean isIndexWorkRequired(IdAndVersion tableId);
+	boolean isIndexWorkRequired(IdAndVersion tableId);
 
 	/**
 	 * Set the table to processing and send an update message.
 	 * 
 	 * @param tableId
 	 */
-	public TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion tableId);
+	TableStatus setTableToProcessingAndTriggerUpdate(IdAndVersion tableId);
 
 	/**
 	 * Set the table to be deleted.
 	 * 
 	 * @param deletedId
 	 */
-	public void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
+	void setTableDeleted(IdAndVersion deletedId, ObjectType tableType);
 
 	/**
 	 * The MD5 hex of a table's schema.
@@ -188,7 +188,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long getViewStateNumber(IdAndVersion table);
+	Long getViewStateNumber(IdAndVersion table);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -201,7 +201,7 @@ public interface TableManagerSupport {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion);
+	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -214,7 +214,7 @@ public interface TableManagerSupport {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask);
+	Set<Long> getAllContainerIdsForViewScope(IdAndVersion idAndVersion, Long viewTypeMask);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -226,7 +226,7 @@ public interface TableManagerSupport {
 	 * @param scope
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask);
+	Set<Long> getAllContainerIdsForScope(Set<Long> scope, Long viewTypeMask);
 
 
 	/**
@@ -257,7 +257,7 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
 			IdAndVersion tableId, ProgressingCallable<R> runner)
 			throws Exception;
 	
@@ -287,7 +287,7 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception
 	 */
-	public <R> R tryRunWithTableNonexclusiveLock(
+	<R> R tryRunWithTableNonexclusiveLock(
 			ProgressCallback callback, IdAndVersion tableId,
 			ProgressingCallable<R> runner) throws Exception;
 	
@@ -299,7 +299,7 @@ public interface TableManagerSupport {
 	 * @return
 	 * @throws Exception 
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
+	<R> R tryRunWithTableExclusiveLock(ProgressCallback callback, String key,
 			ProgressingCallable<R> runner) throws Exception;
 
 	/**
@@ -334,7 +334,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public String touchTable(UserInfo user, String tableId);
+	String touchTable(UserInfo user, String tableId);
 
 	/**
 	 * Given a set of benefactor Ids get the sub-set of benefactor IDs for which
@@ -344,7 +344,7 @@ public interface TableManagerSupport {
 	 * @param benefactorIds
 	 * @return
 	 */
-	public Set<Long> getAccessibleBenefactors(UserInfo user,
+	Set<Long> getAccessibleBenefactors(UserInfo user,
 			Set<Long> benefactorIds);
 
 	/**
@@ -353,7 +353,7 @@ public interface TableManagerSupport {
 	 * @param field
 	 * @return
 	 */
-	public ColumnModel getColumnModel(EntityField field);
+	ColumnModel getColumnModel(EntityField field);
 
 	/**
 	 * Get the ColumnModels for the passed fields.
@@ -361,7 +361,7 @@ public interface TableManagerSupport {
 	 * @param field
 	 * @return
 	 */
-	public List<ColumnModel> getColumnModels(EntityField... field);
+	List<ColumnModel> getColumnModels(EntityField... field);
 
 	/**
 	 * Get the default ColumnModels for a view based on the viewTypeMask.
@@ -370,7 +370,7 @@ public interface TableManagerSupport {
 	 * 
 	 * @return
 	 */
-	public List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMask);
+	List<ColumnModel> getDefaultTableViewColumns(Long viewTypeMask);
 
 	/**
 	 * Get the entity type for the given table.
@@ -378,15 +378,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public EntityType getTableEntityType(IdAndVersion tableId);
-
-	/**
-	 * Get the path of the given entity.
-	 * 
-	 * @param entityId
-	 * @return
-	 */
-	public List<Long> getEntityPath(IdAndVersion entityId);
+	EntityType getTableEntityType(IdAndVersion tableId);
 
 	/**
 	 * Get the view type for the given table ID.
@@ -403,7 +395,7 @@ public interface TableManagerSupport {
 	 * @param userInfo
 	 * @param tableId
 	 */
-	public void rebuildTable(UserInfo userInfo, IdAndVersion tableId);
+	void rebuildTable(UserInfo userInfo, IdAndVersion tableId);
 
 	/**
 	 * Validate that the given scope is within the size limit.
@@ -411,7 +403,7 @@ public interface TableManagerSupport {
 	 * @param scopeIds
 	 * @param type
 	 */
-	public void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
+	void validateScopeSize(Set<Long> scopeIds, Long viewTypeMask);
 
 	/**
 	 * Does the given table exist?  If the table is in the trash then this will
@@ -419,7 +411,7 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean doesTableExist(IdAndVersion tableId);
+	boolean doesTableExist(IdAndVersion tableId);
 
 	/**
 	 * Get the last change number for the given table ID and version pair.
@@ -434,7 +426,7 @@ public interface TableManagerSupport {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
+	List<ColumnModel> getTableSchema(IdAndVersion idAndVersion);
 
 	/**
 	 * Will update the tableStatus.changedOn for the given table if its state is

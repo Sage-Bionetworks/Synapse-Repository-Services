@@ -8,11 +8,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VIEW_TYP
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_SCOPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VIEW_TYPE;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +20,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 
 public class ViewScopeDaoImpl implements ViewScopeDao {
@@ -35,16 +32,12 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 
 	private static final String SQL_SELECT_CONTAINERS_FOR_VIEW = "SELECT "+COL_VIEW_SCOPE_CONTAINER_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
 
-	private static final String SQL_SELECT_DISTINCT_VIEW_IDS_FOR_PATH = "SELECT DISTINCT "+COL_VIEW_SCOPE_VIEW_ID+" FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_CONTAINER_ID+" IN (:pathIds)";
-
 	private static final String SQL_INSERT_VIEW_SCOPE = "INSERT INTO "+TABLE_VIEW_SCOPE+" ("+COL_VIEW_SCOPE_VIEW_ID+", "+COL_VIEW_SCOPE_CONTAINER_ID+") VALUES (?,?)";
 
 	private static final String SQL_DELETE_ALL_FOR_VIEW_ID = "DELETE FROM "+TABLE_VIEW_SCOPE+" WHERE "+COL_VIEW_SCOPE_VIEW_ID+" = ?";
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	@WriteTransaction
 	@Override
@@ -68,14 +61,6 @@ public class ViewScopeDaoImpl implements ViewScopeDao {
 				}
 			}
 		}
-	}
-
-	@Override
-	public Set<Long> findViewScopeIntersectionWithPath(List<Long> pathIds) {
-		Map<String, List<Long>> params = new HashMap<String, List<Long>>(1);
-		params.put("pathIds", pathIds);
-		List<Long> list = namedParameterJdbcTemplate.queryForList(SQL_SELECT_DISTINCT_VIEW_IDS_FOR_PATH, params, Long.class);
-		return new HashSet<Long>(list);
 	}
 
 	@WriteTransaction
