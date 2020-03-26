@@ -130,7 +130,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 					EntityBundle.ENTITY_PATH |
 					EntityBundle.HAS_CHILDREN |
 					EntityBundle.ACL;
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, accessToken);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -175,7 +175,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		// Get the bundle, verify contents
 		int mask =  EntityBundle.ENTITY | 
 					EntityBundle.ACL;
-		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), mask, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), mask, accessToken);
 		Folder s2 = (Folder) eb.getEntity();
 		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
 		assertEquals(s1, s2);
@@ -201,7 +201,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		
 		// Get the bundle, verify contents
 		int mask =  EntityBundle.ENTITY;
-		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, adminUserId);
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, accessToken);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
 		p2.setEtag(p3.getEtag());
@@ -260,7 +260,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		toDelete.add(file.getId());
 		
 		// Get the file handle in the bundle
-		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), EntityBundle.FILE_HANDLES, adminUserId);
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), EntityBundle.FILE_HANDLES, accessToken);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getFileHandles());
 		assertTrue(bundle.getFileHandles().size() > 0);

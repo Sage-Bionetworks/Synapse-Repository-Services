@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -31,9 +32,14 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
+	private String accessToken;
 	private Entity project;
 	private Long adminUserId;
 	private CreateDiscussionThread createThread;
@@ -42,9 +48,11 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+
 		project = new Project();
 		project.setName(UUID.randomUUID().toString());
-		project = servletTestHelper.createEntity(dispatchServlet, project, adminUserId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setTitle("title");
@@ -57,7 +65,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	@After
 	public void cleanup() {
 		try {
-			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), adminUserId,
+			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), accessToken,
 					Collections.singletonMap("skipTrashCan", "false"));
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -162,7 +162,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
 		Folder child = new Folder();
 		child.setParentId(sampleProject.getId());
-		Folder fetched = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+		Folder fetched = servletTestHelper.createEntity(dispatchServlet, child, accessToken);
 		assertNotNull(fetched);
 	}
 	
@@ -176,7 +176,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		child.setParentId(sampleProject.getId());
 		try{
 			// This should fail in read only.
-			servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+			servletTestHelper.createEntity(dispatchServlet, child, accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -195,7 +195,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// This should fail
 		Project child = new Project();
 		child.setParentId(sampleProject.getId());
-		servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+		servletTestHelper.createEntity(dispatchServlet, child, accessToken);
 		fail();
 	}
 	
@@ -233,7 +233,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testDeleteReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		sampleProject = null;
 	}
 	
@@ -244,7 +244,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		sampleProject = null;
 		fail();
 	}
@@ -256,7 +256,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		sampleProject = null;
 		fail();
 	}

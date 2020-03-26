@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -54,11 +55,17 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	@Autowired
 	private UserManager userManager;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
+	private String accessToken;
 	private Long userId;
 	private Long otherUserId;
 	private UserInfo adminUserInfo;
 	private UserInfo otherUserInfo;
 
+	private String otherAccessToken;
+	
 	private List<String> toDelete;
 
 	@Before
@@ -67,6 +74,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		toDelete = new ArrayList<String>();
 		
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(userId);
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -78,6 +86,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		user.setUserName(UUID.randomUUID().toString());
 		otherUserId = userManager.createUser(user);
 		otherUserInfo = userManager.getUserInfo(otherUserId);
+		otherAccessToken = oidcTokenHelper.createTotalAccessToken(otherUserId);
 	}
 
 	@After
@@ -103,10 +112,10 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), accessToken);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		entityService.getEntity(userId, clone.getId(), Project.class);
@@ -117,10 +126,10 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, clone.getId(), userId);
+		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, clone.getId(), accessToken);
 		assertNotNull(acl);
 		acl = servletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userId);
 		assertNotNull(acl);
@@ -131,7 +140,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
@@ -139,17 +148,17 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Folder ds = new Folder();
 		ds.setName("testDataset");
 		ds.setParentId(clone.getId());
-		Folder dsClone = servletTestHelper.createEntity(dispatchServlet, ds, userId);
+		Folder dsClone = servletTestHelper.createEntity(dispatchServlet, ds, accessToken);
 		assertNotNull(dsClone);
 		toDelete.add(dsClone.getId());
 
 		AccessControlList acl = null;
 		try {
-			acl = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+			acl = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), accessToken);
 			fail("Should have failed to get the ACL of an inheriting node");
 		} catch (ACLInheritanceException e) {
 			// Get the ACL from the redirect
-			acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+			acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
@@ -166,7 +175,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// now POST to /dataset/{id}/acl with this acl as the body
 		AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userId);
 		// now retrieve the acl for the child. should get its own back
-		AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+		AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), accessToken);
 		assertEquals(dsClone.getId(), acl3.getId());
 
 		// now delete the ACL (restore inheritance)
@@ -176,9 +185,9 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// should get the parent's ACL
 		AccessControlList acl4 = null;
 		try{
-			servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+			servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), accessToken);
 		}catch (ACLInheritanceException e){
-			acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+			acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 		}
 
 		assertNotNull(acl4);
@@ -191,7 +200,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
@@ -213,7 +222,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
 		project.setName(null);
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherAccessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
@@ -230,7 +239,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	public void testGetEntityType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherAccessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
@@ -245,12 +254,12 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	public void testGetEntityBenefactor() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, otherAccessToken);
 		toDelete.add(project.getId());
 		// Create a dataset
 		Folder ds = new Folder();
 		ds.setParentId(project.getId());
-		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
+		ds = servletTestHelper.createEntity(dispatchServlet, ds, accessToken);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 
@@ -276,17 +285,17 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, otherAccessToken);
 		toDelete.add(project.getId());
 		// Create a dataset
 		Folder ds = new Folder();
 		ds.setParentId(project.getId());
-		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
+		ds = servletTestHelper.createEntity(dispatchServlet, ds, accessToken);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 
 		// Get the ACL for the project
-		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherUserId);
+		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherAccessToken);
 
 		// Now attempt to update the ACL as the dataset
 		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);

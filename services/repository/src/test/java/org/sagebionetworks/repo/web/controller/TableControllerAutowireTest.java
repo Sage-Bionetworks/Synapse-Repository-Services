@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -44,20 +45,26 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Autowired
 	private SynapseS3Client s3Client;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
 	private Entity parent;
 	private Long adminUserId;
 
 	private List<S3FileHandle> handles = Lists.newArrayList();
 	private List<String> entitiesToDelete = Lists.newArrayList();
 	
+	private String accessToken;
+	
 	@Before
 	public void before() throws Exception {
 	
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
-		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, accessToken);
 		Assert.assertNotNull(parent);
 
 		entitiesToDelete.add(parent.getId());
@@ -67,7 +74,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	public void after(){
 		for (String entity : Lists.reverse(entitiesToDelete)) {
 			try {
-				servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
+				servletTestHelper.deleteEntity(dispatchServlet, null, entity, accessToken,
 						Collections.singletonMap("skipTrashCan", "false"));
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -106,7 +113,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
 		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId()));
-		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, accessToken);
 		entitiesToDelete.add(table.getId());
 
 		table.setColumnIds(Lists.<String>newArrayList());
@@ -132,7 +139,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setParentId(parent.getId());
 		List<String> idList = Lists.newArrayList(one.getId(), two.getId(), one.getId());
 		table.setColumnIds(idList);
-		servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		servletTestHelper.createEntity(dispatchServlet, table, accessToken);
 	}
 
 	@Test

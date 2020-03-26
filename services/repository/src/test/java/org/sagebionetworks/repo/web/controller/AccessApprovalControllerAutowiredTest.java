@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -44,9 +45,13 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 	@Autowired
 	private UserManager userManager;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
 	private Long userId;
 	private UserInfo testUser;
 	private Project project;
+	private String accessToken;
 
 	private List<String> toDelete;
 	
@@ -66,6 +71,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		toDelete = new ArrayList<String>();
 		
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(userId);
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -73,7 +79,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		UserInfo.validateUserInfo(testUser);
 		project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 

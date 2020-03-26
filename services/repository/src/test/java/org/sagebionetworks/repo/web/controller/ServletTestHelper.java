@@ -255,19 +255,14 @@ public class ServletTestHelper {
 
 	public <T extends Entity> void deleteEntity(Class<? extends T> clazz,
 			String id, Map<String, String> extraParams) throws Exception {
-		deleteEntity(dispatchServlet, clazz, id, userId,
+		deleteEntity(dispatchServlet, clazz, id, accessToken,
 				extraParams);
-	}
-
-	public QueryResults<Map<String, Object>> query(String query)
-			throws Exception {
-		return query(dispatchServlet, query, userId);
 	}
 
 	public <T extends Entity> AccessControlList getEntityACL(T entity)
 			throws Exception {
 		return getEntityACL(dispatchServlet, entity.getId(),
-				userId);
+				accessToken);
 	}
 
 	public <T extends Entity> AccessControlList updateEntityAcl(T entity,
@@ -286,16 +281,6 @@ public class ServletTestHelper {
 	 * Create the passed entity by making a request to the passed servlet
 	 */
 	public <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, Long userId)
-			throws Exception {
-		return createEntity(dispatchServlet, entity, userId,
-				null);
-	}
-
-	/**
-	 * Create the passed entity by making a request to the passed servlet
-	 */
-	public <T extends Entity> T createEntity(
 			HttpServlet dispatchServlet, T entity, String accessToken)
 			throws Exception {
 		return createEntity(dispatchServlet, entity, accessToken,
@@ -305,22 +290,6 @@ public class ServletTestHelper {
 	/**
 	 * Create the passed entity by making a request to the passed servlet
 	 */
-	@SuppressWarnings("unchecked")
-	public <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, Long userId,
-			Map<String, String> extraParams) throws Exception {
-
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
-		ServletTestHelperUtils.addExtraParams(request, extraParams);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
-
-		return (T) objectMapper.readValue(response.getContentAsString(),
-				entity.getClass());
-	}
-
 	@SuppressWarnings("unchecked")
 	public <T extends Entity> T createEntity(
 			HttpServlet dispatchServlet, T entity, String accessToken,
@@ -524,15 +493,6 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId) throws Exception {
-		deleteEntity(dispatchServlet, clazz, id, userId, null);
-	}
-
-	/**
-	 * Delete an entity
-	 */
-	public <T extends Entity> void deleteEntity(
-			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String accessToken) throws Exception {
 		deleteEntity(dispatchServlet, clazz, id, accessToken, null);
 	}
@@ -540,17 +500,6 @@ public class ServletTestHelper {
 	/**
 	 * Delete an entity
 	 */
-	public <T extends Entity> void deleteEntity(
-			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId, Map<String, String> extraParams) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
-		ServletTestHelperUtils.addExtraParams(request, extraParams);
-
-		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
-				HttpStatus.NO_CONTENT);
-	}
-
 	public <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String accessToken, Map<String, String> extraParams) throws Exception {
@@ -577,21 +526,6 @@ public class ServletTestHelper {
 				HttpStatus.NO_CONTENT);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T extends Entity> QueryResults<Map<String, Object>> query(
-			HttpServlet dispatchServlet, String query, Long userId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.QUERY, userId, null);
-		request.setParameter(ServiceConstants.QUERY_PARAM, query);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return objectMapper.readValue(response.getContentAsString(),
-				QueryResults.class);
-	}
-
 	/**
 	 * Create the Access Control List (ACL) for an entity
 	 */
@@ -613,11 +547,11 @@ public class ServletTestHelper {
 	 * Get the Access Control List (ACL) for an entity
 	 */
 	public <T extends Entity> AccessControlList getEntityACL(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
-				userId, null);
+				accessToken, null);
 
 		MockHttpServletResponse response;
 		try {

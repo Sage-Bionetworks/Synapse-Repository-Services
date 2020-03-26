@@ -150,11 +150,11 @@ public class EntityServletTestHelper {
 	 * Get an entity bundle using only the ID
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, Long userId)
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
-				userId, null);
+				accessToken, null);
 		request.setParameter("mask", "" + mask);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -514,10 +514,10 @@ public class EntityServletTestHelper {
 				Evaluation.class);
 	}
 
-	public Submission createSubmission(Submission sub, Long userId,
+	public Submission createSubmission(Submission sub, String accessToken,
 			String entityEtag) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.SUBMISSION, userId, sub);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.SUBMISSION, accessToken, sub);
 		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
 
 		MockHttpServletResponse response = ServletTestHelperUtils

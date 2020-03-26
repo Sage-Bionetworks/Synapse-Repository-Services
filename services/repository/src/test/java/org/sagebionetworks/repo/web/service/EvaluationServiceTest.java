@@ -27,7 +27,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -47,7 +46,7 @@ public class EvaluationServiceTest {
 	@Mock
 	private EvaluationPermissionsManager mockEvaluationPermissionsManager;
 	@Mock
-	private UserManager mockUserManager;
+	private OpenIDConnectManager mockOIDCManager;
 	@Mock
 	private QueryDAO mockQueryDAO;
 	@Mock
@@ -67,7 +66,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testCreateSubmission() throws Exception {
-		userId = 111L;
+		String accessToken = "access token";
 		evalId = "evalId";
 		limit = 11;
 		offset = 0;
@@ -75,7 +74,7 @@ public class EvaluationServiceTest {
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
-		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockOIDCManager.getUserAuthorization(accessToken)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";

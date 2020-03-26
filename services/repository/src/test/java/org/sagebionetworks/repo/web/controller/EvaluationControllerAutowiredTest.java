@@ -27,6 +27,7 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -75,6 +76,11 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	@Autowired
 	private TeamManager teamManager;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
+	private String adminAccessToken;
+	private String testUserAccessToken;
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	
@@ -102,11 +108,13 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
+		adminAccessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		testUserAccessToken = oidcTokenHelper.createTotalAccessToken(testUserId);
 		 groupMembersDAO.addMembers(
 		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 		 Collections.singletonList(testUserId.toString()));
@@ -270,7 +278,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		Node node = nodeManager.get(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
+		sub1 = entityServletHelper.createSubmission(sub1, testUserAccessToken, node.getETag());
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
@@ -338,7 +346,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
+		sub1 = entityServletHelper.createSubmission(sub1, testUserAccessToken, node.getETag());
 	}
 	
 	@Test
@@ -378,14 +386,14 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(adminUserId.toString());
-		sub1 = entityServletHelper.createSubmission(sub1, adminUserId, etag1);
+		sub1 = entityServletHelper.createSubmission(sub1, adminAccessToken, etag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(adminUserId.toString());
-		sub2 = entityServletHelper.createSubmission(sub2, adminUserId, etag2);
+		sub2 = entityServletHelper.createSubmission(sub2, adminAccessToken, etag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		

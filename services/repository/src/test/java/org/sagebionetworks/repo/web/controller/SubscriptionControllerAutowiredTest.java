@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -23,9 +24,14 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
 import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
+	private String accessToken;
 	private Entity project;
 	private Long adminUserId;
 	private Forum forum;
@@ -34,9 +40,11 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+
 		project = new Project();
 		project.setName(UUID.randomUUID().toString());
-		project = servletTestHelper.createEntity(dispatchServlet, project, adminUserId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 
 		CreateDiscussionThread createThread = new CreateDiscussionThread();
 		createThread.setTitle("title");
@@ -55,7 +63,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	public void cleanup() throws Exception {
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 		try {
-			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), adminUserId,
+			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), accessToken,
 					Collections.singletonMap("skipTrashCan", "false"));
 		} catch (Exception e) {
 			e.printStackTrace();

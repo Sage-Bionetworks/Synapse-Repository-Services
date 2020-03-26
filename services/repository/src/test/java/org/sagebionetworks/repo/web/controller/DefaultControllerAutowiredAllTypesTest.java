@@ -174,12 +174,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	public void testAnonymousGet() throws Exception {
 		Project project = new Project();
 		project.setName("testAnonymousGet");
-		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		String id = project.getId();
 		assertNotNull(project);
 		toDelete.add(id);
 		// Grant this project public access
-		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, id, userId);
+		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, id, accessToken);
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
@@ -214,7 +214,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Create a project
 		Project project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 		// Now get the path of the layer
@@ -253,7 +253,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					dockerRepository.setIsManaged(false);
 					dockerRepository.setRepositoryName("foo/bar");
 				}
-				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
+				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, accessToken);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
 				assertNotNull(clone.getEtag());
@@ -326,7 +326,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		
 		// Now delete each one
 		for(Entity entity: created){
-			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			// This should throw an exception
 			try {
 				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
@@ -447,9 +447,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			}catch(ACLInheritanceException e){
-				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 			}
 			assertNotNull(acl);
 		}
@@ -466,9 +466,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			}catch(ACLInheritanceException e){
-				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 			}
 			assertNotNull(acl);
 			servletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, userId);
@@ -488,10 +488,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			}catch(ACLInheritanceException e){
 				// occurs when the child inherits its permissions from a benefactor
-				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 			}
 			assertNotNull(acl);
 			// Get the full path of this entity.
@@ -515,7 +515,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			// now POST to /dataset/{id}/acl with this acl as the body
 			AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userId);
 			// now retrieve the acl for the child. should get its own back
-			AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+			AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			assertEquals(entity.getId(), acl3.getId());
 			
 			
@@ -526,9 +526,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			// should get the parent's ACL
 			AccessControlList acl4 = null;
 			try{
-				acl4 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl4 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			}catch(ACLInheritanceException e){
-				acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 			}
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
