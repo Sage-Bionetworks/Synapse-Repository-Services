@@ -139,6 +139,10 @@ public class SchemaUtils {
 			String key = it.next();
 			ObjectSchema schema = schemaMap.get(key);
 			if(schema.getId() != null){
+				ObjectSchema recursieAnchor = null;
+				if(Boolean.TRUE.equals(schema.get$recursiveAnchor())){
+					recursieAnchor = schema;
+				}
 				try {
 					Class clazz = Class.forName(schema.getId());
 					Class[] interfaces = clazz.getInterfaces();
@@ -151,7 +155,7 @@ public class SchemaUtils {
 									list = new LinkedList<TypeReference>();
 									map.put(interfaceName, list);
 								}
-								list.add(typeToLinkString(schema));
+								list.add(typeToLinkString(schema, recursieAnchor));
 							}
 						}
 					}
@@ -250,6 +254,10 @@ public class SchemaUtils {
 		results.setEffectiveSchema(schema.getSchema());
 		results.setId(schema.getId());
 		results.setName(schema.getName());
+		ObjectSchema recursiveAnchor = null;
+		if(Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
+			recursiveAnchor = schema;
+		}
 		// Get the fields
 		Map<String, ObjectSchema> props = schema.getProperties();
 		if(props != null && !props.isEmpty()){
@@ -259,7 +267,7 @@ public class SchemaUtils {
 			while(keyIt.hasNext()){
 				String key = keyIt.next();
 				ObjectSchema prop = props.get(key);
-				SchemaFields field = translateToSchemaField(key, prop);
+				SchemaFields field = translateToSchemaField(key, prop, recursiveAnchor);
 				fields.add(field);
 			}
 		}
@@ -282,11 +290,11 @@ public class SchemaUtils {
 	 * @param prop
 	 * @return
 	 */
-	public static SchemaFields translateToSchemaField(String key, ObjectSchema prop){
+	public static SchemaFields translateToSchemaField(String key, ObjectSchema prop, ObjectSchema recursiveAnchor){
 		SchemaFields field = new SchemaFields();
 		field.setName(key);
 		field.setDescription(prop.getDescription());
-		field.setType(typeToLinkString(prop));
+		field.setType(typeToLinkString(prop, recursiveAnchor));
 		return field;
 	}
 	
@@ -295,12 +303,12 @@ public class SchemaUtils {
 	 * @param type
 	 * @return
 	 */
-	public static TypeReference typeToLinkString(ObjectSchema type){
+	public static TypeReference typeToLinkString(ObjectSchema type, ObjectSchema recursiveAnchor){
 		boolean isArray = false;
 		boolean isMap = false;
 		boolean isUnique = false;
-		String[] display = getTypeDisplay(type);
-		String[] href = getTypeHref(type);
+		String[] display = getTypeDisplay(type, recursiveAnchor);
+		String[] href = getTypeHref(type, recursiveAnchor);
 		if(TYPE.ARRAY == type.getType()){
 			isArray = true;
 			isUnique = type.getUniqueItems();
@@ -315,7 +323,15 @@ public class SchemaUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String[] getTypeHref(ObjectSchema type) {
+	public static String[] getTypeHref(ObjectSchema type, ObjectSchema recursiveAnchor) {
+		if("#".equals(type.get$recursiveRef())) {
+			if(recursiveAnchor == null) {
+				throw new IllegalArgumentException("Found a $recursiveRef without a corosponding $recursiveAnchor");
+			}
+			StringBuilder builder = new StringBuilder();
+			builder.append("${").append(recursiveAnchor.getId()).append("}");
+			return new String[] { builder.toString() };
+		}
 		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
 			if(type.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 			StringBuilder builder = new StringBuilder();
@@ -323,7 +339,7 @@ public class SchemaUtils {
 			return new String[] { builder.toString() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
-			return getTypeHref(type.getItems());
+			return getTypeHref(type.getItems(), recursiveAnchor);
 		}
 		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
@@ -334,8 +350,8 @@ public class SchemaUtils {
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
-			String[] keyHref = getTypeHref(keySchema);
-			String[] valueHref = getTypeHref(valueSchema);
+			String[] keyHref = getTypeHref(keySchema, recursiveAnchor);
+			String[] valueHref = getTypeHref(valueSchema, recursiveAnchor);
 			if (keyHref.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
@@ -348,7 +364,7 @@ public class SchemaUtils {
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
-			String[] valueHref = getTypeHref(valueSchema);
+			String[] valueHref = getTypeHref(valueSchema, recursiveAnchor);
 			if (valueHref.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
@@ -362,12 +378,18 @@ public class SchemaUtils {
 		}
 	}
 	
-	public static String[] getTypeDisplay(ObjectSchema type) {
+	public static String[] getTypeDisplay(ObjectSchema type, ObjectSchema recursiveAnchor) {
+		if("#".equals(type.get$recursiveRef())) {
+			if(recursiveAnchor == null) {
+				throw new IllegalArgumentException("Found a $recursiveRef without a corosponding $recursiveAnchor");
+			}
+			return new String[] { recursiveAnchor.getName() };
+		}
 		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
 			return new String[] { type.getName() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
-			return getTypeDisplay(type.getItems());
+			return getTypeDisplay(type.getItems(), recursiveAnchor);
 		}
 		if (TYPE.TUPLE_ARRAY_MAP == type.getType()) {
 			ObjectSchema keySchema = type.getKey();
@@ -378,8 +400,8 @@ public class SchemaUtils {
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
-			String[] keyDisplay = getTypeDisplay(keySchema);
-			String[] valueDisplay = getTypeDisplay(valueSchema);
+			String[] keyDisplay = getTypeDisplay(keySchema, recursiveAnchor);
+			String[] valueDisplay = getTypeDisplay(valueSchema, recursiveAnchor);
 			if (keyDisplay.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.key not a single type");
 			}
@@ -392,7 +414,7 @@ public class SchemaUtils {
 			if (valueSchema == null) {
 				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.TUPLE_ARRAY_MAP");
 			}
-			String[] valueDisplay = getTypeDisplay(valueSchema);
+			String[] valueDisplay = getTypeDisplay(valueSchema, recursiveAnchor);
 			if (valueDisplay.length != 1) {
 				throw new IllegalArgumentException("ObjectSchema.value not a single type");
 			}
