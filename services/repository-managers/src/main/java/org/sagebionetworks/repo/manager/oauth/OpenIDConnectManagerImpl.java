@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getSco
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -392,8 +393,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		boolean isAdmin = groups.contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
 		// we don't let clients besides Synapse itself have admin access
 		boolean adminAccessAllowed = oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
+		boolean hasAllScopes = scopes.containsAll(Arrays.asList(OAuthScope.values()));
 
-		UserInfo result = new UserInfo(isAdmin && adminAccessAllowed);
+		UserInfo result = new UserInfo(isAdmin && hasAllScopes && adminAccessAllowed);
 		result.setId(Long.parseLong(userId));
 		result.setGroups(groups);
 		result.setOidcClaims(oidcClaims);
