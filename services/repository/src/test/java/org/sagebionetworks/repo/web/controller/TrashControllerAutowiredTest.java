@@ -87,15 +87,15 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		assertNotNull(this.entityService);
 		parent = new Project();
 		parent.setName("TrashControllerAutowiredTest.parent" + UUID.randomUUID().toString());
-		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminAccessToken);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, testUserAccessToken);
 		assertNotNull(parent);
 		child = new Folder();
 		child.setName("TrashControllerAutowiredTest.child" + UUID.randomUUID().toString());
 		child.setParentId(parent.getId());
-		child = servletTestHelper.createEntity(dispatchServlet, child, adminAccessToken);
+		child = servletTestHelper.createEntity(dispatchServlet, child, testUserAccessToken);
 		assertNotNull(child);
 		assertEquals(parent.getId(), child.getParentId());
-		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), adminUserId);
+		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId);
 		assertEquals(parent.getId(), benefactor.getId());
 		
 		toPurge.add(KeyFactory.stringToKey(child.getId()));
@@ -149,7 +149,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		child2 = new Link();
 		child2.setName("TrashControllerAutowiredTest.link" + UUID.randomUUID().toString());
 		child2.setParentId(parent.getId());
-		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserAccessToken);
+		child2 = servletTestHelper.createEntity(dispatchServlet, child2, adminAccessToken);
 		
 		toPurge.add(KeyFactory.stringToKey(child2.getId()));
 

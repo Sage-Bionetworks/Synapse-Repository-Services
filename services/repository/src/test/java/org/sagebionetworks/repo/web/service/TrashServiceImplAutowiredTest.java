@@ -97,7 +97,7 @@ public class TrashServiceImplAutowiredTest {
 		// Set up test user.
 		adminUserId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		userId = createUser();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		accessToken = oidcTokenHelper.createTotalAccessToken(userId);
 
 		// Set up test project.
 		Project project = new Project();
@@ -146,6 +146,7 @@ public class TrashServiceImplAutowiredTest {
 	public void fileHandleNonOwnerCanDeleteAndRestoreFileEntity() throws Exception {
 		// Create another user and give them access to the project.
 		long user2Id = createUser();
+		String accessToken2 = oidcTokenHelper.createTotalAccessToken(user2Id);
 
 		ResourceAccess userAccess = new ResourceAccess();
 		userAccess.setPrincipalId(userId);
@@ -166,7 +167,7 @@ public class TrashServiceImplAutowiredTest {
 
 		// User 2 can delete and restore the file.
 		trashService.moveToTrash(user2Id, fileEntityId, false);
-		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(accessToken, fileEntityId));
+		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(accessToken2, fileEntityId));
 
 		trashService.restoreFromTrash(user2Id, fileEntityId, null);
 		FileEntity restored = entityService.getEntity(user2Id, fileEntityId, FileEntity.class);

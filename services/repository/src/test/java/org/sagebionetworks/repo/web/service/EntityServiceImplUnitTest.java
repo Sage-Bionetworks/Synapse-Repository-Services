@@ -94,10 +94,9 @@ public class EntityServiceImplUnitTest {
 	public void testGetFileRedirectURLForCurrentVersion() {
 		String entityId = "999";
 		String fileHandleId = "111";
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null))
 				.thenReturn(fileHandleId);
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));

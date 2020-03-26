@@ -362,10 +362,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> Annotations getEntityAnnotationsForVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long versionNumber, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Long versionNumber, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.ANNOTATIONS, userId,
+						+ "/" + versionNumber + UrlHelpers.ANNOTATIONS, accessToken,
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -947,11 +947,11 @@ public class ServletTestHelper {
 	}
 
 	public UserEntityPermissions getUserEntityPermissions(
-			HttpServlet dispatchServlet, String id, Long userId)
+			HttpServlet dispatchServlet, String id, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.PERMISSIONS, userId, null);
+						+ UrlHelpers.PERMISSIONS, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);

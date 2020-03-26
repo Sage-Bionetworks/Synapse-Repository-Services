@@ -711,12 +711,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// Now make sure we can get both v1 and v2 annotations and each has the correct values
 				//v1
 				v1Annos = servletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1l,
-						userId);
+						accessToken);
 				assertNotNull(v1Annos);
 				assertEquals(v1Value, v1Annos.getSingleValue("stringKey"));
 				//v2
 				v2Annos = servletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l,
-						userId);
+						accessToken);
 				assertNotNull(v2Annos);
 				assertEquals(v2Value, v2Annos.getSingleValue("stringKey"));
 			}
@@ -774,7 +774,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			UserEntityPermissions uep = servletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userId);
+			UserEntityPermissions uep = servletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), accessToken);
 			assertNotNull(uep);
 			assertEquals(true, uep.getCanDownload());
 			assertEquals(true, uep.getCanUpload());
