@@ -189,11 +189,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ac);
-		servletTestHelper.updateEntityAcl(dispatchServlet, id, acl, userId);
+		servletTestHelper.updateEntityAcl(dispatchServlet, id, acl, accessToken);
 		
 		// Make sure the anonymous user can see this.
+		String anonAccessToken=oidcTokenHelper.createAnonymousAccessToken();
 		Project clone = servletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(),
-				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				anonAccessToken);
 		assertNotNull(clone);
 	}
 	
@@ -310,7 +311,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now make sure we can get each type
 		for(Entity entity: created){
 			// Can we get it?
-			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			assertNotNull(fromGet);
 			// Should match the clone
 			assertEquals(entity, fromGet);
@@ -326,10 +327,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		
 		// Now delete each one
 		for(Entity entity: created){
-			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
+			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			// This should throw an exception
 			try {
-				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 				fail("Entity ID " + entity.getId() + " should no longer exist. Expected an exception.");
 			} catch (Exception e) {
 				// expected
@@ -350,7 +351,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			// Now change the name
 			String newName ="my new name"+counter;
 			entity.setName(newName);
-			Entity updated = servletTestHelper.updateEntity(dispatchServlet, entity, userId);
+			Entity updated = servletTestHelper.updateEntity(dispatchServlet, entity, accessToken);
 			assertNotNull(updated);
 			// Updating an entity should not create a new version
 			if(updated instanceof VersionableEntity){
@@ -361,7 +362,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			assertNotNull(updated.getEtag());
 			assertFalse(updated.getEtag().equals(entity.getEtag()));
 			// Now get the object
-			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			assertEquals(updated, fromGet);
 			assertEquals(newName, fromGet.getName());
 			counter++;
@@ -403,7 +404,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			assertNotNull(annos);
 			// Annotations use the same etag as the entity
 			assertEquals(entity.getEtag(), annos.getEtag());
@@ -422,7 +423,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			assertNotNull(annos);
 			assertNotNull(annos.getEtag());
 			annos.addAnnotation("someStringKey", "one");
@@ -471,7 +472,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), accessToken);
 			}
 			assertNotNull(acl);
-			servletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, userId);
+			servletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, accessToken);
 		}
 
 	}
@@ -513,7 +514,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			acl.setId(null);
 			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 			// now POST to /dataset/{id}/acl with this acl as the body
-			AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userId);
+			AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, accessToken);
 			// now retrieve the acl for the child. should get its own back
 			AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), accessToken);
 			assertEquals(entity.getId(), acl3.getId());
@@ -558,7 +559,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.createNewVersion()");
-				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, accessToken);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -588,7 +589,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.testGetVersion()");
-				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, accessToken);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -597,12 +598,12 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// Get the first version
 				VersionableEntity v1 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
-						versionableEntity.getId(), new Long(1), userId);
+						versionableEntity.getId(), new Long(1), accessToken);
 				assertNotNull(v1);
 				assertEquals(new Long(1), v1.getVersionNumber());
 				// now get the second version
 				VersionableEntity v2 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
-						versionableEntity.getId(), new Long(2), userId);
+						versionableEntity.getId(), new Long(2), accessToken);
 				assertNotNull(v2);
 				assertEquals(new Long(2), v2.getVersionNumber());
 			}
@@ -628,10 +629,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// Create multiple versions for each.
 				for(int i=0; i<numberVersion; i++){
 					// Create a comment and label for each
-					versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+					versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), accessToken);
 					versionableEntity.setVersionLabel("1.1."+i);
 					versionableEntity.setVersionComment("Comment: "+i);
-					servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+					servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, accessToken);
 				}
 				long currentVersion = numberVersion+1;
 				long previousVersion = currentVersion-1;
@@ -682,7 +683,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// Before we create a new version make sure the current version has some annotations
 				Annotations v1Annos = servletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(),
-						userId);
+						accessToken);
 				assertNotNull(v1Annos);
 				String v1Value = "I am on the first version, whooo hooo!...";
 				v1Annos.addAnnotation("stringKey", v1Value);
@@ -690,15 +691,15 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 
 				// Now create a new version
 				// We must give it a new version label or it will fail
-				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), accessToken);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.EntityAnnotationsForVersion()");
-				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, accessToken);
 				assertNotNull(newVersion);
 				
 				// Make sure the new version has the annotations
 				Annotations v2Annos = servletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(),
-						userId);
+						accessToken);
 				assertNotNull(v2Annos);
 				assertEquals(v1Value, v2Annos.getSingleValue("stringKey"));
 				// Now update the v2 annotations
@@ -740,10 +741,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// Now create a new version
 				// We must give it a new version label or it will fail
-				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), accessToken);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.testDeleteVersion()");
-				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, accessToken);
 				assertNotNull(newVersion);
 				
 				// There should be two versions

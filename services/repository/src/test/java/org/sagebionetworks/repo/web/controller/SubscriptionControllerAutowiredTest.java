@@ -63,7 +63,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	public void cleanup() throws Exception {
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 		try {
-			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), accessToken,
+			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), adminUserId,
 					Collections.singletonMap("skipTrashCan", "false"));
 		} catch (Exception e) {
 			e.printStackTrace();

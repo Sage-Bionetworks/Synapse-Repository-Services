@@ -67,7 +67,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		}
 		// Delete the sample project
 		if(sampleProject != null && sampleProject.getId() != null){
-			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		}
 	}
 	
@@ -82,7 +82,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testGetWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		Project fetched = servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		assertNotNull(fetched);
 	}
 	
@@ -94,7 +94,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -113,7 +113,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertNull(stackStatusDao.getFullCurrentStatus().getCurrentMessage());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -130,7 +130,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals("", stackStatusDao.getFullCurrentStatus().getCurrentMessage());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -146,7 +146,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		try{
 			// This should fail
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -203,7 +203,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testPutWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
+		Project fetched = servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
 		assertNotNull(fetched);
 	}
 	
@@ -214,7 +214,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
+		servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
 		fail();
 	}
 	
@@ -225,7 +225,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
+		servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
 		fail();
 	}
 	
@@ -233,7 +233,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testDeleteReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 	}
 	
@@ -244,7 +244,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 		fail();
 	}
@@ -256,7 +256,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 		fail();
 	}

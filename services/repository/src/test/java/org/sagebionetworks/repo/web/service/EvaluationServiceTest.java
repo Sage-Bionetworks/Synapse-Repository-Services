@@ -27,6 +27,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -46,13 +47,13 @@ public class EvaluationServiceTest {
 	@Mock
 	private EvaluationPermissionsManager mockEvaluationPermissionsManager;
 	@Mock
-	private OpenIDConnectManager mockOIDCManager;
+	private UserManager mockUserManager;
 	@Mock
 	private QueryDAO mockQueryDAO;
 	@Mock
 	private NotificationManager mockNotificationManager;
 	@Mock
-	OpenIDConnectManager mockOidcManager;
+	private OpenIDConnectManager mockOidcManager;
 	@InjectMocks
 	private EvaluationServiceImpl evaluationService;
 
@@ -66,7 +67,6 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testCreateSubmission() throws Exception {
-		String accessToken = "access token";
 		evalId = "evalId";
 		limit = 11;
 		offset = 0;
@@ -74,7 +74,7 @@ public class EvaluationServiceTest {
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
-		when(mockOIDCManager.getUserAuthorization(accessToken)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
@@ -104,6 +104,7 @@ public class EvaluationServiceTest {
 	
 	@Test
 	public void testGetEvaluationsInRange() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		evaluationService.getEvaluationsInRange(userId, false, limit, offset);
 		
 		verify(mockEvaluationManager).getInRange(userInfo, false, limit, offset);
@@ -111,6 +112,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetEvaluationsInRangeActiveOnly() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		evaluationService.getEvaluationsInRange(userId, true, limit, offset);
 		
 		verify(mockEvaluationManager).getInRange(userInfo, true, limit, offset);
@@ -118,6 +120,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetEvaluationByContentSource() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		evaluationService.getEvaluationByContentSource(userId, "syn123", false, limit, offset);
 		
 		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", false, limit, offset);
@@ -125,6 +128,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetEvaluationByContentSourceActiveOnly() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		evaluationService.getEvaluationByContentSource(userId, "syn123", true, limit, offset);
 		
 		verify(mockEvaluationManager).getEvaluationByContentSource(userInfo, "syn123", true, limit, offset);
@@ -132,6 +136,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissions() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getAllSubmissions(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
@@ -141,6 +146,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissionBundles() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getAllSubmissionBundles(userInfo, evalId,  SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
@@ -150,6 +156,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissionStatuses() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		List<SubmissionStatus> expectedRes = new LinkedList<SubmissionStatus>();
 		when(mockSubmissionManager.getAllSubmissionStatuses(userInfo, evalId, SubmissionStatusEnum.OPEN, limit, offset)).thenReturn(expectedRes);
 		// Call under test
@@ -159,6 +166,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testgetMyOwnSubmissionsByEvaluation() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test
@@ -168,6 +176,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testgetMyOwnSubmissionsBundlesByEvaluation() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset)).thenReturn(expectedRes);
 		// Call under test

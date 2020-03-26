@@ -94,7 +94,7 @@ public class EntityServiceImplUnitTest {
 	public void testGetFileRedirectURLForCurrentVersion() {
 		String entityId = "999";
 		String fileHandleId = "111";
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null))
 				.thenReturn(fileHandleId);
 		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
@@ -117,7 +117,7 @@ public class EntityServiceImplUnitTest {
 
 	@Test
 	public void testFireCreate() {
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		// Call under test.
 		entityService.createEntity(ACCESS_TOKEN, project, null);
@@ -139,7 +139,7 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireUpdate() {
 		boolean newVersion = true;
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
@@ -151,7 +151,7 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireUpdateNoNewVersion() {
 		boolean newVersion = false;
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
@@ -170,7 +170,7 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdateTriggersNewVersion() {
 		boolean newVersionParameter = false;
 		final boolean wasNewVersionCreated = true;
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
 				.thenReturn(wasNewVersionCreated);

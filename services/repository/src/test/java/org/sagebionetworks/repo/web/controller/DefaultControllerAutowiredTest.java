@@ -115,7 +115,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), accessToken);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		entityService.getEntity(userId, clone.getId(), Project.class);
@@ -131,7 +131,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		toDelete.add(clone.getId());
 		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, clone.getId(), accessToken);
 		assertNotNull(acl);
-		acl = servletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userId);
+		acl = servletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, accessToken);
 		assertNotNull(acl);
 	}
 
@@ -173,7 +173,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userId);
+		AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, accessToken);
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), accessToken);
 		assertEquals(dsClone.getId(), acl3.getId());
@@ -229,8 +229,8 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");
-		clone = servletTestHelper.updateEntity(dispatchServlet, clone, otherUserId);
-		clone = servletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), otherUserId);
+		clone = servletTestHelper.updateEntity(dispatchServlet, clone, otherAccessToken);
+		clone = servletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), otherAccessToken);
 		assertEquals(newName, clone.getName());
 
 	}
@@ -298,7 +298,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherAccessToken);
 
 		// Now attempt to update the ACL as the dataset
-		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
+		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherAccessToken);
 	}
 
 }

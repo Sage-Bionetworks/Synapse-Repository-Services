@@ -61,30 +61,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Autowired
 	private NotificationManager notificationManager;
 	@Autowired
-	OpenIDConnectManager oidcManager;
+	private OpenIDConnectManager oidcManager;
 
 	
 	public EvaluationServiceImpl() {}
-	
-	// for testing
-	public EvaluationServiceImpl(
-			ServiceProvider serviceProvider,
-			EvaluationManager evaluationManager,
-			SubmissionManager submissionManager,
-			EvaluationPermissionsManager evaluationPermissionsManager,
-			UserManager userManager,
-			QueryDAO queryDAO,
-			NotificationManager notificationManager
-			) {
-		this.serviceProvider = serviceProvider;
-		this.evaluationManager = evaluationManager;
-		this.submissionManager = submissionManager;
-		this.evaluationPermissionsManager = evaluationPermissionsManager;
-		this.userManager = userManager;
-		this.queryDAO = queryDAO;
-		this.notificationManager = notificationManager;	
-	}
-	
 
 	@Override
 	@WriteTransaction

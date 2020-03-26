@@ -189,7 +189,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		assertEquals(fav.getId(), favs.getResults().get(0).getId());
 
 		// Shouldn't retrieve the favorite if the node in trash can
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), accessToken);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), adminUserId);
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));

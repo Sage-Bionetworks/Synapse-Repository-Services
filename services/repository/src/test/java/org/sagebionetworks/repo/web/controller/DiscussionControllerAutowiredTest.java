@@ -65,7 +65,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 	@After
 	public void cleanup() {
 		try {
-			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), accessToken,
+			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), adminUserId,
 					Collections.singletonMap("skipTrashCan", "false"));
 		} catch (Exception e) {
 			e.printStackTrace();

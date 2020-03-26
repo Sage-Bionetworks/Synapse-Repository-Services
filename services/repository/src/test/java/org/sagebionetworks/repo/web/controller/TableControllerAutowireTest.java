@@ -74,7 +74,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	public void after(){
 		for (String entity : Lists.reverse(entitiesToDelete)) {
 			try {
-				servletTestHelper.deleteEntity(dispatchServlet, null, entity, accessToken,
+				servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
 						Collections.singletonMap("skipTrashCan", "false"));
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -117,7 +117,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		entitiesToDelete.add(table.getId());
 
 		table.setColumnIds(Lists.<String>newArrayList());
-		table = servletTestHelper.updateEntity(dispatchServlet, table, adminUserId);
+		table = servletTestHelper.updateEntity(dispatchServlet, table, accessToken);
 		assertEquals(0, table.getColumnIds().size());
 	}
 
