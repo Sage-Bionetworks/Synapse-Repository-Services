@@ -470,7 +470,7 @@ public class DiscussionController {
 
 	/**
 	 * This API is used to get list of entity and count pairs, with count is the
-	 * number of threads that belongs to projects user can view and references
+	 * number of threads that belong to projects user can view and references
 	 * the given entity.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.

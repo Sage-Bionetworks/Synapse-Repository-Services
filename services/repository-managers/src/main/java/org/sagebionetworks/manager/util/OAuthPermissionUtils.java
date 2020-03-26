@@ -1,50 +1,47 @@
 package org.sagebionetworks.manager.util;
 
 import java.util.Collection;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 
-import com.google.common.collect.ImmutableSet;
-
 public class OAuthPermissionUtils {
-	private static final Set<ACCESS_TYPE> VIEWING_ACCESS_TYPES = ImmutableSet.of(
-			ACCESS_TYPE.READ,
-			ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+	private static final Map<ACCESS_TYPE,OAuthScope> ACCESS_TYPE_TO_SCOPE;
 	
-	private static final Set<ACCESS_TYPE> MUTATING_ACCESS_TYPES = ImmutableSet.of(
-			ACCESS_TYPE.CREATE,
-			ACCESS_TYPE.CHANGE_PERMISSIONS,
-			ACCESS_TYPE.UPDATE,
-			ACCESS_TYPE.UPLOAD,
-			ACCESS_TYPE.DELETE,
-			ACCESS_TYPE.SUBMIT,
-			ACCESS_TYPE.UPDATE_SUBMISSION,
-			ACCESS_TYPE.DELETE_SUBMISSION,
-			ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE,
-			ACCESS_TYPE.SEND_MESSAGE,
-			ACCESS_TYPE.CHANGE_SETTINGS,
-			ACCESS_TYPE.MODERATE);
-	
-	private static final Set<ACCESS_TYPE> DOWNLOADING_ACCESS_TYPES = ImmutableSet.of(
-			ACCESS_TYPE.DOWNLOAD);
+	static {
+		ACCESS_TYPE_TO_SCOPE = new HashMap<ACCESS_TYPE,OAuthScope>();
+
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.READ, 						OAuthScope.view);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.READ_PRIVATE_SUBMISSION, 	OAuthScope.view);
+		
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.CREATE, 					OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.CHANGE_PERMISSIONS, 		OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.UPDATE, 					OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.UPLOAD, 					OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.DELETE, 					OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.SUBMIT, 					OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.UPDATE_SUBMISSION, 		OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.DELETE_SUBMISSION, 		OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 	OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.SEND_MESSAGE, 				OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.CHANGE_SETTINGS, 			OAuthScope.modify);
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.MODERATE, 					OAuthScope.modify);
+		
+		ACCESS_TYPE_TO_SCOPE.put(ACCESS_TYPE.DOWNLOAD, 					OAuthScope.download);
+	}
 	
 	public static boolean scopeAllowsAccess(Collection<OAuthScope> scopes, ACCESS_TYPE accessType) {
-		for (OAuthScope scope : scopes) {
-			switch (scope) {
-			case view:
-				return VIEWING_ACCESS_TYPES.contains(accessType);
-			case download:
-				return DOWNLOADING_ACCESS_TYPES.contains(accessType);
-			case modify:
-				return MUTATING_ACCESS_TYPES.contains(accessType);
-			default:
-				continue;
-			}
+		OAuthScope scope = ACCESS_TYPE_TO_SCOPE.get(accessType);
+		return scopes.contains(scope);
+	}
+	
+	public static void checkScopeAllowsAccess(Collection<OAuthScope> scopes, ACCESS_TYPE accessType) {
+		if (!scopeAllowsAccess(scopes, accessType)) {
+			accessDenied(accessType).checkAuthorizationOrElseThrow();;
 		}
-		return false;
 	}
 	
 	public static AuthorizationStatus accessDenied(ACCESS_TYPE accessType) {
