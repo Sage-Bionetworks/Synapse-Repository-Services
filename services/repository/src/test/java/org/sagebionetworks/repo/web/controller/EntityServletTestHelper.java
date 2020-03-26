@@ -131,10 +131,10 @@ public class EntityServletTestHelper {
 	 * versionNumber.
 	 */
 	public EntityBundle getEntityBundleForVersion(String id,
-												  Long versionNumber, EntityBundleRequest bundleV2Request, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Long versionNumber, EntityBundleRequest bundleV2Request, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, accessToken,
 				null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
 		request.setContentType("application/json");
@@ -170,10 +170,10 @@ public class EntityServletTestHelper {
 	 */
 	@Deprecated
 	public org.sagebionetworks.repo.model.EntityBundle getEntityBundleForVersion(String id,
-																				 Long versionNumber, int mask, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				Long versionNumber, int mask, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE, accessToken,
 				null);
 		request.setParameter("mask", "" + mask);
 

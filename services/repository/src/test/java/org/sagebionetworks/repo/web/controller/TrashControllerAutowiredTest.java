@@ -95,7 +95,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		child = servletTestHelper.createEntity(dispatchServlet, child, adminAccessToken);
 		assertNotNull(child);
 		assertEquals(parent.getId(), child.getParentId());
-		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId);
+		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), adminUserId);
 		assertEquals(parent.getId(), benefactor.getId());
 		
 		toPurge.add(KeyFactory.stringToKey(child.getId()));

@@ -380,10 +380,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> Annotations updateEntityAnnotations(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
-			Annotations updatedAnnos, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Annotations updatedAnnos, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
-						+ UrlHelpers.ANNOTATIONS, userId, updatedAnnos);
+						+ UrlHelpers.ANNOTATIONS, accessToken, updatedAnnos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -2149,9 +2149,9 @@ public class ServletTestHelper {
 	}
 
 	public EntityThreadCounts getEntityThreadCounts(DispatcherServlet dispatchServlet,
-			Long userId, EntityIdList entityIds) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY_THREAD_COUNTS, userId, entityIds);
+			String accessToken, EntityIdList entityIds) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.ENTITY_THREAD_COUNTS, accessToken, entityIds);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), EntityThreadCounts.class);

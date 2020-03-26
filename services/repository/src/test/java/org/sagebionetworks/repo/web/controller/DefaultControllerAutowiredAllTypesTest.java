@@ -428,7 +428,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			assertNotNull(annos.getEtag());
 			annos.addAnnotation("someStringKey", "one");
 			// Do the update
-			Annotations updatedAnnos = servletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, userId);
+			Annotations updatedAnnos = servletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, accessToken);
 			assertNotNull(updatedAnnos);
 			assertNotNull(updatedAnnos.getEtag());
 			assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
@@ -687,7 +687,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				assertNotNull(v1Annos);
 				String v1Value = "I am on the first version, whooo hooo!...";
 				v1Annos.addAnnotation("stringKey", v1Value);
-				v1Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v1Annos, userId);
+				v1Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v1Annos, accessToken);
 
 				// Now create a new version
 				// We must give it a new version label or it will fail
@@ -706,7 +706,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				v2Annos.getStringAnnotations().clear();
 				String v2Value = "I am on the second version, booo hooo!...";
 				v2Annos.addAnnotation("stringKey", v2Value);
-				v2Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v2Annos, userId);
+				v2Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v2Annos, accessToken);
 				
 				// Now make sure we can get both v1 and v2 annotations and each has the correct values
 				//v1

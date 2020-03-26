@@ -86,6 +86,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
