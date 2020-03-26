@@ -753,7 +753,7 @@ public class SQLUtils {
 
 				//modify the row_id column which references the main table's row_ids
 				" DROP FOREIGN KEY " + tableName + "_FK" + "," +
-				" RENAME COLUMN " + getRowIdRefColumnNameForId(oldColumnId.toString()) + " TO " + getRowIdRefColumnNameForId(newColumn.getId()) + "," +
+				" RENAME COLUMN " + oldRowRefName + " TO " + newRowRefName + "," +
 				" ADD CONSTRAINT "+ newTableName + "_FK" +" FOREIGN KEY ("+newRowRefName+") REFERENCES "+parentTableName+"("+ROW_ID+") ON DELETE CASCADE," +
 
 				" CHANGE COLUMN " + oldColumnName +  " " + newColumnName + " "+ newColumnTypeSql + "," +
@@ -1356,7 +1356,7 @@ public class SQLUtils {
 		case STRING_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 		case INTEGER_LIST:
-		case DATE_LIST:_VALUE:
+		case DATE_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_LIST_VALUE;
 		case BOOLEAN_LIST:
 			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_LIST_VALUE;
