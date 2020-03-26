@@ -65,28 +65,29 @@ public class ServletTestHelperUtils {
 	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
 			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
-		MockHttpServletRequestBuilder requestBuilder = initRequestUnauthenticated(mode, path, requestURI, entity);
+		MockHttpServletRequest request = initRequestUnauthenticated(mode, path, requestURI, entity);
 		if (userId != null) {
-			requestBuilder.withParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		}
-		return requestBuilder.build();
+		return request;
 	}
 		
-	private static MockHttpServletRequestBuilder initRequestUnauthenticated(HTTPMODE mode, String path,
+	private static MockHttpServletRequest initRequestUnauthenticated(HTTPMODE mode, String path,
 				String requestURI, JSONEntity entity)
 				throws Exception {
-		MockHttpServletRequestBuilder builder = new MockHttpServletRequestBuilder();
-		builder.withMethod(mode.name());
-		builder.withHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
-		builder.withHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
-		builder.withHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
-		builder.withUri(path+requestURI);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod(mode.name());
+		request.addHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
+		request.addHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
+		request.setRequestURI(path+requestURI);
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);
-			builder.withContent(body.getBytes(REQUEST_ENCODING_CHARSET));
+			request.setContent(body.getBytes(REQUEST_ENCODING_CHARSET));
 			log.debug("Request content: " + body);
 		}
-		return builder;
+		return request;
+
 	}
 	
 	public static MockHttpServletRequest initRequest(HTTPMODE mode,
@@ -98,11 +99,11 @@ public class ServletTestHelperUtils {
 	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
 			String requestURI, String accessToken, JSONEntity entity)
 			throws Exception {
-		MockHttpServletRequestBuilder builder = initRequestUnauthenticated(mode, "/repo/v1", requestURI, entity);
+		MockHttpServletRequest request = initRequestUnauthenticated(mode, "/repo/v1", requestURI, entity);
 		if (accessToken != null) {
-			builder.withHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+accessToken);
+			request.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+accessToken);
 		}
-		return builder.build();
+		return request;
 
 	}
 
