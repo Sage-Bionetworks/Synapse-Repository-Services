@@ -131,8 +131,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// serialize
 		EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
 		
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-
 		// create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
@@ -282,7 +280,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
 	

@@ -92,7 +92,6 @@ public class DBOActivityDAOImplTest {
 		
 		ChangeType type = ChangeType.UPDATE;
 		String returnedNewEtag = activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, type);
-		verify(mockMessenger).sendMessageAfterCommit(eq(mockDbo), eq(type));
 		assertEquals(newEtag, returnedNewEtag);
 	}
 

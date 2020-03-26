@@ -80,7 +80,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		
 		// Change the etag
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		basicDao.createNew(dbo);
 		return dbo.getIdString();
@@ -136,7 +135,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		// Get a new etag
 		DBOActivity dbo = getDBO(id);
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
 
