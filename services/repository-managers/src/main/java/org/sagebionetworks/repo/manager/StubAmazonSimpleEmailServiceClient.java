@@ -542,5 +542,12 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public PutConfigurationSetDeliveryOptionsResult putConfigurationSetDeliveryOptions(
+			PutConfigurationSetDeliveryOptionsRequest putConfigurationSetDeliveryOptionsRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 }
