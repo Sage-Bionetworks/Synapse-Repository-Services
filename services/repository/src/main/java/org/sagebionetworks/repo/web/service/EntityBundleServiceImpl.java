@@ -137,8 +137,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 					fileHandles = serviceProvider.getEntityService().
 							getEntityFileHandlesForVersion(accessToken, entityId, versionNumber).getList();
 				}
-			}catch (UnauthorizedException e) {
-				// If the user does not have permission to see the handles then set them to be an empty list.
+			}catch (NotFoundException | UnauthorizedException e) {
+				// If there are no file handle(s) or if the user does not have permission to see the handles then set them to be an empty list.
 				fileHandles = new LinkedList<FileHandle>();
 			}
 			if (isTrue(request.getIncludeFileHandles())) {

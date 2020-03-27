@@ -437,6 +437,7 @@ public class EntityBundleServiceImplTest {
 		FileEntity entity = new FileEntity();
 		String fileNameOverride = "foo.txt";
 		entity.setFileNameOverride(fileNameOverride);
+		when(mockEntityService.getEntityFileHandlesForCurrentVersion(ACCESS_TOKEN, entityId)).thenReturn(new FileHandleResults());
 		when(mockEntityService.getEntity(ACCESS_TOKEN, entityId)).thenReturn(entity);
 		EntityBundle bundle = entityBundleService.getEntityBundle(ACCESS_TOKEN, entityId, request);
 		assertNotNull(bundle);
