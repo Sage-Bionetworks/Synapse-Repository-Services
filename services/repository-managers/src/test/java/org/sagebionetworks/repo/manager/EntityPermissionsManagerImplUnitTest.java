@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.project.ProjectCertificationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -119,10 +121,12 @@ public class EntityPermissionsManagerImplUnitTest {
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);
 		nonCertifiedUserInfo.setGroups(Collections.singleton(9999L));
+		nonCertifiedUserInfo.setScopes(Arrays.asList(OAuthScope.values()));
 
 		certifiedUserInfo = new UserInfo(false);
 		certifiedUserInfo.setId(1234567L);
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		certifiedUserInfo.setScopes(Arrays.asList(OAuthScope.values()));
 		
 		ReflectionStaticTestUtils.mockAutowire(this, entityPermissionsManager);
 
@@ -155,6 +159,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		anonymousUser = new UserInfo(false);
 		anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		anonymousUser.setGroups(ImmutableSet.of(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		anonymousUser.setScopes(Collections.singletonList(OAuthScope.view));
 
 		mockUsersGroups = Sets.newHashSet(444L,555L);
 		nonvisibleIds = Sets.newHashSet(888L,999L);
@@ -177,9 +182,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -222,9 +224,6 @@ public class EntityPermissionsManagerImplUnitTest {
 				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(),
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
-
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, projectId);
@@ -262,9 +261,6 @@ public class EntityPermissionsManagerImplUnitTest {
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
-
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(certifiedUserInfo, folderId);
@@ -301,9 +297,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
 
 		// if READ is in the ACL but DOWNLOAD is not in the ACL, then I can't download
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), 
@@ -349,9 +342,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.canAccess(eq(nonCertifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -403,9 +393,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockProjectSettingsManager.getProjectSettingForNode(nonCertifiedUserInfo, folderId, ProjectSettingsType.certification,
 				ProjectCertificationSetting.class)).thenReturn(Optional.of(projectSetting));
 
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
-
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
@@ -446,9 +433,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
 				any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
-
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()))
-				.thenReturn(anonymousUser);
 
 		// Method under test.
 		UserEntityPermissions uep = entityPermissionsManager.
@@ -523,6 +507,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockAclDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS))
 				.thenReturn(true);
@@ -555,6 +540,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(true);
@@ -573,6 +559,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getNode(folderId)).thenReturn(folder);
 		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
 		when(mockNodeDao.getBenefactor(benefactorId)).thenReturn(benefactorId);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
@@ -599,6 +586,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(true);
@@ -621,7 +609,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
-
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(true);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
@@ -647,6 +635,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(true);
@@ -676,6 +665,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 				.thenReturn(true);
@@ -696,6 +686,8 @@ public class EntityPermissionsManagerImplUnitTest {
 
 	@Test
 	public void testRestoreInheritanceProject(){
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
+		
 		when(mockNodeDao.getBenefactor(project.getId())).thenReturn(project.getId());
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
@@ -708,6 +700,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testRestoreInheritanceFolder(){
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 		when(mockNodeDao.getBenefactor(folder.getId())).thenReturn(folder.getId());
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
@@ -720,6 +713,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testRestoreInheritanceFile(){
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 		when(mockNodeDao.getBenefactor(file.getId())).thenReturn(file.getId());
 		when(mockAclDAO.canAccess(anySet(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
@@ -861,7 +855,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testHasDownloadAccessWihoutOpenDataAsAnonymous() {
+	public void testHasDownloadAccessWithoutOpenDataAsAnonymous() {
 		
 		UserInfo userInfo = anonymousUser;
 		String nodeId = fileId;
@@ -872,18 +866,15 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
 		when(mockObjectTypeManager.getObjectsDataType(nodeId, ObjectType.ENTITY)).thenReturn(dataType);
 
-		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
-		
 		// Call under test
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
-		assertEquals("You lack DOWNLOAD access to the requested entity.", status.getMessage());
+		assertEquals("Your authorization scope(s) do not allow DOWNLOAD access.", status.getMessage());
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
-		verify(mockAclDAO).canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 	}
 	
 	@Test

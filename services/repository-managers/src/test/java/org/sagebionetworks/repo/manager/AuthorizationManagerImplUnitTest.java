@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -176,7 +177,9 @@ public class AuthorizationManagerImplUnitTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
+		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 		adminUser = new UserInfo(true, 456L);
+		adminUser.setScopes(Arrays.asList(OAuthScope.values()));
 		
 		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
