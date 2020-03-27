@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -168,6 +169,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public List<AccessRequirement> getAllUnmetAccessRequirements(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, ACCESS_TYPE accessType)
 					throws DatastoreException, NotFoundException {
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+		
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<Long> subjectIds = new ArrayList<Long>();
 		subjectIds.add(KeyFactory.stringToKey(rod.getId()));

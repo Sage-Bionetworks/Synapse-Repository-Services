@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManage
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +60,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -135,6 +137,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setForumId(forumId.toString());
 		dto.setIsDeleted(false);
 		userInfo.setId(userId);
+		userInfo.setScopes(Collections.singletonList(OAuthScope.view));
 
 		newTitle.setTitle("newTitle with syn123");
 		newMessage.setMessageMarkdown("newMessageMarkdown");

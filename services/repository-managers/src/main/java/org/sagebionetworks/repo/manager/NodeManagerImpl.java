@@ -13,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.manager.util.CollectionUtils;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -644,6 +645,7 @@ public class NodeManagerImpl implements NodeManager {
 		if(!activityManager.doesActivityExist(activityId)) {
 			throw new NotFoundException("Activity id " + activityId + " not found.");
 		}
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
 		authorizationManager.canAccessActivity(userInfo, activityId).checkAuthorizationOrElseThrow();
 	}
 

@@ -401,7 +401,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 
-		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
 		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).isAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);

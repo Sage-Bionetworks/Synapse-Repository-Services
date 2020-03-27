@@ -14,6 +14,7 @@ import java.util.Set;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.form.FormManager;
@@ -53,6 +54,7 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
@@ -280,7 +282,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
-		if( isUserCreatorOrAdmin(userInfo, creator)) {
+		if(isUserCreatorOrAdmin(userInfo, creator)) {
+			if (!userInfo.getScopes().contains(OAuthScope.modify)) {
+				return AuthorizationStatus.accessDenied("Must have "+OAuthScope.modify+" to access a FileHandle by its ID.");
+			}
 			return AuthorizationStatus.authorized();
 		} else {
 			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
