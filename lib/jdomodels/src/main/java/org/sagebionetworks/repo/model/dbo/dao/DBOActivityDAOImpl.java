@@ -138,12 +138,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return dbo.getEtag();
 	}
 
-	@WriteTransaction
-	@Override
-	public void sendDeleteMessage(String id) {
-		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ACTIVITY);
-	}
-		
 	@Override
 	public boolean doesActivityExist(String id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();

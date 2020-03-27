@@ -59,14 +59,6 @@ public interface ActivityDAO {
 	public String lockActivityAndGenerateEtag(String id, String eTag, ChangeType changeType) throws NotFoundException, ConflictingUpdateException, DatastoreException; 
 
 	/**
-	 * Lock activity row for deletion and send delete message
-	 * Note: You cannot call this method outside of a transaction.
-	 * @param id
-	 * @param changeType
-	 */
-	public void sendDeleteMessage(String id);
-	
-	/**
 	 * @param id
 	 * @return Returns true if the activity id exists in the database
 	 */
