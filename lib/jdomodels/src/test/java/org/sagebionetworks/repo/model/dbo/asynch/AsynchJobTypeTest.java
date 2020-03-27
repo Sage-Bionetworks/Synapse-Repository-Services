@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.StringWriter;
 
-import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
