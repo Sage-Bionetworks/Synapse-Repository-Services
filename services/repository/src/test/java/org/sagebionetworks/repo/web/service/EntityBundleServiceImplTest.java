@@ -503,10 +503,10 @@ public class EntityBundleServiceImplTest {
 		request.setObjectId(entityId);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		RestrictionInformationResponse response = new RestrictionInformationResponse();
-		when(mockDataAccessService.getRestrictionInformation(BOOTSTRAP_USER_GROUP_ID, request)).thenReturn(response );
+		when(mockDataAccessService.getRestrictionInformation(ACCESS_TOKEN, request)).thenReturn(response );
 		EntityBundle bundle = entityBundleService.getEntityBundle(ACCESS_TOKEN, entityId, bundleV2Request);
 		assertEquals(response, bundle.getRestrictionInformation());
-		verify(mockDataAccessService).getRestrictionInformation(BOOTSTRAP_USER_GROUP_ID, request);
+		verify(mockDataAccessService).getRestrictionInformation(ACCESS_TOKEN, request);
 	}
 
 	@Test
