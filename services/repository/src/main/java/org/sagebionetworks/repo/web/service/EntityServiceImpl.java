@@ -396,12 +396,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public Annotations getEntityAnnotations(String accessToken, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
-		return getEntityAnnotations(userInfo, id);
-	}
-	
-	@Override
-	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		return entityManager.getAnnotations(info, id);
+		return entityManager.getAnnotations(userInfo, id);
 	}
 	
 	@Override

@@ -268,19 +268,6 @@ public interface EntityService {
 													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
-	/**
-	 * Same as above but with a UserInfo
-	 * 
-	 * @param info
-	 * @param id
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException,
-			DatastoreException, UnauthorizedException;
-
 	public Annotations updateEntityAnnotations(String accessToken, String entityId,
 											   Annotations updatedAnnotations)
 			throws ConflictingUpdateException, NotFoundException,

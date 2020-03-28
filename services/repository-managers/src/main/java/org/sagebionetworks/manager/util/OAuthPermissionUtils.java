@@ -40,7 +40,7 @@ public class OAuthPermissionUtils {
 	
 	public static void checkScopeAllowsAccess(Collection<OAuthScope> scopes, ACCESS_TYPE accessType) {
 		if (!scopeAllowsAccess(scopes, accessType)) {
-			accessDenied(accessType).checkAuthorizationOrElseThrow();;
+			accessDenied(accessType).checkAuthorizationOrElseThrow();
 		}
 	}
 	
