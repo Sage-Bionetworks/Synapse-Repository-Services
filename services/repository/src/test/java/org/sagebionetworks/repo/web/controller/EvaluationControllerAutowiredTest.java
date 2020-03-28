@@ -256,7 +256,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
@@ -362,7 +361,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
@@ -452,7 +450,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		ResourceAccess ra = new ResourceAccess();
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
 		ra.setPrincipalId(Long.parseLong(testUserInfo.getId().toString()));

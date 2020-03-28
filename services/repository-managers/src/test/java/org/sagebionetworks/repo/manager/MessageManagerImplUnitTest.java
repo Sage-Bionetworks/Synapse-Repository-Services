@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -123,6 +124,7 @@ public class MessageManagerImplUnitTest {
 		creatorUserInfo = new UserInfo(false);
 		creatorUserInfo.setId(CREATOR_ID);
 		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		creatorUserInfo.setScopes(Collections.singletonList(OAuthScope.modify));
 		
 		recipientUsernameAlias = new PrincipalAlias();
 		recipientUsernameAlias.setAlias("bar");

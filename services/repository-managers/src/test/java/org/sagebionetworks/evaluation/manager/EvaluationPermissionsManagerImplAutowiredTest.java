@@ -117,16 +117,14 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).isAuthorized());
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
-		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, PARTICIPATE
+		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, SUBMIT
 		ResourceAccess ra = new ResourceAccess();
 		Long principalId = Long.parseLong(userInfo.getId().toString());
 		ra.setPrincipalId(principalId);
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.SUBMIT);
 		ra.setAccessType(accessType);
 		Set<ResourceAccess> raSet = Collections.singleton(ra);
@@ -149,7 +147,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).isAuthorized());
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE).isAuthorized());
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).isAuthorized());
-		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE).isAuthorized());
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT).isAuthorized());
 
 		// Make sure ACL is deleted when the evaluation is deleted
@@ -370,7 +367,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
-		accessType.add(ACCESS_TYPE.PARTICIPATE);
+		accessType.add(ACCESS_TYPE.SUBMIT);
 		ra.setAccessType(accessType);
 		raSet.add(ra);
 		acl.setResourceAccess(raSet);
