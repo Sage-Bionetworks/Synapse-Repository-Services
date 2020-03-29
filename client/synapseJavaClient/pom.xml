@@ -10,7 +10,6 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>synapseJavaClient</artifactId>
 	<packaging>jar</packaging>
 	<name>synapseJavaClient</name>
