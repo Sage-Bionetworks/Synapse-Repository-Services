@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.manager.sts;
 
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.model.Credentials;
-import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
-import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
 import com.google.common.collect.ImmutableList;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -46,6 +47,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class StsManagerImplTest {
 	private static final String AWS_ACCESS_KEY = "dummy-access-key";
+	private static final String AWS_ROLE_ARN = "dummy-role-arn";
 	private static final String AWS_SECRET_KEY = "dummy-secret-key";
 	private static final String AWS_SESSION_TOKEN = "dummy-session-token";
 	private static final Date AWS_EXPIRATION_DATE = DateTime.parse("2020-02-17T17:26:17.379-0800").toDate();
@@ -77,6 +79,9 @@ public class StsManagerImplTest {
 
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
+
+	@Mock
+	private StackConfiguration mockStackConfiguration;
 
 	@Mock
 	private AWSSecurityTokenService mockStsClient;
@@ -126,12 +131,13 @@ public class StsManagerImplTest {
 		assertStsCredentials(result);
 
 		// Verify policy document.
-		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
-				GetFederationTokenRequest.class);
-		verify(mockStsClient).getFederationToken(requestCaptor.capture());
-		GetFederationTokenRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
+				AssumeRoleRequest.class);
+		verify(mockStsClient).assumeRole(requestCaptor.capture());
+		AssumeRoleRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
 		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
@@ -169,12 +175,13 @@ public class StsManagerImplTest {
 		assertStsCredentials(result);
 
 		// Verify policy document.
-		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
-				GetFederationTokenRequest.class);
-		verify(mockStsClient).getFederationToken(requestCaptor.capture());
-		GetFederationTokenRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
+				AssumeRoleRequest.class);
+		verify(mockStsClient).assumeRole(requestCaptor.capture());
+		AssumeRoleRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
 		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
@@ -215,12 +222,13 @@ public class StsManagerImplTest {
 		assertStsCredentials(result);
 
 		// Verify policy document.
-		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
-				GetFederationTokenRequest.class);
-		verify(mockStsClient).getFederationToken(requestCaptor.capture());
-		GetFederationTokenRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
+				AssumeRoleRequest.class);
+		verify(mockStsClient).assumeRole(requestCaptor.capture());
+		AssumeRoleRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
 		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
@@ -258,12 +266,13 @@ public class StsManagerImplTest {
 		assertStsCredentials(result);
 
 		// Verify policy document.
-		ArgumentCaptor<GetFederationTokenRequest> requestCaptor = ArgumentCaptor.forClass(
-				GetFederationTokenRequest.class);
-		verify(mockStsClient).getFederationToken(requestCaptor.capture());
-		GetFederationTokenRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getName());
+		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
+				AssumeRoleRequest.class);
+		verify(mockStsClient).assumeRole(requestCaptor.capture());
+		AssumeRoleRequest request = requestCaptor.getValue();
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
 		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String expectedBucket = StackConfigurationSingleton.singleton().getS3Bucket();
 		String expectedBucketWithBaseKey = expectedBucket + "/" + BASE_KEY;
@@ -283,10 +292,14 @@ public class StsManagerImplTest {
 	}
 
 	private void mockSts() {
+		// Mock config needed to set up the call.
+		when(mockStackConfiguration.getTempCredentialsIamRoleArn()).thenReturn(AWS_ROLE_ARN);
+
+		// Mock the actual STS call.
 		Credentials credentials = new Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_SESSION_TOKEN,
 				AWS_EXPIRATION_DATE);
-		GetFederationTokenResult result = new GetFederationTokenResult().withCredentials(credentials);
-		when(mockStsClient.getFederationToken(any())).thenReturn(result);
+		AssumeRoleResult result = new AssumeRoleResult().withCredentials(credentials);
+		when(mockStsClient.assumeRole(any())).thenReturn(result);
 	}
 
 	private void assertStsCredentials(StsCredentials credentials) {

@@ -802,4 +802,9 @@ public interface StackConfiguration {
 	 */
 	public int getMaximumMonthsForMonthlyStatistics();
 
+	/**
+	 * The ARN for the IAM Role that the StsManager uses. We call AssumeRole on this ARN to generate the temporary S3
+	 * credentials that we pass to the caller.
+	 */
+	String getTempCredentialsIamRoleArn();
 }

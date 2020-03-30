@@ -1193,4 +1193,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public int getMaximumMonthsForMonthlyStatistics() {
 		return  Integer.parseInt(configuration.getProperty("org.sagebionetworks.statistics.monthly.max"));
 	}
+
+	@Override
+	public String getTempCredentialsIamRoleArn() {
+		return configuration.getProperty("org.sagebionetworks.sts.iam.arn");
+	}
 }
