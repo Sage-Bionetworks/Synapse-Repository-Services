@@ -155,11 +155,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	dockerRepo.setCreatedByPrincipalId(userId);
     	dockerRepo.setParentId(folderParentId);
     	dockerRepo.setNodeType(EntityType.dockerrepo);
-
-		anonymousUser = new UserInfo(false);
-		anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		anonymousUser.setGroups(ImmutableSet.of(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
-		anonymousUser.setScopes(Collections.singletonList(OAuthScope.view));
+    	anonymousUser=UserInfoHelper.createAnonymousUserInfo();
 
 		mockUsersGroups = Sets.newHashSet(444L,555L);
 		nonvisibleIds = Sets.newHashSet(888L,999L);
