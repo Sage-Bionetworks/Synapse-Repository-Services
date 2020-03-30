@@ -9,6 +9,7 @@ import java.util.Iterator;
 import org.apache.commons.io.FileUtils;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -60,11 +61,11 @@ public class UpgradeEnumerations {
 	}
 	
 	private static void translateLeaf(JSONObjectAdapter adapter) throws JSONObjectAdapterException {
-		if(adapter.has(ObjectSchema.JSON_ENUM)) {
-			JSONArrayAdapter array = adapter.getJSONArray(ObjectSchema.JSON_ENUM);
+		if(adapter.has(ObjectSchemaImpl.JSON_ENUM)) {
+			JSONArrayAdapter array = adapter.getJSONArray(ObjectSchemaImpl.JSON_ENUM);
 			JSONArrayAdapter newArray = translateOldToNew(array);
 			// Replace the old array with a new array
-			adapter.put(ObjectSchema.JSON_ENUM, newArray);
+			adapter.put(ObjectSchemaImpl.JSON_ENUM, newArray);
 		}
 	}
 	
