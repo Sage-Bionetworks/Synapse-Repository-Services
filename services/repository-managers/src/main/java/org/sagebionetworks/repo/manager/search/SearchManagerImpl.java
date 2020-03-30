@@ -59,9 +59,12 @@ public class SearchManagerImpl implements SearchManager{
 		filterSearchForAuthorization(userInfo, searchRequest);
 		SearchResults results = SearchUtil.convertToSynapseSearchResult(searchDao.executeSearch(searchRequest));
 		// Add any extra return results to the hits
-		if(includePath && results != null && results.getHits() != null){
-			//FIELD_PATH is resolved here after search results are retrieved from cloudwatch
-			addReturnDataToHits(results.getHits());
+		if (results != null && results.getHits() != null) {
+			if (includePath) {
+				// FIELD_PATH is resolved here after search results are retrieved from cloudwatch
+				addPathDataToHits(results.getHits());
+			}
+			addAliasesToHits(results.getHits());
 		}
 		return results;
 	}
@@ -78,39 +81,43 @@ public class SearchManagerImpl implements SearchManager{
 	}
 
 	/**
-	 * Add extra return results to the hit list.
+	 * Add path data to the hit list.
 	 * @param hits
 	 */
-	public void addReturnDataToHits(List<Hit> hits) {
-		if(hits != null){
-			// For each hit we need to add the path
-			List<Hit> toRemove = new LinkedList<>();
-			for(Hit hit: hits){
-				try {
-					EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
-					hit.setPath(path);
-				} catch (NotFoundException e) {
-					// Add a warning and remove it from the hits
-					log.warn("Found a search document that did not exist in the repository: "+hit);
-					// We need to remove this from the hits
-					toRemove.add(hit);
-				}
+	public void addPathDataToHits(List<Hit> hits) {
+		// For each hit we need to add the path
+		List<Hit> toRemove = new LinkedList<>();
+		for(Hit hit: hits){
+			try {
+				EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
+				hit.setPath(path);
+			} catch (NotFoundException e) {
+				// Add a warning and remove it from the hits
+				log.warn("Found a search document that did not exist in the repository: "+hit);
+				// We need to remove this from the hits
+				toRemove.add(hit);
 			}
-			hits.removeAll(toRemove);
-			
-			// now add aliases
-			List<String> ids = new ArrayList<String>();
-			for (Hit hit : hits) {
-				ids.add(hit.getId());
-			}
-			List<IdAndAlias> aliases = searchDocumentDriver.getAliases(ids);
-			Map<String,String> idToAliasMap = new HashMap<String,String>();
-			for (IdAndAlias ia : aliases) {
-				idToAliasMap.put(ia.getId(), ia.getAlias());
-			}
-			for (Hit hit : hits) {
-				hit.setAlias(idToAliasMap.get(hit.getId()));
-			}
+		}
+		hits.removeAll(toRemove);
+	}
+
+	/**
+	 * Add aliases to the hit list.
+	 * @param hits
+	 */
+	public void addAliasesToHits(List<Hit> hits) {			
+		// add aliases
+		List<String> ids = new ArrayList<String>();
+		for (Hit hit : hits) {
+			ids.add(hit.getId());
+		}
+		List<IdAndAlias> aliases = searchDocumentDriver.getAliases(ids);
+		Map<String,String> idToAliasMap = new HashMap<String,String>();
+		for (IdAndAlias ia : aliases) {
+			idToAliasMap.put(ia.getId(), ia.getAlias());
+		}
+		for (Hit hit : hits) {
+			hit.setAlias(idToAliasMap.get(hit.getId()));
 		}
 	}
 
