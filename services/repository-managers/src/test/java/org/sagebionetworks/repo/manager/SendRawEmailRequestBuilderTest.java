@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Properties;
 
@@ -24,7 +25,7 @@ import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.sun.jersey.core.util.Base64;
+import java.util.Base64;
 
 public class SendRawEmailRequestBuilderTest {
 	
@@ -401,7 +402,7 @@ public class SendRawEmailRequestBuilderTest {
 		messageBody.setHtml(someHtmlText);
 		Attachment attachment = new Attachment();
 		String content = "abcdefghijklmnop";
-		String base64Encoded = new String(Base64.encode(content));
+		String base64Encoded = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
 		attachment.setContent(new String(base64Encoded));
 		attachment.setContent_type("image/jpeg");
 		attachment.setContent_id("101");

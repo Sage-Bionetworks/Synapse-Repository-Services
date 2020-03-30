@@ -6,9 +6,7 @@
 		<groupId>org.sagebionetworks</groupId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-shared-models</artifactId>
-	<version>develop-SNAPSHOT</version>
 	<name>lib-shared-models</name>
 	<description>These model objects are shared between the client and server.  Only GWT compatible models should exist in this project</description>
 

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 
 import javax.servlet.FilterChain;
@@ -26,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
-import com.sun.jersey.core.util.Base64;
 
 @ExtendWith(MockitoExtension.class)
 public class OAuthClientAuthFilterTest {
@@ -54,7 +55,7 @@ public class OAuthClientAuthFilterTest {
 	private ArgumentCaptor<HttpServletRequest> requestCaptor;
 	
 	private static final String CLIENT_ID = "oauthClientId";
-	private static final String BASIC_HEADER = "Basic "+new String(Base64.encode(CLIENT_ID+":secret"));
+	private static final String BASIC_HEADER = "Basic "+ Base64.getEncoder().encodeToString((CLIENT_ID+":secret").getBytes(StandardCharsets.UTF_8));
 
 	@BeforeEach
 	public void setUp() throws Exception {
