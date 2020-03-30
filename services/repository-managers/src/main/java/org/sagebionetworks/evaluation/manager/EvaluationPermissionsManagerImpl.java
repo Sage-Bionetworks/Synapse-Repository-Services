@@ -159,7 +159,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
 			return AuthorizationStatus.accessDenied("Anonymous user is not allowed to access Evaluation.");
 		
-		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), accessType);
+		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessType)) {
+			return OAuthPermissionUtils.accessDenied(accessType);
+		}
 		
 		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
 			return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
