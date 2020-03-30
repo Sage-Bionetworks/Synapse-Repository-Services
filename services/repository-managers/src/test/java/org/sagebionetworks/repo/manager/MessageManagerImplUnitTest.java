@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -213,6 +214,15 @@ public class MessageManagerImplUnitTest {
 		});		
 	}
 	
+	@Test
+	public void testCreateMessageWithoutScope() {
+		creatorUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.view));
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {			
+			messageManager.createMessage(creatorUserInfo, mtu);
+		});
+	}
+
 	@Test
 	public void testProcessMessagePLAIN() throws Exception {
 		setupCreatorRecipientMocks();
