@@ -127,6 +127,8 @@
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
+				<!--  Schema -->
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOOrganization" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
@@ -233,6 +235,8 @@
 				<!-- Forms -->
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.form.DBOFormData" />
+				<!--  Schema -->
+				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOOrganization" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadOrder" />
