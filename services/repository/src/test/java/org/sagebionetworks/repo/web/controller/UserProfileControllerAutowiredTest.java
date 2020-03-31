@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -16,9 +16,9 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -61,7 +61,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	
 	private String accessToken;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
@@ -77,7 +77,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		principalPrefixDao.truncateTable();
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (userProfileService != null && favoritesToDelete != null) {
 			for (String entityId : favoritesToDelete) {
@@ -138,7 +138,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		for (UserGroupHeader ugh : children) {
 			names.add(ugh.getUserName());
 		}
-		assertTrue("Expected 'AUTHENTICATED_USERS' group, but was not found.", names.contains("AUTHENTICATED_USERS"));
+		assertTrue(names.contains("AUTHENTICATED_USERS"), "Expected 'AUTHENTICATED_USERS' group, but was not found.");
 	}
 	
 	

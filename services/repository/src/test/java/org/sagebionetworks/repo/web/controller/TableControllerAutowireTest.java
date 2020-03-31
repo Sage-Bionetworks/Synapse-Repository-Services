@@ -1,8 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -11,13 +19,11 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -56,7 +62,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	private String accessToken;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 	
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -70,7 +76,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		entitiesToDelete.add(parent.getId());
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		for (String entity : Lists.reverse(entitiesToDelete)) {
 			try {
@@ -121,7 +127,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		assertEquals(0, table.getColumnIds().size());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testColumnNameDuplicateId() throws Exception {
 		// create two columns that differ only by case.
 		ColumnModel one = new ColumnModel();
@@ -139,7 +145,9 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setParentId(parent.getId());
 		List<String> idList = Lists.newArrayList(one.getId(), two.getId(), one.getId());
 		table.setColumnIds(idList);
-		servletTestHelper.createEntity(dispatchServlet, table, accessToken);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			servletTestHelper.createEntity(dispatchServlet, table, accessToken);
+		});
 	}
 
 	@Test

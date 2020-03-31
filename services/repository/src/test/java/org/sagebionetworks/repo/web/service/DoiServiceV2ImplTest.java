@@ -3,8 +3,9 @@ package org.sagebionetworks.repo.web.service;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -25,7 +26,7 @@ public class DoiServiceV2ImplTest {
 	private ObjectType objectType = ObjectType.ENTITY;
 	private Long versionNumber = 3L;
 
-	@Before
+	@BeforeEach
 	public void before(){
 		ReflectionTestUtils.setField(service, "doiManager", mockDoiManager);
 	}
@@ -60,16 +61,20 @@ public class DoiServiceV2ImplTest {
 		verify(mockDoiManager).getLocation(objectId, objectType, versionNumber);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testLocateNullObjectId() {
 		service.locate(null, objectType, versionNumber);
-		verify(mockDoiManager, never()).getLocation(null, objectType, versionNumber);
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			verify(mockDoiManager, never()).getLocation(null, objectType, versionNumber);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testLocateNullType() {
 		service.locate(objectId, null, versionNumber);
-		verify(mockDoiManager, never()).getLocation(objectId, null, versionNumber);
+		Assertions.assertThrows(IllegalArgumentException.class, ()->{
+			verify(mockDoiManager, never()).getLocation(objectId, null, versionNumber);
+		});
 	}
 
 	@Test
