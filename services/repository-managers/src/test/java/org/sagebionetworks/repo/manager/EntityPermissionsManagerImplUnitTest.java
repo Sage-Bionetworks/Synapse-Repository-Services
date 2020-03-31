@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -55,7 +54,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -245,6 +244,59 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).isAuthorized());
 	}
 
+	@Test
+	public void testHasAccessWithoutScope() {
+		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
+				any(ACCESS_TYPE.class))).thenReturn(true);
+
+		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
+
+		ACCESS_TYPE accessType = ACCESS_TYPE.READ;
+
+		// scope and permissions together allow access
+		assertTrue(entityPermissionsManager.hasAccess(folderId, accessType, certifiedUserInfo).isAuthorized());
+
+		// but if we remove the READ scope...
+		certifiedUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));
+
+		// ... then access is not allowed
+		assertFalse(entityPermissionsManager.hasAccess(folderId, accessType, certifiedUserInfo).isAuthorized());
+	
+	}
+	
+
+	@Test
+	public void testCanUpload() {
+		// Mock dependencies.
+		when(mockNodeDao.getNode(projectId)).thenReturn(project);
+		when(mockNodeDao.getBenefactor(projectId)).thenReturn(benefactorId);
+		when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
+
+		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY),
+				any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
+
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
+				Collections.singletonList(KeyFactory.stringToKey(projectId)), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(),
+				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
+
+		// First show that user has access
+		UserEntityPermissions uep = entityPermissionsManager.
+				getUserPermissionsForEntity(certifiedUserInfo, projectId);
+		assertTrue(uep.getCanUpload());
+
+		// Now remove 'modify' scope
+		certifiedUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+
+		// Method under test.
+		uep = entityPermissionsManager.
+				getUserPermissionsForEntity(certifiedUserInfo, projectId);
+
+		// user no longer has access
+		assertFalse(uep.getCanUpload());
+	}
+	
+	
 	@Test
 	public void testGetUserPermissionsForCertifiedUserOnFolder() {
 		// Mock dependencies.
@@ -871,6 +923,33 @@ public class EntityPermissionsManagerImplUnitTest {
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);
 		verify(mockObjectTypeManager).getObjectsDataType(nodeId, ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testHasDownloadAccessMissingScope() {
+		String nodeId = fileId;
+		String benefactorId = nodeId;
+		UserInfo userInfo = certifiedUserInfo;
+		boolean acceptedTermsOfUse = true;
+		
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.file);
+		when(mockNodeDao.getBenefactor(nodeId)).thenReturn(benefactorId);
+		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId())).thenReturn(acceptedTermsOfUse);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), benefactorId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(file);
+		
+		//first, show that access is allowed with full scope
+		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		assertTrue(status.isAuthorized());
+		
+		// now remove DOWNLOAD scope
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.modify));
+		
+		// Call under test
+		status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
+		
+		assertFalse(status.isAuthorized());
+		
 	}
 	
 	@Test

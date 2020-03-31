@@ -926,6 +926,26 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
+	public void testGetUserAuthorizationSynapseOAuthClient() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = Collections.singletonList(OAuthScope.openid);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
+		claims.setSubject(USER_ID);	
+		UserInfo userInfo = new UserInfo(false, USER_ID_LONG);
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(userInfo.getGroups());
+		
+		// method under test
+		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
+		
+		verify(mockOauthClientDao, never()).isOauthClientVerified(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
+	}
+
+	@Test
 	public void testGetUserAuthorizationBadToken() {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenThrow(IllegalArgumentException.class);

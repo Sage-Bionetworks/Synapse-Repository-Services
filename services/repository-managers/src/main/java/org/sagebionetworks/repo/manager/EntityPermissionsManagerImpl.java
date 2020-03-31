@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -307,10 +306,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
 	}
-	
-	
 
-		
 	/**
 	 * Answers the authorization check  _without_ checking whether the user is a Certified User.
 	 * In other words, says whether the user _would_ be authorized for the requested access
