@@ -58,7 +58,6 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.entity.ReplicationManager;
 import org.sagebionetworks.repo.model.BucketAndKey;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -339,17 +338,6 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
-	public void testFindViewsContainingEntity(){
-		List<Long> path = Lists.newArrayList(123L,456L);
-		when(mockTableManagerSupport.getEntityPath(idAndVersion)).thenReturn(path);
-		Set<Long> expected = Sets.newHashSet(789L);
-		when(viewScopeDao.findViewScopeIntersectionWithPath(path)).thenReturn(expected);
-		// call under test
-		Set<Long> results = manager.findViewsContainingEntity(viewId);
-		assertEquals(expected, results);
-	}
-	
-	@Test
 	public void testGetViewSchemaWithRequiredColumnsNoAdditions(){
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.benefactorId.getColumnModel(),
@@ -414,7 +402,6 @@ public class TableViewManagerImplTest {
 		List<ColumnChange> changes = Lists.newArrayList(change);
 		ColumnModel model = EntityField.benefactorId.getColumnModel();
 		model.setId(change.getNewColumnId());
-		List<ColumnModel> schema = Lists.newArrayList(model);
 		// the new schema should be over the limit
 		List<String> newSchemaColumnIds = new LinkedList<>();
 		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;

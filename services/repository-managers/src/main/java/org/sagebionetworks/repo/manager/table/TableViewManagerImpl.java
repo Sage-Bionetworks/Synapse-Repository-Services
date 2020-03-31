@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.BucketAndKey;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewSnapshot;
@@ -89,27 +88,25 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static final long MAX_ROWS_PER_TRANSACTION = 1000;
 
 	@Autowired
-	ViewScopeDao viewScopeDao;
+	private ViewScopeDao viewScopeDao;
 	@Autowired
-	ColumnModelManager columModelManager;
+	private ColumnModelManager columModelManager;
 	@Autowired
-	TableManagerSupport tableManagerSupport;
+	private TableManagerSupport tableManagerSupport;
 	@Autowired
-	ColumnModelDAO columnModelDao;
+	private NodeManager nodeManager;
 	@Autowired
-	NodeManager nodeManager;
+	private ReplicationManager replicationManager;
 	@Autowired
-	ReplicationManager replicationManager;
+	private TableIndexConnectionFactory connectionFactory;
 	@Autowired
-	TableIndexConnectionFactory connectionFactory;
+	private FileProvider fileProvider;
 	@Autowired
-	FileProvider fileProvider;
+	private SynapseS3Client s3Client;
 	@Autowired
-	SynapseS3Client s3Client;
+	private StackConfiguration config;
 	@Autowired
-	StackConfiguration config;
-	@Autowired
-	ViewSnapshotDao viewSnapshotDao;
+	private ViewSnapshotDao viewSnapshotDao;
 
 	/*
 	 * (non-Javadoc)
@@ -146,13 +143,6 @@ public class TableViewManagerImpl implements TableViewManager {
 		columModelManager.bindColumnsToDefaultVersionOfObject(schema, viewIdString);
 		// trigger an update
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
-	}
-
-	@Override
-	public Set<Long> findViewsContainingEntity(String entityId) {
-		IdAndVersion idAndVersion = IdAndVersion.parse(entityId);
-		List<Long> entityPath = tableManagerSupport.getEntityPath(idAndVersion);
-		return viewScopeDao.findViewScopeIntersectionWithPath(entityPath);
 	}
 
 	@Override

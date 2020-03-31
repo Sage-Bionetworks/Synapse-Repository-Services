@@ -33,7 +33,7 @@ public interface TableIndexDAO {
 	 * @param tableId The ID of the table.
 	 * @param isView Is this table a View?
 	 */
-	public void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView);
+	void createTableIfDoesNotExist(IdAndVersion tableId, boolean isView);
 	
 	/**
 	 * Alter the given table as needed. The table will be changed
@@ -45,7 +45,7 @@ public interface TableIndexDAO {
 	 * @param alterTemp When true the temporary table will be altered.  When false the original table will be altered.
 	 * @return True if the table was altered. False if the table was not changed.
 	 */
-	public boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
+	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp);
 	
 	/**
 	 * 
@@ -53,7 +53,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public void deleteTable(IdAndVersion tableId); 
+	void deleteTable(IdAndVersion tableId); 
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -68,7 +68,7 @@ public interface TableIndexDAO {
 	 * @param query
 	 * @return
 	 */
-	public RowSet query(ProgressCallback callback, SqlQuery query);
+	RowSet query(ProgressCallback callback, SqlQuery query);
 	
 	/**
 	 * Run a simple count query.
@@ -76,7 +76,7 @@ public interface TableIndexDAO {
 	 * @param parameters
 	 * @return
 	 */
-	public Long countQuery(String sql, Map<String, Object> parameters);
+	Long countQuery(String sql, Map<String, Object> parameters);
 	
 	/**
 	 * Provides the means to stream over query results without keeping the row data in memory.
@@ -85,7 +85,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	public boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
+	boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.
@@ -93,7 +93,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
-	public Long getRowCountForTable(IdAndVersion tableId);
+	Long getRowCountForTable(IdAndVersion tableId);
 	
 	/**
 	 * Get the max complete version we currently have for this table.
@@ -102,7 +102,7 @@ public interface TableIndexDAO {
 	 * @param version the max complete version to remember
 	 * @return The max complete version of the table. If the table does not exist then -1L.
 	 */
-	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
+	Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId);
 
 	/**
 	 * Set the max complete version for this table
@@ -110,7 +110,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param highestVersion
 	 */
-	public void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
+	void setMaxCurrentCompleteVersionForTable(IdAndVersion tableId, Long highestVersion);
 	
 	/**
 	 * Set the MD5 hex of the table's current schema.
@@ -118,26 +118,26 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param schemaMD5Hex
 	 */
-	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex);
+	void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex);
 	
 	/**
 	 * Get the MD5 hex of the table's current schema.
 	 * @param tableId
 	 * @return
 	 */
-	public String getCurrentSchemaMD5Hex(IdAndVersion tableId);
+	String getCurrentSchemaMD5Hex(IdAndVersion tableId);
 	
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.
 	 * @param tableId
 	 */
-	public void createSecondaryTables(IdAndVersion tableId);
+	void createSecondaryTables(IdAndVersion tableId);
 	
 	/**
 	 * Get the connection
 	 * @return
 	 */
-	public JdbcTemplate getConnection();
+	JdbcTemplate getConnection();
 
 	/**
 	 * run calls within a read transaction
@@ -145,14 +145,14 @@ public interface TableIndexDAO {
 	 * @param callable
 	 * @return
 	 */
-	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
+	<T> T executeInReadTransaction(TransactionCallback<T> callable);
 	
 	/**
 	 * Run the passed callable within a write transaction.
 	 * @param callable
 	 * @return
 	 */
-	public <T> T executeInWriteTransaction(TransactionCallback<T> callable);
+	<T> T executeInWriteTransaction(TransactionCallback<T> callable);
 
 	/**
 	 * Apply the passed set of file handle Ids to the given table index.
@@ -160,7 +160,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param fileHandleIds
 	 */
-	public void applyFileHandleIdsToTable(IdAndVersion tableId,
+	void applyFileHandleIdsToTable(IdAndVersion tableId,
 			Set<Long> fileHandleIds);
 	
 	/**
@@ -170,7 +170,7 @@ public interface TableIndexDAO {
 	 * @param objectId
 	 * @return
 	 */
-	public Set<Long> getFileHandleIdsAssociatedWithTable(
+	Set<Long> getFileHandleIdsAssociatedWithTable(
 			Set<Long> toTest, IdAndVersion tableId);
 	
 	/**
@@ -181,7 +181,7 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 * @return
 	 */
-	public boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex);
+	boolean doesIndexStateMatch(IdAndVersion tableId, long versionNumber, String schemaMD5Hex);
 
 	/**
 	 * Get the distinct Long values for a given column ID.
@@ -189,7 +189,7 @@ public interface TableIndexDAO {
 	 * @param id
 	 * @return
 	 */
-	public Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
+	Set<Long> getDistinctLongValues(IdAndVersion tableId, String columnIds);
 
 	/**
 	 * Get list of Column ids for existing index tables a multi-value column in the provided tableId
@@ -224,7 +224,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 */
-	public void truncateTable(IdAndVersion tableId);
+	void truncateTable(IdAndVersion tableId);
 	
 	
 	/**
@@ -233,7 +233,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
+	List<DatabaseColumnInfo> getDatabaseInfo(IdAndVersion tableId);
 	
 	/**
 	 * Provide the cardinality for the given columns and table.
@@ -243,14 +243,14 @@ public interface TableIndexDAO {
 	 * @param list
 	 * @param tableId
 	 */
-	public void provideCardinality(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideCardinality(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 	
 	/**
 	 * Provide the index name for each column in the table.
 	 * @param list
 	 * @param tableId
 	 */
-	public void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId);
+	void provideIndexName(List<DatabaseColumnInfo> list, IdAndVersion tableId);
 	
 	
 	/**
@@ -268,7 +268,7 @@ public interface TableIndexDAO {
 	 * @param maxNumberOfIndex
 	 *            The maximum number of indices allowed on a single table.
 	 */
-	public void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
+	void optimizeTableIndices(List<DatabaseColumnInfo> list, IdAndVersion tableId, int maxNumberOfIndex);
 	
 	/**
 	 * Populate the separate index table for the given list column.
@@ -276,7 +276,7 @@ public interface TableIndexDAO {
 	 * @param listColumn
 	 * @param rowIds Optional.  When included, only rows with the given IDs will be populated.
 	 */
-	public void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
+	void populateListColumnIndexTable(IdAndVersion tableId, ColumnModel listColumn, Set<Long> rowIds);
 
 	/**
 	 * Delete rows from an a specific list column's index table.
@@ -290,25 +290,25 @@ public interface TableIndexDAO {
 		 * Create a temporary table like the given table.
 		 * @param tableId
 		 */
-	public void createTemporaryTable(IdAndVersion tableId);
+	void createTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Copy all of the data from the original table to the temporary table.
 	 * @param tableId
 	 */
-	public void copyAllDataToTemporaryTable(IdAndVersion tableId);
+	void copyAllDataToTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Delete the temporary table associated with the given table.
 	 */
-	public void deleteTemporaryTable(IdAndVersion tableId);
+	void deleteTemporaryTable(IdAndVersion tableId);
 
 	/**
 	 * Count the rows in the temp table.
 	 * @param tableId
 	 * @return
 	 */
-	public long getTempTableCount(IdAndVersion tableId);
+	long getTempTableCount(IdAndVersion tableId);
 	
 	/**
 	 * Create the entity replication tables if they do not exist.
@@ -322,21 +322,21 @@ public interface TableIndexDAO {
 	 * 
 	 * @param allIds
 	 */
-	public void deleteEntityData(List<Long> allIds);
+	void deleteEntityData(List<Long> allIds);
 
 	/**
 	 * Add the given entity data to the index.
 	 * 
 	 * @param entityDTOs
 	 */
-	public void addEntityData(List<EntityDTO> entityDTOs);
+	void addEntityData(List<EntityDTO> entityDTOs);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.
 	 * @param entityId
 	 * @return
 	 */
-	public EntityDTO getEntityData(Long entityId);
+	EntityDTO getEntityData(Long entityId);
 
 	/**
 	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
@@ -345,7 +345,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @return
 	 */
-	public long calculateCRC32ofEntityReplicationScope(
+	long calculateCRC32ofEntityReplicationScope(
 			Long viewTypeMask, Set<Long> allContainersInScope);
 
 	/**
@@ -356,7 +356,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
+	void copyEntityReplicationToView(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
@@ -368,7 +368,7 @@ public interface TableIndexDAO {
 	 * @param currentSchema
 	 * @param rowIdsToCopy Optional.  When included, copy rows with these Ids to the view.
 	 */
-	public void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
+	void copyEntityReplicationToView(Long viewId, Long viewTypeMask, Set<Long> allContainersInScope,
 			List<ColumnModel> currentSchema, Set<Long> rowIdsToCopy);
 	
 	/**
@@ -379,7 +379,7 @@ public interface TableIndexDAO {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 */
-	public void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask,
+	void createViewSnapshotFromEntityReplication(Long viewId, Long viewTypeMask,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema, CSVWriterStream outStream);
 
 	/**
@@ -400,7 +400,7 @@ public interface TableIndexDAO {
 	 * @param viewCRC
 	 * @param schemaMD5Hex
 	 */
-	public void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
+	void setIndexVersionAndSchemaMD5Hex(IdAndVersion tableId, Long viewCRC,
 			String schemaMD5Hex);
 
 	/**
@@ -410,7 +410,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<ColumnModel> getPossibleColumnModelsForContainers(
+	List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, Long viewTypeMask, Long limit, Long offset);
 	
 	/**
@@ -439,26 +439,26 @@ public interface TableIndexDAO {
 	 * 
 	 * @param expirations
 	 */
-	public void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
 	
 	/**
 	 * Clear all expirations.
 	 */
-	public void truncateReplicationSyncExpiration();
+	void truncateReplicationSyncExpiration();
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.
 	 *   
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+	Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
 
 	/**
 	 * Get the Id and Etag for each child of the given Entity parentId.
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	public List<IdAndEtag> getEntityChildren(Long parentId);
+	List<IdAndEtag> getEntityChildren(Long parentId);
 
 	/**
 	 * Get the rowIds for the given query.
@@ -467,7 +467,7 @@ public interface TableIndexDAO {
 	 * @param parameters
 	 * @return
 	 */
-	public List<Long> getRowIds(String sqlSelectIds, Map<String, Object> parameters);
+	List<Long> getRowIds(String sqlSelectIds, Map<String, Object> parameters);
 
 	/**
 	 * Get the sum of the files sizes for the given row IDs.
@@ -475,13 +475,13 @@ public interface TableIndexDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	public long getSumOfFileSizes(List<Long> rowIds);
+	long getSumOfFileSizes(List<Long> rowIds);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
+	void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
 
 	/**
 	 * Populate a view from a snapshot.
@@ -494,7 +494,7 @@ public interface TableIndexDAO {
 	 *                         least one row even if the size of the row is larger
 	 *                         than maxBytesPerBatch.
 	 */
-	public void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
+	void populateViewFromSnapshot(IdAndVersion idAndVersion, Iterator<String[]> input, long maxBytesPerBatch);
 
 	/**
 	 * Initialize this dao by setting its database connection.
@@ -521,7 +521,7 @@ public interface TableIndexDAO {
 	 * @param limit Limit the number of rows returned. 
 	 * @return
 	 */
-	public Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
+	Set<Long> getOutOfDateRowsForView(IdAndVersion viewId, long viewTypeMask, Set<Long> allContainersInScope, long limit);
 
 	/**
 	 * Delete a batch of rows from a view.
@@ -529,6 +529,6 @@ public interface TableIndexDAO {
 	 * @param viewId
 	 * @param idsToDelete
 	 */
-	public void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
+	void deleteRowsFromViewBatch(IdAndVersion viewId, Long...idsToDelete);
 
 }

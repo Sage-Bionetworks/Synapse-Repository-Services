@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -11,7 +9,6 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.ViewScope;
 
 /**
@@ -27,16 +24,8 @@ public interface TableViewManager {
 	 * @param scope
 	 * @param viewId
 	 */
-	public void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
+	void setViewSchemaAndScope(UserInfo userInfo, List<String> schema,
 			ViewScope scope, String viewId);
-	
-	 /**
-	  * Find Views that contain the given Entity.
-	  * 
-	  * @param objectId
-	  * @return
-	  */
-	public Set<Long> findViewsContainingEntity(String entityId);
 
 
 	/**
@@ -45,7 +34,7 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @return
 	 */
-	public List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
+	List<ColumnModel> getViewSchema(IdAndVersion idAndVersion);
 	
 	/**
 	 * Get the column IDs for the given id and version pair.
@@ -53,7 +42,7 @@ public interface TableViewManager {
 	 * @param idAndVersion
 	 * @return
 	 */
-	public List<String> getViewSchemaIds(IdAndVersion idAndVersion);
+	List<String> getViewSchemaIds(IdAndVersion idAndVersion);
 
 
 	/**
@@ -65,7 +54,7 @@ public interface TableViewManager {
 	 * @param orderedColumnIds 
 	 * @return
 	 */
-	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes, List<String> orderedColumnIds);
+	List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes, List<String> orderedColumnIds);
 
 	/**
 	 * Update a single entity in a view using the passed row and schema.
@@ -74,7 +63,7 @@ public interface TableViewManager {
 	 * @param tableSchema
 	 * @param row
 	 */
-	public void updateEntityInView(UserInfo user,
+	void updateEntityInView(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row);
 
 	/**
@@ -85,13 +74,13 @@ public interface TableViewManager {
 	 * @param snapshotOptions
 	 * @return
 	 */
-	public long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
+	long createSnapshot(UserInfo userInfo, String tableId, SnapshotRequest snapshotOptions);
 
 	/**
 	 * Delete the index associated with this view.
 	 * @param idAndVersion
 	 */
-	public void deleteViewIndex(IdAndVersion idAndVersion);
+	void deleteViewIndex(IdAndVersion idAndVersion);
 
 	/**
 	 * Create or update the index for the given view.
@@ -99,6 +88,6 @@ public interface TableViewManager {
 	 * @param progressCallback
 	 * @throws Exception
 	 */
-	public void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
+	void createOrUpdateViewIndex(IdAndVersion idAndVersion, ProgressCallback progressCallback) throws Exception;
 
 }

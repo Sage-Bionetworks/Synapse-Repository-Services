@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -48,7 +46,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
@@ -74,8 +71,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_TRX_TO_VER_VER_NUM + " = ?";
 
 	public static final String SCAN_ROWS_TYPE_ERROR = "Can only scan over table changes of type: "+TableChangeType.ROW;
-
-	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
 			+ COL_TABLE_ROW_VERSION + " FROM " + TABLE_ROW_CHANGE + " WHERE "
