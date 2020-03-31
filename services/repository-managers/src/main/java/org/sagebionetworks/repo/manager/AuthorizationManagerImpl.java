@@ -244,6 +244,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
 		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		
+		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ)) {
+			return OAuthPermissionUtils.accessDenied(ACCESS_TYPE.READ);
+		}
+		
 		// check if owner
 		Activity act = activityDAO.get(activityId);
 		if(act.getCreatedBy().equals(userInfo.getId().toString()))
@@ -283,10 +287,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
 		if(isUserCreatorOrAdmin(userInfo, creator)) {
-			if (!userInfo.getScopes().contains(OAuthScope.modify)) {
+			if (userInfo.getScopes().contains(OAuthScope.modify)) {
+				return AuthorizationStatus.authorized();
+			} else {
 				return AuthorizationStatus.accessDenied("Must have "+OAuthScope.modify+" to access a FileHandle by its ID.");
 			}
-			return AuthorizationStatus.authorized();
 		} else {
 			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
 		}

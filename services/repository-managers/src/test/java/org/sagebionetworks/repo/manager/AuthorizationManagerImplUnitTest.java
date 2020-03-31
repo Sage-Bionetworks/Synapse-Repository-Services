@@ -295,6 +295,24 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCanAccessActivityMissingRequired() throws Exception {		 
+		Activity act = new Activity();
+		String actId = "1";
+		int limit = 1000;
+		int offset = 0;
+		// create as admin, try to access as user so fails access and tests pagination
+		act.setId(actId);
+		act.setCreatedBy(adminUser.getId().toString());
+		when(mockActivityDAO.get(actId)).thenReturn(act);
+		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
+
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
+		assertFalse(canAccess);
+	}
+
+	@Test
 	public void testCanAccessRawFileHandleByCreator(){
 		// The admin can access anything
 		String creator = userInfo.getId().toString();
