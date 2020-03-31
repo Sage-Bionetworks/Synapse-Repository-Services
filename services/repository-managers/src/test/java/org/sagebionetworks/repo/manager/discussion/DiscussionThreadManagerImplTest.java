@@ -614,6 +614,13 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIdsCanRead));
 	}
 
+	@Test (expected = UnauthorizedException.class)
+	public void testGetEntityThreadCountNoReadScope() {
+		userInfo.setScopes(Collections.EMPTY_LIST);
+		threadManager.getEntityThreadCounts(userInfo, mockEntityIdList);
+	}
+
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetThreadsForEntityWithNullEntityId(){
 		threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
