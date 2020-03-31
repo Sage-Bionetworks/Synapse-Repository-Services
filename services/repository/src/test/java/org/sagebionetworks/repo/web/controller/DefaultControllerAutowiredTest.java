@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,9 +13,9 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -68,7 +68,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	
 	private List<String> toDelete;
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
@@ -89,7 +89,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		otherAccessToken = oidcTokenHelper.createTotalAccessToken(otherUserId);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (nodeManager != null && toDelete != null) {
 			UserInfo userInfo = userManager.getUserInfo(userId);

@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,9 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -65,7 +66,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		return dto;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
@@ -95,7 +96,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 				 dispatchServlet, entityAccessRequirement, userId, extraParams);
 		}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		servletTestHelper.deleteAccessRequirements(dispatchServlet, entityAccessRequirement.getId().toString(), userId);
 		if (entityController != null && toDelete != null) {

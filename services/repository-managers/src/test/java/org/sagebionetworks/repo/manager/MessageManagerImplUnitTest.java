@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -590,7 +591,7 @@ public class MessageManagerImplUnitTest {
 				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
-		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
+		assertEquals(0, errors.size(), StringUtils.join(errors, "\n"));
 	}
 	
 	@Test

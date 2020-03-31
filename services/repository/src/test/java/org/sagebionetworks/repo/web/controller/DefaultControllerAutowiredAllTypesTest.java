@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,10 +17,10 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -111,7 +112,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 
 	private String accessToken;
 
-	@Before
+	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
@@ -148,7 +149,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		columnModelOne = columnModelDao.createColumnModel(columnModelOne);
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (entityController != null && toDelete != null) {
 			UserInfo userInfo = userManager.getUserInfo(userId);

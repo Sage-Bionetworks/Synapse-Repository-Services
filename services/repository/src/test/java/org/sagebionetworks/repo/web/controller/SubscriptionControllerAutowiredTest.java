@@ -1,20 +1,22 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -37,7 +39,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 	private Forum forum;
 	private Topic toSubscribe;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
@@ -59,7 +61,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() throws Exception {
 		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
 		try {
