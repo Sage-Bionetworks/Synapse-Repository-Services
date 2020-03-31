@@ -214,7 +214,7 @@ public class UserManagerImpl implements UserManager {
 	public Set<Long> getUserGroups(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
 		if(!principal.getIsIndividual()) throw new IllegalArgumentException("Principal: "+principalId+" is not a User");
-		// Lookup the user's name
+
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<Long> groups = new HashSet<Long>();
 		boolean isUserAnonymous = AuthorizationUtils.isUserAnonymous(principalId);

@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -12,7 +14,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -23,16 +27,18 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -65,9 +71,8 @@ public class UserManagerImplUnitTest {
 	private UserInfo admin;
 	private UserInfo notAdmin;
 	
-	private final String mockId = "-1";
+	private static final String MOCK_GROUP_ID = "-1";
 	private UserGroup mockUserGroup;
-	private UserProfile mockUserProfile;
 	private String alias;
 	private PrincipalAlias principalAlias;
 	
@@ -80,15 +85,12 @@ public class UserManagerImplUnitTest {
 		basicDAO = mock(DBOBasicDao.class);
 		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 
-		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(mockId));
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(MOCK_GROUP_ID));
 		mockUserGroup = new UserGroup();
-		mockUserGroup.setId(mockId);
+		mockUserGroup.setId(MOCK_GROUP_ID);
 		mockUserGroup.setIsIndividual(true);
 		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
-		
-		mockUserProfile = new UserProfile();
-		when(mockUserProfileManger.getUserProfile(anyString())).thenReturn(mockUserProfile);
-		
+				
 		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
 		
 		userManager = new UserManagerImpl();
@@ -109,6 +111,111 @@ public class UserManagerImplUnitTest {
 		principalAlias.setAliasId(3333L);
 		principalAlias.setType(AliasType.USER_NAME);
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any())).thenReturn(principalAlias);
+	}
+	
+	@Test
+	public void testGetUserGroups() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		UserGroup someGroup = new UserGroup();
+		someGroup.setIsIndividual(false);
+		someGroup.setId("222");
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
+		
+		// method under test
+		Set<Long> actual = userManager.getUserGroups(principalId);
+		
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(Long.parseLong(someGroup.getId()));
+		expected.add(principalId);
+		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		
+		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testGetAnonymousUserGroups() {
+		Long principalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.EMPTY_LIST);
+		
+		// method under test
+		Set<Long> actual = userManager.getUserGroups(principalId);
+		
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(principalId);
+		expected.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		
+		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testGetUserInfo() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		UserGroup someGroup = new UserGroup();
+		someGroup.setIsIndividual(false);
+		someGroup.setId("222");
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
+		
+		
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		assertFalse(userInfo.isAdmin());
+		Set<Long> expectedUserGroupIds = new HashSet<Long>();
+		expectedUserGroupIds.add(Long.parseLong(someGroup.getId()));
+		expectedUserGroupIds.add(principalId);
+		expectedUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		expectedUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+
+		assertEquals(expectedUserGroupIds, userInfo.getGroups());
+		assertEquals(principalId, userInfo.getId());
+		assertTrue(userInfo.getOidcClaims().isEmpty());
+		assertEquals(Arrays.asList(OAuthScope.values()), userInfo.getScopes());
+	}
+	
+	@Test
+	public void testGetAdminUserInfo() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		
+		UserGroup adminGroup = new UserGroup();
+		adminGroup.setIsIndividual(false);
+		adminGroup.setId(TeamConstants.ADMINISTRATORS_TEAM_ID.toString());
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(adminGroup));
+		
+		
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		assertTrue(userInfo.isAdmin());
+		Set<Long> expectedUserGroupIds = new HashSet<Long>();
+		expectedUserGroupIds.add(Long.parseLong(adminGroup.getId()));
+		expectedUserGroupIds.add(principalId);
+		expectedUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		expectedUserGroupIds.add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+
+		assertEquals(expectedUserGroupIds, userInfo.getGroups());
+		assertEquals(principalId, userInfo.getId());
+		assertTrue(userInfo.getOidcClaims().isEmpty());
+		assertEquals(Arrays.asList(OAuthScope.values()), userInfo.getScopes());
 	}
 	
 	@Test
@@ -153,12 +260,12 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testDeleteUserAdmin() throws Exception {
 		// Call with an admin
-		userManager.deletePrincipal(admin, Long.parseLong(mockId));
+		userManager.deletePrincipal(admin, Long.parseLong(MOCK_GROUP_ID));
 		verify(mockUserGroupDAO).delete(anyString());
 		
 		// Call with a non admin
 		try {
-			userManager.deletePrincipal(notAdmin, Long.parseLong(mockId));
+			userManager.deletePrincipal(notAdmin, Long.parseLong(MOCK_GROUP_ID));
 			fail();
 		} catch (UnauthorizedException e) { }
 	}
