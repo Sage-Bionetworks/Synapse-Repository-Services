@@ -77,6 +77,7 @@ import org.sagebionetworks.securitytools.EncryptionUtils;
 import org.sagebionetworks.util.Clock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
@@ -899,7 +900,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "access token";
 		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		List<OAuthScope> scopes = Collections.singletonList(OAuthScope.openid);
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.values());
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		when(mockJWT.getBody()).thenReturn(claims);
@@ -907,22 +908,25 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
 		
-		String ppid = openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID);
+		String ppid = EncryptionUtils.encrypt(USER_ID, clientSpecificEncodingSecret);
 		claims.setSubject(ppid);
 		
-		UserInfo userInfo = new UserInfo(false, USER_ID_LONG);
-		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(userInfo.getGroups());
+		Set<Long> adminUsersGroups = ImmutableSet.of(USER_ID_LONG, 
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(adminUsersGroups);
 		
 		// method under test
 		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
 		
 		verify(mockJWT).getBody();
 		verify(mockUserManager).getUserGroups(USER_ID_LONG);
+		verify(mockOauthClientDao).getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID);
 		
+		assertFalse(actual.isAdmin()); // it's false 'cause the oauth client is not Synapse
 		assertEquals(USER_ID_LONG, actual.getId());
 		assertEquals(oidcClaims, actual.getOidcClaims());
 		assertEquals(scopes, actual.getScopes());
-		assertEquals(userInfo.getGroups(), actual.getGroups());
+		assertEquals(adminUsersGroups, actual.getGroups());
 	}
 
 	@Test
@@ -936,13 +940,75 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
 		claims.setSubject(USER_ID);	
-		UserInfo userInfo = new UserInfo(false, USER_ID_LONG);
 		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(userInfo.getGroups());
+		
+		// method under test
+		openIDConnectManagerImpl.getUserAuthorization(token);
+		
+		verify(mockOauthClientDao, never()).getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID);
+		verify(mockOauthClientDao, never()).isOauthClientVerified(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
+	}
+
+	@Test
+	public void testGetAdminUserAuthorizationSynapseOAuthClient() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.values());
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
+		claims.setSubject(USER_ID);	
+		Set<Long> adminUsersGroups = ImmutableSet.of(USER_ID_LONG, 
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(adminUsersGroups);
 		
 		// method under test
 		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
 		
-		verify(mockOauthClientDao, never()).isOauthClientVerified(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
+		assertTrue(actual.isAdmin());		
+	}
+
+	@Test
+	public void testGetAdminUserAuthorizationSynapseOAuthClientNotFullScope() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = ImmutableList.of(OAuthScope.openid, OAuthScope.view);
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
+		claims.setSubject(USER_ID);	
+		Set<Long> adminUsersGroups = ImmutableSet.of(USER_ID_LONG, 
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(adminUsersGroups);
+		
+		// method under test
+		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
+		
+		assertFalse(actual.isAdmin());		
+	}
+
+	@Test
+	public void testGetAdminUserAuthorizationSynapseOAuthClientNotAdminGroup() {
+		String token = "access token";
+		when(oidcTokenHelper.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = Jwts.claims();
+		List<OAuthScope> scopes = Arrays.asList(OAuthScope.values());
+		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = Collections.singletonMap(OIDCClaimName.email, null);
+		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
+		claims.setSubject(USER_ID);	
+		Set<Long> adminUsersGroups = ImmutableSet.of(USER_ID_LONG);
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(adminUsersGroups);
+		
+		// method under test
+		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);
+		
+		assertFalse(actual.isAdmin());		
 	}
 
 	@Test
