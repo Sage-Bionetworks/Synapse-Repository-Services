@@ -104,7 +104,6 @@ public class ActivityManagerImpl implements ActivityManager {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
 		}			
 				
-		activityDAO.sendDeleteMessage(activity.getId());
 		activityDAO.delete(activity.getId());
 	}
 

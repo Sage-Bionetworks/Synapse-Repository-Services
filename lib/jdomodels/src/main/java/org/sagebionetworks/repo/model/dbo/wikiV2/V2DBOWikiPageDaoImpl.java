@@ -358,9 +358,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(attachmentsToInsert.size() > 0) {
 			basicDao.createBatch(attachmentsToInsert);
 		}
-		
+
 		// Send the change message
 		transactionalMessenger.sendMessageAfterCommit(newDbo, ChangeType.UPDATE);
+
 		// Return the results.
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
