@@ -71,7 +71,7 @@ public class ITAccessTokenTest {
 	public void before() throws Exception {
 		// create the OAuth client
 		client = new OAuthClient();
-		client.setClient_name("some client");
+		client.setClient_name(UUID.randomUUID().toString());
 		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
 		client = synapseOne.createOAuthClient(client);
 		// Sets the verified status of the client (only admins and ACT can do this)
@@ -89,7 +89,7 @@ public class ITAccessTokenTest {
 				synapseOne.deleteOAuthClient(client.getClient_id());
 			}
 		} catch (SynapseException e) {
-			// already gone
+			e.printStackTrace();
 		}
 	}
 
