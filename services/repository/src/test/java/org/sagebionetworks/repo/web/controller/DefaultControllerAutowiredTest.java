@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -13,9 +13,10 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -107,7 +108,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getId().toString()));
 	}
 
-	@Test(expected = EntityInTrashCanException.class)
+	@Test
 	public void testDelete() throws Exception {
 		// Create a project
 		Project project = new Project();
@@ -118,7 +119,9 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityService.getEntity(userId, clone.getId(), Project.class);
+		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
+			entityService.getEntity(userId, clone.getId(), Project.class);
+		});
 	}
 
 	@Test
@@ -281,7 +284,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
@@ -290,15 +293,17 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		// Create a dataset
 		Folder ds = new Folder();
 		ds.setParentId(project.getId());
-		ds = servletTestHelper.createEntity(dispatchServlet, ds, accessToken);
-		assertNotNull(ds);
-		toDelete.add(ds.getId());
+		final Folder createdDs = servletTestHelper.createEntity(dispatchServlet, ds, accessToken);
+		assertNotNull(createdDs);
+		toDelete.add(createdDs.getId());
 
 		// Get the ACL for the project
 		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherAccessToken);
 
 		// Now attempt to update the ACL as the dataset
-		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherAccessToken);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			servletTestHelper.updateEntityAcl(dispatchServlet, createdDs.getId(), projectAcl, otherAccessToken);
+		});
 	}
 
 }

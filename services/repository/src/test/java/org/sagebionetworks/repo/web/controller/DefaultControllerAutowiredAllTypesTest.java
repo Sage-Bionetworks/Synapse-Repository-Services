@@ -381,7 +381,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
@@ -497,7 +497,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			}
 			assertNotNull(acl);
 			// Get the full path of this entity.
-			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);

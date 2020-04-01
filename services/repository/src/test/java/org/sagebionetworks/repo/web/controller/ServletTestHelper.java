@@ -345,10 +345,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> EntityPath getEntityPath(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
-				userId, null);
+				accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
