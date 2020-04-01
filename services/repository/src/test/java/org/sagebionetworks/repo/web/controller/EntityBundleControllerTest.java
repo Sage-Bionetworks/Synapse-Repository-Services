@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EntityBundleControllerTest extends AbstractAutowiredControllerTestBase {
+public class EntityBundleControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	private static final String DUMMY_STUDY_2 = "Test Study 2";
 	private static final String DUMMY_STUDY_1 = "Test Study 1";

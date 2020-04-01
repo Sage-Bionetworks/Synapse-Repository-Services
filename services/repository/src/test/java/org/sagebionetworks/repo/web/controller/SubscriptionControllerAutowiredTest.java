@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBase{
+public class SubscriptionControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;

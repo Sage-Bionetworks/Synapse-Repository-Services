@@ -46,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
+public class WikiControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private UserManager userManager;

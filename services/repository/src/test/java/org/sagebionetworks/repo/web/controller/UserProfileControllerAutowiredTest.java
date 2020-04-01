@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private UserProfileService userProfileService;

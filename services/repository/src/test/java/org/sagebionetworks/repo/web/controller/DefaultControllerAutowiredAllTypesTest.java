@@ -72,7 +72,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  */
 
-public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBase {
+public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	// Used for cleanup
 	@Autowired

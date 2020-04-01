@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
+public class V2WikiControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private UserManager userManager;

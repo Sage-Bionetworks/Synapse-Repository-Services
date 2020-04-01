@@ -34,7 +34,7 @@ import junit.framework.Assert;
  * @author John
  *
  */
-public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTestBase {
+public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;

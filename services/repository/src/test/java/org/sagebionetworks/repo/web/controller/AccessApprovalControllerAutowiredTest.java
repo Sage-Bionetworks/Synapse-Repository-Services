@@ -37,7 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill, adapted by bhoff
  * 
  */
-public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	// Used for cleanup
 	@Autowired

@@ -37,7 +37,7 @@ import com.google.common.base.Predicate;
  * @author John
  *
  */
-public class SearchControllerTest extends AbstractAutowiredControllerTestBase {	
+public class SearchControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {	
 	private Long adminUserId;
 
 	@Autowired
