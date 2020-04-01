@@ -10,10 +10,8 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-communicationUtilities</artifactId>
 	<name>lib-communicationUtilities</name>
-	<version>develop-SNAPSHOT</version>
 	<url>http://maven.apache.org</url>
 
 	<dependencies>
@@ -22,12 +20,6 @@
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-launcher</artifactId>

@@ -87,27 +87,27 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			);
 
 	@Autowired
-	TableStatusDAO tableStatusDAO;
+	private TableStatusDAO tableStatusDAO;
 	@Autowired
-	TimeoutUtils timeoutUtils;
+	private TimeoutUtils timeoutUtils;
 	@Autowired
-	TransactionalMessenger transactionalMessenger;
+	private TransactionalMessenger transactionalMessenger;
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	private ConnectionFactory tableConnectionFactory;
 	@Autowired
-	ColumnModelManager columnModelManager;
+	private ColumnModelManager columnModelManager;
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 	@Autowired
-	TableRowTruthDAO tableTruthDao;
+	private TableRowTruthDAO tableTruthDao;
 	@Autowired
-	ViewScopeDao viewScopeDao;
+	private ViewScopeDao viewScopeDao;
 	@Autowired
-	WriteReadSemaphoreRunner writeReadSemaphoreRunner;
+	private WriteReadSemaphoreRunner writeReadSemaphoreRunner;
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 	@Autowired
-	ViewSnapshotDao viewSnapshotDao;
+	private ViewSnapshotDao viewSnapshotDao;
 	
 	/*
 	 * (non-Javadoc)
@@ -174,7 +174,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ObjectType tableType = getTableType(idAndVersion);
 		// we get here, if the index for this table is not (yet?) being build. We need to kick off the
 		// building of the index and report the table as unavailable
-		String token = tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
+		tableStatusDAO.resetTableStatusToProcessing(idAndVersion);
 		// notify all listeners.
 		transactionalMessenger.sendMessageAfterCommit( new MessageToSend().withObjectId(idAndVersion.getId().toString())
 				.withObjectVersion(idAndVersion.getVersion().orElse(null))
@@ -532,11 +532,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			results.add(getColumnModel(field));
 		}
 		return results;
-	}
-
-	@Override
-	public List<Long> getEntityPath(IdAndVersion idAndVersion) {
-		return nodeDao.getEntityPathIds(idAndVersion.getId().toString());
 	}
 
 	@WriteTransaction

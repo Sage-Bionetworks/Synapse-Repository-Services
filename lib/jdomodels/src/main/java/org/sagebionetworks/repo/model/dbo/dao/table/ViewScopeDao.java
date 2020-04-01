@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -16,20 +15,12 @@ public interface ViewScopeDao {
 	 * @param viewId
 	 * @param containerIds
 	 */
-	public void setViewScopeAndType(Long viewId, Set<Long> containerIds, Long viewTypeMask);
-	
-	/**
-	 * Find all views with a scope that intersects the given path.
-	 * 
-	 * @param path
-	 * @return
-	 */
-	public Set<Long> findViewScopeIntersectionWithPath(List<Long> path);
+	void setViewScopeAndType(Long viewId, Set<Long> containerIds, Long viewTypeMask);
 	
 	/**
 	 * Clear all data in the table.
 	 */
-	public void truncateAll();
+	void truncateAll();
 
 	/**
 	 * Get the scope for the given view.
@@ -37,14 +28,14 @@ public interface ViewScopeDao {
 	 * @param viewId
 	 * @return
 	 */
-	public Set<Long> getViewScope(Long viewId);
+	Set<Long> getViewScope(Long viewId);
 
 	/**
 	 * Get the ViewType for the given table ID.
 	 * @param tableId
 	 * @return
 	 */
-	public Long getViewTypeMask(Long tableId);
+	Long getViewTypeMask(Long tableId);
 	
 
 }

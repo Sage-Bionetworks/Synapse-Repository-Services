@@ -42,8 +42,8 @@ import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
+import org.apache.xml.serialize.OutputFormat;
+import org.apache.xml.serialize.XMLSerializer;
 
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.

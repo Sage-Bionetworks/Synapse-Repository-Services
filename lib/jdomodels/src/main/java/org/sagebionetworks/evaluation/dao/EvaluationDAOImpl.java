@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,9 +54,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -131,8 +127,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// serialize
 		EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
 		
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-
 		// create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
@@ -282,7 +276,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
 	

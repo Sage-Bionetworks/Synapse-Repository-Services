@@ -10,7 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySetOf;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -364,7 +364,6 @@ public class TableManagerSupportTest {
 	@Test
 	public void testDoesTableExistTrue() {
 		Long id = 123L;
-		String synId = KeyFactory.keyToString(id);
 		when(mockNodeDao.doesNodeExist(id)).thenReturn(true);
 		// call under test
 		assertTrue(manager.doesTableExist(idAndVersion));
@@ -373,7 +372,6 @@ public class TableManagerSupportTest {
 	@Test
 	public void testDoesTableExistFalse() {
 		Long id = 123L;
-		String synId = KeyFactory.keyToString(id);
 		when(mockNodeDao.doesNodeExist(id)).thenReturn(false);
 		// call under test
 		assertFalse(manager.doesTableExist(idAndVersion));
@@ -545,7 +543,7 @@ public class TableManagerSupportTest {
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
-		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
+		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
 	}
 	
 	/**
@@ -592,7 +590,7 @@ public class TableManagerSupportTest {
 		scope = null;
 		// call under test
 		manager.validateScopeSize(scope, viewType);
-		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
+		verify(mockNodeDao, never()).getAllContainerIds(anySet(), anyInt());
 	}
 	
 	@Test
@@ -871,16 +869,6 @@ public class TableManagerSupportTest {
 			// call under test
 			manager.getDefaultTableViewColumns(typeMask);
 		});
-	}
-
-	
-	@Test
-	public void testGetEntityPath(){
-		List<Long> expected = Lists.newArrayList(123L, 456L);
-		when(mockNodeDao.getEntityPathIds(tableId)).thenReturn(expected);
-		// call under test
-		List<Long> results = manager.getEntityPath(idAndVersion);
-		assertEquals(expected, results);
 	}
 
 	@Test

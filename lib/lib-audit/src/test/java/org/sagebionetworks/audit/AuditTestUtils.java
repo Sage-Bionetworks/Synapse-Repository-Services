@@ -52,6 +52,7 @@ public class AuditTestUtils {
 			ar.setVmId("vmId");
 			ar.setQueryString("value=bar");
 			ar.setReturnObjectId("syn123");
+			ar.setOauthClientId("99999");
 			list.add(ar);
 		}
 		return list;

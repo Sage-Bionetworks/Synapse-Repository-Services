@@ -23,7 +23,9 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	/**
 	 * This is the schema. If it changes we will not be able to read old data.
 	 */
-	private final static String[] HEADERS = new String[]{"returnObjectId", "elapseMS","timestamp","via","host","threadId","userAgent","queryString","sessionId","xForwardedFor","requestURL","userId","origin", "date","method","vmId","instance","stack","success", "responseStatus"};
+	private final static String[] HEADERS = new String[] { "returnObjectId", "elapseMS", "timestamp", "via", "host",
+			"threadId", "userAgent", "queryString", "sessionId", "xForwardedFor", "requestURL", "userId", "origin",
+			"date", "method", "vmId", "instance", "stack", "success", "responseStatus", "oauthClientId" };
 
 	@Autowired
 	private SynapseS3Client s3Client;

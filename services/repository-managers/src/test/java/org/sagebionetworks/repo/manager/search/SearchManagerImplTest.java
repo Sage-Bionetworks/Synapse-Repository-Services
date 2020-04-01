@@ -16,6 +16,7 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -121,6 +122,7 @@ public class SearchManagerImplTest {
 		// Validate that path was not passed along to the search index as it is not there.
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
 		verify(mockSearchDocumentDriver,times(1)).getEntityPath("syn123");
+		verify(mockSearchDocumentDriver,times(1)).getAliases(Collections.singletonList("syn123"));
 	}
 
 	@Test
@@ -147,6 +149,7 @@ public class SearchManagerImplTest {
 		assertNull(results.getHits().get(0).getPath());
 		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
 		verify(mockSearchDocumentDriver,never()).getEntityPath(anyString());
+		verify(mockSearchDocumentDriver,times(1)).getAliases(Collections.singletonList("syn123"));
 	}
 
 	@Test
@@ -204,7 +207,7 @@ public class SearchManagerImplTest {
 	}
 	
 	@Test
-	public void testAddReturnDataToHits() {
+	public void testAddPathDataToHits() {
 		String id1 = "syn123";
 		String id2 = "syn456";
 		String id3 = "syn789";
@@ -217,20 +220,40 @@ public class SearchManagerImplTest {
 		when(mockSearchDocumentDriver.getEntityPath(id2)).thenThrow(new NotFoundException());
 		when(mockSearchDocumentDriver.getEntityPath(id3)).thenReturn(new EntityPath());
 		
-		List<String> ids = ImmutableList.of(id1, id3);
+		// method under test
+		searchManager.addPathDataToHits(hits);
+		
+		assertEquals(2, hits.size());
+		assertEquals(id1, hits.get(0).getId());
+		assertEquals(id3, hits.get(1).getId());
+	}
+	
+	@Test
+	public void testAddAliasesToHits() {
+		String id1 = "syn123";
+		String id2 = "syn456";
+		String id3 = "syn789";
+		List<org.sagebionetworks.repo.model.search.Hit> hits = new ArrayList<org.sagebionetworks.repo.model.search.Hit>();
+		org.sagebionetworks.repo.model.search.Hit hit1 = new org.sagebionetworks.repo.model.search.Hit(); hit1.setId(id1); hits.add(hit1);
+		org.sagebionetworks.repo.model.search.Hit hit2 = new org.sagebionetworks.repo.model.search.Hit(); hit2.setId(id2); hits.add(hit2);
+		org.sagebionetworks.repo.model.search.Hit hit3 = new org.sagebionetworks.repo.model.search.Hit(); hit3.setId(id3); hits.add(hit3);
+
+		List<String> ids = ImmutableList.of(id1, id2, id3);
 		List<IdAndAlias> aliases = new ArrayList<IdAndAlias>();
 		String alias1 = "alias1";
-		aliases.add(new IdAndAlias(id1, alias1)); // no alias for id3
+		aliases.add(new IdAndAlias(id1, alias1)); // no alias for id2, id3
 		when(mockSearchDocumentDriver.getAliases(ids)).thenReturn(aliases);
 
 
 		// method under test
-		searchManager.addReturnDataToHits(hits);
+		searchManager.addAliasesToHits(hits);
 		
-		assertEquals(2, hits.size());
+		assertEquals(3, hits.size());
 		assertEquals(id1, hits.get(0).getId());
 		assertEquals(alias1, hits.get(0).getAlias());
-		assertEquals(id3, hits.get(1).getId());
+		assertEquals(id2, hits.get(1).getId());
 		assertNull(hits.get(1).getAlias());
+		assertEquals(id3, hits.get(2).getId());
+		assertNull(hits.get(2).getAlias());
 	}
 }

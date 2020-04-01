@@ -1,12 +1,8 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -19,8 +15,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 
-import com.sun.jersey.core.util.Base64;
-
 public class HttpAuthUtil {
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
@@ -28,7 +22,7 @@ public class HttpAuthUtil {
 		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) return null;
 
 		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length()).trim();
-		String basicCredentials = Base64.base64Decode(base64EncodedCredentials);
+		String basicCredentials = new String(Base64.getDecoder().decode(base64EncodedCredentials), StandardCharsets.UTF_8);
 		int colon = basicCredentials.indexOf(":");
 		if (colon>0 && colon<basicCredentials.length()-1) {
 			String name = basicCredentials.substring(0, colon);

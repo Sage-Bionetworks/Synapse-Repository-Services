@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -340,7 +341,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), ObjectSchema.class);
+				response.getContentAsString(), ObjectSchemaImpl.class);
 	}
 
 	/**
@@ -356,7 +357,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), ObjectSchema.class);
+				response.getContentAsString(), ObjectSchemaImpl.class);
 	}
 
 	/**
