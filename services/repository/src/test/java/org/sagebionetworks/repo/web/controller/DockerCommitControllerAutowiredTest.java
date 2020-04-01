@@ -6,9 +6,9 @@ import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -53,7 +53,7 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 		assertFalse(unmanagedRepository.getIsManaged());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (project!=null && project.getId()!=null) {
 			entityService.deleteEntity(adminUserId, project.getId(), Project.class);

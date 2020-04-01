@@ -11,9 +11,9 @@ import java.util.List;
 import org.apache.commons.net.util.Base64;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -50,7 +50,7 @@ public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowire
 		cleanupIdList = new ArrayList<String>();
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		//cleanup
 		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
