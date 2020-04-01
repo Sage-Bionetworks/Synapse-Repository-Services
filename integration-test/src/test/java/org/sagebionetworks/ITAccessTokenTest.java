@@ -16,8 +16,8 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
@@ -134,7 +134,7 @@ public class ITAccessTokenTest {
 			// But if we don't have 'view' scope we can't get the entity
 			String accessToken2 = getAccessToken("openid modify download");
 			synapseAnonymous.setBearerAuthorizationToken(accessToken2);
-			Assertions.assertThrows(UnauthorizedException.class, () -> {
+			Assertions.assertThrows(SynapseForbiddenException.class, () -> {
 				project = synapseAnonymous.getEntity(project.getId(), Project.class);				
 			});
 			
