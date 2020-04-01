@@ -228,7 +228,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherAccessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
+		assertEquals(clone.getId(), clone.getName(), "The name should match the ID when the name is set to null");
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");

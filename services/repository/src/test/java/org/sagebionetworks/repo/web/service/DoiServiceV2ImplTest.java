@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.doi.DoiManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -15,8 +16,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
+@ExtendWith(MockitoExtension.class)
 public class DoiServiceV2ImplTest {
 
 	DoiServiceV2 service = new DoiServiceV2Impl();
@@ -65,18 +65,18 @@ public class DoiServiceV2ImplTest {
 
 	@Test
 	public void testLocateNullObjectId() {
-		service.locate(null, objectType, versionNumber);
 		Assertions.assertThrows(IllegalArgumentException.class, ()->{
-			verify(mockDoiManager, never()).getLocation(null, objectType, versionNumber);
+			service.locate(null, objectType, versionNumber);
 		});
+		verify(mockDoiManager, never()).getLocation(null, objectType, versionNumber);
 	}
 
 	@Test
 	public void testLocateNullType() {
-		service.locate(objectId, null, versionNumber);
 		Assertions.assertThrows(IllegalArgumentException.class, ()->{
-			verify(mockDoiManager, never()).getLocation(objectId, null, versionNumber);
+			service.locate(objectId, null, versionNumber);
 		});
+		verify(mockDoiManager, never()).getLocation(objectId, null, versionNumber);
 	}
 
 	@Test

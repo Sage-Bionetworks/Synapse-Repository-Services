@@ -344,7 +344,7 @@ public class ServletTestHelper {
 	 * Get the annotations for an entity
 	 */
 	public <T extends Entity> EntityPath getEntityPath(
-			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
+			HttpServlet dispatchServlet, String id,
 			String accessToken) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
@@ -354,7 +354,7 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
 		return (EntityPath) objectMapper.readValue(
-				response.getContentAsString(), clazz);
+				response.getContentAsString(), EntityPath.class);
 	}
 
 	/**
