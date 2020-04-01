@@ -1,0 +1,9 @@
+{
+	"description": "Request to create a new Organization.",
+	"properties": {
+		"organizationName": {
+			"type": "string",
+			"description": "Organization names must start and end with with a letter ([a-z]) and can contain digits [0-9] and periods \".\".  The name must be at least 3 characters and no more than 250 characters. Names are case insensitive."
+		}
+	}
+}

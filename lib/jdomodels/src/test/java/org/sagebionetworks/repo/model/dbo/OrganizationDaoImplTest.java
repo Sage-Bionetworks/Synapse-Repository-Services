@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -24,25 +25,42 @@ public class OrganizationDaoImplTest {
 
 	Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
+	String name;
+
+	@BeforeEach
+	public void before() {
+		name = "Foo.Bar";
+	}
+
 	@Test
 	public void testCreateGetDelete() {
-		Organization org = new Organization();
-		org.setName("Foo.Bar");
-		org.setCreatedBy("" + adminUserId);
 		// Call under test
-		Organization created = organizationDao.createOrganization(org);
+		Organization created = organizationDao.createOrganization(name, adminUserId);
 		assertNotNull(created);
 		// name should be lower
-		assertEquals(org.getName().toLowerCase(), created.getName());
+		assertEquals(name.toLowerCase(), created.getName());
 		assertNotNull(created.getId());
 		assertNotNull(created.getCreatedOn());
-		assertEquals(org.getCreatedBy(), created.getCreatedBy());
+		assertEquals(""+adminUserId, created.getCreatedBy());
 
 		// call under test
-		Organization fetched = organizationDao.getOrganization(org.getName());
+		Organization fetched = organizationDao.getOrganization(name);
 		assertEquals(created, fetched);
 		// call under test
-		organizationDao.deleteOrganization(org.getName());
+		organizationDao.deleteOrganization(name);
+	}
+
+	@Test
+	public void testCreateOrganizationDuplicateName() {
+		// Call under test
+		Organization created = organizationDao.createOrganization(name, adminUserId);
+		assertNotNull(created);
+		// Attempt to create a duplicate name.
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			organizationDao.createOrganization(name, adminUserId);
+		}).getMessage();
+		assertEquals("An Organization with the name: 'foo.bar' already exists", message);
 	}
 
 	@Test
@@ -54,7 +72,7 @@ public class OrganizationDaoImplTest {
 		}).getMessage();
 		assertEquals("Orgnaization with name: 'foo.bar' not found", message);
 	}
-	
+
 	@Test
 	public void testDeleteOrganizationNotFound() {
 		String name = "Foo.Bar";

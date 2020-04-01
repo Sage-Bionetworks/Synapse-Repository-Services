@@ -3,11 +3,18 @@ package org.sagebionetworks.repo.model.dbo.schema;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ORGANIZATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
 import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -15,13 +22,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class OrganizationDaoImp implements OrganizationDao {
+public class OrganizationDaoImpl implements OrganizationDao {
 
 	@Autowired
 	DBOBasicDao basicDao;
@@ -34,16 +42,25 @@ public class OrganizationDaoImp implements OrganizationDao {
 
 	@WriteTransaction
 	@Override
-	public Organization createOrganization(Organization org) {
-		ValidateArgument.required(org, "Organization");
-		ValidateArgument.required(org.getName(), "Organization.name");
-		ValidateArgument.required(org.getCreatedBy(), "Organization.createdBy");
+	public Organization createOrganization(String name, Long createdBy) {
+		ValidateArgument.required(name, "name");
+		ValidateArgument.required(createdBy, "createdBy");
 		DBOOrganization dbo = new DBOOrganization();
-		dbo.setName(org.getName().toLowerCase());
-		dbo.setCreatedBy(Long.parseLong(org.getCreatedBy()));
+		dbo.setName(name.toLowerCase());
+		dbo.setCreatedBy(createdBy);
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
 		dbo.setId(idGenerator.generateNewId(IdType.ORGANIZATION_ID));
-		basicDao.createNew(dbo);
+
+		try {
+			jdbcTemplate.update(
+					"INSERT INTO " + TABLE_ORGANIZATION + " (" + COL_ORGANIZATION_ID + "," + COL_ORGANIZATION_NAME + ","
+							+ COL_ORGANIZATION_CREATED_BY + "," + COL_ORGANIZATION_CREATED_ON + ") VALUES (?,?,?,?)",
+					dbo.getId(), dbo.getName(), dbo.getCreatedBy(), dbo.getCreatedOn());
+		} catch (DuplicateKeyException e) {
+			throw new IllegalArgumentException("An Organization with the name: '" + dbo.getName() + "' already exists",
+					e);
+		}
+		
 		return getOrganization(dbo.getName());
 	}
 
@@ -56,7 +73,7 @@ public class OrganizationDaoImp implements OrganizationDao {
 					name.toLowerCase());
 			return createDtoFromDbo(dbo);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Orgnaization with name: '"+name.toLowerCase()+"' not found");
+			throw new NotFoundException("Orgnaization with name: '" + name.toLowerCase() + "' not found");
 		}
 	}
 
@@ -70,7 +87,7 @@ public class OrganizationDaoImp implements OrganizationDao {
 		Organization dto = new Organization();
 		dto.setCreatedBy("" + dbo.getCreatedBy());
 		dto.setCreatedOn(dbo.getCreatedOn());
-		dto.setId(dbo.getId());
+		dto.setId(""+dbo.getId());
 		dto.setName(dbo.getName());
 		return dto;
 	}
@@ -79,10 +96,10 @@ public class OrganizationDaoImp implements OrganizationDao {
 	@Override
 	public void deleteOrganization(String name) {
 		ValidateArgument.required(name, "name");
-		int count = jdbcTemplate.update("DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_NAME + " = ?",
-				name.toLowerCase());
+		int count = jdbcTemplate.update(
+				"DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_NAME + " = ?", name.toLowerCase());
 		if (count < 1) {
-			throw new NotFoundException("Orgnaization with name: '"+name.toLowerCase()+"' not found");
+			throw new NotFoundException("Orgnaization with name: '" + name.toLowerCase() + "' not found");
 		}
 	}
 

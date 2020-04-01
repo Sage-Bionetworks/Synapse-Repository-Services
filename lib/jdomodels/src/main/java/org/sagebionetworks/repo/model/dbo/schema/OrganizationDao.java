@@ -6,27 +6,31 @@ public interface OrganizationDao {
 
 	/**
 	 * Create a new Organization.
-	 * @param org
+	 * 
+	 * @param name
+	 * @param createdBy
 	 * @return
 	 */
-	Organization createOrganization(Organization org);
-	
+	Organization createOrganization(String name, Long createdBy);
+
 	/**
 	 * Get an Organization by name.
+	 * 
 	 * @param name
 	 * @return
 	 */
 	Organization getOrganization(String name);
-	
+
 	/**
 	 * Delete an organization by name.
+	 * 
 	 * @param name
 	 */
 	void deleteOrganization(String name);
-	
+
 	/**
 	 * Truncate all organization data.
 	 */
 	void truncateAll();
-	
+
 }
