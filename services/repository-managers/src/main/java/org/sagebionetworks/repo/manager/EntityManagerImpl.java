@@ -403,23 +403,15 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo).isAuthorized()) {
-			throw new UnauthorizedException(
-					"update access is required to obtain an S3Token for entity "
-							+ entityId);
-		}
+		entityPermissionsManager.hasAccess(entityId,
+				ACCESS_TYPE.READ, userInfo).checkAuthorizationOrElseThrow();
 	}
 	
 	@Override
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo).isAuthorized()) {
-			throw new UnauthorizedException(
-					"update access is required to obtain an S3Token for entity "
-							+ entityId);
-		}
+		entityPermissionsManager.hasAccess(entityId,
+				ACCESS_TYPE.UPDATE, userInfo).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
