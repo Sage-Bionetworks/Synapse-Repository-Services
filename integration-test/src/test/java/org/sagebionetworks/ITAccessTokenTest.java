@@ -120,7 +120,7 @@ public class ITAccessTokenTest {
 
 	@Test
 	public void testAccessToken() throws Exception {
-		String accessToken = getAccessToken("openid,modify,view,download");
+		String accessToken = getAccessToken("openid modify view download");
 
 		try {
 			// We use the bearer token to authorize the client 
@@ -132,7 +132,7 @@ public class ITAccessTokenTest {
 			project = synapseAnonymous.getEntity(project.getId(), Project.class);
 			
 			// But if we don't have 'view' scope we can't get the entity
-			String accessToken2 = getAccessToken("openid,modify,download");
+			String accessToken2 = getAccessToken("openid modify download");
 			synapseAnonymous.setBearerAuthorizationToken(accessToken2);
 			Assertions.assertThrows(UnauthorizedException.class, () -> {
 				project = synapseAnonymous.getEntity(project.getId(), Project.class);				
