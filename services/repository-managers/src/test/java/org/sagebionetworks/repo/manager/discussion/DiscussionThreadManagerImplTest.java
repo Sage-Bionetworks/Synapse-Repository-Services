@@ -223,7 +223,7 @@ public class DiscussionThreadManagerImplTest {
 	@Test
 	public void testCreateByAnonymous() throws Exception {
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			threadManager.createThread(userInfo, createDto);
 		});
 	}
@@ -259,7 +259,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testGetThreadUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 		.thenReturn(AuthorizationStatus.accessDenied(""));
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			threadManager.getThread(userInfo, threadId.toString());
 		});
 	}
@@ -287,7 +287,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 		.thenReturn(AuthorizationStatus.authorized());
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenThrow(new NotFoundException());
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(NotFoundException.class, ()-> {
 			threadManager.getThread(userInfo, threadId.toString());
 		});
 	}
@@ -311,7 +311,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 		.thenReturn(AuthorizationStatus.accessDenied(""));
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
 		});
 	}
@@ -336,7 +336,7 @@ public class DiscussionThreadManagerImplTest {
 	public void testUpdateTitleUnauthorized() {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
 		.thenReturn(false);
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
 		});
 	}
