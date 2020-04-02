@@ -5491,7 +5491,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getOrganizationName(), "request.organizationName");
 		String url = "/schema/organization";
-		return postJSONEntity(getRepoEndpoint(), url, null, Organization.class);
+		return postJSONEntity(getRepoEndpoint(), url, request, Organization.class);
 	}
 
 	@Override

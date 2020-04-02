@@ -128,7 +128,7 @@ public class JsonSchemaController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
 	public AccessControlList updateOrganizationAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id,
 			@RequestBody AccessControlList acl) {
 		return serviceProvider.getSchemaServices().updateOrganizationAcl(userId, id, acl);
 	}
