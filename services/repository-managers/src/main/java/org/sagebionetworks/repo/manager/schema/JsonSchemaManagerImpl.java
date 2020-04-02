@@ -145,7 +145,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public Organization getOrganizationByName(UserInfo user, String name) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(name, "name");
-		return organizationDao.getOrganizationByName(name);
+		String processedOrganizationName = processAndValidateOrganizationName(name);
+		return organizationDao.getOrganizationByName(processedOrganizationName);
 	}
 
 }

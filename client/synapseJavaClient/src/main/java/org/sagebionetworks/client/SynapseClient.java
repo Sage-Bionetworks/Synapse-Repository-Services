@@ -193,6 +193,8 @@ import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
+import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -3483,4 +3485,44 @@ public interface SynapseClient extends BaseClient {
 	 */
 	FormData reviewerRejectFormData(String formDataId, FormRejection rejection) throws SynapseException;
 	
+	/**
+	 * Create a new Organization.
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	Organization createOrganization(OrganizationRequest request) throws SynapseException;
+	
+	/**
+	 * Lookup an Organization by name
+	 * @param organizationName
+	 * @return
+	 * @throws SynapseException 
+	 */
+	Organization getOrganizationByName(String organizationName) throws SynapseException;
+	
+	/**
+	 * Delete the identified Organization.
+	 * 
+	 * @param id
+	 * @throws SynapseException 
+	 */
+	void deleteOrganization(String id) throws SynapseException;
+	
+	/**
+	 * Get the ACL for the identified Organization.
+	 * @param id
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList getOrganizationAcl(String id) throws SynapseException;
+	
+	/**
+	 * Update the given Organization's ACL.
+	 * @parm id The ID of the organization to update.
+	 * @param toUpdate
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AccessControlList updateOrganizationAcl(String id, AccessControlList toUpdate) throws SynapseException;
 }

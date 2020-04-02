@@ -233,6 +233,8 @@ import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
 import org.sagebionetworks.repo.model.request.ReferenceList;
+import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -5482,6 +5484,43 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(formDataId, "formDataId");
 		String url = "/form/data/"+formDataId+"/reject";
 		return putJSONEntity(getRepoEndpoint(), url, rejection, FormData.class);
+	}
+
+	@Override
+	public Organization createOrganization(OrganizationRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getOrganizationName(), "request.organizationName");
+		String url = "/schema/organization";
+		return putJSONEntity(getRepoEndpoint(), url, null, Organization.class);
+	}
+
+	@Override
+	public Organization getOrganizationByName(String organizationName) throws SynapseException {
+		ValidateArgument.required(organizationName, "organizationName");
+		String url = "/schema/organization/"+organizationName;
+		return getJSONEntity(getRepoEndpoint(), url, Organization.class);
+	}
+
+	@Override
+	public void deleteOrganization(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		String url = "/schema/organization/"+id;
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
+	public AccessControlList getOrganizationAcl(String id) throws SynapseException {
+		ValidateArgument.required(id, "organizationName");
+		String url = "/schema/organization/"+id+"/acl";
+		return getJSONEntity(getRepoEndpoint(), url, AccessControlList.class);
+	}
+
+	@Override
+	public AccessControlList updateOrganizationAcl(String id, AccessControlList toUpdate) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(toUpdate, "AccessControlList");
+		String url = "/schema/organization/"+id+"/acl";
+		return putJSONEntity(getRepoEndpoint(), url, toUpdate, AccessControlList.class);
 	}
 
 }

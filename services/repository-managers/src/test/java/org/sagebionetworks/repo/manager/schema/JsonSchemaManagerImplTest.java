@@ -442,4 +442,15 @@ public class JsonSchemaManagerImplTest {
 		assertEquals(result, organization);
 		verify(mockOrganizationDao).getOrganizationByName(name);
 	}
+	
+	@Test
+	public void testGetOrganizationByNameTrim() {
+		String name = " org.org\n";
+		String trimmedName = "org.org";
+		when(mockOrganizationDao.getOrganizationByName(trimmedName)).thenReturn(organization);
+		// call under test
+		Organization result = manager.getOrganizationByName(user, name);
+		assertEquals(result, organization);
+		verify(mockOrganizationDao).getOrganizationByName(trimmedName);
+	}
 }
