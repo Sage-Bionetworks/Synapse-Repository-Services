@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -151,13 +152,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		Set<String> scopeDescriptions = new TreeSet<String>();
 		for (OAuthScope scope : scopes) {
 			String scopeDescription = null;
-			switch (scope) {
-			case openid:
-				// required for OIDC requests.  Doesn't add anything to what access is requested
-				break;
-			default:
-				// unrecognized scope values should be ignored https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-				break;
+			if (scope==OAuthScope.openid) {
+				// required for OIDC requests.  Doesn't add anything to what access is requested, so leave description empty
+			} else {
+				scopeDescription = OAuthPermissionUtils.scopeDescription(scope);
 			}
 			if (StringUtils.isNotEmpty(scopeDescription)) {
 				scopeDescriptions.add(scopeDescription);

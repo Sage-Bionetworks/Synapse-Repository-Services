@@ -48,4 +48,18 @@ public class OAuthPermissionUtils {
 		return AuthorizationStatus.accessDenied("Your authorization scope(s) do not allow "+accessType+" access.");			
 
 	}
+	
+	public static String scopeDescription(OAuthScope scope) {
+		switch (scope) {
+		case openid:
+			return "To see your identity";
+		case view:
+			return "To view the content which you can view";
+		case modify:
+			return "To modify the content which you can modify (create, change, delete)";
+		case download:
+			return "To download the content which you can download";				
+		}
+		return null;
+	}
 }

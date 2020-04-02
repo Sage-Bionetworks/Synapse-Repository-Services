@@ -16,7 +16,7 @@ public class OrcidClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "The ORCID you have linked to your Synapse account, if any";
+		return "To see the ORCID you have linked to your Synapse account, if any";
 	}
 
 	@Override

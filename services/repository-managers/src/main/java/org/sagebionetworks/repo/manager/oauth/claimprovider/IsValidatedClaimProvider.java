@@ -18,7 +18,7 @@ public class IsValidatedClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Whether you are a validated Synapse user";
+		return "To see whether you are a validated Synapse user";
 	}
 
 	@Override

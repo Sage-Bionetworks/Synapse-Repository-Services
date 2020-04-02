@@ -18,7 +18,7 @@ public class ValidatedEmailClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated email";
+		return "If you are a validated user, to see your validated email";
 	}
 
 	@Override
