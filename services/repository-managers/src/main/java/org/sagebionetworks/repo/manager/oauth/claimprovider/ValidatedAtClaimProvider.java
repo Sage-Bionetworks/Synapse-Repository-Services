@@ -20,7 +20,7 @@ public class ValidatedAtClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, the date when your profile was validated";
+		return "If you are a validated user, to see the date when your profile was validated";
 	}
 
 	@Override

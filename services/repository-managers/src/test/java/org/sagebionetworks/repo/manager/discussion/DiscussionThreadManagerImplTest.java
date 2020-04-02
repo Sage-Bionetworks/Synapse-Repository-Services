@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.discussion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -17,13 +17,15 @@ import static org.sagebionetworks.repo.manager.discussion.DiscussionThreadManage
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -59,6 +61,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -105,7 +108,7 @@ public class DiscussionThreadManagerImplTest {
 	private List<DiscussionThreadEntityReference> entityRefs = new ArrayList<DiscussionThreadEntityReference>();
 	private List<DiscussionThreadEntityReference> titleEntityRefs = new ArrayList<DiscussionThreadEntityReference>();
 
-	@Before
+	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 
@@ -135,6 +138,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setForumId(forumId.toString());
 		dto.setIsDeleted(false);
 		userInfo.setId(userId);
+		userInfo.setScopes(Collections.singletonList(OAuthScope.view));
 
 		newTitle.setTitle("newTitle with syn123");
 		newMessage.setMessageMarkdown("newMessageMarkdown");
@@ -160,52 +164,68 @@ public class DiscussionThreadManagerImplTest {
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullDTO() throws Exception {
-		threadManager.createThread(userInfo, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(userInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullForumId() throws Exception {
 		createDto.setForumId(null);
-		threadManager.createThread(userInfo, createDto);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(userInfo, createDto);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullTitle() throws Exception {
 		createDto.setTitle(null);
-		threadManager.createThread(userInfo, createDto);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(userInfo, createDto);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNullMessage() throws Exception {
 		createDto.setMessageMarkdown(null);
-		threadManager.createThread(userInfo, createDto);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(userInfo, createDto);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithNulluserInfo() throws Exception {
-		threadManager.createThread(null, new CreateDiscussionThread());
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(null, new CreateDiscussionThread());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCreateWithLongTitle() throws Exception {
 		CreateDiscussionThread createThread = new CreateDiscussionThread();
 		createThread.setTitle(RandomStringUtils.randomAlphanumeric(MAX_TITLE_LENGTH+1));
-		threadManager.createThread(null, createThread);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.createThread(null, createThread);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testCreateAccessDenied() throws Exception {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.createThread(userInfo, createDto);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.createThread(userInfo, createDto);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testCreateByAnonymous() throws Exception {
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(true);
-		threadManager.createThread(userInfo, createDto);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.createThread(userInfo, createDto);
+		});
 	}
 
 	@Test
@@ -228,22 +248,26 @@ public class DiscussionThreadManagerImplTest {
 		assertTrue(list.contains(entityRefs.get(1)));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadWithNullThreadId() {
-		threadManager.getThread(userInfo, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThread(userInfo, null);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getThread(userInfo, threadId.toString());
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getThread(userInfo, threadId.toString());
+		});
 	}
 
 	@Test
 	public void testGetThreadAuthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(threadId.toString(), ObjectType.THREAD, dto.getEtag(), ChangeType.UPDATE, userInfo.getId());
@@ -253,156 +277,186 @@ public class DiscussionThreadManagerImplTest {
 	public void testGetDeletedThreadAuthorized() {
 		dto.setIsDeleted(true);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		assertEquals(dto, threadManager.getThread(userInfo, threadId.toString()));
 		verify(mockThreadDao).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testGetDeletedThreadUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenThrow(new NotFoundException());
-		threadManager.getThread(userInfo, threadId.toString());
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.getThread(userInfo, threadId.toString());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCheckPermissionWithNullUserInfo() {
-		threadManager.checkPermission(null, threadId.toString(), ACCESS_TYPE.READ);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.checkPermission(null, threadId.toString(), ACCESS_TYPE.READ);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testCheckPermissionWithNullThreadId() {
-		threadManager.checkPermission(userInfo, null, ACCESS_TYPE.READ);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.checkPermission(userInfo, null, ACCESS_TYPE.READ);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testCheckPermissionUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
+		});
 	}
 
 	@Test
 	public void testCheckPermissionAuthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		threadManager.checkPermission(userInfo, threadId.toString(), ACCESS_TYPE.READ);
 		verify(mockThreadDao, Mockito.never()).updateThreadView(Mockito.anyLong(), Mockito.anyLong());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testUpdateTitleWithNullTitle() {
-		threadManager.updateTitle(userInfo, threadId.toString(), null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.updateTitle(userInfo, threadId.toString(), null);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testUpdateTitleUnauthorized() {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
-				.thenReturn(false);
-		threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
+		.thenReturn(false);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testUpdateTitleDeletedThread() {
 		when(mockThreadDao.getAuthorForUpdate(threadId.toString())).thenThrow(new NotFoundException());
-		threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
+		});
 	}
 
 	@Test
 	public void testUpdateTitleAuthorized() {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), any()))
-				.thenReturn(true);
+		.thenReturn(true);
 		when(mockThreadDao.updateTitle(anyLong(), any())).thenReturn(dto);
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		verify(mockThreadDao).insertEntityReference(titleEntityRefs);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test 
 	public void testUpdateMessageWithNullMessage() throws Exception {
-		threadManager.updateMessage(userInfo, threadId.toString(), null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.updateMessage(userInfo, threadId.toString(), null);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testUpdateMessageUnauthorized() throws Exception {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), Mockito.anyString()))
-				.thenReturn(false);
-		threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
+		.thenReturn(false);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testUpdateMessageForDeletedThread() throws Exception {
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenThrow(new NotFoundException());
-		threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.updateMessage(userInfo, threadId.toString(), newMessage );
+		});
 	}
 
 	@Test
 	public void testUpdateMessageAuthorized() throws Exception {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo),any()))
-				.thenReturn(true);
+		.thenReturn(true);
 		when(mockUploadDao.uploadThreadMessage(any(), any(), any()))
-				.thenReturn("newMessage");
+		.thenReturn("newMessage");
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockThreadDao).insertEntityReference(any(List.class));
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testDeleteUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.markThreadAsDeleted(userInfo, threadId.toString());
+		});
 	}
 
 	@Test
 	public void testDeleteAuthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		threadManager.markThreadAsDeleted(userInfo, threadId.toString());
 		verify(mockThreadDao).markThreadAsDeleted(threadId);
 	}
 
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testRestoreUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
+		});
 	}
 
 	@Test
 	public void testRestoreAuthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.authorized());
+		.thenReturn(AuthorizationStatus.authorized());
 		threadManager.markThreadAsNotDeleted(userInfo, threadId.toString());
 		verify(mockThreadDao).markThreadAsNotDeleted(threadId);
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testPinThreadUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.pinThread(userInfo, threadId.toString());
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.pinThread(userInfo, threadId.toString());
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testPinNotExistingThread() {
 		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
-		threadManager.pinThread(userInfo, threadId.toString());
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.pinThread(userInfo, threadId.toString());
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testPinDeletedThread() {
 		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
-		threadManager.pinThread(userInfo, threadId.toString());
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.pinThread(userInfo, threadId.toString());
+		});
 	}
 
 	@Test
@@ -414,24 +468,30 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).pinThread(threadId);
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testUnpinThreadUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.unpinThread(userInfo, threadId.toString());
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.unpinThread(userInfo, threadId.toString());
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testUnpinNonExistingThread() {
 		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenThrow(new NotFoundException());
-		threadManager.unpinThread(userInfo, threadId.toString());
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.unpinThread(userInfo, threadId.toString());
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testUnpinDeletedThread() {
 		when(mockThreadDao.isThreadDeleted(threadId.toString())).thenReturn(true);
-		threadManager.unpinThread(userInfo, threadId.toString());
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.unpinThread(userInfo, threadId.toString());
+		});
 	}
 
 	@Test
@@ -443,38 +503,50 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).unpinThread(threadId);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadsForForumWithNullForumId() {
-		threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, null, DiscussionFilter.NO_FILTER);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadsForForumExceedLimit() {
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testNegativeOffset() {
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT, -2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, forumId.toString(), MAX_LIMIT, -2L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testNegativeLimit() {
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), -1L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, forumId.toString(), -1L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadsForForumUnauthorizedWithNoFilter() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadsForForumUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
-				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		.thenReturn(AuthorizationStatus.accessDenied(""));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getThreadsForForum(userInfo, forumId.toString(), 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED);
+		});
 	}
 
 	@Test
@@ -501,12 +573,14 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).getThreadsForForum(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(), (DiscussionThreadOrder) Mockito.any(), Mockito.anyBoolean(), Mockito.any(DiscussionFilter.class));
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadURLUnauthorized() {
 		when(mockThreadDao.getProjectId(threadId.toString())).thenReturn(projectId);
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getMessageUrl(userInfo, messageKey);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getMessageUrl(userInfo, messageKey);
+		});
 	}
 
 	@Test
@@ -520,23 +594,29 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).updateThreadView(threadId, userId);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadCountForForumWithNullForumId() {
-		threadManager.getThreadCountForForum(userInfo, null, DiscussionFilter.NO_FILTER);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadCountForForum(userInfo, null, DiscussionFilter.NO_FILTER);
+	});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadCountForForumUnauthorizedWithNoFilter() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.NO_FILTER);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.NO_FILTER);
+		});
 	}
 
-	@Test (expected = UnauthorizedException.class)
+	@Test
 	public void testGetThreadCountForForumUnauthorized() {
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
-		threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.EXCLUDE_DELETED);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getThreadCountForForum(userInfo, forumId.toString(), DiscussionFilter.EXCLUDE_DELETED);
+		});
 	}
 
 	@Test
@@ -551,21 +631,27 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(count, tc.getCount());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetEntityThreadCountNullEntityIdList() {
-		threadManager.getEntityThreadCounts(userInfo, null);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getEntityThreadCounts(userInfo, null);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetEntityThreadCountNullIdList() {
-		threadManager.getEntityThreadCounts(userInfo, new EntityIdList());
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getEntityThreadCounts(userInfo, new EntityIdList());
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetEntityThreadCountExceedLimit() {
 		when(mockEntityIdList.getIdList()).thenReturn(mockList);
 		when(mockList.size()).thenReturn((int) (MAX_LIMIT+1));
-		threadManager.getEntityThreadCounts(userInfo, mockEntityIdList);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getEntityThreadCounts(userInfo, mockEntityIdList);
+		});
 	}
 
 	@Test
@@ -611,24 +697,41 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).getThreadCounts(eq(entityIds), eq(projectIdsCanRead));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
+	public void testGetEntityThreadCountNoReadScope() {
+		userInfo.setScopes(Collections.EMPTY_LIST);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			threadManager.getEntityThreadCounts(userInfo, mockEntityIdList);
+		});
+	}
+
+
+	@Test
 	public void testGetThreadsForEntityWithNullEntityId(){
-		threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForEntity(userInfo, null, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadsForEntityExceedLimit(){
-		threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT+1, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadsForEntityNegativeOffset() {
-		threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForEntity(userInfo, "syn3", MAX_LIMIT, -3L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetThreadsForEntityNegativeLimit() {
-		threadManager.getThreadsForEntity(userInfo, "syn3", -2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getThreadsForEntity(userInfo, "syn3", -2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		});
 	}
 
 	@Test
@@ -679,35 +782,47 @@ public class DiscussionThreadManagerImplTest {
 		verify(mockThreadDao).getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetModeratorsWithNullUserInfo(){
-		threadManager.getModerators(null, forum.getId(), 10L, 0L);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getModerators(null, forum.getId(), 10L, 0L);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+	@Test
 	public void testGetModeratorsWithNullForumId(){
-		threadManager.getModerators(userInfo, null, 10L, 0L);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getModerators(userInfo, null, 10L, 0L);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+		@Test
 	public void testGetModeratorsWithNegativeLimit(){
-		threadManager.getModerators(userInfo, forum.getId(), -1L, 0L);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getModerators(userInfo, forum.getId(), -1L, 0L);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+		@Test
 	public void testGetModeratorsWithOverLimit(){
-		threadManager.getModerators(userInfo, forum.getId(), MAX_LIMIT+1, 0L);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getModerators(userInfo, forum.getId(), MAX_LIMIT+1, 0L);
+		});
 	}
 
-	@Test (expected = IllegalArgumentException.class)
+		@Test
 	public void testGetModeratorsWithNegativeOffset(){
-		threadManager.getModerators(userInfo, forum.getId(), 10L, -1L);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			threadManager.getModerators(userInfo, forum.getId(), 10L, -1L);
+		});
 	}
 
-	@Test (expected = NotFoundException.class)
+		@Test
 	public void testGetModeratorsWithNotFoundForum() {
 		when(mockForumDao.getForum(Long.parseLong(forum.getId()))).thenThrow(new NotFoundException());
-		threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+		Assertions.assertThrows(NotFoundException.class, ()-> {
+			threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+		});
 	}
 
 	@Test

@@ -18,7 +18,7 @@ public class ValidatedFamilyNameClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated last name";
+		return "If you are a validated user, to see your validated last name";
 	}
 
 	@Override

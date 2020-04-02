@@ -22,7 +22,7 @@ public class TeamClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Your team membership";
+		return "To see your team membership";
 	}
 
 	@Override

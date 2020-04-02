@@ -229,11 +229,11 @@ public interface DiscussionService {
 	/**
 	 * Get EntityThreadCounts for a list of entityIds.
 	 * 
-	 * @param userId
+	 * @param accessToken
 	 * @param entityIds
 	 * @return
 	 */
-	public EntityThreadCounts getThreadCounts(Long userId, EntityIdList entityIds);
+	public EntityThreadCounts getThreadCounts(String accessToken, EntityIdList entityIds);
 
 	/**
 	 * Mark a reply as not deleted

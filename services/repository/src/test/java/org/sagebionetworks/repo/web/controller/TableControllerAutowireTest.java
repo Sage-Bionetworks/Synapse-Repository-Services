@@ -1,8 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -11,12 +19,11 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -33,7 +40,7 @@ import com.google.common.collect.Lists;
 
 import junit.framework.Assert;
 
-public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
+public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -44,26 +51,32 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Autowired
 	private SynapseS3Client s3Client;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
 	private Entity parent;
 	private Long adminUserId;
 
 	private List<S3FileHandle> handles = Lists.newArrayList();
 	private List<String> entitiesToDelete = Lists.newArrayList();
 	
-	@Before
+	private String accessToken;
+	
+	@BeforeEach
 	public void before() throws Exception {
 	
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
-		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, accessToken);
 		Assert.assertNotNull(parent);
 
 		entitiesToDelete.add(parent.getId());
 	}
 	
-	@After
+	@AfterEach
 	public void after(){
 		for (String entity : Lists.reverse(entitiesToDelete)) {
 			try {
@@ -106,15 +119,15 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
 		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId()));
-		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, accessToken);
 		entitiesToDelete.add(table.getId());
 
 		table.setColumnIds(Lists.<String>newArrayList());
-		table = servletTestHelper.updateEntity(dispatchServlet, table, adminUserId);
+		table = servletTestHelper.updateEntity(dispatchServlet, table, accessToken);
 		assertEquals(0, table.getColumnIds().size());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testColumnNameDuplicateId() throws Exception {
 		// create two columns that differ only by case.
 		ColumnModel one = new ColumnModel();
@@ -132,7 +145,9 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setParentId(parent.getId());
 		List<String> idList = Lists.newArrayList(one.getId(), two.getId(), one.getId());
 		table.setColumnIds(idList);
-		servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
+			servletTestHelper.createEntity(dispatchServlet, table, accessToken);
+		});
 	}
 
 	@Test

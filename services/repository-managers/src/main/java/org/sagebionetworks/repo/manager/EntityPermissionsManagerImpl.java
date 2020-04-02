@@ -19,13 +19,13 @@ import java.util.Set;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
@@ -306,7 +306,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		return certifiedUserHasAccess(entityId, entityType, accessType, userInfo);
 	}
-		
+
 	/**
 	 * Answers the authorization check  _without_ checking whether the user is a Certified User.
 	 * In other words, says whether the user _would_ be authorized for the requested access
@@ -343,6 +343,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (userInfo.isAdmin()) {
 			return AuthorizationStatus.authorized();
 		}
+		
 		// Can download
 		if (accessType == DOWNLOAD) {
 			return canDownload(userInfo, entityId, benefactor, entityType);
@@ -352,7 +353,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return canUpload(userInfo, entityId);
 		}
 		
-		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
+		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessType)) {
+			return OAuthPermissionUtils.accessDenied(accessType);
+		} else if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
 			return AuthorizationStatus.authorized();
 		} else {
 			return AuthorizationStatus.accessDenied("You do not have "+accessType+" permission for the requested entity.");
@@ -394,7 +397,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 
-		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
 		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).isAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
@@ -440,6 +443,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			accessTypeCheck = READ;
 		}
 		
+		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessTypeCheck)) {
+			return OAuthPermissionUtils.accessDenied(ACCESS_TYPE.DOWNLOAD);
+		}
+		
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);
 		
 		if (!aclAllowsDownload) {
@@ -476,6 +483,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) {
 			return AuthorizationStatus.accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		}
+		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPLOAD)) {
+			return OAuthPermissionUtils.accessDenied(ACCESS_TYPE.UPLOAD);
+		}		
 		return AuthorizationStatus.authorized();
 	}
 

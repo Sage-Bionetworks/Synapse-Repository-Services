@@ -12,20 +12,20 @@ public interface DoiServiceV2 {
 	/**
 	 * Gets the DOI for the specified entity version, with all associated metadata.
 	 */
-	Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	Doi getDoi(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, ServiceUnavailableException;
 
 
 	/**
 	 * Gets the DOI Association for the specified entity version.
 	 */
-	DoiAssociation getDoiAssociation(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Redirect to the object in the Synapse web portal.
 	 */
-	String locate(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	String locate(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException;
 
 

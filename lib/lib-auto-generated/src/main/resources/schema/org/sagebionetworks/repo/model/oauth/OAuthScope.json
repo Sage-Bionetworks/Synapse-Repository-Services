@@ -5,6 +5,18 @@
     {
       "name": "openid",
       "description": "Required scope for OpenID Connect"
+    },
+    {
+      "name": "view",
+      "description": "Read object metadata"
+    },
+    {
+      "name": "download",
+      "description": "Download data"
+    },
+    {
+      "name": "modify",
+      "description": "Create or change content"
     }
   ]
 }

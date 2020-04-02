@@ -17,7 +17,7 @@ public class FamilyNameClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Your last name, if you share it with Synapse";
+		return "To see your last name, if you share it with Synapse";
 	}
 
 	@Override

@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
@@ -146,9 +145,9 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	}
 
 	@Override
-	public Object getUserInfo(String accessTokenParam, String oauthEndpoint) {
-		UserAuthorization userAuthorization = oidcManager.getUserAuthorization(accessTokenParam);
-		String oauthClientId = oidcTokenHelper.parseJWT(accessTokenParam).getBody().getAudience();
+	public Object getUserInfo(String accessToken, String oauthEndpoint) {
+		UserInfo userAuthorization = oidcManager.getUserAuthorization(accessToken);
+		String oauthClientId = oidcTokenHelper.parseJWT(accessToken).getBody().getAudience();
 		return oidcManager.getUserInfo(userAuthorization, oauthClientId, oauthEndpoint);
 	}
 }

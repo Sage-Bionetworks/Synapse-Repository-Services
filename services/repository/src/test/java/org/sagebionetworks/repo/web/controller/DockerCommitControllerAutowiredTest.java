@@ -1,17 +1,17 @@
 package org.sagebionetworks.repo.web.controller;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	private Long adminUserId;
 	
@@ -33,21 +33,27 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 	@Autowired
 	private EntityService entityService;
 
-	@Before
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String accessToken;
+	
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		project = new Project();
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		when(request.getServletPath()).thenReturn("/repo/v1/dockerTag");
-		project = entityService.createEntity(adminUserId, project, null);
+		project = entityService.createEntity(accessToken, project, null);
 		unmanagedRepository = new DockerRepository();
 		unmanagedRepository.setParentId(project.getId());
 		unmanagedRepository.setRepositoryName("uname/reponame");
-		unmanagedRepository = entityService.createEntity(adminUserId, unmanagedRepository, null);
+		unmanagedRepository = entityService.createEntity(accessToken, unmanagedRepository, null);
 		assertFalse(unmanagedRepository.getIsManaged());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		if (project!=null && project.getId()!=null) {
 			entityService.deleteEntity(adminUserId, project.getId(), Project.class);

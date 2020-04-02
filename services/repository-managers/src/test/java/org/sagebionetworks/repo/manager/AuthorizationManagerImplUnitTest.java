@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,7 +49,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -61,6 +64,7 @@ import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -72,6 +76,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -176,7 +181,9 @@ public class AuthorizationManagerImplUnitTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
+		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 		adminUser = new UserInfo(true, 456L);
+		adminUser.setScopes(Arrays.asList(OAuthScope.values()));
 		
 		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
@@ -275,6 +282,24 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessActivityPaginationSmallResultSet() throws Exception {		 
+		Activity act = new Activity();
+		String actId = "1";
+		int limit = 1000;
+		int offset = 0;
+		// create as admin, try to access as user so fails access and tests pagination
+		act.setId(actId);
+		act.setCreatedBy(adminUser.getId().toString());
+		when(mockActivityDAO.get(actId)).thenReturn(act);
+		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
+		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
+
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
+		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
+		assertFalse(canAccess);
+	}
+
+	@Test
+	public void testCanAccessActivityMissingRequired() throws Exception {		 
 		Activity act = new Activity();
 		String actId = "1";
 		int limit = 1000;

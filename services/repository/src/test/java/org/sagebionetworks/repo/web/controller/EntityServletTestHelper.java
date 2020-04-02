@@ -73,10 +73,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Create an entity without an entity type
 	 */
-	public Entity createEntity(Entity entity, Long userId, String activityId)
+	public Entity createEntity(Entity entity, String accessToken, String activityId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.ENTITY, accessToken, entity);
 		request.setParameter(ServiceConstants.GENERATED_BY_PARAM, activityId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -99,9 +99,9 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity using only the ID
 	 */
-	public Entity getEntity(String id, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, userId, null);
+	public Entity getEntity(String id, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -112,11 +112,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity bundle using only the ID
 	 */
-	public EntityBundle getEntityBundle(String id, EntityBundleRequest bundleV2Request, Long userId)
+	public EntityBundle getEntityBundle(String id, EntityBundleRequest bundleV2Request, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE_V2,
-				userId, null);
+				accessToken, null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
 		request.setContentType("application/json");
 
@@ -132,10 +132,10 @@ public class EntityServletTestHelper {
 	 * versionNumber.
 	 */
 	public EntityBundle getEntityBundleForVersion(String id,
-												  Long versionNumber, EntityBundleRequest bundleV2Request, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Long versionNumber, EntityBundleRequest bundleV2Request, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, userId,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE_V2, accessToken,
 				null);
 		request.setContent(EntityFactory.createJSONStringForEntity(bundleV2Request).getBytes(StandardCharsets.UTF_8));
 		request.setContentType("application/json");
@@ -151,11 +151,11 @@ public class EntityServletTestHelper {
 	 * Get an entity bundle using only the ID
 	 */
 	@Deprecated
-	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, Long userId)
+	public org.sagebionetworks.repo.model.EntityBundle getEntityBundle(String id, int mask, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
-				userId, null);
+				accessToken, null);
 		request.setParameter("mask", "" + mask);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -171,10 +171,10 @@ public class EntityServletTestHelper {
 	 */
 	@Deprecated
 	public org.sagebionetworks.repo.model.EntityBundle getEntityBundleForVersion(String id,
-																				 Long versionNumber, int mask, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				Long versionNumber, int mask, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE, accessToken,
 				null);
 		request.setParameter("mask", "" + mask);
 
@@ -188,11 +188,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update an entity.
 	 */
-	public Entity updateEntity(Entity toUpdate, Long userId)
+	public Entity updateEntity(Entity toUpdate, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + toUpdate.getId(),
-				userId, toUpdate);
+				accessToken, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -203,11 +203,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public org.sagebionetworks.repo.model.Annotations getEntityAnnotations(String id, Long userId)
+	public org.sagebionetworks.repo.model.Annotations getEntityAnnotations(String id, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.ANNOTATIONS, userId, null);
+						+ UrlHelpers.ANNOTATIONS, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -219,11 +219,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update the annotations of an entity
 	 */
-	public org.sagebionetworks.repo.model.Annotations updateAnnotations(org.sagebionetworks.repo.model.Annotations annos, Long userId)
+	public org.sagebionetworks.repo.model.Annotations updateAnnotations(org.sagebionetworks.repo.model.Annotations annos, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
-						+ UrlHelpers.ANNOTATIONS, userId, annos);
+						+ UrlHelpers.ANNOTATIONS, accessToken, annos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -236,10 +236,10 @@ public class EntityServletTestHelper {
 	 * Get the user's permissions for an entity
 	 */
 	public UserEntityPermissions getUserEntityPermissions(String id,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.PERMISSIONS, userId, null);
+						+ UrlHelpers.PERMISSIONS, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -251,11 +251,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public Annotations getEntityAnnotationsV2(String id, Long userId)
+	public Annotations getEntityAnnotationsV2(String id, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.ANNOTATIONS_V2, userId, null);
+						+ UrlHelpers.ANNOTATIONS_V2, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -267,11 +267,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update the annotations of an entity
 	 */
-	public Annotations updateAnnotationsV2(Annotations annos, Long userId)
+	public Annotations updateAnnotationsV2(Annotations annos, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
-						+ UrlHelpers.ANNOTATIONS_V2, userId, annos);
+						+ UrlHelpers.ANNOTATIONS_V2, accessToken, annos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -283,11 +283,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the user's permissions for an entity.
 	 */
-	public EntityPath getEntityPath(String id, Long userId)
+	public EntityPath getEntityPath(String id, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
-				userId, null);
+				accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -361,28 +361,13 @@ public class EntityServletTestHelper {
 	}
 
 	/**
-	 * Get the entity registry
-	 */
-	public EntityRegistry getEntityRegistry() throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + UrlHelpers.REGISTRY, null,
-				null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), EntityRegistry.class);
-	}
-
-	/**
 	 * Creates a new version of an entity
 	 */
-	public VersionableEntity createNewVersion(Long userId, VersionableEntity entity)
+	public VersionableEntity createNewVersion(String accessToken, VersionableEntity entity)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
-						+ "/version", userId, entity);
+						+ "/version", accessToken, entity);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -530,10 +515,10 @@ public class EntityServletTestHelper {
 				Evaluation.class);
 	}
 
-	public Submission createSubmission(Submission sub, Long userId,
+	public Submission createSubmission(Submission sub, String accessToken,
 			String entityEtag) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.SUBMISSION, userId, sub);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.SUBMISSION, accessToken, sub);
 		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -886,9 +871,9 @@ public class EntityServletTestHelper {
 	 * Get the file handles for the current version
 	 */
 	public FileHandleResults geEntityFileHandlesForCurrentVersion(
-			Long userId, String entityId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/" + entityId + "/filehandles", userId,
+			String accessToken, String entityId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, "/entity/" + entityId + "/filehandles", accessToken,
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -901,11 +886,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the file handles for a given version
 	 */
-	public FileHandleResults geEntityFileHandlesForVersion(Long userId,
+	public FileHandleResults geEntityFileHandlesForVersion(String accessToken,
 			String entityId, Long versionNumber) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, "/entity/" + entityId + "/version/"
-						+ versionNumber + "/filehandles", userId, null);
+						+ versionNumber + "/filehandles", accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);

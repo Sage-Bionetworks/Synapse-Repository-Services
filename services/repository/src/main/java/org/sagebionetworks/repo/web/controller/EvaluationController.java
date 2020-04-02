@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -41,6 +42,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -442,7 +444,7 @@ public class EvaluationController {
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Submission createSubmission(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestParam(value = AuthorizationConstants.SUBMISSION_ELIGIBILITY_HASH_PARAM, required = false) String submissionEligibilityHash,
 			@RequestParam(value = AuthorizationConstants.CHALLENGE_ENDPOINT_PARAM, defaultValue = ServiceConstants.CHALLENGE_ENDPOINT) String challengeEndpoint,
@@ -450,8 +452,9 @@ public class EvaluationController {
 			@RequestBody Submission submission
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		return serviceProvider.getEvaluationService().createSubmission(
-				userId, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
+				accessToken, submission, entityEtag, submissionEligibilityHash, challengeEndpoint, notificationUnsubscribeEndpoint);
 	}
 
 	@Deprecated

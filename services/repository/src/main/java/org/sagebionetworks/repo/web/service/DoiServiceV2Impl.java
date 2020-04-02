@@ -15,13 +15,13 @@ public class DoiServiceV2Impl implements DoiServiceV2 {
 	private DoiManager doiManager;
 
 	@Override
-	public Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	public Doi getDoi(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
 		return doiManager.getDoi(objectId, objectType, versionNumber);
 	}
 	
 	@Override
-	public DoiAssociation getDoiAssociation(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
 		return doiManager.getDoiAssociation(objectId, objectType, versionNumber);
 	}
@@ -30,7 +30,7 @@ public class DoiServiceV2Impl implements DoiServiceV2 {
 	 * Redirect to the object in the Synapse web portal.
 	 */
 	@Override
-	public String locate(Long userId, String objectId, ObjectType objectType, Long versionNumber)
+	public String locate(String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException {
 		if (objectId == null) {
 			throw new IllegalArgumentException("Object ID cannot be null.");

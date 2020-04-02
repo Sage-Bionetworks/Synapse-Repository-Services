@@ -18,7 +18,7 @@ public class ValidatedLocationClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated location";
+		return "If you are a validated user, to see your validated location";
 	}
 
 	@Override
