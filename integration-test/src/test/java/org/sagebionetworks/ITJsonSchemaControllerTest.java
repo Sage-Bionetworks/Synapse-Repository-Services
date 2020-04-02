@@ -31,6 +31,7 @@ public class ITJsonSchemaControllerTest {
 	private static Long userId;
 
 	String organizationName;
+	OrganizationRequest request;
 	
 	Organization organization;
 
@@ -50,6 +51,8 @@ public class ITJsonSchemaControllerTest {
 	@BeforeEach
 	public void beforeEach() throws SynapseException {
 		organizationName = "test.integeration.organization";
+		request = new OrganizationRequest();
+		request.setOrganizationName(organizationName);
 		// ensure we start each test without this organization.
 		try {
 			Organization org = synapse.getOrganizationByName(organizationName);
@@ -68,7 +71,6 @@ public class ITJsonSchemaControllerTest {
 	
 	@Test
 	public void testCreateOrganization() throws SynapseException {
-		OrganizationRequest request = new OrganizationRequest();
 		// call under test
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
@@ -79,7 +81,6 @@ public class ITJsonSchemaControllerTest {
 	
 	@Test
 	public void testGetOrganizationByName() throws SynapseException {
-		OrganizationRequest request = new OrganizationRequest();
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
 		// call under test
@@ -89,7 +90,6 @@ public class ITJsonSchemaControllerTest {
 	
 	@Test
 	public void testDeleteOrganization() throws SynapseException {
-		OrganizationRequest request = new OrganizationRequest();
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
 		// call under test
@@ -102,7 +102,6 @@ public class ITJsonSchemaControllerTest {
 	
 	@Test
 	public void testGetOrganizationAcl() throws SynapseException {
-		OrganizationRequest request = new OrganizationRequest();
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
 		
@@ -113,7 +112,6 @@ public class ITJsonSchemaControllerTest {
 	
 	@Test
 	public void testUpdateOrganizationAcl() throws SynapseException {
-		OrganizationRequest request = new OrganizationRequest();
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
 		AccessControlList acl = synapse.getOrganizationAcl(organization.getId());
