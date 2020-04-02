@@ -28,7 +28,9 @@ import org.springframework.stereotype.Service;
 import com.google.common.collect.Sets;
 
 @Service
-public class SchemaManagerImpl implements SchemaManager {
+public class JsonSchemaManagerImpl implements JsonSchemaManager {
+
+	public static final String SAGEBIONETWORKS_RESERVED_MESSAGE = "The name 'sagebionetworks' is reserved, and cannot be included in an Organziation's name";
 
 	public static final String BAD_ORGANIZATION_NAME_MESSAGE = "Organziation name must start and end with a letter [a-z], and can contain digits [0-9] and periods [.]";
 
@@ -83,6 +85,9 @@ public class SchemaManagerImpl implements SchemaManager {
 		if (!ORGANIZATOIN_NAME_PATTERN.matcher(processedName).matches()) {
 			throw new IllegalArgumentException(BAD_ORGANIZATION_NAME_MESSAGE);
 		}
+		if(processedName.contains("sagebionetworks")) {
+			throw new IllegalArgumentException(SAGEBIONETWORKS_RESERVED_MESSAGE);
+		}
 		return processedName;
 	}
 
@@ -120,6 +125,27 @@ public class SchemaManagerImpl implements SchemaManager {
 
 		aclDao.update(acl, ObjectType.ORGANIZATION);
 		return aclDao.get(organziationId, ObjectType.ORGANIZATION);
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteOrganization(UserInfo user, String id) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(id, "id");
+		
+		aclDao.canAccess(user, id, ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+		.checkAuthorizationOrElseThrow();
+		
+		organizationDao.deleteOrganization(id);
+		
+		aclDao.delete(id, ObjectType.ORGANIZATION);
+	}
+
+	@Override
+	public Organization getOrganizationByName(UserInfo user, String name) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(name, "name");
+		return organizationDao.getOrganizationByName(name);
 	}
 
 }

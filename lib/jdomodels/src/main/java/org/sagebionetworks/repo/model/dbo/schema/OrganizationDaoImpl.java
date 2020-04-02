@@ -61,11 +61,11 @@ public class OrganizationDaoImpl implements OrganizationDao {
 					e);
 		}
 		
-		return getOrganization(dbo.getName());
+		return getOrganizationByName(dbo.getName());
 	}
 
 	@Override
-	public Organization getOrganization(String name) {
+	public Organization getOrganizationByName(String name) {
 		ValidateArgument.required(name, "name");
 		try {
 			DBOOrganization dbo = jdbcTemplate.queryForObject(
@@ -94,12 +94,12 @@ public class OrganizationDaoImpl implements OrganizationDao {
 
 	@WriteTransaction
 	@Override
-	public void deleteOrganization(String name) {
-		ValidateArgument.required(name, "name");
+	public void deleteOrganization(String id) {
+		ValidateArgument.required(id, "id");
 		int count = jdbcTemplate.update(
-				"DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_NAME + " = ?", name.toLowerCase());
+				"DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_ID + " = ?", id);
 		if (count < 1) {
-			throw new NotFoundException("Orgnaization with name: '" + name.toLowerCase() + "' not found");
+			throw new NotFoundException("Orgnaization with id: '" + id + "' not found");
 		}
 	}
 

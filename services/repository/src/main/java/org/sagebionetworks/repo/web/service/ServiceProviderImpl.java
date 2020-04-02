@@ -85,6 +85,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private OpenIDConnectService openIDConnectService;
 	@Autowired
 	private StatisticsService statisticsService;
+	@Autowired
+	private JsonSchemaServicesImpl schemaServices;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -220,5 +222,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public StatisticsService getStatisticsService() {
 		return statisticsService;
+	}
+	@Override
+	public JsonSchemaServices getSchemaServices() {
+		return schemaServices;
 	}
 }

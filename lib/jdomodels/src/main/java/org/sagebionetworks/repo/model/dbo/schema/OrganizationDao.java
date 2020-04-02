@@ -19,14 +19,14 @@ public interface OrganizationDao {
 	 * @param name
 	 * @return
 	 */
-	Organization getOrganization(String name);
+	Organization getOrganizationByName(String name);
 
 	/**
 	 * Delete an organization by name.
 	 * 
 	 * @param name
 	 */
-	void deleteOrganization(String name);
+	void deleteOrganization(String id);
 
 	/**
 	 * Truncate all organization data.

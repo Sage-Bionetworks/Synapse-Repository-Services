@@ -82,4 +82,6 @@ public interface ServiceProvider {
 	
 	public StatisticsService getStatisticsService();
 	
+	public JsonSchemaServices getSchemaServices();
+	
 }

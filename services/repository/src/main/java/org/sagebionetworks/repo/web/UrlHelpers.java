@@ -383,6 +383,15 @@ public class UrlHelpers {
 	public static final String FORM_LIST = FORM_DATA+"/list";
 	public static final String FORM_LIST_REVIEWER = FORM_DATA+"/list/reviewer";
 	
+	/**
+	 * Schema API URIs
+	 * 
+	 */
+	public static final String ORGANIZATION = SCHEMA+"/organization";
+	public static final String ORGANIZATION_ID = ORGANIZATION+"/{id}";
+	public static final String ORGANIZATION_NAME = ORGANIZATION+"/{name}";
+	public static final String ORGANIZATION_ID_ACL = ORGANIZATION_ID+"/acl";
+	
 	public static final String FORM_DATA_ACCEPT = FORM_DATA_ID+"/accept";
 	public static final String FORM_DATA_REJECT = FORM_DATA_ID+"/reject";
 

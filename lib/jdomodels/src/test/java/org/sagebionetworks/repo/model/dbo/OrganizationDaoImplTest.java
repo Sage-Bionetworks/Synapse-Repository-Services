@@ -44,10 +44,10 @@ public class OrganizationDaoImplTest {
 		assertEquals(""+adminUserId, created.getCreatedBy());
 
 		// call under test
-		Organization fetched = organizationDao.getOrganization(name);
+		Organization fetched = organizationDao.getOrganizationByName(name);
 		assertEquals(created, fetched);
 		// call under test
-		organizationDao.deleteOrganization(name);
+		organizationDao.deleteOrganization(fetched.getId());
 	}
 
 	@Test
@@ -64,23 +64,23 @@ public class OrganizationDaoImplTest {
 	}
 
 	@Test
-	public void testGetOrganizationNotFound() {
+	public void testGetOrganizationByNameNotFound() {
 		String name = "Foo.Bar";
 		String message = assertThrows(NotFoundException.class, () -> {
 			// call under test
-			organizationDao.getOrganization(name);
+			organizationDao.getOrganizationByName(name);
 		}).getMessage();
 		assertEquals("Orgnaization with name: 'foo.bar' not found", message);
 	}
 
 	@Test
 	public void testDeleteOrganizationNotFound() {
-		String name = "Foo.Bar";
+		String id = "-123";
 		String message = assertThrows(NotFoundException.class, () -> {
 			// call under test
-			organizationDao.deleteOrganization(name);
+			organizationDao.deleteOrganization(id);
 		}).getMessage();
-		assertEquals("Orgnaization with name: 'foo.bar' not found", message);
+		assertEquals("Orgnaization with id: '-123' not found", message);
 	}
 
 	@AfterEach

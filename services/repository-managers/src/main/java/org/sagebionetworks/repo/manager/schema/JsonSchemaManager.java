@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.schema.OrganizationRequest;
  * Business logic for the user defined schemas.
  *
  */
-public interface SchemaManager {
+public interface JsonSchemaManager {
 	
 	/**
 	 * Create a new Organization from the given request
@@ -37,4 +37,19 @@ public interface SchemaManager {
 	 * @return
 	 */
 	public AccessControlList updateOrganizationAcl(UserInfo user, String organziationId, AccessControlList acl);
+
+	/**
+	 * Delete the identified Organization.
+	 * @param user
+	 * @param id
+	 */
+	void deleteOrganization(UserInfo user, String id);
+
+	/**
+	 * Lookup an Organization by name.
+	 * @param user
+	 * @param name
+	 * @return
+	 */
+	Organization getOrganizationByName(UserInfo user, String name);
 }
