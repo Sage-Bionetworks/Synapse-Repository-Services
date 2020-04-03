@@ -15,6 +15,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	private final String DEV = "dev";
 	private final String HUDSON = "hud";
 
+	// Package-scoped for unit tests.
+	final static String CONFIG_KEY_STS_IAM_ARN = "org.sagebionetworks.sts.iam.arn";
+
 	private ConfigurationProperties configuration;
 	private StackEncrypter stackEncrypter;
 	
@@ -1196,6 +1199,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	@Override
 	public String getTempCredentialsIamRoleArn() {
-		return configuration.getProperty("org.sagebionetworks.sts.iam.arn");
+		if (configuration.hasProperty(CONFIG_KEY_STS_IAM_ARN)) {
+			return configuration.getProperty(CONFIG_KEY_STS_IAM_ARN);
+		} else {
+			return null;
+		}
 	}
 }

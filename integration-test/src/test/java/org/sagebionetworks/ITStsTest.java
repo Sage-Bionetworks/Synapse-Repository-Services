@@ -11,6 +11,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import java.util.UUID;
 
 public class ITStsTest {
 	private static SynapseAdminClient adminSynapse;
+	private static StackConfiguration config;
 	private static String externalS3Bucket;
 	private static SynapseClient synapse;
 	private static SynapseS3Client synapseS3Client;
@@ -48,7 +50,7 @@ public class ITStsTest {
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
+		config = StackConfigurationSingleton.singleton();
 		externalS3Bucket = config.getExternalS3TestBucketName();
 
 		// Set up admin.
@@ -97,6 +99,9 @@ public class ITStsTest {
 
 	@Test
 	public void test() throws Exception {
+		// Only run this test if the STS Arn is set up.
+		Assumptions.assumeTrue(config.getTempCredentialsIamRoleArn() != null);
+
 		// Set up a test folder in S3 and an owner.txt. This is required to make the STS Storage Location.
 		String baseKey = "integration-test/ITStsTest-" + UUID.randomUUID().toString();
 		byte[] bytes = username.getBytes(StandardCharsets.UTF_8);

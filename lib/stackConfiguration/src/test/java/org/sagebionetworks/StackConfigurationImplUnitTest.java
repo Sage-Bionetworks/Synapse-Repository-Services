@@ -1,22 +1,24 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  *  To test methods in StackConfigurationImpl that are not directly related to the stack
  *
  *  This class is missing a lot of tests! Please add them :)
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StackConfigurationImplUnitTest {
 	
 	StackConfigurationImpl config;
@@ -27,7 +29,7 @@ public class StackConfigurationImplUnitTest {
 	@Mock
 	StackEncrypter stackEncrypter;
 	
-	@Before
+	@BeforeEach
 	public void before() {
 		this.config = new StackConfigurationImpl(mockProperties, stackEncrypter);
 	}
@@ -81,4 +83,25 @@ public class StackConfigurationImplUnitTest {
 
 
 	private static final String DOI_PREFIX_PROPERTY = "org.sagebionetworks.doi.prefix";
+
+	@Test
+	public void getTempCredentialsIamRoleArn() {
+		when(mockProperties.hasProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn(true);
+		when(mockProperties.getProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn("dummy-arn");
+
+		// Method under test
+		String result = config.getTempCredentialsIamRoleArn();
+		assertEquals("dummy-arn", result);
+	}
+
+	@Test
+	public void getTempCredentialsIamRoleArn_NullConfig() {
+		when(mockProperties.hasProperty(StackConfigurationImpl.CONFIG_KEY_STS_IAM_ARN)).thenReturn(false);
+
+		// Method under test
+		String result = config.getTempCredentialsIamRoleArn();
+		assertNull(result);
+
+		verify(mockProperties, never()).getProperty(any());
+	}
 }
