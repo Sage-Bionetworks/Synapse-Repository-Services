@@ -103,6 +103,14 @@ public class SqlConstants {
 	public static final String COL_FORM_DATA_STATE	 			= "STATE";
 	public static final String COL_FORM_DATA_REJECTION_MESSAGE 	= "REJECTION_MESSAGE";
 	public static final String DDL_FILE_FORM_DATA 				= "schema/FormData-ddl.sql";
+	
+	// object-schema related tables
+	public static final String TABLE_ORGANIZATION				= "ORGANIZATION";
+	public static final String COL_ORGANIZATION_ID 				= "ID";
+	public static final String COL_ORGANIZATION_NAME			= "NAME";
+	public static final String COL_ORGANIZATION_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_ORGANIZATION_CREATED_BY 		= "CREATED_BY";
+	public static final String DDL_FILE_ORGANIZATION 			= "schema/Organization-ddl.sql";
 
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";

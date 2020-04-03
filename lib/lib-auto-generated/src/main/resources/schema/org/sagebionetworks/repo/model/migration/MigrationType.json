@@ -323,6 +323,10 @@
 			"description": "Form data."
 		},
 		{
+			"name": "ORGANIZATION",
+			"description": "Organization is the base for all user-defined json-schemas."
+		},
+		{
 			"name": "DOWNLOAD_LIST",
 			"description": "The root object for a user's download list."
 		},

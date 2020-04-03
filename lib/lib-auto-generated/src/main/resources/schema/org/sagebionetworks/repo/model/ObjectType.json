@@ -99,6 +99,10 @@
             "description": "Grouping of from data."
         },
         {
+            "name": "ORGANIZATION",
+            "description": "User defined schemas are governed by an Organization."
+        },
+        {
             "name": "FORM_DATA",
             "description": "Data of a form."
         },

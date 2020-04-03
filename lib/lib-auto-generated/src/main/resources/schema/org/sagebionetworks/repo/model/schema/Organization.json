@@ -1,0 +1,24 @@
+{
+	"description": "The first step in creating new type schema in Synapse is to setup and configure an organization. The name of the organization serves as the root for each schema's $id managed by that organization.  The organization name 'org.sagebionetworks' is reserved for the core Synapse model objects.   Each organization also has an Access Control List (ACL) that controls who can add schemas to an organization.  All schemas created under an Organization will be considered publicly readable and reference-able. Organizations are immutable",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The Synapse identifier issued to the Organization."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of the organization servers as the root for each schema's $id managed under an organization, and each name must be unique."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this Organization was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this Organization.",
+			"title": "Created By"
+		}
+	}
+}

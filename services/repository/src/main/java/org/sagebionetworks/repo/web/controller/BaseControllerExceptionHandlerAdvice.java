@@ -933,7 +933,7 @@ public class BaseControllerExceptionHandlerAdvice {
 	ErrorResponse handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request){
 		return handleException(ex,
 				request,
-				ex.getHttpMethod() + " " + ex.getRequestURL() + " was not found. Please reference API documentation at https://docs.synapse.org/rest/",
+				ex.getHttpMethod() +" was not found. Please reference API documentation at https://docs.synapse.org/rest/",
 				false,
 				null);
 	}
