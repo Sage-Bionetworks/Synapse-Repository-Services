@@ -358,9 +358,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(attachmentsToInsert.size() > 0) {
 			basicDao.createBatch(attachmentsToInsert);
 		}
-		
+
 		// Send the change message
 		transactionalMessenger.sendMessageAfterCommit(newDbo, ChangeType.UPDATE);
+
 		// Return the results.
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
@@ -519,12 +520,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		V2WikiPage wiki = get(key, version);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		InputStream in = s3Object.getObjectContent();
-		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
-		try{
+		String contentType = s3Object.getObjectMetadata().getContentType();
+		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
+		try (InputStream in = s3Object.getObjectContent()) {
 			return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-		}finally{
-			in.close();
 		}
 	}
 	
@@ -841,8 +840,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			throw new IllegalArgumentException("Etag cannot be null.");
 		}
 		String wikiId = key.getWikiPageId();
-		int ra = jdbcTemplate.update(SQL_UPDATE_WIKI_ETAG, etag, wikiId);
-		return;
+		jdbcTemplate.update(SQL_UPDATE_WIKI_ETAG, etag, wikiId);
 	}
 
 	@Override

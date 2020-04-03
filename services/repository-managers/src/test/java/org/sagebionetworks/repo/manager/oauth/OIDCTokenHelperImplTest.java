@@ -265,6 +265,6 @@ public class OIDCTokenHelperImplTest {
 		assertEquals("273950", claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertNotNull(claims.getId());
-		assertTrue(ClaimsJsonUtil.getScopeFromClaims(claims).isEmpty());
+		assertEquals(Collections.singletonList(OAuthScope.view), ClaimsJsonUtil.getScopeFromClaims(claims));
 	}
 }

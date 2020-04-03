@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getSco
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,7 +17,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackEncrypter;
-import org.sagebionetworks.repo.manager.UserAuthorization;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -151,13 +152,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		Set<String> scopeDescriptions = new TreeSet<String>();
 		for (OAuthScope scope : scopes) {
 			String scopeDescription = null;
-			switch (scope) {
-			case openid:
-				// required for OIDC requests.  Doesn't add anything to what access is requested
-				break;
-			default:
-				// unrecognized scope values should be ignored https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-				break;
+			if (scope==OAuthScope.openid) {
+				// required for OIDC requests.  Doesn't add anything to what access is requested, so leave description empty
+			} else {
+				scopeDescription = OAuthPermissionUtils.scopeDescription(scope);
 			}
 			if (StringUtils.isNotEmpty(scopeDescription)) {
 				scopeDescriptions.add(scopeDescription);
@@ -361,7 +359,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	}
 	
 	@Override
-	public UserAuthorization getUserAuthorization(String oauthToken) {
+	public UserInfo getUserAuthorization(String oauthToken) {
 		Jwt<JwsHeader,Claims> accessToken = null;
 		try {
 			accessToken = oidcTokenHelper.parseJWT(oauthToken);
@@ -375,7 +373,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
 
-		validateClientVerificationStatus(oauthClientId);
+		if (!oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
+			validateClientVerificationStatus(oauthClientId);
+		}
 		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
@@ -384,18 +384,26 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
+		// If the user belongs to the admin group they are an admin
+		Set<Long> groups = userManager.getUserGroups(Long.parseLong(userId));
+		
+		// Check to see if the user is an Admin
+		boolean isAdmin = groups.contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId());
+		// we don't let clients besides Synapse itself have admin access
+		boolean adminAccessAllowed = oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
+		boolean hasAllScopes = scopes.containsAll(Arrays.asList(OAuthScope.values()));
 
-		UserAuthorization result = new UserAuthorization();
-		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userId));
+		UserInfo result = new UserInfo(isAdmin && hasAllScopes && adminAccessAllowed);
+		result.setId(Long.parseLong(userId));
+		result.setGroups(groups);
 		result.setOidcClaims(oidcClaims);
 		result.setScopes(scopes);
-		result.setUserInfo(userInfo);
 		return result;
 	}	
 	
 	@Override
-	public Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint) {
-		Long userId = userAuthorization.getUserInfo().getId();
+	public Object getUserInfo(UserInfo userAuthorization, String oauthClientId, String oauthEndpoint) {
+		Long userId = userAuthorization.getId();
 		Date authTime = authDao.getSessionValidatedOn(userId);
 
 		Map<OIDCClaimName,Object> userInfo = getUserInfo(userId.toString(), userAuthorization.getScopes(), userAuthorization.getOidcClaims());

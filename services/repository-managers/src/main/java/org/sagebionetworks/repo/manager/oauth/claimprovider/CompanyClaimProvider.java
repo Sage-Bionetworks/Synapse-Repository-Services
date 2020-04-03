@@ -16,7 +16,7 @@ public class CompanyClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Your company, if you share it with Synapse";
+		return "To see your company, if you share it with Synapse";
 	}
 
 	@Override

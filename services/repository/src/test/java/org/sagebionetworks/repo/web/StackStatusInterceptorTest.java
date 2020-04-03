@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Folder;
@@ -17,7 +19,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBaseForJupiter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -25,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestBase {
+public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	private static final String CURRENT_STATUS_2 = " for StackStatusInterceptorTest.test";
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
@@ -33,22 +35,27 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	
 	@Autowired
 	private StackStatusDao stackStatusDao;
+	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
 		
 	private Project sampleProject = null;
 
 	private Long adminUserId;
+	private String accessToken;
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		assertNotNull(stackStatusDao);
 		sampleProject = new Project();
 		// Create a sample project
-		sampleProject = servletTestHelper.createEntity(dispatchServlet, sampleProject, adminUserId);
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		sampleProject = servletTestHelper.createEntity(dispatchServlet, sampleProject, accessToken);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		// Always restore the status to READ_WRITE after each test.
 		// Even it there is a failure we do not want to end up in the wrong state.
@@ -76,7 +83,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	public void testGetWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		Project fetched = servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		assertNotNull(fetched);
 	}
 	
@@ -88,7 +95,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -107,7 +114,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertNull(stackStatusDao.getFullCurrentStatus().getCurrentMessage());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -124,7 +131,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals("", stackStatusDao.getFullCurrentStatus().getCurrentMessage());
 		try{
 			// This should fail in read only.
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -140,7 +147,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		try{
 			// This should fail
-			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -156,7 +163,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
 		Folder child = new Folder();
 		child.setParentId(sampleProject.getId());
-		Folder fetched = servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+		Folder fetched = servletTestHelper.createEntity(dispatchServlet, child, accessToken);
 		assertNotNull(fetched);
 	}
 	
@@ -170,7 +177,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		child.setParentId(sampleProject.getId());
 		try{
 			// This should fail in read only.
-			servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
+			servletTestHelper.createEntity(dispatchServlet, child, accessToken);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -180,7 +187,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		}
 	}
 	
-	@Test (expected=DatastoreException.class)
+	@Test
 	public void testPostDown() throws Exception {
 		// Set the status to be read only
 		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
@@ -189,38 +196,41 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		// This should fail
 		Project child = new Project();
 		child.setParentId(sampleProject.getId());
-		servletTestHelper.createEntity(dispatchServlet, child, adminUserId);
-		fail();
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			servletTestHelper.createEntity(dispatchServlet, child, accessToken);
+		});
 	}
 	
 	@Test
 	public void testPutWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
+		Project fetched = servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
 		assertNotNull(fetched);
 	}
 	
-	@Test (expected=DatastoreException.class)
+	@Test
 	public void testPutReadOnly() throws Exception {
 		// Set the status to be read only
 		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
-		fail();
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
+		});
 	}
 	
-	@Test (expected=DatastoreException.class)
+	@Test
 	public void testPutDown() throws Exception {
 		// Set the status to be read only
 		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
-		fail();
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			servletTestHelper.updateEntity(dispatchServlet, sampleProject, accessToken);
+		});
 	}
 	
 	@Test
@@ -230,31 +240,33 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 	}
-	
-	@Test (expected=DatastoreException.class)
+
+	@Test
 	public void testDeleteReadOnly() throws Exception {
 		// Set the status to be read only
 		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		});
 		sampleProject = null;
-		fail();
 	}
-	
-	@Test (expected=DatastoreException.class)
+
+	@Test
 	public void testDeleteDown() throws Exception {
 		// Set the status to be read only
 		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		Assertions.assertThrows(DatastoreException.class, ()-> {
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		});
 		sampleProject = null;
-		fail();
 	}
-		
+
 	/**
 	 * Helper to set the status.
 	 * @param toSet

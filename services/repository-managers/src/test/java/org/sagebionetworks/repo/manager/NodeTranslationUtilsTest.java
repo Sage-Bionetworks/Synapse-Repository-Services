@@ -31,13 +31,14 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
 
 public class NodeTranslationUtilsTest {
 
 	@Test
 	public void testBinaryRoundTripString(){
-		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
+		ObjectSchema schema = new ObjectSchemaImpl(TYPE.STRING);
 		String longString = "This string is so long we must store it as a blob";
 		byte[] bytes = NodeTranslationUtils.objectToBytes(longString, schema);
 		assertNotNull(bytes);
@@ -62,7 +63,7 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testBinaryRoundTripListJSONEntity(){
-		ObjectSchema schema = new ObjectSchema();
+		ObjectSchema schema = new ObjectSchemaImpl();
 		schema.setType(TYPE.ARRAY);
 		schema.setItems(SchemaCache.getSchema(new Project()));
 		
@@ -85,7 +86,7 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testBinaryRoundTripSetJSONEntity(){
-		ObjectSchema schema = new ObjectSchema();
+		ObjectSchema schema = new ObjectSchemaImpl();
 		schema.setType(TYPE.ARRAY);
 		schema.setItems(SchemaCache.getSchema(new Project()));
 		schema.setUniqueItems(true);

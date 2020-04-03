@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
@@ -59,19 +58,19 @@ public interface OpenIDConnectManager {
 	 * @param oauthToken
 	 * @return
 	 */
-	public UserAuthorization getUserAuthorization(String oauthToken);
+	public UserInfo getUserAuthorization(String oauthToken);
 	
 	/**
 	 * Given the validated access token content, return the up-to-date user info
 	 * requested in the scopes / claims embedded in the access token
 	 * 
-	 * @param userAuthorization
+	 * @param userInfo
 	 * @param oauthClientId
 	 * @param oauthEndpoint
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
 	 * userinfo_signed_response_alg
 	 */
-	Object getUserInfo(UserAuthorization userAuthorization, String oauthClientId, String oauthEndpoint);
+	Object getUserInfo(UserInfo userInfo, String oauthClientId, String oauthEndpoint);
 	
 	/**
 	 * 

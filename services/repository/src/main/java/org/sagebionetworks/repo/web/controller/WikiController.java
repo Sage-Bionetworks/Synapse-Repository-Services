@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -256,7 +258,6 @@ public class WikiController {
 	 * >ACCESS_TYPE.READ</a> permission on the owner.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param ownerId
 	 *            The ID of the owning Entity.
 	 * @return
@@ -269,10 +270,11 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getEntityRootWikiKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userId,
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getWikiService().getRootWikiKey(accessToken,
 				ownerId, ObjectType.ENTITY);
 	}
 	
@@ -284,7 +286,6 @@ public class WikiController {
 	 * >ACCESS_TYPE.READ</a> permission on the owner.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param ownerId
 	 *            The ID of the owning Evaluation.
 	 * @return
@@ -297,10 +298,11 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getEvaluationRootWikiKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userId,
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getWikiService().getRootWikiKey(accessToken,
 				ownerId, ObjectType.EVALUATION);
 	}
 	
@@ -312,7 +314,6 @@ public class WikiController {
 	 * >ACCESS_TYPE.READ</a> permission on the owner.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param ownerId
 	 *            The ID of the owning Access Requirement.
 	 * @return
@@ -325,10 +326,11 @@ public class WikiController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	WikiPageKey getAccessRequirmentRootWikiKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException, UnauthorizedException, IOException {
-		return serviceProvider.getWikiService().getRootWikiKey(userId,
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getWikiService().getRootWikiKey(accessToken,
 				ownerId, ObjectType.ACCESS_REQUIREMENT);
 	}
 

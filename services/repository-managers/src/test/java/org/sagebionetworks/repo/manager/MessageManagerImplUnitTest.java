@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -123,6 +126,7 @@ public class MessageManagerImplUnitTest {
 		creatorUserInfo = new UserInfo(false);
 		creatorUserInfo.setId(CREATOR_ID);
 		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		creatorUserInfo.setScopes(Collections.singletonList(OAuthScope.modify));
 		
 		recipientUsernameAlias = new PrincipalAlias();
 		recipientUsernameAlias.setAlias("bar");
@@ -211,6 +215,15 @@ public class MessageManagerImplUnitTest {
 		});		
 	}
 	
+	@Test
+	public void testCreateMessageWithoutScope() {
+		creatorUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.view));
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {			
+			messageManager.createMessage(creatorUserInfo, mtu);
+		});
+	}
+
 	@Test
 	public void testProcessMessagePLAIN() throws Exception {
 		setupCreatorRecipientMocks();
@@ -574,11 +587,11 @@ public class MessageManagerImplUnitTest {
 		adminUserInfo.setGroups(Collections.singleton(CREATOR_ID));
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
 		
-		when(authorizationManager.canAccess(creatorUserInfo, authUsersId.toString(),
+		when(authorizationManager.canAccess(adminUserInfo, authUsersId.toString(),
 				ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		
 		errors = messageManager.processMessage(MESSAGE_ID, null);
-		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
+		assertEquals(0, errors.size(), StringUtils.join(errors, "\n"));
 	}
 	
 	@Test

@@ -372,12 +372,6 @@
 			</dependency>
 
 			<dependency>
-				<groupId>com.amazonaws</groupId>
-				<artifactId>aws-java-sdk</artifactId>
-				<version>${com.amazonaws.version}</version>
-			</dependency>
-
-			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>google-cloud-storage</artifactId>
 				<version>${com.google.cloud.version}</version>
@@ -610,12 +604,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>worker-utilities</artifactId>
-				<version>1.1.3</version>
+				<version>1.1.4</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>aws-utilities</artifactId>
-				<version>1.0.11</version>
+				<version>1.0.12</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -718,6 +712,15 @@
 				<artifactId>commons-dbcp2</artifactId>
 				<version>2.6.0</version>
 			</dependency>
+			
+			<!-- Import the BOM for AWS sdk dependencies -->
+			<dependency>
+		      <groupId>com.amazonaws</groupId>
+		      <artifactId>aws-java-sdk-bom</artifactId>
+		      <version>${com.amazonaws.version}</version>
+		      <type>pom</type>
+		      <scope>import</scope>
+		    </dependency>
 
 		</dependencies>
 
@@ -991,10 +994,10 @@
 		<mysql.mysql-connector-java.version>8.0.18</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.4.1</schema-to-pojo.version>
-		<com.amazonaws.version>1.11.535</com.amazonaws.version>
+		<schema-to-pojo.version>0.4.3</schema-to-pojo.version>
+		<com.amazonaws.version>1.11.751</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
-		<org.apache.httpcomponents.version>4.5.7</org.apache.httpcomponents.version>
+		<org.apache.httpcomponents.version>4.5.9</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>

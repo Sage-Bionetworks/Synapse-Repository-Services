@@ -151,15 +151,14 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(from.getMarkdownFileHandleId());
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
-		InputStream in = s3Object.getObjectContent();
-		try{
+		String contentTypeString = s3Object.getObjectMetadata().getContentType();
+		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+		
+		try (InputStream in = s3Object.getObjectContent()) {
 			// Read the file as a string
 			String markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 			wiki.setMarkdown(markdownString);
 			return wiki;
-		}finally{
-			in.close();
 		}
 
 	}

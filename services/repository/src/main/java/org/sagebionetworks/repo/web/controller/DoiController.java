@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -94,7 +96,6 @@ public class DoiController {
 	 * Retrieves the DOI for the object and its associated DOI metadata.
 	 * Note: this call calls an external API, which may impact performance
 	 * To just retrieve the DOI association, see: <a href="${GET.doi.association}">GET /doi/association</a>
-	 * @param userId The ID of the user making the call
 	 * @param objectId The ID of the object to retrieve
 	 * @param objectType The type of the object
 	 * @param versionNumber The version number of the object
@@ -105,18 +106,16 @@ public class DoiController {
 	@RequestMapping(value = {UrlHelpers.DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
-	getDoiV2(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			 @RequestParam(value = "id") String objectId,
+	getDoiV2(@RequestParam(value = "id") String objectId,
 			 @RequestParam(value = "type") ObjectType objectType,
 			 @RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
-		return serviceProvider.getDoiServiceV2().getDoi(userId, objectId, objectType, versionNumber);
+		return serviceProvider.getDoiServiceV2().getDoi(objectId, objectType, versionNumber);
 	}
 
 	/**
 	 * Retrieves the DOI for the object.
 	 * Note: this call only retrieves the DOI association, if it exists. To retrieve the metadata for the object,
 	 * see <a href="${GET.doi}">GET /doi</a>
-	 * @param userId The ID of the user making the call
 	 * @param objectId The ID of the object to retrieve
 	 * @param objectType The type of the object
 	 * @param versionNumber The version number of the object
@@ -128,11 +127,11 @@ public class DoiController {
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody
 	DoiAssociation
-	getDoiAssociation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-					  @RequestParam(value = "id") String objectId,
-					  @RequestParam(value = "type") ObjectType objectType,
-					  @RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException {
-		return serviceProvider.getDoiServiceV2().getDoiAssociation(userId, objectId, objectType, versionNumber);
+	getDoiAssociation(
+			@RequestParam(value = "id") String objectId,
+			@RequestParam(value = "type") ObjectType objectType,
+			@RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException {
+		return serviceProvider.getDoiServiceV2().getDoiAssociation(objectId, objectType, versionNumber);
 	}
 
 	/**
@@ -180,7 +179,6 @@ public class DoiController {
 	/**
 	 * Retrieves the Synapse web portal URL to the object entered.
 	 * Note: This call does not check to see if the object exists in Synapse.
-	 * @param userId The ID of the user making the call
 	 * @param objectId The ID of the object to retrieve
 	 * @param objectType The type of the object
 	 * @param versionNumber The version number of the object
@@ -191,12 +189,11 @@ public class DoiController {
 	 */
 	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
 	public @ResponseBody
-	void locate(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
+	void locate(@RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) ObjectType objectType,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,
 		   @RequestParam(value = "redirect", required = false, defaultValue = "true") Boolean redirect,
 				HttpServletResponse response) throws IOException {
-		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(userId, objectId, objectType, versionNumber), response);
+		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(objectId, objectType, versionNumber), response);
 	}
 }

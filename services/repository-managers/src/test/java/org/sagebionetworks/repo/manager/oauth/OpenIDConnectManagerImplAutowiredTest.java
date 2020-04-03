@@ -13,7 +13,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.UserAuthorization;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -142,7 +141,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		
 		oidcTokenHelper.validateJWT(tokenResponse.getId_token());
 		
-		UserAuthorization userAuthorization = openIDConnectManager.getUserAuthorization(tokenResponse.getAccess_token());
+		UserInfo userAuthorization = openIDConnectManager.getUserAuthorization(tokenResponse.getAccess_token());
 		String oauthClientId = oidcTokenHelper.parseJWT(tokenResponse.getAccess_token()).getBody().getAudience();
 
 		// method under test

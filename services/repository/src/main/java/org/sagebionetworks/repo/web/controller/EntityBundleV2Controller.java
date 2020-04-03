@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,11 +60,12 @@ public class EntityBundleV2Controller {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String id,
 			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, request);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getEntityBundleService().getEntityBundle(accessToken, id, request);
 	}
 
 	/**
@@ -83,12 +86,13 @@ public class EntityBundleV2Controller {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE_V2, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestBody EntityBundleRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, request);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getEntityBundleService().getEntityBundle(accessToken, id, versionNumber, request);
 	}
 
 	/**
@@ -99,7 +103,7 @@ public class EntityBundleV2Controller {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * requested components, as defined by the partsMask in the request object.
 	 *
-	 * @param userId
+	 * @param accessToken
 	 * @param ebc - the EntityBundleCreate object containing the Entity and Annotations to create.
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -114,12 +118,13 @@ public class EntityBundleV2Controller {
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE_V2_CREATE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle createEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getEntityBundleService().createEntityBundle(accessToken, ebc, generatedBy);
 	}
 
 	/**
@@ -130,7 +135,7 @@ public class EntityBundleV2Controller {
 	 * Upon successful creation, an EntityBundle is returned containing the
 	 * requested components, as defined by the partsMask in the request object.
 	 *
-	 * @param userId
+	 * @param accessToken
 	 * @param ebc - the EntityBundleCreate object containing the Entity and Annotations to update.
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -145,13 +150,14 @@ public class EntityBundleV2Controller {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(accessToken, id, ebc, generatedBy);
 	}
 
 }

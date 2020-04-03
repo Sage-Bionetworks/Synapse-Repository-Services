@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -22,6 +22,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -39,7 +40,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
+public class V2WikiControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private UserManager userManager;
@@ -52,6 +53,11 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
+	private String accessToken;
 	
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -70,11 +76,13 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
+
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 
 		toDelete = new LinkedList<WikiPageKey>();
 		
@@ -106,7 +114,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileHandleDao.setPreviewId(fileOneHandle.getId(), fileOnePreviewHandle.getId());
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteV2WikiPage(key, adminUserId);
@@ -138,7 +146,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityWikiCRUD() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
 	}
@@ -146,7 +154,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 
 		// create an entity
 		evaluation = new Evaluation();
@@ -219,7 +227,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(cloneUpdated.getMarkdownFileHandleId(), markdownTwoHandle.getId());
 		assertEquals(cloneUpdated.getAttachmentFileHandleIds().size(), 1);
 		assertEquals(cloneUpdated.getAttachmentFileHandleIds().get(0), fileOneHandle.getId());
-		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getEtag()));
+		assertFalse(currentEtag.equals(cloneUpdated.getEtag()), "The etag should have changed from the update");
 		
 		// Update one more time
 		cloneUpdated.getAttachmentFileHandleIds().add(fileOnePreviewHandle.getId());
@@ -230,7 +238,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals(cloneUpdated2.getMarkdownFileHandleId(), markdownTwoHandle.getId());
 		assertEquals(cloneUpdated2.getAttachmentFileHandleIds().size(), 2);
 		assertEquals(cloneUpdated2.getTitle(), "Version 2 title");
-		assertFalse("The etag should have changed from the update", currentEtag2.equals(cloneUpdated2.getEtag()));
+		assertFalse(currentEtag2.equals(cloneUpdated2.getEtag()), "The etag should have changed from the update");
 		
 		URL markdownPresignedUpdated = entityServletHelper.getV2WikiMarkdownFileURL(adminUserId, key, new Long(0), null);
 		assertNotNull(markdownPresignedUpdated);
@@ -275,7 +283,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		String currentEtag3 = cloneUpdated2.getEtag();
 		V2WikiPage restored = entityServletHelper.restoreWikiPage(adminUserId, ownerId, ownerType, cloneUpdated2, versionToRestore);
 		assertNotNull(restored);
-		assertFalse("The etag should have changed from the restore", currentEtag3.equals(restored.getEtag()));
+		assertFalse(currentEtag3.equals(restored.getEtag()), "The etag should have changed from the restore");
 		assertEquals(cloneUpdated2.getCreatedBy(), restored.getCreatedBy());
 		assertEquals(cloneUpdated2.getCreatedOn(), restored.getCreatedOn());
 		assertEquals(restored.getMarkdownFileHandleId(), markdownTwoHandle.getId());
@@ -338,7 +346,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertEquals("Child Version 1 title", childUpdated.getTitle());
 		assertEquals(markdownTwoHandle.getId(), childUpdated.getMarkdownFileHandleId());
 		assertEquals(0, childUpdated.getAttachmentFileHandleIds().size());
-		assertFalse("The etag should have changed from the update", childCurrentEtag1.equals(childUpdated.getEtag()));
+		assertFalse(childCurrentEtag1.equals(childUpdated.getEtag()), "The etag should have changed from the update");
 		// Get history
 		PaginatedResults<V2WikiHistorySnapshot> childHistoryResults = entityServletHelper.getV2WikiHistory(childKey, adminUserId, new Long(0), new Long(10));
 		assertNotNull(childHistoryResults);
@@ -351,7 +359,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		String childCurrentEtag2 = childUpdated.getEtag();
 		V2WikiPage childRestored = entityServletHelper.restoreWikiPage(adminUserId, ownerId, ownerType, childUpdated, 0L);
 		assertNotNull(childRestored);
-		assertFalse("The etag should have changed from the restore", childCurrentEtag2.equals(childRestored.getEtag()));
+		assertFalse(childCurrentEtag2.equals(childRestored.getEtag()), "The etag should have changed from the restore");
 		assertEquals(clonedChild.getCreatedBy(), childRestored.getCreatedBy());
 		assertEquals(clonedChild.getCreatedOn(), childRestored.getCreatedOn());
 		assertEquals(childRestored.getMarkdownFileHandleId(), markdownOneHandle.getId());
@@ -364,7 +372,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testWikiOrderHintReadUpdateForOwnerObject() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 		
 		String ownerId = entity.getId();
 		ObjectType ownerType = ObjectType.ENTITY;

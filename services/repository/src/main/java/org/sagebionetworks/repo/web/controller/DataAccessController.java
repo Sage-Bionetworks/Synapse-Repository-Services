@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -210,9 +212,10 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION, method = RequestMethod.POST)
 	public @ResponseBody RestrictionInformationResponse getRestrictionInformation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody RestrictionInformationRequest request) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, request);
+		@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+		@RequestBody RestrictionInformationRequest request) throws NotFoundException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getDataAccessService().getRestrictionInformation(accessToken, request);
 	}
 
 	/**

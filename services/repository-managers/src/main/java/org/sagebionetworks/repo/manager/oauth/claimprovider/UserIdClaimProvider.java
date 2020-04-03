@@ -11,7 +11,7 @@ public class UserIdClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return  "Your Synapse user ID, which can be used to access your public profile";
+		return  "To see your Synapse user ID, which can be used to access your public profile";
 	}
 
 	@Override

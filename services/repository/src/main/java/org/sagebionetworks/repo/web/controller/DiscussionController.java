@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,6 +34,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -468,7 +470,7 @@ public class DiscussionController {
 
 	/**
 	 * This API is used to get list of entity and count pairs, with count is the
-	 * number of threads that belongs to projects user can view and references
+	 * number of threads that belong to projects user can view and references
 	 * the given entity.
 	 * <br/>
 	 * Target users: anyone who has READ permission to the project.
@@ -480,9 +482,10 @@ public class DiscussionController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_THREAD_COUNTS, method = RequestMethod.POST)
 	public @ResponseBody EntityThreadCounts getThreadCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody EntityIdList entityIds) {
-		return serviceProvider.getDiscussionService().getThreadCounts(userId, entityIds);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getDiscussionService().getThreadCounts(accessToken, entityIds);
 	}
 
 	/**

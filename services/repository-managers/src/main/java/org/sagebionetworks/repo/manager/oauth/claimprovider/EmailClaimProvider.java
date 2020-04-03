@@ -17,7 +17,7 @@ public class EmailClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Your primary email address";
+		return "To see your primary email address";
 	}
 
 	@Override

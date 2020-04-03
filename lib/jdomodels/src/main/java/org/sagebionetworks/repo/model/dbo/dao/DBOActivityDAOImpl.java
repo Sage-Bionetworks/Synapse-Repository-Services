@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -45,10 +44,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  *
  */
 public class DBOActivityDAOImpl implements ActivityDAO {
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
+
 	@Autowired
 	private DBOBasicDao basicDao;
 	
@@ -80,7 +76,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		
 		// Change the etag
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		basicDao.createNew(dbo);
 		return dbo.getIdString();
@@ -136,16 +131,9 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		// Get a new etag
 		DBOActivity dbo = getDBO(id);
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
 
-	@WriteTransaction
-	@Override
-	public void sendDeleteMessage(String id) {
-		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ACTIVITY);
-	}
-		
 	@Override
 	public boolean doesActivityExist(String id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();

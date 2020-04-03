@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,8 +37,6 @@ public class DBOActivityDAOImplTest {
 	
 	private ActivityDAO activityDao;
 	@Mock
-	private TransactionalMessenger mockMessenger;
-	@Mock
 	private DBOBasicDao mockBasicDao;
 	@Mock
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
@@ -53,7 +50,6 @@ public class DBOActivityDAOImplTest {
 		MockitoAnnotations.initMocks(this);
 		activityDao = new DBOActivityDAOImpl();
 		ReflectionTestUtils.setField(activityDao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(activityDao, "transactionalMessenger", mockMessenger);
 		ReflectionTestUtils.setField(activityDao, "namedJdbcTemplate", mockNamedJdbcTemplate);
 		ReflectionTestUtils.setField(activityDao, "jdbcTemplate", mockJdbcTemplate);
 	}
@@ -92,7 +88,6 @@ public class DBOActivityDAOImplTest {
 		
 		ChangeType type = ChangeType.UPDATE;
 		String returnedNewEtag = activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, type);
-		verify(mockMessenger).sendMessageAfterCommit(eq(mockDbo), eq(type));
 		assertEquals(newEtag, returnedNewEtag);
 	}
 

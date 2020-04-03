@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -82,6 +83,8 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	private UserManager userManager;
 	@Autowired
+	private OpenIDConnectManager oidcManager;
+	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
 	@Autowired
 	private AllTypesValidator allTypesValidator;
@@ -113,8 +116,8 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public Entity getEntity(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public Entity getEntity(String accessToken, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id);
 		EntityType type = EntityTypeUtils.getEntityTypeForClassName(header.getType());
 		return getEntity(userInfo, id, EntityTypeUtils.getClassForType(type), EventType.GET);
@@ -165,10 +168,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public <T extends Entity> T getEntityForVersion(Long userId, String id, Long versionNumber,
+	public <T extends Entity> T getEntityForVersion(String accessToken, String id, Long versionNumber,
 													Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return getEntityForVersion(userInfo, id, versionNumber, clazz);
 	}
 	
@@ -185,11 +188,11 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public Entity getEntityForVersion(Long userId, String id, Long versionNumber)
+	public Entity getEntityForVersion(String accessToken, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		EntityType type = entityManager.getEntityType(userInfo, id);
-		return getEntityForVersion(userId, id, versionNumber, EntityTypeUtils.getClassForType(type));
+		return getEntityForVersion(accessToken, id, versionNumber, EntityTypeUtils.getClassForType(type));
 	}
 
 	@Override
@@ -202,7 +205,7 @@ public class EntityServiceImpl implements EntityService {
 
 	@WriteTransaction
 	@Override
-	public <T extends Entity> T createEntity(Long userId, T newEntity, String activityId)
+	public <T extends Entity> T createEntity(String accessToken, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
@@ -210,7 +213,7 @@ public class EntityServiceImpl implements EntityService {
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(newEntity.getClass());
 		// Fetch the provider that will validate this entity.
 		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		EventType eventType = EventType.CREATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
@@ -299,7 +302,7 @@ public class EntityServiceImpl implements EntityService {
 	
 	@WriteTransaction
 	@Override
-	public <T extends Entity> T updateEntity(Long userId,
+	public <T extends Entity> T updateEntity(String accessToken,
 											 T updatedEntity, boolean newVersion, String activityId)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
@@ -310,7 +313,7 @@ public class EntityServiceImpl implements EntityService {
 		Class<? extends T> clazz = (Class<? extends T>) updatedEntity.getClass();
 		// Fetch the provider that will validate this entity.
 		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		EventType eventType = EventType.UPDATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, updatedEntity, type);
@@ -391,49 +394,44 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public Annotations getEntityAnnotations(Long userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntityAnnotations(userInfo, id);
+	public Annotations getEntityAnnotations(String accessToken, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
+		return entityManager.getAnnotations(userInfo, id);
 	}
 	
 	@Override
-	public Annotations getEntityAnnotations(UserInfo info, String id) throws NotFoundException, DatastoreException, UnauthorizedException {
-		return entityManager.getAnnotations(info, id);
-	}
-	
-	@Override
-	public Annotations getEntityAnnotationsForVersion(Long userId, String id,
+	public Annotations getEntityAnnotationsForVersion(String accessToken, String id,
 													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return entityManager.getAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@WriteTransaction
 	@Override
-	public Annotations updateEntityAnnotations(Long userId, String entityId,
+	public Annotations updateEntityAnnotations(String accessToken, String entityId,
 											   Annotations updatedAnnotations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Annotations must have a non-null id");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		entityManager.updateAnnotations(userInfo,entityId, updatedAnnotations);
 		return entityManager.getAnnotations(userInfo, updatedAnnotations.getId());
 	}
 
 	@WriteTransaction
 	@Override
-	public AccessControlList createEntityACL(Long userId, AccessControlList newACL) throws DatastoreException,
+	public AccessControlList createEntityACL(String accessToken, AccessControlList newACL) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException {
 
-		UserInfo userInfo = userManager.getUserInfo(userId);		
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		AccessControlList acl = entityPermissionsManager.overrideInheritance(newACL, userInfo);
 		return acl;
 	}
 
 	@Override
-	public  AccessControlList getEntityACL(String entityId, Long userId)
+	public  AccessControlList getEntityACL(String entityId, String accessToken)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
 		// First try the updated
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		AccessControlList acl = entityPermissionsManager.getACL(entityId, userInfo);
 		
 
@@ -442,22 +440,22 @@ public class EntityServiceImpl implements EntityService {
 
 	@WriteTransaction
 	@Override
-	public AccessControlList updateEntityACL(Long userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+	public AccessControlList updateEntityACL(String accessToken, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return entityPermissionsManager.updateACL(updated, userInfo);
 	}
 
 	@WriteTransaction
 	@Override
-	public AccessControlList createOrUpdateEntityACL(Long userId, AccessControlList acl) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+	public AccessControlList createOrUpdateEntityACL(String accessToken, AccessControlList acl) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
 		if (entityPermissionsManager.hasLocalACL(entityId)) {
 			// Local ACL exists; update it
-			return updateEntityACL(userId, acl);
+			return updateEntityACL(accessToken, acl);
 		} else {
 			// Local ACL does not exist; create it
-			return createEntityACL(userId, acl);
+			return createEntityACL(accessToken, acl);
 		}
 	}
 	
@@ -477,8 +475,8 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public List<EntityHeader> getEntityPath(Long userId, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public List<EntityHeader> getEntityPath(String accessToken, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return entityManager.getEntityPath(userInfo, entityId);
 	}
 
@@ -509,17 +507,17 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public UserEntityPermissions getUserEntityPermissions(Long userId, String entityId) throws NotFoundException, DatastoreException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public UserEntityPermissions getUserEntityPermissions(String accessToken, String entityId) throws NotFoundException, DatastoreException {
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
 	@Override
-	public boolean doesEntityHaveChildren(Long userId, String entityId) throws DatastoreException,
+	public boolean doesEntityHaveChildren(String accessToken, String entityId) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(accessToken == null) throw new IllegalArgumentException("accessToken cannot be null");
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		return entityManager.doesEntityHaveChildren(userInfo, entityId);
 	}
 	
@@ -630,10 +628,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public FileHandleResults getEntityFileHandlesForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String accessToken, String entityId) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(accessToken == null) throw new IllegalArgumentException("accessToken cannot be null");
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		List<String> idsList = new LinkedList<String>();
@@ -642,11 +640,11 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public FileHandleResults getEntityFileHandlesForVersion(Long userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException {
+	public FileHandleResults getEntityFileHandlesForVersion(String accessToken, String entityId, Long versionNumber) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(accessToken == null) throw new IllegalArgumentException("accessToken cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("versionNumber cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, versionNumber);
 		List<String> idsList = new LinkedList<String>();

@@ -1,0 +1,29 @@
+{
+	"$recursiveAnchor": true,
+	"description": "The JSON schema is defined by: <a href=\"https://json-schema.org/\">json-schema.org</a>, specifically draft 2019-09. While our goal is to eventually support as many features of the 2019-09 specification as possible, only features listed here are currently supported.",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.1.1\">The \"$schema\" Keyword</a>"
+		},
+		"$id": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.2\">The \"$id\" Keyword</a>"
+		},
+		"$ref": {
+			"type": "string",
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.8.2.4.1\">Direct References with \"$ref\"</a>"
+		},
+		"type": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.4.2.1\">Instance Data Model</a>",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.schema.Type"
+			}
+		},
+		"items": {
+			"description": "See: <a href=\"https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.3.1.1\">items\"$ref\"</a>",
+			"$recursiveRef": "#"
+		}
+	}
+}

@@ -11,7 +11,7 @@ public class EmailVerifiedClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return  "Whether Synapse verified your email address. (Always true for Synapse.)";
+		return  "To see whether Synapse verified your email address. (Always true for Synapse.)";
 	}
 
 	@Override

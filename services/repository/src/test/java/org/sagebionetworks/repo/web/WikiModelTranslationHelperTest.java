@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,8 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.s3.model.S3Object;
 
 public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerTestBase {
-	@Autowired
-	private FileHandleManager fileHandleManager;
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;	
@@ -105,13 +102,12 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
-		InputStream in = s3Object.getObjectContent();
+		String contentType = s3Object.getObjectMetadata().getContentType();
+		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
 		String markdownString = null;
-		try{
+		
+		try (InputStream in = s3Object.getObjectContent()) {
 			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-		}finally{
-			in.close();
 		}
 		// Make sure uploaded markdown is accurate
 		assertEquals(markdownAsString, markdownString);
@@ -142,14 +138,13 @@ public class WikiModelTranslationHelperTest extends AbstractAutowiredControllerT
 		tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
 		// Retrieve uploaded markdown
 		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		Charset charset = ContentTypeUtil.getCharsetFromS3Object(s3Object);
-		InputStream in = s3Object.getObjectContent();
+		String contentType = s3Object.getObjectMetadata().getContentType();
+		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
 		String markdownString = null;
-		try{
+		try (InputStream in = s3Object.getObjectContent()) {
 			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-		}finally{
-			in.close();
 		}
+		
 		assertEquals("", markdownString);
 	}
 }

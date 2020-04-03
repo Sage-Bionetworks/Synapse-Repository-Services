@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -42,7 +43,7 @@ public class SchemaCache {
 			try {
 				String jsonString = EffectiveSchemaUtil.loadEffectiveSchemaFromClasspath(clazz);
 				if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
-				schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
+				schema = new ObjectSchemaImpl(new JSONObjectAdapterImpl(jsonString));
 			} catch (Exception e) {
 				// convert this to a runtime.
 				throw new RuntimeException(e);

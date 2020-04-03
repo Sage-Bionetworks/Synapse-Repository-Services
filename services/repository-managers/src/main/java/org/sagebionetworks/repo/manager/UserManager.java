@@ -19,11 +19,24 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface UserManager {
 	
 	/**
-	 * Get the User and UserGroup information for the given user ID.  
+	 * Get UserInfo with full scope (no identity claims)
+	 * This is used by legacy services that are authorized with a full-scope session token
+	 * (rather than a limited scope OAuth access token)
 	 * 
-	 * @param principalId the ID of the user of interest
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
 	 */
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
+	
+	/**
+	 * Get the groups to which the user belongs, including their own principal ID
+	 * Includes logic for adding system principals like 'authenticated users'
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Set<Long> getUserGroups(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Creates a new user

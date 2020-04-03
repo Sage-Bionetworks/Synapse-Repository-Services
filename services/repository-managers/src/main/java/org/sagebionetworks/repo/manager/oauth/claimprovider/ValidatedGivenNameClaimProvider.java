@@ -18,7 +18,7 @@ public class ValidatedGivenNameClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated first name";
+		return "If you are a validated user, to see your validated first name";
 	}
 
 	@Override

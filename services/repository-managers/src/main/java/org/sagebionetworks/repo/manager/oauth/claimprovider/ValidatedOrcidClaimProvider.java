@@ -18,7 +18,7 @@ public class ValidatedOrcidClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated ORCID";
+		return "If you are a validated user, to see your validated ORCID";
 	}
 
 	@Override

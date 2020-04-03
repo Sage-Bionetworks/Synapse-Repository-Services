@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
@@ -48,6 +49,12 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+	
+	private String adminAccessToken;
+	private String testUserAccessToken;
+	
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	private Long testUserId;
@@ -70,20 +77,22 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		adminAccessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		groupMembersDAO.addMembers(
 				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 				Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
+		testUserAccessToken = oidcTokenHelper.createTotalAccessToken(testUserId);
 		
 		assertNotNull(this.entityService);
 		parent = new Project();
 		parent.setName("TrashControllerAutowiredTest.parent" + UUID.randomUUID().toString());
-		parent = servletTestHelper.createEntity(dispatchServlet, parent, testUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, testUserAccessToken);
 		assertNotNull(parent);
 		child = new Folder();
 		child.setName("TrashControllerAutowiredTest.child" + UUID.randomUUID().toString());
 		child.setParentId(parent.getId());
-		child = servletTestHelper.createEntity(dispatchServlet, child, testUserId);
+		child = servletTestHelper.createEntity(dispatchServlet, child, testUserAccessToken);
 		assertNotNull(child);
 		assertEquals(parent.getId(), child.getParentId());
 		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId);
@@ -116,11 +125,11 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 
 		// Both the parent and the child should be gone
 		assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserAccessToken);
 		});
 		
 		assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserAccessToken);
 		});
 
 		// The trash can should be empty
@@ -140,7 +149,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		child2 = new Link();
 		child2.setName("TrashControllerAutowiredTest.link" + UUID.randomUUID().toString());
 		child2.setParentId(parent.getId());
-		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserId);
+		child2 = servletTestHelper.createEntity(dispatchServlet, child2, adminAccessToken);
 		
 		toPurge.add(KeyFactory.stringToKey(child2.getId()));
 
@@ -152,7 +161,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 
 		// Link should be gone
 		assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getEntity(dispatchServlet, Link.class, child2.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Link.class, child2.getId(), testUserAccessToken);
 		});
 	}
 
@@ -169,11 +178,11 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 
 		// Now the parent and the child should not be visible
 		assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserAccessToken);
 		});
 		
 		assertThrows(NotFoundException.class, () -> {
-			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
+			servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserAccessToken);
 		});
 
 		// The parent and the child should be in the trash can
@@ -190,8 +199,8 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		servletTestHelper.restoreEntity(testUserId, parent.getId());
 
 		// Now the parent and the child should be visible again
-		servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserId);
-		servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserId);
+		servletTestHelper.getEntity(dispatchServlet, Project.class, parent.getId(), testUserAccessToken);
+		servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserAccessToken);
 
 		// The parent and the child should not be in the trash can any more
 		results = servletTestHelper.getTrashCan(testUserId);

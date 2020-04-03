@@ -8,6 +8,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -36,6 +37,8 @@ public class WikiServiceImpl implements WikiService {
 	WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
 	FileHandleManager fileHandleManager;
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 	
 	@WriteTransaction
 	@Override
@@ -147,10 +150,10 @@ public class WikiServiceImpl implements WikiService {
 	}
 
 	@Override
-	public WikiPageKey getRootWikiKey(Long userId, String ownerId,
+	public WikiPageKey getRootWikiKey(String accessToken, String ownerId,
 			ObjectType type) throws NotFoundException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return v2WikiManager.getRootWikiKey(user, ownerId, type);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
+		return v2WikiManager.getRootWikiKey(userInfo, ownerId, type);
 	}
 
 }

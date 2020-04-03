@@ -18,7 +18,7 @@ public class ValidatedCompanyClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "If you are a validated user, your validated company or organization";
+		return "If you are a validated user, to see your validated company or organization";
 	}
 
 	@Override

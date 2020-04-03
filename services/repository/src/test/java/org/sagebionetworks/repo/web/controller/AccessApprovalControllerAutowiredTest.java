@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,11 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -35,7 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill, adapted by bhoff
  * 
  */
-public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
+public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
 
 	// Used for cleanup
 	@Autowired
@@ -44,9 +46,13 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 	@Autowired
 	private UserManager userManager;
 
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+		
 	private Long userId;
 	private UserInfo testUser;
 	private Project project;
+	private String accessToken;
 
 	private List<String> toDelete;
 	
@@ -60,12 +66,13 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		return dto;
 	}
 	
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 		
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		accessToken = oidcTokenHelper.createTotalAccessToken(userId);
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -73,7 +80,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		UserInfo.validateUserInfo(testUser);
 		project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 
@@ -89,7 +96,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 				 dispatchServlet, entityAccessRequirement, userId, extraParams);
 		}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		servletTestHelper.deleteAccessRequirements(dispatchServlet, entityAccessRequirement.getId().toString(), userId);
 		if (entityController != null && toDelete != null) {

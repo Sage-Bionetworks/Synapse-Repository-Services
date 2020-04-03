@@ -16,7 +16,7 @@ public class UserNameClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Your Synapse username";
+		return "To see your Synapse username";
 	}
 
 	@Override

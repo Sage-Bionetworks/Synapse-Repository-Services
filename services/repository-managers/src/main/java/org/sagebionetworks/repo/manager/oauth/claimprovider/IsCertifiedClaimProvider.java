@@ -18,7 +18,7 @@ public class IsCertifiedClaimProvider implements OIDCClaimProvider {
 
 	@Override
 	public String getDescription() {
-		return "Whether you are a certified Synapse user";
+		return "To see whether you are a certified Synapse user";
 	}
 
 	@Override

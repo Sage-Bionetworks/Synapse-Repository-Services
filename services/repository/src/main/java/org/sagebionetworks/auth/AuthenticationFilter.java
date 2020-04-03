@@ -140,6 +140,9 @@ public class AuthenticationFilter implements Filter {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			if (userId!=null) {
 				modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			} else {
+				// if no userId, make sure that the client hasn't tried to add one
+				modParams.remove(AuthorizationConstants.USER_ID_PARAM);
 			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);

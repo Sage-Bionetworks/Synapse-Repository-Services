@@ -2,6 +2,7 @@ package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,10 +17,8 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -299,6 +298,34 @@ public class AuthenticationFilterTest {
 		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
+	}
+	
+	@Test
+	public void noExternalUserIdParameter() throws Exception {
+		Map<String, String[]> requestParams = new HashMap<String, String[]>();
+		 // user is trying to 'sneak in' a validated userId
+		requestParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] {""+userId});
+		when(mockHttpRequest.getParameterMap()).thenReturn(requestParams);
+		when(mockHttpRequest.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
+		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
+		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
+
+		// method under test
+		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+	
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+		
+		// Make sure the userId param has been removed
+		assertNull(requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
+		
+		
+		
 	}
 
 	@Test

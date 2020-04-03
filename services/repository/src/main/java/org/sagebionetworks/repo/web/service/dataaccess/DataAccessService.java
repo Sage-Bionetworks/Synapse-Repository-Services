@@ -33,7 +33,7 @@ public interface DataAccessService {
 
 	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
 
-	RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request);
+	RestrictionInformationResponse getRestrictionInformation(String accessToken, RestrictionInformationRequest request);
 
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
 

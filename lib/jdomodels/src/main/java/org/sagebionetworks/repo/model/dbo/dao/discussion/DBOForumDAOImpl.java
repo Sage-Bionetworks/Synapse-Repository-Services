@@ -16,8 +16,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBOForum;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.ForumUtils;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -40,8 +38,6 @@ public class DBOForumDAOImpl implements ForumDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 
 	private static RowMapper<DBOForum> ROW_MAPPER = new DBOForum().getTableMapping();
 
@@ -56,7 +52,6 @@ public class DBOForumDAOImpl implements ForumDAO {
 		String etag = UUID.randomUUID().toString();
 		dbo.setEtag(etag);
 		basicDao.createNew(dbo);
-		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.FORUM, etag, ChangeType.UPDATE);
 		return getForum(id);
 	}
 

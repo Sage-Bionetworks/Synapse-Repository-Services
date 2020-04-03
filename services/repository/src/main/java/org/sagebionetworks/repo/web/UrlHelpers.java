@@ -132,7 +132,6 @@ public class UrlHelpers {
 	 */
 	public static final String SCHEMA = "/schema";
 	
-	public static final String REGISTRY = "/registry";
 	/**
 	 * The Effective schema is the flattened schema of an entity.
 	 */

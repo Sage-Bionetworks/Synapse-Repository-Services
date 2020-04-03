@@ -7,6 +7,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -241,7 +242,6 @@ public class EntityController {
 	 * </table>
 	 * </p>
 	 * 
-	 * @param userId      - The user that is doing the create.
 	 * @param header      - Used to get content type information.
 	 * @param generatedBy To track the Provenance of an Entity create, include the
 	 *                    ID of the <a href=
@@ -266,13 +266,15 @@ public class EntityController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY }, method = RequestMethod.POST)
-	public @ResponseBody Entity createEntity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody Entity createEntity(
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody Entity entity, @RequestHeader HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
 			JSONObjectAdapterException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Now create the entity
-		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, generatedBy);
+		Entity createdEntity = serviceProvider.getEntityService().createEntity(accessToken, entity, generatedBy);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -286,7 +288,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the entity to fetch.
-	 * @param userId  -The user that is doing the get.
 	 * @param request
 	 * @return The requested Entity if it exists.
 	 * @throws NotFoundException     - Thrown if the requested entity does not
@@ -297,10 +298,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.GET)
 	public @ResponseBody Entity getEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Get the entity.
-		Entity entity = serviceProvider.getEntityService().getEntity(userId, id);
+		Entity entity = serviceProvider.getEntityService().getEntity(accessToken, id);
 		return entity;
 	}
 
@@ -373,18 +375,19 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.PUT)
 	public @ResponseBody Entity updateEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestParam(value = "newVersion", required = false) String newVersion, @RequestBody Entity entity,
 			@RequestHeader HttpHeaders header, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
 			UnauthorizedException, IOException, JSONObjectAdapterException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		boolean newVersionBoolean = false;
 		if (newVersion != null) {
 			newVersionBoolean = Boolean.parseBoolean(newVersion);
 		}
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersionBoolean, generatedBy);
+		entity = serviceProvider.getEntityService().updateEntity(accessToken, entity, newVersionBoolean, generatedBy);
 		// Return the result
 		return entity;
 	}
@@ -443,11 +446,12 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.GET)
 	@Deprecated
 	public @ResponseBody org.sagebionetworks.repo.model.Annotations getEntityAnnotations(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
 		return AnnotationsV2Translator
-				.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(userId, id));
+				.toAnnotationsV1(serviceProvider.getEntityService().getEntityAnnotations(accessToken, id));
 	}
 
 	/**
@@ -481,13 +485,14 @@ public class EntityController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS }, method = RequestMethod.PUT)
 	@Deprecated
 	public @ResponseBody org.sagebionetworks.repo.model.Annotations updateEntityAnnotations(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody org.sagebionetworks.repo.model.Annotations updatedAnnotations, HttpServletRequest request)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException,
 			InvalidModelException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
 		return AnnotationsV2Translator.toAnnotationsV1(serviceProvider.getEntityService()
-				.updateEntityAnnotations(userId, id, AnnotationsV2Translator.toAnnotationsV2(updatedAnnotations)));
+				.updateEntityAnnotations(accessToken, id, AnnotationsV2Translator.toAnnotationsV2(updatedAnnotations)));
 	}
 
 	/**
@@ -509,10 +514,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody Annotations getEntityAnnotationsV2(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
-		return serviceProvider.getEntityService().getEntityAnnotations(userId, id);
+		return serviceProvider.getEntityService().getEntityAnnotations(accessToken, id);
 	}
 
 	/**
@@ -528,10 +534,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS_V2 }, method = RequestMethod.GET)
 	public @ResponseBody Annotations getEntityAnnotationsV2ForVersion(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable Long versionNumber)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
-		return serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, id, versionNumber);
+		return serviceProvider.getEntityService().getEntityAnnotationsForVersion(accessToken, id, versionNumber);
 	}
 
 	/**
@@ -543,7 +550,6 @@ public class EntityController {
 	 * </p>
 	 *
 	 * @param id                 - The id of the entity to update.
-	 * @param userId             - The user that is doing the update.
 	 * @param updatedAnnotations - The updated annotations
 	 * @param request
 	 * @return the updated annotations
@@ -562,11 +568,12 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ANNOTATIONS_V2 }, method = RequestMethod.PUT)
 	public @ResponseBody Annotations updateEntityAnnotationsV2(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
-		return serviceProvider.getEntityService().updateEntityAnnotations(userId, id, updatedAnnotations);
+		return serviceProvider.getEntityService().updateEntityAnnotations(accessToken, id, updatedAnnotations);
 	}
 
 	/**
@@ -589,20 +596,19 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.PUT)
 	public @ResponseBody Versionable createNewVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestHeader HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, IOException,
 			ConflictingUpdateException, JSONObjectAdapterException {
 
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, true, generatedBy, request);
+		return (Versionable) updateEntityImpl(authorizationHeader, header, true, generatedBy, request);
 	}
 
 	/**
 	 * This is a duplicate of update and will be removed.
 	 * 
-	 * @param userId
 	 * @param header
 	 * @param etag
 	 * @param newVersion - Should a new version be created to do this update?
@@ -616,15 +622,18 @@ public class EntityController {
 	 * @throws UnauthorizedException
 	 */
 	@Deprecated
-	private Entity updateEntityImpl(Long userId, HttpHeaders header, boolean newVersion, String activityId,
+	private Entity updateEntityImpl(		
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
+			HttpHeaders header, boolean newVersion, String activityId,
 			HttpServletRequest request) throws IOException, NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Entity entity = (Entity)
 		// objectTypeSerializer.deserialize(request.getInputStream(), header,
 		// type.getClassForType(), header.getContentType());
 		Entity entity = JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId);
+		entity = serviceProvider.getEntityService().updateEntity(accessToken, entity, newVersion, activityId);
 		// Return the result
 		return entity;
 	}
@@ -672,10 +681,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER }, method = RequestMethod.GET)
 	public @ResponseBody Entity getEntityForVersion(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable Long versionNumber,
-			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, 
+			@PathVariable Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Get the entity.
-		Entity updatedEntity = serviceProvider.getEntityService().getEntityForVersion(userId, id, versionNumber);
+		Entity updatedEntity = serviceProvider.getEntityService().getEntityForVersion(accessToken, id, versionNumber);
 		// Return the results
 		return updatedEntity;
 	}
@@ -774,10 +784,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.PERMISSIONS }, method = RequestMethod.GET)
 	public @ResponseBody UserEntityPermissions getUserEntityPermissions(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// pass it along.
-		return serviceProvider.getEntityService().getUserEntityPermissions(userId, id);
+		return serviceProvider.getEntityService().getUserEntityPermissions(accessToken, id);
 	}
 
 	/**
@@ -796,7 +807,6 @@ public class EntityController {
 	 * @param accessType The permission to check. Must be from:
 	 *                   <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 *                   >ACCESS_TYPE</a>
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -828,10 +838,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_PATH }, method = RequestMethod.GET)
 	public @ResponseBody EntityPath getEntityPath(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Wrap it up and pass it along
-		List<EntityHeader> paths = serviceProvider.getEntityService().getEntityPath(userId, id);
+		List<EntityHeader> paths = serviceProvider.getEntityService().getEntityPath(accessToken, id);
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(paths);
 		return entityPath;
@@ -857,7 +868,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the Entity to create an ACL for.
-	 * @param userId  - The user that is doing the create.
 	 * @param newAcl
 	 * @param request - The body is extracted from the request.
 	 * @return The new ACL, which includes the id of the affected entity
@@ -876,7 +886,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList createEntityAcl(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody AccessControlList newAcl, HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		if (newAcl == null)
@@ -884,7 +894,8 @@ public class EntityController {
 		if (id == null)
 			throw new IllegalArgumentException("ACL ID in the path cannot be null");
 		newAcl.setId(id);
-		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(accessToken, newAcl);
 		return acl;
 	}
 
@@ -897,8 +908,7 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the Entity to get the ACL for.
-	 * @param userId  - The user that is making the request.
-	 * @param request
+	 * @param authorizationHeader
 	 * @return The entity ACL.
 	 * @throws DatastoreException      - Thrown when there is a server-side problem.
 	 * @throws NotFoundException       - Thrown if the entity does not exist.
@@ -908,10 +918,11 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList getEntityAcl(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader)
 			throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// pass it along.
-		return serviceProvider.getEntityService().getEntityACL(id, userId);
+		return serviceProvider.getEntityService().getEntityACL(id, accessToken);
 	}
 
 	/**
@@ -923,7 +934,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id         The ID of the Entity to create an ACL for.
-	 * @param userId
 	 * @param updatedACL
 	 * @param request
 	 * @return the accessControlList
@@ -936,7 +946,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList updateEntityAcl(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@RequestBody AccessControlList updatedACL, HttpServletRequest request) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		if (updatedACL == null)
@@ -948,7 +958,8 @@ public class EntityController {
 					"The path ID: " + id + " does not match the ACL's ID: " + updatedACL.getId());
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
-		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
+		return serviceProvider.getEntityService().updateEntityACL(accessToken, updatedACL);
 	}
 
 	/**
@@ -1062,11 +1073,12 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_ANNOTATIONS }, method = RequestMethod.GET)
 	public @ResponseBody org.sagebionetworks.repo.model.Annotations getEntityAnnotationsForVersion(
-			@PathVariable String id, @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader,
 			@PathVariable Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// Pass it along
 		return AnnotationsV2Translator.toAnnotationsV1(
-				serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, id, versionNumber));
+				serviceProvider.getEntityService().getEntityAnnotationsForVersion(accessToken, id, versionNumber));
 	}
 
 	/**
@@ -1356,7 +1368,7 @@ public class EntityController {
 	 * will be returned with this call.
 	 * </p>
 	 * 
-	 * @param userId
+	 * @param authorizationHeader
 	 * @param id     The ID of the FileEntity to get.
 	 * @return
 	 * @throws DatastoreException
@@ -1365,10 +1377,11 @@ public class EntityController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id)
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id)
 			throws DatastoreException, NotFoundException, IOException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// pass it!
-		return serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId, id);
+		return serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(accessToken, id);
 	}
 
 	/**
@@ -1379,7 +1392,7 @@ public class EntityController {
 	 * will be returned with this call.
 	 * </p>
 	 * 
-	 * @param userId
+	 * @param authorizationHeader
 	 * @param id            The ID of the FileEntity to get.
 	 * @param versionNumber The version number of the FileEntity to get
 	 * @return
@@ -1389,10 +1402,11 @@ public class EntityController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody FileHandleResults getEntityFileHandlesForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=true) String authorizationHeader, @PathVariable String id,
 			@PathVariable Long versionNumber) throws DatastoreException, NotFoundException, IOException {
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
 		// pass it!
-		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, id, versionNumber);
+		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(accessToken, id, versionNumber);
 	}
 
 	/**

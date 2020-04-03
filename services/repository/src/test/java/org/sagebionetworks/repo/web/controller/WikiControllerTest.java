@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -22,6 +22,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -45,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
+public class WikiControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {
 	
 	@Autowired
 	private UserManager userManager;
@@ -62,6 +63,11 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private OIDCTokenHelper oidcTokenHelper;
+
+	private String accessToken;
+
 	private Long adminUserId;
 	private String adminUserIdString;
 	
@@ -75,11 +81,12 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception{
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
@@ -102,7 +109,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	
-	@After
+	@AfterEach
 	public void after() throws Exception{
 		
 		for(WikiPageKey key: toDelete){
@@ -130,7 +137,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	public void testEntityWikiCRUD() throws Exception {
 		// create an entity
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
 	}
@@ -138,7 +145,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		entity = new Project();
-		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		entity = (Project) entityServletHelper.createEntity(entity, accessToken, null);
 
 		// create an entity
 		evaluation = new Evaluation();
@@ -195,7 +202,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		// Title should be updated. V2 should have mirrored it too.
 		assertEquals("updated title", cloneUpdated.getTitle());
 		assertEquals("updated title", v2WikiPageDao.get(key, null).getTitle());
-		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getId()));
+		assertFalse(currentEtag.equals(cloneUpdated.getId()), "The etag should have changed from the update");
 		
 		// Add a child wiki
 		WikiPage child = new WikiPage();
