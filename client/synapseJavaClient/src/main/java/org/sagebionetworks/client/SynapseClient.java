@@ -193,8 +193,8 @@ import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportResponse;
 import org.sagebionetworks.repo.model.report.StorageReportType;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
@@ -3491,7 +3491,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	Organization createOrganization(OrganizationRequest request) throws SynapseException;
+	Organization createOrganization(CreateOrganizationRequest request) throws SynapseException;
 	
 	/**
 	 * Lookup an Organization by name

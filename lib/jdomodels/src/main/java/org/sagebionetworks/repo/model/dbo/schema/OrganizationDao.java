@@ -22,9 +22,9 @@ public interface OrganizationDao {
 	Organization getOrganizationByName(String name);
 
 	/**
-	 * Delete an organization by name.
+	 * Delete an organization by id.
 	 * 
-	 * @param name
+	 * @param id
 	 */
 	void deleteOrganization(String id);
 

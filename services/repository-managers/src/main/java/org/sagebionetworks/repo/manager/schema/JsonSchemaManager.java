@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.manager.schema;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 
 /**
  * 
@@ -18,7 +18,7 @@ public interface JsonSchemaManager {
 	 * @param request
 	 * @return
 	 */
-	Organization createOrganziation(UserInfo user, OrganizationRequest request);
+	Organization createOrganziation(UserInfo user, CreateOrganizationRequest request);
 	
 	/**
 	 * Get the current ACL for the identified organization.

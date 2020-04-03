@@ -4,8 +4,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +18,7 @@ public class JsonSchemaServicesImpl implements JsonSchemaServices {
 	JsonSchemaManager schemaManager;
 
 	@Override
-	public Organization createOrganization(Long userId, OrganizationRequest request) {
+	public Organization createOrganization(Long userId, CreateOrganizationRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return schemaManager.createOrganziation(user, request);
 	}

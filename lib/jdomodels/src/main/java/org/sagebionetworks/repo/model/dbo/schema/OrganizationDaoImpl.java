@@ -1,27 +1,21 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ORGANIZATION_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ORGANIZATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANIZATION;
 
 import java.sql.Timestamp;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -73,7 +67,7 @@ public class OrganizationDaoImpl implements OrganizationDao {
 					name.toLowerCase());
 			return createDtoFromDbo(dbo);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Orgnaization with name: '" + name.toLowerCase() + "' not found");
+			throw new NotFoundException("Organization with name: '" + name.toLowerCase() + "' not found");
 		}
 	}
 
@@ -85,9 +79,9 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	 */
 	public static Organization createDtoFromDbo(DBOOrganization dbo) {
 		Organization dto = new Organization();
-		dto.setCreatedBy("" + dbo.getCreatedBy());
+		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(dbo.getCreatedOn());
-		dto.setId(""+dbo.getId());
+		dto.setId(dbo.getId().toString());
 		dto.setName(dbo.getName());
 		return dto;
 	}
@@ -99,7 +93,7 @@ public class OrganizationDaoImpl implements OrganizationDao {
 		int count = jdbcTemplate.update(
 				"DELETE FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_ID + " = ?", id);
 		if (count < 1) {
-			throw new NotFoundException("Orgnaization with id: '" + id + "' not found");
+			throw new NotFoundException("Organization with id: '" + id + "' not found");
 		}
 	}
 

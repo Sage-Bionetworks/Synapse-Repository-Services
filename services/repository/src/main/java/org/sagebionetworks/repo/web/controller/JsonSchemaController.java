@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
@@ -53,8 +54,8 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.POST)
-	public Organization createOrganziation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody OrganizationRequest request) {
+	public @ResponseBody Organization createOrganziation(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody CreateOrganizationRequest request) {
 		return serviceProvider.getSchemaServices().createOrganization(userId, request);
 	}
 
@@ -66,9 +67,9 @@ public class JsonSchemaController {
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ORGANIZATION_NAME }, method = RequestMethod.GET)
-	public Organization getOrganizationByName(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String name) {
+	@RequestMapping(value = { UrlHelpers.ORGANIZATION }, method = RequestMethod.GET)
+	public @ResponseBody Organization getOrganizationByName(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String name) {
 		return serviceProvider.getSchemaServices().getOrganizationByName(userId, name);
 	}
 
@@ -106,7 +107,7 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.GET)
-	public AccessControlList getOrgnaizationAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody AccessControlList getOrganizationAcl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) {
 		return serviceProvider.getSchemaServices().getOrganizationAcl(userId, id);
 	}
@@ -127,7 +128,7 @@ public class JsonSchemaController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ORGANIZATION_ID_ACL }, method = RequestMethod.PUT)
-	public AccessControlList updateOrganizationAcl(
+	public @ResponseBody AccessControlList updateOrganizationAcl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable(value = "id", required = true) String id,
 			@RequestBody AccessControlList acl) {
 		return serviceProvider.getSchemaServices().updateOrganizationAcl(userId, id, acl);

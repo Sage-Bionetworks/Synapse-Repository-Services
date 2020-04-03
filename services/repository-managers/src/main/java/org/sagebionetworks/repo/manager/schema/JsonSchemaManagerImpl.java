@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.schema;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
@@ -17,8 +18,8 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -35,7 +36,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public static final String BAD_ORGANIZATION_NAME_MESSAGE = "Organziation name must start and end with a letter [a-z], and can contain digits [0-9] and periods [.]";
 
 	public static int MAX_ORGANZIATION_NAME_CHARS = 250;
-	public static int MIN_ORGANZIATION_NAME_CHARS = 3;
+	public static int MIN_ORGANZIATION_NAME_CHARS = 6;
 	public static Pattern ORGANIZATOIN_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9.]+[a-z]");
 
 	@Autowired
@@ -44,11 +45,11 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@Autowired
 	AccessControlListDAO aclDao;
 
-	public static final Set<ACCESS_TYPE> ADMIN_PERMISSIONS = Sets.newHashSet(READ, CHANGE_PERMISSIONS, UPDATE, DELETE);
+	public static final Set<ACCESS_TYPE> ADMIN_PERMISSIONS = Sets.newHashSet(READ, CREATE, CHANGE_PERMISSIONS, UPDATE, DELETE);
 
 	@WriteTransaction
 	@Override
-	public Organization createOrganziation(UserInfo user, OrganizationRequest request) {
+	public Organization createOrganziation(UserInfo user, CreateOrganizationRequest request) {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(request, "OrganizationRequest");
 
@@ -80,12 +81,12 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		}
 		if (processedName.length() < MIN_ORGANZIATION_NAME_CHARS) {
 			throw new IllegalArgumentException(
-					"Organization name must be at least " + MIN_ORGANZIATION_NAME_CHARS + " chracters");
+					"Organization name must be at least " + MIN_ORGANZIATION_NAME_CHARS + " characters");
 		}
 		if (!ORGANIZATOIN_NAME_PATTERN.matcher(processedName).matches()) {
 			throw new IllegalArgumentException(BAD_ORGANIZATION_NAME_MESSAGE);
 		}
-		if(processedName.contains("sagebionetworks")) {
+		if(processedName.contains("sagebionetwork")) {
 			throw new IllegalArgumentException(SAGEBIONETWORKS_RESERVED_MESSAGE);
 		}
 		return processedName;
@@ -133,8 +134,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(id, "id");
 		
-		aclDao.canAccess(user, id, ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
-		.checkAuthorizationOrElseThrow();
+		if(!user.isAdmin()) {
+			aclDao.canAccess(user, id, ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+			.checkAuthorizationOrElseThrow();
+		}
 		
 		organizationDao.deleteOrganization(id);
 		

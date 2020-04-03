@@ -70,7 +70,7 @@ public class OrganizationDaoImplTest {
 			// call under test
 			organizationDao.getOrganizationByName(name);
 		}).getMessage();
-		assertEquals("Orgnaization with name: 'foo.bar' not found", message);
+		assertEquals("Organization with name: 'foo.bar' not found", message);
 	}
 
 	@Test
@@ -80,7 +80,7 @@ public class OrganizationDaoImplTest {
 			// call under test
 			organizationDao.deleteOrganization(id);
 		}).getMessage();
-		assertEquals("Orgnaization with id: '-123' not found", message);
+		assertEquals("Organization with id: '-123' not found", message);
 	}
 
 	@AfterEach

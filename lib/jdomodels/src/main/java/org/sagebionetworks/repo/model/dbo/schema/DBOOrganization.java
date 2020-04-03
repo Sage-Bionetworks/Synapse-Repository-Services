@@ -27,45 +27,47 @@ public class DBOOrganization implements MigratableDatabaseObject<DBOOrganization
 			new FieldColumn("createdBy", COL_ORGANIZATION_CREATED_BY),
 			new FieldColumn("createdOn", COL_ORGANIZATION_CREATED_ON), };
 
-	Long id;
-	String name;
-	Long createdBy;
-	Timestamp createdOn;
+	private Long id;
+	private String name;
+	private Long createdBy;
+	private Timestamp createdOn;
+
+	public static final TableMapping<DBOOrganization> TABLE_MAPPING = new TableMapping<DBOOrganization>() {
+
+		@Override
+		public DBOOrganization mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOOrganization dbo = new DBOOrganization();
+			dbo.setId(rs.getLong(COL_ORGANIZATION_ID));
+			dbo.setName(rs.getString(COL_ORGANIZATION_NAME));
+			dbo.setCreatedBy(rs.getLong(COL_ORGANIZATION_CREATED_BY));
+			dbo.setCreatedOn(rs.getTimestamp(COL_ORGANIZATION_CREATED_ON));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_ORGANIZATION;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_ORGANIZATION;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOOrganization> getDBOClass() {
+			return DBOOrganization.class;
+		}
+	};
 
 	@Override
 	public TableMapping<DBOOrganization> getTableMapping() {
-		return new TableMapping<DBOOrganization>() {
-
-			@Override
-			public DBOOrganization mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOOrganization dbo = new DBOOrganization();
-				dbo.setId(rs.getLong(COL_ORGANIZATION_ID));
-				dbo.setName(rs.getString(COL_ORGANIZATION_NAME));
-				dbo.setCreatedBy(rs.getLong(COL_ORGANIZATION_CREATED_BY));
-				dbo.setCreatedOn(rs.getTimestamp(COL_ORGANIZATION_CREATED_ON));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_ORGANIZATION;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_ORGANIZATION;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOOrganization> getDBOClass() {
-				return DBOOrganization.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 
 	public Long getId() {
@@ -104,10 +106,12 @@ public class DBOOrganization implements MigratableDatabaseObject<DBOOrganization
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ORGANIZATION;
 	}
+	
+	public static final MigratableTableTranslation<DBOOrganization, DBOOrganization> TRANSLATOR = new BasicMigratableTableTranslation<DBOOrganization>();
 
 	@Override
 	public MigratableTableTranslation<DBOOrganization, DBOOrganization> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOOrganization>();
+		return TRANSLATOR;
 	}
 
 	@Override

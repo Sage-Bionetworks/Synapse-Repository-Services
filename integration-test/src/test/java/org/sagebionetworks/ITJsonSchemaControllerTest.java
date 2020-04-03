@@ -19,8 +19,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 
 import com.google.common.collect.Sets;
 
@@ -31,8 +31,8 @@ public class ITJsonSchemaControllerTest {
 	private static Long userId;
 
 	String organizationName;
-	OrganizationRequest request;
-	
+	CreateOrganizationRequest request;
+
 	Organization organization;
 
 	@BeforeAll
@@ -44,31 +44,34 @@ public class ITJsonSchemaControllerTest {
 		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		synapse = new SynapseClientImpl();
 		userId = SynapseClientHelper.createUser(adminSynapse, synapse);
-		
-
+		SynapseClientHelper.setEndpoints(synapse);
 	}
-	
+
 	@BeforeEach
 	public void beforeEach() throws SynapseException {
 		organizationName = "test.integeration.organization";
-		request = new OrganizationRequest();
+		request = new CreateOrganizationRequest();
 		request.setOrganizationName(organizationName);
 		// ensure we start each test without this organization.
 		try {
 			Organization org = synapse.getOrganizationByName(organizationName);
-			synapse.deleteOrganization(org.getId());
-		}catch (SynapseNotFoundException e) {
+			adminSynapse.deleteOrganization(org.getId());
+		} catch (SynapseNotFoundException e) {
 			// can ignore
 		}
 	}
-	
+
 	@AfterEach
 	public void afterEach() throws SynapseException {
-		if(organization != null) {
-			synapse.deleteOrganization(organization.getId());
+		if (organization != null) {
+			try {
+				adminSynapse.deleteOrganization(organization.getId());
+			} catch (SynapseNotFoundException e) {
+				// can ignore
+			}
 		}
 	}
-	
+
 	@Test
 	public void testCreateOrganization() throws SynapseException {
 		// call under test
@@ -76,9 +79,9 @@ public class ITJsonSchemaControllerTest {
 		assertNotNull(organization);
 		assertEquals(organizationName, organization.getName());
 		assertNotNull(organization.getId());
-		assertEquals(""+userId, organization.getCreatedBy());
+		assertEquals("" + userId, organization.getCreatedBy());
 	}
-	
+
 	@Test
 	public void testGetOrganizationByName() throws SynapseException {
 		organization = synapse.createOrganization(request);
@@ -87,29 +90,29 @@ public class ITJsonSchemaControllerTest {
 		Organization fetched = synapse.getOrganizationByName(organizationName);
 		assertEquals(organization, fetched);
 	}
-	
+
 	@Test
 	public void testDeleteOrganization() throws SynapseException {
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
 		// call under test
 		synapse.deleteOrganization(organization.getId());
-		
-		assertThrows(SynapseNotFoundException.class, ()->{
+
+		assertThrows(SynapseNotFoundException.class, () -> {
 			synapse.getOrganizationByName(organizationName);
 		});
 	}
-	
+
 	@Test
 	public void testGetOrganizationAcl() throws SynapseException {
 		organization = synapse.createOrganization(request);
 		assertNotNull(organization);
-		
+
 		// call under test
 		AccessControlList acl = synapse.getOrganizationAcl(organization.getId());
 		assertNotNull(acl);
 	}
-	
+
 	@Test
 	public void testUpdateOrganizationAcl() throws SynapseException {
 		organization = synapse.createOrganization(request);

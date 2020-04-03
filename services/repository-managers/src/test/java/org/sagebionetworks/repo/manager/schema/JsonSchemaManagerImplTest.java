@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.manager.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -24,16 +26,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
-import org.sagebionetworks.repo.model.schema.OrganizationRequest;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,7 +55,7 @@ public class JsonSchemaManagerImplTest {
 
 	UserInfo user;
 	UserInfo anonymousUser;
-	OrganizationRequest request;
+	CreateOrganizationRequest request;
 
 	Organization organization;
 
@@ -66,8 +68,8 @@ public class JsonSchemaManagerImplTest {
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		request = new OrganizationRequest();
-		request.setOrganizationName("a.2.b");
+		request = new CreateOrganizationRequest();
+		request.setOrganizationName("a.2.b.com");
 
 		organization = new Organization();
 		organization.setCreatedBy("" + user.getId());
@@ -81,9 +83,9 @@ public class JsonSchemaManagerImplTest {
 
 	@Test
 	public void testProcessAndValidateOrganizationName() {
-		String inputName = " A.9.C \n";
+		String inputName = " A.9.C.DEFG \n";
 		String processedName = JsonSchemaManagerImpl.processAndValidateOrganizationName(inputName);
-		assertEquals("a.9.c", processedName);
+		assertEquals("a.9.c.defg", processedName);
 	}
 
 	@Test
@@ -117,13 +119,13 @@ public class JsonSchemaManagerImplTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName(input);
 		}).getMessage();
-		assertEquals("Organization name must be at least 3 chracters", message);
+		assertEquals("Organization name must be at least 6 characters", message);
 	}
 
 	@Test
 	public void testProcessAndValidateOrganizationNameSagebionetworks() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("sagebionetworks");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("sagebionetwork");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.SAGEBIONETWORKS_RESERVED_MESSAGE, message);
 	}
@@ -131,7 +133,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDigit() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("1abc");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("1abcdefg");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
 	}
@@ -139,7 +141,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameEndWithDigit() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("abc9");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("abcdefg9");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
 	}
@@ -147,7 +149,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameStartWithDot() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName(".abc");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(".abcdefg");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
 	}
@@ -155,7 +157,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameEndWithDot() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("abc.");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("abcdefg.");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
 	}
@@ -163,7 +165,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testProcessAndValidateOrganizationNameContainsInvalidChars() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			JsonSchemaManagerImpl.processAndValidateOrganizationName("a/b");
+			JsonSchemaManagerImpl.processAndValidateOrganizationName("abc/defg");
 		}).getMessage();
 		assertEquals(JsonSchemaManagerImpl.BAD_ORGANIZATION_NAME_MESSAGE, message);
 	}
@@ -398,6 +400,17 @@ public class JsonSchemaManagerImplTest {
 		// call under test
 		manager.deleteOrganization(user, organization.getId());
 		verify(mockAclDao).canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE);
+		verify(mockOrganizationDao).deleteOrganization(organization.getId());
+		verify(mockAclDao).delete(organization.getId(), ObjectType.ORGANIZATION);
+	}
+	
+	@Test
+	public void testDeleteOrganizationAsAdmin() {
+		boolean isAdmin = true;
+		UserInfo admin = new UserInfo(isAdmin, 123L);
+		// call under test
+		manager.deleteOrganization(admin, organization.getId());
+		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
 		verify(mockOrganizationDao).deleteOrganization(organization.getId());
 		verify(mockAclDao).delete(organization.getId(), ObjectType.ORGANIZATION);
 	}
