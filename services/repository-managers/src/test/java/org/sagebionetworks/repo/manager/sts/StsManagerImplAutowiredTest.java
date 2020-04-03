@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,6 +83,9 @@ public class StsManagerImplAutowiredTest {
 	private SynapseS3Client s3Client;
 
 	@Autowired
+	private StackConfiguration stackConfiguration;
+
+	@Autowired
 	private StsManager stsManager;
 
 	@Autowired
@@ -145,6 +149,9 @@ public class StsManagerImplAutowiredTest {
 
 	@Test
 	public void externalS3() throws Exception {
+		// Only run this test if the STS Arn is set up.
+		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
+
 		// Setup - Create 3 files:
 		//   [bucket]/inaccessible.txt
 		//   [bucket]/[sts root]/owner.txt
@@ -221,6 +228,9 @@ public class StsManagerImplAutowiredTest {
 
 	@Test
 	public void synapseStorage() throws Exception {
+		// Only run this test if the STS Arn is set up.
+		Assumptions.assumeTrue(stackConfiguration.getTempCredentialsIamRoleArn() != null);
+
 		// Create StsStorageLocation.
 		S3StorageLocationSetting storageLocationSetting = new S3StorageLocationSetting();
 		storageLocationSetting.setStsEnabled(true);

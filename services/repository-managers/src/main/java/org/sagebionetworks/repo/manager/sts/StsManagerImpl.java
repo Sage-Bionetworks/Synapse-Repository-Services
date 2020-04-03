@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.manager.sts;
 
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
 import com.amazonaws.services.securitytoken.model.Credentials;
-import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
-import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
 import com.google.common.collect.ImmutableMap;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -55,6 +56,9 @@ public class StsManagerImpl implements StsManager {
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	private StackConfiguration stackConfiguration;
 
 	@Autowired
 	private AWSSecurityTokenService stsClient;
@@ -129,14 +133,15 @@ public class StsManagerImpl implements StsManager {
 		String policy = writer.toString();
 
 		// Call STS.
-		GetFederationTokenRequest request = new GetFederationTokenRequest();
+		AssumeRoleRequest request = new AssumeRoleRequest();
 		request.setDurationSeconds(DURATION_SECONDS);
 		request.setPolicy(policy);
+		request.setRoleArn(stackConfiguration.getTempCredentialsIamRoleArn());
 
-		// Name is required, but it has a max length of 32 characters. Keep it short but descriptive.
-		request.setName("sts-" + userInfo.getId() + "-" + entityId);
+		// Session Name is required, but it has a max length of 64 characters. Keep it short but descriptive.
+		request.setRoleSessionName("sts-" + userInfo.getId() + "-" + entityId);
 
-		GetFederationTokenResult result = stsClient.getFederationToken(request);
+		AssumeRoleResult result = stsClient.assumeRole(request);
 
 		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
 		Credentials awsCredentials = result.getCredentials();
