@@ -918,7 +918,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		AuthorizationStatus status = entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, userInfo);
 		
 		assertFalse(status.isAuthorized());
-		assertEquals("Your authorization scope(s) do not allow DOWNLOAD access.", status.getMessage());
+		assertEquals("You lack DOWNLOAD access to the requested entity.", status.getMessage());
 		
 		verify(mockNodeDao).getNodeTypeById(nodeId);
 		verify(mockNodeDao).getBenefactor(nodeId);

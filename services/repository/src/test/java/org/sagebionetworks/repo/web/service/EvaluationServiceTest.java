@@ -52,8 +52,7 @@ public class EvaluationServiceTest {
 	private QueryDAO mockQueryDAO;
 	@Mock
 	private NotificationManager mockNotificationManager;
-	@Mock
-	private OpenIDConnectManager mockOidcManager;
+	
 	@InjectMocks
 	private EvaluationServiceImpl evaluationService;
 
@@ -62,8 +61,6 @@ public class EvaluationServiceTest {
 	private String evalId;
 	private long limit;
 	private long offset;
-
-	private static final String ACCESS_TOKEN = "access-token";
 
 	@Test
 	public void testCreateSubmission() throws Exception {
@@ -74,7 +71,6 @@ public class EvaluationServiceTest {
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		userInfo = new UserInfo(false);
 		userInfo.setId(userId);
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
@@ -87,10 +83,8 @@ public class EvaluationServiceTest {
 				eq(challengeEndpoint), eq(notificationUnsubscribeEndpoint))).thenReturn(result);
 
 		when(mockServiceProvider.getEntityBundleService()).thenReturn(mockEntityBundleService);
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
-		evaluationService.createSubmission(ACCESS_TOKEN, submission, "123", "987", challengeEndpoint,
+		evaluationService.createSubmission(userInfo, submission, "123", "987", challengeEndpoint,
 				notificationUnsubscribeEndpoint);
-		verify(mockOidcManager).getUserAuthorization(ACCESS_TOKEN);
 		verify(mockSubmissionManager).createSubmission(eq(userInfo), eq(submission), eq("123"), eq("987"), 
 				isNull());
 		verify(mockSubmissionManager).createSubmissionNotifications(

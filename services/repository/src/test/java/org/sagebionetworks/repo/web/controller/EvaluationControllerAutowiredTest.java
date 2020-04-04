@@ -51,7 +51,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class EvaluationControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 	
 	@Autowired
 	private UserManager userManager;

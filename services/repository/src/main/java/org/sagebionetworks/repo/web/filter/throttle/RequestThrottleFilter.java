@@ -40,7 +40,7 @@ public class RequestThrottleFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		String synapseAuthorizationHeader = ((HttpServletRequest)request).getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME);
-		String accessToken= HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
 		Long userId = Long.parseLong(oidcManager.getUserId(accessToken));
 		HttpRequestIdentifier httpRequestIdentifier = HttpRequestIdentifierUtils.getRequestIdentifier(request, userId);
 

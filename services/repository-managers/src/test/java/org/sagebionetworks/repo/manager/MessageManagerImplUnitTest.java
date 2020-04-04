@@ -615,7 +615,7 @@ public class MessageManagerImplUnitTest {
 	@Test
 	public void testForwardMessage() throws Exception {
 		when(messageDAO.canCreateMessage(eq(CREATOR_ID.toString()), anyLong(), anyLong())).thenReturn(true);
-		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID)).thenReturn(AuthorizationStatus.authorized());
+		when(authorizationManager.canAccessRawFileHandleById(creatorUserInfo, FILE_HANDLE_ID, ACCESS_TYPE.SEND_MESSAGE)).thenReturn(AuthorizationStatus.authorized());
 		when(messageDAO.getMessage(MESSAGE_ID)).thenReturn(mtu);
 		when(messageDAO.createMessage(mtu)).thenReturn(mtu);
 		

@@ -15,8 +15,10 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -30,89 +32,89 @@ import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
  */
 public class ITAccessTokenTest {
 
-	private static SynapseAdminClient adminSynapse;
-	private static SynapseClient synapseOne;
-	private static SynapseClient synapseAnonymous;
+	private static SynapseAdminClient synapseClientForAdmin;
+	private static SynapseClient synapseClientForUser1;
+	private static SynapseClient synapseClientLackingCredentials;
+	
 	private static Long user1ToDelete;
-	private static Long user2ToDelete;
-
-	private OAuthClient client;
-	private String secret;
+	
+	private OAuthClient oauthClient;
+	private String oauthClientSecret;
 
 	private Project project;
 
 	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Create 2 users
-		adminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
-		adminSynapse.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
-		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		synapseClientForAdmin = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(synapseClientForAdmin);
+		synapseClientForAdmin.setUsername(StackConfigurationSingleton.singleton().getMigrationAdminUsername());
+		synapseClientForAdmin.setApiKey(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
+		synapseClientForAdmin.clearAllLocks();
+		synapseClientForUser1 = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseClientForUser1);
+		user1ToDelete = SynapseClientHelper.createUser(synapseClientForAdmin, synapseClientForUser1);
 
-		synapseAnonymous = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseAnonymous);
+		synapseClientLackingCredentials = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseClientLackingCredentials);
 	}
 
 	@AfterAll
 	public static void afterClass() throws Exception {
 		try {
-			if (user1ToDelete!=null) adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseException e) { }
-		try {
-			if (user2ToDelete!=null) adminSynapse.deleteUser(user2ToDelete);
+			if (user1ToDelete!=null) synapseClientForAdmin.deleteUser(user1ToDelete);
 		} catch (SynapseException e) { }
 	}
 
 	@BeforeEach
 	public void before() throws Exception {
 		// create the OAuth client
-		client = new OAuthClient();
-		client.setClient_name(UUID.randomUUID().toString());
-		client.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
-		client = synapseOne.createOAuthClient(client);
+		oauthClient = new OAuthClient();
+		oauthClient.setClient_name(UUID.randomUUID().toString());
+		oauthClient.setRedirect_uris(Collections.singletonList("https://foo.bar.com"));
+		oauthClient = synapseClientForUser1.createOAuthClient(oauthClient);
 		// Sets the verified status of the client (only admins and ACT can do this)
-		client = adminSynapse.updateOAuthClientVerifiedStatus(client.getClient_id(), client.getEtag(), true);
-		secret = synapseOne.createOAuthClientSecret(client.getClient_id()).getClient_secret();
+		oauthClient = synapseClientForAdmin.updateOAuthClientVerifiedStatus(oauthClient.getClient_id(), oauthClient.getEtag(), true);
+		oauthClientSecret = synapseClientForUser1.createOAuthClientSecret(oauthClient.getClient_id()).getClient_secret();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		try {
-			if (project!=null) adminSynapse.deleteEntity(project);
+			if (project!=null) synapseClientForAdmin.deleteEntity(project);
 		} catch (SynapseException e) { }
 		try {
-			if (client!=null) {
-				synapseOne.deleteOAuthClient(client.getClient_id());
+			if (oauthClient!=null) {
+				synapseClientForUser1.deleteOAuthClient(oauthClient.getClient_id());
 			}
 		} catch (SynapseException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private String getAccessToken(String scopes) throws Exception {
+	private String getAccessTokenForUser1(String scopes) throws Exception {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
-		authorizationRequest.setClientId(client.getClient_id());
-		authorizationRequest.setRedirectUri(client.getRedirect_uris().get(0));
+		authorizationRequest.setClientId(oauthClient.getClient_id());
+		authorizationRequest.setRedirectUri(oauthClient.getRedirect_uris().get(0));
 		authorizationRequest.setResponseType(OAuthResponseType.code);
 		authorizationRequest.setScope(scopes);
 		authorizationRequest.setClaims("{\"id_token\":{},\"userinfo\":{}}");
 		String nonce = UUID.randomUUID().toString();
-		authorizationRequest.setNonce(nonce);		
-		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseOne.authorizeClient(authorizationRequest);
+		authorizationRequest.setNonce(nonce);
+		
+		// Note that here we use "synapseClientForUser1" to create an access token
+		// for User1
+		OAuthAuthorizationResponse oauthAuthorizationResponse = synapseClientForUser1.authorizeClient(authorizationRequest);
 
 		// Note, we use Basic auth to authorize the client when asking for an access token
 		OIDCTokenResponse tokenResponse = null;
 		try {
-			synapseAnonymous.setBasicAuthorizationCredentials(client.getClient_id(), secret);
-			tokenResponse = synapseAnonymous.getTokenResponse(OAuthGrantType.authorization_code, 
-					oauthAuthorizationResponse.getAccess_code(), client.getRedirect_uris().get(0), null, null, null);
+			synapseClientLackingCredentials.setBasicAuthorizationCredentials(oauthClient.getClient_id(), oauthClientSecret);
+			tokenResponse = synapseClientLackingCredentials.getTokenResponse(OAuthGrantType.authorization_code, 
+					oauthAuthorizationResponse.getAccess_code(), oauthClient.getRedirect_uris().get(0), null, null, null);
 			return tokenResponse.getAccess_token();
 		} finally {
-			synapseAnonymous.removeAuthorizationHeader();
+			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}
 
 	}
@@ -120,28 +122,53 @@ public class ITAccessTokenTest {
 
 	@Test
 	public void testAccessToken() throws Exception {
-		String accessToken = getAccessToken("openid modify view download");
+		String accessTokenForUser1 = getAccessTokenForUser1("openid modify view download");
 
 		try {
 			// We use the bearer token to authorize the client 
-			synapseAnonymous.setBearerAuthorizationToken(accessToken);
+			synapseClientLackingCredentials.setBearerAuthorizationToken(accessTokenForUser1);
+			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
+			// as User1.
+
 			project = new Project();
 			project.setName("access token test");
-			project = synapseAnonymous.createEntity(project);
+			project = synapseClientLackingCredentials.createEntity(project);
 			assertNotNull(project.getId());
-			project = synapseAnonymous.getEntity(project.getId(), Project.class);
+			project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);
 			
 			// But if we don't have 'view' scope we can't get the entity
-			String accessToken2 = getAccessToken("openid modify download");
-			synapseAnonymous.setBearerAuthorizationToken(accessToken2);
+			String accessToken2 = getAccessTokenForUser1("openid modify download");
+			synapseClientLackingCredentials.setBearerAuthorizationToken(accessToken2);
 			Assertions.assertThrows(SynapseForbiddenException.class, () -> {
-				project = synapseAnonymous.getEntity(project.getId(), Project.class);				
+				project = synapseClientLackingCredentials.getEntity(project.getId(), Project.class);				
 			});
 			
 		} finally {
-			synapseAnonymous.removeAuthorizationHeader();
+			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}
 
+	}
+	
+	@Test
+	public void testAccessTokenDoesntEnable() throws Exception {
+		String accessTokenForUser1 = getAccessTokenForUser1("openid modify view download");
+		try {
+			// We use the bearer token to authorize the client 
+			synapseClientLackingCredentials.setBearerAuthorizationToken(accessTokenForUser1);
+			// Now the calls made by 'synapseClientLackingCredentials' are authenticated/authorized
+			// as User1.
+
+			Evaluation evaluation = new Evaluation();
+			evaluation.setName("test");
+
+			// Since the Evaluation Controller does not recognize the access token
+			// it will treat this as an anonymous request and return a 403 response
+			Assertions.assertThrows(SynapseBadRequestException.class, () -> {
+				synapseClientLackingCredentials.createEvaluation(evaluation);
+			});
+		} finally {
+			synapseClientLackingCredentials.removeAuthorizationHeader();
+		}		
 	}
 
 }

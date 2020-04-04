@@ -40,7 +40,12 @@
 				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
-	</bean>
+         <property name="customArgumentResolvers">
+         <list>
+             <bean id="userInfoMethodArgumentResolver" class="org.sagebionetworks.repo.web.UserInfoMethodArgumentResolver"/>           
+         </list>         
+         </property>
+    </bean>
 	<!-- Setup our own JSON processing. -->
 	<bean id="platformExceptionHandlers"
 		class="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver">

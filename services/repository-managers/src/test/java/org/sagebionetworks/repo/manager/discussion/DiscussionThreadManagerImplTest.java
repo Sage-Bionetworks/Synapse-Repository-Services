@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -92,7 +93,9 @@ public class DiscussionThreadManagerImplTest {
 	@Mock
 	private GroupMembersDAO mockGroupMembersDao;
 
-	private DiscussionThreadManager threadManager;
+	@InjectMocks
+	private DiscussionThreadManagerImpl threadManager;
+	
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private CreateDiscussionThread createDto;
 	private DiscussionThreadBundle dto;
@@ -111,17 +114,6 @@ public class DiscussionThreadManagerImplTest {
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-
-		threadManager = new DiscussionThreadManagerImpl();
-		ReflectionTestUtils.setField(threadManager, "threadDao", mockThreadDao);
-		ReflectionTestUtils.setField(threadManager, "forumDao", mockForumDao);
-		ReflectionTestUtils.setField(threadManager, "uploadDao", mockUploadDao);
-		ReflectionTestUtils.setField(threadManager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(threadManager, "idGenerator", mockIdGenerator);
-		ReflectionTestUtils.setField(threadManager, "subscriptionDao", mockSubscriptionDao);
-		ReflectionTestUtils.setField(threadManager, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(threadManager, "aclDao", mockAclDao);
-		ReflectionTestUtils.setField(threadManager, "groupMembersDao", mockGroupMembersDao);
 
 		createDto = new CreateDiscussionThread();
 		createDto.setForumId(forumId.toString());
