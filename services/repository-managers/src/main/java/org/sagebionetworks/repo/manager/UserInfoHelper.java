@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,7 +31,13 @@ public class UserInfoHelper {
 		result.setGroups(groups);
 		
 		result.setOidcClaims(Collections.EMPTY_MAP);
-		result.setScopes(Collections.singletonList(OAuthScope.view));
+		/*
+		 * It's counterintuitive to give the anonymous user full scope but 
+		 * this lets the existing checks (like ACL checks) take care of
+		 * denying access to anonymous users, returning more intuitive 
+		 * error messages
+		 */
+		result.setScopes(Arrays.asList(OAuthScope.values()));
 		return result;
 	}
 }

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -122,7 +123,7 @@ public interface EvaluationService {
 	/**
 	 * Create a Submission.
 	 * 
-	 * @param accessToken
+	 * @param userInfo
 	 * @param submission
 	 * @param entityEtag
 	 * @param submissionEligibilityHash
@@ -136,7 +137,7 @@ public interface EvaluationService {
 	 * @throws ParseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(String accessToken, Submission submission, String entityEtag, 
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 

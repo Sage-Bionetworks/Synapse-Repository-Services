@@ -46,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	@Autowired
 	private EntityService entityService;

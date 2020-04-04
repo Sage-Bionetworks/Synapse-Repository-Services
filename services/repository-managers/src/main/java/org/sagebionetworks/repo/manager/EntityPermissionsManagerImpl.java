@@ -444,7 +444,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		if (!OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessTypeCheck)) {
-			return OAuthPermissionUtils.accessDenied(ACCESS_TYPE.DOWNLOAD);
+			return OAuthPermissionUtils.accessDenied(accessTypeCheck);
 		}
 		
 		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessTypeCheck);

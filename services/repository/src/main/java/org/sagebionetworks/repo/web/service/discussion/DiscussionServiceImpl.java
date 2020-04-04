@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,8 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DiscussionServiceImpl implements DiscussionService{
 	@Autowired
 	private UserManager userManager;
-	@Autowired
-	private OpenIDConnectManager oidcManager;
 	@Autowired
 	private ForumManager forumManager;
 	@Autowired
@@ -176,9 +173,8 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public EntityThreadCounts getThreadCounts(String accessToken, EntityIdList entityIds) {
-		UserInfo user = oidcManager.getUserAuthorization(accessToken);
-		return threadManager.getEntityThreadCounts(user, entityIds);
+	public EntityThreadCounts getThreadCounts(UserInfo userInfo, EntityIdList entityIds) {
+		return threadManager.getEntityThreadCounts(userInfo, entityIds);
 	}
 
 	@Override

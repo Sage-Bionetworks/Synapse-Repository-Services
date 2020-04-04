@@ -70,8 +70,6 @@ public class EntityServiceImplUnitTest {
 
 	static final Long PRINCIPAL_ID = 101L;
 	
-	private static final String ACCESS_TOKEN = "access-token";
-	
 	UserInfo userInfo = null;
 
 	Project project;
@@ -116,10 +114,9 @@ public class EntityServiceImplUnitTest {
 
 	@Test
 	public void testFireCreate() {
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		// Call under test.
-		entityService.createEntity(ACCESS_TOKEN, project, null);
+		entityService.createEntity(userInfo, project, null);
 		verify(mockProjectCreateProvider).entityCreated(userInfo, project);
 		verify(mockProjectUpdateProvider, never()).entityUpdated(any(UserInfo.class), any(Project.class), anyBoolean());
 	}
@@ -129,7 +126,7 @@ public class EntityServiceImplUnitTest {
 		project.setId(null);
 
 		// Method under test.
-		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(ACCESS_TOKEN, project,
+		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(userInfo, project,
 				false, null));
 		assertEquals("Updated Entity cannot have a null id", ex.getMessage());
 		verifyZeroInteractions(mockEntityManager);
@@ -138,11 +135,10 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireUpdate() {
 		boolean newVersion = true;
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
-		entityService.updateEntity(ACCESS_TOKEN, project, newVersion, null);
+		entityService.updateEntity(userInfo, project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
 	}
@@ -150,11 +146,10 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void testFireUpdateNoNewVersion() {
 		boolean newVersion = false;
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
 		// Call under test.
-		entityService.updateEntity(ACCESS_TOKEN, project, newVersion, null);
+		entityService.updateEntity(userInfo, project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
 	}
@@ -169,12 +164,11 @@ public class EntityServiceImplUnitTest {
 	public void testFireUpdateTriggersNewVersion() {
 		boolean newVersionParameter = false;
 		final boolean wasNewVersionCreated = true;
-		when(mockOidcManager.getUserAuthorization(ACCESS_TOKEN)).thenReturn(userInfo);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(projectProviders);
 		when(mockEntityManager.updateEntity(userInfo, project, newVersionParameter, null))
 				.thenReturn(wasNewVersionCreated);
 		// Call under test.
-		entityService.updateEntity(ACCESS_TOKEN, project, newVersionParameter, null);
+		entityService.updateEntity(userInfo, project, newVersionParameter, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, wasNewVersionCreated);
 	}

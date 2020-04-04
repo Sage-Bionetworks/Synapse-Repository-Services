@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserPreference;
 import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -38,7 +40,7 @@ import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 	
 	@Autowired
 	private UserProfileService userProfileService;
@@ -59,12 +61,16 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-	private String accessToken;
+	@Autowired
+	OpenIDConnectManager oidcManager;
+	
+	private UserInfo userInfo;
 	
 	@BeforeEach
 	public void before() throws Exception{
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		userInfo = oidcManager.getUserAuthorization(accessToken);
 		
 		assertNotNull(userProfileService);
 		favoritesToDelete = new ArrayList<String>();
@@ -169,7 +175,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	public void testFavoriteCRUD() throws Exception {
 		// create an entity
 		Project proj = new Project();
-		proj = entityService.createEntity(accessToken, proj, null);
+		proj = entityService.createEntity(userInfo, proj, null);
 		entityIdsToDelete.add(proj.getId());
 		
 		// add favorite

@@ -285,12 +285,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
-		if(isUserCreatorOrAdmin(userInfo, creator)) {
-			if (userInfo.getScopes().contains(OAuthScope.modify)) {
+	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator, ACCESS_TYPE accessType) {
+		if (isUserCreatorOrAdmin(userInfo, creator)) {
+			if (OAuthPermissionUtils.scopeAllowsAccess(userInfo.getScopes(), accessType)) {
 				return AuthorizationStatus.authorized();
 			} else {
-				return AuthorizationStatus.accessDenied("Must have "+OAuthScope.modify+" to access a FileHandle by its ID.");
+				return OAuthPermissionUtils.accessDenied(accessType);
 			}
 		} else {
 			return AuthorizationStatus.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
@@ -311,40 +311,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
+	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId, ACCESS_TYPE accessType) throws NotFoundException {
 		// Admins can do anything
 		if(userInfo.isAdmin()) return AuthorizationStatus.authorized();
 		// Lookup the creator by
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
-		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
-	}
-
-	@Deprecated
-	@Override
-	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleIds, Set<String> allowed, Set<String> disallowed)
-			throws NotFoundException {
-		// no file handles, nothing to do
-		if (fileHandleIds.isEmpty()) {
-			return;
-		}
-
-		// Admins can do anything
-		if (userInfo.isAdmin()) {
-			allowed.addAll(fileHandleIds);
-			return;
-		}
-
-		// Lookup the creators
-		Multimap<String, String> creatorMap = fileHandleDao.getHandleCreators(fileHandleIds);
-		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
-			String creator = entry.getKey();
-			if (canAccessRawFileHandleByCreator(userInfo, "", creator).isAuthorized()) {
-				allowed.addAll(entry.getValue());
-			} else {
-				disallowed.addAll(entry.getValue());
-			}
-		}
+		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator, accessType);
 	}
 
 	@Override

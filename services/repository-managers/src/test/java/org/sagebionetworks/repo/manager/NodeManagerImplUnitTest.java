@@ -268,7 +268,7 @@ public class NodeManagerImplUnitTest {
 		String parentId = "202";
 		newNode.setParentId(parentId);
 		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		
@@ -304,7 +304,7 @@ public class NodeManagerImplUnitTest {
 		newNode.setETag(startEtag);
 		when(mockAuthManager.canCreate(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canUserMoveRestrictedEntity(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandleById(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.isNodeAvailable(parentId)).thenReturn(true);
 		

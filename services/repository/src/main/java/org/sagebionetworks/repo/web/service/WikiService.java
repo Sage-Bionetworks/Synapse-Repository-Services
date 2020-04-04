@@ -6,6 +6,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -125,12 +126,12 @@ public interface WikiService {
 
 	/**
 	 * Get the root wiki page key
-	 * @param accessToken
+	 * @param userInfo
 	 * @param ownerId
 	 * @param type
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	WikiPageKey getRootWikiKey(String accessToken, String ownerId, ObjectType type) throws NotFoundException;
+	WikiPageKey getRootWikiKey(UserInfo userInfo, String ownerId, ObjectType type) throws NotFoundException;
 
 }
