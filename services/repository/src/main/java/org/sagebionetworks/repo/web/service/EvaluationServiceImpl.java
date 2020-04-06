@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
@@ -21,7 +19,6 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -60,11 +57,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private QueryDAO queryDAO;
 	@Autowired
 	private NotificationManager notificationManager;
-	@Autowired
-	private OpenIDConnectManager oidcManager;
-
-	
-	public EvaluationServiceImpl() {}
 
 	@Override
 	@WriteTransaction
@@ -143,16 +135,14 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public Submission createSubmission(String accessToken, Submission submission, String entityEtag, 
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, 
 			String submissionEligibilityHash, String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
-		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
-		
 		// fetch EntityBundle to be serialized
 		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
 		String entityId = submission.getEntityId();
 		Long versionNumber = submission.getVersionNumber();
-		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(accessToken, entityId, versionNumber, mask);
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userInfo, entityId, versionNumber, mask);
 		Submission created = submissionManager.createSubmission(userInfo, submission, entityEtag, submissionEligibilityHash, bundle);
 		
 		List<MessageToUserAndBody> messages = submissionManager.

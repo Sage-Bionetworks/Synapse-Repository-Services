@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class OAuthPermissionUtils {
 	private static final Map<ACCESS_TYPE,OAuthScope> ACCESS_TYPE_TO_SCOPE;
@@ -34,6 +35,10 @@ public class OAuthPermissionUtils {
 	}
 	
 	public static boolean scopeAllowsAccess(Collection<OAuthScope> scopes, ACCESS_TYPE accessType) {
+		ValidateArgument.required(scopes, "scopes");
+		if (!ACCESS_TYPE_TO_SCOPE.containsKey(accessType)) {
+			throw new RuntimeException("Acess type "+accessType+" must be mapped to some OAuth scope.");
+		}
 		OAuthScope scope = ACCESS_TYPE_TO_SCOPE.get(accessType);
 		return scopes.contains(scope);
 	}

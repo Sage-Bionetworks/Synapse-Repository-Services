@@ -12,10 +12,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -37,7 +39,7 @@ import com.google.common.base.Predicate;
  * @author John
  *
  */
-public class SearchControllerTest extends AbstractAutowiredControllerTestBaseForJupiter {	
+public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestBase {	
 	private Long adminUserId;
 
 	@Autowired
@@ -54,13 +56,17 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBaseFor
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-	private String accessToken;
+	@Autowired
+	private OpenIDConnectManager oidcManager;
+	
+	private UserInfo userInfo;
 	
 	
 	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		userInfo = oidcManager.getUserAuthorization(accessToken);
 		
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(cloudSearchClientProvider.isSearchEnabled());
@@ -83,7 +89,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerTestBaseFor
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest" + UUID.randomUUID());
-		project = entityService.createEntity(accessToken, project, null);
+		project = entityService.createEntity(userInfo, project, null);
 		// Push this to the search index
 		ChangeMessage changeMessage = new ChangeMessage();
 		changeMessage.setChangeNumber(1L);

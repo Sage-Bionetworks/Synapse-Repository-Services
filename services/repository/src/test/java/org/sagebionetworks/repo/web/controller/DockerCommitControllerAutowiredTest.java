@@ -12,15 +12,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	private Long adminUserId;
 	
@@ -36,20 +38,22 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 	
-	private String accessToken;
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 	
 	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		project = new Project();
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		when(request.getServletPath()).thenReturn("/repo/v1/dockerTag");
-		project = entityService.createEntity(accessToken, project, null);
+		UserInfo userInfo = oidcManager.getUserAuthorization(accessToken);
+		project = entityService.createEntity(userInfo, project, null);
 		unmanagedRepository = new DockerRepository();
 		unmanagedRepository.setParentId(project.getId());
 		unmanagedRepository.setRepositoryName("uname/reponame");
-		unmanagedRepository = entityService.createEntity(accessToken, unmanagedRepository, null);
+		unmanagedRepository = entityService.createEntity(userInfo, unmanagedRepository, null);
 		assertFalse(unmanagedRepository.getIsManaged());
 	}
 	

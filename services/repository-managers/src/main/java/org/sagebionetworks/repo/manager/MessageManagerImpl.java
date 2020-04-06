@@ -238,7 +238,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).isAuthorized()
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId(), ACCESS_TYPE.SEND_MESSAGE).isAuthorized()
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
 		}

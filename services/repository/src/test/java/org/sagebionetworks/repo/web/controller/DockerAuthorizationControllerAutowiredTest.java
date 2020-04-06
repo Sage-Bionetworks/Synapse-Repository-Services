@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class DockerAuthorizationControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	private Long adminUserId;
 	private String service;

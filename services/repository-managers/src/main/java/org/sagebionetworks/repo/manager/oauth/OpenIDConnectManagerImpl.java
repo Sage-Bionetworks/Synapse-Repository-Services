@@ -373,9 +373,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new IllegalArgumentException("Missing 'audience' value in the OAuth Access Token.");
 		}
 
-		if (!oauthClientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
-			validateClientVerificationStatus(oauthClientId);
-		}
+		validateClientVerificationStatus(oauthClientId);
 		
 		List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(accessTokenClaims);
 		Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims = ClaimsJsonUtil.getOIDCClaimsFromClaimSet(accessTokenClaims);
@@ -443,6 +441,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	 * @throws NotFoundException               If a client with the given id does not exist
 	 */
 	protected void validateClientVerificationStatus(String clientId) throws NotFoundException, OAuthClientNotVerifiedException {
+		if (clientId.equals(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)) {
+			// Since the reserved Synapse Oauth Client is not present in the database, we simply return
+			return;
+		}
 		if (!oauthClientDao.isOauthClientVerified(clientId)) {			
 			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}

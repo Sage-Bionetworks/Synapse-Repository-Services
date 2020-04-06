@@ -34,7 +34,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class DiscussionControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;

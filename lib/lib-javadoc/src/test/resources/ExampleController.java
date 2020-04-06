@@ -368,4 +368,16 @@ public class ExampleController {
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME) String authorizationHeader) {
 		return null;
 	}
+	/**
+	 * including a UserInfo param
+	 * 
+	 * @param userInfo
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/someOther/authorized/service", method = RequestMethod.POST)
+	public @ResponseBody Long userInfoAuthorizedService(
+			UserInfo userInfo) {
+		return null;
+	}
 }

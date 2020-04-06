@@ -72,7 +72,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  */
 
-public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -220,7 +220,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		assertNotNull(project);
 		toDelete.add(project.getId());
 		// Now get the path of the layer
-		List<EntityHeader> path = entityController.getEntityPath(accessToken, project.getId());
+		List<EntityHeader> path = entityController.getEntityPath(testUser, project.getId());
 		
 		// This is the list of entities that will be created.
 		List<Entity> newChildren = new ArrayList<Entity>();

@@ -76,9 +76,10 @@ public interface AuthorizationManager {
 	 * @param userInfo
 	 * @param fileHandleId
 	 * @param creator
+	 * @param accessType the purpose for accessing the specified file handle
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
+	AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator, ACCESS_TYPE accessType);
 	
 	/**
 	 * Is the user the creator or are they an admin
@@ -92,21 +93,11 @@ public interface AuthorizationManager {
 	 * 
 	 * @param userInfo
 	 * @param fileHandleId
+	 * @param accessType the purpose for accessing the specified file handle
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
-
-	/**
-	 * 
-	 * @param userInfo
-	 * @param fileHandleId
-	 * @return whether access is granted and, if not, a String giving the reason why
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
-			throws NotFoundException;
+	AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 	/**
 	 * Given a list of FileHandleIds, can the user download each file?

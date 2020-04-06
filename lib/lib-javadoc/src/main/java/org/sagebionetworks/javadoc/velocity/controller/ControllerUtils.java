@@ -10,6 +10,7 @@ import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -119,7 +120,10 @@ public class ControllerUtils {
 		methodModel.setIsAuthenticationRequired(false);
 		Map<String, ParameterModel> paramMap = new HashMap<String, ParameterModel>();
         if(params != null){
-        	for(Parameter param: params){
+        	for(Parameter param: params) {
+        		if (param.typeName().equals(UserInfo.class.getSimpleName())) {
+					methodModel.setIsAuthenticationRequired(true);       			
+        		}
         		AnnotationDesc[] paramAnnos = param.annotations();
         		if(paramAnnos != null){
         			for(AnnotationDesc ad: paramAnnos){

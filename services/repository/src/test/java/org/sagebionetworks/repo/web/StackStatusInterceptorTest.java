@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBaseForJupiter;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerJunit5TestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class StackStatusInterceptorTest extends AbstractAutowiredControllerJunit5TestBase {
 	
 	private static final String CURRENT_STATUS_2 = " for StackStatusInterceptorTest.test";
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";

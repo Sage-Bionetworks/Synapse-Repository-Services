@@ -86,7 +86,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Entity getEntity(String accessToken, String id)
+	public Entity getEntity(UserInfo userInfo, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -113,25 +113,6 @@ public interface EntityService {
 			UnauthorizedException;
 
 	/**
-	 * Get a specific version of an entity. This one takes a username instead of
-	 * info.
-	 * 
-	 * @param <T>
-	 * @param accessToken
-	 * @param id
-	 * @param versionNumber
-	 * @param clazz
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> T getEntityForVersion(String accessToken, String id,
-													Long versionNumber,
-													Class<? extends T> clazz) throws NotFoundException,
-			DatastoreException, UnauthorizedException;
-
-	/**
 	 * Get an entity version for an unknown type.
 	 * 
 	 * @param accessToken
@@ -142,7 +123,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Entity getEntityForVersion(String accessToken, String id,
+	public Entity getEntityForVersion(UserInfo userInfo, String id,
 									  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -168,7 +149,7 @@ public interface EntityService {
 	 * Create a new entity
 	 * <p>
 	 * 
-	 * @param accessToken
+	 * @param userInfo
 	 * @param newEntity
 	 * @return the newly created entity
 	 * @throws InvalidModelException
@@ -176,7 +157,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> T createEntity(String accessToken, T newEntity,
+	public <T extends Entity> T createEntity(UserInfo userInfo, T newEntity,
 											 String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
@@ -191,7 +172,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<EntityHeader> getEntityPath(String accessToken, String entityId)
+	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -208,7 +189,7 @@ public interface EntityService {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T updateEntity(String accessToken, T updatedEntity,
+	public <T extends Entity> T updateEntity(UserInfo userInfo, T updatedEntity,
 											 boolean newVersion, String activityId)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
@@ -243,14 +224,14 @@ public interface EntityService {
 	/**
 	 * Get the annotations of an entity for the current version.
 	 * 
-	 * @param accessToken
+	 * @param userInfo
 	 * @param id
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotations(String accessToken, String id) throws NotFoundException,
+	public Annotations getEntityAnnotations(UserInfo userInfo, String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
 	/**
@@ -264,11 +245,11 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotationsForVersion(String accessToken, String id,
+	public Annotations getEntityAnnotationsForVersion(UserInfo userInfo, String id,
 													  Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
-	public Annotations updateEntityAnnotations(String accessToken, String entityId,
+	public Annotations updateEntityAnnotations(UserInfo userInfo, String entityId,
 											   Annotations updatedAnnotations)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
@@ -288,7 +269,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessControlList createEntityACL(String accessToken,
+	public AccessControlList createEntityACL(UserInfo userInfo,
 											 AccessControlList newEntity)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException,
@@ -310,7 +291,7 @@ public interface EntityService {
 	 *             inherits its permissions. The exception will include the
 	 *             benefactor's ID.
 	 */
-	public AccessControlList getEntityACL(String entityId, String accessToken) throws NotFoundException,
+	public AccessControlList getEntityACL(String entityId, UserInfo userInfo) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException;
 
 	/**
@@ -334,7 +315,7 @@ public interface EntityService {
 	/**
 	 * Update an entity ACL.
 	 * 
-	 * @param accessToken
+	 * @param userInfo
 	 * @param updated
 	 * @return
 	 * @throws NotFoundException
@@ -342,14 +323,14 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public AccessControlList updateEntityACL(String accessToken, AccessControlList updated) throws DatastoreException,
+	public AccessControlList updateEntityACL(UserInfo userInfo, AccessControlList updated) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;
 
 	/**
 	 * Update an entity ACL. If no such ACL exists, then create it.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param acl
 	 * @return
 	 * @throws DatastoreException
@@ -358,7 +339,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessControlList createOrUpdateEntityACL(String accessToken, AccessControlList acl)
+	public AccessControlList createOrUpdateEntityACL(UserInfo userInfo, AccessControlList acl)
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException;
@@ -465,7 +446,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public UserEntityPermissions getUserEntityPermissions(String accessToken,
+	public UserEntityPermissions getUserEntityPermissions(UserInfo userInfo,
 			String entityId) throws NotFoundException, DatastoreException;
 
 	/**
@@ -479,7 +460,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public boolean doesEntityHaveChildren(String accessToken, String entityId) throws DatastoreException,
+	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -589,7 +570,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getEntityFileHandlesForCurrentVersion(String accessToken, String entityId) throws DatastoreException, NotFoundException;
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the entity file handles for a given version of an entity.
@@ -600,7 +581,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getEntityFileHandlesForVersion(String accessToken, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
+	public FileHandleResults getEntityFileHandlesForVersion(UserInfo userInfo, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Lookup an Entity ID using an alias.

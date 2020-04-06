@@ -40,7 +40,7 @@ import com.google.common.collect.Lists;
 
 import junit.framework.Assert;
 
-public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBaseForJupiter {
+public class TableControllerAutowireTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;

@@ -163,6 +163,16 @@ public class ControllerUtilsTest {
 	}
 	
 	@Test
+	public void testAuthenticationRequiredViaUserInfo(){
+		MethodDoc method = methodMap.get("userInfoAuthorizedService");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertTrue(model.getIsAuthenticationRequired());
+	}
+	
+	@Test
 	public void testInterface(){
 		MethodDoc method = methodMap.get("getInterface");
 		assertNotNull(method);

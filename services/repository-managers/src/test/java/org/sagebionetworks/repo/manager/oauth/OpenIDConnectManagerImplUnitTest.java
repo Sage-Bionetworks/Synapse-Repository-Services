@@ -1002,8 +1002,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);		
 		claims.setSubject(USER_ID);	
-		Set<Long> adminUsersGroups = ImmutableSet.of(USER_ID_LONG);
-		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(adminUsersGroups);
+		Set<Long> userGroups = ImmutableSet.of(USER_ID_LONG);
+		when(mockUserManager.getUserGroups(USER_ID_LONG)).thenReturn(userGroups);
 		
 		// method under test
 		UserInfo actual = openIDConnectManagerImpl.getUserAuthorization(token);

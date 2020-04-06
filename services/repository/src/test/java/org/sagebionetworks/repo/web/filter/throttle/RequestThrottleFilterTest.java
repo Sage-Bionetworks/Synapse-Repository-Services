@@ -15,7 +15,9 @@ import javax.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -24,7 +26,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class RequestThrottleFilterTest {
@@ -50,12 +51,13 @@ public class RequestThrottleFilterTest {
 	private static final String ACCESS_TOKEN = "access-token";
 
 	//class being tested
+	@InjectMocks
 	private RequestThrottleFilter filter;
 
 	@BeforeEach
-	public void setUp() throws Exception{
-		filter = new RequestThrottleFilter(mockRequestThrottler);
-
+	public void setUp() throws Exception {
+	    MockitoAnnotations.initMocks(this);
+		
 		mockRequest = new MockHttpServletRequest();
 		mockResponse = new MockHttpServletResponse();
 
@@ -65,9 +67,6 @@ public class RequestThrottleFilterTest {
 		mockRequest.setRequestURI(path);
 		mockRequest.setCookies(new Cookie(SESSION_ID_COOKIE_NAME, sessionId));
 		mockRequest.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+ACCESS_TOKEN);
-
-		ReflectionTestUtils.setField(filter, "consumer", mockConsumer);
-		ReflectionTestUtils.setField(filter, "oidcManager", mockOidcManager);
 		
 		when(mockOidcManager.getUserId(ACCESS_TOKEN)).thenReturn(userId);
 	}

@@ -21,8 +21,6 @@ class OAuthPermissionUtilsTest {
 		
 		assertFalse(OAuthPermissionUtils.scopeAllowsAccess(ImmutableList.of(OAuthScope.openid), ACCESS_TYPE.READ));
 		assertFalse(OAuthPermissionUtils.scopeAllowsAccess(Collections.EMPTY_LIST, ACCESS_TYPE.READ));
-		
-		assertFalse(OAuthPermissionUtils.scopeAllowsAccess(ImmutableList.of(OAuthScope.view), ACCESS_TYPE.PARTICIPATE));
 	}
 	
 	@Test
@@ -32,6 +30,17 @@ class OAuthPermissionUtilsTest {
 		OAuthPermissionUtils.checkScopeAllowsAccess(ImmutableList.of(OAuthScope.view), ACCESS_TYPE.READ);
 		
 		assertThrows(UnauthorizedException.class, ()->{OAuthPermissionUtils.checkScopeAllowsAccess(ImmutableList.of(OAuthScope.openid), ACCESS_TYPE.READ);});
+	}
+	
+	@Test
+	void testAllAccessTypes() {
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			if (accessType==ACCESS_TYPE.PARTICIPATE) {
+				continue;
+			}
+			// if there is no mapping, an exception will be thrown
+			OAuthPermissionUtils.scopeAllowsAccess(Collections.EMPTY_LIST, accessType);
+		}
 	}
 	
 

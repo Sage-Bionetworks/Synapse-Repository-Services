@@ -82,9 +82,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
@@ -299,20 +297,12 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCanAccessActivityMissingRequired() throws Exception {		 
-		Activity act = new Activity();
+	public void testCanAccessActivityMissingRequiredScope() throws Exception {		 
 		String actId = "1";
-		int limit = 1000;
-		int offset = 0;
-		// create as admin, try to access as user so fails access and tests pagination
-		act.setId(actId);
-		act.setCreatedBy(adminUser.getId().toString());
-		when(mockActivityDAO.get(actId)).thenReturn(act);
-		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
-		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));		
 
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId).isAuthorized();
-		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
+
 		assertFalse(canAccess);
 	}
 
@@ -320,11 +310,11 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessRawFileHandleByCreator(){
 		// The admin can access anything
 		String creator = userInfo.getId().toString();
-		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(adminUser, "101", creator).isAuthorized(), "Admin should have access to all FileHandles");
-		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).isAuthorized(), "Creator should have access to their own FileHandles");
+		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(adminUser, "101", creator, ACCESS_TYPE.READ).isAuthorized(), "Admin should have access to all FileHandles");
+		assertTrue(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator, ACCESS_TYPE.READ).isAuthorized(), "Creator should have access to their own FileHandles");
 		// Set the creator to be the admin this time.
 		creator = adminUser.getId().toString();
-		assertFalse(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
+		assertFalse(authorizationManager.canAccessRawFileHandleByCreator(userInfo, "101", creator, ACCESS_TYPE.READ).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
 	}
 
 	@Test
@@ -333,49 +323,12 @@ public class AuthorizationManagerImplUnitTest {
 		String creator = userInfo.getId().toString();
 		String fileHandlId = "3333";
 		when(mockFileHandleDao.getHandleCreator(fileHandlId)).thenReturn(creator);
-		assertTrue(authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId).isAuthorized(), "Admin should have access to all FileHandles");
-		assertTrue(authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId).isAuthorized(), "Creator should have access to their own FileHandles");
-		// change the users id
-		UserInfo notTheCreatoro = new UserInfo(false, "999999");
-		assertFalse(authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
-		verify(mockFileHandleDao, times(2)).getHandleCreator(fileHandlId);
-	}
-
-	@Test
-	public void testCanAccessRawFileHandlesByIds() throws NotFoundException {
-		// The admin can access anything
-		Multimap<String, String> creators = ArrayListMultimap.create();
-		creators.put(userInfo.getId().toString(), "3333");
-		creators.put(userInfo.getId().toString(), "4444");
-		List<String> fileHandlIds = Lists.newArrayList("3333", "4444");
-		when(mockFileHandleDao.getHandleCreators(fileHandlIds)).thenReturn(creators);
-		Set<String> allowed = Sets.newHashSet();
-		Set<String> disallowed = Sets.newHashSet();
-		authorizationManager.canAccessRawFileHandlesByIds(adminUser, fileHandlIds, allowed, disallowed);
-		assertEquals(2, allowed.size(), "Admin should have access to all FileHandles");
-		assertEquals(0, disallowed.size(), "Admin should have access to all FileHandles");
-
-		allowed.clear();
-		disallowed.clear();
-		authorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandlIds, allowed, disallowed);
-		assertEquals(2, allowed.size(), "Creator should have access to their own FileHandles");
-		assertEquals(0, disallowed.size(), "Creator should have access to their own FileHandles");
-
+		assertTrue(authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId, ACCESS_TYPE.READ).isAuthorized(), "Admin should have access to all FileHandles");
+		assertTrue(authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId, ACCESS_TYPE.READ).isAuthorized(), "Creator should have access to their own FileHandles");
 		// change the users id
 		UserInfo notTheCreator = new UserInfo(false, "999999");
-		allowed.clear();
-		disallowed.clear();
-		authorizationManager.canAccessRawFileHandlesByIds(notTheCreator, fileHandlIds, allowed, disallowed);
-		assertEquals(0, allowed.size(), "Only the creator (or admin) should have access a FileHandle");
-		assertEquals(2, disallowed.size(), "Only the creator (or admin) should have access a FileHandle");
-
-		verify(mockFileHandleDao, times(2)).getHandleCreators(fileHandlIds);
-	}
-
-	@Test
-	public void testCanAccessRawFileHandlesByIdsEmptyList() throws NotFoundException {
-		authorizationManager.canAccessRawFileHandlesByIds(adminUser, Lists.<String> newArrayList(), null, null);
-		verifyZeroInteractions(mockFileHandleDao);
+		assertFalse(authorizationManager.canAccessRawFileHandleById(notTheCreator, fileHandlId, ACCESS_TYPE.READ).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
+		verify(mockFileHandleDao, times(2)).getHandleCreator(fileHandlId);
 	}
 
 	@Test
