@@ -150,7 +150,7 @@ public class FileUploadServiceImplAutowireTest {
 	public void afterEach() {
 		// Delete entities.
 		for (Entity entity : Lists.reverse(entitiesToDelete)) {
-			entityService.deleteEntity(userId, entity.getId());
+			entityService.deleteEntity(userInfo, entity.getId());
 		}
 
 		// Delete file handles.

@@ -99,7 +99,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		if (entityService != null && entityIdsToDelete != null) {
 			for (String idToDelete : entityIdsToDelete) {
 				try {
-					entityService.deleteEntity(adminUserId, idToDelete);
+					entityService.deleteEntity(userInfo, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

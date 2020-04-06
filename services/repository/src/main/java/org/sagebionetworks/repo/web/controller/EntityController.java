@@ -401,7 +401,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the Entity to delete.
-	 * @param userId  - The user that is deleting the entity.
 	 * @param skipTrashCan If true the entity will be flag for priority purge and deleted as soon as possible
 	 * @param request
 	 * @throws NotFoundException     - Thrown when the entity to delete does not
@@ -412,7 +411,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.DELETE)
 	public void deleteEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestParam(value = ServiceConstants.SKIP_TRASH_CAN_PARAM, required = false) Boolean skipTrashCan,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		boolean priorityPurge = false;
@@ -421,7 +420,7 @@ public class EntityController {
 			priorityPurge = skipTrashCan;
 		}
 		
-		serviceProvider.getTrashService().moveToTrash(userId, id, priorityPurge);
+		serviceProvider.getTrashService().moveToTrash(userInfo, id, priorityPurge);
 	}
 
 	/**
@@ -433,7 +432,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      - The id of the entity to update.
-	 * @param userId  - The user that is doing the update.
 	 * @param request - Used to read the contents.
 	 * @return The annotations for the given entity.
 	 * @throws NotFoundException     - Thrown if the given entity does not exist.
@@ -459,7 +457,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id                 - The id of the entity to update.
-	 * @param userId             - The user that is doing the update.
 	 * @param etag               - A valid etag must be provided for every update
 	 *                           call.
 	 * @param updatedAnnotations - The updated annotations
@@ -498,7 +495,6 @@ public class EntityController {
 	 * </p>
 	 *
 	 * @param id      - The id of the entity to update.
-	 * @param userId  - The user that is doing the update.
 	 * @param request - Used to read the contents.
 	 * @return The annotations for the given entity.
 	 * @throws NotFoundException     - Thrown if the given entity does not exist.
@@ -567,7 +563,6 @@ public class EntityController {
 	/**
 	 * This is a duplicate method to update.
 	 * 
-	 * @param userId
 	 * @param generatedBy
 	 * @param header
 	 * @param request
@@ -626,7 +621,6 @@ public class EntityController {
 	 * Delete a specific version of a FileEntity.
 	 * 
 	 * @param id            The ID of the Entity
-	 * @param userId
 	 * @param versionNumber The version number of the Entity to delete.
 	 * @param request
 	 * @throws NotFoundException
@@ -637,11 +631,10 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER }, method = RequestMethod.DELETE)
 	public void deleteEntityVersion(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable Long versionNumber,
-			HttpServletRequest request)
+			UserInfo userInfo, @PathVariable Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
-		serviceProvider.getEntityService().deleteEntityVersion(userId, id, versionNumber);
+		serviceProvider.getEntityService().deleteEntityVersion(userInfo, id, versionNumber);
 	}
 
 	/**
@@ -654,7 +647,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id            The ID of the Entity.
-	 * @param userId
 	 * @param versionNumber The version number of the Entity to get.
 	 * @param request
 	 * @return
@@ -677,7 +669,6 @@ public class EntityController {
 	 * Get the EntityHeader of an Entity given its ID. The EntityHeader is a light
 	 * weight object with basic information about an Entity includes its type.
 	 * 
-	 * @param userId
 	 * @param id      The ID of the Entity to get the EntityHeader for.
 	 * @param request
 	 * @return
@@ -688,17 +679,16 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody EntityHeader getEntityType(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
-		return serviceProvider.getEntityService().getEntityHeader(userId, id);
+		return serviceProvider.getEntityService().getEntityHeader(userInfo, id);
 	}
 
 	/**
 	 * Get a batch of EntityHeader given multile Entity IDs. The EntityHeader is a
 	 * light weight object with basic information about an Entity includes its type.
 	 * 
-	 * @param userId
 	 * @param batch        A comma separated list of Entity IDs to get EntityHeaders
 	 *                     for.
 	 * @param loginRequest
@@ -710,7 +700,7 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityTypeBatch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -722,14 +712,13 @@ public class EntityController {
 			ref.setTargetId(id);
 			request.add(ref);
 		}
-		return serviceProvider.getEntityService().getEntityHeader(userId, request);
+		return serviceProvider.getEntityService().getEntityHeader(userInfo, request);
 	}
 
 	/**
 	 * Get the EntityHeader for a list of references with a POST. If any item in the
 	 * batch fails (e.g., with a 404) it will be EXCLUDED in the result set.
-	 * 
-	 * @param userId       -The user that is doing the get.
+	 * .
 	 * @param batch        - The comma-separated list of IDs of the entity to fetch.
 	 * @param loginRequest
 	 * @return The requested Entity if it exists.
@@ -739,9 +728,9 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityVersionedTypeBatch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody ReferenceList referenceList) throws DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().getEntityHeader(userId, referenceList.getReferences());
+		return serviceProvider.getEntityService().getEntityHeader(userInfo, referenceList.getReferences());
 	}
 
 	/**
@@ -757,7 +746,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the Entity to get permissions for.
-	 * @param userId
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -796,10 +784,10 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
 	public @ResponseBody BooleanResult hasAccess(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		return new BooleanResult(serviceProvider.getEntityService().hasAccess(id, userId, accessType));
+		return new BooleanResult(serviceProvider.getEntityService().hasAccess(id, userInfo, accessType));
 	}
 
 	/**
@@ -808,7 +796,6 @@ public class EntityController {
 	 * requested Entity.
 	 * 
 	 * @param id      The ID of the Entity to get the full path for.
-	 * @param userId
 	 * @param request
 	 * @return
 	 * @throws NotFoundException
@@ -957,7 +944,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id     The ID of the Entity that should have its ACL deleted.
-	 * @param userId - The user that is deleting the entity.
 	 * @throws NotFoundException          - Thrown when the entity to delete does
 	 *                                    not exist.
 	 * @throws DatastoreException         - Thrown when there is a server side
@@ -968,10 +954,10 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.DELETE)
 	public void deleteEntityACL(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
-		serviceProvider.getEntityService().deleteEntityACL(userId, id);
+		serviceProvider.getEntityService().deleteEntityACL(userInfo, id);
 	}
 
 	/**
@@ -986,7 +972,6 @@ public class EntityController {
 	 * </p>
 	 * 
 	 * @param id      The ID of the entity to get the benefactor for.
-	 * @param userId  - The user that is making the request.
 	 * @param request
 	 * @return The entity ACL.
 	 * @throws DatastoreException      - Thrown when there is a server-side problem.
@@ -997,12 +982,12 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ID_BENEFACTOR }, method = RequestMethod.GET)
 	public @ResponseBody EntityHeader getEntityBenefactor(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo)
 			throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		if (id == null)
 			throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
-		return serviceProvider.getEntityService().getEntityBenefactor(id, userId);
+		return serviceProvider.getEntityService().getEntityBenefactor(id, userInfo);
 	}
 
 	/**
@@ -1022,12 +1007,12 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<VersionInfo> getAllVersionsOfEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
-		PaginatedResults<VersionInfo> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userId,
+		PaginatedResults<VersionInfo> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userInfo,
 				offset, limit, id);
 		// Return the result
 		return results;
@@ -1133,7 +1118,6 @@ public class EntityController {
 	 * Get an existing activity for the current version of an Entity.
 	 * 
 	 * @param id      The ID of the activity to fetch.
-	 * @param userId  -The user that is doing the get.
 	 * @param request
 	 * @return The requested Activity if it exists.
 	 * @throws NotFoundException     - Thrown if the requested activity does not
@@ -1145,9 +1129,9 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.GET)
 	public @ResponseBody Activity getActivityForEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().getActivityForEntity(userId, id);
+		return serviceProvider.getEntityService().getActivityForEntity(userInfo, id);
 	}
 
 	/**
@@ -1155,7 +1139,6 @@ public class EntityController {
 	 * 
 	 * @param id            The ID of the entity to fetch.
 	 * @param versionNumber the version of the entity
-	 * @param userId        -The user that is doing the get.
 	 * @param request
 	 * @return The requested Activity if it exists.
 	 * @throws NotFoundException     - Thrown if the requested activity does not
@@ -1167,9 +1150,9 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_GENERATED_BY }, method = RequestMethod.GET)
 	public @ResponseBody Activity getActivityForEntityVersion(@PathVariable String id, @PathVariable Long versionNumber,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().getActivityForEntity(userId, id, versionNumber);
+		return serviceProvider.getEntityService().getActivityForEntity(userInfo, id, versionNumber);
 	}
 
 	/**
@@ -1180,7 +1163,6 @@ public class EntityController {
 	 *                    be the creator of the <a href=
 	 *                    "${org.sagebionetworks.repo.model.provenance.Activity}"
 	 *                    >Activity</a> used here.
-	 * @param userId      The user that is doing the get.
 	 * @param request
 	 * @return The requested Activity if it exists.
 	 * @throws NotFoundException     - Thrown if the requested activity does not
@@ -1192,17 +1174,16 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.PUT)
 	public @ResponseBody Activity updateActivityForEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String generatedBy, HttpServletRequest request)
+			UserInfo userInfo,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String generatedBy)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().setActivityForEntity(userId, id, generatedBy);
+		return serviceProvider.getEntityService().setActivityForEntity(userInfo, id, generatedBy);
 	}
 
 	/**
 	 * Deletes the generatedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id      - The ID of the activity to fetch.
-	 * @param userId  -The user that is doing the get.
 	 * @param request
 	 * @return The requested Activity if it exists.
 	 * @throws NotFoundException     - Thrown if the requested activity does not
@@ -1214,9 +1195,9 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.DELETE)
 	public void deleteActivityForEntity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		serviceProvider.getEntityService().deleteActivityForEntity(userId, id);
+		serviceProvider.getEntityService().deleteActivityForEntity(userInfo, id);
 	}
 
 	// Files
@@ -1228,7 +1209,6 @@ public class EntityController {
 	 * file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param id       The ID of the FileEntity to get.
 	 * @param redirect When set to false, the URL will be returned as text/plain
 	 *                 instead of redirecting.
@@ -1240,11 +1220,11 @@ public class EntityController {
 	@Deprecated
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE, method = RequestMethod.GET)
 	public @ResponseBody void fileRedirectURLForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			@RequestParam(required = false) Boolean redirect, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForCurrentVersion(userId, id);
+		String redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForCurrentVersion(userInfo, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -1256,7 +1236,6 @@ public class EntityController {
 	 * file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param id            The ID of the FileEntity to get.
 	 * @param versionNumber The version number of the FileEntity to get.
 	 * @param redirect      When set to false, the URL will be returned as
@@ -1269,11 +1248,11 @@ public class EntityController {
 	@Deprecated
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody void fileRedirectURLForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			@PathVariable Long versionNumber, @RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException, NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForVersion(userId, id, versionNumber);
+		String redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForVersion(userInfo, id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -1285,7 +1264,6 @@ public class EntityController {
 	 * file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param id       The ID of the FileEntity to get.
 	 * @param redirect When set to false, the URL will be returned as text/plain
 	 *                 instead of redirecting.
@@ -1296,11 +1274,11 @@ public class EntityController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody void filePreviewRedirectURLForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			@RequestParam(required = false) Boolean redirect, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForCurrentVersion(userId, id);
+		String redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForCurrentVersion(userInfo, id);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -1312,7 +1290,6 @@ public class EntityController {
 	 * file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param id            The ID of the FileEntity to get.
 	 * @param versionNumber The version number of the FileEntity to get.
 	 * @param redirect      When set to false, the URL will be returned as
@@ -1324,11 +1301,11 @@ public class EntityController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody void filePreviewRedirectURLForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			@PathVariable Long versionNumber, @RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException, NotFoundException, IOException {
 		// Get the redirect url
-		String redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForVersion(userId, id,
+		String redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForVersion(userInfo, id,
 				versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -1383,15 +1360,14 @@ public class EntityController {
 	 * string.
 	 * 
 	 * @param md5
-	 * @param userId The user making the request
 	 * @throws NotFoundException If no such entity can be found
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_MD5 }, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<EntityHeader> getEntityHeaderByMd5(@PathVariable String md5,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, HttpServletRequest request)
+			UserInfo userInfo)
 			throws NotFoundException, DatastoreException {
-		List<EntityHeader> entityHeaders = serviceProvider.getEntityService().getEntityHeaderByMd5(userId, md5);
+		List<EntityHeader> entityHeaders = serviceProvider.getEntityService().getEntityHeaderByMd5(userInfo, md5);
 		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>();
 		results.setResults(entityHeaders);
 		results.setTotalNumberOfResults(entityHeaders.size());
@@ -1414,7 +1390,6 @@ public class EntityController {
 	 * Get a page of children for a given parent ID. This service can also be used
 	 * to list projects by setting the parentId to NULL in EntityChildrenRequest.
 	 * 
-	 * @param userId
 	 * @param parentId
 	 * @param request
 	 * @return
@@ -1422,9 +1397,9 @@ public class EntityController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CHILDREN }, method = RequestMethod.POST)
 	public @ResponseBody EntityChildrenResponse getChildren(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody(required = true) EntityChildrenRequest request) {
-		return serviceProvider.getEntityService().getChildren(userId, request);
+		return serviceProvider.getEntityService().getChildren(userInfo, request);
 	}
 
 	/**
@@ -1432,15 +1407,14 @@ public class EntityController {
 	 * also be used to lookup projectId by setting the parentId to NULL in
 	 * EntityLookupRequest.
 	 * 
-	 * @param userId
 	 * @param request
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_CHILD }, method = RequestMethod.POST)
-	public @ResponseBody EntityId lookupChild(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+	public @ResponseBody EntityId lookupChild(UserInfo userInfo,
 			@RequestBody(required = true) EntityLookupRequest request) {
-		return serviceProvider.getEntityService().lookupChild(userId, request);
+		return serviceProvider.getEntityService().lookupChild(userInfo, request);
 	}
 
 	/**
@@ -1456,25 +1430,24 @@ public class EntityController {
 	 * value.
 	 * </p>
 	 * 
-	 * @param userId
 	 * @param id
 	 * @param dataType
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_DATA_TYPE }, method = RequestMethod.PUT)
 	public @ResponseBody DataTypeResponse changeEntityDataType(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			UserInfo userInfo, @PathVariable String id,
 			@RequestParam(value = "type") DataType dataType) {
-		return serviceProvider.getEntityService().changeEntityDataType(userId, id, dataType);
+		return serviceProvider.getEntityService().changeEntityDataType(userInfo, id, dataType);
 	}
 
 	/** Gets the temporary S3 credentials from STS for the given entity. */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_STS }, method = RequestMethod.GET)
 	public @ResponseBody StsCredentials getTemporaryCredentialsForEntity(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@PathVariable String id,
 			@RequestParam(value="permission") StsPermission permission) {
-		return serviceProvider.getEntityService().getTemporaryCredentialsForEntity(userId, id, permission);
+		return serviceProvider.getEntityService().getTemporaryCredentialsForEntity(userInfo, id, permission);
 	}
 }

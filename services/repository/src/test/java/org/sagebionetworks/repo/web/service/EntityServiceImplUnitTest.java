@@ -92,12 +92,11 @@ public class EntityServiceImplUnitTest {
 	public void testGetFileRedirectURLForCurrentVersion() {
 		String entityId = "999";
 		String fileHandleId = "111";
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, null))
 				.thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
-		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));
+		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(userInfo, entityId));
 	}
 
 	@Test
@@ -105,11 +104,10 @@ public class EntityServiceImplUnitTest {
 		String entityId = "999";
 		String fileHandleId = "111";
 		Long version = 1L;
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getFileHandleIdForVersion(userInfo, entityId, version)).thenReturn(fileHandleId);
 		String url = "http://foo.bar";
 		when(mockFileHandleManager.getRedirectURLForFileHandle(any(FileHandleUrlRequest.class))).thenReturn(url);
-		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
+		assertEquals(url, entityService.getFileRedirectURLForVersion(userInfo, entityId, version));
 	}
 
 	@Test
@@ -176,14 +174,12 @@ public class EntityServiceImplUnitTest {
 	@Test
 	public void getTemporaryCredentialsForEntity() {
 		// Mock dependencies.
-		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
-
 		StsCredentials managerResult = new StsCredentials();
 		when(mockStsManager.getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only)).thenReturn(
 				managerResult);
 
 		// Method under test.
-		StsCredentials serviceResult = entityService.getTemporaryCredentialsForEntity(PRINCIPAL_ID, ENTITY_ID,
+		StsCredentials serviceResult = entityService.getTemporaryCredentialsForEntity(userInfo, ENTITY_ID,
 				StsPermission.read_only);
 		assertSame(managerResult, serviceResult);
 		verify(mockStsManager).getTemporaryCredentials(userInfo, ENTITY_ID, StsPermission.read_only);

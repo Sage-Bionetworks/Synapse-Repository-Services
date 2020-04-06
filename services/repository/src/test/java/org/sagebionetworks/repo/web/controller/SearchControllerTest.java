@@ -115,7 +115,7 @@ public class SearchControllerTest extends AbstractAutowiredControllerJunit5TestB
 	@AfterEach
 	public void after()  throws Exception{
 		if(project != null){
-			entityService.deleteEntity(adminUserId, project.getId());
+			entityService.deleteEntity(userInfo, project.getId());
 			searchManager.deleteAllDocuments();
 		}
 	}

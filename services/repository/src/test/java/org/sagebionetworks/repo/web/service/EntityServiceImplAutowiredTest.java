@@ -154,7 +154,7 @@ public class EntityServiceImplAutowiredTest  {
 		if(toDelete != null){
 			for(String id: toDelete){
 				try {
-					entityService.deleteEntity(adminUserId, id);
+					entityService.deleteEntity(adminUserInfo, id);
 				} catch (Exception e) {	}
 			}
 		}
@@ -306,7 +306,7 @@ public class EntityServiceImplAutowiredTest  {
 		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
 		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
 		
-		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
 		assertEquals(TableConstants.IN_PROGRESS, table.getVersionLabel());
 		assertEquals(TableConstants.IN_PROGRESS, table.getVersionComment());
@@ -330,7 +330,7 @@ public class EntityServiceImplAutowiredTest  {
 		assertEquals(label, table.getVersionLabel());
 		assertEquals(comment, table.getVersionComment());
 		
-		table = entityService.getEntity(adminUserId, table.getId(), TableEntity.class);
+		table = entityService.getEntity(adminUserInfo, table.getId(), TableEntity.class);
 		assertEquals(columnIds, table.getColumnIds());
 		assertEquals(label, table.getVersionLabel());
 		assertEquals(comment, table.getVersionComment());

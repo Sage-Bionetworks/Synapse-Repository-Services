@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerJunit5TestBase {
 
 	private Long adminUserId;
+	private UserInfo adminUserInfo;
 	
 	private Project project = null;
 	private DockerRepository unmanagedRepository = null;
@@ -45,6 +46,7 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		adminUserInfo = oidcManager.getUserAuthorization(accessToken);
 		project = new Project();
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		when(request.getServletPath()).thenReturn("/repo/v1/dockerTag");
@@ -60,7 +62,7 @@ public class DockerCommitControllerAutowiredTest extends AbstractAutowiredContro
 	@AfterEach
 	public void after() throws Exception {
 		if (project!=null && project.getId()!=null) {
-			entityService.deleteEntity(adminUserId, project.getId(), Project.class);
+			entityService.deleteEntity(adminUserInfo, project.getId(), Project.class);
 		}
 	}
 

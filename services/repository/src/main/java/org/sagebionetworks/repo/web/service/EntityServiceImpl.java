@@ -6,7 +6,6 @@ import java.util.List;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.sts.StsManager;
@@ -80,8 +79,6 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	private StsManager stsManager;
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
 	@Autowired
 	private AllTypesValidator allTypesValidator;
@@ -90,7 +87,7 @@ public class EntityServiceImpl implements EntityService {
 	
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
-			Long userId, Integer offset, Integer limit, String entityId)
+			UserInfo userInfo, Integer offset, Integer limit, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
 			offset = DEFAULT_OFFSET;
@@ -99,16 +96,14 @@ public class EntityServiceImpl implements EntityService {
 			limit = DEFAULT_LIMIT;
 		}
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
 		return PaginatedResults.createWithLimitAndOffset(versions, (long)limit, (long)offset);
 	}
 
 	@Override
-	public <T extends Entity> T getEntity(Long userId, String id, Class<? extends T> clazz)
+	public <T extends Entity> T getEntity(UserInfo userInfo, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		return getEntity(userInfo, entityId, clazz, EventType.GET);
 	}
 	
@@ -182,9 +177,8 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5)
+	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> entityHeaders = entityManager.getEntityHeaderByMd5(userInfo, md5);
 		return entityHeaders;
 	}
@@ -312,23 +306,20 @@ public class EntityServiceImpl implements EntityService {
 	
 	@WriteTransaction
 	@Override
-	public void deleteEntity(Long userId, String id)
+	public void deleteEntity(UserInfo userInfo, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type = entityManager.getEntityType(userInfo, id);
-		deleteEntity(userId, entityId, EntityTypeUtils.getClassForType(type));
+		deleteEntity(userInfo, entityId, EntityTypeUtils.getClassForType(type));
 	}
 
 	@WriteTransaction
 	@Override
-	public <T extends Entity> void deleteEntity(Long userId, String id, Class<? extends T> clazz)
+	public <T extends Entity> void deleteEntity(UserInfo userInfo, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
-
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
@@ -347,21 +338,19 @@ public class EntityServiceImpl implements EntityService {
 	
 	@WriteTransaction
 	@Override
-	public void deleteEntityVersion(Long userId, String id, Long versionNumber)
+	public void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type = entityManager.getEntityType(userInfo, id);
-		deleteEntityVersion(userId, entityId, versionNumber, EntityTypeUtils.getClassForType(type));
+		deleteEntityVersion(userInfo, entityId, versionNumber, EntityTypeUtils.getClassForType(type));
 	}
 	
 	@WriteTransaction
 	@Override
-	public <T extends Entity> void deleteEntityVersion(Long userId, String id,
+	public <T extends Entity> void deleteEntityVersion(UserInfo userInfo, String id,
 			Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the entity we are deleting
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
@@ -437,16 +426,15 @@ public class EntityServiceImpl implements EntityService {
 	
 	@WriteTransaction
 	@Override
-	public void deleteEntityACL(Long userId, String id)
+	public void deleteEntityACL(UserInfo userInfo, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityPermissionsManager.restoreInheritance(id, userInfo);
 	}
 
 	@Override
-	public boolean hasAccess(String entityId, Long userId, String accessType)
+	public boolean hasAccess(String entityId, UserInfo userInfo, String accessType)
 		throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+
 		return entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo).isAuthorized();
 	}
 
@@ -456,29 +444,26 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(Long userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		return entityManager.getEntityHeader(userInfo, entityId);
 	}
 	
 	@Override
-	public PaginatedResults<EntityHeader> getEntityHeader(Long userId,
+	public PaginatedResults<EntityHeader> getEntityHeader(UserInfo userInfo,
 			List<Reference> references) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> headers = entityManager.getEntityHeader(userInfo, references);
 		return PaginatedResults.createMisusedPaginatedResults(headers);
 	}
 
 	@Override
-	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, Long userId) throws NotFoundException,
+	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, UserInfo userInfo) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("UserId cannot be null");
 		// First get the permissions benefactor
 		String benefactor = entityPermissionsManager.getPermissionBenefactor(entityId, userInfo);
-		return getEntityHeader(userId, benefactor);
+		return getEntityHeader(userInfo, benefactor);
 	}
 
 	@Override
@@ -495,51 +480,46 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public Activity getActivityForEntity(Long userId, String entityId) throws DatastoreException,
+	public Activity getActivityForEntity(UserInfo userInfo, String entityId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("userInfo cannot be null");
 		return entityManager.getActivityForEntity(userInfo, entityId, null);
 	}
 	
 	@Override
-	public Activity getActivityForEntity(Long userId, String entityId, Long versionNumber) throws DatastoreException,
+	public Activity getActivityForEntity(UserInfo userInfo, String entityId, Long versionNumber) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("userInfo cannot be null");
 		return entityManager.getActivityForEntity(userInfo, entityId, versionNumber);
 	}
 
 	@WriteTransaction
 	@Override
-	public Activity setActivityForEntity(Long userId, String entityId,
+	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
 										 String activityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(activityId == null) throw new IllegalArgumentException("Activity Id can not be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.setActivityForEntity(userInfo, entityId, activityId);
 	}
 
 
 	@WriteTransaction
 	@Override
-	public void deleteActivityForEntity(Long userId, String entityId) throws DatastoreException,
+	public void deleteActivityForEntity(UserInfo userInfo, String entityId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		entityManager.deleteActivityForEntity(userInfo, entityId);
 	}
 
 	@Override
-	public String getFileRedirectURLForCurrentVersion(Long userId, String id) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null);
 		
@@ -551,10 +531,9 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public String getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
+	public String getFilePreviewRedirectURLForCurrentVersion(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, entityId, null);
 		// Look up the preview for this file.
@@ -568,11 +547,10 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public String getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForVersion(UserInfo userInfo, String id, Long versionNumber) throws DatastoreException, NotFoundException {
 		ValidateArgument.required(id, "Entity Id");
-		ValidateArgument.required(userId, "UserId");
+		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(versionNumber, "versionNumber");
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 		// Use the FileHandle ID to get the URL
@@ -584,11 +562,10 @@ public class EntityServiceImpl implements EntityService {
 
 
 	@Override
-	public String getFilePreviewRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
+	public String getFilePreviewRedirectURLForVersion(UserInfo userInfo, String id, Long versionNumber) throws DatastoreException, NotFoundException {
 		ValidateArgument.required(id, "Entity Id");
-		ValidateArgument.required(userId, "UserId");
+		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(versionNumber, "versionNumber");
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
 		// Look up the preview for this file.
@@ -632,31 +609,27 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public EntityChildrenResponse getChildren(Long userId,
+	public EntityChildrenResponse getChildren(UserInfo userInfo,
 			EntityChildrenRequest request) {
-		ValidateArgument.required(userId, "userId");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+		ValidateArgument.required(userInfo, "UserInfo");
 		return entityManager.getChildren(userInfo, request);
 	}
 
 	@Override
-	public EntityId lookupChild(Long userId, EntityLookupRequest request) {
-		ValidateArgument.required(userId, "userId");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request) {
+		ValidateArgument.required(userInfo, "UserInfo");
 		return entityManager.lookupChild(userInfo, request);
 	}
 
 	@Override
-	public DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType) {
-		ValidateArgument.required(userId, "userId");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType) {
+		ValidateArgument.required(userInfo, "UserInfo");
 		return entityManager.changeEntityDataType(userInfo, id, dataType);
 	}
 
 	@Override
-	public StsCredentials getTemporaryCredentialsForEntity(Long userId, String entityId, StsPermission permission) {
-		ValidateArgument.required(userId, "userId");
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public StsCredentials getTemporaryCredentialsForEntity(UserInfo userInfo, String entityId, StsPermission permission) {
+		ValidateArgument.required(userInfo, "userInfo");
 		return stsManager.getTemporaryCredentials(userInfo, entityId, permission);
 	}
 }

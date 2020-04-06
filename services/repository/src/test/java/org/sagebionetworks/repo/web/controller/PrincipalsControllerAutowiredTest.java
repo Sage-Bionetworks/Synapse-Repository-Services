@@ -64,7 +64,7 @@ public class PrincipalsControllerAutowiredTest extends AbstractAutowiredControll
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(adminUserId, idToDelete);
+					entityController.deleteEntity(testUser, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

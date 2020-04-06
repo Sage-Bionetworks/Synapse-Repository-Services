@@ -194,8 +194,8 @@ public class ServletTestHelper {
 			for (String idToDelete : toDelete) {
 				try {
 					entityController
-							.deleteEntity(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
-									.getPrincipalId(), idToDelete);
+							.deleteEntity(userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
+									.getPrincipalId()), idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

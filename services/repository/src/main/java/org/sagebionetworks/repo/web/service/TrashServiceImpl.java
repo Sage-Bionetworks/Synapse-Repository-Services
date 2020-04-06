@@ -24,10 +24,9 @@ public class TrashServiceImpl implements TrashService {
 	private TrashManager trashManager;
 
 	@Override
-	public void moveToTrash(Long currentUserId, String entityId, boolean priorityPurge)
+	public void moveToTrash(UserInfo userInfo, String entityId, boolean priorityPurge)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo currentUser = userManager.getUserInfo(currentUserId);
-		trashManager.moveToTrash(currentUser, entityId, priorityPurge);
+		trashManager.moveToTrash(userInfo, entityId, priorityPurge);
 	}
 
 	@Override

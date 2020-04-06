@@ -89,7 +89,7 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 		if (entityService != null && entityIdsToDelete != null) {
 			for (String idToDelete : entityIdsToDelete) {
 				try {
-					entityService.deleteEntity(userId, idToDelete);
+					entityService.deleteEntity(userInfo, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

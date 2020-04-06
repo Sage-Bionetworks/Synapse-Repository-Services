@@ -102,7 +102,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userId, idToDelete);
+					entityController.deleteEntity(testUser, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

@@ -135,7 +135,7 @@ public class TrashServiceImplAutowiredTest {
 	public void afterEach() {
 		// Delete entities.
 		for (Entity entity : Lists.reverse(entitiesToDelete)) {
-			entityService.deleteEntity(userId, entity.getId());
+			entityService.deleteEntity(userInfo, entity.getId());
 		}
 
 		// Delete file handles.
@@ -174,11 +174,11 @@ public class TrashServiceImplAutowiredTest {
 		String fileEntityId = fileEntity.getId();
 
 		// User 2 can delete and restore the file.
-		trashService.moveToTrash(user2Id, fileEntityId, false);
+		trashService.moveToTrash(userInfo2, fileEntityId, false);
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo2, fileEntityId));
 
 		trashService.restoreFromTrash(user2Id, fileEntityId, null);
-		FileEntity restored = entityService.getEntity(user2Id, fileEntityId, FileEntity.class);
+		FileEntity restored = entityService.getEntity(userInfo2, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 	}
 
@@ -198,17 +198,17 @@ public class TrashServiceImplAutowiredTest {
 		String fileEntityId = fileEntity.getId();
 
 		// Trash the file entity. Getting the file entity will now throw an EntityInTrashCanException.
-		trashService.moveToTrash(userId, fileEntityId, false);
+		trashService.moveToTrash(userInfo, fileEntityId, false);
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, fileEntityId));
 
 		// Restore the file entity. It is gettable now.
 		trashService.restoreFromTrash(userId, fileEntityId, null);
-		FileEntity restored = entityService.getEntity(userId, fileEntityId, FileEntity.class);
+		FileEntity restored = entityService.getEntity(userInfo, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 
 		// Trash the file entity again and attempt to restore to folder B. This fails, because you cannot restore a
 		// file to an STS-enabled folder, unless it was the original parent.
-		trashService.moveToTrash(userId, fileEntityId, false);
+		trashService.moveToTrash(userInfo, fileEntityId, false);
 		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, fileEntityId,
 				folderB.getId()));
 
@@ -216,7 +216,7 @@ public class TrashServiceImplAutowiredTest {
 		// on non-STS-enabled folders.
 		deleteStorageLocationFromFolder(folderB);
 		trashService.restoreFromTrash(userId, fileEntityId, folderB.getId());
-		restored = entityService.getEntity(userId, fileEntityId, FileEntity.class);
+		restored = entityService.getEntity(userInfo, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 	}
 
@@ -236,17 +236,17 @@ public class TrashServiceImplAutowiredTest {
 		String subfolderId = subfolder.getId();
 
 		// Trash the subfolder. Getting the subfolder will now throw an EntityInTrashCanException.
-		trashService.moveToTrash(userId, subfolderId, false);
+		trashService.moveToTrash(userInfo, subfolderId, false);
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, subfolderId));
 
 		// Restore the subfolder. It is gettable now.
 		trashService.restoreFromTrash(userId, subfolderId, null);
-		Folder restored = entityService.getEntity(userId, subfolderId, Folder.class);
+		Folder restored = entityService.getEntity(userInfo, subfolderId, Folder.class);
 		assertNotNull(restored);
 
 		// Trash the subfolder again and attempt to restore to folder B. This fails, because you cannot restore a
 		// file to an STS-enabled folder, unless it was the original parent.
-		trashService.moveToTrash(userId, subfolderId, false);
+		trashService.moveToTrash(userInfo, subfolderId, false);
 		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, subfolderId,
 				folderB.getId()));
 
@@ -254,7 +254,7 @@ public class TrashServiceImplAutowiredTest {
 		// on non-STS-enabled folders.
 		deleteStorageLocationFromFolder(folderB);
 		trashService.restoreFromTrash(userId, subfolderId, folderB.getId());
-		restored = entityService.getEntity(userId, subfolderId, Folder.class);
+		restored = entityService.getEntity(userInfo, subfolderId, Folder.class);
 		assertNotNull(restored);
 	}
 

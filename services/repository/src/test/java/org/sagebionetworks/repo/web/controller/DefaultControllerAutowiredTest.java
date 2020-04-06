@@ -120,7 +120,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
-			entityService.getEntity(userId, clone.getId(), Project.class);
+			entityService.getEntity(adminUserInfo, clone.getId(), Project.class);
 		});
 	}
 

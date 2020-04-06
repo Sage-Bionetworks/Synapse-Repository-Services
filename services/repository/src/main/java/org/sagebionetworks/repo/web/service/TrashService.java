@@ -6,6 +6,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -17,7 +18,7 @@ public interface TrashService {
 	 * Moves an entity and its descendants to the trash can, if the priorityPurge flag is set to true the entity
 	 * will not be restorable and will be deleted as soon as possible
 	 */
-	void moveToTrash(Long currentUserId, String entityId, boolean priorityPurge)
+	void moveToTrash(UserInfo userInfo, String entityId, boolean priorityPurge)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
