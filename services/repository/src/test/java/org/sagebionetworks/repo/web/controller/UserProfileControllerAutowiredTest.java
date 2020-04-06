@@ -64,12 +64,13 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	@Autowired
 	OpenIDConnectManager oidcManager;
 	
+	private String accessToken;
 	private UserInfo userInfo;
 	
 	@BeforeEach
 	public void before() throws Exception{
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		String accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
 		userInfo = oidcManager.getUserAuthorization(accessToken);
 		
 		assertNotNull(userProfileService);
@@ -195,7 +196,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		assertEquals(fav.getId(), favs.getResults().get(0).getId());
 
 		// Shouldn't retrieve the favorite if the node in trash can
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), accessToken);
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));

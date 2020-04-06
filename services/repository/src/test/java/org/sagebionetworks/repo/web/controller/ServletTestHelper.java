@@ -235,12 +235,6 @@ public class ServletTestHelper {
 				object.getClass());
 	}
 
-	public <T extends Entity> void deleteEntity(Class<? extends T> clazz,
-			String id, Map<String, String> extraParams) throws Exception {
-		deleteEntity(dispatchServlet, clazz, id, userId,
-				extraParams);
-	}
-
 	public <T extends Entity> AccessControlList getEntityACL(T entity)
 			throws Exception {
 		return getEntityACL(dispatchServlet, entity.getId(),
@@ -469,8 +463,8 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId) throws Exception {
-		deleteEntity(dispatchServlet, clazz, id, userId, null);
+			String accessToken) throws Exception {
+		deleteEntity(dispatchServlet, clazz, id, accessToken, null);
 	}
 
 	/**
@@ -478,9 +472,9 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId, Map<String, String> extraParams) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
+			String accessToken, Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, accessToken, null);
 		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -1705,11 +1699,11 @@ public class ServletTestHelper {
 				TrashedEntity.class);
 	}
 
-	public void trashEntity(Long userId, String entityId)
+	public void trashEntity(String accessToken, String entityId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN + "/trash/" + entityId,
-				userId, null);
+				accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}

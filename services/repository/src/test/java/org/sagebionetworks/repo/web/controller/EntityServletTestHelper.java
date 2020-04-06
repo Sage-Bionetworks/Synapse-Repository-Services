@@ -88,9 +88,9 @@ public class EntityServletTestHelper {
 	/**
 	 * Delete an entity without knowing the type
 	 */
-	public void deleteEntity(String id, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
+	public void deleteEntity(String id, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, accessToken, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -300,9 +300,9 @@ public class EntityServletTestHelper {
 	 * Get the types of entities
 	 */
 	public PaginatedResults<EntityHeader> getEntityTypeBatch(List<String> ids,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, userId, null);
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, accessToken, null);
 		request.setParameter(ServiceConstants.BATCH_PARAM, StringUtils.join(
 				ids, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
 

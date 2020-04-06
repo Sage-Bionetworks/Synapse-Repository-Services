@@ -118,7 +118,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		long baseCount = results.getResults().size();
 
 		// Move the parent to the trash can
-		servletTestHelper.trashEntity(testUserId, parent.getId());
+		servletTestHelper.trashEntity(testUserAccessToken, parent.getId());
 
 		// Purge the parent
 		servletTestHelper.flagEntityForPurge(testUserId, parent.getId());
@@ -154,7 +154,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		toPurge.add(KeyFactory.stringToKey(child2.getId()));
 
 		// Move the Link to the trash can
-		servletTestHelper.trashEntity(testUserId, child2.getId());
+		servletTestHelper.trashEntity(testUserAccessToken, child2.getId());
 
 		// Purge the Link
 		servletTestHelper.flagEntityForPurge(testUserId, child2.getId());
@@ -174,7 +174,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		long baseCount = results.getResults().size();
 
 		// Move the parent to the trash can
-		servletTestHelper.trashEntity(testUserId, parent.getId());
+		servletTestHelper.trashEntity(testUserAccessToken, parent.getId());
 
 		// Now the parent and the child should not be visible
 		assertThrows(NotFoundException.class, () -> {

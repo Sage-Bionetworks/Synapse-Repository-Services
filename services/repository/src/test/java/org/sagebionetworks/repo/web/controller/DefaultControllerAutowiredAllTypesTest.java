@@ -328,7 +328,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		
 		// Now delete each one
 		for(Entity entity: created){
-			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);
 			// This should throw an exception
 			try {
 				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), accessToken);

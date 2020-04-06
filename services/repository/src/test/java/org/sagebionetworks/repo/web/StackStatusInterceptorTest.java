@@ -68,7 +68,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerJunit
 		}
 		// Delete the sample project
 		if(sampleProject != null && sampleProject.getId() != null){
-			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		}
 	}
 	
@@ -237,7 +237,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerJunit
 	public void testDeleteReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		sampleProject = null;
 	}
 
@@ -249,7 +249,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerJunit
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
 		Assertions.assertThrows(DatastoreException.class, ()-> {
-			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		});
 		sampleProject = null;
 	}
@@ -262,7 +262,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerJunit
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
 		Assertions.assertThrows(DatastoreException.class, ()-> {
-			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			servletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), accessToken);
 		});
 		sampleProject = null;
 	}

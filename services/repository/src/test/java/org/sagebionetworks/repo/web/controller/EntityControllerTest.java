@@ -25,6 +25,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -56,9 +57,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	private UserManager userManager;
-	
-	@Autowired
 	private NodeManager nodeManager;
 
 	@Autowired
@@ -67,7 +65,12 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 
+	private Long adminUserId;
+	private UserInfo adminUserInfo;
 	private String accessToken;
+	
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 	
 	private List<String> toDelete;
 	private S3FileHandle handleOne;
@@ -75,20 +78,17 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 	private S3FileHandle handleTwo;
 	private S3FileHandle previewTwo;
 	
-	private Long adminUserId;
-	private String adminUserIdString;
-	
 	private static final String S3_BUCKET_NAME = StackConfigurationSingleton.singleton().getS3Bucket();
 
 	@BeforeEach
 	public void setUp() throws Exception {
 		assertNotNull(fileHandleDao);
-		assertNotNull(userManager);
 		assertNotNull(nodeManager);
 		
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		adminUserIdString = adminUserId.toString();
+		String adminUserIdString = adminUserId.toString();
 		accessToken = oidcTokenHelper.createTotalAccessToken(adminUserId);
+		adminUserInfo = oidcManager.getUserAuthorization(accessToken);
 		
 		toDelete = new ArrayList<>();
 		// Create a file handle
@@ -125,7 +125,6 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 	
 	@AfterEach
 	public void after() throws Exception {
-		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
 		for(String id: toDelete){
 			try {
 				nodeManager.delete(adminUserInfo, id);
@@ -160,7 +159,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		// the Etag should have changed
 		assertFalse(clone2.getEtag().equals(clone3.getEtag()));
 		// Now delete it
-		entityServletHelper.deleteEntity(id, adminUserId);
+		entityServletHelper.deleteEntity(id, accessToken);
 		// it should not be found now
 		try{
 			entityServletHelper.getEntity(id, accessToken);
@@ -290,7 +289,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 			ids.add(id);
 		}
 	
-		PaginatedResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, adminUserId);
+		PaginatedResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, accessToken);
 		assertNotNull(results);
 		assertEquals(12, results.getTotalNumberOfResults());
 		List<String> outputIds = new ArrayList<String>();
@@ -488,7 +487,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		assertEquals(file.getId(), results.getResults().get(0).getId());
 
 		// Move to trash can and we should get back empty results
-		entityServletHelper.deleteEntity(file.getId(), adminUserId);
+		entityServletHelper.deleteEntity(file.getId(), accessToken);
 		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());

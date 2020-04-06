@@ -80,7 +80,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerJuni
 	public void after(){
 		for (String entity : Lists.reverse(entitiesToDelete)) {
 			try {
-				servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId,
+				servletTestHelper.deleteEntity(dispatchServlet, null, entity, accessToken,
 						Collections.singletonMap("skipTrashCan", "false"));
 			} catch (Exception e) {
 				e.printStackTrace();

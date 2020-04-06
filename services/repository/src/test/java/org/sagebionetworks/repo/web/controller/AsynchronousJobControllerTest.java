@@ -73,7 +73,7 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerJu
 	public void after(){
 		if(parent != null){
 			try {
-				servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
+				servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), accessToken);
 			} catch (Exception e) {} 
 		}
 		if(fileHandle != null){

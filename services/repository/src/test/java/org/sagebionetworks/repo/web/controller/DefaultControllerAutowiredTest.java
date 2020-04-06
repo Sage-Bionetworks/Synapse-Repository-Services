@@ -116,7 +116,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		Project clone = servletTestHelper.createEntity(dispatchServlet, project, accessToken);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), accessToken);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		Assertions.assertThrows(EntityInTrashCanException.class, () -> {
