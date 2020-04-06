@@ -438,10 +438,10 @@ public class ServletTestHelper {
 	 */
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			HttpServlet dispatchServlet, String entityId, Integer offset,
-			Integer limit, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Integer limit, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
-						+ UrlHelpers.VERSION, userId, null);
+						+ UrlHelpers.VERSION, accessToken, null);
 		if (offset != null) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -556,11 +556,11 @@ public class ServletTestHelper {
 	 * Delete an entity ACL
 	 */
 	public <T extends Entity> void deleteEntityACL(
-			HttpServlet dispatchServlet, String resourceId, Long userId)
+			HttpServlet dispatchServlet, String resourceId, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + resourceId
-						+ UrlHelpers.ACL, userId, null);
+						+ UrlHelpers.ACL, accessToken, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -755,10 +755,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> EntityHeader getEntityBenefactor(
 			HttpServlet dispatchServlet, String id, Class<? extends T> clazz,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.BENEFACTOR, userId, null);
+						+ UrlHelpers.BENEFACTOR, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);

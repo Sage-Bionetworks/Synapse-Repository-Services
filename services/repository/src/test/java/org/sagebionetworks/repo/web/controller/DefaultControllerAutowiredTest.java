@@ -182,7 +182,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		assertEquals(dsClone.getId(), acl3.getId());
 
 		// now delete the ACL (restore inheritance)
-		servletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userId);
+		servletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), accessToken);
 		// try retrieving the ACL for the child
 
 		// should get the parent's ACL
@@ -267,7 +267,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		toDelete.add(ds.getId());
 
 		// Now get the permission information for the project
-		EntityHeader benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, otherUserId);
+		EntityHeader benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, otherAccessToken);
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -275,7 +275,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
-		benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Folder.class, otherUserId);
+		benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Folder.class, otherAccessToken);
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());

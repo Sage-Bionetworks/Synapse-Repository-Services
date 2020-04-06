@@ -641,10 +641,10 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), UserEvaluationPermissions.class);
 	}
 
-	public PaginatedResults<EntityHeader> getEntityHeaderByMd5(Long userId,
+	public PaginatedResults<EntityHeader> getEntityHeaderByMd5(String accessToken,
 			String md5) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/md5/" + md5, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, "/entity/md5/" + md5, accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -953,7 +953,7 @@ public class EntityServletTestHelper {
 	 *            version. When set to a version number, the file (or preview)
 	 *            associated with that version number will be returned.
 	 */
-	private URL getEntityFileURL(Long userId, String entityId,
+	private URL getEntityFileURL(String accessToken, String entityId,
 			Boolean redirect, Boolean preview, Long versionNumber)
 			throws Exception {
 		String suffix = "/file";
@@ -965,9 +965,9 @@ public class EntityServletTestHelper {
 		if (versionNumber != null) {
 			version = "/version/" + versionNumber;
 		}
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, "/entity/" + entityId + version + suffix,
-				userId, null);
+				accessToken, null);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
@@ -981,37 +981,37 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the file URL for the current version
 	 */
-	public URL getEntityFileURLForCurrentVersion(Long userId,
+	public URL getEntityFileURLForCurrentVersion(String accessToken,
 			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = null;
 		Long versionNumber = null;
-		return getEntityFileURL(userId, entityId, redirect, preview,
+		return getEntityFileURL(accessToken, entityId, redirect, preview,
 				versionNumber);
 	}
 
 	/**
 	 * Get the file preview URL for the current version
 	 */
-	public URL getEntityFilePreviewURLForCurrentVersion(Long userId,
+	public URL getEntityFilePreviewURLForCurrentVersion(String accessToken,
 			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = Boolean.TRUE;
 		Long versionNumber = null;
-		return getEntityFileURL(userId, entityId, redirect, preview,
+		return getEntityFileURL(accessToken, entityId, redirect, preview,
 				versionNumber);
 	}
 
-	public URL getEntityFileURLForVersion(Long userId, String entityId,
+	public URL getEntityFileURLForVersion(String accessToken, String entityId,
 			Long versionNumber, Boolean redirect) throws Exception {
 		Boolean preview = null;
-		return getEntityFileURL(userId, entityId, redirect, preview,
+		return getEntityFileURL(accessToken, entityId, redirect, preview,
 				versionNumber);
 	}
 
-	public URL getEntityFilePreviewURLForVersion(Long userId,
+	public URL getEntityFilePreviewURLForVersion(String accessToken,
 			String entityId, Long versionNumber, Boolean redirect)
 			throws Exception {
 		Boolean preview = Boolean.TRUE;
-		return getEntityFileURL(userId, entityId, redirect, preview,
+		return getEntityFileURL(accessToken, entityId, redirect, preview,
 				versionNumber);
 	}
 	

@@ -411,31 +411,31 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		// Validate we are on V3
 		assertEquals(new Long(2), file.getVersionNumber());
 		// First get the URL for the current version
-		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), null);
+		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(accessToken, file.getId(), null);
 		assertNotNull(url);
 		assertTrue(url.toString().indexOf(handleTwo.getKey()) > 0, "Url did not contain the expected key");
-		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
+		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(accessToken, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue(urlNoRedirect.toString().indexOf(handleTwo.getKey()) > 0, "Url did not contain the expected key");
 		// Now the first version
-		url = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, null);
+		url = entityServletHelper.getEntityFileURLForVersion(accessToken, file.getId(), 1l, null);
 		assertNotNull(url);
 		assertTrue(url.toString().indexOf(handleOne.getKey()) > 0, "Url did not contain the expected key");
-		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(accessToken, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue(urlNoRedirect.toString().indexOf(handleOne.getKey()) > 0, "Url did not contain the expected key");
 		// Get the preview of the current version
-		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), null);
+		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(accessToken, file.getId(), null);
 		assertNotNull(url);
 		assertTrue(url.toString().indexOf(previewTwo.getKey()) > 0, "Url did not contain the expected key");
-		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(accessToken, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue(urlNoRedirect.toString().indexOf(previewTwo.getKey()) > 0, "Url did not contain the expected key");
 		// Get the preview of the first version
-		url = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, null);
+		url = entityServletHelper.getEntityFilePreviewURLForVersion(accessToken, file.getId(), 1l, null);
 		assertNotNull(url);
 		assertTrue(url.toString().indexOf(previewOne.getKey()) > 0, "Url did not contain the expected key");
-		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(accessToken, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue(urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0, "Url did not contain the expected key");
 		
@@ -460,7 +460,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 	public void testGetEntityHeaderByMd5() throws Exception {
 
 		PaginatedResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(
-				adminUserId, "548c050497fb361742b85e0712b0cc96");
+				accessToken, "548c050497fb361742b85e0712b0cc96");
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
@@ -481,14 +481,14 @@ public class EntityControllerTest extends AbstractAutowiredControllerJunit5TestB
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
 
-		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
+		results = entityServletHelper.getEntityHeaderByMd5(accessToken, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
 		assertEquals(file.getId(), results.getResults().get(0).getId());
 
 		// Move to trash can and we should get back empty results
 		entityServletHelper.deleteEntity(file.getId(), accessToken);
-		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
+		results = entityServletHelper.getEntityHeaderByMd5(accessToken, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());
 	}

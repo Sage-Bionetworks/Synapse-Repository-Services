@@ -522,7 +522,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			
 			
 			// now delete the ACL (restore inheritance)
-			servletTestHelper.deleteEntityACL(dispatchServlet, entity.getId(), userId);
+			servletTestHelper.deleteEntityACL(dispatchServlet, entity.getId(), accessToken);
 			// try retrieving the ACL for the child
 			
 			// should get the parent's ACL
@@ -640,7 +640,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				long firstVersion = 1;
 				// Now get all entities
 				PaginatedResults<VersionInfo> results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 0, 100,
-						userId);
+						accessToken);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -652,7 +652,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				assertEquals(new Long(firstVersion), results.getResults().get(results.getResults().size()-1).getVersionNumber());
 				
 				// Query again but this time get a sub-set
-				results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 3, userId);
+				results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 3, accessToken);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -750,14 +750,14 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				
 				// There should be two versions
 				PaginatedResults<VersionInfo> paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100,
-						userId);
+						accessToken);
 				assertNotNull(paging);
 				assertEquals(2, paging.getTotalNumberOfResults());
 				
 				// Now delete the new version
 				servletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userId);
 				// We should be down to one version
-				paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userId);
+				paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, accessToken);
 				assertNotNull(paging);
 				assertEquals(1, paging.getTotalNumberOfResults());
 				
