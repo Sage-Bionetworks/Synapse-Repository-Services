@@ -486,10 +486,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> void deleteEntityVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long versionNumber, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			Long versionNumber, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.VERSION + "/" + versionNumber, userId,
+						+ UrlHelpers.VERSION + "/" + versionNumber, accessToken,
 				null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
@@ -633,10 +633,10 @@ public class ServletTestHelper {
 	 */
 	public <T extends Entity> BooleanResult hasAccess(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long userId, String accessType) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			String accessToken, String accessType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACCESS,
-				userId, null);
+				accessToken, null);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -709,10 +709,10 @@ public class ServletTestHelper {
 	}
 
 	public EntityHeader getEntityType(HttpServlet dispatchServlet,
-			String id, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			String id, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.TYPE,
-				userId, null);
+				accessToken, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);

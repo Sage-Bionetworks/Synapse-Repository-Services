@@ -208,10 +208,10 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		toDelete.add(clone.getId());
 
 		String accessType = ACCESS_TYPE.READ.name();
-		assertEquals(new BooleanResult(true), servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
+		assertEquals(new BooleanResult(true), servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), accessToken, accessType));
 
 		assertEquals(new BooleanResult(false), 
-				servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), otherUserId, accessType));
+				servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), otherAccessToken, accessType));
 	}
 
 	/**
@@ -246,7 +246,7 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerJ
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
-		EntityHeader type = servletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUserId);
+		EntityHeader type = servletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherAccessToken);
 		assertNotNull(type);
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), type.getType());
 		assertEquals(clone.getId(), type.getName());

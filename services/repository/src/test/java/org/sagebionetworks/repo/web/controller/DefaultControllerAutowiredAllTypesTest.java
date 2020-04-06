@@ -755,7 +755,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				assertEquals(2, paging.getTotalNumberOfResults());
 				
 				// Now delete the new version
-				servletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userId);
+				servletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, accessToken);
 				// We should be down to one version
 				paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, accessToken);
 				assertNotNull(paging);
