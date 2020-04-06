@@ -1896,7 +1896,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildEntityReplicationSelect() {
 		StringBuilder builder = new StringBuilder();
-		String columnName = TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+		String columnName = TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
 		// Call under test
 		SQLUtils.buildEntityReplicationSelect(builder, columnName);
 		assertEquals(", MAX(R.BENEFACTOR_ID) AS BENEFACTOR_ID", builder.toString());
@@ -2086,33 +2086,6 @@ public class SQLUtilsTest {
 	public void testBuildTableViewCRC32Sql(){
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', ROW_ETAG, '-', ROW_BENEFACTOR))) FROM T123", sql);
-	}
-
-	@Test
-	public void testGetCalculateCRC32SqlProject(){
-		String sql = SQLUtils.getCalculateCRC32Sql(ViewTypeMask.Project.getMask());
-		String expected =
-				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
-				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('project') AND ID IN (:parentIds)";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetCalculateCRC32SqlFile(){
-		String sql = SQLUtils.getCalculateCRC32Sql(ViewTypeMask.File.getMask());
-		String expected =
-				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
-				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('file') AND PARENT_ID IN (:parentIds)";
-		assertEquals(expected, sql);
-	}
-
-	@Test
-	public void testGetCalculateCRC32SqlFileAndTable(){
-		String sql = SQLUtils.getCalculateCRC32Sql(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table));
-		String expected =
-				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
-				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('file', 'table') AND PARENT_ID IN (:parentIds)";
-		assertEquals(expected, sql);
 	}
 
 	@Test
@@ -2581,25 +2554,25 @@ public class SQLUtilsTest {
 
 	@Test
 	public void testGetViewScopeFilterColumnForType() {
-		assertEquals(TableConstants.ENTITY_REPLICATION_COL_ID,
+		assertEquals(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID,
 				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.Project.getMask()));
-		assertEquals(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID,
+		assertEquals(TableConstants.OBJECT_REPLICATION_COL_PARENT_ID,
 				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.File.getMask()));
-		assertEquals(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID,
+		assertEquals(TableConstants.OBJECT_REPLICATION_COL_PARENT_ID,
 				SQLUtils.getViewScopeFilterColumnForType(ViewTypeMask.getMaskForDepricatedType(ViewType.file_and_table)));
 	}
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlFileView(){
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewTypeMask.File.getMask());
-		String expected = TableConstants.ENTITY_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
+		String expected = TableConstants.OBJECT_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
 	}
 
 	@Test
 	public void testGetDistinctAnnotationColumnsSqlProjectView(){
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewTypeMask.Project.getMask());
-		String expected = TableConstants.ENTITY_REPLICATION_COL_ID+" IN (:parentIds)";
+		String expected = TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
 	}
 

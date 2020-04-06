@@ -339,16 +339,6 @@ public interface TableIndexDAO {
 	EntityDTO getEntityData(Long entityId);
 
 	/**
-	 * Given a container scope calculate the CRC32 of the entity replication table on 'id-etag'.
-	 * @param viewType 
-	 * 
-	 * @param allContainersInScope
-	 * @return
-	 */
-	long calculateCRC32ofEntityReplicationScope(
-			Long viewTypeMask, Set<Long> allContainersInScope);
-
-	/**
 	 * Copy the data from the entity replication tables to the given view.
 	 * 
 	 * @param viewId

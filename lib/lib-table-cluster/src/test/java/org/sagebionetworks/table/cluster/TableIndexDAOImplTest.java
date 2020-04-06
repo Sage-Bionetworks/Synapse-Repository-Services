@@ -1,7 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
@@ -1260,7 +1260,7 @@ public class TableIndexDAOImplTest {
 		// lookup the column manually
 		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
 				" FROM " + ANNOTATION_REPLICATION_TABLE +
-				" WHERE " + ANNOTATION_REPLICATION_COL_ENTITY_ID + "=" + id;
+				" WHERE " + ANNOTATION_REPLICATION_COL_OBJECT_ID + "=" + id;
 		long queriedMaxSize = tableIndexDAO.getConnection().queryForObject(query, Long.class);
 		assertEquals(3, queriedMaxSize);
 	}
@@ -1335,100 +1335,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(file, fetched);
 	}
 
-	@Test
-	public void testCalculateCRC32ofEntityReplicationScopeFile(){
-		// delete all data
-		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
-		
-		// setup some hierarchy.
-		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 0);
-		file1.setParentId(333L);
-		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 0);
-		file2.setParentId(222L);
-		
-		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
-		// both parents
-		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
-		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		assertEquals(new Long(381255304L), crc);
-		// reduce the scope
-		scope = Sets.newHashSet(file1.getParentId());
-		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		assertEquals(new Long(3214398L), crc);
-		// reduce the scope
-		scope = Sets.newHashSet(file2.getParentId());
-		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		assertEquals(new Long(378040906L), crc);
-	}
-	
-
-	@Test
-	public void testCalculateCRC32ofEntityReplicationScopeProject(){
-		// delete all data
-		tableIndexDAO.deleteEntityData(Lists.newArrayList(1L,2L,3L));
-		
-		// setup some hierarchy.
-		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 0);
-		project1.setParentId(111L);
-		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 0);
-		project2.setParentId(111L);
-		
-		tableIndexDAO.addEntityData(Lists.newArrayList(project1, project2));
-		// both parents
-		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
-		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
-		assertEquals(new Long(381255304L), crc);
-		// reduce the scope
-		scope = Sets.newHashSet(project1.getId());
-		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
-		assertEquals(new Long(3214398L), crc);
-		// reduce the scope
-		scope = Sets.newHashSet(project2.getId());
-		// call under test
-		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.Project.getMask(), scope);
-		assertEquals(new Long(378040906L), crc);
-	}
-	
-	@Test
-	public void testCalculateCRC32ofEntityReplicationNoRows(){
-		// nothing should have this scope
-		Set<Long> scope = Sets.newHashSet(99999L);
-		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		assertEquals(new Long(-1), crc);
-	}
-	
-	@Test
-	public void testCalculateCRC32ofEntityReplicationScopeEmpty(){
-		Set<Long> scope = new HashSet<Long>();
-		// call under test
-		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		assertEquals(new Long(-1), crc);
-	}
-	
-	@Test
-	public void testCalculateCRC32ofEntityReplicationNullType(){
-		Set<Long> scope = new HashSet<Long>();
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.calculateCRC32ofEntityReplicationScope(null, scope);
-		});
-	}
-	
-	@Test
-	public void testCalculateCRC32ofEntityReplicationNullScope(){
-		Set<Long> scope = null;
-		assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewTypeMask.File.getMask(), scope);
-		});
-	}
-	
 	@Test
 	public void testCopyEntityReplicationToTable(){
 		isView = true;
@@ -3395,7 +3301,6 @@ public class TableIndexDAOImplTest {
 		column.setName("StringList");
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
-		boolean alterTemp = false;
 		//add column
 		tableIndexDAO.createMultivalueColumnIndexTable(tableId, column);
 

@@ -1,35 +1,37 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.BATCH_INSERT_REPLICATION_SYNC_EXP;
 import static org.sagebionetworks.repo.model.table.TableConstants.CRC_ALIAS;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_MD5;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_SIZE_BYTES;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PROJECT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM;
-import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAMETER_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_CRATED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBEJCT_REPLICATION_COL_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
-import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_ENTITY_CHILD_CRC;
-import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_ENTITY_CHILD_ID_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
+import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_ID_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_NON_EXPIRED_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE;
 
@@ -97,16 +99,16 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
-	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
-			+ ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_ID + " IN (:rowIds)";
+	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
+			+ OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_OBJECT_ID + " IN (:rowIds)";
 
 	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
-			"SELECT t1."+ENTITY_REPLICATION_COL_PROJECT_ID + ", t2." + ENTITY_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
-		+ " FROM (SELECT " + ENTITY_REPLICATION_COL_PROJECT_ID + ", "
-					+ " SUM(" + ENTITY_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
-					+ " FROM " + ENTITY_REPLICATION_TABLE + " WHERE " + ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
-					+ " GROUP BY " + ENTITY_REPLICATION_COL_PROJECT_ID + ") t1," + ENTITY_REPLICATION_TABLE + " t2"
-					+ " WHERE t1." + ENTITY_REPLICATION_COL_PROJECT_ID + " = t2." + ENTITY_REPLICATION_COL_ID
+			"SELECT t1."+OBJECT_REPLICATION_COL_PROJECT_ID + ", t2." + OBJECT_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
+		+ " FROM (SELECT " + OBJECT_REPLICATION_COL_PROJECT_ID + ", "
+					+ " SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
+					+ " FROM " + OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
+					+ " GROUP BY " + OBJECT_REPLICATION_COL_PROJECT_ID + ") t1," + OBJECT_REPLICATION_TABLE + " t2"
+					+ " WHERE t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
 
 	/**
@@ -125,7 +127,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private TransactionTemplate writeTransactionTemplate;
 	private TransactionTemplate readTransactionTemplate;
 	private JdbcTemplate template;
-	NamedParameterJdbcTemplate namedTemplate;
+	private NamedParameterJdbcTemplate namedTemplate;
 
 	@Override
 	public void setDataSource(DataSource dataSource) {
@@ -585,7 +587,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		String insertIntoSql = SQLUtils.insertIntoListColumnIndexTable(tableId, listColumn, filterRows);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		if(filterRows) {
-			param.addValue(ID_PARAMETER_NAME, rowIds);
+			param.addValue(ID_PARAM_NAME, rowIds);
 		}
 		try {
 			namedTemplate.update(insertIntoSql, param);
@@ -652,7 +654,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
 		// Batch delete.
-		template.batchUpdate(TableConstants.ENTITY_REPLICATION_DELETE_ALL, new BatchPreparedStatementSetter(){
+		template.batchUpdate(TableConstants.OBJECT_REPLICATION_DELETE_ALL, new BatchPreparedStatementSetter(){
 
 			@Override
 			public void setValues(PreparedStatement ps, int i)
@@ -766,40 +768,40 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				public EntityDTO mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
 					EntityDTO dto = new EntityDTO();
-					dto.setId(rs.getLong(ENTITY_REPLICATION_COL_ID));
-					dto.setCurrentVersion(rs.getLong(ENTITY_REPLICATION_COL_VERSION));
-					dto.setCreatedBy(rs.getLong(ENTITY_REPLICATION_COL_CRATED_BY));
-					dto.setCreatedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_CRATED_ON)));
-					dto.setEtag(rs.getString(ENTITY_REPLICATION_COL_ETAG));
-					dto.setName(rs.getString(ENTITY_REPLICATION_COL_NAME));
-					dto.setType(EntityType.valueOf(rs.getString(ENTITY_REPLICATION_COL_TYPE)));
-					dto.setParentId(rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID));
+					dto.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
+					dto.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
+					dto.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
+					dto.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
+					dto.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
+					dto.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+					dto.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+					dto.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
 					if(rs.wasNull()){
 						dto.setParentId(null);
 					}
-					dto.setBenefactorId(rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+					dto.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
 					if(rs.wasNull()){
 						dto.setBenefactorId(null);
 					}
-					dto.setProjectId(rs.getLong(ENTITY_REPLICATION_COL_PROJECT_ID));
+					dto.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
 					if(rs.wasNull()){
 						dto.setProjectId(null);
 					}
-					dto.setModifiedBy(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_BY));
-					dto.setModifiedOn(new Date(rs.getLong(ENTITY_REPLICATION_COL_MODIFIED_ON)));
-					dto.setFileHandleId(rs.getLong(ENTITY_REPLICATION_COL_FILE_ID));
+					dto.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
+					dto.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
+					dto.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
 					if(rs.wasNull()){
 						dto.setFileHandleId(null);
 					}
-					dto.setFileSizeBytes(rs.getLong(ENTITY_REPLICATION_COL_FILE_SIZE_BYTES));
+					dto.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
 					if(rs.wasNull()){
 						dto.setFileSizeBytes(null);
 					}
-					dto.setIsInSynapseStorage(rs.getBoolean(ENTITY_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+					dto.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
 					if(rs.wasNull()) {
 						dto.setIsInSynapseStorage(null);
 					}
-					dto.setFileMD5(rs.getString(ENTITY_REPLICATION_COL_FILE_MD5));
+					dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
 
 					return dto;
 				}}, entityId);
@@ -813,7 +815,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public AnnotationDTO mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
 				AnnotationDTO dto = new AnnotationDTO();
-				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
+				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
 				dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE)).toList());
@@ -823,24 +825,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			dto.setAnnotations(annotations);
 		}
 		return dto;
-	}
-
-	@Override
-	public long calculateCRC32ofEntityReplicationScope(Long viewTypeMask,
-			Set<Long> allContainersInScope) {
-		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		ValidateArgument.required(allContainersInScope, "allContainersInScope");
-		if(allContainersInScope.isEmpty()){
-			return -1L;
-		}
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.getCalculateCRC32Sql(viewTypeMask);
-		Long crc32 = namedTemplate.queryForObject(sql, param, Long.class);
-		if(crc32 == null){
-			return -1L;
-		}
-		return crc32;
 	}
 	
 	@Override
@@ -875,9 +859,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		// Filter by rows only if provided.
 		boolean filterByRows = rowIdsToCopy != null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
 		if(filterByRows) {
-			param.addValue(ID_PARAMETER_NAME, rowIdsToCopy);
+			param.addValue(ID_PARAM_NAME, rowIdsToCopy);
 		}
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewTypeMask, currentSchema, filterByRows);
 		namedTemplate.update(sql, param);
@@ -893,7 +877,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Scope has not been defined for this view.");
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
+		param.addValue(PARENT_ID_PARAM_NAME, allContainersInScope);
 		StringBuilder builder = new StringBuilder();
 		boolean filterByRows = false;
 		List<String> headers = SQLUtils.createSelectFromEntityReplication(builder, viewId, viewTypeMask, currentSchema, filterByRows);
@@ -919,7 +903,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return new LinkedList<>();
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
+		param.addValue(PARENT_ID_PARAM_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
@@ -983,12 +967,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return results;
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
-		namedTemplate.query(SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
+		param.addValue(PARENT_ID_PARAM_NAME, parentIds);
+		namedTemplate.query(SELECT_OBJECT_CHILD_CRC, param, new RowCallbackHandler() {
 			
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Long parentId = rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID);
+				Long parentId = rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID);
 				Long crc = rs.getLong(CRC_ALIAS);
 				results.put(parentId, crc);
 			}
@@ -999,14 +983,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public List<IdAndEtag> getEntityChildren(Long parentId) {
 		ValidateArgument.required(parentId, "parentId");
-		return this.template.query(SELECT_ENTITY_CHILD_ID_ETAG, new RowMapper<IdAndEtag>(){
+		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, new RowMapper<IdAndEtag>(){
 
 			@Override
 			public IdAndEtag mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
-				Long id = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_ID);
-				String etag = rs.getString(ENTITY_REPLICATION_COL_ETAG);
-				Long benefactorId = rs.getLong(ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+				Long id = rs.getLong(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID);
+				String etag = rs.getString(OBEJCT_REPLICATION_COL_ETAG);
+				Long benefactorId = rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID);
 				if(rs.wasNull()) {
 					benefactorId = null;
 				}
@@ -1015,9 +999,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<Long> getExpiredContainerIds(List<Long> entityContainerIds) {
-		ValidateArgument.required(entityContainerIds, "entityContainerIds");
-		if(entityContainerIds.isEmpty()){
+	public List<Long> getExpiredContainerIds(List<Long> containerIds) {
+		ValidateArgument.required(containerIds, "entityContainerIds");
+		if(containerIds.isEmpty()){
 			return new LinkedList<Long>();
 		}
 		/*
@@ -1025,11 +1009,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		 * ID. Therefore, start off with all of the IDs expired, so the
 		 * non-expired IDs can be removed.
 		 */
-		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(entityContainerIds);
+		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(containerIds);
 		// Query for those that are not expired.
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAMETER_NAME, entityContainerIds);
-		param.addValue(EXPIRES_PARAM, System.currentTimeMillis());
+		param.addValue(ID_PARAM_NAME, containerIds);
+		param.addValue(EXPIRES_PARAM_NAME, System.currentTimeMillis());
 		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
 		// remove all that are not expired.
 		expiredId.removeAll(nonExpiredIds);
