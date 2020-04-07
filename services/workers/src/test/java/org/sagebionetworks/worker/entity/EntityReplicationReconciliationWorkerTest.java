@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -157,8 +157,8 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testCompareCheckSums(){
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
 		// see before() for test setup.
 		Set<Long> trashedParents = Sets.newHashSet(3L, 6L);
 		// call under test
@@ -178,7 +178,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		assertFalse(results.contains(6L));
 		
 		verify(mockNodeDao).getSumOfChildCRCsForEachParent(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(parentIds);
+		verify(mockIndexDao).getSumOfChildCRCsForEachParent(ObjectType.ENTITY, parentIds);
 	}
 	
 	@Test
@@ -196,7 +196,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testFindChangesForParentIdParentNotInTrash(){
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		// see before() for setup.
 		boolean parentInTrash = false;		
@@ -217,7 +217,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		assertEquals(""+replicaFour.getId(), message.getObjectId());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		
-		verify(mockIndexDao).getEntityChildren(firstParentId);
+		verify(mockIndexDao).getObjectChildren(ObjectType.ENTITY, firstParentId);
 		verify(mockNodeDao).getChildren(firstParentId);
 	}
 	
@@ -226,7 +226,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		// setup some differences between the truth and replica.
 		Long parentId = 999L;
 		boolean parentInTrash = true;
-		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, parentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo));
 		
 		// call under test
 		List<ChangeMessage> result = worker.findChangesForParentId(mockProgressCallback, mockIndexDao, parentId, parentInTrash);
@@ -241,7 +241,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		assertEquals(""+replicaTwo.getId(), message.getObjectId());
 		assertEquals(ChangeType.DELETE, message.getChangeType());
 		
-		verify(mockIndexDao).getEntityChildren(parentId);
+		verify(mockIndexDao).getObjectChildren(ObjectType.ENTITY, parentId);
 		// since the parent is in the trash this call should not be made
 		verify(mockNodeDao, never()).getChildren(parentId);
 	}
@@ -249,14 +249,14 @@ public class EntityReplicationReconciliationWorkerTest {
 	@Test
 	public void testPLFM_5352BenefactorDoesNotMatch(){
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		
 		// setup some differences between the truth and replica.
 		Long parentId = firstParentId;
 		boolean parentInTrash = false;
 		// The benefactor does not match
 		replicaOne.setBenefactorId(truthOne.getBenefactorId()+1);
-		when(mockIndexDao.getEntityChildren(parentId)).thenReturn(Lists.newArrayList(replicaOne));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, parentId)).thenReturn(Lists.newArrayList(replicaOne));
 		
 		// call under test
 		List<ChangeMessage> result = worker.findChangesForParentId(mockProgressCallback, mockIndexDao, parentId, parentInTrash);
@@ -273,23 +273,23 @@ public class EntityReplicationReconciliationWorkerTest {
 	
 	@Test
 	public void testFindDeltas() throws Exception{
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(any(), any())).thenReturn(replicaCRCs);
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		// see before() for test setup.
 		// call under test
 		worker.findChildrenDeltas(mockProgressCallback, mockIndexDao, parentIds, trashedParents);
 		
 		verify(mockNodeDao).getSumOfChildCRCsForEachParent(parentIds);
-		verify(mockIndexDao).getSumOfChildCRCsForEachParent(parentIds);
+		verify(mockIndexDao).getSumOfChildCRCsForEachParent(ObjectType.ENTITY, parentIds);
 		
 		// four parents are out-of-synch
-		verify(mockIndexDao, times(4)).getEntityChildren(anyLong());
+		verify(mockIndexDao, times(4)).getObjectChildren(ObjectType.ENTITY, anyLong());
 		// three non-trashed parents are out-of-synch
 		verify(mockNodeDao, times(3)).getChildren(anyLong());
 		// four batches should be set.
-		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(anyListOf(ChangeMessage.class));
+		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(any());
 	}
 	
 
@@ -306,11 +306,11 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
 		when(mockReplicationMessageManager.getApproximateNumberOfMessageOnReplicationQueue())
 				.thenReturn(EntityReplicationReconciliationWorker.MAX_MESSAGE_TO_RUN_RECONCILIATION - 1L);
-		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
-		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
+		when(mockNodeDao.getSumOfChildCRCsForEachParent(any())).thenReturn(truthCRCs);
+		when(mockIndexDao.getSumOfChildCRCsForEachParent(ObjectType.ENTITY, any())).thenReturn(replicaCRCs);
 		when(mockNodeDao.getAvailableNodes(expiredContainers)).thenReturn(Sets.newHashSet(1L,2L,4L,5L));
 		when(mockNodeDao.getChildren(firstParentId)).thenReturn(Lists.newArrayList(truthOne,truthTwo,truthThree));
-		when(mockIndexDao.getEntityChildren(firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
+		when(mockIndexDao.getObjectChildren(ObjectType.ENTITY, firstParentId)).thenReturn(Lists.newArrayList(replicaOne,replicaTwo,replicaFour));
 		when(mockTableManagerSupport.getViewTypeMask(viewId)).thenReturn(viewTypeMask);
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
 		when(mockIndexDao.getExpiredContainerIds(parentIds)).thenReturn(expiredContainers);
@@ -352,7 +352,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		when(mockTableManagerSupport.getAllContainerIdsForViewScope(viewId, viewTypeMask)).thenReturn(new HashSet<>(parentIds));
 
 		Exception exception = new RuntimeException("Something went wrong");
-		when(mockIndexDao.getExpiredContainerIds(anyListOf(Long.class))).thenThrow(exception);
+		when(mockIndexDao.getExpiredContainerIds(any())).thenThrow(exception);
 		// call under test
 		worker.run(mockProgressCallback, message);
 		

@@ -237,7 +237,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 			Long outOfSynchParentId, boolean isParentInTrash) {
 		List<ChangeMessage> changes = new LinkedList<>();
 		Set<IdAndEtag> replicaChildren = new LinkedHashSet<>(
-				firstIndex.getEntityChildren(outOfSynchParentId));
+				firstIndex.getObjectChildren(ObjectType.ENTITY, outOfSynchParentId));
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
 			// out-of-synch
@@ -301,7 +301,7 @@ public class EntityReplicationReconciliationWorker implements ChangeMessageDrive
 		Map<Long, Long> truthCRCs = nodeDao
 				.getSumOfChildCRCsForEachParent(parentIds);
 		Map<Long, Long> indexCRCs = indexDao
-				.getSumOfChildCRCsForEachParent(parentIds);
+				.getSumOfChildCRCsForEachParent(ObjectType.ENTITY, parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for (Long parentId : parentIds) {

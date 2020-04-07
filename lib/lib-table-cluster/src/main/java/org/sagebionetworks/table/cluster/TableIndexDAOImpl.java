@@ -112,11 +112,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					+ " SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
 					+ " FROM " + OBJECT_REPLICATION_TABLE 
 					+ " WHERE " 
-					+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ?"
+					+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :" + OBJECT_TYPE_PARAM_NAME
 					+ " AND " + OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
 					+ " GROUP BY " + OBJECT_REPLICATION_COL_PROJECT_ID + ") t1," + OBJECT_REPLICATION_TABLE + " t2"
 					+ " WHERE"
-					+ " t1." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE
+					+ " t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = :" + OBJECT_TYPE_PARAM_NAME
 					+ " AND t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
 
@@ -658,7 +658,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteEntityData(List<Long> entityIds) {
+	public void deleteObjectData(ObjectType objectsType, List<Long> entityIds) {
 		final List<Long> sorted = new ArrayList<Long>(entityIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -668,7 +668,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				ps.setLong(1, sorted.get(i));
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, objectsType.name());
+				ps.setLong(parameterIndex++, sorted.get(i));
 			}
 
 			@Override
@@ -679,8 +681,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addEntityData(List<EntityDTO> entityDTOs) {
-		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(entityDTOs);
+	public void addObjectData(ObjectType objectType, List<EntityDTO> objectDtos) {
+		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(objectDtos);
 		Collections.sort(sorted);
 		// batch update the entity table
 		template.batchUpdate(TableConstants.ENTITY_REPLICATION_INSERT, new BatchPreparedStatementSetter(){
@@ -690,6 +692,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				EntityDTO dto = sorted.get(i);
 				int parameterIndex = 1;
+				ps.setString(parameterIndex++, objectType.name());
 				ps.setLong(parameterIndex++, dto.getId());
 				ps.setLong(parameterIndex++, dto.getCurrentVersion());
 				ps.setLong(parameterIndex++, dto.getCreatedBy());
@@ -756,7 +759,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				AnnotationDTO dto = annotations.get(i);
-				SQLUtils.writeAnnotationDtoToPreparedStatement(ps, dto);
+				SQLUtils.writeAnnotationDtoToPreparedStatement(objectType, ps, dto);
 			}
 
 			@Override
@@ -767,72 +770,67 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public EntityDTO getEntityData(Long entityId) {
+	public EntityDTO getObjectData(ObjectType objectType, Long objectId) {
 		// query for the template.
 		EntityDTO dto;
 		try {
-			dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, new RowMapper<EntityDTO>(){
+			dto = template.queryForObject(TableConstants.ENTITY_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
+				EntityDTO dto1 = new EntityDTO();
+				dto1.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
+				dto1.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
+				dto1.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
+				dto1.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
+				dto1.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
+				dto1.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
+				dto1.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
+				dto1.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
+				if (rs.wasNull()) {
+					dto1.setParentId(null);
+				}
+				dto1.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
+				if (rs.wasNull()) {
+					dto1.setBenefactorId(null);
+				}
+				dto1.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
+				if (rs.wasNull()) {
+					dto1.setProjectId(null);
+				}
+				dto1.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
+				dto1.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
+				dto1.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
+				if (rs.wasNull()) {
+					dto1.setFileHandleId(null);
+				}
+				dto1.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
+				if (rs.wasNull()) {
+					dto1.setFileSizeBytes(null);
+				}
+				dto1.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
+				if (rs.wasNull()) {
+					dto1.setIsInSynapseStorage(null);
+				}
+				dto1.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
 
-				@Override
-				public EntityDTO mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					EntityDTO dto = new EntityDTO();
-					dto.setId(rs.getLong(OBJECT_REPLICATION_COL_OBJECT_ID));
-					dto.setCurrentVersion(rs.getLong(OBJECT_REPLICATION_COL_VERSION));
-					dto.setCreatedBy(rs.getLong(OBJECT_REPLICATION_COL_CRATED_BY));
-					dto.setCreatedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_CRATED_ON)));
-					dto.setEtag(rs.getString(OBEJCT_REPLICATION_COL_ETAG));
-					dto.setName(rs.getString(OBJECT_REPLICATION_COL_NAME));
-					dto.setType(EntityType.valueOf(rs.getString(OBJECT_REPLICATION_COL_SUBTYPE)));
-					dto.setParentId(rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID));
-					if(rs.wasNull()){
-						dto.setParentId(null);
-					}
-					dto.setBenefactorId(rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID));
-					if(rs.wasNull()){
-						dto.setBenefactorId(null);
-					}
-					dto.setProjectId(rs.getLong(OBJECT_REPLICATION_COL_PROJECT_ID));
-					if(rs.wasNull()){
-						dto.setProjectId(null);
-					}
-					dto.setModifiedBy(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_BY));
-					dto.setModifiedOn(new Date(rs.getLong(OBJECT_REPLICATION_COL_MODIFIED_ON)));
-					dto.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
-					if(rs.wasNull()){
-						dto.setFileHandleId(null);
-					}
-					dto.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
-					if(rs.wasNull()){
-						dto.setFileSizeBytes(null);
-					}
-					dto.setIsInSynapseStorage(rs.getBoolean(OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE));
-					if(rs.wasNull()) {
-						dto.setIsInSynapseStorage(null);
-					}
-					dto.setFileMD5(rs.getString(OBJECT_REPLICATION_COL_FILE_MD5));
-
-					return dto;
-				}}, entityId);
+				return dto1;
+			}, objectType.name(), objectId);
 		} catch (DataAccessException e) {
 			return null;
 		}
 		// get the annotations.
-		List<AnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, new RowMapper<AnnotationDTO>(){
-
-			@Override
-			public AnnotationDTO mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				AnnotationDTO dto = new AnnotationDTO();
-				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
-				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
-				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE)).toList());
-				return dto;
-			}}, entityId);
-		if(!annotations.isEmpty()){
+		List<AnnotationDTO> annotations = template.query(TableConstants.ANNOTATION_REPLICATION_GET, (ResultSet rs, int rowNum) -> {
+			AnnotationDTO dto1 = new AnnotationDTO();
+			dto1.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_OBJECT_ID));
+			dto1.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+			dto1.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
+			dto1.setValue((List<String>) (List<?>) new JSONArray(rs.getString(ANNOTATION_REPLICATION_COL_STRING_LIST_VALUE))
+							.toList());
+			return dto1;
+		}, objectType.name(), objectId);
+		
+		if (!annotations.isEmpty()) {
 			dto.setAnnotations(annotations);
 		}
+		
 		return dto;
 	}
 	
@@ -916,18 +914,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(viewTypeMask);
-		List<ColumnAggregation> results = namedTemplate.query(sql, param, new RowMapper<ColumnAggregation>() {
-
-			@Override
-			public ColumnAggregation mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				ColumnAggregation aggregation = new ColumnAggregation();
-				aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
-				aggregation.setColumnTypeConcat(rs.getString(2));
-				aggregation.setMaxStringElementSize(rs.getLong(3));
-				aggregation.setMaxListSize(rs.getLong(4));
-				return aggregation;
-			}
+		List<ColumnAggregation> results = namedTemplate.query(sql, param, (ResultSet rs, int rowNum) -> {
+			ColumnAggregation aggregation = new ColumnAggregation();
+			aggregation.setColumnName(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
+			aggregation.setColumnTypeConcat(rs.getString(2));
+			aggregation.setMaxStringElementSize(rs.getLong(3));
+			aggregation.setMaxListSize(rs.getLong(4));
+			return aggregation;
 		});
 		// convert from the aggregation to column models.
 		return expandFromAggregation(results);
@@ -969,42 +962,37 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(ObjectType objectType, List<Long> parentIds) {
+		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(parentIds, "parentIds");
 		final Map<Long, Long> results = new HashMap<>();
 		if(parentIds.isEmpty()){
 			return results;
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		param.addValue(PARENT_ID_PARAM_NAME, parentIds);
-		namedTemplate.query(SELECT_OBJECT_CHILD_CRC, param, new RowCallbackHandler() {
-			
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				Long parentId = rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID);
-				Long crc = rs.getLong(CRC_ALIAS);
-				results.put(parentId, crc);
-			}
+		namedTemplate.query(SELECT_OBJECT_CHILD_CRC, param, (ResultSet rs) -> {
+			Long parentId = rs.getLong(OBJECT_REPLICATION_COL_PARENT_ID);
+			Long crc = rs.getLong(CRC_ALIAS);
+			results.put(parentId, crc);
 		});
 		return results;
 	}
 
 	@Override
-	public List<IdAndEtag> getEntityChildren(Long parentId) {
+	public List<IdAndEtag> getObjectChildren(ObjectType objectType, Long parentId) {
+		ValidateArgument.required(objectType, "objectType");
 		ValidateArgument.required(parentId, "parentId");
-		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, new RowMapper<IdAndEtag>(){
-
-			@Override
-			public IdAndEtag mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				Long id = rs.getLong(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID);
-				String etag = rs.getString(OBEJCT_REPLICATION_COL_ETAG);
-				Long benefactorId = rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID);
-				if(rs.wasNull()) {
-					benefactorId = null;
-				}
-				return new IdAndEtag(id, etag, benefactorId);
-			}}, parentId);
+		return this.template.query(SELECT_OBJECT_CHILD_ID_ETAG, (ResultSet rs, int rowNum) -> {
+			Long id = rs.getLong(TableConstants.OBJECT_REPLICATION_COL_OBJECT_ID);
+			String etag = rs.getString(OBEJCT_REPLICATION_COL_ETAG);
+			Long benefactorId = rs.getLong(OBJECT_REPLICATION_COL_BENEFACTOR_ID);
+			if (rs.wasNull()) {
+				benefactorId = null;
+			}
+			return new IdAndEtag(id, etag, benefactorId);
+		}, objectType.name(), parentId);
 	}
 
 	@Override
@@ -1076,7 +1064,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return 0L;
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType);
+		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
 		params.addValue(ID_PARAM_NAME, rowIds);
 
 		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, params, Long.class);
@@ -1090,14 +1078,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback) {
+		MapSqlParameterSource params = new MapSqlParameterSource(OBJECT_TYPE_PARAM_NAME, objectType.name());
+		
 		// We use spring to create create the prepared statement
-		template.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
+		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, params, (ResultSet rs) -> {
 			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
 			stats.setId(rs.getString(1));
 			stats.setProjectName(rs.getString(2));
 			stats.setSizeInBytes(rs.getLong(3));
 			callback.invoke(stats);
-		}, objectType);
+		});
 	}
 
 	@Override

@@ -318,26 +318,27 @@ public interface TableIndexDAO {
 	void createEntityReplicationTablesIfDoesNotExist();
 
 	/**
-	 * Delete all entity data with the given Ids.
+	 * Delete all object data with the given Ids.
+	 * @param objectsType TODO
+	 * @param objectIds
 	 * @param progressCallback 
-	 * 
-	 * @param allIds
 	 */
-	void deleteEntityData(List<Long> allIds);
+	void deleteObjectData(ObjectType objectsType, List<Long> objectIds);
 
 	/**
-	 * Add the given entity data to the index.
-	 * 
-	 * @param entityDTOs
+	 * Add the given object data to the index.
+	 * @param objectType TODO
+	 * @param objectDtos
 	 */
-	void addEntityData(List<EntityDTO> entityDTOs);
+	void addObjectData(ObjectType objectType, List<EntityDTO> objectDtos);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.
-	 * @param entityId
+	 * @param objectType TODO
+	 * @param objectId
 	 * @return
 	 */
-	EntityDTO getEntityData(Long entityId);
+	EntityDTO getObjectData(ObjectType objectType, Long objectId);
 
 	/**
 	 * Copy the data from the entity replication tables to the given view.
@@ -442,14 +443,15 @@ public interface TableIndexDAO {
 	 *   
 	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+	Map<Long, Long> getSumOfChildCRCsForEachParent(ObjectType objectType, List<Long> parentIds);
 
 	/**
-	 * Get the Id and Etag for each child of the given Entity parentId.
+	 * Get the Id and Etag for each child of the given parentId.
+	 * @param objectType TODO
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	List<IdAndEtag> getEntityChildren(Long parentId);
+	List<IdAndEtag> getObjectChildren(ObjectType objectType, Long parentId);
 
 	/**
 	 * Get the rowIds for the given query.

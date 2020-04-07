@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.json.JSONArray;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -1785,8 +1786,9 @@ public class SQLUtils {
 	 * @param dto
 	 * @throws SQLException
 	 */
-	public static void writeAnnotationDtoToPreparedStatement(PreparedStatement ps, AnnotationDTO dto) throws SQLException{
+	public static void writeAnnotationDtoToPreparedStatement(ObjectType objectType, PreparedStatement ps, AnnotationDTO dto) throws SQLException{
 		int parameterIndex = 1;
+		ps.setString(parameterIndex++, objectType.name());
 		ps.setLong(parameterIndex++, dto.getEntityId());
 		ps.setString(parameterIndex++, dto.getKey());
 		ps.setString(parameterIndex++, dto.getType().name());
