@@ -1,0 +1,21 @@
+{
+	"description": "The parsed $id of a JsonSchema",
+	"properties": {
+		"organization": {
+			"type": "string",
+			"description": "The name of the organization"
+		},
+		"version": {
+			"type": "string",
+			"description": "The optional <a href=\"https://semver.org/\">Semantic Version</a> string."
+		},
+		"path": {
+			"type": "string",
+			"description": "The full path of the schema"
+		},
+		"name": {
+			"type": "string",
+			"description": "The file name of the schema"
+		}
+	}
+}

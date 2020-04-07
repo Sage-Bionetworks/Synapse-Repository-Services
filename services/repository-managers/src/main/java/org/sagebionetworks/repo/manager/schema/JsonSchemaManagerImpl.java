@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -150,6 +152,17 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(name, "name");
 		String processedOrganizationName = processAndValidateOrganizationName(name);
 		return organizationDao.getOrganizationByName(processedOrganizationName);
+	}
+
+	@Override
+	public CreateSchemaResponse createJsonSchema(UserInfo user, CreateSchemaRequest request) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getSchema(), "request.schema");
+		
+		AuthorizationUtils.disallowAnonymous(user);
+		
+		return null;
 	}
 
 }

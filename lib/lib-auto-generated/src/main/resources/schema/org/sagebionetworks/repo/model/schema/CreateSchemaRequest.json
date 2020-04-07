@@ -1,0 +1,14 @@
+{
+	"description": "An AsynchronousRequestBody to define a new JsonSchema.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"schema": {
+			"description": "The JsonSchema defintion to be created.",
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema"
+		}
+	}
+}

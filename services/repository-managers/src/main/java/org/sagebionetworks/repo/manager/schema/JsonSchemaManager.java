@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.schema;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.Organization;
 
 /**
@@ -52,4 +54,12 @@ public interface JsonSchemaManager {
 	 * @return
 	 */
 	Organization getOrganizationByName(UserInfo user, String name);
+	
+	/**
+	 * Create a new JsonSchema.
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	CreateSchemaResponse createJsonSchema(UserInfo user, CreateSchemaRequest request);
 }
