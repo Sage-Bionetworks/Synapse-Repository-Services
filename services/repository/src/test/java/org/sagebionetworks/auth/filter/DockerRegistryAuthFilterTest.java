@@ -1,27 +1,31 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.auth.filter;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Base64;
+
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.auth.HttpAuthUtil;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
-import com.sun.syndication.io.impl.Base64;
-
+@ExtendWith(MockitoExtension.class)
 public class DockerRegistryAuthFilterTest {
+
+	@Mock
+	private StackConfiguration mockConfig;
+
 	@Mock
 	private HttpServletRequest mockRequest;
 
@@ -33,32 +37,35 @@ public class DockerRegistryAuthFilterTest {
 
 	private DockerRegistryAuthFilter filter;
 
-	@Before
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		filter = new DockerRegistryAuthFilter();
-	}
+	private static final String USER = "user";
+	private static final String PASS = "pass";
 
+	@BeforeEach
+	public void beforeEach() {
+		when(mockConfig.getDockerRegistryUser()).thenReturn(USER);
+		when(mockConfig.getDockerRegistryPassword()).thenReturn(PASS);
+		filter = new DockerRegistryAuthFilter(mockConfig);
+	}
+	
 	@Test
 	public void testDoFilterWithoutBasicAuth() throws Exception {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), (HttpServletResponse)anyObject());
+		verify(mockFilterChain, never()).doFilter(any(), any());
 	}
 
 	@Test
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
-		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX + Base64.encode(
-				"wrongRegistryUserName:wrongRegistryPassword");
+		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX
+				+ Base64.getEncoder().encodeToString("wrongRegistryUserName:wrongRegistryPassword".getBytes());
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), (HttpServletResponse)anyObject());
+		verify(mockFilterChain, never()).doFilter(any(), any());
 	}
 
 	@Test
 	public void testDoFilterAuthenticateSuccess() throws Exception {
-		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX + Base64.encode(
-				StackConfigurationSingleton.singleton().getDockerRegistryUser()+":"+
-						StackConfigurationSingleton.singleton().getDockerRegistryPassword());
+		String basicAuthenticationHeader = AuthorizationConstants.BASIC_PREFIX
+				+ Base64.getEncoder().encodeToString((USER+ ":" + PASS).getBytes());
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain).doFilter(any(HttpServletRequest.class), eq(mockResponse));

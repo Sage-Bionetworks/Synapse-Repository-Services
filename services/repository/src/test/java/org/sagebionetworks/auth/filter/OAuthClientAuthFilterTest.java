@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;

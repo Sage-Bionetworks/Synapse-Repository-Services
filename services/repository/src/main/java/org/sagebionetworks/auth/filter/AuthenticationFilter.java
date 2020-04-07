@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,6 +18,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -30,6 +31,7 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 /**
  * This filter authenticates incoming requests:
@@ -38,6 +40,7 @@ import org.springframework.http.HttpStatus;
  * (3) If neither of the above, passes the request through as anonymous.  (It is then the service's responsibility
  * 		to reject requests that cannot be made anonymously.)
  */
+@Component("authFilter")
 public class AuthenticationFilter implements Filter {
 	
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);

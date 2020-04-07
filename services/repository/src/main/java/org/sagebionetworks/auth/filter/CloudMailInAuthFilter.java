@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 
@@ -13,15 +13,19 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.auth.HttpAuthUtil;
+import org.sagebionetworks.auth.UserNameAndPassword;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component("cloudMailInAuthFilter")
 public class CloudMailInAuthFilter implements Filter {
 
 	private String cloudMailInUser;
 	private String cloudMailInPassword;
 
-	public CloudMailInAuthFilter() {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
+	@Autowired
+	public CloudMailInAuthFilter(StackConfiguration config) {
 		cloudMailInUser = config.getCloudMailInUser();
 		cloudMailInPassword = config.getCloudMailInPassword();
 	}

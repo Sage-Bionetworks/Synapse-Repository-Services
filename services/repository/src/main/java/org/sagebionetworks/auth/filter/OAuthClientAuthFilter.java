@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.Map;
@@ -12,12 +12,16 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
+import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component("oauthClientAuthFilter")
 public class OAuthClientAuthFilter implements Filter {
 	
 	@Autowired

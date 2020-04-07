@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.auth.filter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -9,24 +9,27 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Base64;
+
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.sun.syndication.io.impl.Base64;
+@ExtendWith(MockitoExtension.class)
 
 public class DockerClientAuthFilterTest {
 	@Mock
@@ -40,18 +43,17 @@ public class DockerClientAuthFilterTest {
 	@Mock
 	private PrincipalAlias mockPrincipalAlias;
 
+	@InjectMocks
 	private DockerClientAuthFilter filter;
+	
 	private String header;
 	private static final String USERNAME = "username";
 	private static final String PASSWORD = "password";
 	private static final Long USERID = 123L;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		MockitoAnnotations.initMocks(this);
-		filter = new DockerClientAuthFilter();
-		header = AuthorizationConstants.BASIC_PREFIX + Base64.encode(USERNAME+":"+PASSWORD);
-		ReflectionTestUtils.setField(filter, "authenticationService", mockAuthenticationService);
+		header = AuthorizationConstants.BASIC_PREFIX + Base64.getEncoder().encodeToString((USERNAME+":"+PASSWORD).getBytes());
 	}
 
 	@Test

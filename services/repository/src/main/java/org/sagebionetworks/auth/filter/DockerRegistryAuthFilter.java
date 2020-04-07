@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 
@@ -13,17 +13,19 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component("dockerRegistryAuthFilter")
 public class DockerRegistryAuthFilter implements Filter {
 
 	private String dockerRegistryUser;
 	private String dockerRegistryPassword;
 
-	public DockerRegistryAuthFilter() {
-		StackConfiguration config = StackConfigurationSingleton.singleton();
+	@Autowired
+	public DockerRegistryAuthFilter(StackConfiguration config) {
 		dockerRegistryUser = config.getDockerRegistryUser();
 		dockerRegistryPassword = config.getDockerRegistryPassword();
 	}

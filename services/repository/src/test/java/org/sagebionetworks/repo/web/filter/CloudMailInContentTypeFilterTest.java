@@ -1,10 +1,11 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.repo.web.filter;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -17,9 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class CloudMailInContentTypeFilterTest {

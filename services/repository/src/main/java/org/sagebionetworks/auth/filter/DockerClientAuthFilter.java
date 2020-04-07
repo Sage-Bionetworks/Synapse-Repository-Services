@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.filter;
+package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,8 +24,11 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component("dockerClientAuthFilter")
 public class DockerClientAuthFilter implements Filter {
+	
 	@Autowired
 	private AuthenticationService authenticationService;
 

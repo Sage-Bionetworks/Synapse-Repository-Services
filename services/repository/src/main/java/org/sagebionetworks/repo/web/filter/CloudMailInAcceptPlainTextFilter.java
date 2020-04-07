@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -13,6 +13,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.entity.ContentType;
+import org.sagebionetworks.auth.ExtraHeadersHttpServletRequest;
 
 public class CloudMailInAcceptPlainTextFilter implements Filter {
 		

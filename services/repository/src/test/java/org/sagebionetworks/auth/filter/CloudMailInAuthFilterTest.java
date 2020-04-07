@@ -1,0 +1,105 @@
+package org.sagebionetworks.auth.filter;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Base64;
+
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
+
+@ExtendWith(MockitoExtension.class)
+public class CloudMailInAuthFilterTest {
+	@Mock
+	private StackConfiguration mockConfig;
+	@Mock
+	private HttpServletRequest mockRequest;
+	@Mock
+	private HttpServletResponse mockResponse;
+	@Mock
+	private FilterChain mockFilterChain;
+	
+	private CloudMailInAuthFilter filter;
+
+	private static final String AUTHORIZATION = "Authorization";
+	
+	private static final String USER = "user";
+	private static final String PASS = "pass";
+	
+	// as set in StackConfiguration
+	private static final String CORRECT_CREDENTIALS = USER + ":" + PASS;
+	
+	@BeforeEach
+	public void beforeEach() {
+		when(mockConfig.getCloudMailInUser()).thenReturn(USER);
+		when(mockConfig.getCloudMailInPassword()).thenReturn(PASS);
+		filter = new CloudMailInAuthFilter(mockConfig);
+	}
+	
+	@Test
+	public void testAuthenticated() throws Exception {
+		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
+				Base64.getEncoder().encodeToString(CORRECT_CREDENTIALS.getBytes()));
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+		// to check that authorization proceeded, check that 'doFilter' was called and 'setStatus' was not
+		ArgumentCaptor<HttpServletResponse> responseCaptor = ArgumentCaptor.forClass(HttpServletResponse.class);
+		verify(mockFilterChain).doFilter(any(), responseCaptor.capture());
+		verify(responseCaptor.getValue(), never()).setStatus(eq(HttpStatus.SC_UNAUTHORIZED));
+	}
+	
+	private void checkForUnauthorizedStatus() {
+		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
+		verify(mockResponse).setStatus((Integer)captor.capture());
+		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());		
+	}
+
+	@Test
+	public void testNoCredentials() throws Exception {
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
+		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testMissingBasicPrefix() throws Exception {
+		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("XXX "+
+				Base64.getEncoder().encodeToString(CORRECT_CREDENTIALS.getBytes()));
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
+		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testMissingColon() throws Exception {
+		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
+				Base64.getEncoder().encodeToString("NO-COLON-HERE".getBytes()));
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
+		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+		checkForUnauthorizedStatus();
+	}
+
+	@Test
+	public void testWrongCredentials() throws Exception {
+		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
+				Base64.getEncoder().encodeToString("foo:bar".getBytes()));
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
+		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+		checkForUnauthorizedStatus();
+	}
+
+
+}
