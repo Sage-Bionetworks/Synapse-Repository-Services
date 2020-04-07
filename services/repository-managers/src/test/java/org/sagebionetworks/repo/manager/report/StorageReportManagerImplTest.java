@@ -67,7 +67,7 @@ public class StorageReportManagerImplTest {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
 			callback.invoke(projectStats);
 			return null;
-		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;
@@ -85,7 +85,7 @@ public class StorageReportManagerImplTest {
 			Callback<SynapseStorageProjectStats> callback = invocation.getArgument(0);
 			callback.invoke(projectStats);
 			return null;
-		}).when(mockTableIndexDao).streamSynapseStorageStats(any(Callback.class));
+		}).when(mockTableIndexDao).streamSynapseStorageStats(any(), any());
 		// Call under test
 		storageReportManager.writeStorageReport(adminUser, request, mockCsvWriter);
 		// Verify that the CSV had the header and data written in order;

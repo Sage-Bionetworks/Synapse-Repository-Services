@@ -9,6 +9,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -465,13 +466,13 @@ public interface TableIndexDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	long getSumOfFileSizes(List<Long> rowIds);
+	long getSumOfFileSizes(ObjectType objectType, List<Long> rowIds);
 
 	/**
 	 * Get the statistics about Synapse storage usage per-project.
 	 * @return
 	 */
-	void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback);
+	void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback);
 
 	/**
 	 * Populate a view from a snapshot.

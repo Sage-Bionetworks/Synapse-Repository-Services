@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.report;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -49,7 +50,7 @@ public class StorageReportManagerImpl implements StorageReportManager {
 					writer.writeNext(row);
 				};
 
-				tableIndexDAO.streamSynapseStorageStats(callback);
+				tableIndexDAO.streamSynapseStorageStats(ObjectType.ENTITY, callback);
 				break;
 			default:
 				throw new IllegalArgumentException("Only storage reports of type \"ALL_PROJECTS\" are currently supported.");

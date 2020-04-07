@@ -11,6 +11,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -557,7 +558,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				boolean isGreaterThan = rowIds.size() > MAX_ROWS_PER_CALL;
 				result.setGreaterThan(isGreaterThan);
 				// Use the rowIds to calculate the sum of the file sizes.
-				long sumFileSizesBytes = indexDao.getSumOfFileSizes(rowIds);
+				long sumFileSizesBytes = indexDao.getSumOfFileSizes(ObjectType.ENTITY, rowIds);
 				result.setSumFileSizesBytes(sumFileSizesBytes);
 			} catch (SimpleAggregateQueryException e) {
 				// zero results will be returned for this case.

@@ -1,8 +1,15 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_OBJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -31,6 +38,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -2010,7 +2018,7 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addEntityData(Lists.newArrayList(file1, file2));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(file1.getId(), file2.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(ObjectType.ENTITY, Lists.newArrayList(file1.getId(), file2.getId()));
 		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
 	}
 	
@@ -2029,7 +2037,7 @@ public class TableIndexDAOImplTest {
 		
 		tableIndexDAO.addEntityData(Lists.newArrayList(folder));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(Lists.newArrayList(folder.getId()));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(ObjectType.ENTITY, Lists.newArrayList(folder.getId()));
 		assertEquals(0L, fileSizes);
 	}
 	
@@ -2037,7 +2045,7 @@ public class TableIndexDAOImplTest {
 	public void testGetSumOfFileSizesEmpty(){
 		List<Long> list = new LinkedList<>();
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(list);
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(ObjectType.ENTITY, list);
 		assertEquals(0, fileSizes);
 	}
 	
@@ -2047,7 +2055,7 @@ public class TableIndexDAOImplTest {
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			 tableIndexDAO.getSumOfFileSizes(list);;
+			 tableIndexDAO.getSumOfFileSizes(ObjectType.ENTITY, list);;
 		});
 	}
 	
@@ -2286,7 +2294,7 @@ public class TableIndexDAOImplTest {
 
 		Callback<SynapseStorageProjectStats> callback = result::add;
 		// Call under test
-		tableIndexDAO.streamSynapseStorageStats(callback);
+		tableIndexDAO.streamSynapseStorageStats(ObjectType.ENTITY, callback);
 
 		assertEquals(2, result.size()); // 2 projects
 		// Note project 2 is bigger so it will be first

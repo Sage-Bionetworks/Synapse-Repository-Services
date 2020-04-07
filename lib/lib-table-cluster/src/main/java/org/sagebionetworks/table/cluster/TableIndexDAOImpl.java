@@ -28,6 +28,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.EXPIRES_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.ID_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAM_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_TYPE_PARAM_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
 import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 import static org.sagebionetworks.repo.model.table.TableConstants.SELECT_OBJECT_CHILD_CRC;
@@ -58,6 +59,7 @@ import org.json.JSONArray;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
@@ -99,16 +101,23 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
-	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") FROM "
-			+ OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_OBJECT_ID + " IN (:rowIds)";
+	private static final String SQL_SUM_FILE_SIZES = "SELECT SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ")"
+			+ " FROM " + OBJECT_REPLICATION_TABLE 
+			+ " WHERE " + OBJECT_REPLICATION_COL_OBJECT_TYPE + " =:" + OBJECT_TYPE_PARAM_NAME 
+			+ " AND " + OBJECT_REPLICATION_COL_OBJECT_ID + " IN (:" +ID_PARAM_NAME+ ")";
 
 	public static final String SQL_SELECT_PROJECTS_BY_SIZE =
 			"SELECT t1."+OBJECT_REPLICATION_COL_PROJECT_ID + ", t2." + OBJECT_REPLICATION_COL_NAME + ", t1.PROJECT_SIZE_BYTES "
-		+ " FROM (SELECT " + OBJECT_REPLICATION_COL_PROJECT_ID + ", "
+			+ " FROM (SELECT " + OBJECT_REPLICATION_COL_PROJECT_ID + ", "
 					+ " SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") AS PROJECT_SIZE_BYTES"
-					+ " FROM " + OBJECT_REPLICATION_TABLE + " WHERE " + OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
+					+ " FROM " + OBJECT_REPLICATION_TABLE 
+					+ " WHERE " 
+					+ OBJECT_REPLICATION_COL_OBJECT_TYPE + " = ?"
+					+ " AND " + OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE+" = 1"
 					+ " GROUP BY " + OBJECT_REPLICATION_COL_PROJECT_ID + ") t1," + OBJECT_REPLICATION_TABLE + " t2"
-					+ " WHERE t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
+					+ " WHERE"
+					+ " t1." + OBJECT_REPLICATION_COL_OBJECT_TYPE + " = t2." + OBJECT_REPLICATION_COL_OBJECT_TYPE
+					+ " AND t1." + OBJECT_REPLICATION_COL_PROJECT_ID + " = t2." + OBJECT_REPLICATION_COL_OBJECT_ID
 					+ " ORDER BY t1.PROJECT_SIZE_BYTES DESC";
 
 	/**
@@ -1061,28 +1070,34 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public long getSumOfFileSizes(List<Long> rowIds) {
+	public long getSumOfFileSizes(ObjectType objectType, List<Long> rowIds) {
 		ValidateArgument.required(rowIds, "rowIds");
 		if(rowIds.isEmpty()) {
 			return 0L;
 		}
-		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, new MapSqlParameterSource("rowIds", rowIds), Long.class);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType);
+		params.addValue(ID_PARAM_NAME, rowIds);
+
+		Long sum = namedTemplate.queryForObject(SQL_SUM_FILE_SIZES, params, Long.class);
+		
 		if(sum == null) {
 			sum =  0L;
 		}
+		
 		return sum;
 	}
 
 	@Override
-	public void streamSynapseStorageStats(Callback<SynapseStorageProjectStats> callback) {
+	public void streamSynapseStorageStats(ObjectType objectType, Callback<SynapseStorageProjectStats> callback) {
 		// We use spring to create create the prepared statement
-		namedTemplate.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
+		template.query(SQL_SELECT_PROJECTS_BY_SIZE, rs -> {
 			SynapseStorageProjectStats stats = new SynapseStorageProjectStats();
 			stats.setId(rs.getString(1));
 			stats.setProjectName(rs.getString(2));
 			stats.setSizeInBytes(rs.getLong(3));
 			callback.invoke(stats);
-		});
+		}, objectType);
 	}
 
 	@Override
