@@ -37,7 +37,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	
 	private Consumer consumer;
 	
-	protected BasicAuthenticationFilter(Consumer consumer) {
+	public BasicAuthenticationFilter(Consumer consumer) {
 		this.consumer = consumer;
 	}
 	
@@ -55,7 +55,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		doFilterInternal(httpRequest, httpResponse, filterChain);
 	}
 
-	protected final void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 			FilterChain filterChain) throws ServletException, IOException {
 
 		UserNameAndPassword credentials = HttpAuthUtil.getBasicAuthenticationCredentials(request);
@@ -73,7 +73,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		proceed(request, response, filterChain, credentials);
 	}
 	
-	protected final void rejectRequest(HttpServletResponse response) throws IOException {
+	protected void rejectRequest(HttpServletResponse response) throws IOException {
 		
 		if (reportBadCredentialsMetric()) {
 			
@@ -144,7 +144,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
-				
+		
 	}
 
 	@Override

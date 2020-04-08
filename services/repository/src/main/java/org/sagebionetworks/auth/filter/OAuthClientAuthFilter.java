@@ -76,4 +76,5 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 		
 		filterChain.doFilter(modRqst, response);
 	}
+
 }
