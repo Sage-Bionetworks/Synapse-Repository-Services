@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web.service.discussion;
 import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
@@ -29,8 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DiscussionServiceImpl implements DiscussionService{
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private ForumManager forumManager;
 	@Autowired
 	private DiscussionThreadManager threadManager;
@@ -38,138 +35,128 @@ public class DiscussionServiceImpl implements DiscussionService{
 	private DiscussionReplyManager replyManager;
 
 	@Override
-	public Forum getForumByProjectId(Long userId, String projectId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return forumManager.getForumByProjectId(user, projectId);
+	public Forum getForumByProjectId(UserInfo userInfo, String projectId) {
+		return forumManager.getForumByProjectId(userInfo, projectId);
 	}
 
 	@Override
-	public Forum getForum(Long userId, String forumId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return forumManager.getForum(user, forumId);
+	public Forum getForum(UserInfo userInfo, String forumId) {
+		return forumManager.getForum(userInfo, forumId);
 	}
 
 	@Override
-	public DiscussionThreadBundle createThread(Long userId,
+	public DiscussionThreadBundle createThread(UserInfo userInfo,
 			CreateDiscussionThread toCreate) throws IOException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.createThread(user, toCreate);
+		return threadManager.createThread(userInfo, toCreate);
 	}
 
 	@Override
-	public DiscussionThreadBundle getThread(Long userId, String threadId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThread(user, threadId);
+	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId) {
+		return threadManager.getThread(userInfo, threadId);
 	}
 
 	@Override
-	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, UpdateThreadTitle title) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.updateTitle(user, threadId, title);
+	public DiscussionThreadBundle updateThreadTitle(UserInfo userInfo, String threadId, UpdateThreadTitle title) {
+		return threadManager.updateTitle(userInfo, threadId, title);
 	}
 
 	@Override
-	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId,
+	public DiscussionThreadBundle updateThreadMessage(UserInfo userInfo, String threadId,
 			UpdateThreadMessage message) throws IOException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.updateMessage(user, threadId, message);
+		return threadManager.updateMessage(userInfo, threadId, message);
 	}
 
 	@Override
-	public void markThreadAsDeleted(Long userId,
+	public void markThreadAsDeleted(UserInfo userInfo,
 			String threadId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		threadManager.markThreadAsDeleted(user, threadId);
+		threadManager.markThreadAsDeleted(userInfo, threadId);
 	}
 
 	@Override
-	public void markThreadAsNotDeleted(Long userId,
+	public void markThreadAsNotDeleted(UserInfo userInfo,
 			String threadId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		threadManager.markThreadAsNotDeleted(user, threadId);
+
+		threadManager.markThreadAsNotDeleted(userInfo, threadId);
 	}
 
 	@Override
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(Long userId,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThreadsForForum(user, forumId, limit, offset, order, ascending, filter);
+
+		return threadManager.getThreadsForForum(userInfo, forumId, limit, offset, order, ascending, filter);
 	}
 
 	@Override
-	public DiscussionReplyBundle createReply(Long userId, CreateDiscussionReply toCreate) throws IOException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.createReply(user, toCreate);
+	public DiscussionReplyBundle createReply(UserInfo userInfo, CreateDiscussionReply toCreate) throws IOException {
+
+		return replyManager.createReply(userInfo, toCreate);
 	}
 
 	@Override
-	public DiscussionReplyBundle getReply(Long userId, String replyId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getReply(user, replyId);
+	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId) {
+
+		return replyManager.getReply(userInfo, replyId);
 	}
 
 	@Override
-	public DiscussionReplyBundle updateReplyMessage(Long userId, String replyId, UpdateReplyMessage message) throws IOException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.updateReplyMessage(user, replyId, message);
+	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo, String replyId, UpdateReplyMessage message) throws IOException {
+
+		return replyManager.updateReplyMessage(userInfo, replyId, message);
 	}
 
 	@Override
-	public void markReplyAsDeleted(Long userId, String replyId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		replyManager.markReplyAsDeleted(user, replyId);
+	public void markReplyAsDeleted(UserInfo userInfo, String replyId) {
+
+		replyManager.markReplyAsDeleted(userInfo, replyId);
 	}
 
 	@Override
-	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
+	public PaginatedResults<DiscussionReplyBundle> getReplies(UserInfo userInfo,
 			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending, DiscussionFilter filter) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getRepliesForThread(user, threadId, limit, offset, order, ascending, filter);
+
+		return replyManager.getRepliesForThread(userInfo, threadId, limit, offset, order, ascending, filter);
 	}
 
 	@Override
-	public MessageURL getThreadUrl(Long userId, String messageKey) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getMessageUrl(user, messageKey);
+	public MessageURL getThreadUrl(UserInfo userInfo, String messageKey) {
+
+		return threadManager.getMessageUrl(userInfo, messageKey);
 	}
 
 	@Override
-	public MessageURL getReplyUrl(Long userId, String messageKey) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getMessageUrl(user, messageKey);
+	public MessageURL getReplyUrl(UserInfo userInfo, String messageKey) {
+
+		return replyManager.getMessageUrl(userInfo, messageKey);
 	}
 
 	@Override
-	public ThreadCount getThreadCount(Long userId, String forumId, DiscussionFilter filter) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThreadCountForForum(user, forumId, filter);
+	public ThreadCount getThreadCount(UserInfo userInfo, String forumId, DiscussionFilter filter) {
+
+		return threadManager.getThreadCountForForum(userInfo, forumId, filter);
 	}
 
 	@Override
-	public ReplyCount getReplyCount(Long userId, String threadId, DiscussionFilter filter) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return replyManager.getReplyCountForThread(user, threadId, filter);
+	public ReplyCount getReplyCount(UserInfo userInfo, String threadId, DiscussionFilter filter) {
+		return replyManager.getReplyCountForThread(userInfo, threadId, filter);
 	}
 
 	@Override
-	public void pinThread(Long userId, String threadId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		threadManager.pinThread(user, threadId);
+	public void pinThread(UserInfo userInfo, String threadId) {
+		threadManager.pinThread(userInfo, threadId);
 	}
 
 	@Override
-	public void unpinThread(Long userId, String threadId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		threadManager.unpinThread(user, threadId);
+	public void unpinThread(UserInfo userInfo, String threadId) {
+
+		threadManager.unpinThread(userInfo, threadId);
 	}
 
 	@Override
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(Long userId, String entityId, Long limit,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(UserInfo userInfo, String entityId, Long limit,
 			Long offset, DiscussionThreadOrder order, Boolean ascending) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getThreadsForEntity(user, entityId, limit, offset, order, ascending);
+		return threadManager.getThreadsForEntity(userInfo, entityId, limit, offset, order, ascending);
 	}
 
 	@Override
@@ -178,8 +165,7 @@ public class DiscussionServiceImpl implements DiscussionService{
 	}
 
 	@Override
-	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return threadManager.getModerators(user, forumId, limit, offset);
+	public PaginatedIds getModerators(UserInfo userInfo, String forumId, Long limit, Long offset) {
+		return threadManager.getModerators(userInfo, forumId, limit, offset);
 	}
 }

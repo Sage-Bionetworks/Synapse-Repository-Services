@@ -91,21 +91,20 @@ public class DiscussionServiceImplTest {
 
 	@Test
 	public void testGetForumByProjectId() {
-		discussionServices.getForumByProjectId(userId, projectId);
-		Mockito.verify(mockUserManager).getUserInfo(userId);
+		discussionServices.getForumByProjectId(userInfo, projectId);
 		Mockito.verify(mockForumManager).getForumByProjectId(userInfo, projectId);
 	}
 
 	@Test
 	public void testCreateThread() throws Exception {
 		Mockito.when(mockThreadManager.createThread(userInfo, createThread)).thenReturn(threadBundle);
-		assertEquals(threadBundle, discussionServices.createThread(userId, createThread));
+		assertEquals(threadBundle, discussionServices.createThread(userInfo, createThread));
 	}
 
 	@Test
 	public void testGetThread() {
 		Mockito.when(mockThreadManager.getThread(userInfo, threadId)).thenReturn(threadBundle);
-		assertEquals(threadBundle, discussionServices.getThread(userId, threadId));
+		assertEquals(threadBundle, discussionServices.getThread(userInfo, threadId));
 	}
 
 	@Test
@@ -114,7 +113,7 @@ public class DiscussionServiceImplTest {
 		newTitle.setTitle("newTitle");
 		threadBundle.setTitle("newTitle");
 		Mockito.when(mockThreadManager.updateTitle(userInfo, threadId, newTitle)).thenReturn(threadBundle);
-		assertEquals(threadBundle, discussionServices.updateThreadTitle(userId, threadId, newTitle));
+		assertEquals(threadBundle, discussionServices.updateThreadTitle(userInfo, threadId, newTitle));
 	}
 
 	@Test
@@ -123,12 +122,12 @@ public class DiscussionServiceImplTest {
 		newMessage.setMessageMarkdown("newMessage");
 		threadBundle.setMessageKey("newkey");
 		Mockito.when(mockThreadManager.updateMessage(userInfo, threadId, newMessage)).thenReturn(threadBundle);
-		assertEquals(threadBundle, discussionServices.updateThreadMessage(userId, threadId, newMessage));
+		assertEquals(threadBundle, discussionServices.updateThreadMessage(userInfo, threadId, newMessage));
 	}
 
 	@Test
 	public void testMarkThreadAsDeleted() {
-		discussionServices.markThreadAsDeleted(userId, threadId);
+		discussionServices.markThreadAsDeleted(userInfo, threadId);
 		Mockito.verify(mockThreadManager).markThreadAsDeleted(userInfo, threadId);
 	}
 
@@ -137,19 +136,19 @@ public class DiscussionServiceImplTest {
 		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
 		threads.setResults(Arrays.asList(threadBundle));
 		Mockito.when(mockThreadManager.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(threads);
-		assertEquals(threads, discussionServices.getThreadsForForum(userId, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
+		assertEquals(threads, discussionServices.getThreadsForForum(userInfo, forumId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
 	public void testCreateReply() throws Exception {
 		Mockito.when(mockReplyManager.createReply(userInfo, createReply)).thenReturn(replyBundle);
-		assertEquals(replyBundle, discussionServices.createReply(userId, createReply));
+		assertEquals(replyBundle, discussionServices.createReply(userInfo, createReply));
 	}
 
 	@Test
 	public void testGetReply() {
 		Mockito.when(mockReplyManager.getReply(userInfo, replyId)).thenReturn(replyBundle);
-		assertEquals(replyBundle, discussionServices.getReply(userId, replyId));
+		assertEquals(replyBundle, discussionServices.getReply(userInfo, replyId));
 	}
 
 	@Test
@@ -158,12 +157,12 @@ public class DiscussionServiceImplTest {
 		newMessage.setMessageMarkdown("newMessage");
 		replyBundle.setMessageKey("newkey");
 		Mockito.when(mockReplyManager.updateReplyMessage(userInfo, replyId, newMessage)).thenReturn(replyBundle);
-		assertEquals(replyBundle, discussionServices.updateReplyMessage(userId, replyId, newMessage));
+		assertEquals(replyBundle, discussionServices.updateReplyMessage(userInfo, replyId, newMessage));
 	}
 
 	@Test
 	public void testMarkReplyAsDeleted() {
-		discussionServices.markReplyAsDeleted(userId, replyId);
+		discussionServices.markReplyAsDeleted(userInfo, replyId);
 		Mockito.verify(mockReplyManager).markReplyAsDeleted(userInfo, replyId);
 	}
 
@@ -172,18 +171,18 @@ public class DiscussionServiceImplTest {
 		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
 		replies.setResults(Arrays.asList(replyBundle));
 		Mockito.when(mockReplyManager.getRepliesForThread(userInfo, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER)).thenReturn(replies);
-		assertEquals(replies, discussionServices.getReplies(userId, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
+		assertEquals(replies, discussionServices.getReplies(userInfo, threadId, 10L, 0L, null, true, DiscussionFilter.NO_FILTER));
 	}
 
 	@Test
 	public void testGetThreadUrl() {
 		Mockito.when(mockThreadManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
-		assertEquals(messageUrl, discussionServices.getThreadUrl(userId, messageKey));
+		assertEquals(messageUrl, discussionServices.getThreadUrl(userInfo, messageKey));
 	}
 
 	@Test
 	public void testGetReplyUrl() {
 		Mockito.when(mockReplyManager.getMessageUrl(userInfo, messageKey)).thenReturn(messageUrl);
-		assertEquals(messageUrl, discussionServices.getReplyUrl(userId, messageKey));
+		assertEquals(messageUrl, discussionServices.getReplyUrl(userInfo, messageKey));
 	}
 }

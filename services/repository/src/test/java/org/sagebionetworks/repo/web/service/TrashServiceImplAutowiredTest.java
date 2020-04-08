@@ -177,7 +177,7 @@ public class TrashServiceImplAutowiredTest {
 		trashService.moveToTrash(userInfo2, fileEntityId, false);
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo2, fileEntityId));
 
-		trashService.restoreFromTrash(user2Id, fileEntityId, null);
+		trashService.restoreFromTrash(userInfo2, fileEntityId, null);
 		FileEntity restored = entityService.getEntity(userInfo2, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 	}
@@ -202,20 +202,20 @@ public class TrashServiceImplAutowiredTest {
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, fileEntityId));
 
 		// Restore the file entity. It is gettable now.
-		trashService.restoreFromTrash(userId, fileEntityId, null);
+		trashService.restoreFromTrash(userInfo, fileEntityId, null);
 		FileEntity restored = entityService.getEntity(userInfo, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 
 		// Trash the file entity again and attempt to restore to folder B. This fails, because you cannot restore a
 		// file to an STS-enabled folder, unless it was the original parent.
 		trashService.moveToTrash(userInfo, fileEntityId, false);
-		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, fileEntityId,
+		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userInfo, fileEntityId,
 				folderB.getId()));
 
 		// Delete the storage location from folder B. Now restoring to it works because we don't have the restriction
 		// on non-STS-enabled folders.
 		deleteStorageLocationFromFolder(folderB);
-		trashService.restoreFromTrash(userId, fileEntityId, folderB.getId());
+		trashService.restoreFromTrash(userInfo, fileEntityId, folderB.getId());
 		restored = entityService.getEntity(userInfo, fileEntityId, FileEntity.class);
 		assertNotNull(restored);
 	}
@@ -240,20 +240,20 @@ public class TrashServiceImplAutowiredTest {
 		assertThrows(EntityInTrashCanException.class, () -> entityService.getEntity(userInfo, subfolderId));
 
 		// Restore the subfolder. It is gettable now.
-		trashService.restoreFromTrash(userId, subfolderId, null);
+		trashService.restoreFromTrash(userInfo, subfolderId, null);
 		Folder restored = entityService.getEntity(userInfo, subfolderId, Folder.class);
 		assertNotNull(restored);
 
 		// Trash the subfolder again and attempt to restore to folder B. This fails, because you cannot restore a
 		// file to an STS-enabled folder, unless it was the original parent.
 		trashService.moveToTrash(userInfo, subfolderId, false);
-		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userId, subfolderId,
+		assertThrows(IllegalArgumentException.class, () -> trashService.restoreFromTrash(userInfo, subfolderId,
 				folderB.getId()));
 
 		// Delete the storage location from folder B. Now restoring to it works because we don't have the restriction
 		// on non-STS-enabled folders.
 		deleteStorageLocationFromFolder(folderB);
-		trashService.restoreFromTrash(userId, subfolderId, folderB.getId());
+		trashService.restoreFromTrash(userInfo, subfolderId, folderB.getId());
 		restored = entityService.getEntity(userInfo, subfolderId, Folder.class);
 		assertNotNull(restored);
 	}

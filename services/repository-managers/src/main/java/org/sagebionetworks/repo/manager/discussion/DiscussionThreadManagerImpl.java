@@ -138,6 +138,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long threadIdLong = Long.parseLong(threadId);
 		String author = threadDao.getAuthorForUpdate(threadId);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, author)) {
+			OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
 			DiscussionThreadBundle thread = threadDao.updateTitle(threadIdLong, newTitle.getTitle());
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newTitle.getTitle(), thread.getId()));
 			return thread;
@@ -157,6 +158,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long threadIdLong = Long.parseLong(threadId);
 		DiscussionThreadBundle thread = threadDao.getThread(threadIdLong, DiscussionFilter.EXCLUDE_DELETED);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, thread.getCreatedBy())) {
+			OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
 			String messageKey = uploadDao.uploadThreadMessage(newMessage.getMessageMarkdown(), thread.getForumId(), thread.getId());
 			thread = threadDao.updateMessageKey(threadIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), thread.getId()));
@@ -253,6 +255,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		List<DiscussionThreadBundle> results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
@@ -292,6 +295,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		}
 		ValidateArgument.requirement(limit >= 0 && offset >= 0 && limit <= MAX_LIMIT,
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
 
 		PaginatedIds results = new PaginatedIds();
 		List<String> userIds = new ArrayList<String>();

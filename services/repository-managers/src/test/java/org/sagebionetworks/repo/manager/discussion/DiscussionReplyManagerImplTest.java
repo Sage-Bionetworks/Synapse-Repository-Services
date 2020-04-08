@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -41,9 +42,12 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.ImmutableList;
 
 public class DiscussionReplyManagerImplTest {
 
@@ -245,6 +249,21 @@ public class DiscussionReplyManagerImplTest {
 		replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
 		verify(mockReplyDao).updateMessageKey(replyId, messageKey);
 		verify(mockThreadDao).insertEntityReference(any(List.class));
+	}
+
+	@Test
+	public void testUpdateReplyMessageAuthorizedInsufficientScope() throws IOException {
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(userInfo, bundle.getCreatedBy())).thenReturn(true);
+		when(mockUploadDao.uploadReplyMessage("messageMarkdown", forumId, threadId, replyId.toString()))
+				.thenReturn(messageKey);
+		when(mockReplyDao.updateMessageKey(replyId, messageKey)).thenReturn(bundle);
+		UpdateReplyMessage newMessage = new UpdateReplyMessage();
+		newMessage.setMessageMarkdown("messageMarkdown");
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.view));
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			replyManager.updateReplyMessage(userInfo, replyId.toString(), newMessage);
+		});
 	}
 
 	@Test (expected = UnauthorizedException.class)

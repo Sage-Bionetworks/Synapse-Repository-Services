@@ -27,73 +27,65 @@ public interface DiscussionService {
 	/**
 	 * get forum metadata for the given project
 	 * 
-	 * @param userId
 	 * @param projectId
 	 * @return
 	 */
-	public Forum getForumByProjectId(Long userId, String projectId);
+	public Forum getForumByProjectId(UserInfo userInfo, String projectId);
 
 	/**
 	 * get forum metadata for the given ID
 	 * 
-	 * @param userId
 	 * @param forumId
 	 * @return
 	 */
-	public Forum getForum(Long userId, String forumId);
+	public Forum getForum(UserInfo userInfo, String forumId);
 
 	/**
 	 * Create a new thread
 	 * 
-	 * @param userId
 	 * @param toCreate
 	 * @return
 	 * @throws IOException 
 	 */
-	public DiscussionThreadBundle createThread(Long userId, CreateDiscussionThread toCreate) throws IOException;
+	public DiscussionThreadBundle createThread(UserInfo userInfo, CreateDiscussionThread toCreate) throws IOException;
 
 	/**
 	 * Get a thread given its ID
-	 * 
-	 * @param userId
+	 *
 	 * @param threadId
 	 * @return
 	 */
-	public DiscussionThreadBundle getThread(Long userId, String threadId);
+	public DiscussionThreadBundle getThread(UserInfo userInfo, String threadId);
 
 	/**
 	 * Update a thread title
 	 * 
-	 * @param userId
 	 * @param threadId
 	 * @param newTitle
 	 * @return
 	 */
-	public DiscussionThreadBundle updateThreadTitle(Long userId, String threadId, UpdateThreadTitle newTitle);
+	public DiscussionThreadBundle updateThreadTitle(UserInfo userInfo, String threadId, UpdateThreadTitle newTitle);
 
 	/**
 	 * Update a thread message
 	 * 
-	 * @param userId
 	 * @param threadId
 	 * @param message
 	 * @return
 	 * @throws IOException 
 	 */
-	public DiscussionThreadBundle updateThreadMessage(Long userId, String threadId, UpdateThreadMessage message) throws IOException;
+	public DiscussionThreadBundle updateThreadMessage(UserInfo userInfo, String threadId, UpdateThreadMessage message) throws IOException;
 
 	/**
 	 * Mark a thread as deleted
 	 * 
-	 * @param userId
 	 * @param threadId
 	 */
-	public void markThreadAsDeleted(Long userId, String threadId);
+	public void markThreadAsDeleted(UserInfo userInfo, String threadId);
 
 	/**
 	 * Get limit number of threads starting at offset for a given forum
 	 * 
-	 * @param userId
 	 * @param forumId
 	 * @param limit
 	 * @param offset
@@ -102,53 +94,48 @@ public interface DiscussionService {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(Long userId,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(UserInfo userInfo,
 			String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter);
 
 	/**
 	 * Create a new reply
 	 * 
-	 * @param userId
 	 * @param toCreate
 	 * @return
 	 * @throws IOException 
 	 */
-	public DiscussionReplyBundle createReply(Long userId, CreateDiscussionReply toCreate) throws IOException;
+	public DiscussionReplyBundle createReply(UserInfo userInfo, CreateDiscussionReply toCreate) throws IOException;
 
 	/**
 	 * Get a reply given its ID
 	 * 
-	 * @param userId
 	 * @param replyId
 	 * @return
 	 */
-	public DiscussionReplyBundle getReply(Long userId, String replyId);
+	public DiscussionReplyBundle getReply(UserInfo userInfo, String replyId);
 
 	/**
 	 * Update a reply's message
 	 * 
-	 * @param userId
 	 * @param replyId
 	 * @param message
 	 * @return
 	 * @throws IOException 
 	 */
-	public DiscussionReplyBundle updateReplyMessage(Long userId,
+	public DiscussionReplyBundle updateReplyMessage(UserInfo userInfo,
 			String replyId, UpdateReplyMessage message) throws IOException;
 
 	/**
 	 * Mark a reply as deleted
 	 * 
-	 * @param userId
 	 * @param replyId
 	 */
-	public void markReplyAsDeleted(Long userId, String replyId);
+	public void markReplyAsDeleted(UserInfo userInfo, String replyId);
 
 	/**
 	 * Get replies for a given thread ID
 	 * 
-	 * @param userId
 	 * @param threadId
 	 * @param limit
 	 * @param offset
@@ -157,66 +144,61 @@ public interface DiscussionService {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionReplyBundle> getReplies(Long userId,
+	public PaginatedResults<DiscussionReplyBundle> getReplies(UserInfo userInfo,
 			String threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending, DiscussionFilter filter);
 
 	/**
 	 * Get the message Url of a thread
 	 * 
-	 * @param userId
 	 * @param messageKey
 	 * @return
 	 */
-	public MessageURL getThreadUrl(Long userId, String messageKey);
+	public MessageURL getThreadUrl(UserInfo userInfo, String messageKey);
 
 	/**
 	 * Get the message Url of a reply
-	 * 
-	 * @param userId
+	 *
 	 * @param messageKey
 	 * @return
 	 */
-	public MessageURL getReplyUrl(Long userId, String messageKey);
+	public MessageURL getReplyUrl(UserInfo userInfo, String messageKey);
 
 	/**
 	 * Get the total number of threads for a given fourmId
 	 * 
-	 * @param userId
 	 * @param forumId
 	 * @param filter
 	 * @return
 	 */
-	public ThreadCount getThreadCount(Long userId, String forumId, DiscussionFilter filter);
+	public ThreadCount getThreadCount(UserInfo userInfo, String forumId, DiscussionFilter filter);
 
 	/**
 	 * Get the total number of replies for a given threadId
 	 * 
-	 * @param userId
 	 * @param threadId
 	 * @param filter
 	 * @return
 	 */
-	public ReplyCount getReplyCount(Long userId, String threadId, DiscussionFilter filter);
+	public ReplyCount getReplyCount(UserInfo userInfo, String threadId, DiscussionFilter filter);
 
 	/**
 	 * Pin a thread 
-	 * @param userId
+
 	 * @param threadId
 	 */
-	public void pinThread(Long userId, String threadId);
+	public void pinThread(UserInfo userInfo, String threadId);
 
 	/**
 	 * Unpin a thread
-	 * @param userId
+	 * 
 	 * @param threadId
 	 */
-	public void unpinThread(Long userId, String threadId);
+	public void unpinThread(UserInfo userInfo, String threadId);
 
 	/**
 	 * Get limit number of threads starting at offset for a given entityId
 	 * 
-	 * @param userId
 	 * @param entityId
 	 * @param limit
 	 * @param offset
@@ -224,7 +206,7 @@ public interface DiscussionService {
 	 * @param ascending
 	 * @return
 	 */
-	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(Long userId, String entityId, Long limit,
+	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(UserInfo userInfo, String entityId, Long limit,
 			Long offset, DiscussionThreadOrder order, Boolean ascending);
 
 	/**
@@ -239,19 +221,17 @@ public interface DiscussionService {
 	/**
 	 * Mark a reply as not deleted
 	 * 
-	 * @param userId
 	 * @param replyId
 	 */
-	public void markThreadAsNotDeleted(Long userId, String threadId);
+	public void markThreadAsNotDeleted(UserInfo userInfo, String threadId);
 
 	/**
 	 * Retrieve a paginated list of moderator Ids
 	 * 
-	 * @param userId
-	 * @param forumId
+	 * param forumId
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedIds getModerators(Long userId, String forumId, Long limit, Long offset);
+	public PaginatedIds getModerators(UserInfo userInfo, String forumId, Long limit, Long offset);
 }

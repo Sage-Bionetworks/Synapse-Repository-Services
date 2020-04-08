@@ -57,10 +57,12 @@ import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,10 +117,12 @@ public class TrashManagerImplTest {
 		userID = 12345L;
 		userInfo = new UserInfo(false /* not admin */);
 		userInfo.setId(userID);
+		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 
 		adminUserID = 67890L;
 		adminUserInfo = new UserInfo(true);
 		adminUserInfo.setId(adminUserID);
+		adminUserInfo.setScopes(Arrays.asList(OAuthScope.values()));
 
 		nodeID = "syn420";
 		nodeName = "testName.test";
@@ -541,7 +545,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testListTrashedEntitiesNullCurrentUser() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			trashManager.listTrashedEntities(null, userInfo, 1, 1);
+			trashManager.listTrashedEntities(null, userInfo.getId().toString(), 1, 1);
 		});
 	}
 
@@ -555,14 +559,14 @@ public class TrashManagerImplTest {
 	@Test
 	public void testListTrashedEntitiesNegativeOffset() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			trashManager.listTrashedEntities(userInfo, userInfo, -1, 1);
+			trashManager.listTrashedEntities(userInfo, userInfo.getId().toString(), -1, 1);
 		});
 	}
 
 	@Test
 	public void testListTrashedEntitiesNegativeLimit() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			trashManager.listTrashedEntities(userInfo, userInfo, 1, -1);
+			trashManager.listTrashedEntities(userInfo, userInfo.getId().toString(), 1, -1);
 		});
 	}
 
@@ -573,7 +577,7 @@ public class TrashManagerImplTest {
 		tempUser.setId(tempUserID);
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
-			trashManager.listTrashedEntities(userInfo, tempUser, 1, 1);
+			trashManager.listTrashedEntities(userInfo, tempUser.getId().toString(), 1, 1);
 		});
 	}
 
@@ -582,8 +586,18 @@ public class TrashManagerImplTest {
 		final long limit = 1;
 		final long offset = 0;
 		when(mockTrashCanDao.listTrashedEntities(userInfo.getId().toString(), offset, limit)).thenReturn(trashList);
-		List<TrashedEntity> results = trashManager.listTrashedEntities(userInfo, userInfo, offset, limit);
+		List<TrashedEntity> results = trashManager.listTrashedEntities(userInfo, userInfo.getId().toString(), offset, limit);
 		assertEquals(trashList, results);
+	}
+
+	@Test
+	public void testListTrashedEntitiesInsufficientScope() {
+		final long limit = 1;
+		final long offset = 0;
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			trashManager.listTrashedEntities(userInfo, userInfo.getId().toString(), offset, limit);
+		});
 	}
 
 	@Test
@@ -622,6 +636,18 @@ public class TrashManagerImplTest {
 	}
 
 	@Test
+	public void testPurgeTrashInsufficientScope() {
+
+		List<Long> trashIDList = Collections.singletonList(KeyFactory.stringToKey(nodeID));
+
+		adminUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.view));
+
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			trashManager.purgeTrash(adminUserInfo, trashIDList);
+		});
+	}
+	
+	@Test
 	public void testGetTrashLeavesBefore() {
 		final long daysBefore = 1;
 		final long limit = 1234;
@@ -650,6 +676,19 @@ public class TrashManagerImplTest {
 		trashManager.flagForPurge(userInfo, nodeID);
 		
 		verify(mockTrashCanDao).flagForPurge(Arrays.asList(KeyFactory.stringToKey(nodeID)));
+	}
+	
+	@Test
+	public void testFlagForPurgeInsufficientScope() {
+		
+		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
+
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.view));
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			trashManager.flagForPurge(userInfo, nodeID);
+		});
+		
 	}
 	
 	@Test

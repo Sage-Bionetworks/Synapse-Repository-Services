@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -24,28 +22,24 @@ public interface TrashService {
 	/**
 	 * Moves an entity and its descendants out of the trash can.
 	 */
-	void restoreFromTrash(Long currentUserId, String entityId, String newParentId)
+	void restoreFromTrash(UserInfo userInfo, String entityId, String newParentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Retrieves trash entities deleted by the specified user.
 	 *
-	 * @param currentUserId
-	 *            The user currently logged in.
-	 * @param userId
-	 *            The user who deleted the entities into the trash can.
 	 * @throws UnauthorizedException
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
-	PaginatedResults<TrashedEntity> viewTrashForUser(Long currentUserId, Long userId,
-			Long offset, Long limit, HttpServletRequest request)
+	PaginatedResults<TrashedEntity> viewTrashForUser(UserInfo userInfo,
+			Long offset, Long limit)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Flags the specified entity for priority purge. After being flagged the entity will not be restorable 
 	 * and will be deleted as soon as possible.
 	 */
-	void flagForPurge(Long currentUserId, String entityId)
+	void flagForPurge(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException;	
 }

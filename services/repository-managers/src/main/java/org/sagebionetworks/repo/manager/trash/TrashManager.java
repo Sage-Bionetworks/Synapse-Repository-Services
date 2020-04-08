@@ -54,7 +54,7 @@ public interface TrashManager {
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
-	List<TrashedEntity> listTrashedEntities(UserInfo currentUser, UserInfo userInfo, long offset, long limit) throws DatastoreException, UnauthorizedException;
+	List<TrashedEntity> listTrashedEntities(UserInfo currentUser, String targetUser, long offset, long limit) throws DatastoreException, UnauthorizedException;
 	
 	// The following two methods are for the trash worker to clean trash older than a month or flagged for purging
 	

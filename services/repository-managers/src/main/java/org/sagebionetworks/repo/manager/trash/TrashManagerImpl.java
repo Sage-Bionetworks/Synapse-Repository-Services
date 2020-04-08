@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -219,20 +220,20 @@ public class TrashManagerImpl implements TrashManager {
 	}
 
 	@Override
-	public List<TrashedEntity> listTrashedEntities(UserInfo currentUser, UserInfo user, long offset, long limit) {
+	public List<TrashedEntity> listTrashedEntities(UserInfo currentUser, String targetUserId, long offset, long limit) {
 		ValidateArgument.required(currentUser, "The current user");
-		ValidateArgument.required(user, "The target user");
+		ValidateArgument.required(targetUserId, "The target user");
 		ValidateArgument.requirement(offset >= 0L, "Offset cannot be < 0");
 		ValidateArgument.requirement(limit >= 0L, "Limit cannot be < 0");
 		
 		final String currUserId = currentUser.getId().toString();
-		final String userId = user.getId().toString();
 		
-		if (!currentUser.isAdmin() && (currUserId == null || !currUserId.equals(userId))) {
+		if (!currentUser.isAdmin() && (currUserId == null || !currUserId.equals(targetUserId))) {
 			throw new UnauthorizedException("Current user " + currUserId+ " does not have the permission.");
 		}
+		OAuthPermissionUtils.checkScopeAllowsAccess(currentUser.getScopes(), ACCESS_TYPE.READ);
 
-		return trashCanDao.listTrashedEntities(userId, offset, limit);
+		return trashCanDao.listTrashedEntities(targetUserId, offset, limit);
 	}
 	
 	@WriteTransaction
@@ -253,7 +254,8 @@ public class TrashManagerImpl implements TrashManager {
 		if (!userInfo.isAdmin() && !userId.equals(deletedBy)) {
 			throw new UnauthorizedException("Insufficient permissions for user " + userId);
 		}
-		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.DELETE);
+	
 		Long longId = KeyFactory.stringToKey(nodeId);
 		
 		trashCanDao.flagForPurge(Collections.singletonList(longId));
@@ -269,6 +271,7 @@ public class TrashManagerImpl implements TrashManager {
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Only an Administrator can perform this action.");
 		}
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.DELETE);
 	
 		trashIDs.forEach(this::deleteNode);
 		

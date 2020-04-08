@@ -67,6 +67,8 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableList;
+
 public class DiscussionThreadManagerImplTest {
 	@Mock
 	private DiscussionThreadDAO mockThreadDao;
@@ -130,7 +132,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setForumId(forumId.toString());
 		dto.setIsDeleted(false);
 		userInfo.setId(userId);
-		userInfo.setScopes(Collections.singletonList(OAuthScope.view));
+		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 
 		newTitle.setTitle("newTitle with syn123");
 		newMessage.setMessageMarkdown("newMessageMarkdown");
@@ -346,9 +348,23 @@ public class DiscussionThreadManagerImplTest {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), any()))
 		.thenReturn(true);
 		when(mockThreadDao.updateTitle(anyLong(), any())).thenReturn(dto);
+		userInfo.setScopes(Collections.singletonList(OAuthScope.modify));
 
 		assertEquals(dto, threadManager.updateTitle(userInfo, threadId.toString(), newTitle));
 		verify(mockThreadDao).insertEntityReference(titleEntityRefs);
+	}
+
+	@Test
+	public void testUpdateTitleAuthorizedInsufficientScope() {
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo), any()))
+		.thenReturn(true);
+		when(mockThreadDao.updateTitle(anyLong(), any())).thenReturn(dto);
+
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.view));
+
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			threadManager.updateTitle(userInfo, threadId.toString(), newTitle);
+		});
 	}
 
 	@Test 
@@ -384,6 +400,20 @@ public class DiscussionThreadManagerImplTest {
 		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
 		assertEquals(dto, threadManager.updateMessage(userInfo, threadId.toString(), newMessage));
 		verify(mockThreadDao).insertEntityReference(any(List.class));
+	}
+
+	@Test
+	public void testUpdateMessageAuthorizedInsufficientScope() throws Exception {
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(Mockito.eq(userInfo),any()))
+		.thenReturn(true);
+		when(mockUploadDao.uploadThreadMessage(any(), any(), any()))
+		.thenReturn("newMessage");
+		when(mockThreadDao.updateMessageKey(Mockito.anyLong(), Mockito.anyString())).thenReturn(dto);
+		
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.view));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			threadManager.updateMessage(userInfo, threadId.toString(), newMessage);
+		});
 	}
 
 	@Test
@@ -775,6 +805,32 @@ public class DiscussionThreadManagerImplTest {
 	}
 
 	@Test
+	public void testGetThreadsForEntityInsufficientScope() {
+		HashSet<Long> projectIds = new HashSet<Long>();
+		projectIds.add(1L);
+		projectIds.add(2L);
+		HashSet<Long> projectIdsCanRead = new HashSet<Long>();
+		projectIdsCanRead.add(1L);
+
+		List<Long> entityIds = Arrays.asList(3L);
+
+		List<DiscussionThreadBundle> list = new ArrayList<DiscussionThreadBundle>();
+		PaginatedResults<DiscussionThreadBundle> result = PaginatedResults.createWithLimitAndOffset(list, 100L, 0L);
+
+		when(mockThreadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(entityIds)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(any(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ)))
+				.thenReturn(projectIdsCanRead);
+		when(mockThreadDao.getThreadCountForEntity(3L, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(1L);
+		when(mockThreadDao.getThreadsForEntity(3L, 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.EXCLUDE_DELETED, projectIdsCanRead)).thenReturn(list);
+
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));
+
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
+		});
+	}
+
+	@Test
 	public void testGetModeratorsWithNullUserInfo(){
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
 			threadManager.getModerators(null, forum.getId(), 10L, 0L);
@@ -840,5 +896,23 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals((Long)3L, actual.getTotalNumberOfResults());
 		assertTrue(individuals.containsAll(actual.getResults()));
 		assertTrue(actual.getResults().containsAll(individuals));
+	}
+
+	@Test
+	public void testGetModeratorsInsufficientScope() {
+		HashSet<String> userGroups = new HashSet<String>();
+		userGroups.addAll(Arrays.asList("1", "2"));
+		when(mockAclDao.getPrincipalIds(projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE)).thenReturn(userGroups);
+		Set<String> individuals = new HashSet<String>();
+		individuals.addAll(Arrays.asList("2", "3", "4"));
+		when(mockGroupMembersDao.getIndividuals(userGroups, 10L, 0L)).thenReturn(individuals);
+		when(mockGroupMembersDao.getIndividualCount(userGroups)).thenReturn(3L);
+		
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));
+
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			threadManager.getModerators(userInfo, forum.getId(), 10L, 0L);
+		});
+
 	}
 }

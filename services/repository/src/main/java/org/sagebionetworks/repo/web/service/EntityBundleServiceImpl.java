@@ -50,8 +50,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	@Autowired
 	AccessRequirementManager accessRequirementManager;
-
-	public EntityBundleServiceImpl() {}
 	
 	/**
 	 * Direct constructor (for testing purposes)

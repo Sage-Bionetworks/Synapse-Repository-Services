@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -105,6 +106,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		Long replyIdLong = Long.parseLong(replyId);
 		DiscussionReplyBundle reply = replyDao.getReply(replyIdLong, DiscussionFilter.EXCLUDE_DELETED);
 		if (authorizationManager.isUserCreatorOrAdmin(userInfo, reply.getCreatedBy())) {
+			OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
 			String messageKey = uploadDao.uploadReplyMessage(newMessage.getMessageMarkdown(), reply.getForumId(), reply.getThreadId(), reply.getId());
 			reply = replyDao.updateMessageKey(replyIdLong, messageKey);
 			threadDao.insertEntityReference(DiscussionUtils.getEntityReferences(newMessage.getMessageMarkdown(), reply.getThreadId()));

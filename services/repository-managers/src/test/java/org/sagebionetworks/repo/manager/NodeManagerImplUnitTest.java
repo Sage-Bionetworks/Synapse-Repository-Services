@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -929,6 +931,15 @@ public class NodeManagerImplUnitTest {
 		});
 		
 		assertEquals("userInfo is required.", ex.getMessage());
+	}
+	
+	@Test
+	public void testFilterUnauthorizedHeadersLackingOAuthScope(){
+		mockUserInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.download, OAuthScope.modify));
+		
+		//call under test
+		assertThrows(UnauthorizedException.class, ()->{nodeManager.filterUnauthorizedHeaders(mockUserInfo, Collections.EMPTY_LIST);});
+		
 	}
 	
 	/**
