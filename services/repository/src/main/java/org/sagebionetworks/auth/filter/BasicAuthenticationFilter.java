@@ -3,8 +3,12 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.Date;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -12,7 +16,6 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.google.common.collect.ImmutableMap;
@@ -24,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
  * @author Marco Marasca
  *
  */
-public abstract class BasicAuthenticationFilter extends OncePerRequestFilter {
+public abstract class BasicAuthenticationFilter implements Filter {
 	
 	private static final String INVALID_CREDENTIALS_MSG = "Credentials are missing or invalid.";
 	private static final String CLOUD_WATCH_NAMESPACE = "Authentication";
@@ -37,8 +40,21 @@ public abstract class BasicAuthenticationFilter extends OncePerRequestFilter {
 	protected BasicAuthenticationFilter(Consumer consumer) {
 		this.consumer = consumer;
 	}
-
+	
 	@Override
+	public final void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+			throws IOException, ServletException {
+		
+		if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
+			throw new ServletException("Only HTTP requests are supported");
+		}
+		
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+		
+		doFilterInternal(httpRequest, httpResponse, filterChain);
+	}
+
 	protected final void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 			FilterChain filterChain) throws ServletException, IOException {
 
@@ -123,6 +139,17 @@ public abstract class BasicAuthenticationFilter extends OncePerRequestFilter {
 	 */
 	protected String getInvalidCredentialMessage() {
 		return INVALID_CREDENTIALS_MSG;
+	}
+	
+
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+				
+	}
+
+	@Override
+	public void destroy() {
+		
 	}
 
 }

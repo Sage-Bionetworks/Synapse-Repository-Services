@@ -67,50 +67,50 @@ public class BasicAuthenticationFilterTest {
 	}
 	
 	@Test
-	public void testDoFilterInternalWithCredentialsNotRequired() throws Exception {
+	public void testDoFilterWithCredentialsNotRequired() throws Exception {
 		when(filter.credentialsRequired()).thenReturn(false);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
 	}
 	
 	@Test
-	public void testDoFilterInternalWithoutCredentials() throws Exception {
+	public void testDoFilterWithoutCredentials() throws Exception {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verifyRejectRequest();
 	}
 	
 	@Test
-	public void testDoFilterInternalWithInvalidHeader() throws Exception {
+	public void testDoFilterWithInvalidHeader() throws Exception {
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Some invalid header");
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verifyRejectRequest();
 	}
 	
 	@Test
-	public void testDoFilterInternalWithInvalideEncodingHeader() throws Exception {
+	public void testDoFilterWithInvalideEncodingHeader() throws Exception {
 		
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED + "___");
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verifyRejectRequest();
 	}
 	
 	@Test
-	public void testDoFilterInternalWithInvalidCredentials() throws Exception {
+	public void testDoFilterWithInvalidCredentials() throws Exception {
 		
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED);
 		when(filter.credentialsRequired()).thenReturn(true);
@@ -118,20 +118,20 @@ public class BasicAuthenticationFilterTest {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
 		verifyRejectRequest();
 	}
 	
 	@Test
-	public void testDoFilterInternalWithValidCredentials() throws Exception {
+	public void testDoFilterWithValidCredentials() throws Exception {
 		
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED);
 		when(filter.credentialsRequired()).thenReturn(true);
 		when(filter.validCredentials(any())).thenReturn(true);
 		
 		// Call under test
-		filter.doFilterInternal(mockRequest, mockResponse, mockFilterChain);
+		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
 	}
