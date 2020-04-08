@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2222,6 +2223,73 @@ public class SQLUtilsTest {
 		ColumnChangeDetails updated = results.get(0);
 		// should not be the same instance.
 		assertFalse(change == updated);
+	}
+
+	@Test
+	public void testMatchChangesToCurrentInfoOldNotExistNewExists(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo three = new DatabaseColumnInfo();
+		three.setColumnName("_C333_");
+		three.setColumnType(ColumnType.STRING);
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, three);
+		// the old column was already deleted
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("222");
+		// the new column was already added
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("333");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed.
+		assertNotNull(results);
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertNotSame(change, updated);
+		assertNull(updated.getOldColumn());
+		assertNull(updated.getNewColumn());
+	}
+
+	@Test
+	public void testMatchChangesToCurrentInfoNewAndOldExists(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		two.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo three = new DatabaseColumnInfo();
+		three.setColumnName("_C333_");
+		three.setColumnType(ColumnType.STRING);
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two, three);
+		// the old column was not yet deleted
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("222");
+		// the new column was already added
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("333");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed.
+		assertNotNull(results);
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertNotSame(change, updated);
+		assertEquals(oldColumn, updated.getOldColumn());
+		assertNull(updated.getNewColumn());
 	}
 
 	@Test

@@ -1652,7 +1652,9 @@ public class SQLUtils {
 		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
 		for (ColumnChangeDetails change : changes) {
 			DatabaseColumnInfo oldColumnInfo = null;
+			DatabaseColumnInfo newColumnInfo = null;
 			ColumnModel oldColumn = change.getOldColumn();
+			ColumnModel newColumn = change.getNewColumn();
 			if (oldColumn != null) {
 				oldColumnInfo = currentColumnIdToInfo.get(oldColumn.getId());
 				if (oldColumnInfo == null) {
@@ -1664,8 +1666,18 @@ public class SQLUtils {
 					oldColumn = null;
 				}
 			}
-			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, change
-					.getNewColumn()));
+
+			if (newColumn != null) {
+				newColumnInfo = currentColumnIdToInfo.get(newColumn.getId());
+				if (newColumnInfo != null){
+					/*
+					 * The new column already exists in the table so we do no need to re-add it
+					 */
+					newColumn = null;
+				}
+			}
+
+			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn));
 		}
 		return results;
 	}
