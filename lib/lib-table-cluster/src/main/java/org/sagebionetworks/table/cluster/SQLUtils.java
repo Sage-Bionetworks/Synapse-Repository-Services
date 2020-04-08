@@ -37,6 +37,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -1654,6 +1656,7 @@ public class SQLUtils {
 			DatabaseColumnInfo oldColumnInfo = null;
 			ColumnModel oldColumn = change.getOldColumn();
 			ColumnModel newColumn = change.getNewColumn();
+
 			if (oldColumn != null) {
 				oldColumnInfo = currentColumnIdToInfo.get(oldColumn.getId());
 				if (oldColumnInfo == null) {
@@ -1667,7 +1670,9 @@ public class SQLUtils {
 			}
 
 			if (newColumn != null) {
-				if (currentColumnIdToInfo.get(newColumn.getId()) != null){
+				String newColumnId = newColumn.getId();
+				String oldColumnId = oldColumn == null ? null : oldColumn.getId();
+				if (currentColumnIdToInfo.get(newColumnId) != null && !newColumnId.equals(oldColumnId)) {
 					/*
 					 * The new column already exists in the table so we do no need to re-add it
 					 */

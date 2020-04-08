@@ -2293,6 +2293,66 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testMatchChangesToCurrentInfoSameNewAndOldNotExistInDatabase(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one);
+
+		//old and new column are the same
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("222");
+		ColumnModel newColumn = oldColumn;
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed.
+		assertNotNull(results);
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertNotSame(change, updated);
+		assertNull(updated.getOldColumn());
+		assertEquals(newColumn, updated.getNewColumn());
+	}
+
+
+	@Test
+	public void testMatchChangesToCurrentInfoSameNewAndOldExistInDatabase(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		two.setColumnType(ColumnType.STRING);
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		//old and new column are the same
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("222");
+		ColumnModel newColumn = oldColumn;
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed.
+		assertNotNull(results);
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertNotSame(change, updated);
+		assertNotNull(updated.getNewColumn());
+		assertNotNull(updated.getOldColumn());
+		assertEquals(updated.getNewColumn(), updated.getOldColumn());
+	}
+
+	@Test
 	public void testMatchChangesToCurrentInfoOldDoesNotExist(){
 		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
 		rowId.setColumnName(TableConstants.ROW_ID);
