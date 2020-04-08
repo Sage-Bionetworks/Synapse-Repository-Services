@@ -1,0 +1,122 @@
+options{
+STATIC = false;
+}
+/* *** Specification of the parser class *** */
+PARSER_BEGIN(SchemaIdParser)
+package org.sagebionetworks.schema.parser;
+import java.io.StringReader;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.sagebionetworks.schema.*;
+import org.sagebionetworks.schema.semantic.version.*;
+
+public class SchemaIdParser {
+
+	public SchemaIdParser(String input){
+		this(new StringReader(input));
+	}
+
+}
+
+PARSER_END(SchemaIdParser)
+
+/* Skip whitespace */
+SKIP : /* WHITE SPACE */
+{ 
+  " "
+| "\t"
+| "\r"
+| "\f"
+| "\n"
+| < LOW_SPECIAL_ASCII: (["\u0000"-"\u001f"]) >
+| < HIGH_SPECIAL_ASCII: (["\u007f"-"\uffff"]) >
+}
+
+/* tokens */
+TOKEN:{
+< zero : "0" >
+| < positive_digit: ["1"-"9"]>
+| < dot: ".">
+| < letter: ["a"-"z","A"-"Z"]>
+| < dash: "-">
+}
+
+VersionCore versionCore():
+{
+	NumericIdentifier major = null;
+	NumericIdentifier minor = null;
+	NumericIdentifier patch = null;
+}
+{
+	major = numericIdentifier() "." minor = numericIdentifier() "." patch = numericIdentifier()
+	{ return new VersionCore(major, minor, patch); }
+}
+
+NumericIdentifier numericIdentifier():
+{
+	Token token = null;
+	StringBuilder builder = new StringBuilder();
+}
+{
+	token = <zero> { return new NumericIdentifier(new Long(0L)); }
+| 	positiveDigit(builder) [ digits(builder) ] 
+ { return new NumericIdentifier(new Long(builder.toString())); }
+}
+void positiveDigit(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <positive_digit> { builder.append(token.image);}
+}
+void digit(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <zero> { builder.append(token.image);}
+| 	positiveDigit(builder)
+}
+void digits(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	digit(builder) (digit(builder))*
+}
+void nonDigit(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <letter> { builder.append(token.image);}
+|	<dash> { builder.append("-");}
+}
+void identifierCharacter(StringBuilder builder):
+{}
+{
+	digit(builder)
+| 	nonDigit(builder)
+}
+void identifierCharacters(StringBuilder builder):
+{}
+{
+	identifierCharacter(builder) (identifierCharacter(builder))*
+}
+AlphanumericIdentifier alphanumericIdentifier():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	nonDigit(builder) [ identifierCharacters(builder) ]  { return new AlphanumericIdentifier(builder.toString()); }
+}
+PrereleaseIdentifier prereleaseIdentifier():
+{
+	AlphanumericIdentifier alphanumericIdentifier = null;
+	NumericIdentifier numericIdentifier = null;
+}
+{
+	numericIdentifier = numericIdentifier() { return new PrereleaseIdentifier(numericIdentifier); }
+|	alphanumericIdentifier = alphanumericIdentifier() { return new PrereleaseIdentifier(alphanumericIdentifier); }	
+}

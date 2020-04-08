@@ -920,6 +920,16 @@
 					<artifactId>schema-to-pojo-maven-plugin</artifactId>
 					<version>${schema-to-pojo.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>javacc-maven-plugin</artifactId>
+					<version>2.6</version>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>build-helper-maven-plugin</artifactId>
+					<version>1.8</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
