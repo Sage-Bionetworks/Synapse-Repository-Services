@@ -1,12 +1,14 @@
 package org.sagebionetworks.auth.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.PrintWriter;
 import java.util.Base64;
 
 import javax.servlet.FilterChain;
@@ -21,9 +23,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.cloudwatch.Consumer;
 
 @ExtendWith(MockitoExtension.class)
 public class CloudMailInAuthFilterTest {
+	@Mock
+	private Consumer mockConsumer;
+	@Mock
+	private PrintWriter mockPrintWriter;
 	@Mock
 	private StackConfiguration mockConfig;
 	@Mock
@@ -47,7 +54,11 @@ public class CloudMailInAuthFilterTest {
 	public void beforeEach() {
 		when(mockConfig.getCloudMailInUser()).thenReturn(USER);
 		when(mockConfig.getCloudMailInPassword()).thenReturn(PASS);
-		filter = new CloudMailInAuthFilter(mockConfig);
+		
+		filter = new CloudMailInAuthFilter(mockConfig, mockConsumer);
+		
+		assertTrue(filter.credentialsRequired());
+		assertTrue(filter.reportBadCredentialsMetric());
 	}
 	
 	@Test
@@ -64,11 +75,13 @@ public class CloudMailInAuthFilterTest {
 	private void checkForUnauthorizedStatus() {
 		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		verify(mockResponse).setStatus((Integer)captor.capture());
-		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());		
+		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());
+		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
 	}
 
 	@Test
 	public void testNoCredentials() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
 		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
 		checkForUnauthorizedStatus();
@@ -76,6 +89,7 @@ public class CloudMailInAuthFilterTest {
 
 	@Test
 	public void testMissingBasicPrefix() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("XXX "+
 				Base64.getEncoder().encodeToString(CORRECT_CREDENTIALS.getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
@@ -85,6 +99,7 @@ public class CloudMailInAuthFilterTest {
 
 	@Test
 	public void testMissingColon() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
 				Base64.getEncoder().encodeToString("NO-COLON-HERE".getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
@@ -94,6 +109,7 @@ public class CloudMailInAuthFilterTest {
 
 	@Test
 	public void testWrongCredentials() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader(eq(AUTHORIZATION))).thenReturn("Basic "+
 				Base64.getEncoder().encodeToString("foo:bar".getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	

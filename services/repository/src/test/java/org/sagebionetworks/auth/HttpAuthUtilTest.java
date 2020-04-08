@@ -2,9 +2,11 @@ package org.sagebionetworks.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import java.io.PrintWriter;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +22,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.syndication.io.impl.Base64; 
 
 @ExtendWith(MockitoExtension.class)
 class HttpAuthUtilTest {
@@ -34,6 +35,10 @@ class HttpAuthUtilTest {
 	
 	@Mock
 	private PrintWriter mockWriter;
+	
+	private static String base64Encode(String in) {
+		return Base64.getEncoder().encodeToString(in.getBytes());
+	}
 	
 
 	@Test
@@ -53,24 +58,30 @@ class HttpAuthUtilTest {
 		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
 		
 		// not properly formatted Basic auth
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+Base64.encode("some random text"));
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode("some random text"));
 		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
 
 		// test with proper Basic authorization header
 		String username = "username";
 		String password = "password";
 		
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+Base64.encode(username+":"+password));
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode(username+":"+password));
 		UserNameAndPassword expected = new UserNameAndPassword(username, password);
 		
 		// method under test
 		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
 
 		// extra white space
-		when(httpRequest.getHeader("Authorization")).thenReturn("Basic   \t"+Base64.encode(username+":"+password)+"\n\n    \t");
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic   \t"+base64Encode(username+":"+password)+"\n\n    \t");
 	
 		// method under test
 		assertEquals(expected, HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
+		
+		// invalid encoding
+		when(httpRequest.getHeader("Authorization")).thenReturn("Basic "+base64Encode(username+":"+password)+"__");
+		
+		// method under test
+		assertNull(HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest));
 	
 	}
 

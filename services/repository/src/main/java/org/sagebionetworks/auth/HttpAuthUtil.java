@@ -3,6 +3,7 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Base64.Decoder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -16,19 +17,33 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 
 public class HttpAuthUtil {
+	
+	private static final Decoder BASE64_DECODER = Base64.getDecoder();
 
 	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
-		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) return null;
-
+		
+		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) {
+			return null;
+		}
+		
 		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length()).trim();
-		String basicCredentials = new String(Base64.getDecoder().decode(base64EncodedCredentials), StandardCharsets.UTF_8);
+		String basicCredentials = null;
+		
+		try {
+			basicCredentials = new String(BASE64_DECODER.decode(base64EncodedCredentials), StandardCharsets.UTF_8);
+		} catch(IllegalArgumentException e) {
+			return null;
+		}
+			
 		int colon = basicCredentials.indexOf(":");
+		
 		if (colon>0 && colon<basicCredentials.length()-1) {
 			String name = basicCredentials.substring(0, colon);
 			String password = basicCredentials.substring(colon+1);
 			return new UserNameAndPassword(name, password);
 		}
+		
 		return null;
 	}
 

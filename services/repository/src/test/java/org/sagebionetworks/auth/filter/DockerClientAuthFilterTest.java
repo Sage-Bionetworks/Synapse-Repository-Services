@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.filter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.PrintWriter;
 import java.util.Base64;
 
 import javax.servlet.FilterChain;
@@ -25,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -32,6 +35,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 @ExtendWith(MockitoExtension.class)
 
 public class DockerClientAuthFilterTest {
+	
+	@Mock
+	private PrintWriter mockPrintWriter;
 	@Mock
 	private AuthenticationService mockAuthenticationService;
 	@Mock
@@ -54,6 +60,8 @@ public class DockerClientAuthFilterTest {
 	@BeforeEach
 	public void before() {
 		header = AuthorizationConstants.BASIC_PREFIX + Base64.getEncoder().encodeToString((USERNAME+":"+PASSWORD).getBytes());
+		assertFalse(filter.credentialsRequired());
+		assertFalse(filter.reportBadCredentialsMetric());
 	}
 
 	@Test
@@ -71,21 +79,24 @@ public class DockerClientAuthFilterTest {
 
 	@Test
 	public void testDoFilterWithWrongUsernameAndPassword() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader("Authorization")).thenReturn(header);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
 		loginCred.setPassword(PASSWORD);
 		when(mockAuthenticationService.login(loginCred))
-				.thenThrow(new NotFoundException());
+				.thenThrow(new UnauthenticatedException("Wrong credentials"));
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
+		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
 	}
 
 	@Test
 	public void testDoFilterWithNotFoundUsername() throws Exception {
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		when(mockRequest.getHeader("Authorization")).thenReturn(header);
 		LoginRequest loginCred = new LoginRequest();
 		loginCred.setUsername(USERNAME);
@@ -97,6 +108,7 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
+		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
 	}
 
 	@Test

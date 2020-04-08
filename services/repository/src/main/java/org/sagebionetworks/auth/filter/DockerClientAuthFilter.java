@@ -4,22 +4,18 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.HttpStatus;
-import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
+import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,45 +23,71 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component("dockerClientAuthFilter")
-public class DockerClientAuthFilter implements Filter {
+public class DockerClientAuthFilter extends BasicAuthenticationFilter {
+	
+	private AuthenticationService authenticationService;
 	
 	@Autowired
-	private AuthenticationService authenticationService;
+	public DockerClientAuthFilter(Consumer consumer, AuthenticationService authenticationService) {
+		super(consumer);
+		this.authenticationService = authenticationService;
+	}
+
+	// The anonymous user can come in
+	@Override
+	protected boolean credentialsRequired() {
+		return false;
+	}
+	
+	@Override
+	protected boolean reportBadCredentialsMetric() {
+		return false;
+	}
 
 	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {}
+	protected boolean validCredentials(UserNameAndPassword credentials) {
+		
+		if (credentials == null) {
+			return true;
+		}
+		
+		LoginRequest credential = new LoginRequest();
+		
+		credential.setUsername(credentials.getUserName());
+		credential.setPassword(credentials.getPassword());
+		
+		try {
+			authenticationService.login(credential);
+		} catch (UnauthenticatedException e) {
+			return false;
+		}
+		
+		return true;
 
+	}
+	
 	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-			throws IOException, ServletException {
-		HttpServletRequest httpRequest = (HttpServletRequest)request;
-		UserNameAndPassword up = HttpAuthUtil.getBasicAuthenticationCredentials(httpRequest);
-
+	protected void proceed(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
+			UserNameAndPassword credentials) throws ServletException, IOException {
 		Long userId = null;
-		if (up == null) {
+		
+		if (credentials == null) {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		} else {
 			try {
-				LoginRequest credential = new LoginRequest();
-				credential.setUsername(up.getUserName());
-				credential.setPassword(up.getPassword());
-				authenticationService.login(credential);
-				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
+				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(credentials.getUserName());
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {
-				HttpServletResponse httpResponse = (HttpServletResponse)response;
-				httpResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
+				rejectRequest(response);
 				return;
 			}
 		}
 
-		Map<String, String[]> modParams = new HashMap<String, String[]>(httpRequest.getParameterMap());
+		Map<String, String[]> modParams = new HashMap<String, String[]>(request.getParameterMap());
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModHttpServletRequest(httpRequest, null, modParams);
-		chain.doFilter(modRqst, response);
+		HttpServletRequest modRqst = new ModHttpServletRequest(request, null, modParams);
+		
+		filterChain.doFilter(modRqst, response);
 	}
-
-	@Override
-	public void destroy() {}
 
 }
