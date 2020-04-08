@@ -144,6 +144,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	 * @return id of user for which password change occurred
 	 */
 	long validateChangePassword(ChangePasswordWithToken changePasswordWithToken){
+		ValidateArgument.required(changePasswordWithToken.getPasswordChangeToken(), "changePasswordWithToken.passwordChangeToken");
+
 		if(!passwordResetTokenGenerator.isValidToken(changePasswordWithToken.getPasswordChangeToken())){
 			throw new UnauthenticatedException("Password reset token is invalid");
 		}
