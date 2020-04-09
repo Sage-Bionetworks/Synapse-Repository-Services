@@ -403,10 +403,19 @@ public class TableIndexManagerImplTest {
 	public void testUpdateTableSchemaAddColumn(){
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, columnChanges, alterTemp)).thenReturn(true);
-		DatabaseColumnInfo info = new DatabaseColumnInfo();
-		info.setColumnName("_C12_");
-		info.setColumnType(ColumnType.BOOLEAN);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
+		String existingColumnId = "11";
+		DatabaseColumnInfo existingColumn = new DatabaseColumnInfo();
+		existingColumn.setColumnName("_C"+existingColumnId+"_");
+		existingColumn.setColumnType(ColumnType.BOOLEAN);
+
+		DatabaseColumnInfo createdColumn = new DatabaseColumnInfo();
+		createdColumn.setColumnName("_C12_");
+		createdColumn.setColumnType(ColumnType.BOOLEAN);
+		when(mockIndexDao.getDatabaseInfo(tableId))
+				// first time called we only have 1 existing column
+				.thenReturn(Collections.singletonList(existingColumn))
+				// on the second time, our new column has been added
+				.thenReturn(Arrays.asList(existingColumn,createdColumn));
 		boolean isTableView = false;
 		// call under test
 		manager.updateTableSchema(tableId, isTableView, columnChanges);
@@ -416,7 +425,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, columnChanges, alterTemp);
 		
-		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Lists.newArrayList(newColumn.getId()));
+		String schemaMD5Hex = TableModelUtils.createSchemaMD5Hex(Arrays.asList(existingColumnId, newColumn.getId()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
 	
