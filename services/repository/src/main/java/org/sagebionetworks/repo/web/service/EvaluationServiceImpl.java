@@ -60,9 +60,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 	@Override
 	@WriteTransaction
-	public Evaluation createEvaluation(Long userId, Evaluation eval) 
+	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval) 
 			throws DatastoreException, InvalidModelException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.createEvaluation(userInfo, eval);
 	}
 	

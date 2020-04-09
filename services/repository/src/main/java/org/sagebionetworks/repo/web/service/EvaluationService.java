@@ -37,7 +37,7 @@ public interface EvaluationService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public Evaluation createEvaluation(Long userId, Evaluation eval)
+	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval)
 			throws DatastoreException, InvalidModelException, NotFoundException;
 	
 	/**

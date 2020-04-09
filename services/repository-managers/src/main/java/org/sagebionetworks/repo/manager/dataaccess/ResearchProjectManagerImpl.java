@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -32,6 +34,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
 				"A ResearchProject can only associate with an ManagedACTAccessRequirement.");
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.CREATE);
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return researchProjectDao.create(toCreate);
 	}
@@ -64,6 +67,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject getUserOwnResearchProjectForUpdate(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
 		try {
 			return researchProjectDao.getUserOwnResearchProject(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
@@ -97,6 +101,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
 		}
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		return researchProjectDao.update(toUpdate);

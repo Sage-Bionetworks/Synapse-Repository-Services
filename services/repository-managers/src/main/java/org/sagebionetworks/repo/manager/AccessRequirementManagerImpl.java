@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -331,6 +332,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getObjectId(), "RestrictionInformationRequest.objectId");
 		ValidateArgument.required(request.getRestrictableObjectType(), "RestrictionInformationRequest.restrictableObjectType");
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+
 		RestrictionInformationResponse info = new RestrictionInformationResponse();
 		List<Long> subjectIds;
 		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {

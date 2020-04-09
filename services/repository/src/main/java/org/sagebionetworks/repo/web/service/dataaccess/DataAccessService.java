@@ -16,26 +16,26 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
 public interface DataAccessService {
 
-	ResearchProject createOrUpdate(Long userId, ResearchProject toCreate);
+	ResearchProject createOrUpdate(UserInfo userInfo, ResearchProject toCreate);
 
-	ResearchProject getUserOwnResearchProjectForUpdate(Long userId, String accessRequirementId);
+	ResearchProject getUserOwnResearchProjectForUpdate(UserInfo userInfo, String accessRequirementId);
 
-	RequestInterface createOrUpdate(Long userId, RequestInterface toCreateOrUpdate);
+	RequestInterface createOrUpdate(UserInfo userInfo, RequestInterface toCreateOrUpdate);
 
-	RequestInterface getRequestForUpdate(Long userId, String requirementId);
+	RequestInterface getRequestForUpdate(UserInfo userInfo, String requirementId);
 
-	SubmissionStatus submit(Long userId, CreateSubmissionRequest request);
+	SubmissionStatus submit(UserInfo userInfo, CreateSubmissionRequest request);
 
-	SubmissionStatus cancel(Long userId, String submissionId);
+	SubmissionStatus cancel(UserInfo userInfo, String submissionId);
 
-	Submission updateState(Long userId, SubmissionStateChangeRequest request);
+	Submission updateState(UserInfo userInfo, SubmissionStateChangeRequest request);
 
-	SubmissionPage listSubmissions(Long userId, SubmissionPageRequest request);
+	SubmissionPage listSubmissions(UserInfo userInfo, SubmissionPageRequest request);
 
-	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
+	AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String requirementId);
 
 	RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
 
-	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
+	OpenSubmissionPage getOpenSubmissions(UserInfo userInfo, String nextPageToken);
 
 }

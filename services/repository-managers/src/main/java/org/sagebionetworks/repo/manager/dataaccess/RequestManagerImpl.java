@@ -4,6 +4,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -41,6 +43,7 @@ public class RequestManagerImpl implements RequestManager{
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
 				"A Request can only associate with an ManagedACTAccessRequirement.");
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.CREATE);
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return requestDao.create(toCreate);
 	}
@@ -74,6 +77,9 @@ public class RequestManagerImpl implements RequestManager{
 			throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+		
 		try {
 			return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
@@ -151,6 +157,7 @@ public class RequestManagerImpl implements RequestManager{
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
 		}
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
 
 		ValidateArgument.requirement(!submissionDao.hasSubmissionWithState(
 				userInfo.getId().toString(), toUpdate.getAccessRequirementId(),

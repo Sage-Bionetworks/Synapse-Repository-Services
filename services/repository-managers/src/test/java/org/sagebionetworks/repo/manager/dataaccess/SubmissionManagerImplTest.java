@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -62,10 +63,12 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 public class SubmissionManagerImplTest {
@@ -163,6 +166,7 @@ public class SubmissionManagerImplTest {
 
 		when(mockRequestManager.getRequestForSubmission(requestId)).thenReturn(request);
 		when(mockUser.getId()).thenReturn(1L);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(mockResearchProject);
 		when(mockResearchProject.getId()).thenReturn(researchProjectId);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -376,6 +380,14 @@ public class SubmissionManagerImplTest {
 	}
 
 	@Test
+	public void testCreateInsufficientScope() {
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.create(mockUser, csRequest);
+		});
+	}
+
+	@Test
 	public void testCreateWithNonRenewal() {
 		Request request = new Request();
 		request.setId(requestId);
@@ -473,6 +485,20 @@ public class SubmissionManagerImplTest {
 		assertEquals(mockSubmissionStatus, manager.cancel(mockUser, submissionId));
 	}
 
+	@Test
+	public void testCancelInsufficientScope() {
+		Submission submission = new Submission();
+		submission.setSubmittedBy(userId);
+		submission.setState(SubmissionState.SUBMITTED);
+		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockSubmissionDao.cancel(eq(submissionId), eq(userId), anyLong(), anyString()))
+				.thenReturn(mockSubmissionStatus);
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.cancel(mockUser, submissionId);
+		});
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateStatusWithNullUserInfo() {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
@@ -520,6 +546,16 @@ public class SubmissionManagerImplTest {
 		request.setSubmissionId(submissionId);
 		request.setNewState(SubmissionState.APPROVED);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
+		manager.updateStatus(mockUser, request);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testUpdateStatusInsufficientScope() {
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(SubmissionState.APPROVED);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
 		manager.updateStatus(mockUser, request);
 	}
 
@@ -748,6 +784,22 @@ public class SubmissionManagerImplTest {
 				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 
+	@Test
+	public void testListSubmissionsInsufficientScope() {
+		SubmissionPageRequest request = new SubmissionPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setFilterBy(SubmissionState.SUBMITTED);
+		request.setOrderBy(SubmissionOrder.CREATED_ON);
+		request.setIsAscending(true);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.listSubmission(mockUser, request);
+		});
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementStatusWithNullUser() {
 		manager.getAccessRequirementStatus(null, accessRequirementId);
@@ -783,6 +835,20 @@ public class SubmissionManagerImplTest {
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
 		verify(mockAccessApprovalDao).getActiveApprovalsForUser(
 				accessRequirementId, userId);
+	}
+
+	@Test
+	public void testGetAccessRequirementStatusToUNotApprovedInsufficientScope() {
+		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
+			.thenReturn(TermsOfUseAccessRequirement.class.getName());
+		when(mockAccessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userId))
+			.thenReturn(new LinkedList<AccessApproval>());
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		// call under test
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+		});
 	}
 
 	@Test
@@ -895,6 +961,18 @@ public class SubmissionManagerImplTest {
 		assertEquals(list, result.getOpenSubmissionList());
 		verify(mockSubmissionDao).getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
+
+	@Test
+	public void testGetOpenSubmissionsAuthorizedInsufficientScope() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		List<OpenSubmission> list = new LinkedList<OpenSubmission>();
+		when(mockSubmissionDao.getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
+
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.getOpenSubmissions(mockUser, null);
+		});	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetLatestExpirationDateWithNullList() {

@@ -48,7 +48,6 @@ public class DataAccessController {
 	/**
 	 * Create a new ResearchProject or update an existing ResearchProject.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param toCreateOrUpdate - The object that contains information needed to create/update a ResearchProject.
 	 * @return
 	 * @throws DatastoreException
@@ -57,9 +56,9 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESEARCH_PROJECT, method = RequestMethod.POST)
 	public @ResponseBody ResearchProject createOrUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody ResearchProject toCreateOrUpdate) throws NotFoundException {
-		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreateOrUpdate);
+		return serviceProvider.getDataAccessService().createOrUpdate(userInfo, toCreateOrUpdate);
 	}
 
 	/**
@@ -67,7 +66,6 @@ public class DataAccessController {
 	 * If none exists, a ResearchProject with some re-filled information is returned to the user.
 	 * Only the owner of the researchProject can perform this action.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param accessRequirementId - The accessRequirementId that is used to look for the ResearchProject.
 	 * @return
 	 * @throws NotFoundException
@@ -75,15 +73,14 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT, method = RequestMethod.GET)
 	public @ResponseBody ResearchProject getUserOwnResearchProjectForUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@PathVariable String requirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getUserOwnResearchProjectForUpdate(userId, requirementId);
+		return serviceProvider.getDataAccessService().getUserOwnResearchProjectForUpdate(userInfo, requirementId);
 	}
 
 	/**
 	 * Create a new Request or update an existing Request.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param toCreate - The object that contains information needed to create/update a Request.
 	 * @return
 	 * @throws NotFoundException
@@ -91,9 +88,9 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST, method = RequestMethod.POST)
 	public @ResponseBody RequestInterface createOrUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody RequestInterface toCreate) throws NotFoundException {
-		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreate);
+		return serviceProvider.getDataAccessService().createOrUpdate(userInfo, toCreate);
 	}
 
 	/**
@@ -103,7 +100,6 @@ public class DataAccessController {
 	 * requires renewal, a refilled Renewal is returned.
 	 * Only the owner of the request can perform this action.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param accessRequirementId - The accessRequirementId that is used to look for the request.
 	 * @return
 	 * @throws NotFoundException
@@ -111,15 +107,14 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE, method = RequestMethod.GET)
 	public @ResponseBody RequestInterface getRequestForUpdate(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@PathVariable String requirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getRequestForUpdate(userId, requirementId);
+		return serviceProvider.getDataAccessService().getRequestForUpdate(userInfo, requirementId);
 	}
 
 	/**
 	 * Submit a Submission using information from a Request.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param requestId - The object that contains information to create a submission.
 	 * @return
 	 * @throws NotFoundException
@@ -127,17 +122,16 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionStatus submit(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody CreateSubmissionRequest request)
 					throws NotFoundException {
-		return serviceProvider.getDataAccessService().submit(userId, request);
+		return serviceProvider.getDataAccessService().submit(userInfo, request);
 	}
 
 	/**
 	 * Cancel a submission.
 	 * Only the user who created this submission can cancel it.
 	 * 
-	 * @param userId - The ID of the user who is making the request.
 	 * @param submissionId - The ID of the submission to cancel.
 	 * @return
 	 * @throws NotFoundException
@@ -145,16 +139,15 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
 	public @ResponseBody SubmissionStatus cancel(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@PathVariable String submissionId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().cancel(userId, submissionId);
+		return serviceProvider.getDataAccessService().cancel(userInfo, submissionId);
 	}
 
 	/**
 	 * Request to update a submission' state.
 	 * Only ACT member can perform this action.
 	 * 
-	 * @param userId
 	 * @param request
 	 * @return
 	 * @throws NotFoundException
@@ -162,16 +155,15 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
 	public @ResponseBody Submission updateState(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
-		return serviceProvider.getDataAccessService().updateState(userId, request);
+		return serviceProvider.getDataAccessService().updateState(userInfo, request);
 	}
 
 	/**
 	 * Retrieve a list of submissions for a given access requirement ID.
 	 * Only ACT member can perform this action.
 	 * 
-	 * @param userId
 	 * @param SubmissionPageRequest
 	 * @return
 	 * @throws NotFoundException
@@ -179,15 +171,14 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody SubmissionPage listSubmissions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody SubmissionPageRequest SubmissionPageRequest) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listSubmissions(userId, SubmissionPageRequest);
+		return serviceProvider.getDataAccessService().listSubmissions(userInfo, SubmissionPageRequest);
 	}
 
 	/**
 	 * Retrieve an access requirement status for a given access requirement ID.
 	 * 
-	 * @param userId
 	 * @param requirementId
 	 * @return
 	 * @throws NotFoundException
@@ -195,9 +186,9 @@ public class DataAccessController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_STATUS, method = RequestMethod.GET)
 	public @ResponseBody AccessRequirementStatus getAccessRequirementStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@PathVariable String requirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getAccessRequirementStatus(userId, requirementId);
+		return serviceProvider.getDataAccessService().getAccessRequirementStatus(userInfo, requirementId);
 	}
 
 	/**
@@ -219,15 +210,14 @@ public class DataAccessController {
 	 * Retrieve information about submitted Submissions.
 	 * Only ACT member can perform this action.
 	 * 
-	 * @param userId
 	 * @param nextPageToken
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody OpenSubmissionPage getOpenSubmissions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
-		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
+		return serviceProvider.getDataAccessService().getOpenSubmissions(userInfo, nextPageToken);
 	}
 }

@@ -71,6 +71,8 @@ import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.util.jrjc.ProjectInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.ImmutableList;
+
 @ExtendWith(MockitoExtension.class)
 public class AccessRequirementManagerImplUnitTest {
 
@@ -606,6 +608,20 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
 		verify(nodeDao).getEntityPathIds(TEST_ENTITY_ID);
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithZeroARInsufficientScope() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+
+		userInfo.setScopes(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			arm.getRestrictionInformation(userInfo, request);
+
+		});
+
 	}
 
 	@Test

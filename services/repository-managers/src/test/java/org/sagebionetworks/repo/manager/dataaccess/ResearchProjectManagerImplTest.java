@@ -7,10 +7,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -22,8 +24,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.ImmutableList;
 
 public class ResearchProjectManagerImplTest {
 
@@ -67,6 +72,8 @@ public class ResearchProjectManagerImplTest {
 		researchProject = createNewResearchProject();
 
 		when(mockUser.getId()).thenReturn(1L);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
+
 		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockResearchProjectDao.getUserOwnResearchProject(accessRequirementId, userId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
@@ -170,6 +177,14 @@ public class ResearchProjectManagerImplTest {
 	}
 
 	@Test
+	public void testCreateInsufficientScope() {
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			manager.create(mockUser, createNewResearchProject());
+		});
+	}
+
+	@Test
 	public void testPrepareUpdateFields() {
 		String modifiedBy = "111";
 		ResearchProject prepared = manager.prepareUpdateFields(researchProject, modifiedBy);
@@ -207,6 +222,14 @@ public class ResearchProjectManagerImplTest {
 	public void testGet() {
 		assertEquals(researchProject, manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId));
 		verify(mockResearchProjectDao).getUserOwnResearchProject(accessRequirementId, userId);
+	}
+
+	@Test
+	public void testGetInsufficientScope() {
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
+		});
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -303,6 +326,16 @@ public class ResearchProjectManagerImplTest {
 		assertEquals(projectLead, updated.getProjectLead());
 		assertEquals(institution, updated.getInstitution());
 		assertEquals("new intendedDataUseStatement", updated.getIntendedDataUseStatement());
+	}
+
+	@Test
+	public void testUpdateInsufficientScope() {
+		ResearchProject toUpdate = createNewResearchProject();
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+		
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
 	@Test (expected = IllegalArgumentException.class)

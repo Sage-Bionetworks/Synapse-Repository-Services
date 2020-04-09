@@ -17,6 +17,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -35,8 +36,11 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.ImmutableList;
 
 public class RequestManagerImplTest {
 
@@ -82,6 +86,7 @@ public class RequestManagerImplTest {
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
 		when(mockUser.getId()).thenReturn(1L);
+		when(mockUser.getScopes()).thenReturn(Arrays.asList(OAuthScope.values()));
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
@@ -156,6 +161,14 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testCreateInsufficientScope() {
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			assertEquals(request, manager.create(mockUser, createNewRequest()));
+		});
+	}
+
+	@Test
 	public void testPrepareUpdateFields() {
 		String modifiedBy = "111";
 		Request prepared = (Request) manager.prepareUpdateFields(request, modifiedBy);
@@ -185,6 +198,14 @@ public class RequestManagerImplTest {
 	public void testGetRequestForUpdate() {
 		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
 		verify(mockRequestDao).getUserOwnCurrentRequest(accessRequirementId, userId);
+	}
+
+	@Test
+	public void testGetRequestForUpdateInsufficientScope() {
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.modify, OAuthScope.download));
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.getRequestForUpdate(mockUser, accessRequirementId);
+		});
 	}
 
 	@Test
@@ -356,6 +377,20 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+	}
+
+	@Test
+	public void testUpdateInsufficientScope() {
+		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setDucFileHandleId("777");
+		
+		when(mockUser.getScopes()).thenReturn(ImmutableList.of(OAuthScope.openid, OAuthScope.view, OAuthScope.download));
+
+		// call under test.
+		Assertions.assertThrows(UnauthorizedException.class, () -> {
+			manager.update(mockUser, toUpdate);
+		});
 	}
 
 	@Test

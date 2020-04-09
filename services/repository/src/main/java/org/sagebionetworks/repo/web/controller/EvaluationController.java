@@ -122,10 +122,10 @@ public class EvaluationController {
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.POST)
 	public @ResponseBody
 	Evaluation createEvaluation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			UserInfo userInfo,
 			@RequestBody Evaluation evaluation) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
 	{
-		return serviceProvider.getEvaluationService().createEvaluation(userId, evaluation);
+		return serviceProvider.getEvaluationService().createEvaluation(userInfo, evaluation);
 	}
 	
 	/**

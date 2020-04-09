@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -115,6 +116,7 @@ public class DiscussionReplyManagerImplTest {
 		messageKey = forumId + "/" + threadId + "/" + replyId +"/" + UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
 		userInfo.setId(userId);
+		userInfo.setScopes(Arrays.asList(OAuthScope.values()));
 		bundle.setCreatedBy(userInfo.getId().toString());
 		when(mockReplyDao.getReply(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);

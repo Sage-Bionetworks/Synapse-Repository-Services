@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -85,6 +87,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);
 		SubmissionStatus status = submissionDao.createSubmission(submissionToCreate);
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.CREATE);
+		
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
 				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
@@ -199,6 +204,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		}
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot cancel a submission with "+submission.getState()+" state.");
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
+		
 		return submissionDao.cancel(submissionId, userInfo.getId().toString(),
 				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
@@ -216,6 +224,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.UPDATE);
+		
 		Submission submission = submissionDao.getForUpdate(request.getSubmissionId());
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
@@ -291,6 +302,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+		
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
 		List<Submission> submissions = submissionDao.getSubmissions(
 				request.getAccessRequirementId(), request.getFilterBy(), request.getOrderBy(),
@@ -305,6 +319,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+		
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
 		List<AccessApproval> approvals = accessApprovalDao.getActiveApprovalsForUser(
 				accessRequirementId, userInfo.getId().toString());
@@ -365,6 +382,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
+		
+		OAuthPermissionUtils.checkScopeAllowsAccess(userInfo.getScopes(), ACCESS_TYPE.READ);
+		
 		NextPageToken token = new NextPageToken(nextPageToken);
 		OpenSubmissionPage result = new OpenSubmissionPage();
 		List<OpenSubmission> openSubmissionList = submissionDao.getOpenSubmissions(token.getLimitForQuery(), token.getOffset());
