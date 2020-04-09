@@ -56,25 +56,17 @@ public class SchemaIdParserTest {
 	@Test
 	public void testVersionCoreMajorLeadingZeror() throws ParseException {
 		SchemaIdParser parser = new SchemaIdParser("01.0.2");
-		String message = assertThrows(ParseException.class, ()->{
+		assertThrows(ParseException.class, ()->{
 			parser.versionCore();
-		}).getMessage();
-		assertEquals("Encountered \" <positive_digit> \"1 \"\" at line 1, column 2.\r\n" + 
-				"Was expecting:\r\n" + 
-				"    \".\" ...\r\n" + 
-				"    ", message);
+		});
 	}
 	
 	@Test
 	public void testVersionCoreMinorLeadingZeror() throws ParseException {
 		SchemaIdParser parser = new SchemaIdParser("1.05.2");
-		String message = assertThrows(ParseException.class, ()->{
+		assertThrows(ParseException.class, ()->{
 			parser.versionCore();
-		}).getMessage();
-		assertEquals("Encountered \" <positive_digit> \"5 \"\" at line 1, column 4.\r\n" + 
-				"Was expecting:\r\n" + 
-				"    \".\" ...\r\n" + 
-				"    ", message);
+		});
 	}
 	
 	@Test
@@ -105,27 +97,17 @@ public class SchemaIdParserTest {
 	@Test
 	public void testAlphaNumericStartWithNumber() throws ParseException {
 		SchemaIdParser parser = new SchemaIdParser("9abc");
-		String message = assertThrows(ParseException.class, ()->{
+		assertThrows(ParseException.class, ()->{
 			parser.alphanumericIdentifier();
-		}).getMessage();
-		assertEquals("Encountered \" <positive_digit> \"9 \"\" at line 1, column 1.\r\n" + 
-				"Was expecting one of:\r\n" + 
-				"    <letter> ...\r\n" + 
-				"    \"-\" ...\r\n" + 
-				"    ", message);
+		});
 	}
 	
 	@Test
 	public void testAlphaNumericStartWithZero() throws ParseException {
 		SchemaIdParser parser = new SchemaIdParser("0123");
-		String message = assertThrows(ParseException.class, ()->{
+		assertThrows(ParseException.class, ()->{
 			parser.alphanumericIdentifier();
-		}).getMessage();
-		assertEquals("Encountered \" \"0\" \"0 \"\" at line 1, column 1.\r\n" + 
-				"Was expecting one of:\r\n" + 
-				"    <letter> ...\r\n" + 
-				"    \"-\" ...\r\n" + 
-				"    ", message);
+		});
 	}
 	
 	@Test
