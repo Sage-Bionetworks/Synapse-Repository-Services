@@ -190,7 +190,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		long initialCount = entityServletHelper.getAvailableEvaluations(adminUserId).getTotalNumberOfResults();
 		
 		// Create
-		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);		
+		eval1 = entityServletHelper.createEvaluation(eval1, adminAccessToken);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
@@ -252,7 +252,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	@Test
 	public void testSubmissionRoundTrip() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminAccessToken);
 		evaluationsToDelete.add(eval1.getId());
 		
 		// open the evaluation to join
@@ -335,7 +335,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	@Test
 	public void testSubmissionUnauthorized() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminAccessToken);
 		evaluationsToDelete.add(eval1.getId());
 		UserInfo ownerInfo = userManager.getUserInfo(adminUserId);
 		String nodeId = createNode("An entity", ownerInfo);
@@ -355,10 +355,10 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	public void testPaginated() throws Exception {
 		// create objects
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminAccessToken);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
-		eval2 = entityServletHelper.createEvaluation(eval2, adminUserId);
+		eval2 = entityServletHelper.createEvaluation(eval2, adminAccessToken);
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
 		
@@ -437,7 +437,7 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 
 		// Create the evaluation (which should also creates the ACL)
 		eval1.setContentSource(nodeId);
-		eval1 = entityServletHelper.createEvaluation(eval1, testUserId);		
+		eval1 = entityServletHelper.createEvaluation(eval1, adminAccessToken);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		assertEquals(nodeId, eval1.getContentSource());

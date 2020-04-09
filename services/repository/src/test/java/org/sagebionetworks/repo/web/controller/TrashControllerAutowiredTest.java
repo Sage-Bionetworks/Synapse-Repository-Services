@@ -113,7 +113,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 	public void testFlagForPurge() throws Exception {
 		// The trash can may not be empty before we put anything there
 		// So we get base numbers first
-		PaginatedResults<TrashedEntity> results = servletTestHelper.getTrashCan(testUserId);
+		PaginatedResults<TrashedEntity> results = servletTestHelper.getTrashCan(testUserAccessToken);
 		long baseTotal = results.getTotalNumberOfResults();
 		long baseCount = results.getResults().size();
 
@@ -121,7 +121,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		servletTestHelper.trashEntity(testUserAccessToken, parent.getId());
 
 		// Purge the parent
-		servletTestHelper.flagEntityForPurge(testUserId, parent.getId());
+		servletTestHelper.flagEntityForPurge(testUserAccessToken, parent.getId());
 
 		// Both the parent and the child should be gone
 		assertThrows(NotFoundException.class, () -> {
@@ -133,7 +133,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		});
 
 		// The trash can should be empty
-		results = servletTestHelper.getTrashCan(testUserId);
+		results = servletTestHelper.getTrashCan(testUserAccessToken);
 		
 		assertEquals(baseTotal, results.getTotalNumberOfResults());
 		assertEquals(baseCount, results.getResults().size());
@@ -157,7 +157,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		servletTestHelper.trashEntity(testUserAccessToken, child2.getId());
 
 		// Purge the Link
-		servletTestHelper.flagEntityForPurge(testUserId, child2.getId());
+		servletTestHelper.flagEntityForPurge(testUserAccessToken, child2.getId());
 
 		// Link should be gone
 		assertThrows(NotFoundException.class, () -> {
@@ -169,7 +169,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 	public void testRoundTrip() throws Exception {
 		// The trash can may not be empty before we put anything there
 		// So we get base numbers first
-		PaginatedResults<TrashedEntity> results = servletTestHelper.getTrashCan(testUserId);
+		PaginatedResults<TrashedEntity> results = servletTestHelper.getTrashCan(testUserAccessToken);
 		long baseTotal = results.getTotalNumberOfResults();
 		long baseCount = results.getResults().size();
 
@@ -186,7 +186,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		});
 
 		// The parent and the child should be in the trash can
-		results = servletTestHelper.getTrashCan(testUserId);
+		results = servletTestHelper.getTrashCan(testUserAccessToken);
 		assertEquals(baseTotal + 1L, results.getTotalNumberOfResults());
 		assertEquals(baseCount + 1L, results.getResults().size());
 		Set<String> idSet = new HashSet<String>();
@@ -203,7 +203,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerJun
 		servletTestHelper.getEntity(dispatchServlet, Folder.class, child.getId(), testUserAccessToken);
 
 		// The parent and the child should not be in the trash can any more
-		results = servletTestHelper.getTrashCan(testUserId);
+		results = servletTestHelper.getTrashCan(testUserAccessToken);
 		assertEquals(baseTotal, results.getTotalNumberOfResults());
 		assertEquals(baseCount, results.getResults().size());
 		idSet = new HashSet<String>();

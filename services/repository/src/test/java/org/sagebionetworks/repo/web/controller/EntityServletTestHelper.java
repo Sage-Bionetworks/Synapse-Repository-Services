@@ -383,10 +383,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Creates an evaluation
 	 */
-	public Evaluation createEvaluation(Evaluation eval, Long userId)
+	public Evaluation createEvaluation(Evaluation eval, String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.EVALUATION, userId, eval);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.EVALUATION, accessToken, eval);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);

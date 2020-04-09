@@ -6,11 +6,13 @@ import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
@@ -24,21 +26,19 @@ import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
-import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 public class DiscussionServiceImplTest {
 
-	@Mock
-	private UserManager mockUserManager;
 	@Mock
 	private ForumManager mockForumManager;
 	@Mock
 	private DiscussionThreadManager mockThreadManager;
 	@Mock
 	private DiscussionReplyManager mockReplyManager;
-
+	@InjectMocks
 	private DiscussionServiceImpl discussionServices;
-	private Long userId = 123L;
+	
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private String projectId = "syn456";
 	private CreateDiscussionThread createThread;
@@ -56,14 +56,6 @@ public class DiscussionServiceImplTest {
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-
-		discussionServices = new DiscussionServiceImpl();
-		ReflectionTestUtils.setField(discussionServices, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(discussionServices, "forumManager", mockForumManager);
-		ReflectionTestUtils.setField(discussionServices, "threadManager", mockThreadManager);
-		ReflectionTestUtils.setField(discussionServices, "replyManager", mockReplyManager);
-
-		Mockito.when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 
 		createThread = new CreateDiscussionThread();
 		createThread.setForumId(forumId);

@@ -1688,10 +1688,10 @@ public class ServletTestHelper {
 	}
 
 
-	public PaginatedResults<TrashedEntity> getTrashCan(Long userId)
+	public PaginatedResults<TrashedEntity> getTrashCan(String accessToken)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.TRASHCAN_VIEW, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.TRASHCAN_VIEW, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1708,11 +1708,11 @@ public class ServletTestHelper {
 				HttpStatus.OK);
 	}
 
-	public void flagEntityForPurge(Long userId, String entityId)
+	public void flagEntityForPurge(String accessToken, String entityId)
 			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
 				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE + "/" + entityId,
-				userId, null);
+				accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
@@ -1833,92 +1833,92 @@ public class ServletTestHelper {
 	}
 
 	public Forum getForumByProjectId(DispatcherServlet dispatchServlet, String projectId,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.PROJECT+"/"+projectId+UrlHelpers.FORUM, userId, null);
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.PROJECT+"/"+projectId+UrlHelpers.FORUM, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
 	}
 
 	public Forum getForum(DispatcherServlet dispatchServlet, String forumId,
-			Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId, userId, null);
+			String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.FORUM+"/"+forumId, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Forum.class);
 	}
 
 	public DiscussionThreadBundle createThread(DispatcherServlet dispatchServlet,
-			Long userId, CreateDiscussionThread toCreate) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.THREAD, userId, toCreate);
+			String accessToken, CreateDiscussionThread toCreate) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.THREAD, accessToken, toCreate);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
 	}
 
 	public DiscussionThreadBundle getThread(DispatcherServlet dispatchServlet,
-			Long userId, String threadId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+			String accessToken, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.THREAD+"/"+threadId, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
 	}
 
 	public DiscussionThreadBundle updateThreadTitle(DispatcherServlet dispatchServlet,
-			Long userId, String threadId, UpdateThreadTitle title) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/title", userId, title);
+			String accessToken, String threadId, UpdateThreadTitle title) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.THREAD+"/"+threadId+"/title", accessToken, title);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
 	}
 
 	public DiscussionThreadBundle updateThreadMessage(DispatcherServlet dispatchServlet,
-			Long userId, String threadId, UpdateThreadMessage newMessage) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/message", userId, newMessage);
+			String accessToken, String threadId, UpdateThreadMessage newMessage) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.THREAD+"/"+threadId+"/message", accessToken, newMessage);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionThreadBundle.class);
 	}
 
 	public void markThreadAsDeleted(DispatcherServlet dispatchServlet,
-			Long userId, String threadId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.THREAD+"/"+threadId, userId, null);
+			String accessToken, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.THREAD+"/"+threadId, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public void markThreadAsNotDeleted(DispatcherServlet dispatchServlet,
-			Long userId, String threadId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/restore", userId, null);
+			String accessToken, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.THREAD+"/"+threadId+"/restore", accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 	}
 
 	public void pinThread(DispatcherServlet dispatchServlet,
-			Long userId, String threadId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, userId, null);
+			String accessToken, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.THREAD+"/"+threadId+UrlHelpers.PIN, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public void unpinThread(DispatcherServlet dispatchServlet,
-			Long userId, String threadId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, userId, null);
+			String accessToken, String threadId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.THREAD+"/"+threadId+UrlHelpers.UNPIN, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForForum(DispatcherServlet dispatchServlet,
-			Long userId, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
+			String accessToken, String forumId, Long limit, Long offset, DiscussionThreadOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+"/threads", userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.FORUM+"/"+forumId+"/threads", accessToken, null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -1934,27 +1934,27 @@ public class ServletTestHelper {
 	}
 
 	public DiscussionReplyBundle createReply(DispatcherServlet dispatchServlet,
-			Long userId, CreateDiscussionReply createReply) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.REPLY, userId, createReply);
+			String accessToken, CreateDiscussionReply createReply) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.REPLY, accessToken, createReply);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
 	}
 
-	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, Long userId, String replyId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+	public DiscussionReplyBundle getReply(DispatcherServlet dispatchServlet, String accessToken, String replyId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.REPLY+"/"+replyId, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
 	}
 
 	public PaginatedResults<DiscussionReplyBundle> getReplies(DispatcherServlet dispatchServlet,
-			Long userId, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
+			String accessToken, String threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending, DiscussionFilter filter) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+"/replies", userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.THREAD+"/"+threadId+"/replies", accessToken, null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {
@@ -1970,25 +1970,25 @@ public class ServletTestHelper {
 	}
 
 	public DiscussionReplyBundle updateReplyMessage(DispatcherServlet dispatchServlet,
-			Long userId, String replyId, UpdateReplyMessage newMessage) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/repo/v1", UrlHelpers.REPLY+"/"+replyId+"/message", userId, newMessage);
+			String accessToken, String replyId, UpdateReplyMessage newMessage) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.PUT, UrlHelpers.REPLY+"/"+replyId+"/message", accessToken, newMessage);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), DiscussionReplyBundle.class);
 	}
 
-	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, Long userId,
+	public void markReplyAsDeleted(DispatcherServlet dispatchServlet, String accessToken,
 			String replyId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.REPLY+"/"+replyId, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.REPLY+"/"+replyId, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public MessageURL getThreadUrl(DispatcherServlet dispatchServlet,
-			Long userId, String messageKey) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD_URL, userId, null);
+			String accessToken, String messageKey) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.THREAD_URL, accessToken, null);
 		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -1996,9 +1996,9 @@ public class ServletTestHelper {
 	}
 
 	public MessageURL getReplyUrl(DispatcherServlet dispatchServlet,
-			Long userId, String messageKey) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.REPLY_URL, userId, null);
+			String accessToken, String messageKey) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.REPLY_URL, accessToken, null);
 		request.setParameter("messageKey", messageKey);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
@@ -2006,19 +2006,19 @@ public class ServletTestHelper {
 	}
 
 	public Subscription subscribe(DispatcherServlet dispatchServlet,
-			Long userId, Topic toSubscribe) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION, userId, toSubscribe);
+			String accessToken, Topic toSubscribe) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.SUBSCRIPTION, accessToken, toSubscribe);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.CREATED);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
 	}
 
 	public SubscriptionPagedResults getAllSubscriptions(
-			DispatcherServlet dispatchServlet, Long userId, Long limit,
+			DispatcherServlet dispatchServlet, String accessToken, Long limit,
 			Long offset, SubscriptionObjectType objectType) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.SUBSCRIPTION_ALL, accessToken, null);
 		request.setParameter("limit", limit.toString());
 		request.setParameter("offset", offset.toString());
 		if (objectType != null) {
@@ -2029,56 +2029,55 @@ public class ServletTestHelper {
 		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
 	}
 
-	public void unsubscribe(DispatcherServlet dispatchServlet, Long userId,
+	public void unsubscribe(DispatcherServlet dispatchServlet, String accessToken,
 			String subscriptionId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
-	public void unsubscribeAll(DispatcherServlet dispatchServlet, Long userId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/repo/v1", UrlHelpers.SUBSCRIPTION_ALL, userId, null);
+	public void unsubscribeAll(DispatcherServlet dispatchServlet, String accessToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.DELETE, UrlHelpers.SUBSCRIPTION_ALL, accessToken, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public SubscriptionPagedResults getSubscriptionList(DispatcherServlet dispatchServlet,
-			Long userId, SubscriptionRequest subRequest) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/repo/v1", UrlHelpers.SUBSCRIPTION_LIST, userId, subRequest);
+			String accessToken, SubscriptionRequest subRequest) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.POST, UrlHelpers.SUBSCRIPTION_LIST, accessToken, subRequest);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), SubscriptionPagedResults.class);
 	}
 
-	public Subscription get(DispatcherServlet dispatchServlet, Long userId,
+	public Subscription get(DispatcherServlet dispatchServlet, String accessToken,
 			String subscriptionId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.SUBSCRIPTION+"/"+subscriptionId, accessToken, null);
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), Subscription.class);
 	}
 
-	public ThreadCount getThreadCount(DispatcherServlet dispatchServlet, Long userId, String forumId,
+	public ThreadCount getThreadCount(DispatcherServlet dispatchServlet, String accessToken, String forumId,
 			DiscussionFilter filter) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.FORUM+"/"+forumId+UrlHelpers.THREAD_COUNT, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.FORUM+"/"+forumId+UrlHelpers.THREAD_COUNT, accessToken, null);
 		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), ThreadCount.class);
 	}
 
-	public ReplyCount getReplyCount(DispatcherServlet dispatchServlet, Long userId, String threadId,
+	public ReplyCount getReplyCount(DispatcherServlet dispatchServlet, String accessToken, String threadId,
 			DiscussionFilter filter) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/repo/v1", UrlHelpers.THREAD+"/"+threadId+UrlHelpers.REPLY_COUNT, userId, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.THREAD+"/"+threadId+UrlHelpers.REPLY_COUNT, accessToken, null);
 		request.addParameter("filter", filter.name());
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), ReplyCount.class);
 	}
-
 	public PrincipalAliasResponse getPrincipalAlias(DispatcherServlet dispatchServlet, PrincipalAliasRequest principalAliasRequest) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, "/repo/v1", UrlHelpers.PRINCIPAL+"/alias", userId, principalAliasRequest);
@@ -2126,9 +2125,9 @@ public class ServletTestHelper {
 	}
 
 	public PaginatedResults<DiscussionThreadBundle> getThreadsForEntity(DispatcherServlet dispatchServlet,
-			Long userId, String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.REPO_PATH, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, userId, null);
+			String accessToken, String entityId, Long limit, Long offset, DiscussionThreadOrder order, Boolean ascending) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequestWithAccessTokenAuth(
+				HTTPMODE.GET, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.THREADS, accessToken, null);
 		request.addParameter("limit", limit.toString());
 		request.addParameter("offset", offset.toString());
 		if (order != null) {

@@ -50,18 +50,18 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 		createThread.setTitle("title");
 		createThread.setMessageMarkdown("messageMarkdown");
 
-		forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), adminUserId);
+		forum = servletTestHelper.getForumByProjectId(dispatchServlet, project.getId(), accessToken);
 
 		toSubscribe = new Topic();
 		toSubscribe.setObjectType(SubscriptionObjectType.FORUM);
 		toSubscribe.setObjectId(forum.getId());
 
-		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
+		servletTestHelper.unsubscribeAll(dispatchServlet, accessToken);
 	}
 
 	@AfterEach
 	public void cleanup() throws Exception {
-		servletTestHelper.unsubscribeAll(dispatchServlet, adminUserId);
+		servletTestHelper.unsubscribeAll(dispatchServlet, accessToken);
 		try {
 			servletTestHelper.deleteEntity(dispatchServlet, null, project.getId(), accessToken,
 					Collections.singletonMap("skipTrashCan", "false"));
@@ -72,7 +72,7 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 
 	@Test
 	public void testCreate() throws Exception {
-		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, accessToken, toSubscribe);
 		assertEquals(toSubscribe.getObjectId(), subscription.getObjectId());
 		assertEquals(toSubscribe.getObjectType(), subscription.getObjectType());
 		assertEquals(adminUserId.toString(), subscription.getSubscriberId());
@@ -80,16 +80,16 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 
 	@Test
 	public void testGet() throws Exception {
-		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
-		assertEquals(subscription, servletTestHelper.get(dispatchServlet, adminUserId, subscription.getSubscriptionId()));
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, accessToken, toSubscribe);
+		assertEquals(subscription, servletTestHelper.get(dispatchServlet, accessToken, subscription.getSubscriptionId()));
 	}
 
 	@Test
 	public void testGetAll() throws Exception {
-		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, accessToken, toSubscribe);
 		Long limit = 10L;
 		Long offset = 0L;
-		SubscriptionPagedResults results = servletTestHelper.getAllSubscriptions(dispatchServlet, adminUserId, limit, offset, toSubscribe.getObjectType());
+		SubscriptionPagedResults results = servletTestHelper.getAllSubscriptions(dispatchServlet, accessToken, limit, offset, toSubscribe.getObjectType());
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		List<Subscription> subscriptions = results.getResults();
@@ -99,26 +99,26 @@ public class SubscriptionControllerAutowiredTest extends AbstractAutowiredContro
 
 	@Test
 	public void testDelete() throws Exception {
-		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, accessToken, toSubscribe);
 		String subscriptionId = subscription.getSubscriptionId();
 		Long limit = 10L;
 		Long offset = 0L;
-		SubscriptionPagedResults results = servletTestHelper.getAllSubscriptions(dispatchServlet, adminUserId, limit, offset, toSubscribe.getObjectType());
+		SubscriptionPagedResults results = servletTestHelper.getAllSubscriptions(dispatchServlet, accessToken, limit, offset, toSubscribe.getObjectType());
 		assertTrue(results.getResults().contains(subscription));
-		servletTestHelper.unsubscribe(dispatchServlet, adminUserId, subscriptionId);
+		servletTestHelper.unsubscribe(dispatchServlet, accessToken, subscriptionId);
 		subscription = null;
-		results = servletTestHelper.getAllSubscriptions(dispatchServlet, adminUserId, limit, offset, toSubscribe.getObjectType());
+		results = servletTestHelper.getAllSubscriptions(dispatchServlet, accessToken, limit, offset, toSubscribe.getObjectType());
 		assertFalse(results.getResults().contains(subscription));
-		servletTestHelper.unsubscribe(dispatchServlet, adminUserId, subscriptionId);
+		servletTestHelper.unsubscribe(dispatchServlet, accessToken, subscriptionId);
 	}
 
 	@Test
 	public void testGetList() throws Exception {
-		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, adminUserId, toSubscribe);
+		Subscription subscription = servletTestHelper.subscribe(dispatchServlet, accessToken, toSubscribe);
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(toSubscribe.getObjectType());
 		request.setIdList(Arrays.asList(toSubscribe.getObjectId()));
-		SubscriptionPagedResults results = servletTestHelper.getSubscriptionList(dispatchServlet, adminUserId, request);
+		SubscriptionPagedResults results = servletTestHelper.getSubscriptionList(dispatchServlet, accessToken, request);
 		assertNotNull(results);
 		assertEquals((Long) 1L, results.getTotalNumberOfResults());
 		List<Subscription> subscriptions = results.getResults();
