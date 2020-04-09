@@ -1,29 +1,23 @@
-package org.sagebionetworks.schema.semantic.version;
+package org.sagebionetworks.schema;
 
 import java.util.Objects;
 
-import org.sagebionetworks.schema.Element;
-
-public final class NumericIdentifier extends Element {
-
-	private final Long value;
+public class SimpleString extends Element{
 	
-	public NumericIdentifier(Long value) {
-		if(value == null) {
+	final private String value;
+	
+	public SimpleString(String value) {
+		super();
+		if (value == null) {
 			throw new IllegalArgumentException("Value cannot be null");
 		}
 		this.value = value;
-	}
-
-	public Long getValue() {
-		return value;
 	}
 
 	@Override
 	public void toString(StringBuilder builder) {
 		builder.append(value);
 	}
-
 
 	@Override
 	public final int hashCode() {
@@ -35,10 +29,10 @@ public final class NumericIdentifier extends Element {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof NumericIdentifier)) {
+		if (!(obj instanceof SimpleString)) {
 			return false;
 		}
-		NumericIdentifier other = (NumericIdentifier) obj;
+		SimpleString other = (SimpleString) obj;
 		return Objects.equals(value, other.value);
 	}
 

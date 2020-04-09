@@ -40,6 +40,7 @@ TOKEN:{
 | < dot: ".">
 | < letter: ["a"-"z","A"-"Z"]>
 | < dash: "-">
+| < plus: "+">
 }
 
 VersionCore versionCore():
@@ -119,4 +120,62 @@ PrereleaseIdentifier prereleaseIdentifier():
 {
 	numericIdentifier = numericIdentifier() { return new PrereleaseIdentifier(numericIdentifier); }
 |	alphanumericIdentifier = alphanumericIdentifier() { return new PrereleaseIdentifier(alphanumericIdentifier); }	
+}
+DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers():
+{
+PrereleaseIdentifier prereleaseIdentifier = null;
+DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers = null;
+}
+{
+	prereleaseIdentifier = prereleaseIdentifier() 
+	(
+		<dot> dotSeparatedPrereleaseIdentifiers = dotSeparatedPrereleaseIdentifiers()
+	)*
+	{ return new DotSeparatedPrereleaseIdentifiers(prereleaseIdentifier, dotSeparatedPrereleaseIdentifiers);}
+}
+Prerelease prerelease():
+{
+DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers = null;
+}
+{
+	dotSeparatedPrereleaseIdentifiers = dotSeparatedPrereleaseIdentifiers()
+	{ return new Prerelease(dotSeparatedPrereleaseIdentifiers); }
+}
+BuildIdentifier buildIdentifier():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	identifierCharacters(builder)
+	{ return new BuildIdentifier(builder.toString()); }	
+}
+DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers():
+{
+	BuildIdentifier buildIdentifier = null;
+	DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers = null;
+}
+{
+	buildIdentifier = buildIdentifier()
+	(
+		<dot> dotSeparatedBuildIdentifiers = dotSeparatedBuildIdentifiers()
+	)*
+	{ return new DotSeparatedBuildIdentifiers(buildIdentifier, dotSeparatedBuildIdentifiers); }
+}
+Build build():
+{
+	DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers = null;
+}
+{
+	dotSeparatedBuildIdentifiers = dotSeparatedBuildIdentifiers()
+	{ return new Build(dotSeparatedBuildIdentifiers); }
+}
+SemanticVersion semanticVersion():
+{
+	VersionCore versionCore = null;
+	Prerelease prerelease = null;
+	Build build = null;
+}
+{
+	versionCore = versionCore() [ <dash> prerelease = prerelease()  ] [ <plus> build = build() ]
+	{ return new SemanticVersion(versionCore, prerelease, build); }
 }

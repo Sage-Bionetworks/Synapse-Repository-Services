@@ -1,15 +1,19 @@
 package org.sagebionetworks.schema;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.AlphanumericIdentifier;
+import org.sagebionetworks.schema.semantic.version.Build;
+import org.sagebionetworks.schema.semantic.version.BuildIdentifier;
 import org.sagebionetworks.schema.semantic.version.NumericIdentifier;
+import org.sagebionetworks.schema.semantic.version.Prerelease;
 import org.sagebionetworks.schema.semantic.version.PrereleaseIdentifier;
+import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.schema.semantic.version.VersionCore;
 
 public class SchemaIdParserTest {
@@ -145,4 +149,57 @@ public class SchemaIdParserTest {
 		assertEquals("0", prereleaseIdentifier.toString());
 	}
 	
+	@Test
+	public void testPrerelease() throws ParseException {
+		testPrerelease("alpha");
+		testPrerelease("alpha.1");
+		testPrerelease("0.3.7");
+		testPrerelease("x.7.z.92");
+	}
+	
+	public void testPrerelease(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		Prerelease prerelease = parser.prerelease();
+		assertEquals(prerelease.toString(), input);
+	}
+	
+	@Test
+	public void testBuildIdentifier() throws ParseException {
+		testBuildIdentifier("alpha");
+		testBuildIdentifier("123");
+		testBuildIdentifier("0123");
+	}
+	
+	public void testBuildIdentifier(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		BuildIdentifier buildIdentifier = parser.buildIdentifier();
+		assertEquals(buildIdentifier.toString(), input);
+	}
+	
+	@Test
+	public void testBuild() throws ParseException {
+		testBuild("001");
+		testBuild("20130313144700");
+		testBuild("exp.sha.5114f85");
+	}
+	
+	public void testBuild(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		Build build = parser.build();
+		assertEquals(build.toString(), input);
+	}
+	
+	@Test
+	public void testSemanticVersion() throws ParseException {
+		testSemanticVersion("0.0.0");
+		testSemanticVersion("1.23.456");
+		testSemanticVersion("1.23.456-x.7.z.92");
+		testSemanticVersion("1.23.456-x.7.z.92+exp.sha.5114f85");
+	}
+	
+	public void testSemanticVersion(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		SemanticVersion semanticVersion = parser.semanticVersion();
+		assertEquals(input, semanticVersion.toString());
+	}
 }

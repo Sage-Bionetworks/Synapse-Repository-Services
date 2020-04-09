@@ -1,14 +1,11 @@
 package org.sagebionetworks.schema.semantic.version;
 
-import org.sagebionetworks.schema.Element;
+import org.sagebionetworks.schema.SimpleBranch;
 
-public class Prerelease extends Element {
+public class Prerelease extends SimpleBranch {
 
-	DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers;
-
-	@Override
-	public void toString(StringBuilder builder) {
-		dotSeparatedPrereleaseIdentifiers.toString(builder);
+	public Prerelease(DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers) {
+		super(dotSeparatedPrereleaseIdentifiers);
 	}
 
 }

@@ -14,6 +14,8 @@
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<jacoco.branch.minumum>0.50</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.50</jacoco.line.minumum>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -34,6 +36,11 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>nl.jqno.equalsverifier</groupId>
+			<artifactId>equalsverifier</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
