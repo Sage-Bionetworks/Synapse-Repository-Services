@@ -2223,7 +2223,10 @@ public class SQLUtilsTest {
 		assertEquals(changes, results);
 		ColumnChangeDetails updated = results.get(0);
 		// should not be the same instance.
-		assertFalse(change == updated);
+		assertNotSame(change, updated);
+		assertEquals(oldColumn, updated.getOldColumn());
+		assertEquals(two, updated.getOldColumnInfo());
+		assertEquals(newColumn, updated.getNewColumn());
 	}
 
 	@Test
@@ -2254,6 +2257,7 @@ public class SQLUtilsTest {
 		ColumnChangeDetails updated = results.get(0);
 		// should not be the same instance.
 		assertNotSame(change, updated);
+		assertNull(updated.getOldColumnInfo());
 		assertNull(updated.getOldColumn());
 		assertNull(updated.getNewColumn());
 	}
@@ -2290,6 +2294,7 @@ public class SQLUtilsTest {
 		// should not be the same instance.
 		assertNotSame(change, updated);
 		assertEquals(oldColumn, updated.getOldColumn());
+		assertEquals(two, updated.getOldColumnInfo());
 		assertNull(updated.getNewColumn());
 	}
 
@@ -2318,6 +2323,7 @@ public class SQLUtilsTest {
 		// should not be the same instance.
 		assertNotSame(change, updated);
 		assertNull(updated.getOldColumn());
+		assertNull(updated.getOldColumnInfo());
 		assertEquals(newColumn, updated.getNewColumn());
 	}
 
@@ -2350,6 +2356,7 @@ public class SQLUtilsTest {
 		assertNotSame(change, updated);
 		assertNotNull(updated.getNewColumn());
 		assertNotNull(updated.getOldColumn());
+		assertEquals(two, updated.getOldColumnInfo());
 		assertEquals(updated.getNewColumn(), updated.getOldColumn());
 	}
 
@@ -2381,8 +2388,9 @@ public class SQLUtilsTest {
 		assertEquals(1, results.size());
 		ColumnChangeDetails updated = results.get(0);
 		// should not be the same instance.
-		assertFalse(change == updated);
-		assertEquals(null, updated.getOldColumn());
+		assertNotSame(change, updated);
+		assertNull(updated.getOldColumn());
+		assertNull(updated.getOldColumnInfo());
 		assertEquals(newColumn, updated.getNewColumn());
 	}
 
@@ -2405,8 +2413,9 @@ public class SQLUtilsTest {
 		assertEquals(1, results.size());
 		ColumnChangeDetails updated = results.get(0);
 		// should not be the same instance.
-		assertFalse(change == updated);
-		assertEquals(null, updated.getOldColumn());
+		assertNotSame(change, updated);
+		assertNull(updated.getOldColumn());
+		assertNull(updated.getOldColumnInfo());
 		assertEquals(newColumn, updated.getNewColumn());
 	}
 
