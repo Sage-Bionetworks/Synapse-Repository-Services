@@ -91,7 +91,7 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test
@@ -108,7 +108,7 @@ public class DockerClientAuthFilterTest {
 		verify(mockAuthenticationService).login(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test

@@ -3,12 +3,14 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
@@ -28,8 +30,8 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	private AuthenticationService authenticationService;
 	
 	@Autowired
-	public DockerClientAuthFilter(Consumer consumer, AuthenticationService authenticationService) {
-		super(consumer);
+	public DockerClientAuthFilter(StackConfiguration config, Consumer consumer, AuthenticationService authenticationService) {
+		super(config, consumer);
 		this.authenticationService = authenticationService;
 	}
 
@@ -46,11 +48,6 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 
 	@Override
 	protected boolean validCredentials(UserNameAndPassword credentials) {
-		
-		if (credentials == null) {
-			return true;
-		}
-		
 		LoginRequest credential = new LoginRequest();
 		
 		credential.setUsername(credentials.getUserName());
@@ -67,18 +64,18 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	}
 	
 	@Override
-	protected void proceed(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
-			UserNameAndPassword credentials) throws ServletException, IOException {
-		Long userId = null;
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
+			Optional<UserNameAndPassword> credentials) throws ServletException, IOException {
 		
-		if (credentials == null) {
-			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		} else {
+		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		
+		if (credentials.isPresent()) {
 			try {
-				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(credentials.getUserName());
+				String username = credentials.get().getUserName();
+				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(username);
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {
-				rejectRequest(response);
+				rejectRequest(response, getInvalidCredentialsMessage());
 				return;
 			}
 		}

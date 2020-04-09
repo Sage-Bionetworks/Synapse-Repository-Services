@@ -9,6 +9,10 @@ import static org.mockito.Mockito.withSettings;
 
 import java.io.PrintWriter;
 import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
@@ -25,14 +29,19 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.MetricUtils;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
 public class BasicAuthenticationFilterTest {
+	
+	@Mock
+	private StackConfiguration mockConfig;
 	
 	@Mock
 	private PrintWriter mockPrintWriter;
@@ -52,16 +61,17 @@ public class BasicAuthenticationFilterTest {
 	private BasicAuthenticationFilter filter;
 	
 	@Captor 
-	private ArgumentCaptor<ProfileData> captorProfileData;
+	private ArgumentCaptor<List<ProfileData>> captorProfileData;
 	
 	private static final String USER = "user";
 	private static final String PASS = "pass";
 	private static final String ENCODED = Base64.getEncoder().encodeToString((USER + ":" + PASS).getBytes());
+	private static final String STACK_INSTANCE = "instance";
 	
 	@BeforeEach
 	public void before() {
 		filter = Mockito.mock(BasicAuthenticationFilter.class, withSettings()
-					.useConstructor(mockConsumer)
+					.useConstructor(mockConfig, mockConsumer)
 					.defaultAnswer(Answers.CALLS_REAL_METHODS)
 		);
 	}
@@ -83,7 +93,7 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest();
+		verifyRejectRequest("{\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 	
 	@Test
@@ -94,19 +104,18 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest();
+		verifyRejectRequest("{\"reason\":\"Invalid Authorization header for basic authentication (Missing \\\"Basic \\\" prefix)\"}");
 	}
 	
 	@Test
 	public void testDoFilterWithInvalideEncodingHeader() throws Exception {
-		
 		when(mockRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Basic " + ENCODED + "___");
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest();
+		verifyRejectRequest("{\"reason\":\"Invalid Authorization header for basic authentication (Malformed Base64 encoding: Illegal base64 character 5f)\"}");
 	}
 	
 	@Test
@@ -120,7 +129,7 @@ public class BasicAuthenticationFilterTest {
 		// Call under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verifyRejectRequest();
+		verifyRejectRequest("{\"reason\":\"Invalid credentials.\"}");
 	}
 	
 	@Test
@@ -141,42 +150,94 @@ public class BasicAuthenticationFilterTest {
 		when(filter.reportBadCredentialsMetric()).thenReturn(false);
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
-		filter.rejectRequest(mockResponse);
+		filter.rejectRequest(mockResponse, "Some message");
 		
-		verifyRejectRequest();
+		verifyRejectRequest("{\"reason\":\"Some message\"}");
 		
 		verifyZeroInteractions(mockConsumer);
 	}
 	
 	@Test
 	public void testRejectRequestWithReporting() throws Exception {
+		when(mockConfig.getStackInstance()).thenReturn(STACK_INSTANCE);
 		when(filter.reportBadCredentialsMetric()).thenReturn(true);
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		
-		filter.rejectRequest(mockResponse);
+		String message = "Some message";
 		
-		verifyRejectRequest();
+		filter.rejectRequest(mockResponse, message);
+		
+		verifyRejectRequest("{\"reason\":\"Some message\"}");
 		
 		verify(mockConsumer).addProfileData(captorProfileData.capture());
 		
-		ProfileData data = captorProfileData.getValue();
+		List<ProfileData> data = captorProfileData.getValue();
 		
-		ProfileData expected = new ProfileData();
+		assertEquals(2, data.size());
 		
-		expected.setNamespace("Authentication");
-		expected.setName("BadCredentials");
-		expected.setUnit(StandardUnit.Count.toString());
-		expected.setValue(1.0);
-		expected.setDimension(ImmutableMap.of("filterClass", filter.getClass().getName()));
-		expected.setTimestamp(data.getTimestamp());
+		List<ProfileData> expected = ImmutableList.of(
+				generateProfileData(data.get(0).getTimestamp(), null),
+				generateProfileData(data.get(1).getTimestamp(), message)
+		);
 		
 		assertEquals(expected, data);
 	}
 	
-	private void verifyRejectRequest() {
+	@Test
+	public void testRejectRequestWithExceptionReporting() throws Exception {
+		when(mockConfig.getStackInstance()).thenReturn(STACK_INSTANCE);
+		when(filter.reportBadCredentialsMetric()).thenReturn(true);
+		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
+		
+		IllegalArgumentException ex = new IllegalArgumentException("Some message");
+		
+		String message = MetricUtils.stackTracetoString(ex);
+		
+		filter.rejectRequest(mockResponse, ex);
+		
+		verifyRejectRequest("{\"reason\":\"Some message\"}");
+		
+		verify(mockConsumer).addProfileData(captorProfileData.capture());
+		
+		List<ProfileData> data = captorProfileData.getValue();
+		
+		assertEquals(2, data.size());
+		
+		List<ProfileData> expected = ImmutableList.of(
+				generateProfileData(data.get(0).getTimestamp(), null),
+				generateProfileData(data.get(1).getTimestamp(), message)
+		);
+		
+		assertEquals(expected, data);
+	}
+	
+	private ProfileData generateProfileData(Date timestamp, String message) {
+		ProfileData data = new ProfileData();
+		
+		data.setNamespace("Authentication - " + STACK_INSTANCE);
+		data.setName("BadCredentials");
+		data.setUnit(StandardUnit.Count.toString());
+		data.setValue(1.0);
+		data.setTimestamp(timestamp);
+		
+		Map<String, String> dimensions = new HashMap<>();
+		
+		dimensions.put("filterClass", filter.getClass().getName());
+
+		if (message != null) {
+			dimensions.put("message", message);
+		}
+		
+		data.setDimension(dimensions);
+		
+		return data;
+		
+	}
+	
+	private void verifyRejectRequest(String message) {
 		verify(filter).reportBadCredentialsMetric();
 		verify(mockResponse).setStatus(HttpStatus.SC_UNAUTHORIZED);
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println(message);
 		verifyZeroInteractions(mockFilterChain);
 	}
 	

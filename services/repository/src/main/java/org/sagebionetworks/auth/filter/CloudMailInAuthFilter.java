@@ -14,7 +14,7 @@ public class CloudMailInAuthFilter extends BasicAuthenticationFilter {
 
 	@Autowired
 	public CloudMailInAuthFilter(StackConfiguration config, Consumer consumer) {
-		super(consumer);
+		super(config, consumer);
 		cloudMailInUser = config.getCloudMailInUser();
 		cloudMailInPassword = config.getCloudMailInPassword();
 	}

@@ -72,11 +72,11 @@ public class CloudMailInAuthFilterTest {
 		verify(responseCaptor.getValue(), never()).setStatus(eq(HttpStatus.SC_UNAUTHORIZED));
 	}
 	
-	private void checkForUnauthorizedStatus() {
+	private void checkForUnauthorizedStatus(String message) {
 		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		verify(mockResponse).setStatus((Integer)captor.capture());
 		assertEquals(new Integer(HttpStatus.SC_UNAUTHORIZED), captor.getValue());
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"" + message + "\"}");
 	}
 
 	@Test
@@ -84,7 +84,7 @@ public class CloudMailInAuthFilterTest {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
 		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
-		checkForUnauthorizedStatus();
+		checkForUnauthorizedStatus("Missing required credentials in the authorization header.");
 	}
 
 	@Test
@@ -94,7 +94,7 @@ public class CloudMailInAuthFilterTest {
 				Base64.getEncoder().encodeToString(CORRECT_CREDENTIALS.getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
 		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
-		checkForUnauthorizedStatus();
+		checkForUnauthorizedStatus("Invalid Authorization header for basic authentication (Missing \\\"Basic \\\" prefix)");
 	}
 
 	@Test
@@ -104,7 +104,7 @@ public class CloudMailInAuthFilterTest {
 				Base64.getEncoder().encodeToString("NO-COLON-HERE".getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
 		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
-		checkForUnauthorizedStatus();
+		checkForUnauthorizedStatus("Invalid Authorization header for basic authentication (Decoded credentials should be colon separated)");
 	}
 
 	@Test
@@ -114,7 +114,7 @@ public class CloudMailInAuthFilterTest {
 				Base64.getEncoder().encodeToString("foo:bar".getBytes()));
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);	
 		verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
-		checkForUnauthorizedStatus();
+		checkForUnauthorizedStatus("Invalid credentials.");
 	}
 
 

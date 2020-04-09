@@ -19,32 +19,47 @@ import org.springframework.http.HttpStatus;
 public class HttpAuthUtil {
 	
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
+	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
 
-	public static UserNameAndPassword getBasicAuthenticationCredentials(HttpServletRequest httpRequest) {
+	/**
+	 * Extracts the credentials from the Authorization header following the basic authentication scheme
+	 * 
+	 * @param httpRequest The http request
+	 * @return An optional that contains the credentials if present in the Authorization header
+	 * @throws IllegalArgumentException If the authorization header does not follow the basic authentication scheme and/or it's invalid
+	 */
+	public static Optional<UserNameAndPassword> getBasicAuthenticationCredentials(HttpServletRequest httpRequest) throws IllegalArgumentException {
 		String header = httpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME);
-		
-		if (StringUtils.isBlank(header) || !header.startsWith(AuthorizationConstants.BASIC_PREFIX)) {
-			return null;
+
+		if (StringUtils.isBlank(header)) {
+			return Optional.empty();
 		}
-		
+
+		if (!header.startsWith(AuthorizationConstants.BASIC_PREFIX)) {
+			throw new IllegalArgumentException(String.format(INVALID_AUTH_MSG_FORMAT,
+					"Missing \"" + AuthorizationConstants.BASIC_PREFIX + "\" prefix"));
+		}
+
 		String base64EncodedCredentials = header.substring(AuthorizationConstants.BASIC_PREFIX.length()).trim();
 		String basicCredentials = null;
-		
+
 		try {
 			basicCredentials = new String(BASE64_DECODER.decode(base64EncodedCredentials), StandardCharsets.UTF_8);
-		} catch(IllegalArgumentException e) {
-			return null;
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException(
+					String.format(INVALID_AUTH_MSG_FORMAT, "Malformed Base64 encoding: " + e.getMessage()), e);
 		}
-			
+
 		int colon = basicCredentials.indexOf(":");
-		
-		if (colon>0 && colon<basicCredentials.length()-1) {
+
+		if (colon > 0 && colon < basicCredentials.length() - 1) {
 			String name = basicCredentials.substring(0, colon);
-			String password = basicCredentials.substring(colon+1);
-			return new UserNameAndPassword(name, password);
+			String password = basicCredentials.substring(colon + 1);
+			return Optional.of(new UserNameAndPassword(name, password));
 		}
-		
-		return null;
+
+		throw new IllegalArgumentException(
+				String.format(INVALID_AUTH_MSG_FORMAT, "Decoded credentials should be colon separated"));
 	}
 
 	public static String getBearerTokenFromStandardAuthorizationHeader(HttpServletRequest httpRequest) {

@@ -115,7 +115,7 @@ public class OAuthClientAuthFilterTest {
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
 		verify(mockHttpResponse).setContentType("application/json");
-		verify(mockPrintWriter).println("{\"reason\":\"OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 
 }

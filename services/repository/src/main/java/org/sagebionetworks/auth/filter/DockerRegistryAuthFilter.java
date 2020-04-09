@@ -14,7 +14,7 @@ public class DockerRegistryAuthFilter extends BasicAuthenticationFilter {
 
 	@Autowired
 	public DockerRegistryAuthFilter(StackConfiguration config, Consumer consumer) {
-		super(consumer);
+		super(config, consumer);
 		dockerRegistryUser = config.getDockerRegistryUser();
 		dockerRegistryPassword = config.getDockerRegistryPassword();
 	}
@@ -31,9 +31,6 @@ public class DockerRegistryAuthFilter extends BasicAuthenticationFilter {
 
 	@Override
 	protected boolean validCredentials(UserNameAndPassword credentials) {
-		if (credentials == null) {
-			return false;
-		}
 		return dockerRegistryUser.equals(credentials.getUserName()) && dockerRegistryPassword.equals(credentials.getPassword());
 	}
 

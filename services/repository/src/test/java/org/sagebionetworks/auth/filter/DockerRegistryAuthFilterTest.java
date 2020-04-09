@@ -64,7 +64,7 @@ public class DockerRegistryAuthFilterTest {
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain, never()).doFilter(any(), any());
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Missing required credentials in the authorization header.\"}");
 	}
 
 	@Test
@@ -75,7 +75,7 @@ public class DockerRegistryAuthFilterTest {
 		when(mockRequest.getHeader("Authorization")).thenReturn(basicAuthenticationHeader);
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		verify(mockFilterChain, never()).doFilter(any(), any());
-		verify(mockPrintWriter).println("{\"reason\":\"Credentials are missing or invalid.\"}");
+		verify(mockPrintWriter).println("{\"reason\":\"Invalid credentials.\"}");
 	}
 
 	@Test

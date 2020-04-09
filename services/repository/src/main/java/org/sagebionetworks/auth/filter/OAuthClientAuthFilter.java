@@ -2,12 +2,14 @@ package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
@@ -20,60 +22,60 @@ import org.springframework.stereotype.Component;
 
 @Component("oauthClientAuthFilter")
 public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
-	
+
 	private static final String INVALID_CREDENTIAL_MSG = "OAuth Client ID and secret must be passed via Basic Authentication. Credentials are missing or invalid.";
-	
+
 	private OAuthClientManager oauthClientManager;
-	
+
 	@Autowired
-	public OAuthClientAuthFilter(Consumer consumer, OAuthClientManager oauthClientManager) {
-		super(consumer);
+	public OAuthClientAuthFilter(StackConfiguration config, Consumer consumer, OAuthClientManager oauthClientManager) {
+		super(config, consumer);
 		this.oauthClientManager = oauthClientManager;
 	}
-	
+
 	@Override
 	protected boolean credentialsRequired() {
 		return true;
 	}
-	
+
 	@Override
 	protected boolean reportBadCredentialsMetric() {
 		return false;
 	}
-	
+
 	@Override
-	protected String getInvalidCredentialMessage() {
+	protected String getInvalidCredentialsMessage() {
 		return INVALID_CREDENTIAL_MSG;
 	}
-	
+
 	@Override
 	protected boolean validCredentials(UserNameAndPassword credentials) {
-
-		if (credentials == null) {
-			return false;
-		}
-		
 		OAuthClientIdAndSecret clientCreds = new OAuthClientIdAndSecret();
-		
+
 		clientCreds.setClient_id(credentials.getUserName());
 		clientCreds.setClient_secret(credentials.getPassword());
-		
+
 		return oauthClientManager.validateClientCredentials(clientCreds);
 	}
-	
-	@Override
-	protected void proceed(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
-			UserNameAndPassword credentials) throws ServletException, IOException {
-			
-		String oauthClientId = credentials.getUserName();
 
-		// get the current headers, but be sure to leave behind anything that might be mistaken for a valid
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
+			Optional<UserNameAndPassword> credentials) throws ServletException, IOException {
+		
+		if (!credentials.isPresent()) {
+			throw new IllegalStateException("Credentials were expected but not supplied");
+		}
+
+		String oauthClientId = credentials.get().getUserName();
+
+		// get the current headers, but be sure to leave behind anything that might be
+		// mistaken for a valid
 		// authentication header 'down the filter chain'
-		
+
 		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);
-		modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] {oauthClientId});
+		modHeaders.put(AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, new String[] { oauthClientId });
 		HttpServletRequest modRqst = new ModHttpServletRequest(request, modHeaders, null);
-		
+
 		filterChain.doFilter(modRqst, response);
 	}
 
