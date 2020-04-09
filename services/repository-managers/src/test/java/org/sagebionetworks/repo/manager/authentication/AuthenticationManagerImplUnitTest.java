@@ -74,11 +74,6 @@ public class AuthenticationManagerImplUnitTest {
 	ChangePasswordWithToken changePasswordWithToken;
 	PasswordResetSignedToken passwordResetSignedToken;
 
-	public void setupMockUserCredentialValidator() {
-		when(mockUserCredentialValidator.checkPasswordWithThrottling(userId, password)).thenReturn(true);
-		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);
-	}
-
 	public void setupMockPrincipalAliasDAO() {
 		PrincipalAlias principalAlias = new PrincipalAlias();
 		principalAlias.setPrincipalId(userId);
