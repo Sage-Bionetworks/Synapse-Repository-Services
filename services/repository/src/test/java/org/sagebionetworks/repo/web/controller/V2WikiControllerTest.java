@@ -162,7 +162,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerJunit5TestB
 		evaluation.setContentSource(entity.getId());
 		evaluation.setDescription("a test descrption");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = entityServletHelper.createEvaluation(evaluation, adminUserId);
+		evaluation = entityServletHelper.createEvaluation(evaluation, accessToken);
 		// Test all wiki CRUD for an entity
 		doWikiCRUDForOwnerObject(evaluation.getId(), ObjectType.EVALUATION);
 	}
