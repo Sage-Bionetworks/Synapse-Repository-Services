@@ -86,7 +86,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 			return;
 		}
 
-		doFilterInternal(httpRequest, httpResponse, filterChain, credentials);
+		doFilterInternal(httpRequest, httpResponse, filterChain, credentials.orElse(null));
 	}
 
 	@Override
@@ -150,8 +150,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
-			Optional<UserNameAndPassword> credentials) throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
 		filterChain.doFilter(request, response);
 	}
 
@@ -201,16 +200,16 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		// and one without the message so that an alarm can be created (since we don't know the message in advance it would be impossible
 		// to create an alarm).
 		
-		data.add(generateProfileData(timestamp, filterClass, stackInstance, Optional.empty()));
+		data.add(generateProfileData(timestamp, filterClass, stackInstance, null));
 		
 		if (!StringUtils.isBlank(message)) {
-			data.add(generateProfileData(timestamp, filterClass, stackInstance, Optional.of(message)));
+			data.add(generateProfileData(timestamp, filterClass, stackInstance, message));
 		}
 		
 		consumer.addProfileData(data);
 	}
 	
-	private static ProfileData generateProfileData(Date timestamp, String filterClass, String stackInstance, Optional<String> message) {
+	private static ProfileData generateProfileData(Date timestamp, String filterClass, String stackInstance, String message) {
 		ProfileData logEvent = new ProfileData();
 
 		logEvent.setNamespace(String.format("%s - %s", CLOUD_WATCH_NAMESPACE_PREFIX, stackInstance));
@@ -223,9 +222,9 @@ public abstract class BasicAuthenticationFilter implements Filter {
 		
 		dimensions.put(CLOUD_WATCH_DIMENSION_FILTER, filterClass);
 		
-		message.ifPresent( msg -> {
-			dimensions.put(CLOUD_WATCH_DIMENSION_MESSAGE, msg);
-		});
+		if (message != null) {
+			dimensions.put(CLOUD_WATCH_DIMENSION_MESSAGE, message);
+		};
 		
 		logEvent.setDimension(dimensions);
 		

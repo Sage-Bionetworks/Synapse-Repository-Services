@@ -2,7 +2,6 @@ package org.sagebionetworks.auth.filter;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -59,14 +58,13 @@ public class OAuthClientAuthFilter extends BasicAuthenticationFilter {
 	}
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
-			Optional<UserNameAndPassword> credentials) throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
 		
-		if (!credentials.isPresent()) {
+		if (credentials == null) {
 			throw new IllegalStateException("Credentials were expected but not supplied");
 		}
 
-		String oauthClientId = credentials.get().getUserName();
+		String oauthClientId = credentials.getUserName();
 
 		// get the current headers, but be sure to leave behind anything that might be
 		// mistaken for a valid

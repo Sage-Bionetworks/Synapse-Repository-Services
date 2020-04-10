@@ -3,7 +3,6 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -64,14 +63,13 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	}
 	
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain,
-			Optional<UserNameAndPassword> credentials) throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, UserNameAndPassword credentials) throws ServletException, IOException {
 		
 		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		
-		if (credentials.isPresent()) {
+		if (credentials != null) {
 			try {
-				String username = credentials.get().getUserName();
+				String username = credentials.getUserName();
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(username);
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {
