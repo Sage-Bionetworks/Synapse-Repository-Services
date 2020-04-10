@@ -23,7 +23,6 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>javacc-maven-plugin</artifactId>
-				<version>2.6</version>
 				<executions>
 					<execution>
 						<goals>
@@ -33,6 +32,26 @@
 							<!-- options for JJTree and JavaCC go here -->
 							<isStatic>false</isStatic>
 							<sourceDirectory>${basedir}/src/main/resources</sourceDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<!-- This plugin adds the auto-generated code to the classpath, so eclipse 
+					will automatically include them. -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/javacc</source>
+							</sources>
 						</configuration>
 					</execution>
 				</executions>
