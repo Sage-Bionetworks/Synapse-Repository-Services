@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.schema.*;
+import org.sagebionetworks.schema.id.*;
+import org.sagebionetworks.schema.element.*;
 import org.sagebionetworks.schema.semantic.version.*;
 
 public class SchemaIdParser {
@@ -41,6 +43,7 @@ TOKEN:{
 | < letter: ["a"-"z","A"-"Z"]>
 | < dash: "-">
 | < plus: "+">
+| < slash: "/" >
 }
 
 VersionCore versionCore():
@@ -121,25 +124,17 @@ PrereleaseIdentifier prereleaseIdentifier():
 	numericIdentifier = numericIdentifier() { return new PrereleaseIdentifier(numericIdentifier); }
 |	alphanumericIdentifier = alphanumericIdentifier() { return new PrereleaseIdentifier(alphanumericIdentifier); }	
 }
-DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers():
-{
-PrereleaseIdentifier prereleaseIdentifier = null;
-DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers = null;
-}
-{
-	prereleaseIdentifier = prereleaseIdentifier() 
-	(
-		<dot> dotSeparatedPrereleaseIdentifiers = dotSeparatedPrereleaseIdentifiers()
-	)*
-	{ return new DotSeparatedPrereleaseIdentifiers(prereleaseIdentifier, dotSeparatedPrereleaseIdentifiers);}
-}
 Prerelease prerelease():
 {
-DotSeparatedPrereleaseIdentifiers dotSeparatedPrereleaseIdentifiers = null;
+	Prerelease prerelease = new Prerelease();
+	PrereleaseIdentifier prereleaseIdentifier = null;
 }
 {
-	dotSeparatedPrereleaseIdentifiers = dotSeparatedPrereleaseIdentifiers()
-	{ return new Prerelease(dotSeparatedPrereleaseIdentifiers); }
+	prereleaseIdentifier = prereleaseIdentifier() { prerelease.add(prereleaseIdentifier); }
+	(
+		<dot> prereleaseIdentifier = prereleaseIdentifier() { prerelease.add(prereleaseIdentifier); }
+	)*
+	{ return prerelease; }
 }
 BuildIdentifier buildIdentifier():
 {
@@ -147,27 +142,19 @@ BuildIdentifier buildIdentifier():
 }
 {
 	identifierCharacters(builder)
-	{ return new BuildIdentifier(builder.toString()); }	
-}
-DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers():
-{
-	BuildIdentifier buildIdentifier = null;
-	DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers = null;
-}
-{
-	buildIdentifier = buildIdentifier()
-	(
-		<dot> dotSeparatedBuildIdentifiers = dotSeparatedBuildIdentifiers()
-	)*
-	{ return new DotSeparatedBuildIdentifiers(buildIdentifier, dotSeparatedBuildIdentifiers); }
+	 { return new BuildIdentifier(builder.toString()); }
 }
 Build build():
 {
-	DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers = null;
+	Build build = new Build();
+	BuildIdentifier buildIdentifier = null;
 }
 {
-	dotSeparatedBuildIdentifiers = dotSeparatedBuildIdentifiers()
-	{ return new Build(dotSeparatedBuildIdentifiers); }
+	buildIdentifier = buildIdentifier() { build.add(buildIdentifier); }
+	(
+	 <dot> 	buildIdentifier = buildIdentifier() { build.add(buildIdentifier); }
+	)*
+	{ return build; }
 }
 SemanticVersion semanticVersion():
 {
@@ -178,4 +165,42 @@ SemanticVersion semanticVersion():
 {
 	versionCore = versionCore() [ <dash> prerelease = prerelease()  ] [ <plus> build = build() ]
 	{ return new SemanticVersion(versionCore, prerelease, build); }
+}
+DotSeparatedAlphaNumeric dotSeparatedAlphaNumeric():
+{
+	DotSeparatedAlphaNumeric dotSeparatedAlphaNumeric = new DotSeparatedAlphaNumeric();
+	AlphanumericIdentifier alphanumericIdentifier = null;
+}
+{
+	alphanumericIdentifier = alphanumericIdentifier() { dotSeparatedAlphaNumeric.add(alphanumericIdentifier); }
+	(
+		<dot> alphanumericIdentifier = alphanumericIdentifier() { dotSeparatedAlphaNumeric.add(alphanumericIdentifier); }
+	)*
+	{ return dotSeparatedAlphaNumeric; }
+}
+OrganizationName organizationName():
+{
+	DotSeparatedAlphaNumeric dotSeparatedAlphaNumeric = null;
+}
+{
+	dotSeparatedAlphaNumeric = dotSeparatedAlphaNumeric()
+	{ return new OrganizationName(dotSeparatedAlphaNumeric); }
+}
+SchemaName schemaName():
+{
+	DotSeparatedAlphaNumeric dotSeparatedAlphaNumeric = null;
+}
+{
+	dotSeparatedAlphaNumeric = dotSeparatedAlphaNumeric()
+	{ return new SchemaName(dotSeparatedAlphaNumeric); }
+}
+SchemaId schemaId():
+{
+	OrganizationName organizationName = null;
+	SchemaName schemaName = null;
+	SemanticVersion semanticVersion = null;
+}
+{
+	organizationName = organizationName() <slash> schemaName = schemaName() [ <slash> semanticVersion = semanticVersion() ]
+	{ return new SchemaId(organizationName, schemaName, semanticVersion); }
 }

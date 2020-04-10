@@ -1,11 +1,13 @@
 package org.sagebionetworks.schema.semantic.version;
 
-import org.sagebionetworks.schema.SimpleBranch;
+import org.sagebionetworks.schema.element.ElementList;
 
-public class Build extends SimpleBranch {
+public class Build extends ElementList<BuildIdentifier> {
 
-	public Build(DotSeparatedBuildIdentifiers dotSeparatedBuildIdentifiers) {
-		super(dotSeparatedBuildIdentifiers);
+	public static final String DELIMITER  = ".";
+	
+	public Build() {
+		super(DELIMITER);
 	}
 
 }

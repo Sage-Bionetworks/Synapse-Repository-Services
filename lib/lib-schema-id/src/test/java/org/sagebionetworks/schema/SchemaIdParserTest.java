@@ -2,14 +2,18 @@ package org.sagebionetworks.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.schema.id.DotSeparatedAlphaNumeric;
+import org.sagebionetworks.schema.id.OrganizationName;
+import org.sagebionetworks.schema.id.SchemaId;
+import org.sagebionetworks.schema.id.SchemaName;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.AlphanumericIdentifier;
 import org.sagebionetworks.schema.semantic.version.Build;
-import org.sagebionetworks.schema.semantic.version.BuildIdentifier;
 import org.sagebionetworks.schema.semantic.version.NumericIdentifier;
 import org.sagebionetworks.schema.semantic.version.Prerelease;
 import org.sagebionetworks.schema.semantic.version.PrereleaseIdentifier;
@@ -146,19 +150,6 @@ public class SchemaIdParserTest {
 	}
 	
 	@Test
-	public void testBuildIdentifier() throws ParseException {
-		testBuildIdentifier("alpha");
-		testBuildIdentifier("123");
-		testBuildIdentifier("0123");
-	}
-	
-	public void testBuildIdentifier(String input) throws ParseException {
-		SchemaIdParser parser = new SchemaIdParser(input);
-		BuildIdentifier buildIdentifier = parser.buildIdentifier();
-		assertEquals(buildIdentifier.toString(), input);
-	}
-	
-	@Test
 	public void testBuild() throws ParseException {
 		testBuild("001");
 		testBuild("20130313144700");
@@ -183,5 +174,86 @@ public class SchemaIdParserTest {
 		SchemaIdParser parser = new SchemaIdParser(input);
 		SemanticVersion semanticVersion = parser.semanticVersion();
 		assertEquals(input, semanticVersion.toString());
+	}
+	
+	@Test
+	public void testDotSeparatedAlphanumeric() throws ParseException {
+		testDotSeparatedAlphanumeric("abc");
+		testDotSeparatedAlphanumeric("abc.xyz");
+		testDotSeparatedAlphanumeric("a1.b-3.c4123");
+	}
+	
+	public void testDotSeparatedAlphanumeric(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		DotSeparatedAlphaNumeric dotSeparatedAlphaNumeric = parser.dotSeparatedAlphaNumeric();
+		assertEquals(input, dotSeparatedAlphaNumeric.toString());
+	}
+	
+	@Test
+	public void testDotSeparatedAlphanumericStartsWithNumber() {
+		assertThrows(ParseException.class, ()->{
+			testDotSeparatedAlphanumeric("1abc");
+		});
+	}
+	
+	@Test
+	public void testDotSeparatedAlphanumericStartsWithZero() {
+		assertThrows(ParseException.class, ()->{
+			testDotSeparatedAlphanumeric("0");
+		});
+	}
+	
+	@Test
+	public void testOrganziationName() throws ParseException {
+		testOrganizationName("foo");
+		testOrganizationName("foo.bar.a1");
+	}
+	
+	public void testOrganizationName(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		OrganizationName organizationName = parser.organizationName();
+		assertEquals(input, organizationName.toString());
+	}
+	
+	@Test
+	public void testSchemaName() throws ParseException {
+		testSchemaName("SomeClass");
+		testSchemaName("repo.model.SomeClass");
+	}
+	
+	public void testSchemaName(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		SchemaName schemaName = parser.schemaName();
+		assertEquals(input, schemaName.toString());
+	}
+	
+	@Test
+	public void testSchemaIdNoVersion() throws ParseException {
+		SchemaId id = testSchemaId("org.myorg/path.SomeClass");
+		assertNotNull(id);
+		assertNotNull(id.getOrganizationName());
+		assertEquals("org.myorg",id.getOrganizationName().toString());
+		assertNotNull(id.getSchemaName());
+		assertEquals("path.SomeClass", id.getSchemaName().toString());
+		assertNull(id.getSemanticVersion());
+	}
+	
+	@Test
+	public void testSchemaIdWithVersion() throws ParseException {
+		SchemaId id = testSchemaId("org.myorg/path.SomeClass/1.2.3-alpha+1234f");
+		assertNotNull(id);
+		assertNotNull(id.getOrganizationName());
+		assertEquals("org.myorg",id.getOrganizationName().toString());
+		assertNotNull(id.getSchemaName());
+		assertEquals("path.SomeClass", id.getSchemaName().toString());
+		assertNotNull(id.getSemanticVersion());
+		assertEquals("1.2.3-alpha+1234f", id.getSemanticVersion().toString());
+	}
+	
+	public SchemaId testSchemaId(String input) throws ParseException {
+		SchemaIdParser parser = new SchemaIdParser(input);
+		SchemaId schemaId = parser.schemaId();
+		assertEquals(input, schemaId.toString());
+		return schemaId;
 	}
 }

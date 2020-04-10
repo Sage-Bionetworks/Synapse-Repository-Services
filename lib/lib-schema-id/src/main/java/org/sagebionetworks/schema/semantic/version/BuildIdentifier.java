@@ -1,6 +1,6 @@
 package org.sagebionetworks.schema.semantic.version;
 
-import org.sagebionetworks.schema.SimpleString;
+import org.sagebionetworks.schema.element.SimpleString;
 
 public class BuildIdentifier extends SimpleString {
 

@@ -1,4 +1,4 @@
-package org.sagebionetworks.schema;
+package org.sagebionetworks.schema.element;
 
 import java.util.Objects;
 

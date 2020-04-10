@@ -2,7 +2,7 @@ package org.sagebionetworks.schema.semantic.version;
 
 import java.util.Objects;
 
-import org.sagebionetworks.schema.Element;
+import org.sagebionetworks.schema.element.Element;
 
 public final class VersionCore extends Element {
 

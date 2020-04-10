@@ -1,4 +1,4 @@
-package org.sagebionetworks.schema;
+package org.sagebionetworks.schema.element;
 
 public abstract class Element {
 

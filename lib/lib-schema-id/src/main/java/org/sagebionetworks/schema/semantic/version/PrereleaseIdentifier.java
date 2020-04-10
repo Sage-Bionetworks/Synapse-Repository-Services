@@ -1,6 +1,6 @@
 package org.sagebionetworks.schema.semantic.version;
 
-import org.sagebionetworks.schema.SimpleBranch;
+import org.sagebionetworks.schema.element.SimpleBranch;
 
 /**
  * A simple branch between AlphanumericIdentifier | NumericIdentifier
