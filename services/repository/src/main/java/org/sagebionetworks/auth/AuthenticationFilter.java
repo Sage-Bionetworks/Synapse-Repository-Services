@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
@@ -106,7 +107,8 @@ public class AuthenticationFilter implements Filter {
 			accessToken=HttpAuthUtil.getBearerTokenFromStandardAuthorizationHeader(req);
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
-					oidcTokenHelper.validateJWT(accessToken);
+					// validate token and get userid parameter
+					userId = oidcManager.getUserAuthorization(accessToken).getId(); // TODO: is there a stripped down way to just get the userId?
 				} catch (IllegalArgumentException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {
@@ -116,11 +118,20 @@ public class AuthenticationFilter implements Filter {
 					log.warn(failureReason, e);
 					return;
 				}	
+			} else { // anonymous
+				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+				// there is no bearer token (as an Auth or sessionToken header) or digital signature
+				// so create an 'anonymous' bearer token
+				accessToken = oidcTokenHelper.createAnonymousAccessToken();
 			}
 		}
+		
+		// there are multiple paths to this point, but all require creating a userId and access token
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(accessToken, "accessToken");
 
-		// If the user has been identified, check if they have accepted the terms of use
-		if (accessToken!=null) {
+		// If the user is not anonymous, check if they have accepted the terms of use
+		if (userId != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()) {
 			try {
 				if (!authenticationService.hasUserAcceptedTermsOfUse(accessToken)) {
 					HttpAuthUtil.reject((HttpServletResponse) servletResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
@@ -131,20 +142,13 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, message, HttpStatus.FORBIDDEN);
 				return;
 			}
-			// add in userid parameter
-			UserInfo userInfo = oidcManager.getUserAuthorization(accessToken); // TODO: is there a stripped down way to just get the userId?
-			userId = userInfo.getId();
-		} else { // anonymous
-				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-				// there is no bearer token (as an Auth or sessionToken header) or digital signature
-				// so create an 'anonymous' bearer token
-				accessToken = oidcTokenHelper.createAnonymousAccessToken();
 		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
+		
+		// Pass the request along, including the user Id and access token
 		try {
-			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
