@@ -22,9 +22,11 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenHelper;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -53,6 +55,9 @@ public class AuthenticationFilter implements Filter {
 
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
+
+	@Autowired
+	private OpenIDConnectManager oidcManager;
 
 	@Override
 	public void destroy() { }
@@ -125,7 +130,10 @@ public class AuthenticationFilter implements Filter {
 				String message = StringUtils.isBlank(e.getMessage()) ? TOU_UNSIGNED_REASON : e.getMessage();
 				HttpAuthUtil.reject((HttpServletResponse) servletResponse, message, HttpStatus.FORBIDDEN);
 				return;
-			}	
+			}
+			// add in userid parameter
+			UserInfo userInfo = oidcManager.getUserAuthorization(accessToken); // TODO: is there a stripped down way to just get the userId?
+			userId = userInfo.getId();
 		} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 				// there is no bearer token (as an Auth or sessionToken header) or digital signature
@@ -138,12 +146,7 @@ public class AuthenticationFilter implements Filter {
 		try {
 			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-			if (userId!=null) {
-				modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-			} else {
-				// if no userId, make sure that the client hasn't tried to add one
-				modParams.remove(AuthorizationConstants.USER_ID_PARAM);
-			}
+			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
