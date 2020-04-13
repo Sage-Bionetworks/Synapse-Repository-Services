@@ -67,10 +67,15 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 		if (missingScopes.isEmpty()) {
 			return true;
 		}
+		
+		StringBuilder sb = new StringBuilder(ERROR_MESSAGE_PREFIX);
+		boolean first = true;
+		for (OAuthScope missingScope : missingScopes) {
+			if (first) first=false; else sb.append(", ");
+			sb.append(missingScope.name());
+		}
 
-		HttpAuthUtil.reject(response, 
-				ERROR_MESSAGE_PREFIX+String.join(", ", missingScopes.toArray(new String[] {})), 
-				HttpStatus.FORBIDDEN);
+		HttpAuthUtil.reject(response, sb.toString(), HttpStatus.FORBIDDEN);
 		
 		return false;
 	}
