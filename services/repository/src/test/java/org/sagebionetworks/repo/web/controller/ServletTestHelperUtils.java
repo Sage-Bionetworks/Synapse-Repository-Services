@@ -63,11 +63,12 @@ public class ServletTestHelperUtils {
 	 *            Optional, object to serialize into the body of the request
 	 */
 	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
-			String requestURI, Long userId, JSONEntity entity)
+			String requestURI, Long userId, String accessToken, JSONEntity entity)
 			throws Exception {
 		MockHttpServletRequest request = initRequestUnauthenticated(mode, path, requestURI, entity);
 		if (userId != null) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
+			request.addHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, "Bearer "+accessToken);
 		}
 		return request;
 	}
@@ -91,9 +92,9 @@ public class ServletTestHelperUtils {
 	}
 	
 	public static MockHttpServletRequest initRequest(HTTPMODE mode,
-			String requestURI, Long userId, JSONEntity entity)
+			String requestURI, Long userId, String accessToken, JSONEntity entity)
 			throws Exception {
-		return initRequest(mode, "/repo/v1", requestURI, userId, entity);
+		return initRequest(mode, "/repo/v1", requestURI, userId, accessToken, entity);
 	}
 
 	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
