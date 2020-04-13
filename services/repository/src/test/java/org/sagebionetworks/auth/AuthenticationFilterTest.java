@@ -305,7 +305,7 @@ public class AuthenticationFilterTest {
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
+		verify(mockOidcManager).getUserId(BEARER_TOKEN);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 		verify(mockAuthService).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		
@@ -350,12 +350,12 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
-		doThrow(new IllegalArgumentException()).when(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
+		doThrow(new IllegalArgumentException()).when(mockOidcManager).getUserId(BEARER_TOKEN);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
 		
-		verify(mockOidcManager).getUserAuthorization(BEARER_TOKEN);
+		verify(mockOidcManager).getUserId(BEARER_TOKEN);
 		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(BEARER_TOKEN);
 		verify(mockFilterChain, never()).doFilter((ServletRequest)any(), (ServletResponse)any());
 		verify(mockHttpResponse).setStatus(401);
