@@ -95,7 +95,15 @@ public class IT990AuthenticationController {
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
 		request.setAuthenticationReceipt(receipt);
-		receipt = synapse.login(request).getAuthenticationReceipt();
+		LoginResponse loginResponse = synapse.login(request);
+		receipt = loginResponse.getAuthenticationReceipt();
+		{
+			// agreeing to terms of use is not done as a (normally) authenticated request
+			SynapseClientImpl sc = new SynapseClientImpl();
+			SynapseClientHelper.setEndpoints(sc);
+			sc.setUsername(username);
+			sc.signTermsOfUse(loginResponse.getSessionToken(), true);
+		}
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	

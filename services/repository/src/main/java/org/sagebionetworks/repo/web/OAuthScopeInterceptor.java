@@ -34,6 +34,7 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 			Arrays.asList(new OAuthScope[] {OAuthScope.view, OAuthScope.download, OAuthScope.modify}));
 
 	private static final String ERROR_MESSAGE_PREFIX  = "Request lacks scope(s) required by this service: ";
+	
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 

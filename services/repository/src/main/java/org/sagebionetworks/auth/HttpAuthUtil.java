@@ -55,7 +55,6 @@ public class HttpAuthUtil {
 	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
 			Arrays.asList(new String[] {
 					AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.toLowerCase(),
-					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
 					AuthorizationConstants.SIGNATURE.toLowerCase(),
@@ -66,10 +65,14 @@ public class HttpAuthUtil {
 	 * Get all the request headers *except* the authorization headers used by Synapse
 	 */
 	public static Map<String, String[]> filterAuthorizationHeaders(HttpServletRequest request) {
+		return copyHeaders(request, AUTHORIZATION_HEADERS_LOWER_CASE);
+	}
+		
+	public static Map<String, String[]> copyHeaders(HttpServletRequest request, List<String> headerNamesToOmitLowerCase) {
 		Map<String, String[]> result = new HashMap<String, String[]> ();
 		for (Enumeration<String> e = request.getHeaderNames(); e.hasMoreElements();) {
 			String headerName = e.nextElement();
-			if (AUTHORIZATION_HEADERS_LOWER_CASE.contains(headerName.toLowerCase())) {
+			if (headerNamesToOmitLowerCase!=null && headerNamesToOmitLowerCase.contains(headerName.toLowerCase())) {
 				continue;
 			}
 			List<String> headerValues = new ArrayList<String>();
