@@ -92,7 +92,6 @@ public class AuthenticationFilterTest {
 	private static final String BEARER_TOKEN_HEADER = "Bearer "+BEARER_TOKEN;
 	private static final List<String> HEADER_NAMES = Collections.singletonList("Authorization");
 	private PrincipalAlias pa;
-	private UserInfo userInfo;
 	
 	@BeforeEach
 	public void setupFilter() throws Exception {
@@ -116,9 +115,6 @@ public class AuthenticationFilterTest {
 				return null;
 			}
 		});
-		
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
 	}
 	
 	@Test
@@ -302,7 +298,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
 		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
-		when(mockOidcManager.getUserAuthorization(anyString())).thenReturn(userInfo);
+		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
 
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
 
@@ -331,7 +327,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
 		when(mockAuthService.hasUserAcceptedTermsOfUse(anyString())).thenReturn(true);
-		when(mockOidcManager.getUserAuthorization(anyString())).thenReturn(userInfo);
+		when(mockOidcManager.getUserId(anyString())).thenReturn(""+userId);
 
 		// method under test
 		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);

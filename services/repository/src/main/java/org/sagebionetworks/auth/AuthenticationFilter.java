@@ -108,7 +108,7 @@ public class AuthenticationFilter implements Filter {
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = oidcManager.getUserAuthorization(accessToken).getId(); // TODO: is there a stripped down way to just get the userId?
+					userId = Long.parseLong(oidcManager.getUserId(accessToken));
 				} catch (IllegalArgumentException e) {
 					String failureReason = "Invalid access token";
 					if (StringUtils.isNotEmpty(e.getMessage())) {

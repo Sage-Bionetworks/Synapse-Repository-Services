@@ -99,7 +99,7 @@ public class ServletTestHelperUtils {
 		return initRequest(mode, "/repo/v1", requestURI, userId, accessToken, entity);
 	}
 
-	// TODO:  delete this
+	// TODO:  when PLFM-5170 is done this will be gone
 	public static MockHttpServletRequest initRequestWithAccessTokenAuth(HTTPMODE mode,
 			String requestURI, String accessToken, JSONEntity entity)
 			throws Exception {

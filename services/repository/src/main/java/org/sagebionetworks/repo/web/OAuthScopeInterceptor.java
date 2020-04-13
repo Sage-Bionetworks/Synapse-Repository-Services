@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.web;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -27,40 +30,48 @@ public class OAuthScopeInterceptor implements HandlerInterceptor {
 	/*
 	 * If a handler is not annotated with RequiredScope then, by default, it requires the following
 	 */
-	private static final OAuthScope[] DEFAULT_SCOPE = new OAuthScope[] {OAuthScope.view, OAuthScope.download, OAuthScope.modify};
+	private static final Set<OAuthScope> DEFAULT_SCOPES = new HashSet<OAuthScope>(
+			Arrays.asList(new OAuthScope[] {OAuthScope.view, OAuthScope.download, OAuthScope.modify}));
 
+	private static final String ERROR_MESSAGE_PREFIX  = "Request lacks scope(s) required by this service: ";
 	@Autowired
 	private OIDCTokenHelper oidcTokenHelper;
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
-		boolean accessTokenHasSufficientScope = false;
+		Set<OAuthScope> missingScopes;
+		{
+			List<OAuthScope> requestScopes = Collections.EMPTY_LIST;
+			Set<OAuthScope> requiredScopes = new HashSet<OAuthScope>(DEFAULT_SCOPES);
 
-		if (handler instanceof HandlerMethod) {
-			HandlerMethod handlerMethod = (HandlerMethod) handler;
-			RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
-			OAuthScope[] requiredScopeArray;
-			if (requiredScopeAnnotation == null) {
-				requiredScopeArray = DEFAULT_SCOPE;
-			} else {
-				requiredScopeArray = requiredScopeAnnotation.scope();
+			if (handler instanceof HandlerMethod) {
+				HandlerMethod handlerMethod = (HandlerMethod) handler;
+				RequiredScope requiredScopeAnnotation = handlerMethod.getMethodAnnotation(RequiredScope.class);
+				if (requiredScopeAnnotation != null) {
+					requiredScopes = new HashSet<OAuthScope>(Arrays.asList(requiredScopeAnnotation.scope()));
+				}
+
+				String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
+				if (synapseAuthorizationHeader!=null) {
+					String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
+					Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
+					requestScopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
+				}
 			}
-			
-			String synapseAuthorizationHeader = request.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
-			if (synapseAuthorizationHeader!=null) {
-				String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(synapseAuthorizationHeader);
-				Jwt<JwsHeader, Claims> jwt = oidcTokenHelper.parseJWT(accessToken);
-				List<OAuthScope> scopes = ClaimsJsonUtil.getScopeFromClaims(jwt.getBody());
-				accessTokenHasSufficientScope = scopes.containsAll(Arrays.asList(requiredScopeArray));
-			}
+
+			requiredScopes.removeAll(requestScopes);
+			missingScopes = requiredScopes;
 		}
-		
-		if (accessTokenHasSufficientScope) {
+
+		if (missingScopes.isEmpty()) {
 			return true;
 		}
+
+		HttpAuthUtil.reject(response, 
+				ERROR_MESSAGE_PREFIX+String.join(", ", missingScopes.toArray(new String[] {})), 
+				HttpStatus.FORBIDDEN);
 		
-		HttpAuthUtil.reject(response, "Request lacks required scope.", HttpStatus.FORBIDDEN); // TODO 'word smith' this error message
 		return false;
 	}
 
